@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<tool id="sentiment_analysis_api" name="Sentiment Analysis API" version="1.0.0">
+    <description>Analyze sentiment using external REST API</description>
+    
+    <requirements>
+        <requirement type="package" version="2.28.1">requests</requirement>
+    </requirements>
+    
+    <command><![CDATA[
+        python '$__tool_directory__/sentiment_api_wrapper.py' 
+            --input '$input_file' 
+            --output '$output_file'
+            --api_endpoint '$api_endpoint'
+            --api_key '$api_key'
+    ]]></command>
+    
+    <inputs>
+        <param name="input_file" type="data" format="txt" label="Input text file" help="Text file to analyze"/>
+        <param name="api_endpoint" type="text" value="https://your-api.com/sentiment" label="API Endpoint" help="REST API endpoint URL"/>
+        <param name="api_key" type="text" value="" label="API Key" help="Your API authentication key">
+            <sanitizer>
+                <valid initial="string.ascii_letters,string.digits">
+                    <add value="_"/>
+                    <add value="-"/>
+                </valid>
+            </sanitizer>
+        </param>
+        <param name="confidence_threshold" type="float" value="0.5" min="0.0" max="1.0" label="Confidence Threshold"/>
+    </inputs>
+    
+    <outputs>
+        <data name="output_file" format="json" label="Sentiment Analysis Results"/>
+    </outputs>
+    
+    <tests>
+        <test>
+            <param name="input_file" value="sample_text.txt"/>
+            <param name="api_endpoint" value="https://mock-api.com/sentiment"/>
+            <param name="api_key" value="test_key"/>
+            <output name="output_file" file="expected_sentiment.json"/>
+        </test>
+    </tests>
+    
+    <help><![CDATA[
+**What it does**
+
+This tool sends text data to a RESTful API for sentiment analysis and returns the results in JSON format.
+
+**Input**
+- Text file containing the content to analyze
+- API endpoint URL
+- API authentication key
+
+**Output**
+- JSON file with sentiment scores and classifications
+
+**API Requirements**
+Your REST API should:
+- Accept POST requests with text data
+- Return JSON response with sentiment analysis
+- Support authentication via API key
+    ]]></help>
+</tool>

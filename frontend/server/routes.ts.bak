@@ -1,0 +1,611 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import OpenAI from "openai";
+import { datasetConfigSchema } from "../shared/schema";
+import { mockGalaxyAPI } from "./mock-galaxy-api";
+import { GalaxyAPIProxy } from "./galaxy-api-proxy";
+import { createPoller } from "./galaxy-state-poller";
+import { WorkflowSSEManager } from "./workflow-sse";
+import { GalaxyAssistant } from "./galaxy-assistant";
+
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Initialize Galaxy backend (using mock for now, switch to real later)
+const USE_MOCK_GALAXY = process.env.USE_MOCK_GALAXY !== 'false'; // Default to mock
+const galaxyAPIBackend = USE_MOCK_GALAXY ? mockGalaxyAPI : null; // Mock API for workflow execution
+const galaxyAPIProxy = new GalaxyAPIProxy(); // Real proxy for tool search/datasets
+
+// Initialize state poller and SSE manager
+const galaxyPoller = createPoller(galaxyAPIBackend, { pollInterval: 2000 });
+const sseManager = new WorkflowSSEManager(galaxyPoller);
+
+// Initialize Galaxy Assistant (hybrid intelligence)
+const galaxyAssistant = new GalaxyAssistant({
+  openaiApiKey: process.env.OPENAI_API_KEY!,
+  galaxyAPIProxy,
+});
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // ============================================================================
+  // Galaxy Tool Search API
+  // ============================================================================
+
+  app.get("/api/galaxy/tools/search", async (req, res) => {
+    try {
+      const { q, category, limit } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: "Query parameter 'q' is required" });
+      }
+
+      const results = await galaxyAPI.searchTools(
+        q,
+        category as string | undefined,
+        limit ? parseInt(limit as string) : 50
+      );
+
+      res.json(results);
+    } catch (error: any) {
+      console.error("Tool search error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'ToolSearchError',
+        message: error.message || 'Tool search failed',
+      });
+    }
+  });
+
+  app.get("/api/galaxy/tools/categories", async (req, res) => {
+    try {
+      const categories = await galaxyAPI.getToolCategories();
+      res.json(categories);
+    } catch (error: any) {
+      console.error("Get categories error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'CategoryError',
+        message: error.message || 'Failed to fetch categories',
+      });
+    }
+  });
+
+  app.get("/api/galaxy/tools/:toolId", async (req, res) => {
+    try {
+      const tool = await galaxyAPI.getToolById(req.params.toolId);
+      res.json(tool);
+    } catch (error: any) {
+      console.error("Get tool error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'ToolNotFound',
+        message: error.message || 'Tool not found',
+      });
+    }
+  });
+
+  app.get("/api/galaxy/tools/installed/list", async (req, res) => {
+    try {
+      const installed = await galaxyAPI.getInstalledTools();
+      res.json(installed);
+    } catch (error: any) {
+      console.error("Get installed tools error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'InstalledToolsError',
+        message: error.message || 'Failed to fetch installed tools',
+      });
+    }
+  });
+
+  // ============================================================================
+  // Galaxy Dataset Discovery API
+  // ============================================================================
+
+  app.post("/api/galaxy/datasets/search", async (req, res) => {
+    try {
+      const searchRequest = req.body;
+      if (!searchRequest.query) {
+        return res.status(400).json({ error: "Query is required" });
+      }
+
+      const results = await galaxyAPI.searchDatasets(searchRequest);
+      res.json(results);
+    } catch (error: any) {
+      console.error("Dataset search error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'DatasetSearchError',
+        message: error.message || 'Dataset search failed',
+      });
+    }
+  });
+
+  app.get("/api/galaxy/datasets/category/:category", async (req, res) => {
+    try {
+      const datasets = await galaxyAPI.getDatasetsByCategory(req.params.category);
+      res.json({ datasets });
+    } catch (error: any) {
+      console.error("Get datasets by category error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'DatasetError',
+        message: error.message || 'Failed to fetch datasets',
+      });
+    }
+  });
+
+  app.get("/api/galaxy/datasets/:datasetId", async (req, res) => {
+    try {
+      const dataset = await galaxyAPI.getDatasetById(req.params.datasetId);
+      res.json(dataset);
+    } catch (error: any) {
+      console.error("Get dataset error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'DatasetNotFound',
+        message: error.message || 'Dataset not found',
+      });
+    }
+  });
+
+  // ============================================================================
+  // Galaxy Workflow Execution API
+  // ============================================================================
+
+  app.post("/api/galaxy/workflows/invoke", async (req, res) => {
+    try {
+      const { workflow_id, inputs, parameters } = req.body;
+      if (!workflow_id) {
+        return res.status(400).json({ error: "workflow_id is required" });
+      }
+
+      const invocation = await galaxyAPI.invokeWorkflow(workflow_id, inputs, parameters);
+      res.json(invocation);
+    } catch (error: any) {
+      console.error("Workflow invocation error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'InvocationError',
+        message: error.message || 'Failed to invoke workflow',
+      });
+    }
+  });
+
+  app.get("/api/galaxy/workflows/:workflowId/invocations/:invocationId", async (req, res) => {
+    try {
+      const invocation = await galaxyAPI.getInvocation(req.params.workflowId, req.params.invocationId);
+      res.json(invocation);
+    } catch (error: any) {
+      console.error("Get invocation error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'InvocationNotFound',
+        message: error.message || 'Invocation not found',
+      });
+    }
+  });
+
+  app.get("/api/galaxy/jobs/:jobId", async (req, res) => {
+    try {
+      const job = await galaxyAPI.getJob(req.params.jobId);
+      res.json(job);
+    } catch (error: any) {
+      console.error("Get job error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'JobNotFound',
+        message: error.message || 'Job not found',
+      });
+    }
+  });
+
+  app.get("/api/galaxy/jobs/:jobId/stdout", async (req, res) => {
+    try {
+      const stdout = await galaxyAPI.getJobStdout(req.params.jobId);
+      res.type('text/plain').send(stdout);
+    } catch (error: any) {
+      console.error("Get job stdout error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'JobNotFound',
+        message: error.message || 'Failed to fetch job stdout',
+      });
+    }
+  });
+
+  app.get("/api/galaxy/jobs/:jobId/stderr", async (req, res) => {
+    try {
+      const stderr = await galaxyAPI.getJobStderr(req.params.jobId);
+      res.type('text/plain').send(stderr);
+    } catch (error: any) {
+      console.error("Get job stderr error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'JobNotFound',
+        message: error.message || 'Failed to fetch job stderr',
+      });
+    }
+  });
+
+  // ============================================================================
+  // Server-Sent Events (SSE) for Real-Time Workflow Updates
+  // ============================================================================
+
+  app.get("/api/galaxy/workflows/sse/:invocationId", (req, res) => {
+    sseManager.handleConnection(req, res);
+  });
+
+  // Chat endpoint
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { message, context, datasets } = req.body;
+
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      // Validate datasets if provided
+      if (datasets) {
+        const validationResult = validateDatasets(datasets);
+        if (!validationResult.valid) {
+          return res.status(400).json({ error: `Invalid dataset configuration: ${validationResult.error}` });
+        }
+      }
+
+      // Create system prompt for bioinformatics context
+      const systemPrompt = `You are BioMate, an expert bioinformatics AI assistant. Your role is to help users with:
+- Analyzing genomic and transcriptomic data
+- Building bioinformatics workflows and pipelines
+- Recommending appropriate tools and methods
+- Explaining complex analysis steps
+
+When users ask about data analysis, suggest concrete workflows with specific tools.
+Always be helpful, accurate, and focused on practical bioinformatics solutions.
+
+If the user's request involves creating or building a workflow/pipeline, respond with actionable steps and mention that you'll generate a workflow for them.`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message }
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      });
+
+      const response = completion.choices[0]?.message?.content || "I'm here to help with your bioinformatics needs!";
+      
+      // Generate suggestions based on response
+      const suggestions = generateSuggestions(response, message);
+      
+      // Check if we should generate a workflow
+      const shouldCreateWorkflow = checkIfWorkflowNeeded(message, response);
+      let workflow = null;
+      
+      if (shouldCreateWorkflow) {
+        workflow = await generateWorkflowFromContext(message, response, datasets);
+      }
+
+      res.json({
+        response,
+        suggestions,
+        workflow
+      });
+
+    } catch (error) {
+      console.error("Chat API error:", error);
+      
+      // Fallback response
+      const fallbackResponse = "I'm here to help you with bioinformatics analysis! What kind of data or workflow would you like to work on?";
+      const fallbackSuggestions = [
+        "Analyze RNA-seq data",
+        "Create variant calling pipeline", 
+        "Build quality control workflow",
+        "Help with gene expression analysis"
+      ];
+
+      res.json({
+        response: fallbackResponse,
+        suggestions: fallbackSuggestions,
+        workflow: null
+      });
+    }
+  });
+
+  const httpServer = createServer(app);
+
+  return httpServer;
+}
+
+function generateSuggestions(response: string, userMessage: string): string[] {
+  const baseSuggestions = [
+    "Tell me more about the tools",
+    "Show me the workflow steps", 
+    "What data formats do I need?",
+    "How long will this take?"
+  ];
+
+  // Customize suggestions based on content
+  if (response.toLowerCase().includes('rna-seq')) {
+    return [
+      "Show me the RNA-seq workflow",
+      "What quality controls are needed?",
+      "How do I interpret the results?",
+      "Can you customize this pipeline?"
+    ];
+  }
+  
+  if (response.toLowerCase().includes('variant')) {
+    return [
+      "Create variant calling workflow",
+      "What reference genome should I use?", 
+      "How do I filter variants?",
+      "Show me annotation steps"
+    ];
+  }
+
+  return baseSuggestions;
+}
+
+function checkIfWorkflowNeeded(userMessage: string, aiResponse: string): boolean {
+  const workflowTriggers = [
+    'workflow', 'pipeline', 'analysis', 'process', 'steps',
+    'rna-seq', 'variant calling', 'genome assembly', 
+    'differential expression', 'quality control', 'alignment'
+  ];
+  
+  const combined = (userMessage + ' ' + aiResponse).toLowerCase();
+  return workflowTriggers.some(trigger => combined.includes(trigger));
+}
+
+async function generateWorkflowFromContext(userMessage: string, aiResponse: string, datasets?: any) {
+  // Generate basic workflow structure based on the conversation
+  const workflowType = detectWorkflowType(userMessage);
+  
+  // Sanitize datasets for client response (remove sensitive credentials)
+  const sanitizedDatasets = sanitizeDatasets(datasets);
+  const steps = generateStepsForType(workflowType, sanitizedDatasets);
+  
+  return {
+    id: `workflow-${Date.now()}`,
+    title: getWorkflowTitle(workflowType),
+    description: `Workflow generated for: ${userMessage}`,
+    type: workflowType,
+    steps
+  };
+}
+
+function sanitizeDatasets(datasets?: any) {
+  if (!datasets) return datasets;
+  
+  const sanitize = (datasetArray: any[]) => {
+    return datasetArray.map(dataset => {
+      const sanitized = { ...dataset };
+      // Remove sensitive S3 credentials from client-visible data
+      if (sanitized.s3Config) {
+        const { accessKeyId, secretAccessKey, ...safeS3Config } = sanitized.s3Config;
+        sanitized.s3Config = {
+          ...safeS3Config,
+          // Keep bucket and region info but remove credentials
+          credentialsConfigured: !!(accessKeyId && secretAccessKey)
+        };
+      }
+      return sanitized;
+    });
+  };
+  
+  return {
+    inputs: datasets.inputs ? sanitize(datasets.inputs) : [],
+    outputs: datasets.outputs ? sanitize(datasets.outputs) : []
+  };
+}
+
+function detectWorkflowType(message: string): string {
+  const msg = message.toLowerCase();
+  
+  if (msg.includes('rna-seq') || msg.includes('transcriptom')) return 'rna-seq';
+  if (msg.includes('variant') || msg.includes('snp') || msg.includes('indel')) return 'variant-calling';
+  if (msg.includes('genome') && msg.includes('assembl')) return 'genome-assembly';
+  if (msg.includes('chip-seq') || msg.includes('chipseq')) return 'chip-seq';
+  if (msg.includes('quality') || msg.includes('qc')) return 'quality-control';
+  
+  return 'general-analysis';
+}
+
+function getWorkflowTitle(type: string): string {
+  switch (type) {
+    case 'rna-seq': return 'RNA-seq Analysis Pipeline';
+    case 'variant-calling': return 'Variant Calling Workflow';
+    case 'genome-assembly': return 'Genome Assembly Pipeline';
+    case 'chip-seq': return 'ChIP-seq Analysis Workflow';
+    case 'quality-control': return 'Data Quality Control Pipeline';
+    default: return 'Bioinformatics Analysis Workflow';
+  }
+}
+
+function generateStepsForType(type: string, datasets?: any) {
+  // Add dataset configurations to appropriate steps
+  const addDatasetsToSteps = (steps: any[]) => {
+    if (datasets && (datasets.inputs?.length > 0 || datasets.outputs?.length > 0)) {
+      // Add input datasets to the first step
+      if (steps.length > 0 && datasets.inputs?.length > 0) {
+        steps[0].inputs = datasets.inputs;
+      }
+      // Add output datasets to the last step
+      if (steps.length > 0 && datasets.outputs?.length > 0) {
+        steps[steps.length - 1].outputs = datasets.outputs;
+      }
+    }
+    return steps;
+  };
+  
+  // Apply datasets to all workflow types
+  switch (type) {
+    case 'rna-seq':
+      const rnaSteps = [
+        {
+          id: 'step1',
+          title: 'Quality Control',
+          description: 'Assess raw sequencing reads quality using FastQC',
+          tool: 'FastQC',
+          complexity: 'simple',
+          estimatedTime: '5 min'
+        },
+        {
+          id: 'step2', 
+          title: 'Read Alignment',
+          description: 'Align reads to reference genome using HISAT2',
+          tool: 'HISAT2',
+          complexity: 'intermediate',
+          estimatedTime: '15 min'
+        },
+        {
+          id: 'step3',
+          title: 'Gene Expression Quantification',
+          description: 'Count reads mapping to genes using featureCounts',
+          tool: 'featureCounts', 
+          complexity: 'complex',
+          estimatedTime: '8 min'
+        },
+        {
+          id: 'step4',
+          title: 'Differential Expression Analysis',
+          description: 'Identify significant expression changes using DESeq2',
+          tool: 'DESeq2',
+          complexity: 'complex',
+          estimatedTime: '12 min'
+        }
+      ];
+      return addDatasetsToSteps(rnaSteps);
+      
+    case 'variant-calling':
+      const variantSteps = [
+        {
+          id: 'step1',
+          title: 'Quality Control',
+          description: 'Check raw sequencing data quality',
+          tool: 'FastQC',
+          complexity: 'simple',
+          estimatedTime: '5 min'
+        },
+        {
+          id: 'step2',
+          title: 'Read Alignment',
+          description: 'Align reads to reference genome',
+          tool: 'BWA-MEM',
+          complexity: 'intermediate', 
+          estimatedTime: '20 min'
+        },
+        {
+          id: 'step3',
+          title: 'Variant Calling',
+          description: 'Call variants using GATK HaplotypeCaller',
+          tool: 'GATK',
+          complexity: 'complex',
+          estimatedTime: '25 min'
+        },
+        {
+          id: 'step4',
+          title: 'Variant Filtering',
+          description: 'Filter variants by quality metrics',
+          tool: 'GATK VariantFiltration',
+          complexity: 'intermediate',
+          estimatedTime: '10 min'
+        }
+      ];
+      return addDatasetsToSteps(variantSteps);
+      
+    case 'quality-control':
+      const qcSteps = [
+        {
+          id: 'step1',
+          title: 'Raw Data Assessment',
+          description: 'Evaluate sequencing data quality metrics',
+          tool: 'FastQC',
+          complexity: 'simple',
+          estimatedTime: '5 min'
+        },
+        {
+          id: 'step2',
+          title: 'Adapter Trimming',
+          description: 'Remove adapter sequences and low-quality bases',
+          tool: 'Trimmomatic',
+          complexity: 'simple',
+          estimatedTime: '8 min'
+        },
+        {
+          id: 'step3',
+          title: 'Post-trim QC',
+          description: 'Verify improvement in data quality',
+          tool: 'FastQC',
+          complexity: 'simple',
+          estimatedTime: '3 min'
+        }
+      ];
+      return addDatasetsToSteps(qcSteps);
+      
+    default:
+      const defaultSteps = [
+        {
+          id: 'step1',
+          title: 'Data Input',
+          description: 'Import and validate input data',
+          tool: 'Custom Script',
+          complexity: 'simple',
+          estimatedTime: '5 min'
+        },
+        {
+          id: 'step2',
+          title: 'Data Processing',
+          description: 'Process data according to analysis requirements',
+          tool: 'Analysis Tool',
+          complexity: 'intermediate',
+          estimatedTime: '15 min'
+        },
+        {
+          id: 'step3',
+          title: 'Results Generation',
+          description: 'Generate analysis results and reports',
+          tool: 'Reporting Tool',
+          complexity: 'simple',
+          estimatedTime: '5 min'
+        }
+      ];
+      return addDatasetsToSteps(defaultSteps);
+  }
+}
+
+function validateDatasets(datasets: any): { valid: boolean; error?: string } {
+  try {
+    if (!datasets || (typeof datasets !== 'object')) {
+      return { valid: false, error: "Datasets must be an object" };
+    }
+
+    // Validate inputs array
+    if (datasets.inputs) {
+      if (!Array.isArray(datasets.inputs)) {
+        return { valid: false, error: "Inputs must be an array" };
+      }
+      for (const input of datasets.inputs) {
+        const result = datasetConfigSchema.safeParse(input);
+        if (!result.success) {
+          return { valid: false, error: `Invalid input dataset: ${result.error.message}` };
+        }
+      }
+    }
+
+    // Validate outputs array
+    if (datasets.outputs) {
+      if (!Array.isArray(datasets.outputs)) {
+        return { valid: false, error: "Outputs must be an array" };
+      }
+      for (const output of datasets.outputs) {
+        const result = datasetConfigSchema.safeParse(output);
+        if (!result.success) {
+          return { valid: false, error: `Invalid output dataset: ${result.error.message}` };
+        }
+      }
+    }
+
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, error: "Dataset validation failed" };
+  }
+}

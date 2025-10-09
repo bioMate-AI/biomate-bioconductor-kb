@@ -1,0 +1,86 @@
+Tool Installation Report
+Generated: 2025-10-07 20:30:44.949027
+
+Total wall time: 2.1s (0.0 minutes)
+
+Detailed Results:
+
+bioconductor-msnbase centroid (recetox/bioconductor_msnbase_centroid)
+  Success: True
+  Duration: 0.0s
+
+bioconductor-msnbase smooth chromatogram (recetox/bioconductor_msnbase_smooth_chromatogram)
+  Success: True
+  Duration: 0.0s
+
+bioconductor-msnbase smooth mz (recetox/bioconductor_msnbase_smooth_mz)
+  Success: True
+  Duration: 0.0s
+
+CAMERA.annotate (lecorguille/camera_annotate)
+  Success: True
+  Duration: 0.0s
+
+CAMERA.combinexsAnnos (workflow4metabolomics/camera_combinexsannos)
+  Success: True
+  Duration: 0.0s
+
+CAMERA.findAdducts (workflow4metabolomics/camera_findadducts)
+  Success: True
+  Duration: 0.0s
+
+CAMERA.findIsotopes (workflow4metabolomics/camera_findisotopes)
+  Success: True
+  Duration: 0.0s
+
+CAMERA.groupCorr (workflow4metabolomics/camera_groupcorr)
+  Success: True
+  Duration: 0.0s
+
+CAMERA.groupFWHM (workflow4metabolomics/camera_groupfwhm)
+  Success: True
+  Duration: 0.0s
+
+Metabolites Correlation Analysis (workflow4metabolomics/correlation_analysis)
+  Success: True
+  Duration: 0.0s
+
+Batch_correction (melpetera/batchcorrection)
+  Success: True
+  Duration: 0.0s
+
+Biosigner (ethevenot/biosigner)
+  Success: True
+  Duration: 0.0s
+
+BioTransformer (recetox/biotransformer)
+  Success: True
+  Duration: 0.0s
+
+BEAMSpy (metabolights/beamspy_galaxy)
+  Success: True
+  Duration: 0.0s
+
+Analytic correlation filtration (melpetera/acorf)
+  Success: True
+  Duration: 0.0s
+
+Between-table Correlation (melpetera/corr_table)
+  Success: True
+  Duration: 0.0s
+
+Check Format (ethevenot/checkformat)
+  Success: True
+  Duration: 0.0s
+
+CFM-ID (computational-metabolomics/cfmid)
+  Success: True
+  Duration: 0.0s
+
+ASCA (marie-tremblay-metatoul/asca)
+  Success: True
+  Duration: 0.0s
+
+2DNMRAnnotation (marie-tremblay-metatoul/2dnmrannotation)
+  Success: True
+  Duration: 0.0s

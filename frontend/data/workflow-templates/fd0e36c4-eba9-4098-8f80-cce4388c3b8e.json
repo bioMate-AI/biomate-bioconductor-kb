@@ -1,0 +1,127 @@
+{
+  "id": "fd0e36c4-eba9-4098-8f80-cce4388c3b8e",
+  "name": "Quality Control for Next-Gen Sequencing",
+  "description": "Comprehensive QC workflow for assessing NGS data quality",
+  "use_case": {
+    "id": "ae06e87a-b44e-422b-98c3-3c7182c8999f",
+    "name": "NGS Quality Control - Illumina",
+    "description": "Standard QC workflow for Illumina sequencing data with trimming",
+    "category": "quality_control",
+    "tags": [
+      "qc",
+      "quality-control",
+      "illumina",
+      "fastqc",
+      "trimming"
+    ],
+    "analysis_type": "quality_assessment",
+    "sample_types": [
+      "any_ngs"
+    ],
+    "input_types": [
+      "fastq",
+      "fastq.gz"
+    ],
+    "expected_outputs": [
+      "qc_reports",
+      "trimmed_reads"
+    ],
+    "difficulty": "beginner",
+    "estimated_time": "30-60 minutes",
+    "rationale": "Essential first step for any NGS analysis. FastQC provides comprehensive quality metrics, Trimmomatic removes low-quality bases and adapters.",
+    "protocol_references": [
+      "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
+      "Bolger et al. (2014) Trimmomatic: a flexible trimmer for Illumina sequence data"
+    ],
+    "created_by": "system",
+    "created_at": "2025-10-04T17:30:22.523Z",
+    "updated_at": "2025-10-04T17:30:22.523Z",
+    "usage_count": 0,
+    "success_rate": 0
+  },
+  "workflow_ga": {
+    "a_galaxy_workflow": "1.0",
+    "annotation": "NGS quality control",
+    "format_version": "0.1",
+    "name": "NGS QC Workflow",
+    "steps": {
+      "0": {
+        "annotation": "Input FASTQ files",
+        "id": 0,
+        "tool_id": "data_input",
+        "type": "data_input",
+        "name": "Input Dataset Collection"
+      },
+      "1": {
+        "annotation": "Pre-trim quality check",
+        "id": 1,
+        "tool_id": "fastqc",
+        "tool_version": "0.12.1",
+        "name": "FastQC Before",
+        "tool_state": {
+          "threads": 2
+        }
+      },
+      "2": {
+        "annotation": "Trim adapters and low-quality bases",
+        "id": 2,
+        "tool_id": "trimmomatic",
+        "tool_version": "0.39",
+        "name": "Trimmomatic",
+        "tool_state": {
+          "illuminaclip": "TruSeq3-PE.fa:2:30:10",
+          "leading": 3,
+          "trailing": 3,
+          "slidingwindow": "4:15",
+          "minlen": 36
+        }
+      },
+      "3": {
+        "annotation": "Post-trim quality check",
+        "id": 3,
+        "tool_id": "fastqc",
+        "tool_version": "0.12.1",
+        "name": "FastQC After",
+        "tool_state": {
+          "threads": 2
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "step_id": "0",
+      "tool_id": "data_input",
+      "tool_name": "Input Dataset Collection"
+    },
+    {
+      "step_id": "1",
+      "tool_id": "fastqc",
+      "tool_name": "FastQC Before",
+      "custom_parameters": {
+        "threads": 2
+      }
+    },
+    {
+      "step_id": "2",
+      "tool_id": "trimmomatic",
+      "tool_name": "Trimmomatic",
+      "custom_parameters": {
+        "illuminaclip": "TruSeq3-PE.fa:2:30:10",
+        "leading": 3,
+        "trailing": 3,
+        "slidingwindow": "4:15",
+        "minlen": 36
+      }
+    },
+    {
+      "step_id": "3",
+      "tool_id": "fastqc",
+      "tool_name": "FastQC After",
+      "custom_parameters": {
+        "threads": 2
+      }
+    }
+  ],
+  "validated": false
+}

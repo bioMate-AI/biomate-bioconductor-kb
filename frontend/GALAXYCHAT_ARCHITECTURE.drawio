@@ -1,0 +1,890 @@
+<mxfile host="app.diagrams.net" modified="2025-10-03T00:00:00.000Z" agent="Claude Code" version="21.6.5">
+  <diagram name="1. System Architecture" id="system-architecture">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="GalaxyChat v2 - System Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- User Layer -->
+        <mxCell id="user" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="680" y="100" width="40" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Frontend Container -->
+        <mxCell id="frontend-container" value="Frontend (React + TypeScript)" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="220" width="1160" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- Chat View -->
+        <mxCell id="chat-view" value="Chat View&#xa;(Left Panel)&#xa;&#xa;- Natural Language Input&#xa;- AI Responses&#xa;- Tool Suggestions&#xa;- Parameter Guidance&#xa;- Error Interpretation" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="frontend-container">
+          <mxGeometry x="20" y="40" width="260" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow Sync Hook -->
+        <mxCell id="workflow-sync" value="useWorkflowSync&#xa;Hook&#xa;&#xa;Bidirectional&#xa;State Sync" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="frontend-container">
+          <mxGeometry x="500" y="80" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow View -->
+        <mxCell id="workflow-view" value="Workflow View&#xa;(Right Panel - Graph Only)&#xa;&#xa;- Workflow Graph Visualization&#xa;- Parameter Configuration (3-tier)&#xa;- Execution Controls&#xa;- Progress Monitoring&#xa;- Result Viewing&#xa;- Galaxy Log Display" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="frontend-container">
+          <mxGeometry x="880" y="40" width="260" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Graph Components -->
+        <mxCell id="graph-components" value="Graph Components:&#xa;• WorkflowGraph&#xa;• ParameterDialog&#xa;• ExecutionPanel&#xa;• ResultViewer&#xa;• LogViewer" style="rounded=0;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;align=left;" vertex="1" parent="frontend-container">
+          <mxGeometry x="700" y="50" width="160" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Connections between frontend components -->
+        <mxCell id="chat-to-sync" value="Workflow&#xa;Generated" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="frontend-container" source="chat-view" target="workflow-sync">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sync-to-workflow" value="Update&#xa;Graph" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="frontend-container" source="workflow-sync" target="graph-components">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-to-sync" value="Node Selected&#xa;Parameter Help" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="frontend-container" source="workflow-view" target="workflow-sync">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sync-to-chat" value="Context&#xa;Update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="frontend-container" source="workflow-sync" target="chat-view">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Backend Container -->
+        <mxCell id="backend-container" value="Backend (Node.js + Express)" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="460" width="1160" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- Chat API -->
+        <mxCell id="chat-api" value="Chat API&#xa;&#xa;Hybrid Intelligence:&#xa;• OpenAI (NLU)&#xa;• Galaxy Tool Search&#xa;• BioMNI Dataset RAG&#xa;• Workflow Generator" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;" vertex="1" parent="backend-container">
+          <mxGeometry x="20" y="40" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy API Proxy -->
+        <mxCell id="galaxy-proxy" value="Galaxy API Proxy&#xa;&#xa;• Tool Search/Install&#xa;• Workflow Invocation&#xa;• Job State Polling&#xa;• Dataset Access" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;" vertex="1" parent="backend-container">
+          <mxGeometry x="250" y="40" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow Executor -->
+        <mxCell id="workflow-executor" value="Workflow Executor&#xa;&#xa;• Convert UI to Galaxy&#xa;• On-Demand Tool Install&#xa;• Invoke Workflows&#xa;• Handle Errors" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;" vertex="1" parent="backend-container">
+          <mxGeometry x="480" y="40" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- State Poller + SSE -->
+        <mxCell id="state-poller" value="State Poller + SSE&#xa;&#xa;• Poll Galaxy Invocations&#xa;• Extract Job States&#xa;• Stream via SSE&#xa;• Real-time Updates" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;" vertex="1" parent="backend-container">
+          <mxGeometry x="710" y="40" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Mock Galaxy API -->
+        <mxCell id="mock-galaxy" value="Mock Galaxy API&#xa;&#xa;(Development Only)&#xa;• Realistic State Sim&#xa;• Variable Delays&#xa;• Mock Outputs" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;dashed=1;" vertex="1" parent="backend-container">
+          <mxGeometry x="940" y="40" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy Backend Container -->
+        <mxCell id="galaxy-container" value="Galaxy Backend (Production-Ready)" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="680" width="1160" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- On-Demand Tool Installer -->
+        <mxCell id="tool-installer" value="On-Demand Tool Installer&#xa;&#xa;• 2,177 Tools Indexed&#xa;• Tool Search (SQLite FTS5)&#xa;• Auto-Install from ToolShed&#xa;• Retry Logic&#xa;• No Restart Needed" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="galaxy-container">
+          <mxGeometry x="20" y="40" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow API -->
+        <mxCell id="workflow-api" value="Workflow API&#xa;&#xa;• POST /api/workflows&#xa;• POST .../invocations&#xa;• GET /api/invocations/{id}&#xa;• Track Execution State" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="galaxy-container">
+          <mxGeometry x="250" y="40" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Jobs API -->
+        <mxCell id="jobs-api" value="Jobs API&#xa;&#xa;• GET /api/jobs/{id}&#xa;• Job States (new/queued/&#xa;  running/ok/error)&#xa;• stdout/stderr Logs" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="galaxy-container">
+          <mxGeometry x="480" y="40" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- BioMNI Dataset RAG -->
+        <mxCell id="biomni-rag" value="BioMNI Dataset RAG&#xa;&#xa;• Dataset Search&#xa;• Schema-based Query&#xa;• Category Matching&#xa;• Format Filtering" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="galaxy-container">
+          <mxGeometry x="710" y="40" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy Database -->
+        <mxCell id="galaxy-db" value="Galaxy Database&#xa;&#xa;• Workflows&#xa;• Jobs&#xa;• Datasets&#xa;• Tool Metadata" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fontSize=11;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="galaxy-container">
+          <mxGeometry x="970" y="50" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- External Services -->
+        <mxCell id="external-container" value="External Services" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="880" width="500" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="openai" value="OpenAI API&#xa;&#xa;GPT-4 for NLU" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="external-container">
+          <mxGeometry x="20" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="toolshed" value="Galaxy ToolShed&#xa;&#xa;2,177+ Tools" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="external-container">
+          <mxGeometry x="180" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="biomni-data" value="BioMNI Datasets&#xa;&#xa;100+ GB Data Lake" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="external-container">
+          <mxGeometry x="340" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Vertical Connections -->
+        <mxCell id="user-to-frontend" value="Browser" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=3;strokeColor=#6c8ebf;" edge="1" parent="1" source="user" target="frontend-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="frontend-to-backend" value="HTTP/REST + SSE" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=3;strokeColor=#d79b00;" edge="1" parent="1" source="frontend-container" target="backend-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="backend-to-galaxy" value="Galaxy REST API" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=3;strokeColor=#82b366;" edge="1" parent="1" source="backend-container" target="galaxy-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="backend-to-external" value="External APIs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="backend-container" target="external-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend-container" value="Legend" style="swimlane;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="680" y="880" width="600" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-1" value="Production Component" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="legend-container">
+          <mxGeometry x="10" y="30" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-2" value="Backend Service" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="legend-container">
+          <mxGeometry x="150" y="30" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-3" value="Mock/Development" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;" vertex="1" parent="legend-container">
+          <mxGeometry x="290" y="30" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-4" value="State Management" style="ellipse;whiteSpace=wrap;html=1;fontSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="legend-container">
+          <mxGeometry x="430" y="30" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-5" value="Real-time Stream (SSE)" style="text;html=1;strokeColor=#d79b00;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="legend-container">
+          <mxGeometry x="10" y="65" width="130" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-6" value="REST API Call" style="text;html=1;strokeColor=#82b366;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="legend-container">
+          <mxGeometry x="150" y="65" width="130" height="25" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="2. Information Flow" id="info-flow">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title2" value="Information Flow - Workflow Generation &amp; Execution" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="800" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Flow 1: Workflow Generation -->
+        <mxCell id="flow1-title" value="Flow 1: Workflow Generation from Chat" style="text;html=1;strokeColor=none;fillColor=#e1d5e7;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=16;fontStyle=1;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1-1" value="1. User Input&#xa;&#xa;&quot;I need to analyze RNA-seq data&quot;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="130" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1-2" value="2. Chat API Processes&#xa;&#xa;• OpenAI: Understand intent&#xa;• Intent: RNA-seq analysis" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="260" y="130" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1-3" value="3. Tool Search&#xa;&#xa;Query Galaxy ToolShed:&#xa;• &quot;RNA-seq alignment&quot;&#xa;• Result: HISAT2, STAR&#xa;• &quot;quantification&quot;&#xa;• Result: featureCounts" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="480" y="130" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1-4" value="4. Dataset Recommendations&#xa;&#xa;Query BioMNI RAG:&#xa;• Category: genomics&#xa;• Query: &quot;human reference&quot;&#xa;• Result: hg38 genome&#xa;• Result: gene annotations" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="700" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1-5" value="5. Generate Workflow&#xa;&#xa;Create workflow JSON:&#xa;• Step 1: FastQC (QC)&#xa;• Step 2: HISAT2 (align)&#xa;• Step 3: featureCounts&#xa;• Step 4: DESeq2&#xa;&#xa;+ Suggested datasets" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="940" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1-6" value="6. Display in UI&#xa;&#xa;• Workflow appears in&#xa;  right panel&#xa;• Graph visualization&#xa;• Chat explains steps" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="130" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Flow 1 Arrows -->
+        <mxCell id="arrow1-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="step1-1" target="step1-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow1-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="step1-2" target="step1-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow1-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="step1-3" target="step1-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow1-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="step1-4" target="step1-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow1-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1" source="step1-5" target="step1-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Flow 2: Workflow Execution -->
+        <mxCell id="flow2-title" value="Flow 2: Workflow Execution with Galaxy" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=16;fontStyle=1;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2-1" value="1. User Clicks Run&#xa;&#xa;Workflow View:&#xa;Click &quot;Run Workflow&quot; button" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2-2" value="2. Check Tools&#xa;&#xa;For each step:&#xa;• Check if tool installed&#xa;• If not: install on-demand&#xa;• Wait for installation" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="240" y="310" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2-3" value="3. Convert to Galaxy&#xa;&#xa;• Convert UI workflow to&#xa;  Galaxy workflow JSON&#xa;• Map parameters&#xa;• Prepare inputs" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="440" y="310" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2-4" value="4. Invoke Workflow&#xa;&#xa;POST /api/workflows/&#xa;{id}/invocations&#xa;&#xa;Returns:&#xa;• invocation_id" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="640" y="310" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2-5" value="5. Start Polling&#xa;&#xa;Every 3 seconds:&#xa;GET /api/invocations/&#xa;{id}&#xa;&#xa;Extract job states" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="840" y="310" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2-6" value="6. Stream Updates&#xa;&#xa;SSE to Frontend:&#xa;• Job state changes&#xa;• Step completion&#xa;• Error messages&#xa;• Output datasets" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="310" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2-7" value="7. Display Progress&#xa;&#xa;Workflow View Updates:&#xa;• Node colors change&#xa;• Show elapsed time&#xa;• Display logs&#xa;• Show outputs" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="310" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Flow 2 Arrows -->
+        <mxCell id="arrow2-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1" source="step2-1" target="step2-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow2-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="step2-2" target="step2-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow2-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="step2-3" target="step2-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow2-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="step2-4" target="step2-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow2-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="step2-5" target="step2-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow2-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1" source="step2-6" target="step2-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy Execution Details -->
+        <mxCell id="galaxy-exec-title" value="Galaxy Internal Execution (Behind the Scenes)" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=16;fontStyle=1;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="500" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-step1" value="Job Scheduling&#xa;&#xa;• Galaxy queues jobs&#xa;• State: new → queued" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="480" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-step2" value="Job Execution&#xa;&#xa;• Tool runs (local/cluster)&#xa;• State: queued → running" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="240" y="480" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-step3" value="Output Generation&#xa;&#xa;• Tool creates datasets&#xa;• Stored in Galaxy DB" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="440" y="480" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-step4" value="Job Completion&#xa;&#xa;• State: running → ok/error&#xa;• Logs saved" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="640" y="480" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-step5" value="Next Step Trigger&#xa;&#xa;• If job ok: run next step&#xa;• If error: stop workflow" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="840" y="480" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy Execution Arrows -->
+        <mxCell id="arrow-gal-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="galaxy-step1" target="galaxy-step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow-gal-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="galaxy-step2" target="galaxy-step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow-gal-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="galaxy-step3" target="galaxy-step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow-gal-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="galaxy-step4" target="galaxy-step5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Flow 3: Error Handling -->
+        <mxCell id="flow3-title" value="Flow 3: Error Handling &amp; Chat Assistance" style="text;html=1;strokeColor=none;fillColor=#f8cecc;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=16;fontStyle=1;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="40" y="590" width="450" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step3-1" value="1. Job Fails&#xa;&#xa;Galaxy Job State:&#xa;• state: &quot;error&quot;&#xa;• stderr: error message" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="640" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step3-2" value="2. Error Detected&#xa;&#xa;State Poller:&#xa;• Detects error state&#xa;• Fetches stderr log" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="260" y="640" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step3-3" value="3. Display Error&#xa;&#xa;Workflow View:&#xa;• Node turns red&#xa;• Show error message&#xa;• &quot;Ask Chat for Help&quot; btn" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="480" y="640" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step3-4" value="4. User Asks Chat&#xa;&#xa;Clicks &quot;Ask for Help&quot;&#xa;&#xa;Sends to chat:&#xa;• tool_id&#xa;• error_message&#xa;• workflow_context" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="700" y="640" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step3-5" value="5. Chat Analyzes&#xa;&#xa;• OpenAI interprets error&#xa;• Suggests fixes:&#xa;  &quot;Missing reference&#xa;  genome. Add hg38&quot;&#xa;• Offers to update&#xa;  workflow" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="920" y="640" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step3-6" value="6. Auto-Fix (Optional)&#xa;&#xa;If user accepts:&#xa;• Add missing step&#xa;• Update parameters&#xa;• Restart workflow" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="640" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Flow 3 Arrows -->
+        <mxCell id="arrow3-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#b85450;" edge="1" parent="1" source="step3-1" target="step3-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow3-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#b85450;" edge="1" parent="1" source="step3-2" target="step3-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow3-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#b85450;" edge="1" parent="1" source="step3-3" target="step3-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow3-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#b85450;" edge="1" parent="1" source="step3-4" target="step3-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow3-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;strokeWidth=2;strokeColor=#b85450;dashed=1;" edge="1" parent="1" source="step3-5" target="step3-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- State Diagram -->
+        <mxCell id="state-title" value="Galaxy Job State Transitions" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=16;fontStyle=1;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="760" width="1360" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-new" value="new" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="820" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-queued" value="queued" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="300" y="820" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-running" value="running" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="480" y="820" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-ok" value="ok" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="660" y="820" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-error" value="error" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="660" y="940" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-paused" value="paused" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="480" y="940" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-deleted" value="deleted" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="840" y="820" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- State Transitions -->
+        <mxCell id="trans-1" value="submitted" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="state-new" target="state-queued">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trans-2" value="resource&#xa;available" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#d6b656;" edge="1" parent="1" source="state-queued" target="state-running">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trans-3" value="success" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="state-running" target="state-ok">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trans-4" value="failure" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#b85450;" edge="1" parent="1" source="state-running" target="state-error">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trans-5" value="user pause" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="state-running" target="state-paused">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trans-6" value="resume" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#d79b00;dashed=1;" edge="1" parent="1" source="state-paused" target="state-running">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trans-7" value="user delete" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=10;strokeWidth=2;strokeColor=#9673a6;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="state-ok" target="state-deleted">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- State Notes -->
+        <mxCell id="state-note-1" value="✓ No progress estimation&#xa;✓ Only show actual states&#xa;✓ Display elapsed time&#xa;✗ No fake percentages" style="text;html=1;strokeColor=#82b366;fillColor=#d5e8d4;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1000" y="820" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-note-2" value="Example Timeline:&#xa;&#xa;14:23:10 - Job created (new)&#xa;14:23:15 - Queued (queued)&#xa;14:23:20 - Started (running)&#xa;14:26:35 - Completed (ok)&#xa;&#xa;Elapsed: 3m 25s" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="920" width="220" height="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="3. User Interaction Flow" id="user-flow">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title3" value="User Interaction Flow - Chat &amp; Workflow Semantic Separation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Split View -->
+        <mxCell id="chat-panel" value="CHAT VIEW (Left Panel)" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="660" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-responsibility" value="Responsibility: Conversational Guide &amp; Assistant" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;strokeColor=#82b366;" vertex="1" parent="chat-panel">
+          <mxGeometry x="10" y="50" width="640" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Chat Interactions -->
+        <mxCell id="chat-int-1" value="1. Natural Language Understanding" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-panel">
+          <mxGeometry x="20" y="100" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-1-detail" value="User: &quot;I have RNA-seq data&quot;&#xa;&#xa;AI understands:&#xa;• Data type: RNA-seq&#xa;• Intent: Analysis pipeline&#xa;• Organism: (asks if unclear)&#xa;• Expected: alignment, quantification, DE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="chat-int-1">
+          <mxGeometry x="10" y="30" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-2" value="2. Tool Recommendations" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-panel">
+          <mxGeometry x="340" y="100" width="300" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-2-detail" value="AI: &quot;I recommend:&#xa;• FastQC for quality control&#xa;• HISAT2 for alignment (handles&#xa;  splice junctions better than BWA)&#xa;• featureCounts for gene quantification&#xa;• DESeq2 for differential expression&quot;&#xa;&#xa;[Generates workflow in right panel]" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="chat-int-2">
+          <mxGeometry x="10" y="30" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-3" value="3. Parameter Guidance" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-panel">
+          <mxGeometry x="20" y="240" width="280" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-3-detail" value="User clicks parameter button in workflow&#xa;→ Chat receives context&#xa;&#xa;AI: &quot;For the quality offset parameter:&#xa;• Illumina 1.8+: Use Phred+33&#xa;• Older Illumina: Use Phred+64&#xa;• Sanger: Use Phred+33&#xa;&#xa;Your data appears to be Illumina,&#xa;so I've pre-filled Phred+33.&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="chat-int-3">
+          <mxGeometry x="10" y="30" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-4" value="4. Dataset Recommendations" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-panel">
+          <mxGeometry x="340" y="240" width="300" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-4-detail" value="AI queries BioMNI Dataset RAG:&#xa;&#xa;AI: &quot;For human RNA-seq, you'll need:&#xa;• Reference genome: hg38 (3.1 GB)&#xa;• Gene annotations: GENCODE v44&#xa;&#xa;I've added these to your workflow.&#xa;Would you like me to suggest&#xa;alternative references?&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="chat-int-4">
+          <mxGeometry x="10" y="30" width="280" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-5" value="5. Error Interpretation &amp; Debugging" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-panel">
+          <mxGeometry x="20" y="400" width="620" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-5-detail" value="Workflow fails → User clicks &quot;Ask Chat&quot;&#xa;&#xa;AI receives: tool_id + error_message + context&#xa;&#xa;AI: &quot;This error means the reference genome index is missing. Galaxy tried to find:&#xa;  /data/genomes/hg38/hisat2_index/*&#xa;&#xa;But it doesn't exist. Here are your options:&#xa;&#xa;1. [Recommended] I can add a 'Build HISAT2 Index' step before alignment&#xa;2. You can upload a pre-built index&#xa;3. Change to a different aligner that has the index&#xa;&#xa;Would you like me to fix option 1 automatically?&quot;&#xa;&#xa;[User clicks 'Yes'] → Chat updates workflow → Workflow view refreshes" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="chat-int-5">
+          <mxGeometry x="10" y="30" width="600" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-6" value="6. Education &amp; Documentation" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-panel">
+          <mxGeometry x="20" y="580" width="280" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-6-detail" value="User: &quot;Why HISAT2 instead of STAR?&quot;&#xa;&#xa;AI: &quot;Both are excellent RNA-seq aligners:&#xa;&#xa;HISAT2:&#xa;• Faster, lower memory (8GB)&#xa;• Graph-based alignment&#xa;• Good for most use cases&#xa;&#xa;STAR:&#xa;• More sensitive for novel junctions&#xa;• Higher memory (32GB)&#xa;• Better for de novo transcripts&#xa;&#xa;For standard RNA-seq, HISAT2 is&#xa;usually sufficient. Want to switch?&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="chat-int-6">
+          <mxGeometry x="10" y="30" width="260" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-7" value="7. Workflow Suggestions &amp; Optimization" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-panel">
+          <mxGeometry x="340" y="580" width="300" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-int-7-detail" value="AI analyzes workflow:&#xa;&#xa;AI: &quot;I notice your workflow could be&#xa;optimized:&#xa;&#xa;Current: QC → Align → Quantify → DE&#xa;&#xa;Suggestion: Add 'MultiQC' after QC&#xa;to aggregate quality reports.&#xa;&#xa;This won't slow down execution but&#xa;will give you better visualization.&#xa;&#xa;Add MultiQC step?&quot;&#xa;&#xa;[Kept in chat, NOT shown in workflow]" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="chat-int-7">
+          <mxGeometry x="10" y="30" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Chat DON'Ts -->
+        <mxCell id="chat-donts" value="What Chat Should NOT Do" style="rounded=1;whiteSpace=wrap;html=1;fontSize=13;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-panel">
+          <mxGeometry x="20" y="760" width="620" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-donts-detail" value="❌ Display workflow graph&#xa;   → That's workflow view's job&#xa;&#xa;❌ Show execution progress bars&#xa;   → Workflow view tracks progress with Galaxy states&#xa;&#xa;❌ Display detailed parameter forms&#xa;   → Workflow view has parameter dialog&#xa;&#xa;❌ Show Galaxy job logs (stdout/stderr)&#xa;   → Workflow view displays raw logs&#xa;&#xa;❌ Provide workflow execution controls (Play/Pause/Stop)&#xa;   → Workflow view has execution controls&#xa;&#xa;✓ Instead: Chat EXPLAINS, SUGGESTS, GUIDES, INTERPRETS&#xa;✓ Workflow view EXECUTES, CONFIGURES, DISPLAYS" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=Courier New;" vertex="1" parent="chat-donts">
+          <mxGeometry x="10" y="30" width="600" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow Panel -->
+        <mxCell id="workflow-panel" value="WORKFLOW VIEW (Right Panel)" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;startSize=40;" vertex="1" parent="1">
+          <mxGeometry x="740" y="80" width="660" height="980" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-responsibility" value="Responsibility: Visual Execution Workspace" style="text;html=1;strokeColor=none;fillColor=#dae8fc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=13;fontStyle=1;strokeColor=#6c8ebf;" vertex="1" parent="workflow-panel">
+          <mxGeometry x="10" y="50" width="640" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow Interactions -->
+        <mxCell id="work-int-1" value="1. Workflow Graph Visualization" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-panel">
+          <mxGeometry x="20" y="100" width="620" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="work-int-1-detail" value="┌─────────────────────────────────────────────────────────┐&#xa;│  [FastQC] → [HISAT2] → [featureCounts] → [DESeq2]      │&#xa;│     ○          ⟳             ○              ○            │&#xa;│  pending   running       pending        pending          │&#xa;│                                                          │&#xa;│ Node colors:  Gray=pending  Blue=running  Green=ok      │&#xa;│               Red=error     Yellow=paused                 │&#xa;│                                                          │&#xa;│ Hover node → Show dependencies highlighted              │&#xa;│ Click node → Parameter dialog OR execution controls     │&#xa;└─────────────────────────────────────────────────────────┘" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;fontFamily=Courier New;" vertex="1" parent="work-int-1">
+          <mxGeometry x="10" y="30" width="600" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="work-int-2" value="2. Parameter Configuration (3-Tier)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-panel">
+          <mxGeometry x="20" y="260" width="620" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="work-int-2-detail" value="Click node → Parameter Dialog opens:&#xa;&#xa;┌─────────────────────────────────────┐&#xa;│ Configure: HISAT2 Alignment         │&#xa;│                                     │&#xa;│ ⚙️ Essential Parameters (3)         │&#xa;│   Reference Genome: [hg38     ▼]    │  ← From chat suggestion&#xa;│   Alignment Mode:  [end-to-end ▼]   │  ← Smart default&#xa;│   Strand Specific: [unstranded ▼]   │&#xa;│                                     │&#xa;│ 📊 Common (8 more)    [Expand ▼]    │&#xa;│                                     │&#xa;│ 🔧 Advanced (45 more) [Expand ▼]    │&#xa;│                                     │&#xa;│ 💡 AI Suggestion from chat:          │&#xa;│ &quot;For paired-end RNA-seq, I recommend│&#xa;│  --rna-strandness FR setting&quot;       │&#xa;│                                     │&#xa;│ [Cancel]  [Apply]  [Apply &amp; Run]    │&#xa;└─────────────────────────────────────┘" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;fontFamily=Courier New;" vertex="1" parent="work-int-2">
+          <mxGeometry x="10" y="30" width="600" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="work-int-3" value="3. Execution Controls &amp; Progress" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-panel">
+          <mxGeometry x="20" y="460" width="620" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="work-int-3-detail" value="Workflow-Level Controls:&#xa;[▶ Run All] [⏸ Pause] [⏹ Stop] [↻ Restart]&#xa;&#xa;Real-Time Progress (from Galaxy states):&#xa;&#xa;Step 1: FastQC                    [✓ Completed]&#xa;  └─ Job job_123 | State: ok | Elapsed: 37s&#xa;     [View Logs] [Download Output: fastqc_report.html]&#xa;&#xa;Step 2: HISAT2                    [⟳ Running]&#xa;  └─ Job job_124 | State: running | Elapsed: 2m 15s&#xa;     [View Live Logs]&#xa;&#xa;Step 3: featureCounts             [○ Queued]&#xa;  └─ Job job_125 | State: queued&#xa;     Waiting for Step 2..." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;fontFamily=Courier New;" vertex="1" parent="work-int-3">
+          <mxGeometry x="10" y="30" width="600" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="work-int-4" value="4. Galaxy Log Display" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-panel">
+          <mxGeometry x="20" y="640" width="300" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="work-int-4-detail" value="Click [View Logs] →&#xa;&#xa;Shows actual Galaxy stdout/stderr:&#xa;&#xa;[stdout]&#xa;HISAT2 version 2.2.1&#xa;Loading genome index...&#xa;Aligning reads... 45% complete" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;fontFamily=Courier New;" vertex="1" parent="work-int-4">
+          <mxGeometry x="10" y="30" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="work-int-5" value="5. Result Viewing &amp; Download" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-panel">
+          <mxGeometry x="340" y="640" width="300" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="work-int-5-detail" value="Click completed step →&#xa;&#xa;Output Datasets:&#xa;• aligned_reads.bam (2.3 GB)&#xa;  [Download] [Preview]&#xa;• alignment_summary.txt&#xa;  [Download] [View]" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;fontFamily=Courier New;" vertex="1" parent="work-int-5">
+          <mxGeometry x="10" y="30" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow DON'Ts -->
+        <mxCell id="workflow-donts" value="What Workflow View Should NOT Do" style="rounded=1;whiteSpace=wrap;html=1;fontSize=13;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-panel">
+          <mxGeometry x="20" y="760" width="620" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-donts-detail" value="❌ Explain WHY to use a tool&#xa;   → Chat provides explanations and education&#xa;&#xa;❌ Provide tutorials or best practices&#xa;   → Chat links to documentation&#xa;&#xa;❌ Recommend alternative tools&#xa;   → Chat makes tool recommendations&#xa;&#xa;❌ Interpret error messages&#xa;   → Chat interprets errors and suggests fixes&#xa;   → Workflow just SHOWS raw Galaxy error&#xa;&#xa;❌ Suggest workflow optimizations&#xa;   → Chat analyzes and suggests improvements&#xa;&#xa;✓ Instead: Workflow VISUALIZES, EXECUTES, CONFIGURES&#xa;✓ Chat EXPLAINS, SUGGESTS, GUIDES" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=Courier New;" vertex="1" parent="workflow-donts">
+          <mxGeometry x="10" y="30" width="600" height="160" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="4. Backend Architecture" id="backend-arch">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title4" value="Backend Architecture - Node.js/Express + Galaxy Integration" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Express App -->
+        <mxCell id="express-app" value="Express Application" style="rounded=0;whiteSpace=wrap;html=1;fontSize=16;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="1240" height="740" as="geometry" />
+        </mxCell>
+
+        <!-- Routes Layer -->
+        <mxCell id="routes-layer" value="Routes Layer (server/routes.ts)" style="swimlane;whiteSpace=wrap;html=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="140" width="1200" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="route-health" value="GET /api/health" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="routes-layer">
+          <mxGeometry x="20" y="40" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="route-chat" value="POST /api/chat&#xa;&#xa;Hybrid Chat" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;" vertex="1" parent="routes-layer">
+          <mxGeometry x="170" y="40" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="route-tool-search" value="POST /api/galaxy/&#xa;tool-search" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;" vertex="1" parent="routes-layer">
+          <mxGeometry x="320" y="40" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="route-tool-install" value="POST /api/galaxy/&#xa;tool-install" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;" vertex="1" parent="routes-layer">
+          <mxGeometry x="470" y="40" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="route-workflow-invoke" value="POST /api/galaxy/&#xa;workflow-invoke" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;" vertex="1" parent="routes-layer">
+          <mxGeometry x="620" y="40" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="route-workflow-status" value="GET /api/galaxy/&#xa;workflow-status/{id}" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;" vertex="1" parent="routes-layer">
+          <mxGeometry x="770" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="route-sse" value="GET /api/galaxy/&#xa;invocations/{id}/&#xa;stream (SSE)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#fff2cc;strokeColor=#d6b656;align=center;fontStyle=1" vertex="1" parent="routes-layer">
+          <mxGeometry x="930" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="route-datasets" value="GET /api/galaxy/&#xa;datasets" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;" vertex="1" parent="routes-layer">
+          <mxGeometry x="1070" y="40" width="110" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Services Layer -->
+        <mxCell id="services-layer" value="Services Layer" style="swimlane;whiteSpace=wrap;html=1;fontSize=13;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="300" width="1200" height="260" as="geometry" />
+        </mxCell>
+
+        <!-- Chat Service -->
+        <mxCell id="chat-service" value="Chat API Service&#xa;(Hybrid Intelligence)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="services-layer">
+          <mxGeometry x="20" y="40" width="260" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-service-detail" value="1. OpenAI Chat&#xa;   • GPT-4 for NLU&#xa;   • Intent detection&#xa;&#xa;2. Galaxy Tool Search&#xa;   • Query tool index&#xa;   • Filter by category&#xa;&#xa;3. BioMNI Dataset RAG&#xa;   • Dataset discovery&#xa;   • Schema matching&#xa;&#xa;4. Workflow Generator&#xa;   • Build Galaxy JSON&#xa;   • Add suggested datasets" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="chat-service">
+          <mxGeometry x="10" y="30" width="240" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy Proxy Service -->
+        <mxCell id="galaxy-proxy-service" value="Galaxy API Proxy" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="services-layer">
+          <mxGeometry x="300" y="40" width="260" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-proxy-detail" value="galaxy-api-proxy.ts&#xa;&#xa;Methods:&#xa;• searchTools(query)&#xa;• installTool(owner, name)&#xa;• invokeWorkflow(wf_json)&#xa;• getInvocationState(id)&#xa;• getJobState(job_id)&#xa;• getJobLogs(job_id)&#xa;• getDatasets()&#xa;&#xa;Handles:&#xa;• Authentication&#xa;• Error retry logic&#xa;• Response parsing" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="galaxy-proxy-service">
+          <mxGeometry x="10" y="30" width="240" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow Executor Service -->
+        <mxCell id="workflow-exec-service" value="Workflow Executor" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="services-layer">
+          <mxGeometry x="580" y="40" width="260" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-exec-detail" value="workflow-executor.ts&#xa;&#xa;Methods:&#xa;• executeWorkflow(steps)&#xa;• convertToGalaxyFormat()&#xa;• checkAndInstallTools()&#xa;• handleExecutionError()&#xa;&#xa;Process:&#xa;1. Validate workflow&#xa;2. Check tool availability&#xa;3. Install missing tools&#xa;4. Convert to Galaxy JSON&#xa;5. Invoke via proxy&#xa;6. Return invocation_id" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="workflow-exec-service">
+          <mxGeometry x="10" y="30" width="240" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- State Poller + SSE Service -->
+        <mxCell id="state-poller-service" value="State Poller + SSE" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="services-layer">
+          <mxGeometry x="860" y="40" width="320" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-poller-detail" value="galaxy-state-poller.ts + workflow-sse.ts&#xa;&#xa;State Poller:&#xa;• Poll GET /api/invocations/{id} every 3s&#xa;• Extract job states from response&#xa;• Detect state changes&#xa;&#xa;SSE Stream:&#xa;• Open EventSource connection&#xa;• Stream state updates to frontend&#xa;• Format: data: {type, invocation_id, state, steps}&#xa;&#xa;States Tracked:&#xa;• new, queued, running, ok, error, paused&#xa;• Real timestamps (create_time, update_time)&#xa;• NO progress estimation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="state-poller-service">
+          <mxGeometry x="10" y="30" width="300" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Integration Layer -->
+        <mxCell id="integration-layer" value="Integration Layer" style="swimlane;whiteSpace=wrap;html=1;fontSize=13;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="600" width="1200" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy Backend -->
+        <mxCell id="galaxy-backend-box" value="Galaxy Backend APIs" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="integration-layer">
+          <mxGeometry x="20" y="40" width="380" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-backend-detail" value="Production-Ready Components:&#xa;&#xa;• On-Demand Tool Installer&#xa;  - 2,177 tools indexed (SQLite FTS5)&#xa;  - Auto-install from ToolShed&#xa;  - Retry logic, no restart needed&#xa;&#xa;• Workflow API&#xa;  - POST /api/workflows/{id}/invocations&#xa;  - GET /api/invocations/{id}&#xa;&#xa;• Jobs API&#xa;  - GET /api/jobs/{id} (state tracking)&#xa;  - GET /api/jobs/{id}/stdout, /stderr" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="galaxy-backend-box">
+          <mxGeometry x="10" y="30" width="360" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- BioMNI RAG -->
+        <mxCell id="biomni-rag-box" value="BioMNI Dataset RAG" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="integration-layer">
+          <mxGeometry x="420" y="40" width="360" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="biomni-rag-detail" value="biomni_dataset_rag.py&#xa;&#xa;• Dataset Search Engine&#xa;  - 100+ GB data lake indexed&#xa;  - Category-based search&#xa;  - Schema-based query&#xa;  - Format filtering&#xa;&#xa;• Methods:&#xa;  - search_datasets(query, category)&#xa;  - get_datasets_by_schema(fields)&#xa;  - get_compatible_datasets(format)&#xa;&#xa;• Returns: dataset_id, name, description,&#xa;  category, format, size, path" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="biomni-rag-box">
+          <mxGeometry x="10" y="30" width="340" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- External APIs -->
+        <mxCell id="external-apis-box" value="External APIs" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;align=center;verticalAlign=top;fontStyle=1;dashed=1" vertex="1" parent="integration-layer">
+          <mxGeometry x="800" y="40" width="380" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="external-apis-detail" value="• OpenAI API&#xa;  - GPT-4 for natural language&#xa;  - Intent detection&#xa;  - Parameter suggestions&#xa;  - Error interpretation&#xa;&#xa;• Galaxy ToolShed&#xa;  - 2,177+ tools available&#xa;  - Tool metadata&#xa;  - Installation packages&#xa;&#xa;• BioMNI Data Lake&#xa;  - 100+ GB datasets&#xa;  - Proteomics, metabolomics, genomics" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="external-apis-box">
+          <mxGeometry x="10" y="30" width="360" height="120" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram name="5. Frontend Components" id="frontend-arch">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title5" value="Frontend Component Architecture - React + TypeScript" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- App Component -->
+        <mxCell id="app-component" value="App.tsx (Root Component)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="1240" height="760" as="geometry" />
+        </mxCell>
+
+        <!-- State Management -->
+        <mxCell id="state-mgmt" value="Global State Management" style="rounded=1;whiteSpace=wrap;html=1;fontSize=13;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="140" width="600" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-mgmt-detail" value="• currentChatSession: ChatSession | null&#xa;• chatSessions: ChatSession[]&#xa;• currentWorkflow: WorkflowProgress | null&#xa;• executionState: 'idle' | 'running' | 'paused' | 'completed' | 'error'" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=Courier New;" vertex="1" parent="state-mgmt">
+          <mxGeometry x="10" y="30" width="580" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Layout -->
+        <mxCell id="layout-split" value="ResizablePanelGroup (Horizontal Split)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="140" width="600" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="layout-detail" value="Left Panel (60%): Chat Interface&#xa;Resize Handle: draggable&#xa;Right Panel (40%): Workflow View (Graph Only)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="layout-split">
+          <mxGeometry x="10" y="30" width="580" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Chat Components -->
+        <mxCell id="chat-components" value="Chat Components (Left Panel)" style="swimlane;whiteSpace=wrap;html=1;fontSize=13;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="280" width="600" height="560" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-interface" value="ChatInterface.tsx" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-components">
+          <mxGeometry x="20" y="40" width="560" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-interface-detail" value="Props: { currentSession, onChatUpdated, onWorkflowGenerated }&#xa;&#xa;• Message input field&#xa;• Send button&#xa;• Suggestion chips&#xa;• Calls POST /api/chat&#xa;• Triggers workflow generation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontFamily=Courier New;" vertex="1" parent="chat-interface">
+          <mxGeometry x="10" y="30" width="540" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="message-list" value="MessageList.tsx" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-components">
+          <mxGeometry x="20" y="160" width="270" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="message-list-detail" value="• Display messages&#xa;• User messages (right)&#xa;• AI responses (left)&#xa;• Markdown support&#xa;• Code highlighting" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="message-list">
+          <mxGeometry x="10" y="30" width="250" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="suggestion-chips" value="SuggestionChips.tsx" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-components">
+          <mxGeometry x="310" y="160" width="270" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="suggestion-chips-detail" value="• Quick action buttons&#xa;• Context-aware&#xa;• Generated by backend&#xa;• onClick: add to input" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="suggestion-chips">
+          <mxGeometry x="10" y="30" width="250" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-recommendation" value="ToolRecommendation.tsx" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-components">
+          <mxGeometry x="20" y="280" width="270" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-recommendation-detail" value="• Display tool cards&#xa;• Tool name, description&#xa;• Complexity badge&#xa;• Add to workflow button" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="tool-recommendation">
+          <mxGeometry x="10" y="30" width="250" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dataset-suggestion" value="DatasetSuggestion.tsx" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-components">
+          <mxGeometry x="310" y="280" width="270" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dataset-suggestion-detail" value="• BioMNI dataset cards&#xa;• Dataset name, category&#xa;• Size, format info&#xa;• Add to workflow button" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="dataset-suggestion">
+          <mxGeometry x="10" y="30" width="250" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="error-help" value="ErrorHelpPanel.tsx" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="chat-components">
+          <mxGeometry x="20" y="400" width="560" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="error-help-detail" value="Triggered when workflow error occurs&#xa;&#xa;Props: { toolId, errorMessage, workflowContext }&#xa;&#xa;• Display error from Galaxy&#xa;• Ask chat for interpretation&#xa;• Show AI-generated explanation&#xa;• Suggest fixes&#xa;• Auto-fix button (optional)&#xa;&#xa;Example: &quot;Missing reference genome. Click to add hg38 download step.&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="error-help">
+          <mxGeometry x="10" y="30" width="540" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow Components -->
+        <mxCell id="workflow-components" value="Workflow Components (Right Panel - Graph Only)" style="swimlane;whiteSpace=wrap;html=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="280" width="600" height="560" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-builder" value="EnhancedWorkflowBuilder.tsx" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-components">
+          <mxGeometry x="20" y="40" width="560" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-builder-detail" value="Main workflow container (LIST VIEW REMOVED)&#xa;&#xa;• Workflow-level controls: Run All, Pause, Stop, Restart&#xa;• Displays WorkflowGraph (no tabs)&#xa;• Manages workflow state" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="workflow-builder">
+          <mxGeometry x="10" y="30" width="540" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-graph" value="WorkflowGraph.tsx (ENHANCED)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-components">
+          <mxGeometry x="20" y="140" width="560" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-graph-detail" value="SVG-based graph visualization&#xa;&#xa;• Nodes: Workflow steps (cards in foreignObject)&#xa;• Edges: Dependencies (SVG lines with arrows)&#xa;• Node colors: state-based (gray/blue/green/red/yellow)&#xa;• Click node → Open ParameterDialog OR show controls&#xa;• Hover → Highlight dependencies&#xa;• Node-level controls: Run, Pause, Retry, Settings, Delete&#xa;• NO progress bars (just state + elapsed time)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="workflow-graph">
+          <mxGeometry x="10" y="30" width="540" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="parameter-dialog" value="WorkflowGraphParameterDialog.tsx (NEW)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-components">
+          <mxGeometry x="20" y="300" width="270" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="parameter-dialog-detail" value="3-Tier Parameter UI:&#xa;&#xa;Tier 1: Essential (3-5 params)&#xa;Tier 2: Common (expandable)&#xa;Tier 3: Advanced (collapsed)&#xa;&#xa;• Smart defaults&#xa;• AI suggestions from chat&#xa;• Validation from Galaxy&#xa;• Apply / Apply &amp; Run buttons" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="parameter-dialog">
+          <mxGeometry x="10" y="30" width="250" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="execution-panel" value="WorkflowExecutionPanel.tsx (NEW)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-components">
+          <mxGeometry x="310" y="300" width="270" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="execution-panel-detail" value="Execution timeline:&#xa;&#xa;• Step-by-step progress&#xa;• Galaxy job states&#xa;• Elapsed time&#xa;• Completion status&#xa;• Link to logs&#xa;• Link to outputs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="execution-panel">
+          <mxGeometry x="10" y="30" width="250" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="result-viewer" value="WorkflowResultViewer.tsx (NEW)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-components">
+          <mxGeometry x="20" y="440" width="270" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="result-viewer-detail" value="Display Galaxy outputs:&#xa;&#xa;• Data tables (CSV/TSV)&#xa;• Images (PNG/PDF)&#xa;• Text files&#xa;• Download links" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="result-viewer">
+          <mxGeometry x="10" y="30" width="250" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="log-viewer" value="GalaxyLogViewer.tsx (NEW)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;align=center;verticalAlign=top;fontStyle=1" vertex="1" parent="workflow-components">
+          <mxGeometry x="310" y="440" width="270" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="log-viewer-detail" value="Display Galaxy logs:&#xa;&#xa;• stdout (live stream)&#xa;• stderr (errors)&#xa;• Syntax highlighting&#xa;• Auto-scroll" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="log-viewer">
+          <mxGeometry x="10" y="30" width="250" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

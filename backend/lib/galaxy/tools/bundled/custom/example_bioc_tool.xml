@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<tool id="example_bioc" name="Example Bioconductor Tool" version="1.0.0">
+    <description>Example Bioconductor tool wrapper</description>
+    
+    <requirements>
+        <requirement type="package" version="4.3">r-base</requirement>
+        <requirement type="package">bioconductor-deseq2</requirement>
+    </requirements>
+    
+    <command detect_errors="exit_code"><![CDATA[
+        Rscript '$__tool_directory__/bioc_script.R' 
+            --input '$input'
+            --output '$output'
+            --pvalue '$pvalue'
+    ]]></command>
+    
+    <inputs>
+        <param name="input" type="data" format="tabular" label="Input count matrix" />
+        <param name="pvalue" type="float" value="0.05" min="0" max="1" 
+               label="P-value threshold" help="Adjusted p-value cutoff" />
+    </inputs>
+    
+    <outputs>
+        <data name="output" format="tabular" label="DEG results" />
+    </outputs>
+    
+    <tests>
+        <test>
+            <param name="input" value="test_counts.txt" />
+            <param name="pvalue" value="0.01" />
+            <output name="output" file="expected_output.txt" />
+        </test>
+    </tests>
+    
+    <help><![CDATA[
+        This tool performs differential gene expression analysis using DESeq2.
+        
+        **Input:**
+        - Count matrix with genes as rows and samples as columns
+        
+        **Output:**  
+        - Table with differential expression results
+    ]]></help>
+    
+    <citations>
+        <citation type="doi">10.1186/s13059-014-0550-8</citation>
+    </citations>
+</tool>

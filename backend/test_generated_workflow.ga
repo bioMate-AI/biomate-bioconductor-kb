@@ -1,0 +1,134 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "Human Serum LC-MS Metabolite Identification Workflow",
+  "annotation": "This workflow addresses the complete metabolite identification pipeline from human serum LC-MS data. Step 1 (BEAMSpy) handles the critical initial peak detection and feature extraction from raw LC-MS data. Step 2 (Bih4MaConDa) provides general LC-MS metabolite annotation. Step 3 (BiH4BloodExposome) is specifically designed for blood/serum samples, making it ideal for human serum analysis. Step 4 (BioTransformer) expands identification by predicting biotransformation products. Step 5 (MetaboRank) ranks compounds to prioritize the most relevant metabolites. Step 6 (Pathview) provides biological context through pathway mapping. This workflow maximizes the use of available tools that match the keywords: LC-MS, peak detection, metabolite, annotation, compound identification, and MS analysis.",
+  "tags": [
+    "lcms",
+    "metabolomics",
+    "ai-generated"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/metabolights/beamspy_galaxy/beamspy/1.1.0+galaxy0",
+      "tool_version": null,
+      "type": "tool",
+      "name": "BEAMSpy",
+      "tool_state": {},
+      "inputs": []
+    },
+    "1": {
+      "id": 1,
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/fgiacomoni/bih4maconda/bih4maconda/0.1.4",
+      "tool_version": null,
+      "type": "tool",
+      "name": "Bih4MaConDa",
+      "tool_state": {},
+      "inputs": [
+        {
+          "reference_db_0": {
+            "src": "ldda",
+            "id": "hmdb/hmdb_metabolites.zip",
+            "path": "/tmp/biomni_datasets/data/databases/hmdb/hmdb_metabolites.zip"
+          }
+        },
+        {
+          "reference_db_1": {
+            "src": "ldda",
+            "id": "kegg/kegg_compounds_complete.json",
+            "path": "/tmp/biomni_datasets/data/databases/kegg/kegg_compounds_complete.json"
+          }
+        },
+        {
+          "reference_db_2": {
+            "src": "ldda",
+            "id": "kegg/kegg_mass_index.json",
+            "path": "/tmp/biomni_datasets/data/databases/kegg/kegg_mass_index.json"
+          }
+        }
+      ]
+    },
+    "2": {
+      "id": 2,
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/fgiacomoni/bih4bloodexposome/bih4bloodexposome/0.1.2",
+      "tool_version": null,
+      "type": "tool",
+      "name": "BiH4BloodExposome",
+      "tool_state": {},
+      "inputs": [
+        {
+          "reference_db_0": {
+            "src": "ldda",
+            "id": "hmdb/serum_metabolites.zip",
+            "path": "/tmp/biomni_datasets/data/databases/hmdb/serum_metabolites.zip"
+          }
+        }
+      ]
+    },
+    "3": {
+      "id": 3,
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/recetox/biotransformer/biotransformer/3.0.20230403+galaxy5",
+      "tool_version": null,
+      "type": "tool",
+      "name": "BioTransformer",
+      "tool_state": {},
+      "inputs": [
+        {
+          "reference_db_0": {
+            "src": "ldda",
+            "id": "kegg/kegg_compounds_complete.json",
+            "path": "/tmp/biomni_datasets/data/databases/kegg/kegg_compounds_complete.json"
+          }
+        },
+        {
+          "reference_db_1": {
+            "src": "ldda",
+            "id": "kegg/pathway_compounds_complete.json",
+            "path": "/tmp/biomni_datasets/data/databases/kegg/pathway_compounds_complete.json"
+          }
+        },
+        {
+          "reference_db_2": {
+            "src": "ldda",
+            "id": "hmdb/hmdb_metabolites.zip",
+            "path": "/tmp/biomni_datasets/data/databases/hmdb/hmdb_metabolites.zip"
+          }
+        }
+      ]
+    },
+    "4": {
+      "id": 4,
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/metexplore/met4j/metaborank/2.0.1",
+      "tool_version": null,
+      "type": "tool",
+      "name": "MetaboRank",
+      "tool_state": {},
+      "inputs": []
+    },
+    "5": {
+      "id": 5,
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pathview/pathview/1.34.0+galaxy0",
+      "tool_version": null,
+      "type": "tool",
+      "name": "Pathview",
+      "tool_state": {},
+      "inputs": [
+        {
+          "reference_db_0": {
+            "src": "ldda",
+            "id": "kegg/kegg_pathways_human.json",
+            "path": "/tmp/biomni_datasets/data/databases/kegg/kegg_pathways_human.json"
+          }
+        },
+        {
+          "reference_db_1": {
+            "src": "ldda",
+            "id": "kegg/pathway_compounds_complete.json",
+            "path": "/tmp/biomni_datasets/data/databases/kegg/pathway_compounds_complete.json"
+          }
+        }
+      ]
+    }
+  }
+}

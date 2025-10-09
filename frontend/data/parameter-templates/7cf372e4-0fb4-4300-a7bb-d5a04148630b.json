@@ -1,0 +1,42 @@
+{
+  "id": "7cf372e4-0fb4-4300-a7bb-d5a04148630b",
+  "tool_id": "macs2",
+  "tool_version": "2.2.7.1",
+  "tool_name": "MACS2 Peak Calling",
+  "use_case": {
+    "id": "2dd11051-515e-4e43-9074-cd0a171ccf95",
+    "name": "ChIP-seq Narrow Peaks - Human",
+    "description": "Parameters for calling narrow peaks in human ChIP-seq data",
+    "category": "analysis",
+    "tags": [
+      "chip-seq",
+      "peak-calling",
+      "human",
+      "narrow-peaks"
+    ],
+    "sample_type": "human",
+    "analysis_type": "chip_seq_peak_calling",
+    "difficulty": "intermediate",
+    "created_by": "system",
+    "created_at": "2025-10-04T17:30:22.520Z",
+    "updated_at": "2025-10-04T17:30:22.520Z",
+    "usage_count": 0,
+    "success_rate": 0
+  },
+  "parameters": {
+    "gsize": "hs",
+    "qvalue": 0.05,
+    "pvalue": null,
+    "mfold_lower": 5,
+    "mfold_upper": 50,
+    "broad": false,
+    "nomodel": false,
+    "extsize": 200
+  },
+  "rationale": "Standard narrow peak calling for transcription factors. Q-value 0.05 for good specificity.",
+  "references": [
+    "Zhang et al. (2008) Model-based Analysis of ChIP-Seq (MACS)",
+    "https://github.com/macs3-project/MACS"
+  ],
+  "validated": false
+}

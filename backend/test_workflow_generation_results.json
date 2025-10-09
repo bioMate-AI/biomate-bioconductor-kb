@@ -1,0 +1,205 @@
+{
+  "user_intent": "Identify metabolites from human serum LC-MS data using peak detection and compound identification",
+  "workflow_structure": {
+    "workflow_name": "Human Serum LC-MS Metabolite Identification Workflow",
+    "steps": [
+      {
+        "step": 1,
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/metabolights/beamspy_galaxy/beamspy/1.1.0+galaxy0",
+        "tool_name": "BEAMSpy",
+        "purpose": "Perform initial peak detection and feature extraction from LC-MS data to identify metabolite features and peaks in the human serum samples"
+      },
+      {
+        "step": 2,
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/fgiacomoni/bih4maconda/bih4maconda/0.1.4",
+        "tool_name": "Bih4MaConDa",
+        "purpose": "Annotate detected peaks using LC-MS m/z values against metabolite databases to provide initial compound identification"
+      },
+      {
+        "step": 3,
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/fgiacomoni/bih4bloodexposome/bih4bloodexposome/0.1.2",
+        "tool_name": "BiH4BloodExposome",
+        "purpose": "Perform specialized annotation of metabolites specific to blood/serum samples using the blood exposome database to identify compounds present in human serum"
+      },
+      {
+        "step": 4,
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/recetox/biotransformer/biotransformer/3.0.20230403+galaxy5",
+        "tool_name": "BioTransformer",
+        "purpose": "Predict metabolic transformations and identify potential metabolite biotransformation products to enhance compound identification coverage"
+      },
+      {
+        "step": 5,
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/metexplore/met4j/metaborank/2.0.1",
+        "tool_name": "MetaboRank",
+        "purpose": "Rank and prioritize identified metabolites based on their biological relevance and confidence scores to filter the most significant compounds"
+      },
+      {
+        "step": 6,
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pathview/pathview/1.34.0+galaxy0",
+        "tool_name": "Pathview",
+        "purpose": "Map identified metabolites onto metabolic pathways for biological interpretation and visualization of metabolite changes in context"
+      }
+    ],
+    "reasoning": "This workflow addresses the complete metabolite identification pipeline from human serum LC-MS data. Step 1 (BEAMSpy) handles the critical initial peak detection and feature extraction from raw LC-MS data. Step 2 (Bih4MaConDa) provides general LC-MS metabolite annotation. Step 3 (BiH4BloodExposome) is specifically designed for blood/serum samples, making it ideal for human serum analysis. Step 4 (BioTransformer) expands identification by predicting biotransformation products. Step 5 (MetaboRank) ranks compounds to prioritize the most relevant metabolites. Step 6 (Pathview) provides biological context through pathway mapping. This workflow maximizes the use of available tools that match the keywords: LC-MS, peak detection, metabolite, annotation, compound identification, and MS analysis.",
+    "missing_tools": [
+      "Data preprocessing/quality control tool for LC-MS raw data",
+      "Retention time correction tool",
+      "Peak alignment tool for multiple samples",
+      "Statistical analysis tool for differential metabolite analysis",
+      "MS/MS fragmentation matching tool for structural confirmation",
+      "Isotope pattern recognition tool"
+    ]
+  },
+  "dataset_assignments": {
+    "workflow_steps": [
+      {
+        "step": 1,
+        "step_name": "Peak Detection and Feature Extraction",
+        "dataset_needed": false,
+        "selected_datasets": [],
+        "reasoning": "Peak detection and feature extraction is a data-driven process that identifies features directly from the raw LC-MS data based on signal intensity, m/z values, and retention times. No external reference dataset is required as this step only processes the experimental data to detect peaks and extract features."
+      },
+      {
+        "step": 2,
+        "step_name": "LC-MS Metabolite Annotation",
+        "dataset_needed": true,
+        "selected_datasets": [
+          {
+            "id": "hmdb/hmdb_metabolites.zip",
+            "name": "hmdb/hmdb_metabolites.zip",
+            "description": "hmdb database file",
+            "format": ".zip",
+            "size_mb": 909.7223377227783,
+            "fields": [],
+            "path": "/tmp/biomni_datasets/data/databases/hmdb/hmdb_metabolites.zip",
+            "source": "database/hmdb",
+            "reason": "HMDB is the most comprehensive metabolite database with over 220,000 compounds including detailed mass spectrometry data (m/z values, MS/MS spectra) necessary for annotating LC-MS peaks. It contains extensive human endogenous and exogenous metabolites relevant to serum analysis."
+          },
+          {
+            "id": "kegg/kegg_compounds_complete.json",
+            "name": "kegg/kegg_compounds_complete.json",
+            "description": "kegg database file",
+            "format": "json",
+            "size_mb": 5.8852434158325195,
+            "fields": [],
+            "path": "/tmp/biomni_datasets/data/databases/kegg/kegg_compounds_complete.json",
+            "source": "database/kegg",
+            "reason": "KEGG compounds database provides additional metabolite annotations with standardized identifiers and molecular formulas that complement HMDB for comprehensive metabolite identification. The mass index file provides efficient m/z-based searching."
+          },
+          {
+            "id": "kegg/kegg_mass_index.json",
+            "name": "kegg/kegg_mass_index.json",
+            "description": "kegg database file",
+            "format": "json",
+            "size_mb": 4.091753005981445,
+            "fields": [],
+            "path": "/tmp/biomni_datasets/data/databases/kegg/kegg_mass_index.json",
+            "source": "database/kegg",
+            "reason": "Pre-indexed KEGG compounds by mass enable rapid m/z-based searching for metabolite annotation, improving computational efficiency during peak annotation."
+          }
+        ],
+        "reasoning": "Compound identification from LC-MS data requires matching experimental m/z values against reference metabolite databases. This is a critical step that absolutely requires external datasets containing metabolite structures, masses, and MS data for accurate annotation."
+      },
+      {
+        "step": 3,
+        "step_name": "Serum-Specific Metabolite Annotation",
+        "dataset_needed": true,
+        "selected_datasets": [
+          {
+            "id": "hmdb/serum_metabolites.zip",
+            "name": "hmdb/serum_metabolites.zip",
+            "description": "hmdb database file",
+            "format": ".zip",
+            "size_mb": 202.3680009841919,
+            "fields": [],
+            "path": "/tmp/biomni_datasets/data/databases/hmdb/serum_metabolites.zip",
+            "source": "database/hmdb",
+            "reason": "HMDB serum metabolites is a curated subset containing compounds specifically detected and validated in human serum samples. This serum-specific database increases annotation confidence by focusing on metabolites with documented presence in the exact sample type being analyzed, reducing false positives from ubiquitous metabolites."
+          }
+        ],
+        "reasoning": "Specialized annotation for serum samples requires a sample-type-specific database to prioritize metabolites known to exist in human serum. This improves annotation accuracy by filtering against the biological reality of what compounds should be present in this biofluid type."
+      },
+      {
+        "step": 4,
+        "step_name": "Metabolic Transformation Prediction",
+        "dataset_needed": true,
+        "selected_datasets": [
+          {
+            "id": "kegg/kegg_compounds_complete.json",
+            "name": "kegg/kegg_compounds_complete.json",
+            "description": "kegg database file",
+            "format": "json",
+            "size_mb": 5.8852434158325195,
+            "fields": [],
+            "path": "/tmp/biomni_datasets/data/databases/kegg/kegg_compounds_complete.json",
+            "source": "database/kegg",
+            "reason": "KEGG contains reaction information and metabolic transformation rules that enable prediction of biotransformation products. The database links parent compounds to their metabolic derivatives through enzymatic reactions."
+          },
+          {
+            "id": "kegg/pathway_compounds_complete.json",
+            "name": "kegg/pathway_compounds_complete.json",
+            "description": "kegg database file",
+            "format": "json",
+            "size_mb": 1.9073486328125e-06,
+            "fields": [],
+            "path": "/tmp/biomni_datasets/data/databases/kegg/pathway_compounds_complete.json",
+            "source": "database/kegg",
+            "reason": "Pathway-compound relationships in KEGG enable identification of metabolic transformation networks and help predict which biotransformation products are biologically plausible based on pathway context."
+          },
+          {
+            "id": "hmdb/hmdb_metabolites.zip",
+            "name": "hmdb/hmdb_metabolites.zip",
+            "description": "hmdb database file",
+            "format": ".zip",
+            "size_mb": 909.7223377227783,
+            "fields": [],
+            "path": "/tmp/biomni_datasets/data/databases/hmdb/hmdb_metabolites.zip",
+            "source": "database/hmdb",
+            "reason": "HMDB contains metabolite relationship information including parent-metabolite connections, enzyme data, and biotransformation pathways that support prediction of metabolic transformation products."
+          }
+        ],
+        "reasoning": "Predicting biotransformation products requires knowledge of metabolic reactions, enzyme activities, and compound relationships. This necessitates metabolite databases with transformation rules and reaction information to identify potential derivative metabolites."
+      },
+      {
+        "step": 5,
+        "step_name": "Metabolite Ranking and Prioritization",
+        "dataset_needed": false,
+        "selected_datasets": [],
+        "reasoning": "Ranking and prioritization is typically performed using scores generated from previous annotation steps (confidence scores, spectral matching scores, database hit counts). This is a computational/statistical step that operates on the results already generated and does not require additional external datasets - it works with the annotation data already obtained."
+      },
+      {
+        "step": 6,
+        "step_name": "Metabolic Pathway Mapping",
+        "dataset_needed": true,
+        "selected_datasets": [
+          {
+            "id": "kegg/kegg_pathways_human.json",
+            "name": "kegg/kegg_pathways_human.json",
+            "description": "kegg database file",
+            "format": "json",
+            "size_mb": 0.03337860107421875,
+            "fields": [],
+            "path": "/tmp/biomni_datasets/data/databases/kegg/kegg_pathways_human.json",
+            "source": "database/kegg",
+            "reason": "Human-specific KEGG pathways provide the pathway definitions and compound-pathway mappings necessary for biological interpretation. This enables mapping of identified serum metabolites onto relevant human metabolic pathways for contextualization of metabolomic changes."
+          },
+          {
+            "id": "kegg/pathway_compounds_complete.json",
+            "name": "kegg/pathway_compounds_complete.json",
+            "description": "kegg database file",
+            "format": "json",
+            "size_mb": 1.9073486328125e-06,
+            "fields": [],
+            "path": "/tmp/biomni_datasets/data/databases/kegg/pathway_compounds_complete.json",
+            "source": "database/kegg",
+            "reason": "Complete pathway-compound relationships enable comprehensive mapping of identified metabolites to their biological pathways, providing the link between compounds and pathway context needed for biological interpretation and visualization."
+          }
+        ],
+        "reasoning": "Pathway mapping requires external pathway databases that define metabolic pathways and the relationships between metabolites and pathways. This is essential for biological interpretation and requires pathway definition databases to place identified metabolites in their functional context."
+      }
+    ],
+    "overall_strategy": "The dataset selection strategy follows a progressive annotation approach: (1) No datasets for data-driven peak detection; (2) Comprehensive metabolite databases (HMDB, KEGG) for broad LC-MS annotation; (3) Sample-type-specific database (HMDB serum) for targeted serum annotation; (4) Metabolite relationship databases for biotransformation prediction; (5) No datasets for computational ranking; (6) Human pathway databases for biological contextualization. This strategy prioritizes human serum-relevant resources while maintaining comprehensive coverage through general metabolite databases, ensuring both sensitivity and specificity for human serum LC-MS metabolomics.",
+    "research_needed": []
+  },
+  "tool_count": 30
+}

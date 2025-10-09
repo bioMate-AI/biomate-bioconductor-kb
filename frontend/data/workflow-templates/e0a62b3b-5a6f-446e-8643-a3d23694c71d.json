@@ -1,0 +1,128 @@
+{
+  "id": "e0a62b3b-5a6f-446e-8643-a3d23694c71d",
+  "name": "LC-MS Metabolomics Peak Detection",
+  "description": "Workflow for detecting and quantifying metabolite peaks from LC-MS data",
+  "use_case": {
+    "id": "e03c92d7-c227-4477-ae23-7ac4b3dab90e",
+    "name": "LC-MS Metabolomics - Positive Mode",
+    "description": "Peak detection workflow optimized for positive ionization mode LC-MS data",
+    "category": "metabolomics",
+    "tags": [
+      "metabolomics",
+      "lc-ms",
+      "positive-mode",
+      "xcms"
+    ],
+    "analysis_type": "metabolite_identification",
+    "sample_types": [
+      "human_plasma",
+      "human_serum",
+      "cell_extract"
+    ],
+    "input_types": [
+      "mzML",
+      "mzXML"
+    ],
+    "expected_outputs": [
+      "peak_table",
+      "feature_annotations"
+    ],
+    "difficulty": "advanced",
+    "estimated_time": "1-2 hours",
+    "rationale": "XCMS-based workflow with optimized parameters for positive mode LC-MS. Uses centWave for peak detection and CAMERA for annotation.",
+    "protocol_references": [
+      "Smith et al. (2006) XCMS: Processing mass spectrometry data for metabolite profiling",
+      "Kuhl et al. (2012) CAMERA: An integrated strategy for compound spectra extraction"
+    ],
+    "created_by": "system",
+    "created_at": "2025-10-04T17:30:22.523Z",
+    "updated_at": "2025-10-04T17:30:22.523Z",
+    "usage_count": 0,
+    "success_rate": 0
+  },
+  "workflow_ga": {
+    "a_galaxy_workflow": "1.0",
+    "annotation": "LC-MS metabolomics peak detection",
+    "format_version": "0.1",
+    "name": "LC-MS Peak Detection",
+    "steps": {
+      "0": {
+        "annotation": "Input mzML files",
+        "id": 0,
+        "tool_id": "data_input",
+        "type": "data_input",
+        "name": "Input Dataset Collection"
+      },
+      "1": {
+        "annotation": "Peak detection with XCMS",
+        "id": 1,
+        "tool_id": "xcms",
+        "tool_version": "3.16.1",
+        "name": "XCMS Peak Detection",
+        "tool_state": {
+          "method": "centWave",
+          "ppm": 15,
+          "peakwidth_min": 5,
+          "peakwidth_max": 20
+        }
+      },
+      "2": {
+        "annotation": "Retention time correction",
+        "id": 2,
+        "tool_id": "xcms",
+        "tool_version": "3.16.1",
+        "name": "XCMS RT Correction",
+        "tool_state": {
+          "method": "obiwarp"
+        }
+      },
+      "3": {
+        "annotation": "Peak annotation with CAMERA",
+        "id": 3,
+        "tool_id": "camera",
+        "tool_version": "1.50.0",
+        "name": "CAMERA Annotation",
+        "tool_state": {
+          "polarity": "positive",
+          "ppm": 10
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "step_id": "0",
+      "tool_id": "data_input",
+      "tool_name": "Input Dataset Collection"
+    },
+    {
+      "step_id": "1",
+      "tool_id": "xcms",
+      "tool_name": "XCMS Peak Detection",
+      "custom_parameters": {
+        "method": "centWave",
+        "ppm": 15,
+        "peakwidth_min": 5,
+        "peakwidth_max": 20
+      }
+    },
+    {
+      "step_id": "2",
+      "tool_id": "xcms",
+      "tool_name": "XCMS RT Correction",
+      "custom_parameters": {
+        "method": "obiwarp"
+      }
+    },
+    {
+      "step_id": "3",
+      "tool_id": "camera",
+      "tool_name": "CAMERA Annotation",
+      "custom_parameters": {
+        "polarity": "positive",
+        "ppm": 10
+      }
+    }
+  ],
+  "validated": false
+}

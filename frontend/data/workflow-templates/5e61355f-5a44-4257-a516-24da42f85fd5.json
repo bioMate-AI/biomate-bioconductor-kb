@@ -1,0 +1,148 @@
+{
+  "id": "5e61355f-5a44-4257-a516-24da42f85fd5",
+  "name": "RNA-seq Differential Expression Analysis",
+  "description": "Complete workflow for identifying differentially expressed genes from RNA-seq data",
+  "use_case": {
+    "id": "4995ce4a-b840-4207-a43f-bfa28748c6d2",
+    "name": "RNA-seq DE Analysis - Human",
+    "description": "Standard differential expression workflow for human RNA-seq samples",
+    "category": "genomics",
+    "tags": [
+      "rna-seq",
+      "differential-expression",
+      "human",
+      "illumina"
+    ],
+    "analysis_type": "differential_expression",
+    "sample_types": [
+      "human_tissue",
+      "human_cell_line"
+    ],
+    "input_types": [
+      "fastq",
+      "fastq.gz"
+    ],
+    "expected_outputs": [
+      "counts_table",
+      "differential_expression_results",
+      "plots"
+    ],
+    "difficulty": "intermediate",
+    "estimated_time": "2-4 hours",
+    "rationale": "Standard Tuxedo suite workflow adapted for modern tools. Uses HISAT2 for alignment, featureCounts for quantification, and DESeq2 for statistical analysis.",
+    "protocol_references": [
+      "Trapnell et al. (2012) Differential gene and transcript expression analysis of RNA-seq experiments",
+      "Love et al. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2"
+    ],
+    "created_by": "system",
+    "created_at": "2025-10-04T17:30:22.522Z",
+    "updated_at": "2025-10-04T17:30:22.522Z",
+    "usage_count": 0,
+    "success_rate": 0
+  },
+  "workflow_ga": {
+    "a_galaxy_workflow": "1.0",
+    "annotation": "RNA-seq differential expression analysis",
+    "format_version": "0.1",
+    "name": "RNA-seq DE Analysis",
+    "steps": {
+      "0": {
+        "annotation": "Input dataset collection",
+        "id": 0,
+        "tool_id": "data_input",
+        "type": "data_input",
+        "name": "Input Dataset Collection"
+      },
+      "1": {
+        "annotation": "Quality control with FastQC",
+        "id": 1,
+        "tool_id": "fastqc",
+        "tool_version": "0.12.1",
+        "name": "FastQC",
+        "tool_state": {
+          "threads": 4,
+          "nogroup": false
+        }
+      },
+      "2": {
+        "annotation": "Align reads with HISAT2",
+        "id": 2,
+        "tool_id": "hisat2",
+        "tool_version": "2.2.1",
+        "name": "HISAT2",
+        "tool_state": {
+          "threads": 8,
+          "reference_genome": "hg38"
+        }
+      },
+      "3": {
+        "annotation": "Count reads with featureCounts",
+        "id": 3,
+        "tool_id": "featurecounts",
+        "tool_version": "2.0.1",
+        "name": "featureCounts",
+        "tool_state": {
+          "threads": 4,
+          "feature_type": "exon",
+          "attribute_type": "gene_id"
+        }
+      },
+      "4": {
+        "annotation": "Differential expression with DESeq2",
+        "id": 4,
+        "tool_id": "deseq2",
+        "tool_version": "1.34.0",
+        "name": "DESeq2",
+        "tool_state": {
+          "alpha": 0.05,
+          "fit_type": "parametric"
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "step_id": "0",
+      "tool_id": "data_input",
+      "tool_name": "Input Dataset Collection"
+    },
+    {
+      "step_id": "1",
+      "tool_id": "fastqc",
+      "tool_name": "FastQC",
+      "custom_parameters": {
+        "threads": 4,
+        "nogroup": false
+      }
+    },
+    {
+      "step_id": "2",
+      "tool_id": "hisat2",
+      "tool_name": "HISAT2",
+      "custom_parameters": {
+        "threads": 8,
+        "reference_genome": "hg38"
+      }
+    },
+    {
+      "step_id": "3",
+      "tool_id": "featurecounts",
+      "tool_name": "featureCounts",
+      "custom_parameters": {
+        "threads": 4,
+        "feature_type": "exon",
+        "attribute_type": "gene_id"
+      }
+    },
+    {
+      "step_id": "4",
+      "tool_id": "deseq2",
+      "tool_name": "DESeq2",
+      "custom_parameters": {
+        "alpha": 0.05,
+        "fit_type": "parametric"
+      }
+    }
+  ],
+  "validated": false
+}
