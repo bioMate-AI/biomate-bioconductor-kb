@@ -57,14 +57,20 @@ def collect_all_unique_tools(source_dir):
             if isinstance(data, dict) and 'crawledData' in data:
                 crawl_data = data['crawledData']
             elif isinstance(data, list):
-                crawl_data = {i: item for i, item in enumerate(data)}
+                crawl_data = data
 
             if not crawl_data:
                 print(f"⚠️  {json_file.name:55s} | No crawledData found")
                 continue
 
-            # Process each category
-            items = crawl_data.values() if isinstance(crawl_data, dict) else crawl_data
+            # Process each category - handle both list and dict formats
+            if isinstance(crawl_data, list):
+                items = crawl_data
+            elif isinstance(crawl_data, dict):
+                items = crawl_data.values()
+            else:
+                print(f"⚠️  {json_file.name:55s} | Unexpected crawledData format")
+                continue
 
             for cat_data in items:
                 if not isinstance(cat_data, dict) or 'repositories' not in cat_data:
