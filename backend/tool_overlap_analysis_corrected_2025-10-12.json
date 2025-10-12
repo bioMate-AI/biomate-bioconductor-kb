@@ -1,0 +1,222 @@
+{
+  "timestamp": "2025-10-12T15:26:44.524489",
+  "galaxy_tools_count": 6654,
+  "biomni": {
+    "total_software": 100,
+    "in_galaxy": 66,
+    "missing": 34,
+    "in_galaxy_list": [
+      [
+        "DESeq2",
+        "Repository Actions\nDESeq"
+      ],
+      [
+        "FastTree",
+        "Repository Actions\nFASTTREE"
+      ],
+      [
+        "Homer",
+        "Repository Actions\nHomer genome preparse"
+      ],
+      [
+        "Matrix",
+        "Repository Actions\nmatrix2ortho"
+      ],
+      [
+        "PyMassSpec",
+        "Repository Actions\npy2"
+      ],
+      [
+        "PyPDF2",
+        "Repository Actions\npy2"
+      ],
+      [
+        "WGCNA",
+        "Repository Actions\nWGCNA: preprocessing"
+      ],
+      [
+        "anndata",
+        "Repository Actions\nManipulate AnnData"
+      ],
+      [
+        "bedtools",
+        "Repository Actions\nbedtools RandomBed"
+      ],
+      [
+        "biom-format",
+        "Repository Actions\nFormat"
+      ],
+      [
+        "biopandas",
+        "Repository Actions\nDAS Tool"
+      ],
+      [
+        "biopython",
+        "Repository Actions\npy2"
+      ],
+      [
+        "bowtie2",
+        "Repository Actions\nBowtie2"
+      ],
+      [
+        "bwa",
+        "Repository Actions\nBWA-MEM index"
+      ],
+      [
+        "clusterProfiler",
+        "Repository Actions\nCluster"
+      ],
+      [
+        "cooler",
+        "Repository Actions\nCooler zoomify"
+      ],
+      [
+        "edgeR",
+        "Repository Actions\nedgeR"
+      ],
+      [
+        "fastqc",
+        "Repository Actions\nFastQC"
+      ],
+      [
+        "gcta64",
+        "Repository Actions\nCTA"
+      ],
+      [
+        "ggplot2",
+        "Repository Actions\nPCA plot w ggplot2"
+      ]
+    ],
+    "missing_list": [
+      "arxiv",
+      "autosite",
+      "biotite",
+      "cellpose",
+      "cellxgene-census",
+      "cobra",
+      "cryosparc-tools",
+      "cyvcf2",
+      "deeppurpose",
+      "descriptastorus",
+      "dplyr",
+      "faiss-cpu",
+      "fanc",
+      "flowkit",
+      "gget",
+      "hmmlearn",
+      "igraph",
+      "joblib",
+      "lazyslide",
+      "msprime"
+    ]
+  },
+  "nfcore": {
+    "total_modules": 1636,
+    "in_galaxy": 1068,
+    "missing": 568,
+    "in_galaxy_list": [
+      [
+        "abacas",
+        "Repository Actions\nabacas contig ordering"
+      ],
+      [
+        "abra2",
+        "Repository Actions\nExtract a branch from an ontology"
+      ],
+      [
+        "abricate/run",
+        "Repository Actions\nABRicate"
+      ],
+      [
+        "abricate/summary",
+        "Repository Actions\nABRicate"
+      ],
+      [
+        "abritamr/run",
+        "Repository Actions\nabriTAMR"
+      ],
+      [
+        "adapterremoval",
+        "Repository Actions\nAdapterRemoval: remove adapter sequences"
+      ],
+      [
+        "admixture",
+        "Repository Actions\nAdmixture"
+      ],
+      [
+        "affy/justrma",
+        "Repository Actions\nValidate Affymetrix metadata"
+      ],
+      [
+        "agat/convertbed2gff",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/convertgff2bed",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/convertspgff2gtf",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/convertspgff2tsv",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/convertspgxf2gxf",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/spaddintrons",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/spextractsequences",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/spfilterbyorfsize",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/spfilterfeaturefromkilllist",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/spflagshortintrons",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/spkeeplongestisoform",
+        "Repository Actions\nAGAT"
+      ],
+      [
+        "agat/spmergeannotations",
+        "Repository Actions\nAGAT"
+      ]
+    ],
+    "missing_list": [
+      "adapterremovalfixprefix",
+      "agrvate",
+      "allelecounter",
+      "ampcombi",
+      "ampcombi2/cluster",
+      "ampcombi2/complete",
+      "ampcombi2/parsetables",
+      "amplify/predict",
+      "amps",
+      "amulety/antiberta2",
+      "amulety/antiberty",
+      "amulety/balmpaired",
+      "amulety/esm2",
+      "amulety/translate",
+      "angsd/contamination",
+      "angsd/docounts",
+      "angsd/gl",
+      "annosine",
+      "annotsv/annotsv",
+      "annotsv/installannotations"
+    ]
+  }
+}

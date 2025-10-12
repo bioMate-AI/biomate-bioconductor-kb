@@ -1,0 +1,400 @@
+{
+  "in_both": [
+    {
+      "biomni": "DESeq2",
+      "nfcore_modules": [
+        "deseq2/differential"
+      ],
+      "nfcore_count": 1
+    },
+    {
+      "biomni": "FastTree",
+      "nfcore_modules": [
+        "fasttree"
+      ],
+      "nfcore_count": 1
+    },
+    {
+      "biomni": "Homer",
+      "nfcore_modules": [
+        "homer/annotatepeaks",
+        "homer/findpeaks",
+        "homer/maketagdirectory",
+        "homer/makeucscfile",
+        "homer/pos2bed"
+      ],
+      "nfcore_count": 5
+    },
+    {
+      "biomni": "anndata",
+      "nfcore_modules": [
+        "anndata/barcodes",
+        "anndata/getsize"
+      ],
+      "nfcore_count": 2
+    },
+    {
+      "biomni": "bedtools",
+      "nfcore_modules": [
+        "bedtools/bamtobed",
+        "bedtools/closest",
+        "bedtools/complement",
+        "bedtools/coverage",
+        "bedtools/genomecov",
+        "bedtools/getfasta",
+        "bedtools/groupby",
+        "bedtools/intersect",
+        "bedtools/jaccard",
+        "bedtools/makewindows",
+        "bedtools/map",
+        "bedtools/maskfasta",
+        "bedtools/merge",
+        "bedtools/multiinter",
+        "bedtools/nuc",
+        "bedtools/shift",
+        "bedtools/shuffle",
+        "bedtools/slop",
+        "bedtools/sort",
+        "bedtools/split",
+        "bedtools/subtract",
+        "bedtools/unionbedg"
+      ],
+      "nfcore_count": 22
+    },
+    {
+      "biomni": "biom-format",
+      "nfcore_modules": [
+        "biomformat/convert"
+      ],
+      "nfcore_count": 1
+    },
+    {
+      "biomni": "bowtie2",
+      "nfcore_modules": [
+        "bowtie/align",
+        "bowtie/build",
+        "bowtie2/align",
+        "bowtie2/build"
+      ],
+      "nfcore_count": 4
+    },
+    {
+      "biomni": "bwa",
+      "nfcore_modules": [
+        "bwa/aln",
+        "bwa/index",
+        "bwa/mem",
+        "bwa/sampe",
+        "bwa/samse"
+      ],
+      "nfcore_count": 5
+    },
+    {
+      "biomni": "cellpose",
+      "nfcore_modules": [
+        "cellpose"
+      ],
+      "nfcore_count": 1
+    },
+    {
+      "biomni": "cooler",
+      "nfcore_modules": [
+        "cooler/balance",
+        "cooler/cload",
+        "cooler/digest",
+        "cooler/dump",
+        "cooler/makebins",
+        "cooler/merge",
+        "cooler/zoomify"
+      ],
+      "nfcore_count": 7
+    },
+    {
+      "biomni": "fastqc",
+      "nfcore_modules": [
+        "fastqc"
+      ],
+      "nfcore_count": 1
+    },
+    {
+      "biomni": "gget",
+      "nfcore_modules": [
+        "gget/gget"
+      ],
+      "nfcore_count": 1
+    },
+    {
+      "biomni": "iqtree2",
+      "nfcore_modules": [
+        "iqtree"
+      ],
+      "nfcore_count": 1
+    },
+    {
+      "biomni": "limma",
+      "nfcore_modules": [
+        "limma/differential"
+      ],
+      "nfcore_count": 1
+    },
+    {
+      "biomni": "macs2",
+      "nfcore_modules": [
+        "macs2/callpeak",
+        "macs3/callpeak"
+      ],
+      "nfcore_count": 2
+    },
+    {
+      "biomni": "mafft",
+      "nfcore_modules": [
+        "mafft/align",
+        "mafft/guidetree"
+      ],
+      "nfcore_count": 2
+    },
+    {
+      "biomni": "mageck",
+      "nfcore_modules": [
+        "mageck/count",
+        "mageck/mle",
+        "mageck/test"
+      ],
+      "nfcore_count": 3
+    },
+    {
+      "biomni": "muscle",
+      "nfcore_modules": [
+        "muscle",
+        "muscle5/super5"
+      ],
+      "nfcore_count": 2
+    },
+    {
+      "biomni": "plink2",
+      "nfcore_modules": [
+        "plink/bcf",
+        "plink/epistasis",
+        "plink/exclude",
+        "plink/extract",
+        "plink/fastepistasis",
+        "plink/genome",
+        "plink/gwas",
+        "plink/hwe",
+        "plink/indep",
+        "plink/indeppairwise",
+        "plink/ld",
+        "plink/recode",
+        "plink/vcf",
+        "plink2/extract",
+        "plink2/filter",
+        "plink2/het",
+        "plink2/indeppairwise",
+        "plink2/pca",
+        "plink2/remove",
+        "plink2/score",
+        "plink2/vcf",
+        "plink2/vcf2bgen"
+      ],
+      "nfcore_count": 22
+    },
+    {
+      "biomni": "samtools",
+      "nfcore_modules": [
+        "samtools/ampliconclip",
+        "samtools/bam2fq",
+        "samtools/bedcov",
+        "samtools/bgzip",
+        "samtools/calmd",
+        "samtools/cat",
+        "samtools/collate",
+        "samtools/collatefastq",
+        "samtools/consensus",
+        "samtools/convert",
+        "samtools/coverage",
+        "samtools/cramsize",
+        "samtools/depth",
+        "samtools/dict",
+        "samtools/faidx",
+        "samtools/fasta",
+        "samtools/fastq",
+        "samtools/fixmate",
+        "samtools/flagstat",
+        "samtools/getrg",
+        "samtools/idxstats",
+        "samtools/import",
+        "samtools/index",
+        "samtools/markdup",
+        "samtools/merge",
+        "samtools/mpileup",
+        "samtools/reheader",
+        "samtools/sormadup",
+        "samtools/sort",
+        "samtools/stats",
+        "samtools/view"
+      ],
+      "nfcore_count": 31
+    },
+    {
+      "biomni": "scanpy",
+      "nfcore_modules": [
+        "scanpy/filter",
+        "scanpy/hashsolo",
+        "scanpy/pca",
+        "scanpy/scrublet"
+      ],
+      "nfcore_count": 4
+    },
+    {
+      "biomni": "trimmomatic",
+      "nfcore_modules": [
+        "trimmomatic"
+      ],
+      "nfcore_count": 1
+    },
+    {
+      "biomni": "viennarna",
+      "nfcore_modules": [
+        "viennarna/rnacofold",
+        "viennarna/rnafold",
+        "viennarna/rnalfold"
+      ],
+      "nfcore_count": 3
+    }
+  ],
+  "in_both_count": 23,
+  "biomni_only": [
+    "Matrix",
+    "PyMassSpec",
+    "PyPDF2",
+    "WGCNA",
+    "arxiv",
+    "autosite",
+    "biopandas",
+    "biopython",
+    "biotite",
+    "cellxgene-census",
+    "clusterProfiler",
+    "cobra",
+    "cryosparc-tools",
+    "cyvcf2",
+    "deeppurpose",
+    "descriptastorus",
+    "dplyr",
+    "edgeR",
+    "faiss-cpu",
+    "fanc",
+    "flowkit",
+    "gcta64",
+    "ggplot2",
+    "googlesearch-python",
+    "gseapy",
+    "h5py",
+    "harmony",
+    "harmony-pytorch",
+    "hmmlearn",
+    "hyperopt",
+    "igraph",
+    "joblib",
+    "lazyslide",
+    "lifelines",
+    "matplotlib",
+    "msprime",
+    "mudata",
+    "numpy",
+    "openbabel",
+    "opencv-python",
+    "openmm",
+    "pandas",
+    "plannotate",
+    "pybedtools",
+    "pyfaidx",
+    "pykalman",
+    "pyliftover",
+    "pymc3",
+    "pymed",
+    "pyranges",
+    "pysam",
+    "pyscenic",
+    "pyscreener",
+    "pytdc",
+    "python-libsbml",
+    "rdkit",
+    "readr",
+    "reportlab",
+    "scholarly",
+    "scikit-bio",
+    "scikit-image",
+    "scikit-learn",
+    "scipy",
+    "scrublet",
+    "scvelo",
+    "seaborn",
+    "statsmodels",
+    "stringr",
+    "tidyr",
+    "tiledb",
+    "tiledbsoma",
+    "tqdm",
+    "trackpy",
+    "tskit",
+    "umap-learn",
+    "vina"
+  ],
+  "biomni_only_count": 76,
+  "nfcore_only": [
+    "abacas",
+    "abra2",
+    "abricate/run",
+    "abricate/summary",
+    "abritamr/run",
+    "adapterremoval",
+    "adapterremovalfixprefix",
+    "admixture",
+    "affy/justrma",
+    "agat/convertbed2gff",
+    "agat/convertgff2bed",
+    "agat/convertspgff2gtf",
+    "agat/convertspgff2tsv",
+    "agat/convertspgxf2gxf",
+    "agat/spaddintrons",
+    "agat/spextractsequences",
+    "agat/spfilterbyorfsize",
+    "agat/spfilterfeaturefromkilllist",
+    "agat/spflagshortintrons",
+    "agat/spkeeplongestisoform",
+    "agat/spmergeannotations",
+    "agat/spstatistics",
+    "agat/sqstatbasic",
+    "agrvate",
+    "ale",
+    "allelecounter",
+    "ampcombi",
+    "ampcombi2/cluster",
+    "ampcombi2/complete",
+    "ampcombi2/parsetables",
+    "ampir",
+    "amplify/predict",
+    "amps",
+    "amrfinderplus/run",
+    "amrfinderplus/update",
+    "amulety/antiberta2",
+    "amulety/antiberty",
+    "amulety/balmpaired",
+    "amulety/esm2",
+    "amulety/translate",
+    "angsd/contamination",
+    "angsd/docounts",
+    "angsd/gl",
+    "annosine",
+    "annotsv/annotsv",
+    "annotsv/installannotations",
+    "anota2seq/anota2seqrun",
+    "antismash/antismash",
+    "antismash/antismashdownloaddatabases",
+    "antismash/antismashlite"
+  ],
+  "nfcore_only_count": 1513,
+  "biomni_total": 100,
+  "nfcore_total": 1636
+}
