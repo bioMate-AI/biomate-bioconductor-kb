@@ -18,9 +18,9 @@ from typing import List, Dict, Any
 from pathlib import Path
 import anthropic
 
-# Import web search validator
+# Import knowledge-based matcher
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from web_search_validator import WebSearchValidator
+from knowledge_based_matcher import KnowledgeBasedMatcher
 
 # Configuration
 GALAXY_TOOLS_DB = "/Users/jingqiwang/biomate/backend/galaxy_ai_tools.db"
@@ -37,29 +37,31 @@ if not ANTHROPIC_API_KEY:
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 # Category mapping (dataset category → tool categories)
+# Using exact category names from Galaxy tool database
 CATEGORY_MAPPING = {
-    'drug_discovery': ['Computational chemistry', 'Drug Discovery', 'Cheminformatics'],
-    'metabolomics': ['Metabolomics', 'Mass Spectrometry'],
-    'proteomics': ['Proteomics', 'Mass Spectrometry'],
-    'genomics': ['Genomics', 'Genome annotation', 'Sequence Analysis'],
-    'cancer_genomics': ['Cancer', 'Genomics', 'Systems Biology'],
-    'transcriptomics': ['RNA', 'Transcriptomics', 'Gene expression'],
-    'systems_biology': ['Systems Biology', 'Network Analysis', 'Pathway Analysis'],
+    'drug_discovery': ['Computational chemistry'],
+    'metabolomics': ['Metabolomics'],
+    'proteomics': ['Proteomics'],
+    'genomics': ['Sequence Analysis', 'Genome annotation'],
+    'cancer_genomics': ['Sequence Analysis', 'Systems Biology', 'Genomic Interval Operations'],
+    'transcriptomics': ['RNA'],
+    'systems_biology': ['Systems Biology'],
+    'protein_interactions': ['Proteomics', 'Systems Biology'],
+    'pathway_analysis': ['Systems Biology', 'Metabolomics'],
 }
 
 
 class DatasetToolMatcher:
-    """Match datasets to compatible Galaxy tools using hybrid approach"""
+    """Match datasets to compatible Galaxy tools using knowledge-based approach"""
 
-    def __init__(self, use_web_search: bool = True):
+    def __init__(self):
         self.db_conn = sqlite3.connect(GALAXY_TOOLS_DB)
         self.log_entries = []
-        self.use_web_search = use_web_search
-        self.web_validator = WebSearchValidator() if use_web_search else None
+        self.knowledge_matcher = KnowledgeBasedMatcher()
 
     def log(self, message: str):
         """Log message to console and log file"""
-        print(message)
+        print(message, flush=True)
         self.log_entries.append(message)
 
     def filter_candidate_tools(self, dataset: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -69,15 +71,20 @@ class DatasetToolMatcher:
         """
         self.log(f"\n{'='*70}")
         self.log(f"Filtering candidates for: {dataset['name']}")
-        self.log(f"Category: {dataset['category']}")
-        self.log(f"Format: {dataset['format']}")
+        self.log(f"Category: {dataset.get('category', 'unknown')}")
+        self.log(f"Format: {dataset.get('format', 'unknown')}")
 
         # Get relevant categories for this dataset
-        dataset_category = dataset['category']
-        tool_categories = CATEGORY_MAPPING.get(dataset_category, [dataset_category])
+        dataset_category = dataset.get('category', 'unknown')
+        tool_categories = CATEGORY_MAPPING.get(dataset_category, [])
 
-        # Build category filter
-        category_conditions = " OR ".join([f"category LIKE '%{cat}%'" for cat in tool_categories])
+        # If no mapping, try to infer from use cases
+        if not tool_categories:
+            # Default to generic analysis categories
+            tool_categories = ['Sequence Analysis', 'Systems Biology', 'Data Source']
+
+        # Build category filter with EXACT match (not substring)
+        category_conditions = " OR ".join([f"category = '{cat}'" for cat in tool_categories])
 
         # Extract keywords from dataset
         keywords = set()
@@ -102,23 +109,33 @@ class DatasetToolMatcher:
         for tool_id, name, category, rawText in results:
             # Score by keyword matches
             text_lower = (rawText or '').lower()
-            keyword_matches = [kw for kw in keywords if str(kw).lower() in text_lower]
+            name_lower = (name or '').lower()
 
-            # Filter by format mention (if applicable)
-            format_compatible = True
-            if dataset['format'] in ['csv', 'tsv', 'txt']:
-                format_compatible = ('tabular' in text_lower or
-                                   'csv' in text_lower or
-                                   'tsv' in text_lower)
+            # Check keyword matches in both rawText and name
+            keyword_matches = [kw for kw in keywords if str(kw).lower() in text_lower or str(kw).lower() in name_lower]
 
-            if keyword_matches and format_compatible:
+            # Bonus points for format compatibility (not required)
+            format_bonus = 0
+            dataset_format = dataset.get('format', 'unknown')
+            if dataset_format in ['csv', 'tsv', 'txt']:
+                if 'tabular' in text_lower or 'csv' in text_lower or 'tsv' in text_lower:
+                    format_bonus = 1
+            elif dataset_format == 'parquet':
+                if 'parquet' in text_lower:
+                    format_bonus = 1
+            elif dataset_format == 'sqlite':
+                if 'sqlite' in text_lower or 'database' in text_lower:
+                    format_bonus = 1
+
+            # Include if has keyword matches OR mentions database/reference
+            if keyword_matches or 'database' in text_lower or 'reference' in text_lower:
                 candidates.append({
                     'tool_id': tool_id,
                     'name': name,
                     'category': category,
                     'rawText': rawText,
                     'keyword_matches': keyword_matches,
-                    'relevance_score': len(keyword_matches)
+                    'relevance_score': len(keyword_matches) + format_bonus
                 })
 
         # Sort by relevance
@@ -257,7 +274,7 @@ Respond in JSON:
             try:
                 # Use Claude Sonnet 4.5 for validation
                 response = client.messages.create(
-                    model="claude-sonnet-4-20250514",
+                    model="claude-sonnet-4-5",
                     max_tokens=1024,
                     temperature=0.1,
                     system="You are a Galaxy tool expert. Analyze tool documentation to determine database compatibility. Always respond with valid JSON.",
@@ -307,11 +324,12 @@ Respond in JSON:
         for i, tool in enumerate(candidates[:20], 1):
             self.log(f"\n  [{i}/20] Validating: {tool['name'][:60]}")
 
-            # Use web search validator if enabled, otherwise fallback
-            if self.web_validator:
-                validation = self.web_validator.validate_compatibility(dataset, tool)
-            else:
-                validation = self.validate_with_web_search_fallback(dataset, tool)
+            # Use knowledge-based matcher (analyzes existing tool metadata)
+            validation = self.knowledge_matcher.analyze_compatibility(dataset, tool)
+
+            # Log if web search was suggested
+            if validation.get('needs_web_search'):
+                self.log(f"    💡 Suggests web search: {validation.get('web_search_reason', 'N/A')}")
 
             if validation['compatible'] and validation['confidence'] >= 0.6:
                 compatible_tools.append({
@@ -319,10 +337,13 @@ Respond in JSON:
                     'tool_name': tool['name'],
                     'confidence': validation['confidence'],
                     'parameter_name': validation.get('parameter_name'),
-                    'reasoning': validation['reasoning']
+                    'parameter_evidence': validation.get('parameter_evidence'),
+                    'reasoning': validation['reasoning'],
+                    'tool_params_found': validation.get('tool_params_found', 0)
                 })
                 self.log(f"    ✅ COMPATIBLE (confidence: {validation['confidence']:.2f})")
-                self.log(f"    Reasoning: {validation['reasoning'][:100]}...")
+                self.log(f"    Parameter: {validation.get('parameter_name', 'N/A')}")
+                self.log(f"    Reasoning: {validation['reasoning'][:120]}...")
             else:
                 self.log(f"    ❌ Not compatible (confidence: {validation['confidence']:.2f})")
 
@@ -345,13 +366,21 @@ Respond in JSON:
             ref_data = json.load(f)
 
         datasets = ref_data['datasets']
-        dataset_ids = list(datasets.keys())
+
+        # Filter out API datasets - they should be wrapped as Data Source Tools, not get compatible_tools mapping
+        local_datasets = {k: v for k, v in datasets.items() if v.get('access_method') == 'local_file'}
+        api_datasets = {k: v for k, v in datasets.items() if v.get('access_method') == 'api'}
+
+        dataset_ids = list(local_datasets.keys())
 
         if limit:
             dataset_ids = dataset_ids[:limit]
             self.log(f"\nProcessing {limit} datasets (test mode)")
 
-        self.log(f"\nTotal datasets to process: {len(dataset_ids)}")
+        self.log(f"\nTotal datasets: {len(datasets)}")
+        self.log(f"  - Local files (will process): {len(local_datasets)}")
+        self.log(f"  - API endpoints (skipped - should be Data Source Tools): {len(api_datasets)}")
+        self.log(f"\nProcessing {len(dataset_ids)} local datasets for compatible_tools mapping")
 
         # Process each dataset
         updated_datasets = {}

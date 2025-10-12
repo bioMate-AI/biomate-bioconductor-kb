@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<tool id="biomate_dm_biomni_data_lake_broad_repurposing_hub_molecule_with_smiles_parquet" name="Query broad_repurposing_hub_molecule_with_smiles.parquet" version="1.0.0" tool_type="data_source">
+    <description>Broad Institute drug repurposing hub molecules with SMILES structures</description>
+
+    <requirements>
+        <requirement type="package" version="3.9">python</requirement>
+        <requirement type="package" version="2.0">pandas</requirement>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/biomate_dm_biomni_data_lake_broad_repurposing_hub_molecule_with_smiles_parquet.py'
+            --dataset_path '/private/tmp/lcms-platform-galaxy/knowledge_data/biomni_data_lake/broad_repurposing_hub_molecule_with_smiles.parquet'
+            --query_mode '$query_mode'
+            #if $query_mode == 'filter':
+                --filter_column '$filter_column'
+                --filter_value '$filter_value'
+            #end if
+            #if $query_mode == 'sample':
+                --sample_size $sample_size
+            #end if
+            --output '$output'
+    ]]></command>
+
+    <inputs>
+        <param name="query_mode" type="select" label="Query Mode">
+            <option value="all">Return All Data</option>
+            <option value="filter">Filter by Column Value</option>
+            <option value="sample">Random Sample</option>
+            <option value="head">First N Rows</option>
+        </param>
+
+        <param name="filter_column" type="text" label="Filter Column"
+               help="Column name to filter on (if filter mode)"/>
+        <param name="filter_value" type="text" label="Filter Value"
+               help="Value to match (supports wildcards with *)"/>
+
+        <param name="sample_size" type="integer" value="1000" min="1"
+               label="Sample Size" help="Number of rows to return (if sample/head mode)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="parquet"
+              label="{tool.name} on {on_string}"/>
+    </outputs>
+
+    <help><![CDATA[
+**What it does**
+
+This tool provides query access to the broad_repurposing_hub_molecule_with_smiles.parquet dataset.
+
+**Dataset Information**
+
+- **Format**: parquet
+- **Category**: drug_repurposing
+- **Size**: 1.1MB
+- **Description**: Broad Institute drug repurposing hub molecules with SMILES structures
+
+**Use Cases**
+
+- drug repurposing
+- chemical similarity search
+
+**Query Modes**
+
+1. **All Data**: Returns the complete dataset (use with caution for large files)
+2. **Filter**: Filter rows by column value
+3. **Sample**: Returns random sample of N rows
+4. **Head**: Returns first N rows
+
+**Examples**
+
+Filter by target type:
+- Filter Column: target_type
+- Filter Value: kinase
+
+Random sample:
+- Sample Size: 1000
+
+**Available Columns**
+
+- compound
+- target
+- phase
+- moa
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{biomate_data,
+            title={broad_repurposing_hub_molecule_with_smiles.parquet},
+            author={BioMate Project},
+            year={2025}
+        }</citation>
+    </citations>
+</tool>

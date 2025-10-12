@@ -1,0 +1,378 @@
+#!/usr/bin/env python3
+"""
+Generate Galaxy Data Management tool wrappers for all 115 local datasets.
+
+This allows datasets to be used as queryable tools in workflows, complementing
+the compatible_tools mapping approach.
+
+Strategy:
+- For each dataset: Create a Galaxy tool XML + Python wrapper
+- Tool provides query/filter capabilities
+- Returns subset of dataset as Galaxy dataset
+- Enables "dataset as tool" workflow pattern
+"""
+import json
+import os
+from pathlib import Path
+from typing import Dict, Any
+
+# Configuration
+REFERENCE_DATA_JSON = "/Users/jingqiwang/biomate/backend/reference_data_complete.json"
+OUTPUT_DIR = "/Users/jingqiwang/biomate/backend/tools/biomate_data_management"
+TOOL_CONF_FILE = "/Users/jingqiwang/biomate/backend/config/biomate_data_tools.xml"
+
+
+class DataManagementToolGenerator:
+    """Generate Galaxy Data Management tools for local datasets"""
+
+    def __init__(self):
+        self.output_dir = Path(OUTPUT_DIR)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.generated_tools = []
+
+    def generate_tool_xml(self, dataset_id: str, dataset: Dict[str, Any]) -> str:
+        """Generate Galaxy tool XML for a dataset"""
+
+        tool_id = f"biomate_dm_{dataset_id}"
+        tool_name = f"Query {dataset['name']}"
+        dataset_path = dataset['path']
+        dataset_format = dataset['format']
+        category = dataset.get('category', 'data_management')
+        description = dataset.get('description', 'Query local dataset')
+
+        # Determine output format based on input format
+        output_format = 'tabular' if dataset_format in ['csv', 'tsv', 'txt'] else dataset_format
+
+        # Generate XML
+        xml_content = f"""<?xml version="1.0"?>
+<tool id="{tool_id}" name="{tool_name}" version="1.0.0" tool_type="data_source">
+    <description>{description[:100]}</description>
+
+    <requirements>
+        <requirement type="package" version="3.9">python</requirement>
+        <requirement type="package" version="2.0">pandas</requirement>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/{tool_id}.py'
+            --dataset_path '{dataset_path}'
+            --query_mode '$query_mode'
+            #if $query_mode == 'filter':
+                --filter_column '$filter_column'
+                --filter_value '$filter_value'
+            #end if
+            #if $query_mode == 'sample':
+                --sample_size $sample_size
+            #end if
+            --output '$output'
+    ]]></command>
+
+    <inputs>
+        <param name="query_mode" type="select" label="Query Mode">
+            <option value="all">Return All Data</option>
+            <option value="filter">Filter by Column Value</option>
+            <option value="sample">Random Sample</option>
+            <option value="head">First N Rows</option>
+        </param>
+
+        <param name="filter_column" type="text" label="Filter Column"
+               help="Column name to filter on (if filter mode)"/>
+        <param name="filter_value" type="text" label="Filter Value"
+               help="Value to match (supports wildcards with *)"/>
+
+        <param name="sample_size" type="integer" value="1000" min="1"
+               label="Sample Size" help="Number of rows to return (if sample/head mode)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="{output_format}"
+              label="{{tool.name}} on {{on_string}}"/>
+    </outputs>
+
+    <help><![CDATA[
+**What it does**
+
+This tool provides query access to the {dataset['name']} dataset.
+
+**Dataset Information**
+
+- **Format**: {dataset_format}
+- **Category**: {category}
+- **Size**: {dataset.get('size', 'N/A')}
+- **Description**: {description}
+
+**Use Cases**
+
+{chr(10).join('- ' + uc for uc in dataset.get('use_cases', []))}
+
+**Query Modes**
+
+1. **All Data**: Returns the complete dataset (use with caution for large files)
+2. **Filter**: Filter rows by column value
+3. **Sample**: Returns random sample of N rows
+4. **Head**: Returns first N rows
+
+**Examples**
+
+Filter by target type:
+- Filter Column: target_type
+- Filter Value: kinase
+
+Random sample:
+- Sample Size: 1000
+
+**Available Columns**
+
+{chr(10).join('- ' + col for col in dataset.get('index_columns', []))}
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{{biomate_data,
+            title={{{dataset['name']}}},
+            author={{BioMate Project}},
+            year={{2025}}
+        }}</citation>
+    </citations>
+</tool>
+"""
+        return xml_content
+
+    def generate_python_wrapper(self, dataset_id: str, dataset: Dict[str, Any]) -> str:
+        """Generate Python wrapper script for the tool"""
+
+        tool_id = f"biomate_dm_{dataset_id}"
+        dataset_format = dataset['format']
+
+        # Generate Python code
+        python_content = f"""#!/usr/bin/env python3
+\"\"\"
+Query wrapper for {dataset['name']}
+Auto-generated by BioMate Data Management Tool Generator
+\"\"\"
+import argparse
+import sys
+import pandas as pd
+import sqlite3
+
+def read_dataset(dataset_path):
+    \"\"\"Read dataset based on format\"\"\"
+    format_ext = dataset_path.split('.')[-1]
+
+    if format_ext in ['csv']:
+        return pd.read_csv(dataset_path)
+    elif format_ext in ['tsv', 'txt']:
+        return pd.read_csv(dataset_path, sep='\\t')
+    elif format_ext == 'parquet':
+        return pd.read_parquet(dataset_path)
+    elif format_ext == 'sqlite':
+        # For SQLite, read main table (assumes single table or first table)
+        conn = sqlite3.connect(dataset_path)
+        tables = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table'", conn)
+        if len(tables) > 0:
+            table_name = tables.iloc[0]['name']
+            df = pd.read_sql_query(f"SELECT * FROM {{table_name}}", conn)
+            conn.close()
+            return df
+        else:
+            raise ValueError("No tables found in SQLite database")
+    else:
+        raise ValueError(f"Unsupported format: {{format_ext}}")
+
+def query_dataset(dataset_path, query_mode, filter_column=None,
+                 filter_value=None, sample_size=None):
+    \"\"\"Query the dataset based on specified mode\"\"\"
+
+    # Read dataset
+    df = read_dataset(dataset_path)
+
+    if query_mode == 'all':
+        return df
+
+    elif query_mode == 'filter':
+        if not filter_column or not filter_value:
+            raise ValueError("Filter mode requires filter_column and filter_value")
+
+        if filter_column not in df.columns:
+            raise ValueError(f"Column '{{filter_column}}' not found in dataset")
+
+        # Support wildcard matching
+        if '*' in filter_value:
+            pattern = filter_value.replace('*', '.*')
+            mask = df[filter_column].astype(str).str.contains(pattern, case=False, na=False)
+            return df[mask]
+        else:
+            return df[df[filter_column].astype(str).str.contains(filter_value, case=False, na=False)]
+
+    elif query_mode == 'sample':
+        n = min(sample_size, len(df))
+        return df.sample(n=n)
+
+    elif query_mode == 'head':
+        return df.head(sample_size)
+
+    else:
+        raise ValueError(f"Unknown query mode: {{query_mode}}")
+
+def main():
+    parser = argparse.ArgumentParser(description='Query {dataset['name']}')
+    parser.add_argument('--dataset_path', required=True, help='Path to dataset file')
+    parser.add_argument('--query_mode', required=True,
+                       choices=['all', 'filter', 'sample', 'head'])
+    parser.add_argument('--filter_column', help='Column to filter on')
+    parser.add_argument('--filter_value', help='Value to filter for')
+    parser.add_argument('--sample_size', type=int, default=1000,
+                       help='Number of rows for sample/head mode')
+    parser.add_argument('--output', required=True, help='Output file path')
+
+    args = parser.parse_args()
+
+    try:
+        # Query dataset
+        result = query_dataset(
+            args.dataset_path,
+            args.query_mode,
+            args.filter_column,
+            args.filter_value,
+            args.sample_size
+        )
+
+        # Write output
+        result.to_csv(args.output, sep='\\t', index=False)
+
+        print(f"✓ Query returned {{len(result)}} rows", file=sys.stderr)
+
+    except Exception as e:
+        print(f"Error: {{e}}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()
+"""
+        return python_content
+
+    def generate_tools_for_all_datasets(self):
+        """Generate tools for all datasets in reference_data_complete.json"""
+
+        print("="*70)
+        print("BIOMATE DATA MANAGEMENT TOOL GENERATOR")
+        print("="*70)
+
+        # Load reference data
+        with open(REFERENCE_DATA_JSON, 'r') as f:
+            ref_data = json.load(f)
+
+        datasets = ref_data['datasets']
+        print(f"\nGenerating tools for {len(datasets)} datasets...")
+
+        for dataset_id, dataset in datasets.items():
+            # Skip if dataset file doesn't exist
+            if not dataset.get('exists', True):
+                print(f"  ⊘ Skipping {dataset['name']} (file not found)")
+                continue
+
+            # Skip if format is not supported yet
+            dataset_format = dataset.get('format', 'unknown')
+            if dataset_format not in ['csv', 'tsv', 'txt', 'parquet', 'sqlite']:
+                print(f"  ⊘ Skipping {dataset['name']} (format {dataset_format} not supported)")
+                continue
+
+            tool_id = f"biomate_dm_{dataset_id}"
+
+            try:
+                # Generate XML
+                xml_content = self.generate_tool_xml(dataset_id, dataset)
+                xml_path = self.output_dir / f"{tool_id}.xml"
+                with open(xml_path, 'w') as f:
+                    f.write(xml_content)
+
+                # Generate Python wrapper
+                py_content = self.generate_python_wrapper(dataset_id, dataset)
+                py_path = self.output_dir / f"{tool_id}.py"
+                with open(py_path, 'w') as f:
+                    f.write(py_content)
+
+                # Make Python script executable
+                py_path.chmod(0o755)
+
+                self.generated_tools.append({
+                    'tool_id': tool_id,
+                    'name': dataset['name'],
+                    'xml_path': str(xml_path),
+                    'py_path': str(py_path)
+                })
+
+                print(f"  ✓ Generated {tool_id} for {dataset['name']}")
+
+            except Exception as e:
+                print(f"  ✗ Error generating {dataset['name']}: {e}")
+
+        print(f"\n✓ Generated {len(self.generated_tools)} tools")
+
+        # Generate tool_conf.xml
+        self.generate_tool_conf()
+
+        # Print summary
+        self.print_summary()
+
+    def generate_tool_conf(self):
+        """Generate tool_conf.xml to register all tools with Galaxy"""
+
+        tool_conf_content = """<?xml version="1.0"?>
+<toolbox>
+    <section id="biomate_data_management" name="BioMate Data Management">
+"""
+
+        for tool in self.generated_tools:
+            rel_path = os.path.relpath(tool['xml_path'],
+                                      os.path.dirname(TOOL_CONF_FILE))
+            tool_conf_content += f'        <tool file="{rel_path}"/>\n'
+
+        tool_conf_content += """    </section>
+</toolbox>
+"""
+
+        # Create config directory if needed
+        Path(TOOL_CONF_FILE).parent.mkdir(parents=True, exist_ok=True)
+
+        with open(TOOL_CONF_FILE, 'w') as f:
+            f.write(tool_conf_content)
+
+        print(f"\n✓ Generated tool configuration: {TOOL_CONF_FILE}")
+
+    def print_summary(self):
+        """Print summary of generated tools"""
+
+        print("\n" + "="*70)
+        print("SUMMARY")
+        print("="*70)
+        print(f"Total tools generated: {len(self.generated_tools)}")
+        print(f"Output directory: {self.output_dir}")
+        print(f"Tool configuration: {TOOL_CONF_FILE}")
+
+        print("\nGenerated tools by category:")
+        categories = {}
+        for tool in self.generated_tools:
+            # Extract category from tool name
+            cat = tool['name'].split('_')[0] if '_' in tool['name'] else 'Other'
+            categories[cat] = categories.get(cat, 0) + 1
+
+        for cat, count in sorted(categories.items(), key=lambda x: -x[1])[:10]:
+            print(f"  {cat}: {count} tools")
+
+        print("\nNext steps:")
+        print("1. Review generated tools in:", self.output_dir)
+        print("2. Register in Galaxy by adding to galaxy.yml:")
+        print(f"   tool_config_file: {TOOL_CONF_FILE}")
+        print("3. Restart Galaxy to load new tools")
+        print("4. Tools will appear in 'BioMate Data Management' section")
+
+
+def main():
+    generator = DataManagementToolGenerator()
+    generator.generate_tools_for_all_datasets()
+    return 0
+
+
+if __name__ == '__main__':
+    import sys
+    sys.exit(main())

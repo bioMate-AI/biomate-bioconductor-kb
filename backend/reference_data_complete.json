@@ -7678,6 +7678,225 @@
       "returns": "dict: Query results with metadata",
       "api_base_url": "https://repo-prod.prod.sagebase.org",
       "rate_limit": "Standard API rate limits"
+    },
+    "uniprot_sprot_human_fasta": {
+      "name": "uniprot_sprot_human.fasta.gz",
+      "access_method": "local_file",
+      "source": "uniprot",
+      "path": "/Users/jingqiwang/Biomni/knowledge_data/uniprot/uniprot_sprot_human.fasta.gz",
+      "exists": true,
+      "size": "7.4MB",
+      "format": "fasta",
+      "description": "Human Swiss-Prot reviewed protein sequences (20,400+ proteins) for MS/MS proteomics database searches",
+      "category": "proteomics",
+      "data_type": "protein_sequence",
+      "organism": "Homo sapiens",
+      "taxonomy_id": "9606",
+      "use_cases": [
+        "MS/MS proteomics database searches",
+        "peptide spectrum matching",
+        "protein identification",
+        "post-translational modification mapping"
+      ],
+      "search_text": "uniprot_sprot_human.fasta.gz Human Swiss-Prot reviewed protein sequences proteomics MS/MS database peptide identification",
+      "schema": {
+        "format": "fasta",
+        "encoding": "gzip",
+        "type": "sequence",
+        "has_header": true
+      }
+    },
+    "uniprot_sprot_mouse_fasta": {
+      "name": "uniprot_sprot_mouse.fasta.gz",
+      "access_method": "local_file",
+      "source": "uniprot",
+      "path": "/Users/jingqiwang/Biomni/knowledge_data/uniprot/uniprot_sprot_mouse.fasta.gz",
+      "exists": true,
+      "size": "7.7MB",
+      "format": "fasta",
+      "description": "Mouse Swiss-Prot reviewed protein sequences (17,100+ proteins) for MS/MS proteomics database searches",
+      "category": "proteomics",
+      "data_type": "protein_sequence",
+      "organism": "Mus musculus",
+      "taxonomy_id": "10090",
+      "use_cases": [
+        "MS/MS proteomics database searches",
+        "peptide spectrum matching",
+        "protein identification",
+        "post-translational modification mapping"
+      ],
+      "search_text": "uniprot_sprot_mouse.fasta.gz Mouse Swiss-Prot reviewed protein sequences proteomics MS/MS database peptide identification",
+      "schema": {
+        "format": "fasta",
+        "encoding": "gzip",
+        "type": "sequence",
+        "has_header": true
+      }
+    },
+    "uniprot_sprot_rat_fasta": {
+      "name": "uniprot_sprot_rat.fasta.gz",
+      "access_method": "local_file",
+      "source": "uniprot",
+      "path": "/Users/jingqiwang/Biomni/knowledge_data/uniprot/uniprot_sprot_rat.fasta.gz",
+      "exists": true,
+      "size": "7.6MB",
+      "format": "fasta",
+      "description": "Rat Swiss-Prot reviewed protein sequences (8,100+ proteins) for MS/MS proteomics database searches",
+      "category": "proteomics",
+      "data_type": "protein_sequence",
+      "organism": "Rattus norvegicus",
+      "taxonomy_id": "10116",
+      "use_cases": [
+        "MS/MS proteomics database searches",
+        "peptide spectrum matching",
+        "protein identification",
+        "post-translational modification mapping"
+      ],
+      "search_text": "uniprot_sprot_rat.fasta.gz Rat Swiss-Prot reviewed protein sequences proteomics MS/MS database peptide identification",
+      "schema": {
+        "format": "fasta",
+        "encoding": "gzip",
+        "type": "sequence",
+        "has_header": true
+      }
+    },
+    "uniprot_human_idmapping": {
+      "name": "HUMAN_9606_idmapping.dat.gz",
+      "access_method": "local_file",
+      "source": "uniprot",
+      "path": "/Users/jingqiwang/Biomni/knowledge_data/uniprot/HUMAN_9606_idmapping.dat.gz",
+      "exists": true,
+      "size": "34MB",
+      "format": "tsv",
+      "description": "Human UniProt ID mapping to 150+ external databases (Ensembl, RefSeq, PDB, GO, KEGG, Reactome, etc.)",
+      "category": "protein_annotation",
+      "data_type": "id_mapping",
+      "organism": "Homo sapiens",
+      "taxonomy_id": "9606",
+      "use_cases": [
+        "protein ID conversion",
+        "cross-database integration",
+        "pathway mapping",
+        "proteomics data integration"
+      ],
+      "search_text": "HUMAN_9606_idmapping.dat.gz Human UniProt ID mapping Ensembl RefSeq PDB GO KEGG cross-reference",
+      "index_columns": [
+        "uniprot_ac",
+        "database_name",
+        "database_id"
+      ],
+      "schema": {
+        "format": "tsv",
+        "encoding": "gzip",
+        "type": "tabular",
+        "has_header": false,
+        "delimiter": "\\t"
+      }
+    },
+    "uniprot_mouse_idmapping": {
+      "name": "MOUSE_10090_idmapping.dat.gz",
+      "access_method": "local_file",
+      "source": "uniprot",
+      "path": "/Users/jingqiwang/Biomni/knowledge_data/uniprot/MOUSE_10090_idmapping.dat.gz",
+      "exists": true,
+      "size": "15MB",
+      "format": "tsv",
+      "description": "Mouse UniProt ID mapping to 150+ external databases (Ensembl, RefSeq, PDB, GO, KEGG, Reactome, etc.)",
+      "category": "protein_annotation",
+      "data_type": "id_mapping",
+      "organism": "Mus musculus",
+      "taxonomy_id": "10090",
+      "use_cases": [
+        "protein ID conversion",
+        "cross-database integration",
+        "pathway mapping",
+        "proteomics data integration"
+      ],
+      "search_text": "MOUSE_10090_idmapping.dat.gz Mouse UniProt ID mapping Ensembl RefSeq PDB GO KEGG cross-reference",
+      "index_columns": [
+        "uniprot_ac",
+        "database_name",
+        "database_id"
+      ],
+      "schema": {
+        "format": "tsv",
+        "encoding": "gzip",
+        "type": "tabular",
+        "has_header": false,
+        "delimiter": "\\t"
+      }
+    },
+    "uniprot_rat_idmapping": {
+      "name": "RAT_10116_idmapping.dat.gz",
+      "access_method": "local_file",
+      "source": "uniprot",
+      "path": "/Users/jingqiwang/Biomni/knowledge_data/uniprot/RAT_10116_idmapping.dat.gz",
+      "exists": true,
+      "size": "12MB",
+      "format": "tsv",
+      "description": "Rat UniProt ID mapping to 150+ external databases (Ensembl, RefSeq, PDB, GO, KEGG, Reactome, etc.)",
+      "category": "protein_annotation",
+      "data_type": "id_mapping",
+      "organism": "Rattus norvegicus",
+      "taxonomy_id": "10116",
+      "use_cases": [
+        "protein ID conversion",
+        "cross-database integration",
+        "pathway mapping",
+        "proteomics data integration"
+      ],
+      "search_text": "RAT_10116_idmapping.dat.gz Rat UniProt ID mapping Ensembl RefSeq PDB GO KEGG cross-reference",
+      "index_columns": [
+        "uniprot_ac",
+        "database_name",
+        "database_id"
+      ],
+      "schema": {
+        "format": "tsv",
+        "encoding": "gzip",
+        "type": "tabular",
+        "has_header": false,
+        "delimiter": "\\t"
+      }
+    },
+    "uniprot_sprot_full": {
+      "name": "uniprot_sprot.dat.gz",
+      "access_method": "local_file",
+      "source": "uniprot",
+      "path": "/Users/jingqiwang/Biomni/knowledge_data/uniprot/uniprot_sprot.dat.gz",
+      "exists": true,
+      "size": "655MB",
+      "format": "dat",
+      "description": "Complete Swiss-Prot database with full annotations (570,000+ proteins, all organisms) in UniProtKB flat-file format",
+      "category": "protein_annotation",
+      "data_type": "protein_annotation",
+      "use_cases": [
+        "comprehensive protein annotation",
+        "enzyme function retrieval",
+        "post-translational modification mapping",
+        "disease variant interpretation",
+        "protein domain analysis",
+        "functional genomics"
+      ],
+      "search_text": "uniprot_sprot.dat.gz Swiss-Prot full database protein annotation function PTM disease variants",
+      "schema": {
+        "format": "dat",
+        "encoding": "gzip",
+        "type": "flat_file"
+      },
+      "entry_fields": [
+        "ID",
+        "AC",
+        "DE",
+        "GN",
+        "OS",
+        "OC",
+        "OX",
+        "CC",
+        "DR",
+        "FT",
+        "SQ"
+      ]
     }
   },
   "metaboanalyst_databases": {
