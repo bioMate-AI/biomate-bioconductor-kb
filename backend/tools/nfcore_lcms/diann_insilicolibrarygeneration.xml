@@ -1,0 +1,129 @@
+<tool id="diann_insilicolibrarygeneration" name="DIA-NN In Silico Library Generation" version="1.8.1">
+    <description>Generate in silico predicted spectral library using DIA-NN deep learning predictor</description>
+
+    <requirements>
+        <container type="docker">biocontainers/diann:v1.8.1_cv1</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        diann
+            --fasta '$fasta_input'
+            --fasta-search
+            --threads \${GALAXY_SLOTS:-4}
+            --predictor
+            --gen-spec-lib
+            #if $advanced.missed_cleavages
+                --missed-cleavages $advanced.missed_cleavages
+            #end if
+            #if $advanced.min_pep_length
+                --min-pep-len $advanced.min_pep_length
+            #end if
+            #if $advanced.max_pep_length
+                --max-pep-len $advanced.max_pep_length
+            #end if
+            #if $advanced.min_charge
+                --min-charge $advanced.min_charge
+            #end if
+            #if $advanced.max_charge
+                --max-charge $advanced.max_charge
+            #end if
+            #if $advanced.extra_args
+                $advanced.extra_args
+            #end if
+        &&
+        cp *lib.log.txt output.log
+    ]]></command>
+
+    <inputs>
+        <param name="fasta_input" type="data" format="fasta" label="FASTA Protein Database"
+               help="Protein sequence database in FASTA format for spectral library prediction"/>
+
+        <section name="advanced" title="Advanced Options" expanded="false">
+            <param name="missed_cleavages" type="integer" value="" optional="true" min="0" max="5"
+                   label="Missed Cleavages" help="Maximum number of missed cleavages allowed (default: 1)"/>
+
+            <param name="min_pep_length" type="integer" value="" optional="true" min="5" max="20"
+                   label="Minimum Peptide Length" help="Minimum peptide length for library generation (default: 7)"/>
+
+            <param name="max_pep_length" type="integer" value="" optional="true" min="20" max="50"
+                   label="Maximum Peptide Length" help="Maximum peptide length for library generation (default: 30)"/>
+
+            <param name="min_charge" type="integer" value="" optional="true" min="1" max="3"
+                   label="Minimum Precursor Charge" help="Minimum precursor charge state (default: 1)"/>
+
+            <param name="max_charge" type="integer" value="" optional="true" min="2" max="6"
+                   label="Maximum Precursor Charge" help="Maximum precursor charge state (default: 4)"/>
+
+            <param name="extra_args" type="text" value="" optional="true" label="Extra Arguments"
+                   help="Additional command-line arguments for DIA-NN"/>
+        </section>
+    </inputs>
+
+    <outputs>
+        <data name="predicted_speclib" format="txt" from_work_dir="*.predicted.speclib"
+              label="${tool.name} on ${on_string}: Predicted Spectral Library"/>
+        <data name="log_output" format="txt" from_work_dir="output.log"
+              label="${tool.name} on ${on_string}: Log"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <param name="fasta_input" value="test_proteins.fasta"/>
+            <output name="predicted_speclib" file="test_output.predicted.speclib" compare="sim_size"/>
+            <output name="log_output" file="test_output.log" compare="contains"/>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**What it does**
+
+DIA-NN In Silico Library Generation uses deep learning to generate predicted spectral libraries from FASTA protein databases. This tool is essential for Data-Independent Acquisition (DIA) proteomics workflows.
+
+The spectral library can then be used with DIA-NN's main analysis tool to identify and quantify peptides in DIA mass spectrometry data.
+
+**Inputs**
+
+- **FASTA Protein Database**: A protein sequence database in FASTA format. This can be a complete proteome or a subset of proteins of interest.
+
+**Advanced Options**
+
+- **Missed Cleavages**: Number of missed tryptic cleavages to consider (default: 1)
+- **Peptide Length**: Min/max peptide length for library generation (default: 7-30)
+- **Charge States**: Min/max precursor charge states to predict (default: 1-4)
+
+**Outputs**
+
+- **Predicted Spectral Library**: In silico predicted spectral library (.predicted.speclib format)
+- **Log**: DIA-NN processing log with statistics and warnings
+
+**How to Use**
+
+1. Upload or select a FASTA protein database
+2. Adjust advanced parameters if needed (default values work well for most cases)
+3. Run the tool to generate the spectral library
+4. Use the output library with DIA-NN analysis tool
+
+**Performance Notes**
+
+- Processing time depends on database size (typically 5-30 minutes for human proteome)
+- Requires at least 4GB RAM, 8GB+ recommended for large databases
+- Uses deep learning prediction, so more CPU cores = faster processing
+
+**Citation**
+
+If you use this tool, please cite:
+
+Demichev V, Messner CB, Vernardis SI, Lilley KS, Ralser M. DIA-NN: neural networks and interference correction enable deep proteome coverage in high throughput. Nat Methods. 2020 Jan;17(1):41-44. doi: 10.1038/s41592-020-01009-0
+
+Output materials should include attribution: "Generated using DIA-NN"
+
+**More Information**
+
+- DIA-NN Homepage: https://github.com/vdemichev/DiaNN
+- Documentation: https://github.com/vdemichev/DiaNN
+    ]]></help>
+
+    <citations>
+        <citation type="doi">10.1038/s41592-020-01009-0</citation>
+    </citations>
+</tool>

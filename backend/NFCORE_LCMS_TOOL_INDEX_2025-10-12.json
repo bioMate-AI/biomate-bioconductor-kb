@@ -1,0 +1,253 @@
+{
+  "timestamp": "2025-10-12T16:05:00.000Z",
+  "version": "1.0.0",
+  "description": "Index of nf-core LC-MS tools integrated into Galaxy for BioMate platform",
+  "total_tools_planned": 13,
+  "total_tools_implemented": 1,
+  "implementation_status": "Tier 0 - In Progress",
+  "tools": [
+    {
+      "id": "diann_insilicolibrarygeneration",
+      "name": "DIA-NN In Silico Library Generation",
+      "category": "proteomics",
+      "subcategory": "spectral_library",
+      "tier": 0,
+      "priority": "highest",
+      "status": "implemented",
+      "implementation_date": "2025-10-12",
+      "nfcore_source": "modules/nf-core/diann/insilicolibrarygeneration",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/diann_insilicolibrarygeneration.xml",
+      "container": "biocontainers/diann:v1.8.1_cv1",
+      "version": "1.8.1",
+      "description": "Generate in silico predicted spectral library using DIA-NN deep learning predictor",
+      "inputs": [
+        {
+          "name": "fasta_input",
+          "type": "fasta",
+          "required": true,
+          "description": "Protein sequence database in FASTA format"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "predicted_speclib",
+          "type": "txt",
+          "description": "In silico predicted spectral library"
+        },
+        {
+          "name": "log_output",
+          "type": "txt",
+          "description": "DIA-NN processing log"
+        }
+      ],
+      "citation": "10.1038/s41592-020-01009-0",
+      "homepage": "https://github.com/vdemichev/DiaNN",
+      "documentation": "https://github.com/vdemichev/DiaNN",
+      "integration_notes": "Enhances existing Galaxy DIA-NN tool with spectral library generation capability"
+    },
+    {
+      "id": "thermorawfileparser",
+      "name": "ThermoRawFileParser",
+      "category": "data_conversion",
+      "subcategory": "vendor_format",
+      "tier": 1,
+      "priority": "high",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/thermorawfileparser",
+      "description": "Convert Thermo .RAW files to open formats (mzML/mzXML)",
+      "planned_implementation": "Week 3-4"
+    },
+    {
+      "id": "sageproteomics_sage",
+      "name": "Sage Peptide Search",
+      "category": "proteomics",
+      "subcategory": "peptide_search",
+      "tier": 1,
+      "priority": "high",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/sageproteomics/sage",
+      "description": "Fast peptide search engine (Rust-based)",
+      "planned_implementation": "Week 4-5"
+    },
+    {
+      "id": "openms_peakpickerhires",
+      "name": "OpenMS PeakPickerHiRes",
+      "category": "proteomics",
+      "subcategory": "peak_detection",
+      "tier": 2,
+      "priority": "high",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/openms/peakpickerhires",
+      "description": "High-resolution peak detection",
+      "planned_implementation": "Week 6"
+    },
+    {
+      "id": "openms_peptideindexer",
+      "name": "OpenMS PeptideIndexer",
+      "category": "proteomics",
+      "subcategory": "database_preparation",
+      "tier": 2,
+      "priority": "high",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/openms/peptideindexer",
+      "description": "Index peptides in protein databases",
+      "planned_implementation": "Week 7"
+    },
+    {
+      "id": "openms_decoydatabase",
+      "name": "OpenMS DecoyDatabase",
+      "category": "proteomics",
+      "subcategory": "database_preparation",
+      "tier": 2,
+      "priority": "high",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/openms/decoydatabase",
+      "description": "Generate decoy sequences for FDR control",
+      "planned_implementation": "Week 7"
+    },
+    {
+      "id": "openms_filefilter",
+      "name": "OpenMS FileFilter",
+      "category": "proteomics",
+      "subcategory": "data_preprocessing",
+      "tier": 2,
+      "priority": "medium",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/openms/filefilter",
+      "description": "Filter and preprocess MS data files",
+      "planned_implementation": "Week 8"
+    },
+    {
+      "id": "openms_idfilter",
+      "name": "OpenMS IDFilter",
+      "category": "proteomics",
+      "subcategory": "results_processing",
+      "tier": 2,
+      "priority": "medium",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/openms/idfilter",
+      "description": "Filter identification results",
+      "planned_implementation": "Week 9"
+    },
+    {
+      "id": "openms_idmerger",
+      "name": "OpenMS IDMerger",
+      "category": "proteomics",
+      "subcategory": "results_processing",
+      "tier": 2,
+      "priority": "medium",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/openms/idmerger",
+      "description": "Merge identification results from multiple runs",
+      "planned_implementation": "Week 9"
+    },
+    {
+      "id": "openms_idscoreswitcher",
+      "name": "OpenMS IDScoreSwitcher",
+      "category": "proteomics",
+      "subcategory": "results_processing",
+      "tier": 2,
+      "priority": "low",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/openms/idscoreswitcher",
+      "description": "Switch between scoring schemes",
+      "planned_implementation": "Week 10"
+    },
+    {
+      "id": "openms_idripper",
+      "name": "OpenMS IDRipper",
+      "category": "proteomics",
+      "subcategory": "results_processing",
+      "tier": 2,
+      "priority": "low",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/openms/idripper",
+      "description": "Split identification files",
+      "planned_implementation": "Week 10"
+    },
+    {
+      "id": "openms_idmassaccuracy",
+      "name": "OpenMS IDMassAccuracy",
+      "category": "proteomics",
+      "subcategory": "quality_control",
+      "tier": 2,
+      "priority": "low",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/openms/idmassaccuracy",
+      "description": "Calibration and mass accuracy assessment",
+      "planned_implementation": "Week 10"
+    },
+    {
+      "id": "maxquant_lfq",
+      "name": "MaxQuant LFQ",
+      "category": "proteomics",
+      "subcategory": "quantification",
+      "tier": 3,
+      "priority": "medium",
+      "status": "planned",
+      "nfcore_source": "modules/nf-core/maxquant/lfq",
+      "description": "Label-free quantification",
+      "planned_implementation": "Week 11-12"
+    }
+  ],
+  "categories": {
+    "proteomics": {
+      "total": 11,
+      "implemented": 1,
+      "planned": 10
+    },
+    "data_conversion": {
+      "total": 1,
+      "implemented": 0,
+      "planned": 1
+    },
+    "spectral_library": {
+      "total": 1,
+      "implemented": 1,
+      "planned": 0
+    }
+  },
+  "implementation_progress": {
+    "tier_0": {
+      "name": "DIA-NN Enhancement",
+      "tools_total": 1,
+      "tools_completed": 1,
+      "status": "completed",
+      "completion_date": "2025-10-12"
+    },
+    "tier_1": {
+      "name": "Core LC-MS Pipeline",
+      "tools_total": 2,
+      "tools_completed": 0,
+      "status": "planned",
+      "target_dates": "Week 3-5"
+    },
+    "tier_2": {
+      "name": "OpenMS Ecosystem",
+      "tools_total": 9,
+      "tools_completed": 0,
+      "status": "planned",
+      "target_dates": "Week 6-10"
+    },
+    "tier_3": {
+      "name": "Advanced Quantification",
+      "tools_total": 1,
+      "tools_completed": 0,
+      "status": "planned",
+      "target_dates": "Week 11-12"
+    }
+  },
+  "integration_metadata": {
+    "galaxy_version": "latest",
+    "biocontainers_registry": "docker.io/biocontainers",
+    "nfcore_modules_version": "latest",
+    "last_sync": "2025-10-12",
+    "next_review": "2025-10-19"
+  },
+  "notes": [
+    "Tier 0 (DIA-NN library generation) completed 2025-10-12",
+    "Tool wrappers follow Galaxy XML standards",
+    "All tools use BioContainers for reproducibility",
+    "Integration tested against nf-core module specifications"
+  ]
+}
