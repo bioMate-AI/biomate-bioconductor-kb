@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-10-12T16:05:00.000Z",
-  "version": "1.0.0",
+  "timestamp": "2025-10-12T16:30:00.000Z",
+  "version": "1.1.0",
   "description": "Index of nf-core LC-MS tools integrated into Galaxy for BioMate platform",
   "total_tools_planned": 13,
-  "total_tools_implemented": 1,
-  "implementation_status": "Tier 0 - In Progress",
+  "total_tools_implemented": 13,
+  "implementation_status": "All Tiers Complete",
   "tools": [
     {
       "id": "diann_insilicolibrarygeneration",
@@ -52,10 +52,14 @@
       "subcategory": "vendor_format",
       "tier": 1,
       "priority": "high",
-      "status": "planned",
+      "status": "implemented",
+      "implementation_date": "2025-10-12",
       "nfcore_source": "modules/nf-core/thermorawfileparser",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/thermorawfileparser.xml",
+      "container": "biocontainers/thermorawfileparser:1.4.5--h05cac1d_1",
+      "version": "1.4.5",
       "description": "Convert Thermo .RAW files to open formats (mzML/mzXML)",
-      "planned_implementation": "Week 3-4"
+      "citation": "10.1021/acs.jproteome.9b00328"
     },
     {
       "id": "sageproteomics_sage",
@@ -64,7 +68,12 @@
       "subcategory": "peptide_search",
       "tier": 1,
       "priority": "high",
-      "status": "planned",
+      "status": "implemented",
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/sageproteomics_sage.xml",
+      "container": "biocontainers/sage-proteomics:0.14.7--h031d066_0",
+      "version": "0.14.7",
+      "citation": "10.1021/acs.jproteome.3c00486",
       "nfcore_source": "modules/nf-core/sageproteomics/sage",
       "description": "Fast peptide search engine (Rust-based)",
       "planned_implementation": "Week 4-5"
@@ -76,10 +85,14 @@
       "subcategory": "peak_detection",
       "tier": 2,
       "priority": "high",
-      "status": "planned",
+      "status": "implemented",
       "nfcore_source": "modules/nf-core/openms/peakpickerhires",
       "description": "High-resolution peak detection",
-      "planned_implementation": "Week 6"
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/openms_peakpickerhires.xml",
+      "container": "biocontainers/openms:3.1.0--h8964181_1",
+      "version": "3.1.0",
+      "citation": "10.1038/nmeth.3959"
     },
     {
       "id": "openms_peptideindexer",
@@ -88,10 +101,14 @@
       "subcategory": "database_preparation",
       "tier": 2,
       "priority": "high",
-      "status": "planned",
+      "status": "implemented",
       "nfcore_source": "modules/nf-core/openms/peptideindexer",
       "description": "Index peptides in protein databases",
-      "planned_implementation": "Week 7"
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/openms_peptideindexer.xml",
+      "container": "biocontainers/openms:3.1.0--h8964181_1",
+      "version": "3.1.0",
+      "citation": "10.1038/nmeth.3959"
     },
     {
       "id": "openms_decoydatabase",
@@ -100,10 +117,14 @@
       "subcategory": "database_preparation",
       "tier": 2,
       "priority": "high",
-      "status": "planned",
+      "status": "implemented",
       "nfcore_source": "modules/nf-core/openms/decoydatabase",
       "description": "Generate decoy sequences for FDR control",
-      "planned_implementation": "Week 7"
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/openms_decoydatabase.xml",
+      "container": "biocontainers/openms:3.1.0--h8964181_1",
+      "version": "3.1.0",
+      "citation": "10.1038/nmeth.3959"
     },
     {
       "id": "openms_filefilter",
@@ -112,10 +133,14 @@
       "subcategory": "data_preprocessing",
       "tier": 2,
       "priority": "medium",
-      "status": "planned",
+      "status": "implemented",
       "nfcore_source": "modules/nf-core/openms/filefilter",
       "description": "Filter and preprocess MS data files",
-      "planned_implementation": "Week 8"
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/openms_filefilter.xml",
+      "container": "biocontainers/openms:3.1.0--h8964181_1",
+      "version": "3.1.0",
+      "citation": "10.1038/nmeth.3959"
     },
     {
       "id": "openms_idfilter",
@@ -124,10 +149,14 @@
       "subcategory": "results_processing",
       "tier": 2,
       "priority": "medium",
-      "status": "planned",
+      "status": "implemented",
       "nfcore_source": "modules/nf-core/openms/idfilter",
       "description": "Filter identification results",
-      "planned_implementation": "Week 9"
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/openms_idfilter.xml",
+      "container": "biocontainers/openms:3.1.0--h8964181_1",
+      "version": "3.1.0",
+      "citation": "10.1038/nmeth.3959"
     },
     {
       "id": "openms_idmerger",
@@ -136,10 +165,14 @@
       "subcategory": "results_processing",
       "tier": 2,
       "priority": "medium",
-      "status": "planned",
+      "status": "implemented",
       "nfcore_source": "modules/nf-core/openms/idmerger",
       "description": "Merge identification results from multiple runs",
-      "planned_implementation": "Week 9"
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/openms_idmerger.xml",
+      "container": "biocontainers/openms:3.1.0--h8964181_1",
+      "version": "3.1.0",
+      "citation": "10.1038/nmeth.3959"
     },
     {
       "id": "openms_idscoreswitcher",
@@ -148,10 +181,14 @@
       "subcategory": "results_processing",
       "tier": 2,
       "priority": "low",
-      "status": "planned",
+      "status": "implemented",
       "nfcore_source": "modules/nf-core/openms/idscoreswitcher",
       "description": "Switch between scoring schemes",
-      "planned_implementation": "Week 10"
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/openms_idscoreswitcher.xml",
+      "container": "biocontainers/openms:3.1.0--h8964181_1",
+      "version": "3.1.0",
+      "citation": "10.1038/nmeth.3959"
     },
     {
       "id": "openms_idripper",
@@ -160,10 +197,14 @@
       "subcategory": "results_processing",
       "tier": 2,
       "priority": "low",
-      "status": "planned",
+      "status": "implemented",
       "nfcore_source": "modules/nf-core/openms/idripper",
       "description": "Split identification files",
-      "planned_implementation": "Week 10"
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/openms_idripper.xml",
+      "container": "biocontainers/openms:3.1.0--h8964181_1",
+      "version": "3.1.0",
+      "citation": "10.1038/nmeth.3959"
     },
     {
       "id": "openms_idmassaccuracy",
@@ -172,10 +213,14 @@
       "subcategory": "quality_control",
       "tier": 2,
       "priority": "low",
-      "status": "planned",
+      "status": "implemented",
       "nfcore_source": "modules/nf-core/openms/idmassaccuracy",
       "description": "Calibration and mass accuracy assessment",
-      "planned_implementation": "Week 10"
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/openms_idmassaccuracy.xml",
+      "container": "biocontainers/openms:3.1.0--h8964181_1",
+      "version": "3.1.0",
+      "citation": "10.1038/nmeth.3959"
     },
     {
       "id": "maxquant_lfq",
@@ -184,22 +229,26 @@
       "subcategory": "quantification",
       "tier": 3,
       "priority": "medium",
-      "status": "planned",
+      "status": "implemented",
       "nfcore_source": "modules/nf-core/maxquant/lfq",
       "description": "Label-free quantification",
-      "planned_implementation": "Week 11-12"
+      "implementation_date": "2025-10-12",
+      "galaxy_wrapper": "backend/tools/nfcore_lcms/maxquant_lfq.xml",
+      "container": "biocontainers/maxquant:2.4.3.0--hdfd78af_1",
+      "version": "2.4.3.0",
+      "citation": "10.1038/nbt.1511"
     }
   ],
   "categories": {
     "proteomics": {
       "total": 11,
-      "implemented": 1,
-      "planned": 10
+      "implemented": 11,
+      "planned": 0
     },
     "data_conversion": {
       "total": 1,
-      "implemented": 0,
-      "planned": 1
+      "implemented": 1,
+      "planned": 0
     },
     "spectral_library": {
       "total": 1,
@@ -218,23 +267,26 @@
     "tier_1": {
       "name": "Core LC-MS Pipeline",
       "tools_total": 2,
-      "tools_completed": 0,
-      "status": "planned",
-      "target_dates": "Week 3-5"
+      "tools_completed": 2,
+      "status": "completed",
+      "target_dates": "Week 3-5",
+      "completion_date": "2025-10-12"
     },
     "tier_2": {
       "name": "OpenMS Ecosystem",
       "tools_total": 9,
-      "tools_completed": 0,
-      "status": "planned",
-      "target_dates": "Week 6-10"
+      "tools_completed": 9,
+      "status": "completed",
+      "target_dates": "Week 6-10",
+      "completion_date": "2025-10-12"
     },
     "tier_3": {
       "name": "Advanced Quantification",
       "tools_total": 1,
-      "tools_completed": 0,
-      "status": "planned",
-      "target_dates": "Week 11-12"
+      "tools_completed": 1,
+      "status": "completed",
+      "target_dates": "Week 11-12",
+      "completion_date": "2025-10-12"
     }
   },
   "integration_metadata": {
@@ -248,6 +300,11 @@
     "Tier 0 (DIA-NN library generation) completed 2025-10-12",
     "Tool wrappers follow Galaxy XML standards",
     "All tools use BioContainers for reproducibility",
-    "Integration tested against nf-core module specifications"
+    "Integration tested against nf-core module specifications",
+    "All 13 tools implemented on 2025-10-12",
+    "Tier 1 (Core Pipeline) completed",
+    "Tier 2 (OpenMS Ecosystem) completed",
+    "Tier 3 (MaxQuant LFQ) completed",
+    "Ready for deployment and testing"
   ]
 }

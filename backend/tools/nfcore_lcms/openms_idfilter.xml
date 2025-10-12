@@ -1,0 +1,43 @@
+<tool id="openms_idfilter" name="OpenMS IDFilter" version="3.1.0">
+    <description>Filter peptide and protein identifications</description>
+
+    <requirements>
+        <container type="docker">biocontainers/openms:3.1.0--h8964181_1</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        IDFILTER
+            -in '$input'
+            -out output.${output_format}
+            -threads \${GALAXY_SLOTS:-4}
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="mzml,mzxml" label="Input File"
+               help="Input mass spectrometry data or identification file"/>
+
+        <param name="output_format" type="select" label="Output Format">
+            <option value="mzML" selected="true">mzML</option>
+            <option value="idXML">idXML</option>
+        </param>
+    </inputs>
+
+    <outputs>
+        <data name="output" format_source="output_format" from_work_dir="output.*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <help><![CDATA[
+**OpenMS IDFILTER**
+
+Filter peptide and protein identifications
+
+OpenMS is a comprehensive open-source framework for LC-MS data analysis, providing modular tools for complete proteomics and metabolomics workflows.
+
+**Citation:** Röst HL, Sachsenberg T, Aiche S, et al. OpenMS: a flexible open-source software platform for mass spectrometry data analysis. Nat Methods. 2016 Sep;13(9):741-8. doi: 10.1038/nmeth.3959
+    ]]></help>
+
+    <citations>
+        <citation type="doi">10.1038/nmeth.3959</citation>
+    </citations>
+</tool>

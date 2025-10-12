@@ -1,0 +1,65 @@
+<tool id="sageproteomics_sage" name="Sage Peptide Search" version="0.14.7">
+    <description>Ultra-fast peptide search engine for proteomics</description>
+
+    <requirements>
+        <container type="docker">biocontainers/sage-proteomics:0.14.7--h031d066_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        export RAYON_NUM_THREADS=\${GALAXY_SLOTS:-4} &&
+
+        sage '$config_json'
+            --disable-telemetry-i-dont-want-to-improve-sage
+            --fasta '$fasta_input'
+            --write-pin
+            '$mzml_input'
+    ]]></command>
+
+    <inputs>
+        <param name="mzml_input" type="data" format="mzml" label="mzML Input File"
+               help="Mass spectrometry data in mzML format"/>
+
+        <param name="fasta_input" type="data" format="fasta" label="Protein Database (FASTA)"
+               help="Protein sequence database for peptide searching"/>
+
+        <param name="config_json" type="data" format="json" label="Sage Configuration JSON"
+               help="Configuration file for Sage search parameters"/>
+    </inputs>
+
+    <outputs>
+        <data name="results_tsv" format="tsv" from_work_dir="results.sage.tsv"
+              label="${tool.name} on ${on_string}: Results TSV"/>
+        <data name="results_json" format="json" from_work_dir="results.json"
+              label="${tool.name} on ${on_string}: Results JSON"/>
+        <data name="results_pin" format="txt" from_work_dir="results.sage.pin"
+              label="${tool.name} on ${on_string}: PIN format"/>
+    </outputs>
+
+    <help><![CDATA[
+**Sage: Ultra-Fast Peptide Search Engine**
+
+Sage is a modern peptide search engine written in Rust, offering 10-100x speedup compared to traditional search engines while maintaining or exceeding sensitivity.
+
+**Key Features:**
+- Blazing fast: Rust-based implementation with parallel processing
+- High sensitivity: Matches or exceeds traditional search engines
+- Memory efficient: Handles large databases with minimal RAM
+- Open source: MIT license, fully transparent algorithm
+
+**Inputs:**
+- **mzML**: Mass spectrometry data in open mzML format
+- **FASTA**: Protein database for searching
+- **Config JSON**: Search parameters (mass tolerance, modifications, etc.)
+
+**Outputs:**
+- **TSV**: Tab-separated results with peptide identifications
+- **JSON**: Structured results for programmatic access
+- **PIN**: Percolator input format for FDR control
+
+**Citation:** Lazear MR. Sage: An Open-Source Tool for Fast Proteomics Searching and Quantification at Scale. J Proteome Res. 2023 Sep 1;22(9):3652-3659. doi: 10.1021/acs.jproteome.3c00486
+    ]]></help>
+
+    <citations>
+        <citation type="doi">10.1021/acs.jproteome.3c00486</citation>
+    </citations>
+</tool>

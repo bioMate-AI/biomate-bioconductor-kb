@@ -1,0 +1,412 @@
+{
+  "timestamp": "2025-10-12T16:30:00.000Z",
+  "total_tools": 13,
+  "passed": 13,
+  "failed": 0,
+  "success_rate": 100.0,
+  "tools": [
+    {
+      "filename": "diann_insilicolibrarygeneration.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: DIA-NN In Silico Library Generation v1.8.1"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/diann:v1.8.1_cv1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "maxquant_lfq.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: MaxQuant LFQ v2.4.3.0"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/maxquant:2.4.3.0--hdfd78af_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "openms_decoydatabase.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: OpenMS DecoyDatabase v3.1.0"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/openms:3.1.0--h8964181_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "openms_filefilter.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: OpenMS FileFilter v3.1.0"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/openms:3.1.0--h8964181_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "openms_idfilter.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: OpenMS IDFilter v3.1.0"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/openms:3.1.0--h8964181_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "openms_idmassaccuracy.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: OpenMS IDMassAccuracy v3.1.0"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/openms:3.1.0--h8964181_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "openms_idmerger.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: OpenMS IDMerger v3.1.0"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/openms:3.1.0--h8964181_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "openms_idripper.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: OpenMS IDRipper v3.1.0"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/openms:3.1.0--h8964181_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "openms_idscoreswitcher.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: OpenMS IDScoreSwitcher v3.1.0"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/openms:3.1.0--h8964181_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "openms_peakpickerhires.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: OpenMS PeakPickerHiRes v3.1.0"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/openms:3.1.0--h8964181_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "openms_peptideindexer.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: OpenMS PeptideIndexer v3.1.0"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/openms:3.1.0--h8964181_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "sageproteomics_sage.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: Sage Peptide Search v0.14.7"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/sage-proteomics:0.14.7--h031d066_0"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    },
+    {
+      "filename": "thermorawfileparser.xml",
+      "passed": true,
+      "tests": [
+        {
+          "name": "XML validity",
+          "passed": true,
+          "message": "XML is well-formed"
+        },
+        {
+          "name": "Required elements",
+          "passed": true,
+          "message": "All required elements present"
+        },
+        {
+          "name": "Tool metadata",
+          "passed": true,
+          "message": "Tool: ThermoRawFileParser v1.4.5"
+        },
+        {
+          "name": "Container requirement",
+          "passed": true,
+          "message": "Container: biocontainers/thermorawfileparser:1.4.5--h05cac1d_1"
+        },
+        {
+          "name": "Help & citations",
+          "passed": true,
+          "message": "1 citation(s) found"
+        }
+      ]
+    }
+  ]
+}
