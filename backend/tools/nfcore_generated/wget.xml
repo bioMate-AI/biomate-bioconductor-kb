@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_wget" name="nf-core wget" version="1.0.0" profile="20.01">
+  <description>The non-interactive network downloader</description>
+  <requirements>
+    <requirement type="package" version="1.21.4">wget</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+wget \\
+        -O - \\
+        $args \\
+        $url \\
+        &gt; ${prefix}.${suffix}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        wget: \$(wget --version | head -1 | cut -d ' ' -f 3)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="outfile" format="data" label="Outfile" from_work_dir="${prefix}.${suffix}"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+The non-interactive network downloader
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: wget
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/wget
+]]&gt;</help>
+</tool>

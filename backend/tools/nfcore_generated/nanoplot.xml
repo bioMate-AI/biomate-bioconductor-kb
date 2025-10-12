@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_nanoplot" name="nf-core nanoplot" version="1.0.0" profile="20.01">
+  <description>Run NanoPlot on nanopore-sequenced reads</description>
+  <requirements>
+    <requirement type="package" version="1.46.1">nanoplot</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+NanoPlot \\
+        $args \\
+        -t $task.cpus \\
+        $input_file
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        nanoplot: \$(echo \$(NanoPlot --version 2&gt;&amp;1) | sed 's/^.*NanoPlot //; s/ .*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="ontfile" format="data" label="Ontfile"/>
+  </inputs>
+  <outputs>
+    <data name="html" format="html" label="Html" from_work_dir="*.html"/>
+    <data name="png" format="data" label="Png" from_work_dir="*.png"/>
+    <data name="txt" format="txt" label="Txt" from_work_dir="*.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Run NanoPlot on nanopore-sequenced reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: nanoplot
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/nanoplot
+]]&gt;</help>
+</tool>

@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_hypo" name="nf-core hypo" version="1.0.0" profile="20.01">
+  <description>Assembly polisher using short (and long) reads</description>
+  <requirements>
+    <requirement type="package" version="1.0.3">hypo</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+echo &quot;${reads.join(' ')}&quot; | tr &quot; &quot; &quot;\\n&quot; &gt; sr.fofn
+    hypo \\
+        -r @sr.fofn \\
+        -d $draft \\
+        -b $sr_bam \\
+        -c $reads_coverage \\
+        -s $genome_size \\
+        -t $task.cpus \\
+        -o ${prefix}.fasta \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        hypo: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="sr_bam" format="data" label="Sr Bam"/>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="fasta" format="data" label="Fasta" from_work_dir="*.fasta"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Assembly polisher using short (and long) reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: hypo
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/hypo
+]]&gt;</help>
+</tool>

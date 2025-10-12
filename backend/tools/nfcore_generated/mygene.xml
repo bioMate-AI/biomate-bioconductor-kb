@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_mygene" name="nf-core mygene" version="1.0.0" profile="20.01">
+  <description>Fetch the GO concepts for a list of genes</description>
+  <requirements>
+    <requirement type="package" version="3.2.2">mygene</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="gene_list" format="data" label="Gene List"/>
+  </inputs>
+  <outputs>
+    <data name="gmt" format="data" label="Gmt" from_work_dir="*.gmt"/>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Fetch the GO concepts for a list of genes
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: mygene
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/mygene
+]]&gt;</help>
+</tool>

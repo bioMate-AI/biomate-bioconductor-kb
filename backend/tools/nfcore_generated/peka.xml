@@ -1,0 +1,57 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_peka" name="nf-core peka" version="1.0.0" profile="20.01">
+  <description>Runs PEKA CLIP peak k-mer analysis</description>
+  <requirements>
+    <requirement type="package" version="1.0.0">peka</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# If the modification date and time of the fai is before the fasta then
+    # there will be an error. Touching the file first avoids that.
+    touch $fai
+    mkdir tmp
+    TMPDIR=\$(pwd)/tmp peka \
+        -i $peaks \
+        -x $crosslinks \
+        -g $fasta \
+        -gi $fai \
+        -r $gtf \
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        peka: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="peaks" format="data" label="Peaks"/>
+    <param type="data" name="crosslinks" format="data" label="Crosslinks"/>
+  </inputs>
+  <outputs>
+    <data name="cluster" format="data" label="Cluster" from_work_dir="*mer_cluster_distribution*"/>
+    <data name="distribution" format="data" label="Distribution" from_work_dir="*mer_distribution*"/>
+    <data name="rtxn" format="data" label="Rtxn" from_work_dir="*rtxn*"/>
+    <data name="pdf" format="data" label="Pdf" from_work_dir="*.pdf"/>
+    <data name="tsites" format="data" label="Tsites" from_work_dir="*thresholded_sites*.bed.gz"/>
+    <data name="oxn" format="data" label="Oxn" from_work_dir="*oxn*.bed.gz"/>
+    <data name="clust" format="data" label="Clust" from_work_dir="*_clusters.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Runs PEKA CLIP peak k-mer analysis
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: peka
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/peka
+]]&gt;</help>
+</tool>

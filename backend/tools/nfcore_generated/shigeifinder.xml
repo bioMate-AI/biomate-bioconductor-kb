@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_shigeifinder" name="nf-core shigeifinder" version="1.0.0" profile="20.01">
+  <description>Determine Shigella serotype from assemblies or Illumina paired-end reads</description>
+  <requirements>
+    <requirement type="package" version="1.3.5">shigeifinder</requirement>
+    <requirement type="package" version="78.1.0">setuptools</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+shigeifinder \\
+        $args \\
+        --output ${prefix}.tsv \\
+        -t $task.cpus \\
+        -i $seqs
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        shigeifinder: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="seqs" format="data" label="Seqs"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Determine Shigella serotype from assemblies or Illumina paired-end reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: shigeifinder
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/shigeifinder
+]]&gt;</help>
+</tool>

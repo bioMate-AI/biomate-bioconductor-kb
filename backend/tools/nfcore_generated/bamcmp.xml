@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_bamcmp" name="nf-core bamcmp" version="1.0.0" profile="20.01">
+  <description>Bamcmp (Bam Compare) is a tool for assigning reads between a primary genome and a contamination genome. For instance, filtering out mouse reads from patient derived xenograft mouse models (PDX).</description>
+  <requirements>
+    <requirement type="package" version="2.2">bamcmp</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+bamcmp \\
+        -1 $primary_aligned_bam \\
+        -2 $contaminant_aligned_bam \\
+        -A ${prefix}.bam \\
+        -B ${prefix2}.bam \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bamcmp: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="primary_aligned_bam" format="data" label="Primary Aligned Bam"/>
+  </inputs>
+  <outputs>
+    <data name="primary_filtered_bam" format="bam" label="Primary Filtered Bam" from_work_dir="${prefix}.bam"/>
+    <data name="contamination_bam" format="bam" label="Contamination Bam" from_work_dir="${prefix2}.bam"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Bamcmp (Bam Compare) is a tool for assigning reads between a primary genome and a contamination genome. For instance, filtering out mouse reads from patient derived xenograft mouse models (PDX).
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: bamcmp
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/bamcmp
+]]&gt;</help>
+</tool>

@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_ltrharvest" name="nf-core ltrharvest" version="1.0.0" profile="20.01">
+  <description>Predicts LTR retrotransposons using the parallel version of GenomeTools gt-ltrharvest
+utility included in the EDTA toolchain
+</description>
+  <requirements>
+    <requirement type="package" version="1.1">ltr_harvest_parallel</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+LTR_HARVEST_parallel \\
+        -seq $fasta \\
+        $args \\
+        -threads $task.cpus
+
+    mv &quot;${fasta}.harvest.combine.gff3&quot; \\
+        &quot;${prefix}.gff3&quot;
+
+    mv &quot;${fasta}.harvest.combine.scn&quot; \\
+        &quot;${prefix}.scn&quot;
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        LTR_HARVEST_parallel: \$(LTR_HARVEST_parallel -h | sed -n '/Version/s/Version: //p')
+        genometools: \$(gt --version | sed '1!d ; s/gt (GenomeTools) //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="gff3" format="data" label="Gff3" from_work_dir="*.gff3"/>
+    <data name="scn" format="data" label="Scn" from_work_dir="*.scn"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Predicts LTR retrotransposons using the parallel version of GenomeTools gt-ltrharvest
+utility included in the EDTA toolchain
+
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: ltrharvest
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/ltrharvest
+]]&gt;</help>
+</tool>

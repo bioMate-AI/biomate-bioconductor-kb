@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_backsub" name="nf-core backsub" version="1.0.0" profile="20.01">
+  <description>Pixel-by-pixel channel subtraction scaled by exposure times of pre-stitched `tif` images.</description>
+  <requirements>
+    <container type="docker">ghcr.io/schapirolabor/background_subtraction:v0.4.1</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 /background_subtraction/background_sub.py \
+        -o &quot;${prefix}.ome.tif&quot; \
+        -mo &quot;${prefix}.csv&quot; \
+        -r $image \
+        -m $markerfile \
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        backsub: \$(python3 /background_subtraction/background_sub.py --version | sed 's/v//g')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="image" format="data" label="Image"/>
+    <param type="data" name="markerfile" format="data" label="Markerfile"/>
+  </inputs>
+  <outputs>
+    <data name="backsub_tif" format="data" label="Backsub Tif" from_work_dir="*.ome.tif"/>
+    <data name="markerout" format="data" label="Markerout" from_work_dir="*.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Pixel-by-pixel channel subtraction scaled by exposure times of pre-stitched `tif` images.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: backsub
+Container: ghcr.io/schapirolabor/background_subtraction:v0.4.1
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/backsub
+]]&gt;</help>
+</tool>

@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_scoary" name="nf-core scoary" version="1.0.0" profile="20.01">
+  <description>Use pangenome outputs for GWAS</description>
+  <requirements>
+    <requirement type="package" version="1.6.16">scoary</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+scoary \\
+        $args \\
+        --no-time \\
+        --threads $task.cpus \\
+        --traits $traits \\
+        --genes $genes
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        scoary: \$( scoary --version 2&gt;&amp;1 )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="genes" format="data" label="Genes"/>
+    <param type="data" name="tree" format="data" label="Tree"/>
+  </inputs>
+  <outputs>
+    <data name="csv" format="data" label="Csv" from_work_dir="*.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Use pangenome outputs for GWAS
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: scoary
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/scoary
+]]&gt;</help>
+</tool>

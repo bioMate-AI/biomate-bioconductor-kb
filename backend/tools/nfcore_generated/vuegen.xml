@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_vuegen" name="nf-core vuegen" version="1.0.0" profile="20.01">
+  <description>The VueGen nf-core module is designed to automate report generation from outputs produced by other modules, subworkflows, or pipelines. The module integrates the VueGen Python library and customizes it for compatibility with the Nextflow environment. VueGen automates the creation of reports from bioinformatics outputs, supporting formats like PDF, HTML, DOCX, ODT, PPTX, Reveal.js, Jupyter notebooks, and Streamlit web applications.
+</description>
+  <requirements>
+    <requirement type="package" version="0.3.2">vuegen</requirement>
+    <requirement type="package" version="3.11">python</requirement>
+    <container type="docker">dtu_biosustain_dsp/vuegen:v0.3.2-nextflow</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Validate quarto_check flag if using a conda environment
+        if [[ &quot;${task.conda}&quot; != &quot;null&quot; ]]; then
+            QUARTO_CHECK_FLAG=&quot;--quarto_checks&quot;
+        else
+            QUARTO_CHECK_FLAG=&quot;&quot;
+        fi
+
+        # Execute VueGen based on the input type
+        if [ &quot;${input_type}&quot; == &quot;config&quot; ]; then
+            echo &quot;Running VueGen with config file: $input_path&quot;
+            vuegen --config $input_path --report_type $report_type \$QUARTO_CHECK_FLAG $args
+        elif [ &quot;${input_type}&quot; == &quot;directory&quot; ]; then
+            echo &quot;Running VueGen with directory: $input_path&quot;
+            vuegen --directory $input_path --report_type $report_type \$QUARTO_CHECK_FLAG $args
+        fi
+
+        cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+        &quot;${task.process}&quot;:
+            vuegen: \$( vuegen --version | sed -e &quot;s/vuegen //g&quot; )
+        END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="output_folder" format="data" label="Output Folder" from_work_dir="*report"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+The VueGen nf-core module is designed to automate report generation from outputs produced by other modules, subworkflows, or pipelines. The module integrates the VueGen Python library and customizes it for compatibility with the Nextflow environment. VueGen automates the creation of reports from bioinformatics outputs, supporting formats like PDF, HTML, DOCX, ODT, PPTX, Reveal.js, Jupyter notebooks, and Streamlit web applications.
+
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: vuegen
+Container: dtu_biosustain_dsp/vuegen:v0.3.2-nextflow
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/vuegen
+]]&gt;</help>
+</tool>

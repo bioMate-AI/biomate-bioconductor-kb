@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_sgdemux" name="nf-core sgdemux" version="1.0.0" profile="20.01">
+  <description>Demultiplex bgzip'd fastq files</description>
+  <requirements>
+    <requirement type="package" version="1.1.1">sgdemux</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+sgdemux \\
+        --sample-metadata ${sample_sheet} \\
+        --fastqs ${fastqs_dir} \\
+        --output-dir ${prefix} \\
+        --demux-threads ${task.cpus} \\
+        --compressor-threads ${task.cpus} \\
+        --writer-threads ${task.cpus} \\
+        ${args}
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        sgdemux: \$(echo \$(sgdemux --version 2&gt;&amp;1) | cut -d &quot; &quot; -f2)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="sample_sheet" format="data" label="Sample Sheet"/>
+  </inputs>
+  <outputs>
+    <data name="sample_fastq" format="data" label="Sample Fastq" from_work_dir="${prefix}/*_R*.fastq.gz"/>
+    <data name="metrics" format="data" label="Metrics" from_work_dir="${prefix}/metrics.tsv"/>
+    <data name="most_frequent_unmatched" format="data" label="Most Frequent Unmatched" from_work_dir="${prefix}/most_frequent_unmatched.tsv"/>
+    <data name="per_project_metrics" format="data" label="Per Project Metrics" from_work_dir="${prefix}/per_project_metrics.tsv"/>
+    <data name="per_sample_metrics" format="data" label="Per Sample Metrics" from_work_dir="${prefix}/per_sample_metrics.tsv"/>
+    <data name="sample_barcode_hop_metrics" format="data" label="Sample Barcode Hop Metrics" from_work_dir="${prefix}/sample_barcode_hop_metrics.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Demultiplex bgzip'd fastq files
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: sgdemux
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/sgdemux
+]]&gt;</help>
+</tool>

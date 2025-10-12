@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_perbase" name="nf-core perbase" version="1.0.0" profile="20.01">
+  <description>Per-base metrics on BAM/CRAM files.</description>
+  <requirements>
+    <requirement type="package" version="1.0.0">perbase</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+perbase \\
+        base-depth \\
+        $bam \\
+        $args \\
+        $reference \\
+        $region \\
+        --threads $task.cpus \\
+        --bgzip \\
+        --output ${prefix}.tsv.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        perbase: \$(perbase --version |&amp; sed '1!d ; s/perbase //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Per-base metrics on BAM/CRAM files.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: perbase
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/perbase
+]]&gt;</help>
+</tool>

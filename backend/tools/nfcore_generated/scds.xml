@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_scds" name="nf-core scds" version="1.0.0" profile="20.01">
+  <description>Module to use scds for doublet scoring</description>
+  <requirements>
+    <requirement type="package" version="1.18.0">bioconductor-scds</requirement>
+    <requirement type="package" version="2.0.3">xgboost</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+touch ${prefix}.rds
+    touch ${prefix}.csv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        r: \$(R --version | grep -oP &quot;\\d+\\.\\d+\\.\\d+&quot;)
+        scds: \$(Rscript -e &quot;library(scds); cat(as.character(packageVersion('scds')), '\\n', sep='')&quot;)
+        singlecellexperiment: \$(Rscript -e &quot;library(SingleCellExperiment); cat(as.character(packageVersion('SingleCellExperiment')), '\\n', sep='')&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="rds" format="data" label="Rds"/>
+  </inputs>
+  <outputs>
+    <data name="rds" format="data" label="Rds" from_work_dir="*.rds"/>
+    <data name="predictions" format="data" label="Predictions" from_work_dir="*.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Module to use scds for doublet scoring
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: scds
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/scds
+]]&gt;</help>
+</tool>

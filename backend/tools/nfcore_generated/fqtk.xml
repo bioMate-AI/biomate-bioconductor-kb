@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_fqtk" name="nf-core fqtk" version="1.0.0" profile="20.01">
+  <description>Demultiplex fastq files</description>
+  <requirements>
+    <requirement type="package" version="0.3.1">fqtk</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mkdir output
+    fqtk \\
+        demux \\
+            --inputs ${fastqs} \\
+            --read-structures ${read_structures} \\
+            --output output/ \\
+            --sample-metadata ${sample_sheet} \\
+            ${args}
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        fqtk: \$(echo \$(fqtk --version 2&gt;&amp;1) | cut -d &quot; &quot; -f2)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="sample_sheet" format="data" label="Sample Sheet"/>
+  </inputs>
+  <outputs>
+    <data name="sample_fastq" format="data" label="Sample Fastq" from_work_dir="output/*.fq.gz"/>
+    <data name="metrics" format="txt" label="Metrics" from_work_dir="output/demux-metrics.txt"/>
+    <data name="most_frequent_unmatched" format="data" label="Most Frequent Unmatched" from_work_dir="output/unmatched*.fq.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Demultiplex fastq files
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: fqtk
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/fqtk
+]]&gt;</help>
+</tool>

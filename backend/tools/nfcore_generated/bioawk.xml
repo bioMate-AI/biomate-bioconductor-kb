@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_bioawk" name="nf-core bioawk" version="1.0.0" profile="20.01">
+  <description>Bioawk is an extension to Brian Kernighan's awk, adding the support of several common biological data formats.</description>
+  <requirements>
+    <requirement type="package" version="1.0">bioawk</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+bioawk \\
+        $args \\
+        $input \\
+        &gt; ${prefix}
+
+    gzip ${prefix}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bioawk: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input" format="data" label="Input"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output" from_work_dir="*.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Bioawk is an extension to Brian Kernighan's awk, adding the support of several common biological data formats.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: bioawk
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/bioawk
+]]&gt;</help>
+</tool>

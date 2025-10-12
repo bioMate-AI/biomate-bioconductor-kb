@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_phyloflash" name="nf-core phyloflash" version="1.0.0" profile="20.01">
+  <description>phyloFlash is a pipeline to rapidly reconstruct the SSU rRNAs and explore phylogenetic composition of an illumina (meta)genomic dataset.</description>
+  <requirements>
+    <requirement type="package" version="3.4.2">phyloflash</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+phyloFlash.pl \\
+            $args \\
+            -read1 ${reads[0]} \\
+            -lib $prefix \\
+            -interleaved \\
+            -dbhome . \\
+            -CPUs $task.cpus
+
+        mkdir $prefix
+        mv ${prefix}.* $prefix
+
+        cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+        &quot;${task.process}&quot;:
+            phyloflash: \$(echo \$(phyloFlash.pl -version 2&gt;&amp;1) | sed &quot;s/^.*phyloFlash v//&quot;)
+        END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="results" format="data" label="Results" from_work_dir="${meta.id}*/*"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+phyloFlash is a pipeline to rapidly reconstruct the SSU rRNAs and explore phylogenetic composition of an illumina (meta)genomic dataset.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: phyloflash
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/phyloflash
+]]&gt;</help>
+</tool>

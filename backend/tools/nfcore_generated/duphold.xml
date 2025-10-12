@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_duphold" name="nf-core duphold" version="1.0.0" profile="20.01">
+  <description>SV callers like lumpy look at split-reads and pair distances to find structural variants. This tool is a fast way to add depth information to those calls. This can be used as additional information for filtering variants; for example we will be skeptical of deletion calls that do not have lower than average coverage compared to regions with similar gc-content.</description>
+  <requirements>
+    <requirement type="package" version="0.2.1">duphold</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+duphold \\
+        ${args} \\
+        --threads ${task.cpus} \\
+        --output ${prefix}.vcf.gz \\
+        --vcf ${sv_variants} \\
+        --bam ${alignment_file} \\
+        --fasta ${fasta} \\
+        ${snp_annotation}
+
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        duphold: \$(duphold -h | head -n 1 | sed -e &quot;s/^version: //&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="alignment_file" format="data" label="Alignment File"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fasta_fai" format="data" label="Fasta Fai"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+SV callers like lumpy look at split-reads and pair distances to find structural variants. This tool is a fast way to add depth information to those calls. This can be used as additional information for filtering variants; for example we will be skeptical of deletion calls that do not have lower than average coverage compared to regions with similar gc-content.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: duphold
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/duphold
+]]&gt;</help>
+</tool>

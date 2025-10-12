@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_president" name="nf-core president" version="1.0.0" profile="20.01">
+  <description>Calculate pairwise nucleotide identity with respect to a reference sequence</description>
+  <requirements>
+    <requirement type="package" version="0.6.8">president</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+president \\
+        --query $fasta \\
+        --reference $reference \\
+        --path . \\
+        --threads $task.cpus \\
+        --prefix &quot;${prefix}_&quot; \\
+        $args
+
+    if [ &quot;$compress&quot; = true ] ; then
+        gzip ${prefix}*.fasta;
+    fi
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        president: \$(president --version |&amp; sed '1!d ; s/president v//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="reference" format="data" label="Reference"/>
+  </inputs>
+  <outputs>
+    <data name="valid_fasta" format="data" label="Valid Fasta" from_work_dir="${prefix}_valid.fasta*"/>
+    <data name="invalid_fasta" format="data" label="Invalid Fasta" from_work_dir="${prefix}_invalid.fasta*"/>
+    <data name="report" format="data" label="Report" from_work_dir="*.tsv"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Calculate pairwise nucleotide identity with respect to a reference sequence
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: president
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/president
+]]&gt;</help>
+</tool>

@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_galah" name="nf-core galah" version="1.0.0" profile="20.01">
+  <description>Cluster genome FASTA files by average nucleotide identity</description>
+  <requirements>
+    <requirement type="package" version="0.4.2">galah</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+galah cluster \\
+        --threads ${task.cpus} \\
+        --genome-fasta-files ${bins} \\
+        ${qc_input} \\
+        --output-cluster-definition ${prefix}.tsv \\
+        --output-representative-fasta-directory ${prefix} \\
+        ${args}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        galah: \$(galah --version | sed 's/galah //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bins" format="data" label="Bins"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="dereplicated_bins" format="data" label="Dereplicated Bins" from_work_dir="${prefix}/*"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Cluster genome FASTA files by average nucleotide identity
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: galah
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/galah
+]]&gt;</help>
+</tool>

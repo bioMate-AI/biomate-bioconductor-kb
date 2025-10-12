@@ -1,0 +1,247 @@
+[
+  {
+    "dataset_key": "biomni_data_lake_two_hybrid_parquet",
+    "dataset_name": "two-hybrid.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bornea/apostl_static_bubblegraph_generator/Repository_Actions\nAPOSTL_Static_Bubblegraph_Generator",
+        "name": "Repository Actions\nAPOSTL Static Bubblegraph Generator",
+        "category": "Proteomics",
+        "confidence": 0.75,
+        "reasoning": "APOSTL is designed for protein interaction analysis. The tool takes 'Inter File' parameter which likely accepts protein interaction data. The dataset contains protein interaction data (two-hybrid) with id, name, value columns that could represent interaction pairs and scores, matching APOSTL's expected input format for PPI network visualization.",
+        "parameter_name": "Inter File"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_txgnn_name_mapping_pkl",
+    "dataset_name": "txgnn_name_mapping.pkl",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool pulls data from Monarch Initiative BioLink API for disease/phenotype associations. The dataset contains drug-disease mappings with prediction scores, which could serve as reference data for validating or enriching bulk disease association queries.",
+        "parameter_name": "reference_mapping"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Tool retrieves subject-object associations from BioLink API. The drug-disease mapping dataset could provide reference associations for comparison or validation of retrieved associations in drug repurposing contexts.",
+        "parameter_name": "reference_associations"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool specifically handles substance (drug/chemical) associations from BioLink API. The dataset contains drug entities with disease associations and prediction scores, making it highly relevant as reference data for substance-disease relationship queries.",
+        "parameter_name": "reference_substance_mapping"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.62,
+        "reasoning": "While primarily for gene associations, drug repurposing often involves gene-drug-disease relationships. The mapping dataset could serve as reference for connecting gene associations to drug-disease predictions.",
+        "parameter_name": "reference_drug_disease_map"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "Tool retrieves disease associations from BioLink API. The dataset contains disease entities mapped to drugs with prediction scores, which could serve as reference data for disease association queries in drug repurposing workflows.",
+        "parameter_name": "reference_disease_mapping"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_txgnn_prediction_pkl",
+    "dataset_name": "txgnn_prediction.pkl",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "BioLink API tool that retrieves associations between biological entities. The dataset contains drug-disease predictions which could potentially be used as reference data for querying related associations, though the pkl format may need conversion.",
+        "parameter_name": "reference_data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "BioLink API tool for retrieving associations between subjects and objects. Drug-disease prediction data could serve as reference for validating or comparing associations, though format compatibility is uncertain.",
+        "parameter_name": "reference_associations"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Retrieves substance (drug/chemical) associations from BioLink API. The dataset contains drug-disease predictions which directly aligns with substance-disease associations. Could use as reference for comparison.",
+        "parameter_name": "reference_substance_data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.62,
+        "reasoning": "While focused on genes, drug repurposing often involves gene-disease-drug relationships. The prediction data could serve as reference for drug-related gene associations, though indirect.",
+        "parameter_name": "reference_data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "Retrieves disease associations from BioLink API. The dataset contains disease-drug predictions which are directly relevant to disease associations. Strong domain alignment for drug repurposing context.",
+        "parameter_name": "reference_disease_data"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_variant_table_parquet",
+    "dataset_name": "variant_table.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/janktoolshed/agouti/Repository_Actions\nAGouTI_annotate",
+        "name": "Repository Actions\nAGouTI annotate",
+        "category": "Genome annotation",
+        "confidence": 0.75,
+        "reasoning": "Tool accepts database files and mentions custom format with columns for id, chr, start - matches the parquet file structure with id, name, value columns. Genomics category aligns with variant analysis use case.",
+        "parameter_name": "Input database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/biotradis/Repository_Actions\nBio-TraDis_counts_to_gene_insertion_data",
+        "name": "Repository Actions\nBio-TraDis counts to gene insertion data",
+        "category": "Genome annotation",
+        "confidence": 0.65,
+        "reasoning": "Tool works with genomic annotation and count data. Parquet format could serve as a reference for variant/mutation data in transposon insertion analysis. Genomics domain alignment.",
+        "parameter_name": "Read counts"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/abims-sbr/gffalign/Repository_Actions\nGFF_align",
+        "name": "Repository Actions\nGFF align",
+        "category": "Genome annotation",
+        "confidence": 0.62,
+        "reasoning": "Tool processes alignment files in TAB format and works with gene IDs. Parquet with id, name, value columns could potentially be converted/used as reference data for variant annotation alignment.",
+        "parameter_name": "Query organism GFF file"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "metaboanalyst_MS2ID_BioNL_v09102023_zip",
+    "dataset_name": "MS2ID_BioNL_v09102023.zip",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/cmonjeau/decompress_an_archive_and_merge/Repository_Actions\nDecompress_an_archive",
+        "name": "Repository Actions\nDecompress an archive",
+        "category": "Data Source",
+        "confidence": 0.95,
+        "reasoning": "This tool explicitly accepts zip archives as input and decompresses them. The dataset is in zip format, making this a direct match for the tool's primary function.",
+        "parameter_name": "Archive name"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "metaboanalyst_MS2ID_Bio_v09102023_zip",
+    "dataset_name": "MS2ID_Bio_v09102023.zip",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/cmonjeau/decompress_an_archive_and_merge/Repository_Actions\nDecompress_an_archive",
+        "name": "Repository Actions\nDecompress an archive",
+        "category": "Data Source",
+        "confidence": 0.95,
+        "reasoning": "This tool explicitly accepts zip archives as input and decompresses them. The dataset is in zip format, making this a perfect match for extracting the contents.",
+        "parameter_name": "Archive name"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "metaboanalyst_MS2ID_ExposomicsNL_v09102023_zip",
+    "dataset_name": "MS2ID_ExposomicsNL_v09102023.zip",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/cmonjeau/decompress_an_archive_and_merge/Repository_Actions\nDecompress_an_archive",
+        "name": "Repository Actions\nDecompress an archive",
+        "category": "Data Source",
+        "confidence": 0.95,
+        "reasoning": "This tool explicitly accepts zip archives as input and decompresses them. The dataset is in zip format, making this a perfect match for extracting the contents.",
+        "parameter_name": "Archive name"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "metaboanalyst_MS2ID_Exposomics_v09102023_zip",
+    "dataset_name": "MS2ID_Exposomics_v09102023.zip",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/cmonjeau/decompress_an_archive_and_merge/Repository_Actions\nDecompress_an_archive",
+        "name": "Repository Actions\nDecompress an archive",
+        "category": "Data Source",
+        "confidence": 0.95,
+        "reasoning": "This tool explicitly accepts zip archives as input and decompresses them. The dataset is in zip format, making this a perfect match for extracting the contents.",
+        "parameter_name": "Archive name"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "metaboanalyst_MS2ID_LipidsNL_v09102023_zip",
+    "dataset_name": "MS2ID_LipidsNL_v09102023.zip",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "metaboanalyst_MS2ID_Lipids_v09102023_zip",
+    "dataset_name": "MS2ID_Lipids_v09102023.zip",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "metaboanalyst_MS2ID_PathwayNL_v09102023_zip",
+    "dataset_name": "MS2ID_PathwayNL_v09102023.zip",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "metaboanalyst_MS2ID_Pathway_v09102023_zip",
+    "dataset_name": "MS2ID_Pathway_v09102023.zip",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/cmonjeau/decompress_an_archive_and_merge/Repository_Actions\nDecompress_an_archive",
+        "name": "Repository Actions\nDecompress an archive",
+        "category": "Data Source",
+        "confidence": 0.95,
+        "reasoning": "This tool explicitly accepts zip archives as input and decompresses them. The dataset is in zip format, making this a direct match for the tool's primary function.",
+        "parameter_name": "Archive name"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  }
+]

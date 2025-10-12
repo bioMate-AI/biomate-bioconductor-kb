@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_tsebra" name="nf-core tsebra" version="1.0.0" profile="20.01">
+  <description>Transcript Selector for BRAKER TSEBRA combines gene predictions by selecting transcripts based on their extrisic evidence support</description>
+  <requirements>
+    <requirement type="package" version="1.1.2.5">tsebra</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+tsebra.py \\
+        $gtf_arg \\
+        $hints_arg \\
+        $keep_arg \\
+        $config_arg \\
+        $args \\
+        -o ${prefix}.gtf \\
+        -s ${prefix}.tsv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        tsebra: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="gtfs" format="data" label="Gtfs"/>
+  </inputs>
+  <outputs>
+    <data name="tsebra_gtf" format="data" label="Tsebra Gtf" from_work_dir="*.gtf"/>
+    <data name="tsebra_scores" format="data" label="Tsebra Scores" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Transcript Selector for BRAKER TSEBRA combines gene predictions by selecting transcripts based on their extrisic evidence support
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: tsebra
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/tsebra
+]]&gt;</help>
+</tool>

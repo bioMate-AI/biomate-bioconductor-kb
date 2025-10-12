@@ -1,0 +1,120 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_longstitch" name="nf-core longstitch" version="1.0.0" profile="20.01">
+  <description>&quot;A genome assembly correction and scaffolding pipeline using long reads, consisting of up to three steps:
+  - Tigmint cuts the draft assembly at potentially misassembled regions
+  - ntLink is then used to scaffold the corrected assembly
+  - followed by ARKS for further scaffolding (optional)&quot;
+</description>
+  <requirements>
+    <requirement type="package" version="1.0.5">longstitch</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+if [[ ${assembly} == *.gz ]]; then
+        zcat ${assembly} | fold -w 120 &gt; assembly.fa
+    fi
+
+    if [[ ${assembly} == *.fa || ${assembly} == *.fasta ]]; then
+        cat ${assembly} | fold -w 120 &gt; assembly.fa
+    fi
+
+    if [[ ${reads} == *.fa || ${reads} == *.fasta || ${reads} == *.fq || ${reads} == *.fastq ]]; then
+        gzip -c ${reads} &gt; ${reads}.gz
+        ln -s ${reads}.gz reads.fq.gz
+    fi
+
+    if [[ ${reads} == *.gz ]]; then
+        ln -s ${reads} reads.fq.gz
+    fi
+
+    longstitch \\
+        ${command} \\
+        draft=assembly \\
+        reads=reads \\
+        ${arg_longmap} \\
+        ${arg_span} \\
+        ${arg_genomesize} \\
+        t=$task.cpus \\
+        out_prefix=${prefix} \\
+        ${args}
+
+    # [&quot;run&quot;, &quot;tigmint-ntLink-arks&quot;, &quot;tigmint-ntLink&quot;, &quot;ntLink-arks&quot;] // run is equivalent to tigmint-ntLink
+
+    if [ ${command} == &quot;run&quot; || ${command} == &quot;tigmint-ntLink&quot; || ${command} == &quot;tigmint-ntLink-arks&quot; ]; then
+        mv  *.tigmint-ntLink.longstitch-scaffolds.fa  ${prefix}.tigmint-ntLink.fa
+        sed -i 's/\\(scaffold[0-9]*\\),.*/\\1/' ${prefix}.tigmint-ntLink.fa
+    fi
+
+    if [ ${command} == &quot;tigmint-ntLink-arks&quot; ]; then
+        mv *.tigmint-ntLink-arks.longstitch-scaffolds.fa ${prefix}.tigmint-ntLink-arks.fa
+        sed -i 's/\\(scaffold[0-9]*\\),.*/\\1/' ${prefix}.tigmint-ntLink-arks.fa
+    fi
+
+    if [ ${command} == &quot;run&quot; || ${command} == &quot;ntLink-arks&quot;]; then
+        mv  *.ntLink-arks.longstitch-scaffolds.fa  ${prefix}.ntLink-arks.fa
+        sed -i 's/\\(scaffold[0-9]*\\),.*/\\1/' ${prefix}.ntLink-arks.fa
+    fi
+
+    # Rename all outputs from tigmint, ntLinks
+    for file in assembly.fa.*; do
+        mv \$file \${file/assembly.fa./${prefix}.}
+    done
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        longstitch: \$(echo \$(longstitch | head -n1 | sed 's/LongStitch v//'))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="assembly" format="data" label="Assembly"/>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="tigmint_ntLink_fasta" format="data" label="Tigmint Ntlink Fasta" from_work_dir="*.tigmint-ntLink.fa"/>
+    <data name="tigmint_ntLink_arcs_fasta" format="data" label="Tigmint Ntlink Arcs Fasta" from_work_dir="*.tigmint-ntLink-arks.fa"/>
+    <data name="ntLink_arcs_fasta" format="data" label="Ntlink Arcs Fasta" from_work_dir="*.ntLink-arks.fa"/>
+    <data name="scaffold_dot" format="data" label="Scaffold Dot" from_work_dir="*k*.w*.z*.n*.scaffold.dot"/>
+    <data name="links_scaffolds_dist_gv" format="data" label="Links Scaffolds Dist Gv" from_work_dir="*k*.w*.z*.ntLink.scaffolds_*.dist.gv"/>
+    <data name="links_assembly_correspondence_tsv" format="data" label="Links Assembly Correspondence Tsv" from_work_dir="*k*.w*.z*.ntLink.scaffolds_*_l*.assembly_correspondence.tsv"/>
+    <data name="links_gv" format="data" label="Links Gv" from_work_dir="*k*.w*.z*.ntLink.scaffolds_*_l*.gv"/>
+    <data name="links_log" format="txt" label="Links Log" from_work_dir="*k*.w*.z*.ntLink.scaffolds_*_l*.log"/>
+    <data name="links_scaffolds" format="data" label="Links Scaffolds" from_work_dir="*k*.w*.z*.ntLink.scaffolds_*_l*.scaffolds"/>
+    <data name="links_scaffolds_fa" format="data" label="Links Scaffolds Fa" from_work_dir="*k*.w*.z*.ntLink.scaffolds_*_l*.scaffolds.fa"/>
+    <data name="links_checkpoint_tsv" format="data" label="Links Checkpoint Tsv" from_work_dir="*k*.w*.z*.ntLink.scaffolds_*_l*.*.tigpair_checkpoint.tsv"/>
+    <data name="arcs_tsv" format="data" label="Arcs Tsv" from_work_dir="*k*.w*.z*.ntLink.scaffolds_*_main.tsv"/>
+    <data name="arcs_gv" format="data" label="Arcs Gv" from_work_dir="*k*.w*.z*.ntLink.scaffolds_*_original.gv"/>
+    <data name="arcs_checkpoint_tsv" format="data" label="Arcs Checkpoint Tsv" from_work_dir="*k*.w*.z*.ntLink.scaffolds_*.tigpair_checkpoint.tsv"/>
+    <data name="arcs_scaffolds_fa" format="data" label="Arcs Scaffolds Fa" from_work_dir="*k*.w*.z*.ntLink.scaffolds.fa"/>
+    <data name="arcs_scaffolds_renamed" format="data" label="Arcs Scaffolds Renamed" from_work_dir="*k*.w*.z*.ntLink.scaffolds.renamed.fa"/>
+    <data name="abyss_scaffolds_fa" format="data" label="Abyss Scaffolds Fa" from_work_dir="*k*.w*.z*.stitch.abyss-scaffold.fa"/>
+    <data name="stitch_path" format="data" label="Stitch Path" from_work_dir="*k*.w*.z*.stitch.path"/>
+    <data name="trimmed_scaffolds_agp" format="data" label="Trimmed Scaffolds Agp" from_work_dir="*k*.w*.z*.trimmed_scafs.agp"/>
+    <data name="trimmed_scaffolds_fasta" format="data" label="Trimmed Scaffolds Fasta" from_work_dir="*k*.w*.z*.trimmed_scafs.fa"/>
+    <data name="trimmed_scaffolds_path" format="data" label="Trimmed Scaffolds Path" from_work_dir="*k*.w*.z*.trimmed_scafs.path"/>
+    <data name="trimmed_scaffolds_tsv" format="data" label="Trimmed Scaffolds Tsv" from_work_dir="*k*.w*.z*.trimmed_scafs.tsv"/>
+    <data name="verbose_mapping_tsv" format="data" label="Verbose Mapping Tsv" from_work_dir="*k*.w*.z*.verbose_mapping.tsv"/>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.k*.w???.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+&quot;A genome assembly correction and scaffolding pipeline using long reads, consisting of up to three steps:
+  - Tigmint cuts the draft assembly at potentially misassembled regions
+  - ntLink is then used to scaffold the corrected assembly
+  - followed by ARKS for further scaffolding (optional)&quot;
+
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: longstitch
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/longstitch
+]]&gt;</help>
+</tool>

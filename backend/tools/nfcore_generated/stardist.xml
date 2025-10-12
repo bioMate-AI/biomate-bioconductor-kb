@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_stardist" name="nf-core stardist" version="1.0.0" profile="20.01">
+  <description>Cell and nuclear segmentation with star-convex shapes</description>
+  <requirements>
+    <requirement type="package" version="3.9">python</requirement>
+    <requirement type="package">stardist</requirement>
+    <requirement type="package">tensorflow</requirement>
+    <requirement type="package">tifffile&lt;2022.4.22</requirement>
+    <container type="docker">ghcr.io/schapirolabor/stardist:0.9.1</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+stardist-predict2d \\
+        -i $image \\
+        -o . \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        stardist: \$( python -m pip show --version stardist | grep &quot;Version&quot; | sed -e &quot;s/Version: //g&quot; )
+        python: \$( python --version | sed -e &quot;s/Python //g&quot; )
+        tensorflow: \$( python -m pip show --version tensorflow | grep &quot;Version&quot; | sed -e &quot;s/Version: //g&quot; )
+        tifffile: \$( python -m pip show --version tifffile | grep &quot;Version&quot; | sed -e &quot;s/Version: //g&quot; )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="image" format="data" label="Image"/>
+  </inputs>
+  <outputs>
+    <data name="mask" format="data" label="Mask" from_work_dir="*.stardist.tif"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Cell and nuclear segmentation with star-convex shapes
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: stardist
+Container: ghcr.io/schapirolabor/stardist:0.9.1
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/stardist
+]]&gt;</help>
+</tool>

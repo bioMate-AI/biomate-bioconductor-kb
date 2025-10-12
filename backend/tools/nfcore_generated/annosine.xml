@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_annosine" name="nf-core annosine" version="1.0.0" profile="20.01">
+  <description>Accelerating de novo SINE annotation in plant and animal genomes</description>
+  <requirements>
+    <requirement type="package" version="2.0.8">annosine2</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+AnnoSINE_v2 \\
+        ${args} \\
+        --threads ${task.cpus} \\
+        ${mode} \\
+        ${fasta} \\
+        ${prefix} \\
+        &amp;&gt; &gt;(tee ${prefix}.log 2&gt;&amp;1)
+
+    mv \\
+        ${prefix}/Seed_SINE.fa \\
+        ${prefix}.fa \\
+        || echo 'AnnoSINE_v2 did not find SINE sequences. See log for details!'
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        annosine: ${VERSION}
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="log" format="txt" label="Log" from_work_dir="${prefix}.log"/>
+    <data name="fa" format="data" label="Fa" from_work_dir="${prefix}.fa"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Accelerating de novo SINE annotation in plant and animal genomes
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: annosine
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/annosine
+]]&gt;</help>
+</tool>

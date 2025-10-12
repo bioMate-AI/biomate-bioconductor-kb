@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_igvreports" name="nf-core igvreports" version="1.0.0" profile="20.01">
+  <description>A Python application to generate self-contained HTML reports for variant review and other genomic applications</description>
+  <requirements>
+    <requirement type="package" version="1.12.0">igv-reports</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+create_report $sites \
+    $args \
+    $fasta \
+    $track_arg \
+    --output ${prefix}_report.html
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        igvreports: \$(python -c &quot;import igv_reports; print(igv_reports.__version__)&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="sites" format="data" label="Sites"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="report" format="html" label="Report" from_work_dir="*.html"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A Python application to generate self-contained HTML reports for variant review and other genomic applications
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: igvreports
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/igvreports
+]]&gt;</help>
+</tool>

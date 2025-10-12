@@ -1,0 +1,57 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_ribowaltz" name="nf-core ribowaltz" version="1.0.0" profile="20.01">
+  <description>Calculation of optimal P-site offsets, diagnostic analysis and visual inspection of ribosome profiling data</description>
+  <requirements>
+    <requirement type="package" version="2.0">ribowaltz</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+touch ${prefix}.best_offset.txt
+    touch ${prefix}.psite_offset.tsv
+    touch ${prefix}.psite.tsv
+    touch ${prefix}.codon_coverage_rpf.tsv
+    touch ${prefix}.codon_coverage_psite.tsv
+    touch ${prefix}.cds_coverage_psite.tsv
+    mkdir -p offset_plot/${prefix} &amp;&amp; touch offset_plot/${prefix}/29.pdf
+    mkdir -p ribowaltz_qc &amp;&amp; touch ribowaltz_qc/${prefix}.metaprofile_psite.pdf
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bioconductor-ribowaltz: \$(Rscript -e &quot;library(riboWaltz); cat(as.character(packageVersion('riboWaltz')))&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="gtf" format="data" label="Gtf"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="best_offset" format="txt" label="Best Offset" from_work_dir="*.best_offset.txt"/>
+    <data name="offset" format="data" label="Offset" from_work_dir="*.psite_offset.tsv{,.gz}"/>
+    <data name="offset_plot" format="data" label="Offset Plot" from_work_dir="offset_plot/*"/>
+    <data name="psites" format="data" label="Psites" from_work_dir="*.psite.tsv{,.gz}"/>
+    <data name="codon_coverage_rpf" format="data" label="Codon Coverage Rpf" from_work_dir="*.codon_coverage_rpf.tsv{,.gz}"/>
+    <data name="codon_coverage_psite" format="data" label="Codon Coverage Psite" from_work_dir="*.codon_coverage_psite.tsv{,.gz}"/>
+    <data name="cds_coverage" format="data" label="Cds Coverage" from_work_dir="*.cds_coverage_psite.tsv{,.gz}"/>
+    <data name="cds_window_coverage" format="data" label="Cds Window Coverage" from_work_dir="*nt_coverage_psite.tsv{,.gz}"/>
+    <data name="ribowaltz_qc" format="data" label="Ribowaltz Qc" from_work_dir="ribowaltz_qc/*.pdf"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Calculation of optimal P-site offsets, diagnostic analysis and visual inspection of ribosome profiling data
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: ribowaltz
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/ribowaltz
+]]&gt;</help>
+</tool>

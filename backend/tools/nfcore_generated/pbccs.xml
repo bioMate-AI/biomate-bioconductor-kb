@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_pbccs" name="nf-core pbccs" version="1.0.0" profile="20.01">
+  <description>Pacbio ccs - Generate Highly Accurate Single-Molecule Consensus Reads</description>
+  <requirements>
+    <requirement type="package" version="6.4.0">pbccs</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+ccs \\
+        $bam \\
+        ${prefix}.chunk${chunk_num}.bam \\
+        --report-file ${prefix}.chunk${chunk_num}.report.txt \\
+        --report-json ${prefix}.chunk${chunk_num}.report.json \\
+        --metrics-json ${prefix}.chunk${chunk_num}.metrics.json.gz \\
+        --chunk $chunk_num/$chunk_on \\
+        -j $task.cpus \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        pbccs: \$(echo \$(ccs --version 2&gt;&amp;1) | grep 'ccs' | sed 's/^.*ccs //; s/ .*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*.chunk*.bam"/>
+    <data name="pbi" format="data" label="Pbi" from_work_dir="*.chunk*.bam.pbi"/>
+    <data name="report_txt" format="txt" label="Report Txt" from_work_dir="*.report.txt"/>
+    <data name="report_json" format="data" label="Report Json" from_work_dir="*.report.json"/>
+    <data name="metrics" format="data" label="Metrics" from_work_dir="*.metrics.json.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Pacbio ccs - Generate Highly Accurate Single-Molecule Consensus Reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: pbccs
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/pbccs
+]]&gt;</help>
+</tool>

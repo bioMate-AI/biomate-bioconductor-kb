@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_splitubam" name="nf-core splitubam" version="1.0.0" profile="20.01">
+  <description>split one ubam into multiple, per line, fast</description>
+  <requirements>
+    <requirement type="package" version="0.1.1">splitubam</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+splitubam \\
+        $args \\
+        --threads $task.cpus \\
+        $bam
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        splitubam: \$(splitubam --version | sed 's/splitubam //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*.bam"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+split one ubam into multiple, per line, fast
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: splitubam
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/splitubam
+]]&gt;</help>
+</tool>

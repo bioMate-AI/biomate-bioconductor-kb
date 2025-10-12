@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_ashlar" name="nf-core ashlar" version="1.0.0" profile="20.01">
+  <description>Alignment by Simultaneous Harmonization of Layer/Adjacency Registration</description>
+  <requirements>
+    <requirement type="package" version="1.18.0">ashlar</requirement>
+    <requirement type="package" version="2024.1.30">tifffile</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+ashlar \\
+        -o ${prefix}.ome.tif \\
+        ${images} \\
+        ${args} \\
+        ${dfp} \\
+        ${ffp}
+
+    sed -i -E 's/UUID=&quot;urn:uuid:[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}&quot;/                                                    /g' ${prefix}.ome.tif
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        ashlar: \$(ashlar --version | sed 's/^.*ashlar //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="tif" format="data" label="Tif" from_work_dir="*.ome.tif"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Alignment by Simultaneous Harmonization of Layer/Adjacency Registration
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: ashlar
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/ashlar
+]]&gt;</help>
+</tool>

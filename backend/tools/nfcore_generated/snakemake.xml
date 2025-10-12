@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_snakemake" name="nf-core snakemake" version="1.0.0" profile="20.01">
+  <description>The Snakemake workflow management system is a tool to create reproducible and scalable data analyses. This module runs a simple Snakemake pipeline based on input snakefile. Expect many limitations.&quot;</description>
+  <requirements>
+    <requirement type="package" version="7.31.0">snakemake</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+snakemake \\
+        $args \\
+        $cores \\
+        --snakefile $snakefile
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        snakemake: \$(snakemake --version)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="inputs" format="data" label="Inputs"/>
+    <param type="data" name="snakefile" format="data" label="Snakefile"/>
+  </inputs>
+  <outputs>
+    <data name="outputs" format="yaml" label="Outputs" from_work_dir="[!.snakemake|versions.yml]**"/>
+    <data name="snakemake_dir" format="data" label="Snakemake Dir" from_work_dir=".snakemake"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+The Snakemake workflow management system is a tool to create reproducible and scalable data analyses. This module runs a simple Snakemake pipeline based on input snakefile. Expect many limitations.&quot;
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: snakemake
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/snakemake
+]]&gt;</help>
+</tool>

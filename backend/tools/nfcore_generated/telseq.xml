@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_telseq" name="nf-core telseq" version="1.0.0" profile="20.01">
+  <description>Telseq: a software for calculating telomere length</description>
+  <requirements>
+    <requirement type="package" version="1.20">samtools</requirement>
+    <requirement type="package" version="0.0.2">telseq</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# telseq doesn't support CRAM. See https://github.com/zd1/telseq/issues/26
+    if ${bam.name.endsWith(&quot;.cram&quot;)}
+    then
+        samtools view -T ${fasta} -O BAM --uncompressed ${bam} |\\
+        telseq ${args} ${exome} - &gt; tmp.tsv
+    else
+        telseq ${args} ${exome} ${bam} &gt; tmp.tsv
+    fi
+
+    #
+    # 'bug' in telseq, messages that should be printed on stderr are printed on stdout
+    # We remove them with awk
+    #
+    awk '/^ReadGroup/ {ok=1;} {if(ok) print;}' tmp.tsv &gt; ${prefix}.telseq.tsv
+    rm tmp.tsv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        telseq: \$(telseq --help 2&gt;&amp;1 | grep &quot;^Version&quot; -m1 | cut -d ' ' -f2)
+        samtools: \$(samtools --version |&amp; sed '1!d ; s/samtools //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fai" format="data" label="Fai"/>
+    <param type="data" name="bed" format="data" label="Bed"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output" from_work_dir="*.telseq.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Telseq: a software for calculating telomere length
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: telseq
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/telseq
+]]&gt;</help>
+</tool>

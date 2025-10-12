@@ -1,0 +1,80 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_quartonotebook" name="nf-core quartonotebook" version="1.0.0" profile="20.01">
+  <description>Render a Quarto notebook, including parametrization.</description>
+  <requirements>
+    <requirement type="package" version="1.1.1">jupyter</requirement>
+    <requirement type="package" version="3.10.3">matplotlib</requirement>
+    <requirement type="package" version="2.6.0">papermill</requirement>
+    <requirement type="package" version="1.7.31">quarto</requirement>
+    <requirement type="package" version="2.29">r-rmarkdown</requirement>
+    <container type="docker">${workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Dump parameters to yaml file
+    cat &lt;&lt;- END_YAML_PARAMS &gt; params.yml
+    ${yaml_content}
+    END_YAML_PARAMS
+
+    # Create output directory
+    mkdir &quot;${notebook_parameters.artifact_dir}&quot;
+
+    # Set environment variables needed for Quarto rendering
+    export XDG_CACHE_HOME=&quot;./.xdg_cache_home&quot;
+    export XDG_DATA_HOME=&quot;./.xdg_data_home&quot;
+
+    # Fix Quarto for Apptainer (see https://community.seqera.io/t/confusion-over-why-a-tool-works-in-docker-but-fails-in-singularity-when-the-installation-doesnt-differ-i-e-using-wave-micromamba/1244)
+    ENV_QUARTO=/opt/conda/etc/conda/activate.d/quarto.sh
+    set +u
+    if [ -z &quot;\${QUARTO_DENO}&quot; ] &amp;&amp; [ -f &quot;\${ENV_QUARTO}&quot; ]; then
+        source &quot;\${ENV_QUARTO}&quot;
+    fi
+    set -u
+
+    # Set parallelism for BLAS/MKL etc. to avoid over-booking of resources
+    export MKL_NUM_THREADS=&quot;${task.cpus}&quot;
+    export OPENBLAS_NUM_THREADS=&quot;${task.cpus}&quot;
+    export OMP_NUM_THREADS=&quot;${task.cpus}&quot;
+    export NUMBA_NUM_THREADS=&quot;${task.cpus}&quot;
+
+    # Render notebook
+    quarto render \\
+        ${notebook} \\
+        ${args} \\
+        --execute-params params.yml \\
+        --output ${prefix}.html
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        quarto: \$(quarto -v)
+        papermill: \$(papermill --version | cut -f1 -d' ')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="notebook" format="data" label="Notebook"/>
+    <param type="text" name="parameters" label="Parameters" value=""/>
+  </inputs>
+  <outputs>
+    <data name="html" format="html" label="Html" from_work_dir="*.html"/>
+    <data name="params_yaml" format="yaml" label="Params Yaml" from_work_dir="params.yml"/>
+    <data name="artifacts" format="data" label="Artifacts" from_work_dir="${notebook_parameters.artifact_dir}/*"/>
+    <data name="extensions" format="data" label="Extensions" from_work_dir="_extensions"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Render a Quarto notebook, including parametrization.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: quartonotebook
+Container: ${workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/quartonotebook
+]]&gt;</help>
+</tool>

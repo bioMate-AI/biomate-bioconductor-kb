@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_ripgrep" name="nf-core ripgrep" version="1.0.0" profile="20.01">
+  <description>ripgrep recursively searches directories for a regex pattern</description>
+  <requirements>
+    <requirement type="package" version="2.8">pigz</requirement>
+    <requirement type="package" version="14.1.1">ripgrep</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+rg \\
+        $args \\
+        --threads $task.cpus \\
+        $pattern \\
+        $files \\
+        $write_output
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        ripgrep: \$(rg --version |&amp; sed '1!d ; s/ripgrep //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="files" format="data" label="Files"/>
+  </inputs>
+  <outputs>
+    <data name="txt" format="data" label="Txt" from_work_dir="*.txt{.gz,}"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+ripgrep recursively searches directories for a regex pattern
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: ripgrep
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/ripgrep
+]]&gt;</help>
+</tool>

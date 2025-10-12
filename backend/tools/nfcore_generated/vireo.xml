@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_vireo" name="nf-core vireo" version="1.0.0" profile="20.01">
+  <description>Use vireo to perform donor deconvolution for multiplexed scRNA-seq data</description>
+  <requirements>
+    <requirement type="package" version="0.5.8">vireosnp</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+vireo \\
+        $input \\
+        -N ${n_donor} \\
+        -d ${donor_file} \\
+        -p $task.cpus \\
+        -o . \\
+        $args
+
+    mv summary.tsv ${prefix}_summary.tsv
+    mv donor_ids.tsv ${prefix}_donor_ids.tsv
+    mv prob_singlet.tsv.gz ${prefix}_prob_singlet.tsv.gz
+    mv prob_doublet.tsv.gz ${prefix}_prob_doublet.tsv.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        vireo: \$(vireo | sed '1!d ; s/Welcome to vireoSNP //; s/!//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="cell_data" format="data" label="Cell Data"/>
+  </inputs>
+  <outputs>
+    <data name="summary" format="data" label="Summary" from_work_dir="*_summary.tsv"/>
+    <data name="donor_ids" format="data" label="Donor Ids" from_work_dir="*_donor_ids.tsv"/>
+    <data name="prob_singlets" format="data" label="Prob Singlets" from_work_dir="*_prob_singlet.tsv.gz"/>
+    <data name="prob_doublets" format="data" label="Prob Doublets" from_work_dir="*_prob_doublet.tsv.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Use vireo to perform donor deconvolution for multiplexed scRNA-seq data
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: vireo
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/vireo
+]]&gt;</help>
+</tool>

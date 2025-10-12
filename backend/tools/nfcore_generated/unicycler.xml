@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_unicycler" name="nf-core unicycler" version="1.0.0" profile="20.01">
+  <description>Assembles bacterial genomes</description>
+  <requirements>
+    <requirement type="package" version="0.5.1">unicycler</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+unicycler \\
+        --threads $task.cpus \\
+        $args \\
+        $short_reads \\
+        $long_reads \\
+        --out ./
+
+    mv assembly.fasta ${prefix}.scaffolds.fa
+    gzip -n ${prefix}.scaffolds.fa
+    mv assembly.gfa ${prefix}.assembly.gfa
+    gzip -n ${prefix}.assembly.gfa
+    mv unicycler.log ${prefix}.unicycler.log
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        unicycler: \$(echo \$(unicycler --version 2&gt;&amp;1) | sed 's/^.*Unicycler v//; s/ .*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="shortreads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="scaffolds" format="data" label="Scaffolds" from_work_dir="*.scaffolds.fa.gz"/>
+    <data name="gfa" format="data" label="Gfa" from_work_dir="*.assembly.gfa.gz"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Assembles bacterial genomes
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: unicycler
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/unicycler
+]]&gt;</help>
+</tool>

@@ -1,0 +1,71 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_svaba" name="nf-core svaba" version="1.0.0" profile="20.01">
+  <description>SvABA is an efficient and accurate method for detecting SVs from short-read sequencing data using genome-wide local assembly with low memory and computing requirements</description>
+  <requirements>
+    <requirement type="package" version="1.2.0">svaba</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+${bwa}
+
+    svaba \\
+        run \\
+        ${bamlist} \\
+        --threads ${task.cpus} \\
+        ${dbsnp_cmd} \\
+        --id-string ${prefix} \\
+        --reference-genome ${fasta} \\
+        --g-zip \\
+        ${regions_cmd} \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        svaba: \$(echo \$(svaba --version 2&gt;&amp;1) | sed 's/[^0-9.]*\\([0-9.]*\\).*/\\1/' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="tumorbam" format="data" label="Tumorbam"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fasta_fai" format="data" label="Fasta Fai"/>
+    <param type="data" name="bwa_index" format="data" label="Bwa Index"/>
+    <param type="data" name="dbsnp" format="data" label="Dbsnp"/>
+    <param type="data" name="dbsnp_tbi" format="data" label="Dbsnp Tbi"/>
+    <param type="data" name="regions" format="data" label="Regions"/>
+  </inputs>
+  <outputs>
+    <data name="sv" format="data" label="Sv" from_work_dir="*.svaba.sv.vcf.gz"/>
+    <data name="indel" format="data" label="Indel" from_work_dir="*.svaba.indel.vcf.gz"/>
+    <data name="germ_indel" format="data" label="Germ Indel" from_work_dir="*.svaba.germline.indel.vcf.gz"/>
+    <data name="germ_sv" format="data" label="Germ Sv" from_work_dir="*.svaba.germline.sv.vcf.gz"/>
+    <data name="som_indel" format="data" label="Som Indel" from_work_dir="*.svaba.somatic.indel.vcf.gz"/>
+    <data name="som_sv" format="data" label="Som Sv" from_work_dir="*.svaba.somatic.sv.vcf.gz"/>
+    <data name="unfiltered_sv" format="data" label="Unfiltered Sv" from_work_dir="*.svaba.unfiltered.sv.vcf.gz"/>
+    <data name="unfiltered_indel" format="data" label="Unfiltered Indel" from_work_dir="*.svaba.unfiltered.indel.vcf.gz"/>
+    <data name="unfiltered_germ_indel" format="data" label="Unfiltered Germ Indel" from_work_dir="*.svaba.unfiltered.germline.indel.vcf.gz"/>
+    <data name="unfiltered_germ_sv" format="data" label="Unfiltered Germ Sv" from_work_dir="*.svaba.unfiltered.germline.sv.vcf.gz"/>
+    <data name="unfiltered_som_indel" format="data" label="Unfiltered Som Indel" from_work_dir="*.svaba.unfiltered.somatic.indel.vcf.gz"/>
+    <data name="unfiltered_som_sv" format="data" label="Unfiltered Som Sv" from_work_dir="*.svaba.unfiltered.somatic.sv.vcf.gz"/>
+    <data name="discordants" format="data" label="Discordants" from_work_dir="*.discordants.txt.gz"/>
+    <data name="raw_calls" format="data" label="Raw Calls" from_work_dir="*.bps.txt.gz"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+SvABA is an efficient and accurate method for detecting SVs from short-read sequencing data using genome-wide local assembly with low memory and computing requirements
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: svaba
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/svaba
+]]&gt;</help>
+</tool>

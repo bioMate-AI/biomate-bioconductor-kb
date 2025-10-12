@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_geofetch" name="nf-core geofetch" version="1.0.0" profile="20.01">
+  <description>geofetch is a command-line tool that downloads and organizes data and metadata from GEO and SRA</description>
+  <requirements>
+    <requirement type="package" version="0.12.6">geofetch</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+geofetch \\
+        -i \\
+        $geo_accession \\
+        --processed \\
+        -g . \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        geofetch: \$(geofetch --version|&amp; sed '1!d ; s/geofetch //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="samples" format="data" label="Samples" from_work_dir="${geo_accession}/*.CEL.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+geofetch is a command-line tool that downloads and organizes data and metadata from GEO and SRA
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: geofetch
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/geofetch
+]]&gt;</help>
+</tool>

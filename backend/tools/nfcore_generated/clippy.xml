@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_clippy" name="nf-core clippy" version="1.0.0" profile="20.01">
+  <description>Runs the Clippy CLIP peak caller</description>
+  <requirements>
+    <requirement type="package" version="1.5.0">clippy</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+clippy -i $bed \
+        -o $prefix \
+        -a $gtf \
+        -g $fai \
+        -t ${task.cpus} \
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        clippy: \$(clippy -v)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bed" format="data" label="Bed"/>
+  </inputs>
+  <outputs>
+    <data name="peaks" format="data" label="Peaks" from_work_dir="*_Peaks.bed"/>
+    <data name="summits" format="data" label="Summits" from_work_dir="*_Summits.bed"/>
+    <data name="intergenic_gtf" format="data" label="Intergenic Gtf" from_work_dir="*_intergenic_regions.gtf"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Runs the Clippy CLIP peak caller
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: clippy
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/clippy
+]]&gt;</help>
+</tool>

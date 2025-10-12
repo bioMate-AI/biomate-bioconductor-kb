@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_prinseqplusplus" name="nf-core prinseqplusplus" version="1.0.0" profile="20.01">
+  <description>PRINSEQ++ is a C++ implementation of the prinseq-lite.pl program. It can be used to filter, reformat or trim genomic and metagenomic sequence data</description>
+  <requirements>
+    <requirement type="package" version="1.2.3">prinseq-plus-plus</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+prinseq++ \\
+            -threads $task.cpus \\
+            -fastq ${reads} \\
+            -out_name ${prefix} \\
+            -out_gz \\
+            -VERBOSE 1 \\
+            $args \\
+            | tee ${prefix}.log
+
+        cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+        &quot;${task.process}&quot;:
+            prinseqplusplus: \$(echo \$(prinseq++ --version | cut -f 2 -d ' ' ))
+        END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="good_reads" format="data" label="Good Reads" from_work_dir="*_good_out*.fastq.gz"/>
+    <data name="single_reads" format="data" label="Single Reads" from_work_dir="*_single_out*.fastq.gz"/>
+    <data name="bad_reads" format="data" label="Bad Reads" from_work_dir="*_bad_out*.fastq.gz"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+PRINSEQ++ is a C++ implementation of the prinseq-lite.pl program. It can be used to filter, reformat or trim genomic and metagenomic sequence data
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: prinseqplusplus
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/prinseqplusplus
+]]&gt;</help>
+</tool>

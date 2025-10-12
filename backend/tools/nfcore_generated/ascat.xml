@@ -1,0 +1,205 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_ascat" name="nf-core ascat" version="1.0.0" profile="20.01">
+  <description>copy number profiles of tumour cells.</description>
+  <requirements>
+    <requirement type="package" version="3.2.0">ascat</requirement>
+    <requirement type="package" version="4.3.0">cancerit-allelecount</requirement>
+    <container type="docker">${workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+#!/usr/bin/env Rscript
+    library(RColorBrewer)
+    library(ASCAT)
+    options(bitmapType='cairo')
+
+    if(dir.exists(&quot;${allele_files}&quot;)) {
+        # expected production use of a directory
+        allele_path   = normalizePath(&quot;${allele_files}&quot;)
+        allele_prefix = paste0(allele_path, &quot;/&quot;, &quot;${allele_files}&quot;, &quot;_chr&quot;)
+    } else if(file.exists(&quot;${allele_files}&quot;)) {
+        # expected testing use of a single file
+        allele_path   = basename(normalizePath(&quot;${allele_files}&quot;))
+        allele_prefix = sub('_chr[0-9]+\\\\.txt\$', &quot;_chr&quot;, allele_path)
+    } else {
+        stop(&quot;The specified allele files do not exist.&quot;)
+    }
+
+    if(length(Sys.glob(paste0(allele_prefix,&quot;*&quot;)) ) == 0) {
+        stop(paste(&quot;No allele files found matching&quot;, allele_prefix))
+    }
+
+    if(dir.exists(&quot;${loci_files}&quot;)) {
+        # expected production use of a directory
+        loci_path   = normalizePath(&quot;${loci_files}&quot;)
+        loci_prefix = paste0(loci_path, &quot;/&quot;, &quot;${loci_files}&quot;, &quot;_chr&quot;)
+    } else if(file.exists(&quot;${loci_files}&quot;)) {
+        # expected testing use of a single file
+        loci_path   = basename(normalizePath(&quot;${loci_files}&quot;))
+        loci_prefix = sub('_chr[0-9]+\\\\.txt\$', &quot;_chr&quot;, loci_path)
+    } else {
+        stop(&quot;The specified loci files do not exist.&quot;)
+    }
+
+    if(length(Sys.glob(paste0(loci_prefix,&quot;*&quot;)) ) == 0) {
+        stop(paste(&quot;No loci files found matching&quot;, loci_prefix))
+    }
+
+    # Prepare from BAM files
+    ascat.prepareHTS(
+        tumourseqfile = &quot;${input_tumor}&quot;,
+        normalseqfile = &quot;${input_normal}&quot;,
+        tumourname = paste0(&quot;${prefix}&quot;, &quot;.tumour&quot;),
+        normalname = paste0(&quot;${prefix}&quot;, &quot;.normal&quot;),
+        allelecounter_exe = &quot;alleleCounter&quot;,
+        alleles.prefix = allele_prefix,
+        loci.prefix = loci_prefix,
+        gender = &quot;${gender}&quot;,
+        genomeVersion = &quot;${genomeVersion}&quot;,
+        nthreads = ${task.cpus}
+        ${minCounts_arg}
+        ${bed_file_arg}
+        ${chrom_names_arg}
+        ${min_base_qual_arg}
+        ${min_map_qual_arg}
+        ${skip_allele_counting_tumour_arg}
+        ${skip_allele_counting_normal_arg}
+        ${additional_allelecounter_arg}
+        , seed = 42
+    )
+
+    # Load the data
+    ascat.bc = ascat.loadData(
+        Tumor_LogR_file = paste0(&quot;${prefix}&quot;, &quot;.tumour_tumourLogR.txt&quot;),
+        Tumor_BAF_file = paste0(&quot;${prefix}&quot;, &quot;.tumour_tumourBAF.txt&quot;),
+        Germline_LogR_file = paste0(&quot;${prefix}&quot;, &quot;.tumour_normalLogR.txt&quot;),
+        Germline_BAF_file = paste0(&quot;${prefix}&quot;, &quot;.tumour_normalBAF.txt&quot;),
+        genomeVersion = &quot;${genomeVersion}&quot;,
+        gender = &quot;${gender}&quot;
+    )
+
+    # Plot the raw data
+    ascat.plotRawData(ascat.bc, img.prefix = paste0(&quot;${prefix}&quot;, &quot;.before_correction.&quot;))
+
+    # Optional LogRCorrection
+    if(&quot;${gc_input}&quot; != &quot;NULL&quot;) {
+
+        if(dir.exists(&quot;${gc_input}&quot;)) {
+            # sarek production use of an unzipped folder containing one file
+            gc_input = list.files(&quot;${gc_input}&quot;, recursive = TRUE, full.names = TRUE)
+            if(length(gc_input) != 1 | !file.exists(gc_input)) {
+                stop(&quot;A single gc_input should be provided!&quot;)
+            }
+        } else if(file.exists(&quot;${gc_input}&quot;)) {
+            gc_input = normalizePath(&quot;${gc_input}&quot;)
+        } else {
+            stop(&quot;gc_input must be a file or folder containing one file&quot;)
+        }
+
+        if(&quot;${rt_input}&quot; != &quot;NULL&quot;){
+
+            if(dir.exists(&quot;${rt_input}&quot;)) {
+                # sarek production use of an unzipped folder containing one file
+                rt_input = list.files(&quot;${rt_input}&quot;, recursive = TRUE, full.names = TRUE)
+                if(length(rt_input) != 1 | !file.exists(rt_input)) {
+                    stop(&quot;A single rt_input should be provided!&quot;)
+                }
+            } else if(file.exists(&quot;${rt_input}&quot;)) {
+                rt_input = normalizePath(&quot;${rt_input}&quot;)
+            } else {
+                stop(&quot;rt_input must be a file or folder containing one file&quot;)
+            }
+
+            ascat.bc = ascat.correctLogR(ascat.bc, GCcontentfile = gc_input, replictimingfile = rt_input)
+            # Plot raw data after correction
+            ascat.plotRawData(ascat.bc, img.prefix = paste0(&quot;${prefix}&quot;, &quot;.after_correction_gc_rt.&quot;))
+        }
+        else {
+            ascat.bc = ascat.correctLogR(ascat.bc, GCcontentfile = gc_input, replictimingfile = ${rt_input})
+            # Plot raw data after correction
+            ascat.plotRawData(ascat.bc, img.prefix = paste0(&quot;${prefix}&quot;, &quot;.after_correction_gc.&quot;))
+        }
+    }
+
+    # Segment the data
+    ascat.bc = ascat.aspcf(ascat.bc, seed=42)
+
+    # Plot the segmented data
+    ascat.plotSegmentedData(ascat.bc)
+
+    # Run ASCAT to fit every tumor to a model, inferring ploidy, normal cell contamination,
+    # and discrete copy numbers
+    # If psi and rho are manually set:
+    if (!is.null(${purity}) &amp;&amp; !is.null(${ploidy})){
+        ascat.output &lt;- ascat.runAscat(ascat.bc, gamma=1, rho_manual=${purity}, psi_manual=${ploidy})
+    } else if(!is.null(${purity}) &amp;&amp; is.null(${ploidy})){
+        ascat.output &lt;- ascat.runAscat(ascat.bc, gamma=1, rho_manual=${purity})
+    } else if(!is.null(${ploidy}) &amp;&amp; is.null(${purity})){
+        ascat.output &lt;- ascat.runAscat(ascat.bc, gamma=1, psi_manual=${ploidy})
+    } else {
+        ascat.output &lt;- ascat.runAscat(ascat.bc, gamma=1)
+    }
+
+    # Extract metrics from ASCAT profiles
+    QC = ascat.metrics(ascat.bc,ascat.output)
+
+    # Write out segmented regions (including regions with one copy of each allele)
+    write.table(ascat.output[[&quot;segments&quot;]], file=paste0(&quot;${prefix}&quot;, &quot;.segments.txt&quot;), sep=&quot;\t&quot;, quote=F, row.names=F)
+
+    # Write out CNVs in bed format
+    cnvs=ascat.output[[&quot;segments&quot;]][2:6]
+    write.table(cnvs, file=paste0(&quot;${prefix}&quot;,&quot;.cnvs.txt&quot;), sep=&quot;\t&quot;, quote=F, row.names=F, col.names=T)
+
+    # Write out purity and ploidy info
+    summary &lt;- tryCatch({
+            matrix(c(ascat.output[[&quot;aberrantcellfraction&quot;]], ascat.output[[&quot;ploidy&quot;]]), ncol=2, byrow=TRUE)}, error = function(err) {
+                # error handler picks up where error was generated
+                print(paste(&quot;Could not find optimal solution:  &quot;,err))
+                return(matrix(c(0,0),nrow=1,ncol=2,byrow = TRUE))
+        }
+    )
+    colnames(summary) &lt;- c(&quot;AberrantCellFraction&quot;,&quot;Ploidy&quot;)
+    write.table(summary, file=paste0(&quot;${prefix}&quot;,&quot;.purityploidy.txt&quot;), sep=&quot;\t&quot;, quote=F, row.names=F, col.names=T)
+
+    write.table(QC, file=paste0(&quot;${prefix}&quot;, &quot;.metrics.txt&quot;), sep=&quot;\t&quot;, quote=F, row.names=F)
+
+    # Version export
+    f &lt;- file(&quot;versions.yml&quot;,&quot;w&quot;)
+    alleleCounter_version = system(paste(&quot;alleleCounter --version&quot;), intern = T)
+    ascat_version = as.character(packageVersion('ASCAT'))
+    writeLines(paste0('&quot;', &quot;${task.process}&quot;, '&quot;', &quot;:&quot;), f)
+    writeLines(paste(&quot;    ascat:&quot;, ascat_version), f)
+    writeLines(paste(&quot;    alleleCounter:&quot;, alleleCounter_version), f)
+    close(f)
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input_normal" format="data" label="Input Normal"/>
+  </inputs>
+  <outputs>
+    <data name="allelefreqs" format="txt" label="Allelefreqs" from_work_dir="*alleleFrequencies_chr*.txt"/>
+    <data name="bafs" format="txt" label="Bafs" from_work_dir="*BAF.txt"/>
+    <data name="cnvs" format="txt" label="Cnvs" from_work_dir="*cnvs.txt"/>
+    <data name="logrs" format="txt" label="Logrs" from_work_dir="*LogR.txt"/>
+    <data name="metrics" format="txt" label="Metrics" from_work_dir="*metrics.txt"/>
+    <data name="png" format="data" label="Png" from_work_dir="*png"/>
+    <data name="purityploidy" format="txt" label="Purityploidy" from_work_dir="*purityploidy.txt"/>
+    <data name="segments" format="txt" label="Segments" from_work_dir="*segments.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+copy number profiles of tumour cells.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: ascat
+Container: ${workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/ascat
+]]&gt;</help>
+</tool>

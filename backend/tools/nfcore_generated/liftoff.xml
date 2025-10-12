@@ -1,0 +1,75 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_liftoff" name="nf-core liftoff" version="1.0.0" profile="20.01">
+  <description>Uses Liftoff to accurately map annotations in GFF or GTF between assemblies of the same,
+or closely-related species
+</description>
+  <requirements>
+    <requirement type="package" version="1.6.3">liftoff</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+if [[ ${target_fa} == *.gz ]]; then
+        zcat ${target_fa} &gt; target.fasta
+    fi
+
+    if [[ ${target_fa} != *.gz ]]; then
+        ln -s ${target_fa} target.fasta
+    fi
+
+    if [[ ${ref_fa} == *.gz ]]; then
+        zcat ${ref_fa} &gt; reference.fasta
+    fi
+
+    if [[ ${ref_fa} != *.gz  ]]; then
+        ln -s ${ref_fa} reference.fasta
+    fi
+
+    liftoff \\
+        $arg_g \\
+        $arg_db \\
+        -p $task.cpus \\
+        -o &quot;${prefix}.gff3&quot; \\
+        -u &quot;${prefix}.unmapped.txt&quot; \\
+        $args \\
+        target.fasta \\
+        reference.fasta
+
+    mv \\
+        &quot;${prefix}.gff3_polished&quot; \\
+        &quot;${prefix}.polished.gff3&quot; \\
+        || echo &quot;-polish is absent&quot;
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        liftoff: \$(liftoff --version 2&gt; /dev/null)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="target_fa" format="data" label="Target Fa"/>
+  </inputs>
+  <outputs>
+    <data name="gff3" format="data" label="Gff3" from_work_dir="${prefix}.gff3"/>
+    <data name="polished_gff3" format="data" label="Polished Gff3" from_work_dir="*.polished.gff3"/>
+    <data name="unmapped_txt" format="txt" label="Unmapped Txt" from_work_dir="*.unmapped.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Uses Liftoff to accurately map annotations in GFF or GTF between assemblies of the same,
+or closely-related species
+
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: liftoff
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/liftoff
+]]&gt;</help>
+</tool>

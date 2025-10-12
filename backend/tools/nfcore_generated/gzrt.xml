@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_gzrt" name="nf-core gzrt" version="1.0.0" profile="20.01">
+  <description>gzrecover is a program that will attempt to extract any readable data out of a gzip file that has been corrupted</description>
+  <requirements>
+    <requirement type="package" version="0.9.1">gzrt</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+if [ &quot;$meta.single_end&quot; == true ]; then
+        gzrecover ${args} -p ${fastqgz} | gzip &gt; ${prefix}.fastq.gz
+
+        if [ -e &quot;${prefix}.fastq.gz&quot; ] &amp;&amp; [ ! -s &quot;${prefix}.fastq.gz&quot; ]; then
+            echo &quot;&quot; | gzip &gt; ${prefix}.fastq.gz
+        fi
+    else
+        gzrecover ${args} -p ${fastqgz[0]} | gzip &gt; ${prefix}_1.fastq.gz
+        gzrecover ${args} -p ${fastqgz[1]} | gzip &gt; ${prefix}_2.fastq.gz
+
+        if [ -e &quot;${prefix}_1.fastq.gz&quot; ] &amp;&amp; [ ! -s &quot;${prefix}_1.fastq.gz&quot; ]; then
+            echo &quot;&quot; | gzip &gt; ${prefix}_1.fastq.gz
+        fi
+
+        if [ -e &quot;${prefix}_2.fastq.gz&quot; ] &amp;&amp; [ ! -s &quot;${prefix}_2.fastq.gz&quot; ]; then
+            echo &quot;&quot; | gzip &gt; ${prefix}_2.fastq.gz
+        fi
+    fi
+
+    soft_line=&quot;${task.process}&quot;
+    ver_line=&quot;gzrt: \$(gzrecover -V |&amp; sed '1!d ; s/gzrecover //')&quot;
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;\${soft_line}&quot;:
+        \${ver_line}
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fastqgz" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="recovered" format="data" label="Recovered" from_work_dir="${prefix}*.fastq.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+gzrecover is a program that will attempt to extract any readable data out of a gzip file that has been corrupted
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: gzrt
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/gzrt
+]]&gt;</help>
+</tool>

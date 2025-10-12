@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<tool id="biomni_validate_tool" name="BioMni: Validate Tool" version="1.0.0" profile="20.01">
+  <description>validate_tool</description>
+  <requirements>
+    <!-- BioMni Python function wrapper -->
+    <requirement type="package">pandas</requirement>
+    <requirement type="package">biomni</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python '$__tool_directory__/wrapper.py' --self 'self' --tool 'tool'
+]]&gt;</command>
+  <inputs>
+    <param type="text" name="self" label="Self" help="" value=""/>
+    <param type="text" name="tool" label="Tool" help="" value=""/>
+  </inputs>
+  <outputs>
+    <data name="output" format="auto" label="validate_tool output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+
+
+**Source**
+
+This tool wraps the BioMni function: `validate_tool`
+
+Module: tool_registry
+
+**BioMni**
+
+BioMni is a Python library for biological data analysis.
+For more information: https://github.com/batmen-lab/BioMni
+
+**Requirements**
+
+This tool requires the following conda packages:
+pandas
+]]&gt;</help>
+</tool>

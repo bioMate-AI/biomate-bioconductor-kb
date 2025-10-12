@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_nucmer" name="nf-core nucmer" version="1.0.0" profile="20.01">
+  <description>NUCmer is a pipeline for the alignment of multiple closely related nucleotide sequences.</description>
+  <requirements>
+    <requirement type="package" version="3.23">mummer</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+if [ &quot;$is_compressed_ref&quot; == &quot;true&quot; ]; then
+        gzip -c -d $ref &gt; $fasta_name_ref
+    fi
+    if [ &quot;$is_compressed_query&quot; == &quot;true&quot; ]; then
+        gzip -c -d $query &gt; $fasta_name_query
+    fi
+
+    nucmer \\
+        -p $prefix \\
+        --coords \\
+        $args \\
+        $fasta_name_ref \\
+        $fasta_name_query
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        nucmer: \$( nucmer --version 2&gt;&amp;1  | grep &quot;version&quot; | sed -e &quot;s/NUCmer (NUCleotide MUMmer) version //g; s/nucmer//g;&quot; )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="ref" format="data" label="Ref"/>
+  </inputs>
+  <outputs>
+    <data name="delta" format="data" label="Delta" from_work_dir="*.delta"/>
+    <data name="coords" format="data" label="Coords" from_work_dir="*.coords"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+NUCmer is a pipeline for the alignment of multiple closely related nucleotide sequences.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: nucmer
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/nucmer
+]]&gt;</help>
+</tool>

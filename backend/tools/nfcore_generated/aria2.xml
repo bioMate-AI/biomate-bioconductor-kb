@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_aria2" name="nf-core aria2" version="1.0.0" profile="20.01">
+  <description>CLI Download utility</description>
+  <requirements>
+    <requirement type="package" version="1.36.0">aria2</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+aria2c \\
+        --check-certificate=false \\
+        ${args} \\
+        ${source_url}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        aria2: \$(echo \$(aria2c --version 2&gt;&amp;1) | grep 'aria2 version' | cut -f3 -d ' ')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="downloaded_file" format="data" label="Downloaded File" from_work_dir="$downloaded_file"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+CLI Download utility
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: aria2
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/aria2
+]]&gt;</help>
+</tool>

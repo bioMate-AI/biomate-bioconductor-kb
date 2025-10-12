@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_wittyer" name="nf-core wittyer" version="1.0.0" profile="20.01">
+  <description>A large variant benchmarking tool analogous to hap.py for small variants.</description>
+  <requirements>
+    <container type="docker">nf-core/modules/wittyer:4c55c27c711b558f</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mkdir bench
+
+    dotnet /opt/Wittyer/Wittyer.dll \\
+        -t ${truth_vcf} \\
+        -i ${query_vcf} \\
+        -o bench \\
+        ${regions} \\
+        ${config_file} \\
+        ${args}
+
+    mv bench/Wittyer.Stats.json ${prefix}.json
+    mv bench/*.vcf.gz ${prefix}.vcf.gz
+    mv bench/*.vcf.gz.tbi ${prefix}.vcf.gz.tbi
+
+    rm -rf bench
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        wittyer: \$(dotnet /opt/Wittyer/Wittyer.dll --version  |&amp; sed '1!d ; s/witty.er //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="query_vcf" format="data" label="Query Vcf"/>
+  </inputs>
+  <outputs>
+    <data name="report" format="data" label="Report" from_work_dir="*.json"/>
+    <data name="bench_vcf" format="data" label="Bench Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="bench_vcf_tbi" format="data" label="Bench Vcf Tbi" from_work_dir="*.vcf.gz.tbi"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A large variant benchmarking tool analogous to hap.py for small variants.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: wittyer
+Container: nf-core/modules/wittyer:4c55c27c711b558f
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/wittyer
+]]&gt;</help>
+</tool>

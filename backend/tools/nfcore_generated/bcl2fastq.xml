@@ -1,0 +1,77 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_bcl2fastq" name="nf-core bcl2fastq" version="1.0.0" profile="20.01">
+  <description>Demultiplex Illumina BCL files</description>
+  <requirements>
+    <container type="docker">nf-core/bcl2fastq:2.20.0.422</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+if [ ! -d ${input_dir} ]; then
+        mkdir -p ${input_dir}
+    fi
+
+    if ${input_tar}; then
+        ## Ensures --strip-components only applied when top level of tar contents is a directory
+        ## If just files or multiple directories, place all in $input_dir
+
+        if [[ \$(tar -taf ${run_dir} | grep -o -P &quot;^.*?\\/&quot; | uniq | wc -l) -eq 1 ]]; then
+            tar \\
+                -C $input_dir --strip-components 1 \\
+                -xavf \\
+                $args2 \\
+                $run_dir \\
+                $args3
+        else
+            tar \\
+                -C $input_dir \\
+                -xavf \\
+                $args2 \\
+                $run_dir \\
+                $args3
+        fi
+    fi
+
+    bcl2fastq \\
+        $args \\
+        --output-dir output \\
+        --runfolder-dir ${input_dir} \\
+        --sample-sheet ${samplesheet} \\
+        --processing-threads ${task.cpus}
+
+    cp -r ${input_dir}/InterOp .
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bcl2fastq: \$(bcl2fastq -V 2&gt;&amp;1 | grep -m 1 bcl2fastq | sed 's/^.*bcl2fastq v//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="samplesheet" format="data" label="Samplesheet"/>
+  </inputs>
+  <outputs>
+    <data name="fastq" format="data" label="Fastq" from_work_dir="output/**_S[1-9]*_R?_00?.fastq.gz"/>
+    <data name="fastq_idx" format="data" label="Fastq Idx" from_work_dir="output/**_S[1-9]*_I?_00?.fastq.gz"/>
+    <data name="undetermined" format="data" label="Undetermined" from_work_dir="output/**Undetermined_S0*_R?_00?.fastq.gz"/>
+    <data name="undetermined_idx" format="data" label="Undetermined Idx" from_work_dir="output/**Undetermined_S0*_I?_00?.fastq.gz"/>
+    <data name="reports" format="data" label="Reports" from_work_dir="output/Reports"/>
+    <data name="stats" format="data" label="Stats" from_work_dir="output/Stats"/>
+    <data name="interop" format="data" label="Interop" from_work_dir="InterOp/*.bin"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Demultiplex Illumina BCL files
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: bcl2fastq
+Container: nf-core/bcl2fastq:2.20.0.422
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/bcl2fastq
+]]&gt;</help>
+</tool>

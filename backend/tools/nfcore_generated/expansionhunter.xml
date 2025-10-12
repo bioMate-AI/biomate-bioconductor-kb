@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_expansionhunter" name="nf-core expansionhunter" version="1.0.0" profile="20.01">
+  <description>Estimate repeat sizes using NGS data</description>
+  <requirements>
+    <requirement type="package" version="5.0.0">expansionhunter</requirement>
+    <requirement type="package" version="1.18">htslib</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+ExpansionHunter \\
+        ${args} \\
+        --reads ${bam} \\
+        --output-prefix ${prefix} \\
+        --reference ${fasta} \\
+        --variant-catalog ${variant_catalog}
+
+    bgzip --threads ${task.cpus} ${args2} ${prefix}.vcf
+    bgzip --threads ${task.cpus} ${args2} ${prefix}.json
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        expansionhunter: \$( echo \$(ExpansionHunter --version 2&gt;&amp;1) | head -1 | sed 's/^.*ExpansionHunter v//')
+        bgzip: \$(echo \$(bgzip -h 2&gt;&amp;1) | sed 's/^.*Version: //;s/Usage:.*//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fasta_fai" format="data" label="Fasta Fai"/>
+    <param type="data" name="variant_catalog" format="data" label="Variant Catalog"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="json" format="data" label="Json" from_work_dir="*.json.gz"/>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*_realigned.bam"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Estimate repeat sizes using NGS data
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: expansionhunter
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/expansionhunter
+]]&gt;</help>
+</tool>

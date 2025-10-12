@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_genomescope2" name="nf-core genomescope2" version="1.0.0" profile="20.01">
+  <description>Estimate genome heterozygosity, repeat content, and size from sequencing reads using a kmer-based statistical approach</description>
+  <requirements>
+    <requirement type="package" version="2.0">genomescope2</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+genomescope2 \\
+        --input $histogram \\
+        $args \\
+        --output . \\
+        --name_prefix $prefix
+
+    test -f &quot;fitted_hist.png&quot; &amp;&amp; mv fitted_hist.png ${prefix}_fitted_hist.png
+    test -f &quot;lookup_table.txt&quot; &amp;&amp; mv lookup_table.txt ${prefix}_lookup_table.txt
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    '${task.process}':
+        genomescope2: \$( genomescope2 -v | sed 's/GenomeScope //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="histogram" format="data" label="Histogram"/>
+  </inputs>
+  <outputs>
+    <data name="linear_plot_png" format="data" label="Linear Plot Png" from_work_dir="${prefix}_linear_plot.png"/>
+    <data name="transformed_linear_plot_png" format="data" label="Transformed Linear Plot Png" from_work_dir="${prefix}_transformed_linear_plot.png"/>
+    <data name="log_plot_png" format="data" label="Log Plot Png" from_work_dir="${prefix}_log_plot.png"/>
+    <data name="transformed_log_plot_png" format="data" label="Transformed Log Plot Png" from_work_dir="${prefix}_transformed_log_plot.png"/>
+    <data name="model" format="txt" label="Model" from_work_dir="${prefix}_model.txt"/>
+    <data name="summary" format="txt" label="Summary" from_work_dir="${prefix}_summary.txt"/>
+    <data name="lookup_table" format="txt" label="Lookup Table" from_work_dir="${prefix}_lookup_table.txt"/>
+    <data name="fitted_histogram_png" format="data" label="Fitted Histogram Png" from_work_dir="${prefix}_fitted_hist.png"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Estimate genome heterozygosity, repeat content, and size from sequencing reads using a kmer-based statistical approach
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: genomescope2
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/genomescope2
+]]&gt;</help>
+</tool>

@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_eklipse" name="nf-core eklipse" version="1.0.0" profile="20.01">
+  <description>tool for detection and quantification of large mtDNA rearrangements.</description>
+  <requirements>
+    <requirement type="package" version="1.8">eklipse</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+echo &quot;$bam\t${prefix}&quot; &gt; infile.txt
+    eKLIPse.py \\
+        -in infile.txt \\
+        $args \\
+        -ref $ref_gb
+    mv eKLIPse_*/eKLIPse_deletions.csv eKLIPse_${prefix}_deletions.csv
+    mv eKLIPse_*/eKLIPse_genes.csv eKLIPse_${prefix}_genes.csv
+    mv eKLIPse_*/eKLIPse_${prefix}.png eKLIPse_${prefix}.png
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        eklipse: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="deletions" format="data" label="Deletions" from_work_dir="*deletions.csv"/>
+    <data name="genes" format="data" label="Genes" from_work_dir="*genes.csv"/>
+    <data name="circos" format="data" label="Circos" from_work_dir="*.png"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+tool for detection and quantification of large mtDNA rearrangements.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: eklipse
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/eklipse
+]]&gt;</help>
+</tool>

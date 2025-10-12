@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_cowpy" name="nf-core cowpy" version="1.0.0" profile="20.01">
+  <description>Print any text in a cow or other characters</description>
+  <requirements>
+    <requirement type="package" version="1.1.5">cowpy</requirement>
+    <container type="docker">${workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+cat ${text} | cowpy ${args} &gt; ${prefix}.txt
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        cowpy: ${VERSIONS}
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="text" format="data" label="Text"/>
+  </inputs>
+  <outputs>
+    <data name="txt" format="txt" label="Txt" from_work_dir="${prefix}.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Print any text in a cow or other characters
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: cowpy
+Container: ${workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/cowpy
+]]&gt;</help>
+</tool>

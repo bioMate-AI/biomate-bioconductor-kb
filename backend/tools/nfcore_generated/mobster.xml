@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_mobster" name="nf-core mobster" version="1.0.0" profile="20.01">
+  <description>Subclonal deconvolution of cancer genome sequencing data.</description>
+  <requirements>
+    <requirement type="package" version="1.1.2">r-cnaqc</requirement>
+    <requirement type="package" version="0.1.1">r-mobster</requirement>
+    <requirement type="package" version="3.6.5">r-cli</requirement>
+    <requirement type="package" version="1.1.4">r-dplyr</requirement>
+    <requirement type="package" version="3.5.2">r-ggplot2</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+touch ${prefix}_mobster_fit.rds
+    touch ${prefix}_mobster_best_fit.rds
+    touch ${prefix}_mobster_best_plots.rds
+    touch ${prefix}_mobster_report.rds
+    touch ${prefix}_mobster_report.pdf
+    touch ${prefix}_mobster_report.png
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        CNAqc: \$(Rscript -e 'library(CNAqc); sessionInfo()\$otherPkgs\$CNAqc\$Version')
+        mobster: \$(Rscript -e 'library(mobster); sessionInfo()\$otherPkgs\$mobster\$Version')
+        cli: \$(Rscript -e 'library(cli); sessionInfo()\$otherPkgs\$cli\$Version')
+        dplyr: \$(Rscript -e 'library(dplyr); sessionInfo()\$otherPkgs\$dplyr\$Version')
+        ggplot2: \$(Rscript -e 'library(ggplot2); sessionInfo()\$otherPkgs\$ggplot2\$Version')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="rds_join" format="data" label="Rds Join"/>
+  </inputs>
+  <outputs>
+    <data name="mobster_rds" format="data" label="Mobster Rds" from_work_dir="*_mobster_fit.rds"/>
+    <data name="mobster_best_rds" format="data" label="Mobster Best Rds" from_work_dir="*_mobster_best_fit.rds"/>
+    <data name="mobster_best_plots_rds" format="data" label="Mobster Best Plots Rds" from_work_dir="*_mobster_best_plots.rds"/>
+    <data name="mobster_report_rds" format="data" label="Mobster Report Rds" from_work_dir="*_mobster_report.rds"/>
+    <data name="mobster_report_pdf" format="data" label="Mobster Report Pdf" from_work_dir="*_mobster_report.pdf"/>
+    <data name="mobster_report_png" format="data" label="Mobster Report Png" from_work_dir="*_mobster_report.png"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Subclonal deconvolution of cancer genome sequencing data.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: mobster
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/mobster
+]]&gt;</help>
+</tool>

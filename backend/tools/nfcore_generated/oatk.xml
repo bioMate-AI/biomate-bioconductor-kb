@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_oatk" name="nf-core oatk" version="1.0.0" profile="20.01">
+  <description>An nf-core module for the OATK</description>
+  <requirements>
+    <requirement type="package" version="1.0">oatk</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+oatk \\
+        $args \\
+        $mito_hmm_arg \\
+        $pltd_hmm_arg \\
+        -t $task.cpus \\
+        -o ${prefix} \\
+        $reads
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        oatk : \$(oatk --version 2&gt;&amp;1)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="mito_hmm" format="data" label="Mito Hmm"/>
+    <param type="data" name="pltd_hmm" format="data" label="Pltd Hmm"/>
+  </inputs>
+  <outputs>
+    <data name="mito_fasta" format="data" label="Mito Fasta" from_work_dir="*mito.ctg.fasta"/>
+    <data name="pltd_fasta" format="data" label="Pltd Fasta" from_work_dir="*pltd.ctg.fasta"/>
+    <data name="mito_bed" format="data" label="Mito Bed" from_work_dir="*mito.ctg.bed"/>
+    <data name="pltd_bed" format="data" label="Pltd Bed" from_work_dir="*pltd.ctg.bed"/>
+    <data name="mito_gfa" format="data" label="Mito Gfa" from_work_dir="*mito.gfa"/>
+    <data name="pltd_gfa" format="data" label="Pltd Gfa" from_work_dir="*pltd.gfa"/>
+    <data name="annot_mito_txt" format="txt" label="Annot Mito Txt" from_work_dir="*annot_mito.txt"/>
+    <data name="annot_pltd_txt" format="txt" label="Annot Pltd Txt" from_work_dir="*annot_pltd.txt"/>
+    <data name="clean_gfa" format="data" label="Clean Gfa" from_work_dir="*utg.clean.gfa"/>
+    <data name="final_gfa" format="data" label="Final Gfa" from_work_dir="*utg.final.gfa"/>
+    <data name="initial_gfa" format="data" label="Initial Gfa" from_work_dir="*utg.gfa"/>
+    <data name="multiplex_gfa" format="data" label="Multiplex Gfa" from_work_dir="*utg.multiplex.gfa"/>
+    <data name="unzip_gfa" format="data" label="Unzip Gfa" from_work_dir="*utg.unzip.gfa"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+An nf-core module for the OATK
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: oatk
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/oatk
+]]&gt;</help>
+</tool>

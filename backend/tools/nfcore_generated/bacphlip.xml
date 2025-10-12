@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_bacphlip" name="nf-core bacphlip" version="1.0.0" profile="20.01">
+  <description>A bacteriophage lifestyle prediction tool</description>
+  <requirements>
+    <requirement type="package" version="0.9.6">bacphlip</requirement>
+    <requirement type="package" version="3.3.2">hmmer</requirement>
+    <requirement type="package" version="1.23.5">numpy</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+bacphlip \\
+        -i $fasta \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bacphlip: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="bacphlip_results" format="data" label="Bacphlip Results" from_work_dir="*.bacphlip"/>
+    <data name="hmmsearch_results" format="data" label="Hmmsearch Results" from_work_dir="*.hmmsearch.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A bacteriophage lifestyle prediction tool
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: bacphlip
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/bacphlip
+]]&gt;</help>
+</tool>

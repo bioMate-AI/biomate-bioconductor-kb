@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_mashtree" name="nf-core mashtree" version="1.0.0" profile="20.01">
+  <description>Quickly create a tree using Mash distances</description>
+  <requirements>
+    <requirement type="package" version="1.2.0">mashtree</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mashtree \\
+        $args \\
+        --numcpus $task.cpus \\
+        --outmatrix ${prefix}.tsv \\
+        --outtree ${prefix}.dnd \\
+        $seqs
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        mashtree: \$( echo \$( mashtree --version 2&gt;&amp;1 ) | sed 's/^.*Mashtree //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="seqs" format="data" label="Seqs"/>
+  </inputs>
+  <outputs>
+    <data name="tree" format="data" label="Tree" from_work_dir="*.dnd"/>
+    <data name="matrix" format="data" label="Matrix" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Quickly create a tree using Mash distances
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: mashtree
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/mashtree
+]]&gt;</help>
+</tool>

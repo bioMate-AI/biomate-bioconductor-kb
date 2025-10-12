@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_paraclu" name="nf-core paraclu" version="1.0.0" profile="20.01">
+  <description>Paraclu finds clusters in data attached to sequences.</description>
+  <requirements>
+    <requirement type="package" version="10">paraclu</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+awk -F &quot;\t&quot; '{print\$1&quot;\t&quot;\$6&quot;\t&quot;\$2&quot;\t&quot;\$5}' &lt; $bed &gt; ${bed}_4P
+    sort -k1,1 -k3n ${bed}_4P &gt; ${bed}_4Ps
+    paraclu ${args} ${min_cluster} ${bed}_4Ps &gt; ${prefix}.clustered
+    paraclu-cut ${args2} ${prefix}.clustered &gt;  ${prefix}.clustered.simplified
+    awk -F '\t' '{print \$1&quot;\t&quot;\$3&quot;\t&quot;\$4&quot;\t&quot;\$1&quot;:&quot;\$3&quot;..&quot;\$4&quot;,&quot;\$2&quot;\t&quot;\$6&quot;\t&quot;\$2}' ${prefix}.clustered.simplified &gt;  ${prefix}.clustered.simplified.bed
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        paraclu: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bed" format="data" label="Bed"/>
+    <param type="text" name="min_cluster" label="Min Cluster" value=""/>
+  </inputs>
+  <outputs>
+    <data name="bed" format="data" label="Bed" from_work_dir="*.bed"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Paraclu finds clusters in data attached to sequences.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: paraclu
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/paraclu
+]]&gt;</help>
+</tool>

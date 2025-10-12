@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_glnexus" name="nf-core glnexus" version="1.0.0" profile="20.01">
+  <description>merge gVCF files and perform joint variant calling</description>
+  <requirements>
+    <requirement type="package" version="1.21">bcftools</requirement>
+    <requirement type="package" version="1.4.1">glnexus</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+glnexus_cli \\
+        --threads $task.cpus \\
+        --mem-gbytes $avail_mem \\
+        $regions \\
+        $args \\
+        ${input.join(' ')} \\
+        &gt; ${prefix}.bcf
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        glnexus: \$( echo \$(glnexus_cli 2&gt;&amp;1) | head -n 1 | sed 's/^.*release v//; s/ .*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="gvcfs" format="data" label="Gvcfs"/>
+    <param type="data" name="bed" format="data" label="Bed"/>
+  </inputs>
+  <outputs>
+    <data name="bcf" format="data" label="Bcf" from_work_dir="*.bcf"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+merge gVCF files and perform joint variant calling
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: glnexus
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/glnexus
+]]&gt;</help>
+</tool>

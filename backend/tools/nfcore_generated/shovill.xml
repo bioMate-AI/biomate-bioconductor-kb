@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_shovill" name="nf-core shovill" version="1.0.0" profile="20.01">
+  <description>Assemble bacterial isolate genomes from Illumina paired-end reads</description>
+  <requirements>
+    <requirement type="package" version="1.1.0">shovill</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+shovill \\
+        --R1 ${reads[0]} \\
+        --R2 ${reads[1]} \\
+        $args \\
+        --cpus $task.cpus \\
+        --ram $memory \\
+        --outdir ./ \\
+        --force
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        shovill: \$(echo \$(shovill --version 2&gt;&amp;1) | sed 's/^.*shovill //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="contigs" format="data" label="Contigs" from_work_dir="contigs.fa"/>
+    <data name="corrections" format="data" label="Corrections" from_work_dir="shovill.corrections"/>
+    <data name="log" format="txt" label="Log" from_work_dir="shovill.log"/>
+    <data name="raw_contigs" format="data" label="Raw Contigs" from_work_dir="{skesa,spades,megahit,velvet}.fasta"/>
+    <data name="gfa" format="data" label="Gfa" from_work_dir="contigs.{fastg,gfa,LastGraph}"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Assemble bacterial isolate genomes from Illumina paired-end reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: shovill
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/shovill
+]]&gt;</help>
+</tool>

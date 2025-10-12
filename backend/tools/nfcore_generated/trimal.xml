@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_trimal" name="nf-core trimal" version="1.0.0" profile="20.01">
+  <description>trimAl is a tool for the automated removal of spurious sequences or poorly aligned regions from a multiple sequence alignment.</description>
+  <requirements>
+    <requirement type="package" version="1.5.0">trimal</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+trimal \\
+        -in ${aln} \\
+        -out ${prefix}.${out_extension} \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        trimal: \$(trimal --version | sed -n 's/.*\\(v[0-9]\\+\\.[0-9]\\+\\.rev[0-9]\\+\\).*/\\1/p')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="aln" format="data" label="Aln"/>
+  </inputs>
+  <outputs>
+    <data name="trimal" format="data" label="Trimal" from_work_dir="${prefix}.${out_extension}"/>
+    <data name="summary" format="html" label="Summary" from_work_dir="${prefix}.html"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+trimAl is a tool for the automated removal of spurious sequences or poorly aligned regions from a multiple sequence alignment.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: trimal
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/trimal
+]]&gt;</help>
+</tool>

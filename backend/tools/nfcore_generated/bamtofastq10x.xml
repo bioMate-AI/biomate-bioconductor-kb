@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_bamtofastq10x" name="nf-core bamtofastq10x" version="1.0.0" profile="20.01">
+  <description>Tool for converting 10x BAMs produced by Cell Ranger, Space Ranger, Cell Ranger ATAC, Cell Ranger DNA, and Long Ranger back to FASTQ files that can be used as inputs to re-run analysis</description>
+  <requirements>
+    <requirement type="package" version="1.4.1">10x_bamtofastq</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+bamtofastq \\
+        $args \\
+        $bam \\
+        $prefix
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bamtofastq10x: \$(bamtofastq --version |&amp; sed '1!d ; s/bamtofastq //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="fastq" format="data" label="Fastq" from_work_dir="**/*.fastq.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Tool for converting 10x BAMs produced by Cell Ranger, Space Ranger, Cell Ranger ATAC, Cell Ranger DNA, and Long Ranger back to FASTQ files that can be used as inputs to re-run analysis
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: bamtofastq10x
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/bamtofastq10x
+]]&gt;</help>
+</tool>

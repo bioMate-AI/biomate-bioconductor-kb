@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_fargene" name="nf-core fargene" version="1.0.0" profile="20.01">
+  <description>tool that takes either fragmented metagenomic data or longer sequences as input and predicts and delivers full-length antiobiotic resistance genes as output.</description>
+  <requirements>
+    <requirement type="package" version="0.1">fargene</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+fargene \\
+        $args \\
+        -p $task.cpus \\
+        -i $input \\
+        --hmm-model $hmm_model \\
+        -o $prefix
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        fargene: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input" format="data" label="Input"/>
+  </inputs>
+  <outputs>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="txt" format="txt" label="Txt" from_work_dir="${prefix}/results_summary.txt"/>
+    <data name="hmm" format="data" label="Hmm" from_work_dir="${prefix}/hmmsearchresults/*.out"/>
+    <data name="hmm_genes" format="data" label="Hmm Genes" from_work_dir="${prefix}/hmmsearchresults/retrieved-*.out"/>
+    <data name="orfs" format="data" label="Orfs" from_work_dir="${prefix}/predictedGenes/predicted-orfs.fasta"/>
+    <data name="orfs_amino" format="data" label="Orfs Amino" from_work_dir="${prefix}/predictedGenes/predicted-orfs-amino.fasta"/>
+    <data name="contigs" format="data" label="Contigs" from_work_dir="${prefix}/predictedGenes/retrieved-contigs.fasta"/>
+    <data name="contigs_pept" format="data" label="Contigs Pept" from_work_dir="${prefix}/predictedGenes/retrieved-contigs-peptides.fasta"/>
+    <data name="filtered" format="data" label="Filtered" from_work_dir="${prefix}/predictedGenes/*filtered.fasta"/>
+    <data name="filtered_pept" format="data" label="Filtered Pept" from_work_dir="${prefix}/predictedGenes/*filtered-peptides.fasta"/>
+    <data name="fragments" format="data" label="Fragments" from_work_dir="${prefix}/retrievedFragments/all_retrieved_*.fastq"/>
+    <data name="trimmed" format="data" label="Trimmed" from_work_dir="${prefix}/retrievedFragments/trimmedReads/*.fasta"/>
+    <data name="spades" format="data" label="Spades" from_work_dir="${prefix}/spades_assembly/*"/>
+    <data name="metagenome" format="data" label="Metagenome" from_work_dir="${prefix}/tmpdir/*.fasta"/>
+    <data name="tmp" format="data" label="Tmp" from_work_dir="${prefix}/tmpdir/*.out"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+tool that takes either fragmented metagenomic data or longer sequences as input and predicts and delivers full-length antiobiotic resistance genes as output.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: fargene
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/fargene
+]]&gt;</help>
+</tool>

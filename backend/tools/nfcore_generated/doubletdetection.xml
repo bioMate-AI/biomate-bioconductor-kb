@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_doubletdetection" name="nf-core doubletdetection" version="1.0.0" profile="20.01">
+  <description>Doublet detection in single-cell RNA-seq data</description>
+  <requirements>
+    <requirement type="package" version="25.0.1">pip</requirement>
+    <requirement type="package" version="6.0.2">pyyaml</requirement>
+    <container type="docker">${workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+touch ${prefix}.h5ad
+    touch ${prefix}.pkl
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    ${task.process}:
+        python: \$(python3 -c 'import platform as pf; print(pf.python_version())')
+        anndata: \$(python3 -c 'import anndata as ad; print(ad.__version__)')
+        doubletdetection: \$(python3 -c 'import doubletdetection as dt; print(dt.__version__)')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="h5ad" format="data" label="H5Ad"/>
+  </inputs>
+  <outputs>
+    <data name="h5ad" format="data" label="H5Ad" from_work_dir="*.h5ad"/>
+    <data name="predictions" format="data" label="Predictions" from_work_dir="*.pkl"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Doublet detection in single-cell RNA-seq data
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: doubletdetection
+Container: ${workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/doubletdetection
+]]&gt;</help>
+</tool>

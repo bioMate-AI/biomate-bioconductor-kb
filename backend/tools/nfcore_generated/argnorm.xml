@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_argnorm" name="nf-core argnorm" version="1.0.0" profile="20.01">
+  <description>Normalize antibiotic resistance genes (ARGs) using the ARO ontology (developed by CARD).</description>
+  <requirements>
+    <requirement type="package" version="0.8.0">argnorm</requirement>
+    <container type="docker">${workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+argnorm \\
+        ${tool} \\
+        -i ${input_tsv} \\
+        -o ${prefix} \\
+        ${db_args} \\
+        ${args}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        argnorm: \$(argnorm --version)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input_tsv" format="data" label="Input Tsv"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Normalize antibiotic resistance genes (ARGs) using the ARO ontology (developed by CARD).
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: argnorm
+Container: ${workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/argnorm
+]]&gt;</help>
+</tool>

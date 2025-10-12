@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_cutesv" name="nf-core cutesv" version="1.0.0" profile="20.01">
+  <description>structural-variant calling with cutesv</description>
+  <requirements>
+    <requirement type="package" version="2.0.2">cutesv</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+cuteSV \
+        ${bam} \\
+        ${fasta} \\
+        ${prefix}.vcf \\
+        . \\
+        --threads $task.cpus \\
+        $args
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        cuteSV: \$( cuteSV --version 2&gt;&amp;1 | sed 's/cuteSV //g' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="vcf" label="Vcf" from_work_dir="*.vcf"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+structural-variant calling with cutesv
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: cutesv
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/cutesv
+]]&gt;</help>
+</tool>

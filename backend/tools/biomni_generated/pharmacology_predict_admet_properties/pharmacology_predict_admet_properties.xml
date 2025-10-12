@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="biomni_predict_admet_properties" name="BioMni: Predict Admet Properties" version="1.0.0" profile="20.01">
+  <description>predict_admet_properties</description>
+  <requirements>
+    <!-- BioMni Python function wrapper -->
+    <requirement type="package">matplotlib</requirement>
+    <requirement type="package">numpy</requirement>
+    <requirement type="package">pandas</requirement>
+    <requirement type="package">scipy</requirement>
+    <requirement type="package">biomni</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python '$__tool_directory__/wrapper.py' --smiles_list 'smiles_list' --ADMET_model_type 'ADMET_model_type'
+]]&gt;</command>
+  <inputs>
+    <param type="text" name="smiles_list" label="Smiles List" help="" value=""/>
+    <param type="text" name="ADMET_model_type" label="Admet Model Type" help="" value=""/>
+  </inputs>
+  <outputs>
+    <data name="output" format="auto" label="predict_admet_properties output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+
+
+**Source**
+
+This tool wraps the BioMni function: `predict_admet_properties`
+
+Module: pharmacology
+
+**BioMni**
+
+BioMni is a Python library for biological data analysis.
+For more information: https://github.com/batmen-lab/BioMni
+
+**Requirements**
+
+This tool requires the following conda packages:
+matplotlib, numpy, pandas, scipy
+]]&gt;</help>
+</tool>

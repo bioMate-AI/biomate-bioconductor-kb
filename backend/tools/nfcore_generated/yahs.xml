@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_yahs" name="nf-core yahs" version="1.0.0" profile="20.01">
+  <description>Performs assembly scaffolding using YaHS</description>
+  <requirements>
+    <requirement type="package" version="1.2.2">yahs</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+yahs \\
+        -o ${prefix} \\
+        ${args} \\
+        ${fasta} \\
+        ${hic_map}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        yahs: \$(yahs --version 2&gt;&amp;1)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="scaffolds_fasta" format="data" label="Scaffolds Fasta" from_work_dir="*_scaffolds_final.fa"/>
+    <data name="scaffolds_agp" format="data" label="Scaffolds Agp" from_work_dir="*_scaffolds_final.agp"/>
+    <data name="binary" format="data" label="Binary" from_work_dir="*.bin"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Performs assembly scaffolding using YaHS
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: yahs
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/yahs
+]]&gt;</help>
+</tool>

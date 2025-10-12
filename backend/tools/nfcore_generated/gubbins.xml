@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_gubbins" name="nf-core gubbins" version="1.0.0" profile="20.01">
+  <description>Gubbins (Genealogies Unbiased By recomBinations In Nucleotide Sequences) is an algorithm that iteratively identifies loci containing elevated densities of base substitutions while concurrently constructing a phylogeny based on the putative point mutations outside of these regions.</description>
+  <requirements>
+    <requirement type="package" version="3.3.5">gubbins</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mkdir numba_cache_dir
+    export NUMBA_CACHE_DIR='./numba_cache_dir'
+
+    run_gubbins.py \\
+        --threads $task.cpus \\
+        $args \\
+        $alignment
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        gubbins: \$(run_gubbins.py --version 2&gt;&amp;1)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="fasta" format="data" label="Fasta" from_work_dir="*.fasta"/>
+    <data name="gff" format="data" label="Gff" from_work_dir="*.gff"/>
+    <data name="vcf" format="vcf" label="Vcf" from_work_dir="*.vcf"/>
+    <data name="stats" format="data" label="Stats" from_work_dir="*.csv"/>
+    <data name="phylip" format="data" label="Phylip" from_work_dir="*.phylip"/>
+    <data name="embl_predicted" format="data" label="Embl Predicted" from_work_dir="*.recombination_predictions.embl"/>
+    <data name="embl_branch" format="data" label="Embl Branch" from_work_dir="*.branch_base_reconstruction.embl"/>
+    <data name="tree" format="data" label="Tree" from_work_dir="*.final_tree.tre"/>
+    <data name="tree_labelled" format="data" label="Tree Labelled" from_work_dir="*.node_labelled.final_tree.tre"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Gubbins (Genealogies Unbiased By recomBinations In Nucleotide Sequences) is an algorithm that iteratively identifies loci containing elevated densities of base substitutions while concurrently constructing a phylogeny based on the putative point mutations outside of these regions.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: gubbins
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/gubbins
+]]&gt;</help>
+</tool>

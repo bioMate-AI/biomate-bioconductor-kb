@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_amps" name="nf-core amps" version="1.0.0" profile="20.01">
+  <description>Post-processing script of the MaltExtract component of the HOPS package</description>
+  <requirements>
+    <requirement type="package" version="0.35">hops</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+postprocessing.AMPS.r \\
+        -r ${maltextract_results} \\
+        -n ${taxon_list} \\
+        -m ${filter} \\
+        -t ${task.cpus} \\
+        -j \\
+        ${args}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        amps: \$(echo \$(hops --version 2&gt;&amp;1) | sed 's/HOPS version//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="json" format="data" label="Json" from_work_dir="results/heatmap_overview_Wevid.json"/>
+    <data name="summary_pdf" format="data" label="Summary Pdf" from_work_dir="results/heatmap_overview_Wevid.pdf"/>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="results/heatmap_overview_Wevid.tsv"/>
+    <data name="candidate_pdfs" format="data" label="Candidate Pdfs" from_work_dir="results/pdf_candidate_profiles/"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Post-processing script of the MaltExtract component of the HOPS package
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: amps
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/amps
+]]&gt;</help>
+</tool>

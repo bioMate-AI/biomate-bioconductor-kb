@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_chopper" name="nf-core chopper" version="1.0.0" profile="20.01">
+  <description>Filter and trim long read data.</description>
+  <requirements>
+    <requirement type="package" version="0.9.0">chopper</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+zcat \\
+        $args \\
+        $fastq | \\
+    chopper \\
+        --threads $task.cpus \\
+        $fasta_filtering \\
+        $args2 | \\
+    gzip \\
+        $args3 &gt; ${prefix}.fastq.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        chopper: \$(chopper --version 2&gt;&amp;1 | cut -d ' ' -f 2)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fastq" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="fastq" format="data" label="Fastq" from_work_dir="*.fastq.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Filter and trim long read data.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: chopper
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/chopper
+]]&gt;</help>
+</tool>

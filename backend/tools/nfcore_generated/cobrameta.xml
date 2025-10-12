@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_cobrameta" name="nf-core cobrameta" version="1.0.0" profile="20.01">
+  <description>A tool to raise the quality of viral genomes assembled from short-read metagenomes via resolving and joining of contigs fragmented during de novo assembly.</description>
+  <requirements>
+    <requirement type="package" version="1.2.3">cobra-meta</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+cobra-meta \\
+        --fasta ${fasta} \\
+        --coverage ${coverage} \\
+        --query ${query} \\
+        --mapping ${bam} \\
+        --assembler ${assembler} \\
+        --mink ${mink} \\
+        --maxk ${maxk} \\
+        --threads ${task.cpus} \\
+        --output ${prefix} \\
+        $args
+
+    gzip ${prefix}/*.fasta
+    cat ${prefix}/*fasta.gz &gt; ${prefix}/COBRA_all_assemblies.fasta.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        cobra: \$(echo \$(cobra-meta --version 2&gt;&amp;1) | sed 's/^.*cobra v//' ))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="coverage" format="data" label="Coverage"/>
+    <param type="data" name="query" format="data" label="Query"/>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="self_circular" format="data" label="Self Circular" from_work_dir="${prefix}/COBRA_category_i_self_circular.fasta.gz"/>
+    <data name="extended_circular" format="data" label="Extended Circular" from_work_dir="${prefix}/COBRA_category_ii-a_extended_circular_unique.fasta.gz"/>
+    <data name="extended_partial" format="data" label="Extended Partial" from_work_dir="${prefix}/COBRA_category_ii-b_extended_partial_unique.fasta.gz"/>
+    <data name="extended_failed" format="data" label="Extended Failed" from_work_dir="${prefix}/COBRA_category_ii-c_extended_failed.fasta.gz"/>
+    <data name="orphan_end" format="data" label="Orphan End" from_work_dir="${prefix}/COBRA_category_iii_orphan_end.fasta.gz"/>
+    <data name="all_cobra_assemblies" format="data" label="All Cobra Assemblies" from_work_dir="${prefix}/COBRA_all_assemblies.fasta.gz"/>
+    <data name="joining_summary" format="txt" label="Joining Summary" from_work_dir="${prefix}/COBRA_joining_summary.txt"/>
+    <data name="log" format="data" label="Log" from_work_dir="${prefix}/log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A tool to raise the quality of viral genomes assembled from short-read metagenomes via resolving and joining of contigs fragmented during de novo assembly.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: cobrameta
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/cobrameta
+]]&gt;</help>
+</tool>

@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_abra2" name="nf-core abra2" version="1.0.0" profile="20.01">
+  <description>Assembly Based ReAligner for next-generation sequencing data</description>
+  <requirements>
+    <requirement type="package" version="2.24">abra2</requirement>
+    <container type="docker">${workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+${memory_cmd}
+    abra2 \\
+        --in ${input_bams} \\
+        --out ${output_str} \\
+        --ref ${fasta} \\
+        --threads ${task.cpus} \\
+        ${targets_arg} \\
+        ${gtf_arg} \\
+        ${known_indels_arg} \\
+        ${args}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        abra2: \$(abra2 2&gt;&amp;1 | grep 'Abra version:' | sed 's/.*Abra version: //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bams" format="data" label="Bams"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fai" format="data" label="Fai"/>
+    <param type="data" name="targets" format="data" label="Targets"/>
+    <param type="data" name="gtf" format="data" label="Gtf"/>
+    <param type="data" name="known_indels" format="data" label="Known Indels"/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*.bam"/>
+    <data name="bai" format="data" label="Bai" from_work_dir="*.bam.bai"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Assembly Based ReAligner for next-generation sequencing data
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: abra2
+Container: ${workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/abra2
+]]&gt;</help>
+</tool>

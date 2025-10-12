@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_pear" name="nf-core pear" version="1.0.0" profile="20.01">
+  <description>PEAR is an ultrafast, memory-efficient and highly accurate pair-end read merger.</description>
+  <requirements>
+    <requirement type="package" version="0.9.6">pear</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+gunzip -f ${reads[0]}
+    gunzip -f ${reads[1]}
+    pear \\
+        -f ${reads[0].baseName} \\
+        -r ${reads[1].baseName} \\
+        -o $prefix \\
+        -j $task.cpus \\
+        $args
+    gzip -f ${prefix}.assembled.fastq
+    gzip -f ${prefix}.unassembled.forward.fastq
+    gzip -f ${prefix}.unassembled.reverse.fastq
+    gzip -f ${prefix}.discarded.fastq
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        pear: \$(pear -h | grep 'PEAR v' | sed 's/PEAR v//' | sed 's/ .*//' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="assembled" format="data" label="Assembled" from_work_dir="*.assembled.fastq.gz"/>
+    <data name="unassembled" format="data" label="Unassembled" from_work_dir="*.unassembled.forward.fastq.gz"/>
+    <data name="discarded" format="data" label="Discarded" from_work_dir="*.discarded.fastq.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+PEAR is an ultrafast, memory-efficient and highly accurate pair-end read merger.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: pear
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/pear
+]]&gt;</help>
+</tool>

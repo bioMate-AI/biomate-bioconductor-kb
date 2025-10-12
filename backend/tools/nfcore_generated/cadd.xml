@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_cadd" name="nf-core cadd" version="1.0.0" profile="20.01">
+  <description>CADD is a tool for scoring the deleteriousness of single nucleotide variants as well as insertion/deletions variants in the human genome.</description>
+  <requirements>
+    <requirement type="package" version="1.6.post1">cadd-scripts</requirement>
+    <requirement type="package" version="4.14.0">conda</requirement>
+    <requirement type="package" version="1.4.0">mamba</requirement>
+    <container type="docker">docker.io/biocontainers/cadd-scripts-with-envs:1.6.post1_cv1</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+export XDG_CACHE_HOME=\$PWD/snakemake_cache
+    mkdir -p \$XDG_CACHE_HOME
+
+    cadd.sh \\
+        -o ${prefix}.tsv.gz \\
+        ${args} \\
+        ${vcf}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        cadd: ${VERSION}
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="vcf" format="data" label="Vcf"/>
+    <param type="data" name="annotation_dir" format="data" label="Annotation Dir"/>
+    <param type="data" name="prescored_dir" format="data" label="Prescored Dir"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+CADD is a tool for scoring the deleteriousness of single nucleotide variants as well as insertion/deletions variants in the human genome.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: cadd
+Container: docker.io/biocontainers/cadd-scripts-with-envs:1.6.post1_cv1
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/cadd
+]]&gt;</help>
+</tool>

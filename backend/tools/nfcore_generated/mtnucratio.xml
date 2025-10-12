@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_mtnucratio" name="nf-core mtnucratio" version="1.0.0" profile="20.01">
+  <description>A small Java tool to calculate ratios between MT and nuclear sequencing reads in a given BAM file.</description>
+  <requirements>
+    <requirement type="package" version="0.7">mtnucratio</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mtnucratio \\
+        $args \\
+        $bam \\
+        $mt_id
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        mtnucratio: \$(echo \$(mtnucratio --version 2&gt;&amp;1) | head -n1 | sed 's/Version: //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="text" name="mt_id" label="Mt Id" value=""/>
+  </inputs>
+  <outputs>
+    <data name="mtnucratio" format="data" label="Mtnucratio" from_work_dir="*.mtnucratio"/>
+    <data name="json" format="data" label="Json" from_work_dir="*.json"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A small Java tool to calculate ratios between MT and nuclear sequencing reads in a given BAM file.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: mtnucratio
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/mtnucratio
+]]&gt;</help>
+</tool>

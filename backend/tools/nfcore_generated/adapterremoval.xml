@@ -1,0 +1,64 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_adapterremoval" name="nf-core adapterremoval" version="1.0.0" profile="20.01">
+  <description>Trim sequencing adapters and collapse overlapping reads</description>
+  <requirements>
+    <requirement type="package" version="2.3.2">adapterremoval</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+AdapterRemoval  \\
+            --file1 ${reads} \\
+            ${args} \\
+            ${list} \\
+            --basename ${prefix} \\
+            --threads ${task.cpus} \\
+            --seed 42 \\
+            --gzip
+
+        ensure_fastq() {
+            if [ -f &quot;\${1}&quot; ]; then
+                mv &quot;\${1}&quot; &quot;\${1::-3}.fastq.gz&quot;
+            fi
+
+        }
+
+        ensure_fastq '${prefix}.truncated.gz'
+        ensure_fastq '${prefix}.discarded.gz'
+
+        cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+        &quot;${task.process}&quot;:
+            adapterremoval: \$(AdapterRemoval --version 2&gt;&amp;1 | sed -e &quot;s/AdapterRemoval ver. //g&quot;)
+        END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="adapterlist" format="data" label="Adapterlist"/>
+  </inputs>
+  <outputs>
+    <data name="singles_truncated" format="data" label="Singles Truncated" from_work_dir="${prefix}.truncated.fastq.gz"/>
+    <data name="discarded" format="data" label="Discarded" from_work_dir="${prefix}.discarded.fastq.gz"/>
+    <data name="paired_truncated" format="data" label="Paired Truncated" from_work_dir="${prefix}.pair{1,2}.truncated.fastq.gz"/>
+    <data name="collapsed" format="data" label="Collapsed" from_work_dir="${prefix}.collapsed.fastq.gz"/>
+    <data name="collapsed_truncated" format="data" label="Collapsed Truncated" from_work_dir="${prefix}.collapsed.truncated.fastq.gz"/>
+    <data name="paired_interleaved" format="data" label="Paired Interleaved" from_work_dir="${prefix}.paired.fastq.gz"/>
+    <data name="settings" format="data" label="Settings" from_work_dir="*.settings"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Trim sequencing adapters and collapse overlapping reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: adapterremoval
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/adapterremoval
+]]&gt;</help>
+</tool>

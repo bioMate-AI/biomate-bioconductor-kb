@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_dedup" name="nf-core dedup" version="1.0.0" profile="20.01">
+  <description>DeDup is a tool for read deduplication in paired-end read merging (e.g. for ancient DNA experiments).</description>
+  <requirements>
+    <requirement type="package" version="0.12.8">dedup</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+dedup \\
+        -Xmx${task.memory.toGiga()}g  \\
+        -i $bam \\
+        -o . \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        dedup: \$( echo \$(dedup --version 2&gt;&amp;1) | tail -n 1 | sed 's/.* v//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*_rmdup.bam"/>
+    <data name="json" format="data" label="Json" from_work_dir="*.json"/>
+    <data name="hist" format="data" label="Hist" from_work_dir="*.hist"/>
+    <data name="log" format="data" label="Log" from_work_dir="*log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+DeDup is a tool for read deduplication in paired-end read merging (e.g. for ancient DNA experiments).
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: dedup
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/dedup
+]]&gt;</help>
+</tool>

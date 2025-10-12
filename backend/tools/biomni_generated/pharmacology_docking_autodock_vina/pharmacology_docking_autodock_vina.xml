@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="biomni_docking_autodock_vina" name="BioMni: Docking Autodock Vina" version="1.0.0" profile="20.01">
+  <description>docking_autodock_vina</description>
+  <requirements>
+    <!-- BioMni Python function wrapper -->
+    <requirement type="package">matplotlib</requirement>
+    <requirement type="package">numpy</requirement>
+    <requirement type="package">pandas</requirement>
+    <requirement type="package">scipy</requirement>
+    <requirement type="package">biomni</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python '$__tool_directory__/wrapper.py' --smiles_list 'smiles_list' --receptor_pdb_file 'receptor_pdb_file' --box_center 'box_center' --box_size 'box_size' --ncpu 'ncpu'
+]]&gt;</command>
+  <inputs>
+    <param type="text" name="smiles_list" label="Smiles List" help="" value=""/>
+    <param type="data" name="receptor_pdb_file" label="Receptor Pdb File" help=""/>
+    <param type="text" name="box_center" label="Box Center" help="" value=""/>
+    <param type="text" name="box_size" label="Box Size" help="" value=""/>
+    <param type="text" name="ncpu" label="Ncpu" help="" value=""/>
+  </inputs>
+  <outputs>
+    <data name="output" format="auto" label="docking_autodock_vina output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+
+
+**Source**
+
+This tool wraps the BioMni function: `docking_autodock_vina`
+
+Module: pharmacology
+
+**BioMni**
+
+BioMni is a Python library for biological data analysis.
+For more information: https://github.com/batmen-lab/BioMni
+
+**Requirements**
+
+This tool requires the following conda packages:
+matplotlib, numpy, pandas, scipy
+]]&gt;</help>
+</tool>

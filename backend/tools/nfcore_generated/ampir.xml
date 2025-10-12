@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_ampir" name="nf-core ampir" version="1.0.0" profile="20.01">
+  <description>A fast and user-friendly method to predict antimicrobial peptides (AMPs) from any given size protein dataset. ampir uses a supervised statistical machine learning approach to predict AMPs.</description>
+  <requirements>
+    <requirement type="package" version="1.1.0">r-ampir</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+#!/usr/bin/env Rscript
+    library(ampir)
+
+    input_seqs &lt;- read_faa('${faa}')
+    prediction &lt;- predict_amps(input_seqs,${min_length},model = '${model}')
+    prediction &lt;- prediction[which(prediction\$prob_AMP &gt;= as.numeric(${min_probability})), ]
+    output_seqs &lt;- input_seqs[row.names(prediction), ]
+    write.table(prediction, file = &quot;${prefix}.tsv&quot;, row.names = FALSE, sep = &quot;\t&quot;, quote = FALSE, dec = '.')
+    df_to_faa(output_seqs, &quot;${prefix}.faa&quot;)
+
+    version_file_path &lt;- &quot;versions.yml&quot;
+    version_ampir &lt;- paste(unlist(packageVersion(&quot;ampir&quot;)), collapse = &quot;.&quot;)
+    f &lt;- file(version_file_path, &quot;w&quot;)
+    writeLines('&quot;${task.process}&quot;:', f)
+    writeLines(&quot;    ampir: &quot;, f, sep = &quot;&quot;)
+    writeLines(version_ampir, f)
+    close(f)
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="faa" format="data" label="Faa"/>
+  </inputs>
+  <outputs>
+    <data name="amps_faa" format="data" label="Amps Faa" from_work_dir="*.faa"/>
+    <data name="amps_tsv" format="data" label="Amps Tsv" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A fast and user-friendly method to predict antimicrobial peptides (AMPs) from any given size protein dataset. ampir uses a supervised statistical machine learning approach to predict AMPs.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: ampir
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/ampir
+]]&gt;</help>
+</tool>

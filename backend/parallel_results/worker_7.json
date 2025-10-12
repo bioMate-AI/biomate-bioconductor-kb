@@ -1,0 +1,657 @@
+[
+  {
+    "dataset_key": "uniprot_sprot_human_fasta",
+    "dataset_name": "uniprot_sprot_human.fasta.gz",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/blast_plus_remote_blastp/Repository_Actions\nNCBI_BLAST+_blastp",
+        "name": "Repository Actions\nNCBI BLAST+ blastp",
+        "category": "Proteomics",
+        "confidence": 0.95,
+        "reasoning": "BLAST protein search tool explicitly requires protein BLAST database. UniProt FASTA is a standard protein database format for BLAST searches.",
+        "parameter_name": "Protein BLAST database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/diann/Repository_Actions\nDIA-NN",
+        "name": "Repository Actions\nDIA-NN",
+        "category": "Proteomics",
+        "confidence": 0.85,
+        "reasoning": "DIA-NN is a DIA proteomics tool that requires protein FASTA databases for peptide spectrum matching and protein identification.",
+        "parameter_name": "FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_encyclopedia/Repository_Actions\nEncyclopeDIA",
+        "name": "Repository Actions\nEncyclopeDIA",
+        "category": "Proteomics",
+        "confidence": 0.85,
+        "reasoning": "EncyclopeDIA performs DIA proteomics analysis and explicitly mentions 'Background proteome protein' parameter, requiring FASTA database.",
+        "parameter_name": "Background proteome protein fasta"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_fasta_to_prosit_csv/Repository_Actions\nConvertFastaToPrositCSV",
+        "name": "Repository Actions\nConvertFastaToPrositCSV",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "Tool explicitly takes 'Protein Fasta database' as input to generate Prosit predictions for proteomics workflows.",
+        "parameter_name": "Protein Fasta database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_prosit_csv_to_library/Repository_Actions\nConvertPrositCSVToLibrary",
+        "name": "Repository Actions\nConvertPrositCSVToLibrary",
+        "category": "Proteomics",
+        "confidence": 0.85,
+        "reasoning": "Requires 'Protein Fasta database' parameter for converting Prosit output to spectral library.",
+        "parameter_name": "Protein Fasta database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_walnut/Repository_Actions\nWalnut",
+        "name": "Repository Actions\nWalnut",
+        "category": "Proteomics",
+        "confidence": 0.85,
+        "reasoning": "EncyclopeDIA-related tool that mentions 'Background proteome protein fasta' for DIA proteomics analysis.",
+        "parameter_name": "Background proteome protein fasta"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/idpassemble/Repository_Actions\nidpAssemble",
+        "name": "Repository Actions\nidpAssemble",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "IDPicker tool explicitly requires 'Protein Database' in FASTA format to map peptides for proteomics identification.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/mascot/Repository_Actions\nMascot_to_pepXML",
+        "name": "Repository Actions\nMascot to pepXML",
+        "category": "Proteomics",
+        "confidence": 0.85,
+        "reasoning": "Requires 'Database source' - local copy of database used in Mascot search, accepts FASTA format.",
+        "parameter_name": "Database source"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/mascot/Repository_Actions\nMascot_MSMS_Search",
+        "name": "Repository Actions\nMascot MSMS Search",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "Mascot search tool requires protein database for MS/MS peptide identification.",
+        "parameter_name": "Database Name"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/maxquant/Repository_Actions\nMaxQuant",
+        "name": "Repository Actions\nMaxQuant",
+        "category": "Proteomics",
+        "confidence": 0.95,
+        "reasoning": "MaxQuant is a major proteomics platform requiring FASTA protein databases for peptide identification and quantification.",
+        "parameter_name": "FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/metanovo/Repository_Actions\nMetaNovo",
+        "name": "Repository Actions\nMetaNovo",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "Proteomics search tool with explicit 'FASTA File' parameter for protein database searches.",
+        "parameter_name": "FASTA File"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/meta_proteome_analyzer/Repository_Actions\nMetaProteomeAnalyzer",
+        "name": "Repository Actions\nMetaProteomeAnalyzer",
+        "category": "Proteomics",
+        "confidence": 0.95,
+        "reasoning": "Metaproteomics tool explicitly requires 'Protein Database' in FASTA format for peptide identification.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/morpheus/Repository_Actions\nMorpheus",
+        "name": "Repository Actions\nMorpheus",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "Protein search engine requiring 'MS Protein Search Database: UniProt Xml or Fasta' for identification.",
+        "parameter_name": "MS Protein Search Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/msgfplus/Repository_Actions\nMS-GF+",
+        "name": "Repository Actions\nMS-GF+",
+        "category": "Proteomics",
+        "confidence": 0.95,
+        "reasoning": "MS-GF+ is a major proteomics search engine requiring 'Protein Database' in FASTA format for peptide spectrum matching.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/msgfplus/Repository_Actions\nMSGF+_MSMS_Search",
+        "name": "Repository Actions\nMSGF+ MSMS Search",
+        "category": "Proteomics",
+        "confidence": 0.95,
+        "reasoning": "MS-GF+ search tool with explicit FASTA database requirement for MS/MS identification.",
+        "parameter_name": "Uploaded FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/myrimatch/Repository_Actions\nMyriMatch",
+        "name": "Repository Actions\nMyriMatch",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "Proteomics search engine requiring 'Protein Database' - FASTA protein database for peptide identification.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/omssa/Repository_Actions\nOMSSA_MSMS_Search",
+        "name": "Repository Actions\nOMSSA MSMS Search",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "OMSSA search engine requires 'Uploaded FASTA file' for MS/MS peptide identification.",
+        "parameter_name": "Uploaded FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_cometadapter/Repository_Actions\nCometAdapter",
+        "name": "Repository Actions\nCometAdapter",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "Comet search engine adapter requiring 'FASTA file' for proteomics database searches.",
+        "parameter_name": "FASTA file"
+      }
+    ],
+    "total_candidates": 397,
+    "validated": 100
+  },
+  {
+    "dataset_key": "uniprot_sprot_mouse_fasta",
+    "dataset_name": "uniprot_sprot_mouse.fasta.gz",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/blast_plus_remote_blastp/Repository_Actions\nNCBI_BLAST+_blastp",
+        "name": "Repository Actions\nNCBI BLAST+ blastp",
+        "category": "Proteomics",
+        "confidence": 0.95,
+        "reasoning": "BLAST+ blastp performs protein sequence searches against protein databases. The uniprot_sprot_mouse.fasta.gz is a protein FASTA database that can be used as the 'Protein BLAST database' parameter for searching query sequences.",
+        "parameter_name": "Protein BLAST database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_encyclopedia/Repository_Actions\nEncyclopeDIA",
+        "name": "Repository Actions\nEncyclopeDIA",
+        "category": "Proteomics",
+        "confidence": 0.92,
+        "reasoning": "EncyclopeDIA performs DIA proteomics analysis and explicitly requires 'Background proteome protein' database. The UniProt FASTA file is ideal for this parameter in MS/MS searches.",
+        "parameter_name": "Background proteome protein"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_fasta_to_prosit_csv/Repository_Actions\nConvertFastaToPrositCSV",
+        "name": "Repository Actions\nConvertFastaToPrositCSV",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "Tool converts protein FASTA databases to Prosit format for spectral library generation. Requires 'Protein Fasta database' parameter which matches the dataset perfectly.",
+        "parameter_name": "Protein Fasta database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_prosit_csv_to_library/Repository_Actions\nConvertPrositCSVToLibrary",
+        "name": "Repository Actions\nConvertPrositCSVToLibrary",
+        "category": "Proteomics",
+        "confidence": 0.88,
+        "reasoning": "Converts Prosit output to spectral library and requires 'Protein Fasta database' parameter for protein mapping in DIA/targeted proteomics workflows.",
+        "parameter_name": "Protein Fasta database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_walnut/Repository_Actions\nWalnut",
+        "name": "Repository Actions\nWalnut",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "Walnut is a proteomics tool requiring 'Background proteome protein fasta' for DIA analysis. UniProt FASTA is standard input for such tools.",
+        "parameter_name": "Background proteome protein fasta"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/make_protein_decoys/Repository_Actions\nGenerate_protein_decoy_sequences",
+        "name": "Repository Actions\nGenerate protein decoy sequences",
+        "category": "Proteomics",
+        "confidence": 0.93,
+        "reasoning": "Tool generates decoy sequences from protein FASTA files for FDR estimation in proteomics searches. Requires 'Fasta file contain protein sequences' parameter.",
+        "parameter_name": "Fasta file contain protein sequences"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/mascot/Repository_Actions\nMascot_to_pepXML",
+        "name": "Repository Actions\nMascot to pepXML",
+        "category": "Proteomics",
+        "confidence": 0.85,
+        "reasoning": "Converts Mascot results and requires 'Database source' - a local copy of the FASTA database used in the Mascot search for proper conversion.",
+        "parameter_name": "Database source"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/mascot/Repository_Actions\nMascot_MSMS_Search",
+        "name": "Repository Actions\nMascot MSMS Search",
+        "category": "Proteomics",
+        "confidence": 0.91,
+        "reasoning": "Mascot search tool for MS/MS data requiring protein database. The 'Database Name' parameter would reference the UniProt FASTA for peptide identification.",
+        "parameter_name": "Database Name"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/maxquant/Repository_Actions\nMaxQuant",
+        "name": "Repository Actions\nMaxQuant",
+        "category": "Proteomics",
+        "confidence": 0.95,
+        "reasoning": "MaxQuant is a major proteomics platform requiring protein FASTA databases for peptide/protein identification. UniProt FASTA files are standard inputs.",
+        "parameter_name": "FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/meta_proteome_analyzer/Repository_Actions\nMetaProteomeAnalyzer",
+        "name": "Repository Actions\nMetaProteomeAnalyzer",
+        "category": "Proteomics",
+        "confidence": 0.93,
+        "reasoning": "Metaproteomics tool requiring 'Protein Database' parameter. Accepts FASTA databases for peptide identification from MS/MS data.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/morpheus/Repository_Actions\nMorpheus",
+        "name": "Repository Actions\nMorpheus",
+        "category": "Proteomics",
+        "confidence": 0.92,
+        "reasoning": "Morpheus is a proteomics search engine requiring 'MS Protein Search Database: UniProt Xml or Fasta' for peptide identification.",
+        "parameter_name": "MS Protein Search Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/msgfplus/Repository_Actions\nMS-GF+",
+        "name": "Repository Actions\nMS-GF+",
+        "category": "Proteomics",
+        "confidence": 0.94,
+        "reasoning": "MS-GF+ is a proteomics search engine requiring 'Protein Database' parameter. UniProt FASTA is standard input for MS/MS peptide identification.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/msgfplus/Repository_Actions\nMSGF+_MSMS_Search",
+        "name": "Repository Actions\nMSGF+ MSMS Search",
+        "category": "Proteomics",
+        "confidence": 0.94,
+        "reasoning": "MSGF+ search tool requiring protein database for MS/MS identification. 'Uploaded FASTA file' parameter accepts protein databases.",
+        "parameter_name": "Uploaded FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/myrimatch/Repository_Actions\nMyriMatch",
+        "name": "Repository Actions\nMyriMatch",
+        "category": "Proteomics",
+        "confidence": 0.93,
+        "reasoning": "MyriMatch is a proteomics search engine requiring 'Protein Database' - FASTA protein database for peptide identification from MS data.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/omssa/Repository_Actions\nOMSSA_MSMS_Search",
+        "name": "Repository Actions\nOMSSA MSMS Search",
+        "category": "Proteomics",
+        "confidence": 0.92,
+        "reasoning": "OMSSA search engine for MS/MS data requiring 'Uploaded FASTA file' protein database for peptide identification.",
+        "parameter_name": "Uploaded FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_cometadapter/Repository_Actions\nCometAdapter",
+        "name": "Repository Actions\nCometAdapter",
+        "category": "Proteomics",
+        "confidence": 0.93,
+        "reasoning": "Comet search engine adapter requiring 'FASTA file' parameter for protein database searches in proteomics workflows.",
+        "parameter_name": "FASTA file"
+      }
+    ],
+    "total_candidates": 397,
+    "validated": 100
+  },
+  {
+    "dataset_key": "uniprot_sprot_rat_fasta",
+    "dataset_name": "uniprot_sprot_rat.fasta.gz",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/blast_plus_remote_blastp/Repository_Actions\nNCBI_BLAST+_blastp",
+        "name": "Repository Actions\nNCBI BLAST+ blastp",
+        "category": "Proteomics",
+        "confidence": 0.95,
+        "reasoning": "BLAST protein search tool explicitly requires a protein BLAST database. The dataset is a FASTA format protein database (UniProt Swiss-Prot) which is the standard format for BLAST databases. Perfect match for proteomics searches.",
+        "parameter_name": "Protein BLAST database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_encyclopedia/Repository_Actions\nEncyclopeDIA",
+        "name": "Repository Actions\nEncyclopeDIA",
+        "category": "Proteomics",
+        "confidence": 0.92,
+        "reasoning": "DIA proteomics tool that explicitly requires 'Background proteome protein' database. The UniProt FASTA file is ideal for creating spectral libraries and peptide identification in DIA workflows.",
+        "parameter_name": "Background proteome protein fasta"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_fasta_to_prosit_csv/Repository_Actions\nConvertFastaToPrositCSV",
+        "name": "Repository Actions\nConvertFastaToPrositCSV",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "Tool explicitly requires 'Protein Fasta database' as input to generate Prosit predictions. FASTA format protein database is the exact input needed.",
+        "parameter_name": "Protein Fasta database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_prosit_csv_to_library/Repository_Actions\nConvertPrositCSVToLibrary",
+        "name": "Repository Actions\nConvertPrositCSVToLibrary",
+        "category": "Proteomics",
+        "confidence": 0.88,
+        "reasoning": "Requires 'Protein Fasta database' to convert Prosit predictions to spectral library format. UniProt FASTA is appropriate reference.",
+        "parameter_name": "Protein Fasta database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_searchtolib/Repository_Actions\nSearchToLib",
+        "name": "Repository Actions\nSearchToLib",
+        "category": "Proteomics",
+        "confidence": 0.85,
+        "reasoning": "EncyclopeDIA tool for creating spectral libraries from search results, likely requires protein database as reference for library generation.",
+        "parameter_name": "Background proteome protein fasta"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/encyclopedia_walnut/Repository_Actions\nWalnut",
+        "name": "Repository Actions\nWalnut",
+        "category": "Proteomics",
+        "confidence": 0.87,
+        "reasoning": "EncyclopeDIA tool requiring 'Background proteome protein fasta' for chromatogram library generation and peptide identification.",
+        "parameter_name": "Background proteome protein fasta"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/idpassemble/Repository_Actions\nidpAssemble",
+        "name": "Repository Actions\nidpAssemble",
+        "category": "Proteomics",
+        "confidence": 0.91,
+        "reasoning": "IDPicker tool explicitly requires 'Protein Database' in FASTA format to map peptides against target proteins. Perfect match for proteomics workflow.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/make_protein_decoys/Repository_Actions\nGenerate_protein_decoy_sequences",
+        "name": "Repository Actions\nGenerate protein decoy sequences",
+        "category": "Proteomics",
+        "confidence": 0.93,
+        "reasoning": "Tool explicitly requires 'Fasta file contain protein sequences' to generate decoy databases for FDR calculation in proteomics searches.",
+        "parameter_name": "Fasta file contain protein sequences"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/map_peptides_to_bed/Repository_Actions\nMap_peptides_to_a_bed_file",
+        "name": "Repository Actions\nMap peptides to a bed file",
+        "category": "Proteomics",
+        "confidence": 0.75,
+        "reasoning": "Proteogenomics tool that maps identified peptides. While it uses translated BED as primary input, it may use protein FASTA as reference for peptide mapping.",
+        "parameter_name": "Translated BED"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/mascot/Repository_Actions\nMascot_MSMS_Search",
+        "name": "Repository Actions\nMascot MSMS Search",
+        "category": "Proteomics",
+        "confidence": 0.89,
+        "reasoning": "Mascot search tool requires protein database for MS/MS peptide identification. FASTA format protein database is standard input.",
+        "parameter_name": "Database Name"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/maxquant/Repository_Actions\nMaxQuant",
+        "name": "Repository Actions\nMaxQuant",
+        "category": "Proteomics",
+        "confidence": 0.94,
+        "reasoning": "MaxQuant is a major proteomics platform requiring protein FASTA databases for peptide identification. UniProt FASTA is ideal input.",
+        "parameter_name": "FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/metanovo/Repository_Actions\nMetaNovo",
+        "name": "Repository Actions\nMetaNovo",
+        "category": "Proteomics",
+        "confidence": 0.9,
+        "reasoning": "Metaproteomics de novo sequencing tool requiring 'FASTA File' for database-assisted peptide identification.",
+        "parameter_name": "FASTA File"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/meta_proteome_analyzer/Repository_Actions\nMetaProteomeAnalyzer",
+        "name": "Repository Actions\nMetaProteomeAnalyzer",
+        "category": "Proteomics",
+        "confidence": 0.93,
+        "reasoning": "Metaproteomics tool explicitly requires 'Protein Database' in FASTA format for peptide spectrum matching.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/morpheus/Repository_Actions\nMorpheus",
+        "name": "Repository Actions\nMorpheus",
+        "category": "Proteomics",
+        "confidence": 0.92,
+        "reasoning": "Proteomics search engine requiring 'MS Protein Search Database: UniProt Xml or Fasta' - exact match for UniProt FASTA input.",
+        "parameter_name": "MS Protein Search Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/msgfplus/Repository_Actions\nMS-GF+",
+        "name": "Repository Actions\nMS-GF+",
+        "category": "Proteomics",
+        "confidence": 0.95,
+        "reasoning": "MS-GF+ is a major proteomics search engine explicitly requiring 'Protein Database' in FASTA format for peptide identification.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/msgfplus/Repository_Actions\nMSGF+_MSMS_Search",
+        "name": "Repository Actions\nMSGF+ MSMS Search",
+        "category": "Proteomics",
+        "confidence": 0.94,
+        "reasoning": "MS-GF+ search tool requiring FASTA protein database for MS/MS spectrum identification.",
+        "parameter_name": "Uploaded FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/myrimatch/Repository_Actions\nMyriMatch",
+        "name": "Repository Actions\nMyriMatch",
+        "category": "Proteomics",
+        "confidence": 0.93,
+        "reasoning": "Proteomics search engine explicitly requiring 'Protein Database' in FASTA format (amino-acid type) for peptide identification.",
+        "parameter_name": "Protein Database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iracooke/omssa/Repository_Actions\nOMSSA_MSMS_Search",
+        "name": "Repository Actions\nOMSSA MSMS Search",
+        "category": "Proteomics",
+        "confidence": 0.92,
+        "reasoning": "OMSSA search engine requiring 'Uploaded FASTA file' protein database for MS/MS peptide identification.",
+        "parameter_name": "Uploaded FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_cometadapter/Repository_Actions\nCometAdapter",
+        "name": "Repository Actions\nCometAdapter",
+        "category": "Proteomics",
+        "confidence": 0.93,
+        "reasoning": "Comet search engine adapter explicitly requiring 'FASTA file' for proteomics database searches.",
+        "parameter_name": "FASTA file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_compnovo/Repository_Actions\nCompNovo",
+        "name": "Repository Actions\nCompNovo",
+        "category": "Proteomics",
+        "confidence": 0.7,
+        "reasoning": "De novo peptide identification tool. While primarily de novo, may use protein database as reference for validation or hybrid approaches.",
+        "parameter_name": "input file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_compnovocid/Repository_Actions\nCompNovoCID",
+        "name": "Repository Actions\nCompNovoCID",
+        "category": "Proteomics",
+        "confidence": 0.7,
+        "reasoning": "De novo peptide identification tool (CID-specific). May use protein database for validation or hybrid identification approaches.",
+        "parameter_name": "input file"
+      }
+    ],
+    "total_candidates": 397,
+    "validated": 100
+  },
+  {
+    "dataset_key": "uniprot_human_idmapping",
+    "dataset_name": "HUMAN_9606_idmapping.dat.gz",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Monarch Initiative BioLink API tool that works with biological entities. The dataset provides protein ID mappings including UniProt accessions which could be used for cross-referencing biological entities in bulk operations involving genes, phenotypes, and diseases.",
+        "parameter_name": "reference_mapping"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "BioLink API tool for retrieving associations between biological entities. The UniProt ID mapping dataset could serve as a reference for resolving protein identifiers when querying associations between subjects and objects.",
+        "parameter_name": "id_mapping_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Retrieves associations for bioentities from Monarch Initiative. The protein ID mapping dataset could be used to translate between different database identifiers when querying bioentity associations.",
+        "parameter_name": "id_conversion_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Queries gene associations from BioLink API. The UniProt ID mapping dataset is highly relevant for converting between gene IDs and protein IDs, enabling cross-database integration for gene-protein association queries.",
+        "parameter_name": "protein_id_mapping"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Performs over-representation analysis on sets of bioentities. The protein ID mapping dataset could serve as a reference for converting entity IDs (e.g., NCBIGene to UniProt) during pathway and functional enrichment analysis.",
+        "parameter_name": "id_mapping_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.67,
+        "reasoning": "Retrieves phenotype-gene associations. The UniProt ID mapping dataset enables conversion between gene and protein identifiers, useful for integrating phenotype data with protein-level information.",
+        "parameter_name": "gene_protein_mapping"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "uniprot_mouse_idmapping",
+    "dataset_name": "MOUSE_10090_idmapping.dat.gz",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Monarch Initiative BioLink API tool that works with biological entities. The dataset contains UniProt accessions and cross-database mappings which could be used to query biological entities by ID. The tool accepts taxon IDs and object categories, and UniProt data is commonly used for such integrative queries.",
+        "parameter_name": "Input ID mapping for entity resolution"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "BioLink API tool for querying associations between biological entities. UniProt ID mappings enable cross-referencing between different biological databases, which is essential for association queries. The dataset's cross-database integration capability aligns with this tool's purpose.",
+        "parameter_name": "ID mapping reference for subject/object resolution"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Queries bioentity associations from Monarch Initiative. The UniProt ID mapping dataset would support converting between different bioentity identifier systems, which is crucial for cross-database queries in biological data integration.",
+        "parameter_name": "ID mapping reference for bioentity resolution"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Retrieves gene associations from BioLink API. The dataset contains UniProt to gene database mappings (including gene IDs), making it highly relevant for converting between protein and gene identifiers in association queries.",
+        "parameter_name": "Protein-to-gene ID mapping reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Queries phenotype-gene associations with mouse taxon support (NCBITaxon:10090). The dataset is specifically for mouse (MOUSE_10090), containing protein-gene mappings that would facilitate phenotype-gene association queries.",
+        "parameter_name": "Mouse protein-gene ID mapping reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/artbio/fetch_fasta_from_ncbi/Repository_Actions\nRetrieve_FASTA_from_NCBI",
+        "name": "Repository Actions\nRetrieve FASTA from NCBI",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Retrieves sequences from NCBI databases. The UniProt ID mapping dataset contains cross-references to NCBI databases, which could be used to convert UniProt IDs to NCBI accessions for sequence retrieval.",
+        "parameter_name": "ID mapping for accession conversion"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/crs4/get_fasta_from_taxon/Repository_Actions\nGet_FASTA_from_taxon",
+        "name": "Repository Actions\nGet FASTA from taxon",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Retrieves sequences for a given taxonomy ID from NCBI. The dataset is mouse-specific (taxon 10090) and contains protein database mappings that could support taxon-based sequence retrieval with proper ID conversion.",
+        "parameter_name": "Taxon-specific ID mapping reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "uniprot_rat_idmapping",
+    "dataset_name": "RAT_10116_idmapping.dat.gz",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Monarch Initiative BioLink API tool that retrieves biological associations. The dataset contains UniProt to database ID mappings which could be used to query biological entities by their identifiers across databases, supporting cross-database integration use cases.",
+        "parameter_name": "Object Category or Type parameter"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Retrieves associations from Monarch Initiative BioLink API. The protein ID mapping dataset could provide subject/object identifiers for querying biological associations, supporting pathway mapping and data integration.",
+        "parameter_name": "Subject or Object parameter"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Queries bioentity associations using identifiers. The UniProt ID mapping dataset is directly relevant for converting between different bioentity identifier systems before querying associations.",
+        "parameter_name": "Bioentity ID parameter"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Retrieves gene associations from BioLink API. The dataset maps UniProt IDs to various databases including gene databases, enabling gene identifier conversion for association queries.",
+        "parameter_name": "Gene parameter"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "Performs over-representation analysis on bioentity sets. The protein ID mapping dataset can be used to convert and integrate protein/gene identifiers from multiple databases before enrichment analysis.",
+        "parameter_name": "Entity ids parameters"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGet_Object",
+        "name": "Repository Actions\nGet Object",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Retrieves biological objects by ID from BioLink API. The ID mapping dataset supports cross-database queries by providing identifier conversions.",
+        "parameter_name": "Object ID parameter"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Queries phenotype-gene associations. The dataset's protein-to-gene ID mappings can facilitate conversion between protein and gene identifiers for phenotype association queries.",
+        "parameter_name": "Phenotype ID or Taxon ID parameter"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "uniprot_sprot_full",
+    "dataset_name": "uniprot_sprot.dat.gz",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  }
+]

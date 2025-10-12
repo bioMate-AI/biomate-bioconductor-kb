@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<tool id="biomni_retrieve_topk_repurposing_drugs_from_disease_txgnn" name="BioMni: Retrieve Topk Repurposing Drugs From Disease Txgnn" version="1.0.0" profile="20.01">
+  <description>This function computes TxGNN model predictions for drug repurposing. It takes in the paths to the data,</description>
+  <requirements>
+    <!-- BioMni Python function wrapper -->
+    <requirement type="package">matplotlib</requirement>
+    <requirement type="package">numpy</requirement>
+    <requirement type="package">pandas</requirement>
+    <requirement type="package">scipy</requirement>
+    <requirement type="package">biomni</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python '$__tool_directory__/wrapper.py' --disease_name 'disease_name' --k 'k'
+]]&gt;</command>
+  <inputs>
+    <param type="text" name="disease_name" label="Disease Name" help="" value=""/>
+    <param type="text" name="k" label="K" help="" value=""/>
+  </inputs>
+  <outputs>
+    <data name="output" format="auto" label="retrieve_topk_repurposing_drugs_from_disease_txgnn output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+This function computes TxGNN model predictions for drug repurposing. It takes in the paths to the data,
+the disease name, and returns a summary of the top K predicted drugs with their sigmoid-transformed scores.
+
+Args:
+- disease_name (str): The name of the disease for which the drug predictions are to be retrieved.
+- data_lake_path (str): The path to the data lake containing the TxGNN predictions.
+- k (int, optional): The number of top drug predictions to return. Defaults to 5.
+
+Returns:
+- str: A summary of the steps and the top K drug predictions with their scores.
+
+**Source**
+
+This tool wraps the BioMni function: `retrieve_topk_repurposing_drugs_from_disease_txgnn`
+
+Module: pharmacology
+
+**BioMni**
+
+BioMni is a Python library for biological data analysis.
+For more information: https://github.com/batmen-lab/BioMni
+
+**Requirements**
+
+This tool requires the following conda packages:
+matplotlib, numpy, pandas, scipy
+]]&gt;</help>
+</tool>

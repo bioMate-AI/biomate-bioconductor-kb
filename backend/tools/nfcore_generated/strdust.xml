@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_strdust" name="nf-core strdust" version="1.0.0" profile="20.01">
+  <description>Tandem repeat genotyper for long reads</description>
+  <requirements>
+    <requirement type="package" version="1.21">htslib</requirement>
+    <requirement type="package" version="0.11.4">strdust</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+STRdust \\
+        $args \\
+        $regions \\
+        --threads $task.cpus \\
+        $fasta \\
+        $bam \\
+        | bgzip $args2 --threads $task.cpus \\
+        &gt; ${prefix}.vcf.gz
+    $tabix_cmd
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        STRdust: \$(STRdust --version |&amp; sed '1!d ; s/STRdust //')
+        bgzip: \$(bgzip --version |&amp; sed '1!d ; s/bgzip (htslib) //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fai" format="data" label="Fai"/>
+    <param type="data" name="bed" format="data" label="Bed"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="tbi" format="data" label="Tbi" from_work_dir="*.tbi"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Tandem repeat genotyper for long reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: strdust
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/strdust
+]]&gt;</help>
+</tool>

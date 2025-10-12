@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_sniffles" name="nf-core sniffles" version="1.0.0" profile="20.01">
+  <description>structural-variant calling with sniffles</description>
+  <requirements>
+    <requirement type="package" version="2.4">sniffles</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+sniffles \\
+        --input $input \\
+        $reference \\
+        -t $task.cpus \\
+        $tandem_repeats \\
+        $vcf \\
+        $snf \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        sniffles: \$(sniffles --help 2&gt;&amp;1 | grep Version |sed 's/^.*Version //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input" format="data" label="Input"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="tandem_file" format="data" label="Tandem File"/>
+    <param type="text" name="vcf_output" label="Vcf Output" value=""/>
+    <param type="text" name="snf_output" label="Snf Output" value=""/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="tbi" format="data" label="Tbi" from_work_dir="*.vcf.gz.tbi"/>
+    <data name="snf" format="data" label="Snf" from_work_dir="*.snf"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+structural-variant calling with sniffles
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: sniffles
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/sniffles
+]]&gt;</help>
+</tool>

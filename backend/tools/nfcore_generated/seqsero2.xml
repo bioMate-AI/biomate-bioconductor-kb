@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_seqsero2" name="nf-core seqsero2" version="1.0.0" profile="20.01">
+  <description>Salmonella serotype prediction from reads and assemblies</description>
+  <requirements>
+    <requirement type="package" version="1.2.1">seqsero2</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+SeqSero2_package.py \\
+        $args \\
+        -d results/ \\
+        -n $prefix \\
+        -p $task.cpus \\
+        -i $seqs
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        seqsero2: \$( echo \$( SeqSero2_package.py --version 2&gt;&amp;1) | sed 's/^.*SeqSero2_package.py //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="seqs" format="data" label="Seqs"/>
+  </inputs>
+  <outputs>
+    <data name="log" format="txt" label="Log" from_work_dir="results/*_log.txt"/>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="results/*_result.tsv"/>
+    <data name="txt" format="txt" label="Txt" from_work_dir="results/*_result.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Salmonella serotype prediction from reads and assemblies
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: seqsero2
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/seqsero2
+]]&gt;</help>
+</tool>

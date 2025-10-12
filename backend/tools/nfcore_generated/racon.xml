@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_racon" name="nf-core racon" version="1.0.0" profile="20.01">
+  <description>Consensus module for raw de novo DNA assembly of long uncorrected reads</description>
+  <requirements>
+    <requirement type="package" version="1.4.20">racon</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+racon -t &quot;$task.cpus&quot; \\
+        &quot;${reads}&quot; \\
+        &quot;${paf}&quot; \\
+        $args \\
+        &quot;${assembly}&quot; &gt; \\
+        ${prefix}_assembly_consensus.fasta
+
+    gzip -n ${prefix}_assembly_consensus.fasta
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        racon: \$( racon --version 2&gt;&amp;1 | sed 's/^.*v//' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="improved_assembly" format="data" label="Improved Assembly" from_work_dir="*_assembly_consensus.fasta.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Consensus module for raw de novo DNA assembly of long uncorrected reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: racon
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/racon
+]]&gt;</help>
+</tool>

@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_stare" name="nf-core stare" version="1.0.0" profile="20.01">
+  <description>Framework that scores enhancer–gene interactions using the Activity-By-Contact model and derives transcription factor affinities on gene level</description>
+  <requirements>
+    <requirement type="package" version="1.0.5">stare-abc</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+STARE.sh \\
+        ${args} \\
+        -a ${annotation} \\
+        -g ${genome} \\
+        -p ${psem} \\
+        -o ${meta.id} \\
+        -c ${task.cpus} \\
+        ${path_bed_file} \\
+        ${path_exclude_bed} \\
+        ${path_genes} \\
+        ${path_contact_folder} \\
+        ${path_existing_abc}
+
+    gunzip -f ${meta.id}/Gene_TF_matrices/${meta.id}_TF_Gene_Affinities.txt.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        stare: \$(STARE.sh --version | cut -f3 -d&quot; &quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bed_file" format="data" label="Bed File"/>
+    <param type="data" name="annotation" format="data" label="Annotation"/>
+    <param type="data" name="genome" format="data" label="Genome"/>
+    <param type="data" name="psem" format="data" label="Psem"/>
+    <param type="data" name="exclude_bed" format="data" label="Exclude Bed"/>
+    <param type="data" name="genes" format="data" label="Genes"/>
+  </inputs>
+  <outputs>
+    <data name="affinities" format="txt" label="Affinities" from_work_dir="${meta.id}/Gene_TF_matrices/${meta.id}_TF_Gene_Affinities.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Framework that scores enhancer–gene interactions using the Activity-By-Contact model and derives transcription factor affinities on gene level
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: stare
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/stare
+]]&gt;</help>
+</tool>

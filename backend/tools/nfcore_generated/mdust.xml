@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_mdust" name="nf-core mdust" version="1.0.0" profile="20.01">
+  <description>mdust from DFCI Gene Indices Software Tools for masking low-complexity DNA sequences</description>
+  <requirements>
+    <requirement type="package" version="2006.10.17">mdust</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mdust \\
+        $fasta \\
+        $args \\
+        &gt; &quot;${prefix}.fasta&quot;
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        mdust: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="fasta" format="data" label="Fasta" from_work_dir="*.fasta"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+mdust from DFCI Gene Indices Software Tools for masking low-complexity DNA sequences
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: mdust
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/mdust
+]]&gt;</help>
+</tool>

@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_bioformats2raw" name="nf-core bioformats2raw" version="1.0.0" profile="20.01">
+  <description>Java application to convert image file formats, including .mrxs, to an intermediate Zarr structure compatible with the OME-NGFF specification.</description>
+  <requirements>
+    <requirement type="package" version="0.9.4">bioformats2raw</requirement>
+    <container type="docker">${workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+bioformats2raw \\
+        $image \\
+        ${prefix}.ome.zarr \\
+        --max-workers $task.cpus \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bioformats2raw: \$(bioformats2raw --version |&amp; sed -n '1s/Version = //p')
+        bio-formats: \$(bioformats2raw --version |&amp; sed -n '2s/Bio-Formats version = //p')
+        ngff: \$(bioformats2raw --version |&amp; sed -n '3s/NGFF specification version = //p')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="image" format="data" label="Image"/>
+  </inputs>
+  <outputs>
+    <data name="omezarr" format="data" label="Omezarr" from_work_dir="*ome.zarr"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Java application to convert image file formats, including .mrxs, to an intermediate Zarr structure compatible with the OME-NGFF specification.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: bioformats2raw
+Container: ${workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/bioformats2raw
+]]&gt;</help>
+</tool>

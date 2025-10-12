@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_optitype" name="nf-core optitype" version="1.0.0" profile="20.01">
+  <description>Perform HLA-I typing of sequencing data</description>
+  <requirements>
+    <requirement type="package" version="1.3.5">optitype</requirement>
+    <requirement type="package" version="2.10.10">coincbc</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Create a config for OptiType on a per sample basis with task.ext.args2
+
+    #Doing it old school now
+    echo &quot;[mapping]&quot; &gt; config.ini
+    echo &quot;razers3=razers3&quot; &gt;&gt; config.ini
+    echo &quot;threads=$task.cpus&quot; &gt;&gt; config.ini
+    echo &quot;[ilp]&quot; &gt;&gt; config.ini
+    echo &quot;$args2&quot; &gt;&gt; config.ini
+    echo &quot;threads=1&quot; &gt;&gt; config.ini
+    echo &quot;[behavior]&quot; &gt;&gt; config.ini
+    echo &quot;deletebam=true&quot; &gt;&gt; config.ini
+    echo &quot;unpaired_weight=0&quot; &gt;&gt; config.ini
+    echo &quot;use_discordant=false&quot; &gt;&gt; config.ini
+
+    # Run the actual OptiType typing with args
+    OptiTypePipeline.py -i ${bam} -c config.ini --${meta.seq_type} $args --prefix $prefix --outdir $prefix
+
+    #Couldn't find a nicer way of doing this
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        optitype: \$(cat \$(which OptiTypePipeline.py) | grep -e &quot;Version:&quot; | sed -e &quot;s/Version: //g&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="hla_type" format="data" label="Hla Type" from_work_dir="${prefix}/*.tsv"/>
+    <data name="coverage_plot" format="data" label="Coverage Plot" from_work_dir="${prefix}/*.pdf"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Perform HLA-I typing of sequencing data
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: optitype
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/optitype
+]]&gt;</help>
+</tool>

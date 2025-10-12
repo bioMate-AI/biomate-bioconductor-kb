@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_immunedeconv" name="nf-core immunedeconv" version="1.0.0" profile="20.01">
+  <description>Perform immune cell deconvolution using RNA-seq data and various computational methods.</description>
+  <requirements>
+    <requirement type="package" version="2.1.2">r-immunedeconv</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+touch ${prefix}.deconvolution_results.tsv
+    touch ${prefix}.plot1_stacked_bar_chart.png
+    touch ${prefix}.plot2_points_with_facets.png
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        r-immunedeconv: \$(Rscript -e &quot;cat(as.character(packageVersion('immunedeconv')))&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input_file" format="data" label="Input File"/>
+  </inputs>
+  <outputs>
+    <data name="deconv_table" format="data" label="Deconv Table" from_work_dir="*.deconvolution_results.tsv"/>
+    <data name="deconv_plots" format="data" label="Deconv Plots" from_work_dir="*.png"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Perform immune cell deconvolution using RNA-seq data and various computational methods.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: immunedeconv
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/immunedeconv
+]]&gt;</help>
+</tool>

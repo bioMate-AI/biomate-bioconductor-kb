@@ -1,0 +1,57 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_pretextmap" name="nf-core pretextmap" version="1.0.0" profile="20.01">
+  <description>converts sam/bam/cram/pairs into genome contact map</description>
+  <requirements>
+    <requirement type="package" version="0.1.9">pretextmap</requirement>
+    <requirement type="package" version="1.17">samtools</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+if [[ $input == *.pairs.gz ]]; then
+        zcat $input | PretextMap \\
+            $args \\
+            -o ${prefix}.pretext
+    else
+        samtools \\
+            view \\
+            $args2 \\
+            $reference \\
+            -h \\
+            $input | \\
+        PretextMap \\
+            $args \\
+            -o ${prefix}.pretext
+    fi
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        pretextmap: \$(PretextMap | sed '/Version/!d; s/.*Version //')
+        samtools: \$(samtools --version | sed '1!d; s/samtools //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input" format="data" label="Input"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="pretext" format="data" label="Pretext" from_work_dir="*.pretext"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+converts sam/bam/cram/pairs into genome contact map
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: pretextmap
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/pretextmap
+]]&gt;</help>
+</tool>

@@ -1,0 +1,159 @@
+{
+  "timestamp": "2025-10-12",
+  "galaxy_tools_count": 6544,
+  "biomni": {
+    "total_functions": 258,
+    "in_galaxy": 4,
+    "missing": 254,
+    "converted": 11,
+    "in_galaxy_list": [
+      [
+        "align_sequences",
+        "Align sequences"
+      ],
+      [
+        "reverse_complement",
+        "Reverse-Complement"
+      ],
+      [
+        "reverse_complement",
+        "Reverse-Complement"
+      ],
+      [
+        "reverse_complement",
+        "Reverse-Complement"
+      ]
+    ],
+    "missing_list": [
+      "run_python_repl",
+      "read_function_source_code",
+      "download_synapse_data",
+      "execute_in_repl",
+      "analyze_circular_dichroism_spectra",
+      "analyze_rna_secondary_structure_features",
+      "analyze_protease_kinetics",
+      "analyze_enzyme_kinetics_assay",
+      "analyze_itc_binding_thermodynamics",
+      "analyze_protein_conservation",
+      "michaelis_menten",
+      "michaelis_menten",
+      "one_site_model",
+      "dose_response",
+      "analyze_ddr_network_in_cancer",
+      "analyze_cell_senescence_and_apoptosis",
+      "detect_and_annotate_somatic_mutations",
+      "detect_and_characterize_structural_variations",
+      "perform_gene_expression_nmf_analysis",
+      "analyze_copy_number_purity_ploidy_and_focal_events"
+    ]
+  },
+  "nfcore": {
+    "total_modules": 1629,
+    "in_galaxy": 484,
+    "missing": 1145,
+    "in_galaxy_list": [
+      [
+        "shasta",
+        "Shasta"
+      ],
+      [
+        "elprep/split",
+        "Split"
+      ],
+      [
+        "elprep/merge",
+        "Merge"
+      ],
+      [
+        "elprep/filter",
+        "Filter"
+      ],
+      [
+        "diamond/cluster",
+        "Cluster"
+      ],
+      [
+        "ucsc/wigtobigwig",
+        "wigtobigwig"
+      ],
+      [
+        "ucsc/bigwigaverageoverbed",
+        "bigWigAverageOverBed"
+      ],
+      [
+        "infernal/cmsearch",
+        "cmsearch"
+      ],
+      [
+        "repeatmasker/repeatmasker",
+        "RepeatMasker"
+      ],
+      [
+        "narfmap/align",
+        "align"
+      ],
+      [
+        "circexplorer2/annotate",
+        "Annotate"
+      ],
+      [
+        "vt/normalize",
+        "Normalize"
+      ],
+      [
+        "rseqc/readdistribution",
+        "Read Distribution"
+      ],
+      [
+        "rseqc/junctionsaturation",
+        "Junction Saturation"
+      ],
+      [
+        "rseqc/readduplication",
+        "Read Duplication"
+      ],
+      [
+        "rseqc/inferexperiment",
+        "Infer Experiment"
+      ],
+      [
+        "rseqc/innerdistance",
+        "Inner Distance"
+      ],
+      [
+        "rseqc/junctionannotation",
+        "Junction Annotation"
+      ],
+      [
+        "merquryfk/merquryfk",
+        "MerquryFK"
+      ],
+      [
+        "tabix/tabix",
+        "tabix"
+      ]
+    ],
+    "missing_list": [
+      "untarfiles",
+      "shapeit5/phasecommon",
+      "shapeit5/phaserare",
+      "shapeit5/ligate",
+      "shapeit5/switch",
+      "elprep/fastatoelfasta",
+      "diamond/blastp",
+      "diamond/blastx",
+      "diamond/makedb",
+      "ucsc/liftover",
+      "ucsc/gtftogenepred",
+      "ucsc/bedclip",
+      "ucsc/bedgraphtobigwig",
+      "ucsc/bedtobigbed",
+      "gangstr",
+      "chewbbaca/createschema",
+      "chewbbaca/allelecall",
+      "repeatmasker/rmouttogff3",
+      "md5sum",
+      "mobster"
+    ]
+  }
+}

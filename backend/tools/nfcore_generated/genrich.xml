@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_genrich" name="nf-core genrich" version="1.0.0" profile="20.01">
+  <description>Peak-calling for ChIP-seq and ATAC-seq enrichment experiments</description>
+  <requirements>
+    <requirement type="package" version="0.6.1">genrich</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Genrich \\
+        $args \\
+        $treatment \\
+        $control \\
+        $blacklist \\
+        -o ${prefix}.narrowPeak
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        genrich: \$(echo \$(Genrich --version 2&gt;&amp;1) | sed 's/^Genrich, version //; s/ .*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="treatment_bam" format="data" label="Treatment Bam"/>
+  </inputs>
+  <outputs>
+    <data name="peak" format="data" label="Peak" from_work_dir="*.narrowPeak"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+    <data name="bedgraph_pvalues" format="data" label="Bedgraph Pvalues" from_work_dir="*.pvalues.bedGraph"/>
+    <data name="bedgraph_pileup" format="data" label="Bedgraph Pileup" from_work_dir="*.pileup.bedGraph"/>
+    <data name="bed_intervals" format="data" label="Bed Intervals" from_work_dir="*.intervals.bed"/>
+    <data name="duplicates" format="txt" label="Duplicates" from_work_dir="*.duplicates.txt"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Peak-calling for ChIP-seq and ATAC-seq enrichment experiments
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: genrich
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/genrich
+]]&gt;</help>
+</tool>

@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_miranda" name="nf-core miranda" version="1.0.0" profile="20.01">
+  <description>miRanda is an algorithm for finding genomic targets for microRNAs</description>
+  <requirements>
+    <requirement type="package" version="3.3a">miranda</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+miranda \\
+        $mirbase \\
+        $query \\
+        $args \\
+        -out ${prefix}.out
+
+    echo &quot;miRNA\tTarget\tScore\tEnergy_KcalMol\tQuery_Start\tQuery_End\tSubject_Start\tSubject_End\tAln_len\tSubject_Identity\tQuery_Identity&quot; &gt; ${prefix}.txt
+    grep -A 1 &quot;Scores for this hit:&quot; ${prefix}.out | sort | grep &quot;&gt;&quot;  | cut -c 2- | tr ' ' '\t' &gt;&gt; ${prefix}.txt
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        miranda: \$(echo \$(miranda -v | sed -n 4p | sed 's/^.*miranda v//; s/microRNA.*\$//' ))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="query" format="data" label="Query"/>
+    <param type="data" name="mirbase" format="data" label="Mirbase"/>
+  </inputs>
+  <outputs>
+    <data name="txt" format="txt" label="Txt" from_work_dir="*.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+miRanda is an algorithm for finding genomic targets for microRNAs
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: miranda
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/miranda
+]]&gt;</help>
+</tool>

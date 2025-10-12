@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_fastqe" name="nf-core fastqe" version="1.0.0" profile="20.01">
+  <description>fastqe is a bioinformatics command line tool that uses emojis to represent and analyze genomic data.</description>
+  <requirements>
+    <requirement type="package" version="0.3.3">fastqe</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+fastqe \\
+        $args \\
+        $fastq \\
+        --output ${prefix}.tsv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        fastqe: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fastq" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+fastqe is a bioinformatics command line tool that uses emojis to represent and analyze genomic data.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: fastqe
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/fastqe
+]]&gt;</help>
+</tool>

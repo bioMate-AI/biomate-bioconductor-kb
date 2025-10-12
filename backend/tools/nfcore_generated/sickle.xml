@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_sickle" name="nf-core sickle" version="1.0.0" profile="20.01">
+  <description>A windowed adaptive trimming tool for FASTQ files using quality</description>
+  <requirements>
+    <requirement type="package" version="1.33">sickle-trim</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+sickle \\
+        se \\
+        $args \\
+        -f $reads \\
+        -t $qual_type \\
+        -o ${prefix}.se.trimmed.fastq.gz \\
+        -g \\
+    &gt;${prefix}.sickle.log
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        sickle: \$(sickle --version|awk 'NR==1{print \$3}')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="single_trimmed" format="data" label="Single Trimmed" from_work_dir="${prefix}.se.trimmed.fastq.gz"/>
+    <data name="paired_trimmed" format="data" label="Paired Trimmed" from_work_dir="${prefix}.pe{1,2}.trimmed.fastq.gz"/>
+    <data name="singleton_trimmed" format="data" label="Singleton Trimmed" from_work_dir="${prefix}.singleton.trimmed.fastq.gz"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A windowed adaptive trimming tool for FASTQ files using quality
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: sickle
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/sickle
+]]&gt;</help>
+</tool>

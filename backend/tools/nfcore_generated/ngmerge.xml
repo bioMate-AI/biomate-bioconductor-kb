@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_ngmerge" name="nf-core ngmerge" version="1.0.0" profile="20.01">
+  <description>Merging paired-end reads and removing sequencing adapters.</description>
+  <requirements>
+    <requirement type="package" version="0.3">ngmerge</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+NGmerge \\
+        -1 ${reads[0]} \\
+        -2 ${reads[1]} \\
+        -o ${prefix}.merged.fq.gz \\
+        -f ${prefix}_unstitched \\
+        -z \\
+        -n $task.cpus \\
+        $args
+
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        NGmerge: \$(echo \$(NGmerge --version 2&gt;&amp;1) | sed 's/^.*NGmerge, version //; s/ Copyright.*// ; s/: //g' ))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="merged_reads" format="data" label="Merged Reads" from_work_dir="*.merged.fq.gz"/>
+    <data name="unstitched_read1" format="data" label="Unstitched Read1" from_work_dir="*_1.fastq.gz"/>
+    <data name="unstitched_read2" format="data" label="Unstitched Read2" from_work_dir="*_2.fastq.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Merging paired-end reads and removing sequencing adapters.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: ngmerge
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/ngmerge
+]]&gt;</help>
+</tool>

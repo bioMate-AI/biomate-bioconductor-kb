@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+<tool id="biomni_track_immune_cells_under_flow" name="BioMni: Track Immune Cells Under Flow" version="1.0.0" profile="20.01">
+  <description>Track immune cells under flow conditions and classify their behaviors.</description>
+  <requirements>
+    <!-- BioMni Python function wrapper -->
+    <requirement type="package">matplotlib</requirement>
+    <requirement type="package">numpy</requirement>
+    <requirement type="package">pandas</requirement>
+    <requirement type="package">scipy</requirement>
+    <requirement type="package">biomni</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python '$__tool_directory__/wrapper.py' --image_sequence_path 'image_sequence_path' --output_dir 'output_dir' --pixel_size_um 'pixel_size_um' --time_interval_sec 'time_interval_sec' --flow_direction 'flow_direction'
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="image_sequence_path" label="Image Sequence Path" help=""/>
+    <param type="text" name="output_dir" label="Output Dir" help="" value=""/>
+    <param type="text" name="pixel_size_um" label="Pixel Size Um" help="" value=""/>
+    <param type="text" name="time_interval_sec" label="Time Interval Sec" help="" value=""/>
+    <param type="text" name="flow_direction" label="Flow Direction" help="" value=""/>
+  </inputs>
+  <outputs>
+    <data name="output" format="auto" label="track_immune_cells_under_flow output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Track immune cells under flow conditions and classify their behaviors.
+
+Args:
+    image_sequence_path (str): Path to image sequence directory or video file.
+    output_dir (str): Directory to save output files.
+    pixel_size_um (float): Pixel size in micrometers.
+    time_interval_sec (float): Time interval between frames in seconds.
+    flow_direction (str): Direction of flow ('right', 'left', 'up', 'down').
+
+Returns:
+    str: Log of the analysis process.
+
+**Source**
+
+This tool wraps the BioMni function: `track_immune_cells_under_flow`
+
+Module: immunology
+
+**BioMni**
+
+BioMni is a Python library for biological data analysis.
+For more information: https://github.com/batmen-lab/BioMni
+
+**Requirements**
+
+This tool requires the following conda packages:
+matplotlib, numpy, pandas, scipy
+]]&gt;</help>
+</tool>

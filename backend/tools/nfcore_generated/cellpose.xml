@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_cellpose" name="nf-core cellpose" version="1.0.0" profile="20.01">
+  <description>cellpose segments cells in images</description>
+  <requirements>
+    <container type="docker">docker.io/biocontainers/cellpose:3.1.0_cv1</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+export OMP_NUM_THREADS=${task.cpus}
+    export MKL_NUM_THREADS=${task.cpus}
+    cellpose \\
+        --image_path $image \\
+        --save_tif \\
+        $model_command \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        cellpose: \$(cellpose --version | awk 'NR==2 {print \$3}')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="image" format="data" label="Image"/>
+    <param type="data" name="model" format="data" label="Model"/>
+  </inputs>
+  <outputs>
+    <data name="mask" format="data" label="Mask" from_work_dir="*masks.tif"/>
+    <data name="flows" format="data" label="Flows" from_work_dir="*flows.tif"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+cellpose segments cells in images
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: cellpose
+Container: docker.io/biocontainers/cellpose:3.1.0_cv1
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/cellpose
+]]&gt;</help>
+</tool>

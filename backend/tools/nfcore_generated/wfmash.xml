@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_wfmash" name="nf-core wfmash" version="1.0.0" profile="20.01">
+  <description>a pangenome-scale aligner</description>
+  <requirements>
+    <requirement type="package" version="0.13.0">wfmash</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+wfmash \\
+        ${fasta_gz} \\
+        $query \\
+        $query_list \\
+        --threads $task.cpus \\
+        $paf_mappings \\
+        $args &gt; ${prefix}.paf
+
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        wfmash: \$(echo \$(wfmash --version 2&gt;&amp;1) | cut -f 1 -d '-' | cut -f 2 -d 'v')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta_gz" format="data" label="Fasta Gz"/>
+    <param type="text" name="query_self" label="Query Self" value=""/>
+    <param type="data" name="fasta_query_list" format="data" label="Fasta Query List"/>
+  </inputs>
+  <outputs>
+    <data name="paf" format="data" label="Paf" from_work_dir="*.paf"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+a pangenome-scale aligner
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: wfmash
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/wfmash
+]]&gt;</help>
+</tool>

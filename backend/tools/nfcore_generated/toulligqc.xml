@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_toulligqc" name="nf-core toulligqc" version="1.0.0" profile="20.01">
+  <description>A post sequencing QC tool for Oxford Nanopore sequencers</description>
+  <requirements>
+    <requirement type="package" version="2.7.1">toulligqc</requirement>
+    <requirement type="package" version="5.24.0">plotly</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+toulligqc \\
+        $input_file \\
+        --output-directory ${prefix} \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        toulligqc: \$(toulligqc --version)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="ontfile" format="data" label="Ontfile"/>
+  </inputs>
+  <outputs>
+    <data name="report_data" format="data" label="Report Data" from_work_dir="*/*.data"/>
+    <data name="report_html" format="html" label="Report Html" from_work_dir="*/*.html"/>
+    <data name="plots_html" format="html" label="Plots Html" from_work_dir="*/images/*.html"/>
+    <data name="plotly_js" format="data" label="Plotly Js" from_work_dir="*/images/plotly.min.js"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A post sequencing QC tool for Oxford Nanopore sequencers
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: toulligqc
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/toulligqc
+]]&gt;</help>
+</tool>

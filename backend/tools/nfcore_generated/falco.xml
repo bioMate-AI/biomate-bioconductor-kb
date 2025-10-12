@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_falco" name="nf-core falco" version="1.0.0" profile="20.01">
+  <description>Run falco on sequenced reads</description>
+  <requirements>
+    <requirement type="package" version="1.2.1">falco</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+falco $args --threads $task.cpus ${reads} -D ${prefix}_fastqc_data.txt -S ${prefix}_summary.txt -R ${prefix}_report.html
+
+        cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+        &quot;${task.process}&quot;:
+            falco:\$( falco --version | sed -e &quot;s/falco//g&quot; )
+        END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="html" format="html" label="Html" from_work_dir="*.html"/>
+    <data name="txt" format="txt" label="Txt" from_work_dir="*.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Run falco on sequenced reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: falco
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/falco
+]]&gt;</help>
+</tool>

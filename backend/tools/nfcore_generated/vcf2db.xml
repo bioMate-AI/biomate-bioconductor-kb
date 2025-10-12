@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_vcf2db" name="nf-core vcf2db" version="1.0.0" profile="20.01">
+  <description>A tool to create a Gemini-compatible DB file from an annotated VCF</description>
+  <requirements>
+    <requirement type="package" version="0.20.9">cyvcf2</requirement>
+    <requirement type="package" version="2020.02.24">vcf2db</requirement>
+    <requirement type="package" version="2.7">python</requirement>
+    <requirement type="package" version="0.5.4">python-snappy</requirement>
+    <requirement type="package" version="1.1.8">snappy</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+vcf2db.py \\
+        $vcf \\
+        $ped \\
+        ${prefix}.db \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        vcf2db: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="vcf" format="data" label="Vcf"/>
+  </inputs>
+  <outputs>
+    <data name="db" format="data" label="Db" from_work_dir="*.db"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A tool to create a Gemini-compatible DB file from an annotated VCF
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: vcf2db
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/vcf2db
+]]&gt;</help>
+</tool>

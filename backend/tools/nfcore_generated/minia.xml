@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_minia" name="nf-core minia" version="1.0.0" profile="20.01">
+  <description>Minia is a short-read assembler based on a de Bruijn graph</description>
+  <requirements>
+    <requirement type="package" version="3.2.6">minia</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+echo &quot;${read_list}&quot; | sed 's/,/\\n/g' &gt; input_files.txt
+    minia \\
+        $args \\
+        -nb-cores $task.cpus \\
+        -in input_files.txt \\
+        -out $prefix
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        minia: \$(echo \$(minia --version 2&gt;&amp;1 | grep Minia) | sed 's/^.*Minia version //;')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="contigs" format="data" label="Contigs" from_work_dir="*.contigs.fa"/>
+    <data name="unitigs" format="data" label="Unitigs" from_work_dir="*.unitigs.fa"/>
+    <data name="h5" format="data" label="H5" from_work_dir="*.h5"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Minia is a short-read assembler based on a de Bruijn graph
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: minia
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/minia
+]]&gt;</help>
+</tool>

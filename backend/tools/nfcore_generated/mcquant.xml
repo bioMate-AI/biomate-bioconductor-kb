@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_mcquant" name="nf-core mcquant" version="1.0.0" profile="20.01">
+  <description>Mcquant extracts single-cell data given a multi-channel image and a segmentation mask.</description>
+  <requirements>
+    <container type="docker">nf-core/quantification:1.5.4</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python /app/CommandSingleCellExtraction.py \
+        --masks $mask \
+        --image $image \
+        --channel_names $markerfile \
+        --output . \
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        mcquant: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="image" format="data" label="Image"/>
+    <param type="data" name="mask" format="data" label="Mask"/>
+    <param type="data" name="markerfile" format="data" label="Markerfile"/>
+  </inputs>
+  <outputs>
+    <data name="csv" format="data" label="Csv" from_work_dir="*.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Mcquant extracts single-cell data given a multi-channel image and a segmentation mask.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: mcquant
+Container: nf-core/quantification:1.5.4
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/mcquant
+]]&gt;</help>
+</tool>

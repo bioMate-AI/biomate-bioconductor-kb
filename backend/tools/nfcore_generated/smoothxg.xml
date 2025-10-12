@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_smoothxg" name="nf-core smoothxg" version="1.0.0" profile="20.01">
+  <description>Linearize and simplify variation graph in GFA format using blocked partial order alignment</description>
+  <requirements>
+    <requirement type="package" version="0.8.0">smoothxg</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+smoothxg \\
+        --threads=$task.cpus \\
+        --gfa-in=${gfa} \\
+        --smoothed-out=${prefix}.smoothxg.gfa \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        smoothxg: \$(smoothxg --version 2&gt;&amp;1 | cut -f 1 -d '-' | cut -f 2 -d 'v')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="gfa" format="data" label="Gfa"/>
+  </inputs>
+  <outputs>
+    <data name="gfa" format="data" label="Gfa" from_work_dir="*smoothxg.gfa"/>
+    <data name="maf" format="data" label="Maf" from_work_dir="*.maf"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Linearize and simplify variation graph in GFA format using blocked partial order alignment
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: smoothxg
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/smoothxg
+]]&gt;</help>
+</tool>

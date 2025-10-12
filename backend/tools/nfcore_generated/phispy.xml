@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_phispy" name="nf-core phispy" version="1.0.0" profile="20.01">
+  <description>Predict prophages in bacterial genomes</description>
+  <requirements>
+    <requirement type="package" version="4.2.21">phispy</requirement>
+    <requirement type="package" version="1.81">biopython</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+PhiSpy.py \\
+        $args \\
+        --threads $task.cpus \\
+        -p $prefix \\
+        -o . \\
+        $gbk
+
+    mv ${prefix}_prophage_coordinates.tsv ${prefix}.tsv
+    mv ${prefix}_${gbk} ${prefix}${gbk_extension}
+    mv ${prefix}_phispy.log ${prefix}.log
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        PhiSpy: \$(echo \$(PhiSpy.py --version 2&gt;&amp;1))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="gbk" format="data" label="Gbk"/>
+  </inputs>
+  <outputs>
+    <data name="coordinates" format="data" label="Coordinates" from_work_dir="${prefix}.tsv"/>
+    <data name="gbk" format="data" label="Gbk" from_work_dir="${prefix}.gb*"/>
+    <data name="log" format="txt" label="Log" from_work_dir="${prefix}.log"/>
+    <data name="information" format="data" label="Information" from_work_dir="${prefix}_prophage_information.tsv"/>
+    <data name="bacteria_fasta" format="data" label="Bacteria Fasta" from_work_dir="${prefix}_bacteria.fasta"/>
+    <data name="bacteria_gbk" format="data" label="Bacteria Gbk" from_work_dir="${prefix}_bacteria.gbk"/>
+    <data name="phage_fasta" format="data" label="Phage Fasta" from_work_dir="${prefix}_phage.fasta"/>
+    <data name="phage_gbk" format="data" label="Phage Gbk" from_work_dir="${prefix}_phage.gbk"/>
+    <data name="prophage_gff" format="data" label="Prophage Gff" from_work_dir="${prefix}_prophage.gff3"/>
+    <data name="prophage_tbl" format="data" label="Prophage Tbl" from_work_dir="${prefix}_prophage.tbl"/>
+    <data name="prophage_tsv" format="data" label="Prophage Tsv" from_work_dir="${prefix}_prophage.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Predict prophages in bacterial genomes
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: phispy
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/phispy
+]]&gt;</help>
+</tool>

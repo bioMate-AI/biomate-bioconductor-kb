@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_basicpy" name="nf-core basicpy" version="1.0.0" profile="20.01">
+  <description>BaSiCPy is a python package for background and shading correction of optical microscopy images. It is developed based on the Matlab version of BaSiC tool with major improvements in the algorithm.</description>
+  <requirements>
+    <container type="docker">docker.io/labsyspharm/basicpy-docker-mcmicro:1.2.0-patch2</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+/opt/main.py -i $image -o . $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        basicpy: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="image" format="data" label="Image"/>
+  </inputs>
+  <outputs>
+    <data name="profiles" format="data" label="Profiles" from_work_dir="*-dfp.tiff"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+BaSiCPy is a python package for background and shading correction of optical microscopy images. It is developed based on the Matlab version of BaSiC tool with major improvements in the algorithm.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: basicpy
+Container: docker.io/labsyspharm/basicpy-docker-mcmicro:1.2.0-patch2
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/basicpy
+]]&gt;</help>
+</tool>

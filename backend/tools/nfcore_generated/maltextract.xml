@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_maltextract" name="nf-core maltextract" version="1.0.0" profile="20.01">
+  <description>Tool for evaluation of MALT results for true positives of ancient metagenomic taxonomic screening</description>
+  <requirements>
+    <requirement type="package" version="0.35">hops</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+MaltExtract \\
+        -Xmx${task.memory.toGiga()}g \\
+        -p $task.cpus \\
+        -i ${rma6.join(' ')} \\
+        -t $taxon_list \\
+        -r $ncbi_dir \\
+        -o results/ \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        maltextract: \$(MaltExtract --help | head -n 2 | tail -n 1 | sed 's/MaltExtract version//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="rma6" format="data" label="Rma6"/>
+  </inputs>
+  <outputs>
+    <data name="results" format="data" label="Results" from_work_dir="results"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Tool for evaluation of MALT results for true positives of ancient metagenomic taxonomic screening
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: maltextract
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/maltextract
+]]&gt;</help>
+</tool>

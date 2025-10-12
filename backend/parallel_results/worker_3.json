@@ -1,0 +1,504 @@
+[
+  {
+    "dataset_key": "biomni_data_lake_genetic_interaction_parquet",
+    "dataset_name": "genetic_interaction.parquet",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_go_plus_json",
+    "dataset_name": "go-plus.json",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool pulls data from Monarch Initiative BioLink API and works with ontology-related queries (taxon, phenotype, disease categories). The go-plus.json ontology file could serve as a reference for mapping or enriching biological entity annotations in functional enrichment contexts.",
+        "parameter_name": "ontology_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "Retrieves biological associations from BioLink API. GO ontology data is commonly used to annotate and interpret biological associations, particularly for functional enrichment analysis of gene-phenotype or gene-disease relationships.",
+        "parameter_name": "ontology_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.73,
+        "reasoning": "Fetches bioentity associations from Monarch Initiative. GO ontology is fundamental for annotating biological entities and their functional associations, making it relevant for enrichment and pathway analysis contexts.",
+        "parameter_name": "ontology_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.78,
+        "reasoning": "Retrieves gene associations from BioLink API. GO ontology (go-plus.json) is directly relevant for gene functional annotation, enrichment analysis, and pathway analysis - core use cases for this dataset.",
+        "parameter_name": "ontology_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Pulls disease associations from Monarch Initiative. GO ontology can be used to annotate disease-related genes and pathways, supporting functional enrichment in disease context analysis.",
+        "parameter_name": "ontology_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "This tool explicitly performs over-representation analysis on bioentity sets for phenotype/function categories. GO ontology (go-plus.json) is the standard reference for functional enrichment and over-representation analysis.",
+        "parameter_name": "ontology_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGet_Object",
+        "name": "Repository Actions\nGet Object",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Retrieves objects from Monarch Initiative BioLink API with rendering of associations. GO ontology could serve as reference data for annotating and interpreting biological objects and their functional associations.",
+        "parameter_name": "ontology_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.76,
+        "reasoning": "Retrieves phenotype-gene associations. GO ontology is commonly used to functionally annotate genes associated with phenotypes and perform enrichment analysis on phenotype-related gene sets.",
+        "parameter_name": "ontology_reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_gtex_tissue_gene_tpm_parquet",
+    "dataset_name": "gtex_tissue_gene_tpm.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/spficklin/aurora_wgcna/Repository_Actions\nAurora_Galaxy_WGCNA",
+        "name": "Repository Actions\nAurora Galaxy WGCNA",
+        "category": "RNA",
+        "confidence": 0.85,
+        "reasoning": "WGCNA analyzes gene expression data across samples. The dataset contains gene expression (TPM) across tissues, which is exactly the type of expression matrix WGCNA uses. Parquet can be converted to the required matrix format.",
+        "parameter_name": "Gene expression data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cemitool/Repository_Actions\nCEMiTool",
+        "name": "Repository Actions\nCEMiTool",
+        "category": "RNA",
+        "confidence": 0.82,
+        "reasoning": "CEMiTool performs co-expression module analysis on expression matrices. The GTEx tissue-gene TPM data provides expression values across tissues that can serve as an expression reference. The tool accepts expression matrices with genes and samples.",
+        "parameter_name": "Expression matrix"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/genomic_super_signature/Repository_Actions\nGenomicSuperSignature",
+        "name": "Repository Actions\nGenomicSuperSignature",
+        "category": "RNA",
+        "confidence": 0.75,
+        "reasoning": "GenomicSuperSignature works with gene expression count/TPM matrices for signature analysis. The GTEx dataset provides tissue-specific gene expression (TPM values) that could serve as a reference expression atlas for comparison.",
+        "parameter_name": "Tabular count matrix"
+      }
+    ],
+    "total_candidates": 389,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_gwas_catalog_pkl",
+    "dataset_name": "gwas_catalog.pkl",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool retrieves associations from Monarch Initiative BioLink API. GWAS catalog data contains genetic associations (variant-trait-pvalue-odds_ratio) which could be used as reference data for querying or filtering association results. The tool works with association data types which aligns with GWAS catalog content.",
+        "parameter_name": "reference_associations"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nVariant_Associations",
+        "name": "Repository Actions\nVariant Associations",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "This tool specifically retrieves variant associations from Monarch Initiative. GWAS catalog contains variant-trait associations with statistical measures (pvalue, odds_ratio), making it highly relevant as a reference database for variant association queries. Strong domain alignment with population genetics and genetic associations.",
+        "parameter_name": "reference_gwas"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "Tool retrieves gene associations from BioLink API. GWAS catalog data includes genetic associations that could serve as reference for gene-level association queries. The variant data in GWAS can be mapped to genes, making this compatible for gene association analysis.",
+        "parameter_name": "reference_associations"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.78,
+        "reasoning": "This tool retrieves disease associations. GWAS catalog contains trait associations including disease phenotypes with genetic variants. The complex traits in GWAS data often include diseases, making this a good match for disease association queries using GWAS as reference.",
+        "parameter_name": "reference_gwas_catalog"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.8,
+        "reasoning": "Tool retrieves phenotype-gene associations from Monarch Initiative. GWAS catalog contains variant-trait (phenotype) associations with statistical evidence. This data could serve as a reference database for phenotype-gene association queries, especially for complex traits analysis.",
+        "parameter_name": "reference_phenotype_associations"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_hp_obo",
+    "dataset_name": "hp.obo",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "This tool pulls data from Monarch Initiative BioLink API for phenotype and disease data. The hp.obo (Human Phenotype Ontology) file is directly relevant for phenotype annotation and disease phenotypes, which aligns with the tool's object categories (phenotype, disease). The OBO format is a standard ontology format that could be used as reference data for phenotype-related queries.",
+        "parameter_name": "Reference ontology for phenotype/disease annotation"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.82,
+        "reasoning": "This Monarch Initiative tool retrieves associations data. Given that hp.obo contains phenotype ontology data used for disease phenotypes, it could serve as a reference for validating or annotating phenotype-disease associations retrieved from the API.",
+        "parameter_name": "Phenotype ontology reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.8,
+        "reasoning": "This Monarch Initiative tool retrieves bioentity associations. The Human Phenotype Ontology (hp.obo) is commonly used to annotate bioentities with phenotype information, making it a suitable reference for phenotype-based bioentity associations.",
+        "parameter_name": "Phenotype ontology reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.88,
+        "reasoning": "This tool specifically retrieves disease associations from Monarch Initiative. The hp.obo file is the Human Phenotype Ontology, which is extensively used for disease phenotype annotation. This is a strong match for disease-phenotype association analysis.",
+        "parameter_name": "Disease phenotype ontology reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGet_Object",
+        "name": "Repository Actions\nGet Object",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This Monarch Initiative tool retrieves objects by ID with type specification. The hp.obo ontology could serve as a reference for resolving phenotype object IDs and their relationships in the context of disease phenotypes.",
+        "parameter_name": "Ontology reference for object resolution"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.9,
+        "reasoning": "This tool retrieves phenotype-gene associations from Monarch Initiative. The hp.obo (Human Phenotype Ontology) file is the primary ontology for phenotype annotation and is directly relevant for phenotype-gene association analysis. This is a very strong match.",
+        "parameter_name": "Phenotype ontology reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_kg_csv",
+    "dataset_name": "kg.csv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool pulls data from Monarch Initiative BioLink API which deals with biological knowledge graphs (phenotype, disease relationships). The CSV with id/name/value columns could serve as input for filtering or mapping entities in bulk operations involving biomedical knowledge graphs.",
+        "parameter_name": "reference mapping file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "Tool retrieves associations (subject-object relationships) from BioLink API. A knowledge graph CSV could provide reference mappings for entity IDs or serve as a lookup table for relationship discovery and network analysis.",
+        "parameter_name": "entity reference table"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nVariant_Associations",
+        "name": "Repository Actions\nVariant Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Retrieves variant associations from BioLink API. The knowledge graph CSV could serve as a reference for mapping variant IDs to names/values or for filtering association results based on predefined relationships.",
+        "parameter_name": "variant mapping reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Pulls substance associations from BioLink API. The knowledge graph CSV could provide reference mappings for substance entities or serve as a lookup table for relationship discovery in chemical-biological networks.",
+        "parameter_name": "substance reference table"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Retrieves bioentity associations from BioLink API. A knowledge graph CSV with id/name/value structure aligns well with bioentity relationship data and could serve as reference for entity mapping or filtering.",
+        "parameter_name": "bioentity reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Fetches gene associations from BioLink API. The knowledge graph CSV could provide reference mappings for gene IDs or serve as a lookup table for gene relationship networks and association filtering.",
+        "parameter_name": "gene reference table"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Retrieves disease associations from BioLink API. The knowledge graph CSV could serve as reference for disease entity mappings or for filtering association results in disease network analysis.",
+        "parameter_name": "disease reference table"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Performs over-representation analysis on bioentity sets. A knowledge graph CSV could provide reference entity sets or background populations for statistical comparison in network enrichment analysis.",
+        "parameter_name": "reference entity set"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSearch_Operations",
+        "name": "Repository Actions\nSearch Operations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Searches Monarch Initiative BioLink API. The knowledge graph CSV could serve as a reference lookup table for search term mapping or for filtering/annotating search results with additional relationship data.",
+        "parameter_name": "search reference table"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGenotype_Associations",
+        "name": "Repository Actions\nGenotype Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Retrieves genotype associations from BioLink API. The knowledge graph CSV could provide reference mappings for genotype entities or serve as lookup for relationship discovery in genotype networks.",
+        "parameter_name": "genotype reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGet_Object",
+        "name": "Repository Actions\nGet Object",
+        "category": "Data Source",
+        "confidence": 0.67,
+        "reasoning": "Retrieves objects from BioLink API with option to render associations. A knowledge graph CSV could serve as reference for object ID mapping or for enriching retrieved objects with additional relationship metadata.",
+        "parameter_name": "object reference table"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Retrieves phenotype-gene associations from BioLink API. The knowledge graph CSV could provide reference mappings for phenotype or gene entities in network analysis and relationship discovery.",
+        "parameter_name": "phenotype-gene reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_marker_celltype_parquet",
+    "dataset_name": "marker_celltype.parquet",
+    "compatible_tools": [],
+    "total_candidates": 0,
+    "validated": 0
+  },
+  {
+    "dataset_key": "biomni_data_lake_miRDB_v6_0_results_parquet",
+    "dataset_name": "miRDB_v6.0_results.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/aresite2/Repository_Actions\nGet_motifs_from_AREsite2",
+        "name": "Repository Actions\nGet motifs from AREsite2",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "AREsite2 retrieves RNA regulatory motif information. The miRDB dataset contains miRNA-target interactions which could be used to filter or annotate motif results, though the tool primarily uses gene IDs as input. Parquet format would need conversion but the biological domain aligns.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.62,
+        "reasoning": "This tool retrieves phenotype-gene associations from BioLink API. The miRDB dataset contains miRNA-target gene relationships that could serve as a reference for filtering or annotating gene associations in post-transcriptional regulation contexts.",
+        "parameter_name": "reference_data"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_miRTarBase_MicroRNA_Target_Sites_parquet",
+    "dataset_name": "miRTarBase_MicroRNA_Target_Sites.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/aresite2/Repository_Actions\nGet_motifs_from_AREsite2",
+        "name": "Repository Actions\nGet motifs from AREsite2",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "AREsite2 retrieves RNA regulatory motifs (ARE elements). While it doesn't directly use miRNA data, miRNA target sites and ARE motifs are both RNA regulatory elements. The parquet file could potentially be used as a reference for cross-validation or filtering of regulatory sites, though this is a secondary use case.",
+        "parameter_name": "reference_regulatory_sites"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/dorina/Repository_Actions\nDoRiNA_Search",
+        "name": "Repository Actions\nDoRiNA Search",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "DoRiNA (Database of RNA Interactions) is specifically designed for RNA-protein and miRNA-target interactions. This tool searches for regulatory RNA binding sites and miRNA targets, making the miRTarBase dataset highly relevant as a reference database for miRNA target site validation or filtering.",
+        "parameter_name": "mirna_target_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rekado/dorina/Repository_Actions\nDoRiNA_Search",
+        "name": "Repository Actions\nDoRiNA Search",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "DoRiNA (Database of RNA Interactions) is specifically designed for RNA-protein and miRNA-target interactions. This tool searches for regulatory RNA binding sites and miRNA targets, making the miRTarBase dataset highly relevant as a reference database for miRNA target site validation or filtering.",
+        "parameter_name": "mirna_target_reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_miRTarBase_microRNA_target_interaction_parquet",
+    "dataset_name": "miRTarBase_microRNA_target_interaction.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/aresite2/Repository_Actions\nGet_motifs_from_AREsite2",
+        "name": "Repository Actions\nGet motifs from AREsite2",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "AREsite2 provides RNA regulatory motif data. The miRTarBase dataset contains miRNA-target interactions which could be used to filter or annotate motif searches for genes targeted by miRNAs. The tool searches for motifs in genes, and the dataset provides target gene information.",
+        "parameter_name": "Gene ID to search for"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "This tool retrieves gene associations from BioLink API. The miRTarBase dataset contains gene-level information (target_gene column) and could serve as a reference database for miRNA-gene regulatory associations, which are a type of bioentity association.",
+        "parameter_name": "Gene"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Tool retrieves phenotype-gene associations. The miRTarBase dataset provides miRNA-target gene interactions which represent regulatory associations. This could be used as reference data for understanding gene regulation in phenotype contexts.",
+        "parameter_name": "Phenotype ID or Taxon ID"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_miRTarBase_microRNA_target_interaction_pubmed_abtract_txt",
+    "dataset_name": "miRTarBase_microRNA_target_interaction_pubmed_abtract.txt",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/aresite2/Repository_Actions\nGet_motifs_from_AREsite2",
+        "name": "Repository Actions\nGet motifs from AREsite2",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool retrieves RNA regulatory motif information. The miRTarBase dataset contains microRNA-target interactions which could be used to cross-reference with ARE motifs. The tool accepts gene IDs and the dataset contains target_gene information that could be queried.",
+        "parameter_name": "Gene ID to search for"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/dorina/Repository_Actions\nDoRiNA_Search",
+        "name": "Repository Actions\nDoRiNA Search",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "DoRiNA (Database of RNA Interactions in post-transcriptional regulation) is directly related to RNA regulation. The miRTarBase dataset containing microRNA-target interactions would be highly relevant for DoRiNA searches as reference data for RNA binding sites and regulatory interactions.",
+        "parameter_name": "Reference database parameter"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rekado/dorina/Repository_Actions\nDoRiNA_Search",
+        "name": "Repository Actions\nDoRiNA Search",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "DoRiNA (Database of RNA Interactions in post-transcriptional regulation) is directly related to RNA regulation. The miRTarBase dataset containing microRNA-target interactions would be highly relevant for DoRiNA searches as reference data for RNA binding sites and regulatory interactions.",
+        "parameter_name": "Reference database parameter"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_mousemine_m1_positional_geneset_parquet",
+    "dataset_name": "mousemine_m1_positional_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool pulls data from Monarch Initiative BioLink API and works with biological entity data. The dataset contains gene-related information (mousemine suggests mouse genes) with id/name/value structure that could serve as reference data for querying biological entities. The parquet format could be converted/used as reference input.",
+        "parameter_name": "Reference gene list or entity mapping"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Similar to Bulk Operations, this tool queries biological associations from BioLink API. A mouse gene positional dataset with id/name/value could serve as reference data for mapping subjects/objects in association queries.",
+        "parameter_name": "Gene reference mapping"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool retrieves bioentity associations from Monarch Initiative. The mousemine geneset data could serve as a reference list of bioentities (genes) for querying associations, with the id/name/value structure providing entity identifiers.",
+        "parameter_name": "Bioentity reference list"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "This tool specifically works with gene associations from BioLink API. A mousemine positional geneset is directly relevant as a gene reference database, providing gene IDs and names that could be used to query associations.",
+        "parameter_name": "Gene reference database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "This tool performs over-representation analysis on bioentity sets. The mousemine geneset with id/name/value structure could serve as a reference gene set or background set for statistical enrichment analysis.",
+        "parameter_name": "Reference gene set or background"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "This tool retrieves phenotype-gene associations with taxon filtering. The mousemine dataset (mouse genes) could serve as a reference gene list for filtering or mapping phenotype associations in mouse (NCBITaxon:10090).",
+        "parameter_name": "Reference gene list"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  }
+]

@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_fast2q" name="nf-core fast2q" version="1.0.0" profile="20.01">
+  <description>A program that counts sequence occurrences in FASTQ files.</description>
+  <requirements>
+    <requirement type="package" version="2.7.2">fast2q</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+export MPLCONFIGDIR=\$PWD
+    2fast2q \\
+        -c \\
+        --o ./ \\
+        --fn ${prefix} \\
+        --cp ${task.cpus} \\
+        $input_file \\
+        $library_file \\
+        $args
+
+    mv **/${prefix}* .
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    ${task.process}:
+        2FAST2Q version: \$(2fast2q -v | grep 'Version:' | sed 's/Version: //g')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fastq" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="library" format="data" label="Library"/>
+  </inputs>
+  <outputs>
+    <data name="count_matrix" format="data" label="Count Matrix" from_work_dir="${prefix}.csv"/>
+    <data name="stats" format="data" label="Stats" from_work_dir="${prefix}_stats.csv"/>
+    <data name="distribution_plot" format="data" label="Distribution Plot" from_work_dir="${prefix}_distribution_plot.png"/>
+    <data name="reads_plot" format="data" label="Reads Plot" from_work_dir="${prefix}_reads_plot.png"/>
+    <data name="reads_plot_percentage" format="data" label="Reads Plot Percentage" from_work_dir="${prefix}_reads_plot_percentage.png"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A program that counts sequence occurrences in FASTQ files.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: fast2q
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/fast2q
+]]&gt;</help>
+</tool>

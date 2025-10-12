@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_fastqdl" name="nf-core fastqdl" version="1.0.0" profile="20.01">
+  <description>Download FASTQ files from SRA or ENA repositories.</description>
+  <requirements>
+    <requirement type="package" version="3.0.1">fastq-dl</requirement>
+    <requirement type="package" version="2.6.2">legacy-cgi</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+fastq-dl \\
+        ${args} \\
+        --prefix ${prefix} \\
+        --accession ${accession} \\
+        --cpus ${task.cpus} \\
+        --outdir .
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        fastq-dl: \$(fastq-dl --version |&amp; sed 's/.* //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="fastq" format="data" label="Fastq" from_work_dir="*.fastq.gz"/>
+    <data name="runinfo" format="data" label="Runinfo" from_work_dir="*-run-info.tsv"/>
+    <data name="runmergers" format="data" label="Runmergers" from_work_dir="*-run-mergers.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Download FASTQ files from SRA or ENA repositories.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: fastqdl
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/fastqdl
+]]&gt;</help>
+</tool>

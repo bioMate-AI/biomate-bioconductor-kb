@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_thermorawfileparser" name="nf-core thermorawfileparser" version="1.0.0" profile="20.01">
+  <description>Parses a Thermo RAW file containing mass spectra to an open file format</description>
+  <requirements>
+    <requirement type="package" version="1.4.5">thermorawfileparser</requirement>
+    <requirement type="package" version="6.12.0.90">mono</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+ThermoRawFileParser.sh \\
+        -i $raw \\
+        -b ${prefix}.${suffix} \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        thermorawfileparser: \$(ThermoRawFileParser.sh --version)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="raw" format="data" label="Raw"/>
+  </inputs>
+  <outputs>
+    <data name="spectra" format="data" label="Spectra" from_work_dir="*.{mzML,mzML.gz,mgf,mgf.gz,parquet,parquet.gz}"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Parses a Thermo RAW file containing mass spectra to an open file format
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: thermorawfileparser
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/thermorawfileparser
+]]&gt;</help>
+</tool>

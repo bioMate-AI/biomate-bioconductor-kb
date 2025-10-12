@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_pycoqc" name="nf-core pycoqc" version="1.0.0" profile="20.01">
+  <description>write your description here</description>
+  <requirements>
+    <requirement type="package" version="2.5.2">pycoqc</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+pycoQC \\
+        $args \\
+        -f $summary \\
+        -o ${prefix}.html \\
+        -j ${prefix}.json
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        pycoqc: \$(pycoQC --version 2&gt;&amp;1 | sed 's/^.*pycoQC v//; s/ .*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="summary" format="data" label="Summary"/>
+  </inputs>
+  <outputs>
+    <data name="html" format="html" label="Html" from_work_dir="*.html"/>
+    <data name="json" format="data" label="Json" from_work_dir="*.json"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+write your description here
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: pycoqc
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/pycoqc
+]]&gt;</help>
+</tool>

@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_qcat" name="nf-core qcat" version="1.0.0" profile="20.01">
+  <description>Demultiplexer for Nanopore samples</description>
+  <requirements>
+    <requirement type="package" version="1.1.0">qcat</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+## Unzip fastq file
+    ## qcat doesn't support zipped files yet
+    FILE=$reads
+    if [[ \$FILE == *.gz ]]
+    then
+        zcat $reads &gt; unzipped.fastq
+        FILE=unzipped.fastq
+    fi
+
+    qcat \\
+        -f \$FILE \\
+        -b ./fastq \\
+        --kit $barcode_kit
+
+    ## Zip fastq files
+    gzip fastq/*
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        qcat: \$(qcat --version | sed 's/^.*qcat //; s/ .*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="reads" format="data" label="Reads" from_work_dir="fastq/*.fastq.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Demultiplexer for Nanopore samples
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: qcat
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/qcat
+]]&gt;</help>
+</tool>

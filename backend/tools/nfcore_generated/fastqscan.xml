@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_fastqscan" name="nf-core fastqscan" version="1.0.0" profile="20.01">
+  <description>FASTQ summary statistics in JSON format</description>
+  <requirements>
+    <requirement type="package" version="0.4.4">fastq-scan</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+zcat $reads | \\
+        fastq-scan \\
+        $args &gt; ${prefix}.json
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        fastqscan: \$( echo \$(fastq-scan -v 2&gt;&amp;1) | sed 's/^.*fastq-scan //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="json" format="data" label="Json" from_work_dir="*.json"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+FASTQ summary statistics in JSON format
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: fastqscan
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/fastqscan
+]]&gt;</help>
+</tool>

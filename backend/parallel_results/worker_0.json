@@ -1,0 +1,342 @@
+[
+  {
+    "dataset_key": "biomni_data_lake_BindingDB_All_202409_tsv",
+    "dataset_name": "BindingDB_All_202409.tsv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/align_it/Repository_Actions\nPharmacophore_alignment",
+        "name": "Repository Actions\nPharmacophore alignment",
+        "category": "Computational chemistry",
+        "confidence": 0.65,
+        "reasoning": "Tool performs pharmacophore-based screening against a database of molecules. BindingDB contains ligand-target binding data that could serve as a reference database for compound screening, though the tool expects molecular structures rather than tabular binding data directly.",
+        "parameter_name": "database of molecules"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/autodock_vina/Repository_Actions\nVINA_Docking",
+        "name": "Repository Actions\nVINA Docking",
+        "category": "Computational chemistry",
+        "confidence": 0.7,
+        "reasoning": "Molecular docking tool for drug discovery. BindingDB data could be used to validate docking results or filter compounds based on known binding affinities, though the tool primarily needs structure files. The binding affinity data (Ki, Kd, IC50) aligns with docking validation use cases.",
+        "parameter_name": "reference data for validation"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/luis/ball/Repository_Actions\nBindingDBCleaner",
+        "name": "Repository Actions\nBindingDBCleaner",
+        "category": "Computational chemistry",
+        "confidence": 0.95,
+        "reasoning": "This tool is specifically designed to clean up BindingDB data files. It processes sd-properties from bindingdb.org downloads and handles Ki/IC50 activity values. Perfect match for the BindingDB dataset.",
+        "parameter_name": "input file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/luis/ball/Repository_Actions\nModelCreator",
+        "name": "Repository Actions\nModelCreator",
+        "category": "Computational chemistry",
+        "confidence": 0.75,
+        "reasoning": "Creates QSAR models from input datasets. BindingDB contains ligand-target affinity data (Ki, Kd, IC50) which are standard response variables for QSAR modeling in drug discovery. The tabular format with binding affinities is suitable for training predictive models.",
+        "parameter_name": "input dat-file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/luis/ball/Repository_Actions\nInputReader",
+        "name": "Repository Actions\nInputReader",
+        "category": "Computational chemistry",
+        "confidence": 0.8,
+        "reasoning": "Reads input data for QSAR modeling, accepts CSV files with response variables and descriptors. BindingDB TSV file contains affinity values (Ki, Kd, IC50) as response variables and ligand/target information. The tool can handle tabular data with activity values for drug discovery applications.",
+        "parameter_name": "input csv-file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/luis/ball/Repository_Actions\nMolPredictor",
+        "name": "Repository Actions\nMolPredictor",
+        "category": "Computational chemistry",
+        "confidence": 0.7,
+        "reasoning": "Uses QSAR models to predict molecular properties. BindingDB data could serve as reference/training data for building the QSAR models that this tool applies. The binding affinity data aligns with typical QSAR prediction targets in drug discovery.",
+        "parameter_name": "input csv-file w/ additional descriptors"
+      }
+    ],
+    "total_candidates": 282,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_DepMap_CRISPRGeneDependency_csv",
+    "dataset_name": "DepMap_CRISPRGeneDependency.csv",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_DepMap_CRISPRGeneEffect_csv",
+    "dataset_name": "DepMap_CRISPRGeneEffect.csv",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_DepMap_Model_csv",
+    "dataset_name": "DepMap_Model.csv",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_DepMap_OmicsExpressionProteinCodingGenesTPMLogp1_csv",
+    "dataset_name": "DepMap_OmicsExpressionProteinCodingGenesTPMLogp1.csv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lparsons/htseq_count/Repository_Actions\nhtseq-count",
+        "name": "Repository Actions\nhtseq-count",
+        "category": "Genomic Interval Operations",
+        "confidence": 0.75,
+        "reasoning": "htseq-count is used for gene expression quantification from RNA-seq data. The dataset contains gene expression data (TPM values) for protein-coding genes across cancer cell lines, which could serve as a reference for comparison or validation. The tool accepts GFF/GTF files for gene annotations, and while the input is CSV, it contains gene-level expression data relevant to transcriptomics workflows.",
+        "parameter_name": "GFF/GTF File (as reference annotation)"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_DisGeNET_parquet",
+    "dataset_name": "DisGeNET.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "Monarch Initiative BioLink API tool that retrieves disease and phenotype data. DisGeNET contains gene-disease associations that could serve as reference data for filtering or enriching bulk operations queries on disease categories.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "Monarch Initiative tool for retrieving associations between biological entities. DisGeNET's gene-disease associations with scores and PMIDs would be highly relevant as reference data for validating or enriching association queries.",
+        "parameter_name": "reference_associations"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "Retrieves bioentity associations from Monarch Initiative. DisGeNET provides gene-disease associations that could serve as a reference database for comparing or filtering bioentity association results.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.9,
+        "reasoning": "Specifically retrieves gene associations from Monarch Initiative. DisGeNET contains gene-disease associations with scores, making it an ideal reference database for gene association queries and validation.",
+        "parameter_name": "reference_gene_associations"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.95,
+        "reasoning": "Retrieves disease associations from Monarch Initiative. DisGeNET is a disease genomics database with gene-disease networks - perfect match for use as reference data in disease association queries.",
+        "parameter_name": "reference_disease_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.8,
+        "reasoning": "Retrieves phenotype-gene associations. DisGeNET's gene-disease associations could serve as reference data since diseases often have phenotypic manifestations, enabling cross-validation of phenotype-gene relationships.",
+        "parameter_name": "reference_associations"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_McPAS_TCR_parquet",
+    "dataset_name": "McPAS-TCR.parquet",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_Virus_Host_PPI_P_HIPSTER_2020_parquet",
+    "dataset_name": "Virus-Host_PPI_P-HIPSTER_2020.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool pulls data from Monarch Initiative BioLink API for biological associations. The virus-host PPI dataset could potentially be used as a reference for filtering or comparing against biological interaction data, particularly for disease and phenotype associations that may involve viral pathogenesis.",
+        "parameter_name": "reference_interactions"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Tool retrieves biological associations from BioLink API. The virus-host PPI dataset contains interaction data that could serve as a reference database for validating or filtering association queries, particularly for host-pathogen interaction studies.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.67,
+        "reasoning": "Retrieves bioentity associations from Monarch Initiative. The virus-host PPI parquet file could be used as a reference to cross-validate or enrich bioentity association data, especially for viral protein and host protein interactions.",
+        "parameter_name": "reference_ppi_data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Tool queries gene associations. The virus-host PPI dataset contains host_protein information that could serve as a reference for gene-level interaction analysis, particularly relevant for understanding viral pathogenesis mechanisms at the gene level.",
+        "parameter_name": "reference_gene_interactions"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "Retrieves disease associations from BioLink API. The virus-host PPI dataset is directly relevant to viral pathogenesis and could be used as a reference database for disease association queries involving viral infections and host-pathogen interactions.",
+        "parameter_name": "reference_pathogenesis_data"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_affinity_capture_ms_parquet",
+    "dataset_name": "affinity_capture-ms.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bornea/apostl_static_bubblegraph_generator/Repository_Actions\nAPOSTL_Static_Bubblegraph_Generator",
+        "name": "Repository Actions\nAPOSTL Static Bubblegraph Generator",
+        "category": "Proteomics",
+        "confidence": 0.75,
+        "reasoning": "APOSTL is designed for affinity purification mass spectrometry (AP-MS) data visualization. The dataset is affinity_capture-ms.parquet containing protein interaction data, which aligns with APOSTL's purpose of analyzing protein-protein interactions from AP-MS experiments. The tool accepts prey files and inter files which could utilize this interaction data.",
+        "parameter_name": "Prey File or Inter File"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/kobas/Repository_Actions\nKOBAS_Annotate",
+        "name": "Repository Actions\nKOBAS Annotate",
+        "category": "Systems Biology",
+        "confidence": 0.65,
+        "reasoning": "KOBAS performs functional annotation and pathway analysis. Protein interaction networks from affinity capture-MS can be used as input for functional genomics analysis to understand biological pathways and systems biology contexts, matching the dataset's use cases.",
+        "parameter_name": "Input file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/kobas/Repository_Actions\nKOBAS_Identify",
+        "name": "Repository Actions\nKOBAS Identify",
+        "category": "Systems Biology",
+        "confidence": 0.65,
+        "reasoning": "KOBAS Identify performs pathway enrichment analysis on annotated data. Protein interaction data from affinity capture-MS experiments can serve as foreground data for identifying enriched pathways in systems biology studies.",
+        "parameter_name": "Foreground"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/metexplore/met4j/Repository_Actions\nMetaboRank",
+        "name": "Repository Actions\nMetaboRank",
+        "category": "Systems Biology",
+        "confidence": 0.62,
+        "reasoning": "MetaboRank computes centrality measures on biological networks using seeds/nodes of interest with weights. Protein interaction networks from the parquet file could be used as input for network analysis in systems biology contexts, though primarily designed for metabolic networks.",
+        "parameter_name": "input seeds file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/metexplore/met4j/Repository_Actions\nTopologicalPathwayAnalysis",
+        "name": "Repository Actions\nTopologicalPathwayAnalysis",
+        "category": "Systems Biology",
+        "confidence": 0.63,
+        "reasoning": "This tool performs topological analysis on biological networks for pathway analysis. Protein interaction networks are valid inputs for systems biology pathway analysis, matching the dataset's functional genomics and systems biology use cases.",
+        "parameter_name": "input SBML file"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_affinity_capture_rna_parquet",
+    "dataset_name": "affinity_capture-rna.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/aresite2/Repository_Actions\nGet_motifs_from_AREsite2",
+        "name": "Repository Actions\nGet motifs from AREsite2",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "AREsite2 retrieves RNA motif information related to AU-rich elements, which are involved in post-transcriptional regulation. The dataset contains RNA-protein interaction data that could be used to filter or contextualize motif searches for RNA binding proteins.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/dorina/Repository_Actions\nDoRiNA_Search",
+        "name": "Repository Actions\nDoRiNA Search",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "DoRiNA (Database of RNA Interactions in post-transcriptional regulation) is specifically designed for RNA-protein interactions and post-transcriptional regulation - exact match with dataset use cases. The parquet format could serve as reference data for RNA binding protein searches.",
+        "parameter_name": "reference_data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/rekado/dorina/Repository_Actions\nDoRiNA_Search",
+        "name": "Repository Actions\nDoRiNA Search",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "DoRiNA (Database of RNA Interactions in post-transcriptional regulation) is specifically designed for RNA-protein interactions and post-transcriptional regulation - exact match with dataset use cases. The parquet format could serve as reference data for RNA binding protein searches.",
+        "parameter_name": "reference_data"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_broad_repurposing_hub_molecule_with_smiles_parquet",
+    "dataset_name": "broad_repurposing_hub_molecule_with_smiles.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "This tool queries substance associations from Monarch Initiative BioLink API. The dataset contains chemical compounds (SMILES, compound names) which are substances. The tool accepts substance IDs (e.g., CHEBI:40036) and could use this dataset as a reference for mapping compounds to their identifiers or for enriching substance queries with drug repurposing information.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool retrieves bioentity associations from Monarch Initiative. Chemical compounds in drug repurposing contexts are bioentities. The dataset could serve as a reference for compound-target associations, MOA (mechanism of action), and phase information to enrich bioentity queries.",
+        "parameter_name": "reference_database"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_broad_repurposing_hub_phase_moa_target_info_parquet",
+    "dataset_name": "broad_repurposing_hub_phase_moa_target_info.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool retrieves substance associations from Monarch Initiative BioLink API. The dataset contains compound/drug information with targets and MOA, which could serve as a reference database for substance-related queries. The tool accepts substance IDs (e.g., CHEBI:40036) and the dataset's compound information could map to these identifiers for enriched analysis.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "This tool retrieves gene associations from Monarch Initiative. The dataset contains target information (likely gene/protein targets) for drugs. This could serve as a reference to cross-reference drug targets with gene associations, particularly useful for understanding drug-gene relationships and mechanisms of action.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "This tool retrieves disease associations from Monarch Initiative. Drug repurposing data with MOA and target information is highly relevant for disease association analysis, as it can provide reference information about which compounds target which diseases through specific mechanisms. The phase information also indicates clinical relevance.",
+        "parameter_name": "reference_database"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  }
+]

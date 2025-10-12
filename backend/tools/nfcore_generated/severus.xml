@@ -1,0 +1,62 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_severus" name="nf-core severus" version="1.0.0" profile="20.01">
+  <description>Severus is a somatic structural variation (SV) caller for long reads (both PacBio and ONT)</description>
+  <requirements>
+    <requirement type="package" version="1.5">severus</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+severus \\
+        $args \\
+        --threads $task.cpus \\
+        --target-bam $target_input \\
+        $vntr_bed \\
+        $control \\
+        $phasing_vcf \\
+        --out-dir ${prefix}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        severus: \$(severus --version)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="target_input" format="data" label="Target Input"/>
+    <param type="data" name="bed" format="data" label="Bed"/>
+  </inputs>
+  <outputs>
+    <data name="log" format="txt" label="Log" from_work_dir="${prefix}/severus.log"/>
+    <data name="read_qual" format="txt" label="Read Qual" from_work_dir="${prefix}/read_qual.txt"/>
+    <data name="breakpoints_double" format="data" label="Breakpoints Double" from_work_dir="${prefix}/breakpoints_double.csv"/>
+    <data name="read_alignments" format="data" label="Read Alignments" from_work_dir="${prefix}/read_alignments"/>
+    <data name="read_ids" format="data" label="Read Ids" from_work_dir="${prefix}/read_ids.csv"/>
+    <data name="collapsed_dup" format="data" label="Collapsed Dup" from_work_dir="${prefix}/severus_collaped_dup.bed"/>
+    <data name="loh" format="data" label="Loh" from_work_dir="${prefix}/severus_LOH.bed"/>
+    <data name="all_vcf" format="vcf" label="All Vcf" from_work_dir="${prefix}/all_SVs/severus_all.vcf"/>
+    <data name="all_breakpoints_clusters_list" format="data" label="All Breakpoints Clusters List" from_work_dir="${prefix}/all_SVs/breakpoints_clusters_list.tsv"/>
+    <data name="all_breakpoints_clusters" format="data" label="All Breakpoints Clusters" from_work_dir="${prefix}/all_SVs/breakpoints_clusters.tsv"/>
+    <data name="all_plots" format="html" label="All Plots" from_work_dir="${prefix}/all_SVs/plots/severus_*.html"/>
+    <data name="somatic_vcf" format="vcf" label="Somatic Vcf" from_work_dir="${prefix}/somatic_SVs/severus_somatic.vcf"/>
+    <data name="somatic_breakpoints_clusters_list" format="data" label="Somatic Breakpoints Clusters List" from_work_dir="${prefix}/somatic_SVs/breakpoints_clusters_list.tsv"/>
+    <data name="somatic_breakpoints_clusters" format="data" label="Somatic Breakpoints Clusters" from_work_dir="${prefix}/somatic_SVs/breakpoints_clusters.tsv"/>
+    <data name="somatic_plots" format="html" label="Somatic Plots" from_work_dir="${prefix}/somatic_SVs/plots/severus_*.html"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Severus is a somatic structural variation (SV) caller for long reads (both PacBio and ONT)
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: severus
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/severus
+]]&gt;</help>
+</tool>

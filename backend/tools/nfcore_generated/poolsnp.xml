@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_poolsnp" name="nf-core poolsnp" version="1.0.0" profile="20.01">
+  <description>PoolSNP is a heuristic SNP caller, which uses an MPILEUP file and a reference genome in FASTA format as inputs.</description>
+  <requirements>
+    <requirement type="package" version="1.0.1">poolsnp</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+PoolSNP.sh \\
+        mpileup=\$PWD/${mpileup} \\
+        output=\$PWD/${prefix} \\
+        names=${prefix} \\
+        reference=\$PWD/${reference} \\
+        jobs=${task.cpus} \\
+        max-cov=${max_cov ? &quot;${max_cov}&quot; : &quot;\$PWD/${max_cov_file}&quot;} \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    ${task.process}:
+        poolsnp: &quot;${VERSION}&quot;
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="mpileup" format="data" label="Mpileup"/>
+    <param type="data" name="reference" format="data" label="Reference"/>
+    <param type="data" name="max_cov_file" format="data" label="Max Cov File"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="max_cov" format="txt" label="Max Cov" from_work_dir="*cov-*.txt"/>
+    <data name="bad_sites" format="data" label="Bad Sites" from_work_dir="*BS.txt.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+PoolSNP is a heuristic SNP caller, which uses an MPILEUP file and a reference genome in FASTA format as inputs.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: poolsnp
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/poolsnp
+]]&gt;</help>
+</tool>

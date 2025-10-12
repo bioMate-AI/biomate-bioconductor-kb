@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_gangstr" name="nf-core gangstr" version="1.0.0" profile="20.01">
+  <description>GangSTR is a tool for genome-wide profiling tandem repeats from short reads.</description>
+  <requirements>
+    <requirement type="package" version="2.5.0">gangstr</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+GangSTR \\
+        --bam ${input} \\
+        --ref ${fasta} \\
+        --regions ${ref_regions} \\
+        --out ${prefix} \\
+        ${args}
+
+    bgzip -f ${prefix}.vcf
+    tabix -f -p vcf ${prefix}.vcf.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        gangstr: \$(echo \$(GangSTR --version 2&gt;&amp;1))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="alignment_files" format="data" label="Alignment Files"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fasta_fai" format="data" label="Fasta Fai"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="index" format="data" label="Index" from_work_dir="*.vcf.gz.tbi"/>
+    <data name="samplestats" format="data" label="Samplestats" from_work_dir="*.samplestats.tab"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+GangSTR is a tool for genome-wide profiling tandem repeats from short reads.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: gangstr
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/gangstr
+]]&gt;</help>
+</tool>

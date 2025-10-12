@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_crispresso2" name="nf-core crispresso2" version="1.0.0" profile="20.01">
+  <description>A software pipeline for the analysis of genome editing outcomes from deep sequencing data</description>
+  <requirements>
+    <requirement type="package" version="2.3.3">crispresso2</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+CRISPResso \\
+        ${read_inputs} \\
+        --name ${prefix} \\
+        --output_folder . \\
+        ${args}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        crispresso2: \$(CRISPResso --version 2&gt;&amp;1 | grep -o 'CRISPResso version [0-9.]*' | sed 's/CRISPResso version //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="results" format="data" label="Results" from_work_dir="CRISPResso_on_*"/>
+    <data name="html" format="html" label="Html" from_work_dir="*.html"/>
+    <data name="txt" format="txt" label="Txt" from_work_dir="CRISPResso_on_*/*.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A software pipeline for the analysis of genome editing outcomes from deep sequencing data
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: crispresso2
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/crispresso2
+]]&gt;</help>
+</tool>

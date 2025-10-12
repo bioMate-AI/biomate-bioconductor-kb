@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_bamclipper" name="nf-core bamclipper" version="1.0.0" profile="20.01">
+  <description>This module is used to clip primer sequences from your alignments.</description>
+  <requirements>
+    <requirement type="package" version="1.0.0">bamclipper</requirement>
+    <requirement type="package" version="1.12">samtools</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+bamclipper.sh \\
+        -b ${bam} \\
+        -p ${bedpe} \\
+        -n $task.cpus \\
+        ${args}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bamclipper: $VERSION
+        samtools: \$( samtools --version |&amp; sed '1!d ; s/samtools //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*.primerclipped.bam"/>
+    <data name="bai" format="data" label="Bai" from_work_dir="*.primerclipped.bam.bai"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+This module is used to clip primer sequences from your alignments.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: bamclipper
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/bamclipper
+]]&gt;</help>
+</tool>

@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_conifer" name="nf-core conifer" version="1.0.0" profile="20.01">
+  <description>Calculate confidence scores from Kraken2 output</description>
+  <requirements>
+    <requirement type="package" version="1.0.2">conifer</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+conifer \\
+        $args \\
+        --input $kraken_result \\
+        --db $kraken_taxon_db &gt; ${prefix}.score
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        conifer: \$(echo \$(conifer --version 2&gt;&amp;1) | sed 's/^.*Conifer //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="kraken_result" format="data" label="Kraken Result"/>
+  </inputs>
+  <outputs>
+    <data name="score" format="data" label="Score" from_work_dir="*.score"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Calculate confidence scores from Kraken2 output
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: conifer
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/conifer
+]]&gt;</help>
+</tool>

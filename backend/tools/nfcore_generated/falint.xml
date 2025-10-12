@@ -1,0 +1,57 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_falint" name="nf-core falint" version="1.0.0" profile="20.01">
+  <description>A fasta linter/validator</description>
+  <requirements>
+    <requirement type="package" version="1.0.0">fa-lint</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+fa-lint \\
+        -threads ${task.cpus} \\
+        $args \\
+        -fasta $fasta \\
+        &gt; &gt;(tee ${prefix}.success.log &gt;&amp;1) \\
+        2&gt; &gt;(tee ${prefix}.error.log &gt;&amp;2) \\
+        || echo &quot;Errors from fa-lint printed to ${prefix}.error.log&quot;
+
+    if [ \$(cat ${prefix}.error.log | wc -l) -gt 0 ]; then
+        echo &quot;Validation failed...&quot;
+
+        rm ${prefix}.success.log
+    else
+        echo &quot;Validation successful...&quot;
+
+        rm ${prefix}.error.log
+    fi
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        fa-lint: \$(fa-lint -version)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="success_log" format="txt" label="Success Log" from_work_dir="*.success.log"/>
+    <data name="error_log" format="txt" label="Error Log" from_work_dir="*.error.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A fasta linter/validator
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: falint
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/falint
+]]&gt;</help>
+</tool>

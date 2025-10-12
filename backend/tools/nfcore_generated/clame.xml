@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_clame" name="nf-core clame" version="1.0.0" profile="20.01">
+  <description>binning of metagenomic sequences</description>
+  <requirements>
+    <requirement type="package" version="1.0">clame</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+clame \\
+        $args \\
+        -nt $task.cpus \\
+        -multiFasta ${fasta} \\
+        -output ${prefix} || test -f ${prefix}.binning
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        clame: \$(echo \$(clame -h | sed -n '2p' | cut -d ' ' -f 2 ))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="fasta" format="data" label="Fasta" from_work_dir="*.fasta"/>
+    <data name="bins" format="data" label="Bins" from_work_dir="*.binning"/>
+    <data name="fm" format="data" label="Fm" from_work_dir="*.fm9"/>
+    <data name="index" format="data" label="Index" from_work_dir="*.index"/>
+    <data name="links" format="data" label="Links" from_work_dir="*.links"/>
+    <data name="result" format="data" label="Result" from_work_dir="*.result"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+binning of metagenomic sequences
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: clame
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/clame
+]]&gt;</help>
+</tool>

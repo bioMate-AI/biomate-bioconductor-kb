@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_fastani" name="nf-core fastani" version="1.0.0" profile="20.01">
+  <description>Alignment-free computation of average nucleotide Identity (ANI)</description>
+  <requirements>
+    <requirement type="package" version="1.32">fastani</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+fastANI \\
+            -ql $query \\
+            -rl $reference \\
+            -o ${prefix}.ani.txt
+
+        cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+        &quot;${task.process}&quot;:
+            fastani: \$(fastANI --version 2&gt;&amp;1 | sed 's/version//;')
+        END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="query" format="data" label="Query"/>
+  </inputs>
+  <outputs>
+    <data name="ani" format="txt" label="Ani" from_work_dir="*.ani.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Alignment-free computation of average nucleotide Identity (ANI)
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: fastani
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/fastani
+]]&gt;</help>
+</tool>

@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_eagle2" name="nf-core eagle2" version="1.0.0" profile="20.01">
+  <description>Perform phasing of genotyped data with or without a reference panel</description>
+  <requirements>
+    <requirement type="package" version="2.4.1">eagle2</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+eagle \\
+        $input_cmd \\
+        $vcfref_cmd \\
+        --geneticMapFile $map \\
+        $args \\
+        --numThreads $task.cpus \\
+        --outPrefix ${prefix} \\
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        eagle2: \$(eagle --help | sed -n 's/.*Eagle v\\([0-9.]\\+\\).*/\\1/p')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input" format="data" label="Input"/>
+  </inputs>
+  <outputs>
+    <data name="phased_variants" format="data" label="Phased Variants" from_work_dir="*.{vcf,vcf.gz,bcf}"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Perform phasing of genotyped data with or without a reference panel
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: eagle2
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/eagle2
+]]&gt;</help>
+</tool>

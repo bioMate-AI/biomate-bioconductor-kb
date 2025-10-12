@@ -1,0 +1,64 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_fastavalidator" name="nf-core fastavalidator" version="1.0.0" profile="20.01">
+  <description>&quot;Python C-extension for a simple validator for fasta files. The module emits the validated file or an
+error log upon validation failure.&quot;
+</description>
+  <requirements>
+    <requirement type="package" version="0.6">py_fasta_validator</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+py_fasta_validator \\
+        -f $fasta \\
+        2&gt; &quot;${prefix}.error.log&quot; \\
+        || echo &quot;Errors from fasta_validate printed to ${prefix}.error.log&quot;
+
+    if [ \$(cat &quot;${prefix}.error.log&quot; | wc -l) -gt 0 ]; then
+        echo &quot;Validation failed...&quot;
+
+        cat \\
+            &quot;${prefix}.error.log&quot;
+    else
+        echo &quot;Validation successful...&quot;
+
+        mv \\
+            &quot;${prefix}.error.log&quot; \\
+            fasta_validate.stderr
+
+        echo &quot;Validation successful...&quot; \\
+            &gt; &quot;${prefix}.success.log&quot;
+    fi
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        py_fasta_validator: \$(py_fasta_validator -v | sed 's/.* version //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="success_log" format="txt" label="Success Log" from_work_dir="*.success.log"/>
+    <data name="error_log" format="txt" label="Error Log" from_work_dir="*.error.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+&quot;Python C-extension for a simple validator for fasta files. The module emits the validated file or an
+error log upon validation failure.&quot;
+
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: fastavalidator
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/fastavalidator
+]]&gt;</help>
+</tool>

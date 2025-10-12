@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_vcf2cytosure" name="nf-core vcf2cytosure" version="1.0.0" profile="20.01">
+  <description>Convert VCF with structural variations to CytoSure format</description>
+  <requirements>
+    <requirement type="package" version="0.9.1">vcf2cytosure</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+vcf2cytosure \\
+        --vcf $sv_vcf \\
+        --out ${prefix}.cgh \\
+        $coverage \\
+        $cnvkit \\
+        $snv \\
+        $blacklist \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        vcf2cytosure: \$(echo \$(vcf2cytosure --version 2&gt;&amp;1) | sed 's/^.* cytosure //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="sv_vcf" format="data" label="Sv Vcf"/>
+    <param type="data" name="coverage_bed" format="data" label="Coverage Bed"/>
+    <param type="data" name="cns" format="data" label="Cns"/>
+    <param type="data" name="snv_vcf" format="data" label="Snv Vcf"/>
+    <param type="data" name="blacklist_bed" format="data" label="Blacklist Bed"/>
+  </inputs>
+  <outputs>
+    <data name="cgh" format="data" label="Cgh" from_work_dir="*.cgh"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Convert VCF with structural variations to CytoSure format
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: vcf2cytosure
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/vcf2cytosure
+]]&gt;</help>
+</tool>

@@ -1,0 +1,80 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_oncocnv" name="nf-core oncocnv" version="1.0.0" profile="20.01">
+  <description>Calls CNVs in bam files from tumor patients</description>
+  <requirements>
+    <requirement type="package" version="7.0">oncocnv</requirement>
+    <requirement type="package" version="0.68.0">r-pscbs</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+export R_USER_CACHE_DIR=\$(pwd)/R_cache
+
+    perl \$(which ONCOCNV_getCounts.pl) \\
+        getControlStats \\
+        $mode \\
+        -b ${bed} \\
+        -c $normal_id \\
+        -o ControlStats.txt
+
+    perl \$(which ONCOCNV_getCounts.pl) \\
+        getSampleStats \\
+        $mode \\
+        -c ControlStats.txt \\
+        -s $tumor_id \\
+        -o SampleStats.txt
+
+    cat ControlStats.txt \\
+        | grep -v start \\
+        | awk '{print \$1,\$2,\$3}' \\
+        | sed &quot;s/ /\t/g&quot; &gt; target.bed
+
+    perl \$(which createTargetGC.pl) \\
+        -bed target.bed \\
+        -fi ${fasta} \\
+        -od . \\
+        -of TargetGC.txt
+
+    cat \$(which processControl.R) \\
+        | R \\
+        --slave \\
+        --args ControlStats.txt ControlStatsProcessed.txt TargetGC.txt
+
+    cat \$(which processSamples.R) \\
+        | R \\
+        --slave \\
+        --args SampleStats.txt ControlStatsProcessed.txt Output.log $cghseg
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        oncocnv: $VERSION
+        perl: \$(perl --version | grep 'This is perl' | sed -E 's/.*v([0-9]+\\.[0-9]+\\.[0-9]+).*/\\1/')
+        r: \$(R --version | grep &quot;R version&quot; | sed -E 's/R version ([0-9]+\\.[0-9]+\\.[0-9]+).*/\\1/')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="normal" format="data" label="Normal"/>
+  </inputs>
+  <outputs>
+    <data name="png" format="data" label="Png" from_work_dir="*.profile.png"/>
+    <data name="profile" format="txt" label="Profile" from_work_dir="*.profile.txt"/>
+    <data name="summary" format="txt" label="Summary" from_work_dir="*.summary.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Calls CNVs in bam files from tumor patients
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: oncocnv
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/oncocnv
+]]&gt;</help>
+</tool>

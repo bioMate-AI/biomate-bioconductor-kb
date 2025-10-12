@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_spotiflow" name="nf-core spotiflow" version="1.0.0" profile="20.01">
+  <description>Spotiflow, accurate and efficient spot detection with stereographic flow.</description>
+  <requirements>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+spotiflow-predict \\
+        ${image_2d} \\
+        --out-dir . \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        spotiflow: \$( python -m pip show --version spotiflow | grep &quot;Version&quot; | sed -e &quot;s/Version: //g&quot; )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="image_2d" format="data" label="Image 2D"/>
+  </inputs>
+  <outputs>
+    <data name="spots" format="data" label="Spots" from_work_dir="*.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Spotiflow, accurate and efficient spot detection with stereographic flow.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: spotiflow
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/spotiflow
+]]&gt;</help>
+</tool>

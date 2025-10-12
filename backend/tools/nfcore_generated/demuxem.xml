@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_demuxem" name="nf-core demuxem" version="1.0.0" profile="20.01">
+  <description>Demultiplexing cell nucleus hashing data, using the estimated antibody background probability.</description>
+  <requirements>
+    <requirement type="package" version="0.1.7.post1">demuxem</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+demuxEM $input_raw_gene_bc_matrices_h5 \\
+    $input_hto_csv_file $output_name \\
+    $args \\
+    $generateGenderPlot\\
+    $genome_file\\
+    $diagnostic_plots
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:g
+    echo \$(demuxEM --version  2&gt;&amp;1)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input_raw_gene_bc_matrices_h5" format="data" label="Input Raw Gene Bc Matrices H5"/>
+  </inputs>
+  <outputs>
+    <data name="zarr" format="zip" label="Zarr" from_work_dir="*_demux.zarr.zip"/>
+    <data name="out_zarr" format="zip" label="Out Zarr" from_work_dir="*.out.demuxEM.zarr.zip"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Demultiplexing cell nucleus hashing data, using the estimated antibody background probability.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: demuxem
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/demuxem
+]]&gt;</help>
+</tool>

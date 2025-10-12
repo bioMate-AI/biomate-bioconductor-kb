@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_datavzrd" name="nf-core datavzrd" version="1.0.0" profile="20.01">
+  <description>Datavzrd is a tool to create visual HTML reports from collections of CSV/TSV tables.</description>
+  <requirements>
+    <requirement type="package">datavzrd</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mkdir ${prefix}
+    datavzrd \\
+        ${args} \\
+        ${config_file} \\
+        --output ${prefix} \\
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        datavzrd: \$(echo \$( datavzrd --version | sed -e 's/[^0-9.]//g' ))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="report" format="data" label="Report" from_work_dir="${prefix}"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Datavzrd is a tool to create visual HTML reports from collections of CSV/TSV tables.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: datavzrd
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/datavzrd
+]]&gt;</help>
+</tool>

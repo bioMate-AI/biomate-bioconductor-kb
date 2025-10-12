@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_maxbin2" name="nf-core maxbin2" version="1.0.0" profile="20.01">
+  <description>MaxBin is a software that is capable of clustering metagenomic contigs</description>
+  <requirements>
+    <requirement type="package" version="2.2.7">maxbin2</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mkdir input/ &amp;&amp; mv $contigs input/
+    run_MaxBin.pl \\
+        -contig input/$contigs \\
+        $associate_files \\
+        -thread $task.cpus \\
+        $args \\
+        -out $prefix
+
+    gzip *.fasta *.noclass *.tooshort *log *.marker
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        maxbin2: \$( run_MaxBin.pl -v | head -n 1 | sed 's/MaxBin //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="contigs" format="data" label="Contigs"/>
+  </inputs>
+  <outputs>
+    <data name="binned_fastas" format="data" label="Binned Fastas" from_work_dir="*.fasta.gz"/>
+    <data name="summary" format="data" label="Summary" from_work_dir="*.summary"/>
+    <data name="abundance" format="data" label="Abundance" from_work_dir="*.abundance"/>
+    <data name="log" format="data" label="Log" from_work_dir="*.log.gz"/>
+    <data name="marker_counts" format="data" label="Marker Counts" from_work_dir="*.marker.gz"/>
+    <data name="unbinned_fasta" format="data" label="Unbinned Fasta" from_work_dir="*.noclass.gz"/>
+    <data name="tooshort_fasta" format="data" label="Tooshort Fasta" from_work_dir="*.tooshort.gz"/>
+    <data name="marker_bins" format="data" label="Marker Bins" from_work_dir="*_bin.tar.gz"/>
+    <data name="marker_genes" format="data" label="Marker Genes" from_work_dir="*_gene.tar.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+MaxBin is a software that is capable of clustering metagenomic contigs
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: maxbin2
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/maxbin2
+]]&gt;</help>
+</tool>

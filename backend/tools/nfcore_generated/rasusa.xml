@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_rasusa" name="nf-core rasusa" version="1.0.0" profile="20.01">
+  <description>Randomly subsample sequencing reads to a specified coverage</description>
+  <requirements>
+    <requirement type="package" version="0.3.0">rasusa</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+rasusa \\
+        $args \\
+        --coverage $depth_cutoff \\
+        --genome-size $genome_size \\
+        --input $reads \\
+        $output
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        rasusa: \$(rasusa --version 2&gt;&amp;1 | sed -e &quot;s/rasusa //g&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="reads" format="data" label="Reads" from_work_dir="*.fastq.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Randomly subsample sequencing reads to a specified coverage
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: rasusa
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/rasusa
+]]&gt;</help>
+</tool>

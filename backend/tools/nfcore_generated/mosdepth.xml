@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_mosdepth" name="nf-core mosdepth" version="1.0.0" profile="20.01">
+  <description>Calculates genome-wide sequencing coverage.</description>
+  <requirements>
+    <requirement type="package" version="0.3.11">mosdepth</requirement>
+    <requirement type="package" version="1.22.1">htslib</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mosdepth \\
+        --threads $task.cpus \\
+        $interval \\
+        $reference \\
+        $args \\
+        $prefix \\
+        $bam
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        mosdepth: \$(mosdepth --version 2&gt;&amp;1 | sed 's/^.*mosdepth //; s/ .*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="global_txt" format="txt" label="Global Txt" from_work_dir="*.global.dist.txt"/>
+    <data name="summary_txt" format="txt" label="Summary Txt" from_work_dir="*.summary.txt"/>
+    <data name="regions_txt" format="txt" label="Regions Txt" from_work_dir="*.region.dist.txt"/>
+    <data name="per_base_d4" format="data" label="Per Base D4" from_work_dir="*.per-base.d4"/>
+    <data name="per_base_bed" format="data" label="Per Base Bed" from_work_dir="*.per-base.bed.gz"/>
+    <data name="per_base_csi" format="data" label="Per Base Csi" from_work_dir="*.per-base.bed.gz.csi"/>
+    <data name="regions_bed" format="data" label="Regions Bed" from_work_dir="*.regions.bed.gz"/>
+    <data name="regions_csi" format="data" label="Regions Csi" from_work_dir="*.regions.bed.gz.csi"/>
+    <data name="quantized_bed" format="data" label="Quantized Bed" from_work_dir="*.quantized.bed.gz"/>
+    <data name="quantized_csi" format="data" label="Quantized Csi" from_work_dir="*.quantized.bed.gz.csi"/>
+    <data name="thresholds_bed" format="data" label="Thresholds Bed" from_work_dir="*.thresholds.bed.gz"/>
+    <data name="thresholds_csi" format="data" label="Thresholds Csi" from_work_dir="*.thresholds.bed.gz.csi"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Calculates genome-wide sequencing coverage.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: mosdepth
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/mosdepth
+]]&gt;</help>
+</tool>

@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_fusioninspector" name="nf-core fusioninspector" version="1.0.0" profile="20.01">
+  <description>Validation of Fusion Transcript Predictions</description>
+  <requirements>
+    <requirement type="package" version="2.10.0">fusion-inspector</requirement>
+    <requirement type="package" version="1.14.1">igv-reports</requirement>
+    <requirement type="package" version="4.03">perl-json-xs</requirement>
+    <requirement type="package" version="0.22.1">pysam</requirement>
+    <requirement type="package" version="0.21">perl-carp-assert</requirement>
+    <requirement type="package">pip</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+FusionInspector \\
+        --fusions $fusion_list \\
+        --genome_lib ${reference} \\
+        $fasta \\
+        --CPU ${task.cpus} \\
+        -O . \\
+        --out_prefix $prefix \\
+        --vis $args $args2
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        FusionInspector: \$(FusionInspector --version 2&gt;&amp;1 | grep -i 'version' | sed -e 's/FusionInspector version: //' -e 's/[[:space:]]//g')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="reference" format="data" label="Reference"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*FusionInspector.fusions.tsv"/>
+    <data name="out_gtf" format="data" label="Out Gtf" from_work_dir="fi_workdir/*.gtf"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*FusionInspector.log"/>
+    <data name="html" format="data" label="Html" from_work_dir="*html"/>
+    <data name="abridged_tsv" format="data" label="Abridged Tsv" from_work_dir="*abridged.tsv"/>
+    <data name="igv_inputs" format="data" label="Igv Inputs" from_work_dir="IGV_inputs"/>
+    <data name="fi_workdir" format="data" label="Fi Workdir" from_work_dir="fi_workdir"/>
+    <data name="chckpts_dir" format="data" label="Chckpts Dir" from_work_dir="chckpts_dir"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Validation of Fusion Transcript Predictions
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: fusioninspector
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/fusioninspector
+]]&gt;</help>
+</tool>

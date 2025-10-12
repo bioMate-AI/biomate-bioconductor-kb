@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_gffcompare" name="nf-core gffcompare" version="1.0.0" profile="20.01">
+  <description>Compare, merge, annotate and estimate accuracy of generated gtf files</description>
+  <requirements>
+    <requirement type="package" version="0.12.6">gffcompare</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+gffcompare \\
+        $args \\
+        $ref_fasta \\
+        $ref_gtf \\
+        -o $prefix \\
+        $gtfs
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        gffcompare: \$(echo \$(gffcompare --version 2&gt;&amp;1) | sed 's/^gffcompare v//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="gtfs" format="data" label="Gtfs"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="reference_gtf" format="data" label="Reference Gtf"/>
+  </inputs>
+  <outputs>
+    <data name="annotated_gtf" format="data" label="Annotated Gtf" from_work_dir="*.annotated.gtf"/>
+    <data name="combined_gtf" format="data" label="Combined Gtf" from_work_dir="*.combined.gtf"/>
+    <data name="tmap" format="data" label="Tmap" from_work_dir="*.tmap"/>
+    <data name="refmap" format="data" label="Refmap" from_work_dir="*.refmap"/>
+    <data name="loci" format="data" label="Loci" from_work_dir="*.loci"/>
+    <data name="stats" format="data" label="Stats" from_work_dir="*.stats"/>
+    <data name="tracking" format="data" label="Tracking" from_work_dir="*.tracking"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Compare, merge, annotate and estimate accuracy of generated gtf files
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: gffcompare
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/gffcompare
+]]&gt;</help>
+</tool>

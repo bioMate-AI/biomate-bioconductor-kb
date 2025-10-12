@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_hiphase" name="nf-core hiphase" version="1.0.0" profile="20.01">
+  <description>pacbio structural variant calling tool</description>
+  <requirements>
+    <requirement type="package" version="1.4.5">hiphase</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+hiphase \
+        --bam $bam \
+        --vcf $vcf \
+        --output-vcf ${prefix}.phased.vcf \
+        --output-bam ${prefix}.phased.bam \
+        --reference $fasta \
+        --stats-file ${prefix}.stats.csv \
+        $args \
+        --threads ${task.cpus}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        hiphase: \$(hiphase --version |&amp; sed '1!d ; s/hiphase //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="vcf" format="data" label="Vcf"/>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="vcf" label="Vcf" from_work_dir="*.vcf"/>
+    <data name="csv" format="data" label="Csv" from_work_dir="*.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+pacbio structural variant calling tool
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: hiphase
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/hiphase
+]]&gt;</help>
+</tool>

@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_idemux" name="nf-core idemux" version="1.0.0" profile="20.01">
+  <description>Demultiplex paired-end FASTQ files from QuantSeq-Pool</description>
+  <requirements>
+    <requirement type="package" version="0.1.6">idemux</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+idemux \\
+        --r1 ${reads[0]} \\
+        --r2 ${reads[1]} \\
+        --sample-sheet ${samplesheet} \\
+        --out . \\
+        $args
+
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        idemux: \$(idemux --version |&amp; sed '1!d ; s/idemux //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="fastq" format="data" label="Fastq" from_work_dir="[!undetermined]*.fastq.gz"/>
+    <data name="undetermined" format="data" label="Undetermined" from_work_dir="undetermined_R?.fastq.gz"/>
+    <data name="stats" format="data" label="Stats" from_work_dir="demultipexing_stats.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Demultiplex paired-end FASTQ files from QuantSeq-Pool
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: idemux
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/idemux
+]]&gt;</help>
+</tool>

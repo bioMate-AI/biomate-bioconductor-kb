@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_melon" name="nf-core melon" version="1.0.0" profile="20.01">
+  <description>Performs taxonomic profiling of long metagenomic reads against the melon database</description>
+  <requirements>
+    <requirement type="package" version="0.2.5">melon</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+melon \\
+        $reads \\
+        --db $database \\
+        --output ${prefix} \\
+        --threads $task.cpus \\
+        $k2_db_arg \\
+        $args \\
+        2&gt;| &gt;(tee ${prefix}.log &gt;&amp;2)
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        melon: \$(melon -v)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="database" format="data" label="Database"/>
+    <param type="data" name="k2_db" format="data" label="K2 Db"/>
+  </inputs>
+  <outputs>
+    <data name="tsv_output" format="data" label="Tsv Output" from_work_dir="${prefix}/*.tsv"/>
+    <data name="json_output" format="data" label="Json Output" from_work_dir="${prefix}/*.json"/>
+    <data name="log" format="txt" label="Log" from_work_dir="${prefix}.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Performs taxonomic profiling of long metagenomic reads against the melon database
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: melon
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/melon
+]]&gt;</help>
+</tool>

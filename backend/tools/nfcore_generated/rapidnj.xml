@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_rapidnj" name="nf-core rapidnj" version="1.0.0" profile="20.01">
+  <description>Produces a Newick format phylogeny from a multiple sequence alignment using a Neighbour-Joining algorithm. Capable of bacterial genome size alignments.</description>
+  <requirements>
+    <requirement type="package" version="2.3.2">rapidnj</requirement>
+    <requirement type="package" version="1.78">biopython</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python \\
+        -c 'from Bio import SeqIO; SeqIO.convert(&quot;$alignment&quot;, &quot;fasta&quot;, &quot;alignment.sth&quot;, &quot;stockholm&quot;)'
+
+    rapidnj \\
+        alignment.sth \\
+        $args \\
+        -i sth \\
+        -c $task.cpus \\
+        -x rapidnj_phylogeny.tre
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        rapidnj: $VERSION
+        biopython: \$(python -c &quot;import Bio; print(Bio.__version__)&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="stockholm_alignment" format="data" label="Stockholm Alignment" from_work_dir="*.sth"/>
+    <data name="phylogeny" format="data" label="Phylogeny" from_work_dir="*.tre"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Produces a Newick format phylogeny from a multiple sequence alignment using a Neighbour-Joining algorithm. Capable of bacterial genome size alignments.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: rapidnj
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/rapidnj
+]]&gt;</help>
+</tool>

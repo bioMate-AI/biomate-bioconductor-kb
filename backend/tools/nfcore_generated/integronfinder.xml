@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_integronfinder" name="nf-core integronfinder" version="1.0.0" profile="20.01">
+  <description>Detect integrons in DNA sequences</description>
+  <requirements>
+    <requirement type="package" version="2.0.5">integron_finder</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+if [ &quot;$is_compressed_fasta&quot; == &quot;true&quot; ]; then
+        gzip -c -d $fasta &gt; $fasta_name
+    fi
+
+    integron_finder \\
+        $args \\
+        --cpu $task.cpus \\
+        $fasta_name
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        integronfinder: \$(integron_finder --version 2&gt;&amp;1 | head -n1 | sed 's/^integron_finder version //' | cut -d ' ' -f1)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="gbk" format="data" label="Gbk" from_work_dir="*/*.gbk"/>
+    <data name="integrons" format="data" label="Integrons" from_work_dir="*/*.integrons"/>
+    <data name="summary" format="data" label="Summary" from_work_dir="*/*.summary"/>
+    <data name="out" format="data" label="Out" from_work_dir="*/integron_finder.out"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Detect integrons in DNA sequences
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: integronfinder
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/integronfinder
+]]&gt;</help>
+</tool>

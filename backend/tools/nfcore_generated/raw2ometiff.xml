@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_raw2ometiff" name="nf-core raw2ometiff" version="1.0.0" profile="20.01">
+  <description>write your description here</description>
+  <requirements>
+    <requirement type="package" version="1.21.6">blosc</requirement>
+    <requirement type="package" version="0.7.1">raw2ometiff</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+raw2ometiff \\
+        ${zarr_dir} \\
+        ${prefix}.ome.tiff \\
+        --max_workers $task.cpus \\
+        $args 
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        raw2ometiff: \$(raw2ometiff --version |&amp; sed -n '1s/Version = //p')
+        bio-formats: \$(bioformats2raw --version |&amp; sed -n '2s/Bio-Formats version = //p')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="zarr_dir" format="data" label="Zarr Dir"/>
+  </inputs>
+  <outputs>
+    <data name="ometiff" format="data" label="Ometiff" from_work_dir="*.ome.tiff"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+write your description here
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: raw2ometiff
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/raw2ometiff
+]]&gt;</help>
+</tool>

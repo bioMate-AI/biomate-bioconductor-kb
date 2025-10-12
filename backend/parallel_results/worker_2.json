@@ -1,0 +1,345 @@
+[
+  {
+    "dataset_key": "biomni_data_lake_evebio_assay_table_csv",
+    "dataset_name": "evebio_assay_table.csv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool queries substance associations from BioLink API. The dataset contains compound_id and activity data which could be used as reference data for substance/compound queries. The tool accepts substance identifiers (e.g., CHEBI:40036) and the dataset's compound_id column could serve as input reference for cross-referencing bioassay data with substance databases.",
+        "parameter_name": "Substance reference list"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_evebio_bundle_table_csv",
+    "dataset_name": "evebio_bundle_table.csv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool queries bioassay-related data from Monarch Initiative BioLink API. The dataset contains compound_id and assay_id columns which align with substance/chemical entity queries. The CSV format can be used to extract compound identifiers for batch queries.",
+        "parameter_name": "Substance (e.g. CHEBI:40036)"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "The dataset contains target information which likely refers to gene/protein targets in bioassays. This CSV could provide gene identifiers for querying associations, though the primary focus is on compounds rather than genes.",
+        "parameter_name": "Gene"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_evebio_compound_table_csv",
+    "dataset_name": "evebio_compound_table.csv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool queries substance associations from BioLink API. The dataset contains compound_id, assay_id, target, and activity data which represents chemical substance information. The tool accepts substance identifiers (e.g., CHEBI:40036) and could use this compound library as a reference for batch queries or filtering.",
+        "parameter_name": "Substance reference list"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_evebio_control_table_csv",
+    "dataset_name": "evebio_control_table.csv",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_evebio_detailed_result_table_csv",
+    "dataset_name": "evebio_detailed_result_table.csv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool retrieves substance associations from BioLink API. The dataset contains compound_id and activity data which could be used as reference for querying substance-related associations. The CSV format with compound identifiers aligns with substance/chemical entity queries.",
+        "parameter_name": "Substance (e.g. CHEBI:40036)"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_evebio_observed_points_table_csv",
+    "dataset_name": "evebio_observed_points_table.csv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool retrieves substance associations from BioLink API. The dataset contains compound_id and activity data which could serve as reference data for filtering or validating substance queries. The CSV format with compound identifiers aligns with bioassay/chemical informatics domain.",
+        "parameter_name": "reference_compounds"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/proteomisc/geo_query/Repository_Actions\nQuery_GEO_Database",
+        "name": "Repository Actions\nQuery GEO Database",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "GEO database tool for gene expression data. Bioassay data with compound-target-activity relationships could serve as reference for validating or filtering expression results, particularly for drug response studies. CSV format is compatible with data analysis workflows.",
+        "parameter_name": "reference_bioassay_data"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_evebio_summary_result_table_csv",
+    "dataset_name": "evebio_summary_result_table.csv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool retrieves substance associations from BioLink API. The dataset contains compound_id, assay_id, target, and activity data which represents bioassay results for chemical substances. The CSV could serve as a reference for filtering or annotating substance queries, particularly for compounds with known bioactivity profiles.",
+        "parameter_name": "reference_compounds"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool retrieves gene associations from BioLink API. The dataset's 'target' column likely contains gene/protein targets from bioassays. The CSV could be used as a reference to filter or prioritize gene queries based on compounds that show activity against specific targets.",
+        "parameter_name": "target_reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_evebio_target_table_csv",
+    "dataset_name": "evebio_target_table.csv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool retrieves substance associations from BioLink API. The dataset contains compound_id and target information which could be used to filter or annotate substance queries. The CSV format with compound/target data aligns with substance-based queries.",
+        "parameter_name": "Substance filter or reference data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "Tool retrieves gene associations from BioLink API. The dataset's target column likely contains gene/protein targets that could be used as reference data for filtering or annotating gene association queries in bioassay contexts.",
+        "parameter_name": "Gene reference list"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lxue/ageseq/Repository_Actions\nAGEseq",
+        "name": "Repository Actions\nAGEseq",
+        "category": "Sequence Analysis",
+        "confidence": 0.65,
+        "reasoning": "AGEseq uses a 'Target File (Reference Table)' parameter. While primarily for sequence analysis, the tool accepts reference tables in CSV-like formats. The dataset's structure with compound_id, target, and activity data could potentially serve as a reference table for target annotation purposes.",
+        "parameter_name": "Target File (Reference Table)"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_gene_info_parquet",
+    "dataset_name": "gene_info.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/benringham/annotatemyhits/Repository_Actions\nannotateMyHits",
+        "name": "Repository Actions\nannotateMyHits",
+        "category": "Genome annotation",
+        "confidence": 0.75,
+        "reasoning": "Tool downloads annotation information for identifiers. Parquet file contains gene_id and symbol columns which could serve as identifier reference for annotation lookups. Genomics category matches dataset domain.",
+        "parameter_name": "File with list of identifiers"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/annotatemyids/Repository_Actions\nannotateMyIDs",
+        "name": "Repository Actions\nannotateMyIDs",
+        "category": "Genome annotation",
+        "confidence": 0.75,
+        "reasoning": "Tool annotates IDs from tabular files. The parquet file with gene_id, symbol, description columns could serve as a reference database for ID annotation. Genomics annotation category aligns well.",
+        "parameter_name": "File with IDs"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/mora-lab/geneset_from_msigdb_orkegg/Repository_Actions\nGet_gene_sets_from_Msigdb/KEGG",
+        "name": "Repository Actions\nGet gene sets from Msigdb/KEGG",
+        "category": "Genome annotation",
+        "confidence": 0.65,
+        "reasoning": "Tool retrieves gene sets for functional genomics analysis. The parquet file containing gene_id, symbol, and organism information could potentially be used as a reference for gene set operations, though primary use case is KEGG/MSigDB retrieval.",
+        "parameter_name": "organism reference or gene set input"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/ubi.igc/goenrichment/Repository_Actions\nGOSlimmer",
+        "name": "Repository Actions\nGOSlimmer",
+        "category": "Genome annotation",
+        "confidence": 0.7,
+        "reasoning": "Tool works with Gene Product Annotation files. The parquet file with gene_id, symbol, and description could serve as gene product annotation reference data for GO term mapping in functional genomics workflows.",
+        "parameter_name": "Gene Product Annotation File"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/ubi.igc/goenrichment/Repository_Actions\nGOEnrichment",
+        "name": "Repository Actions\nGOEnrichment",
+        "category": "Genome annotation",
+        "confidence": 0.7,
+        "reasoning": "Tool performs GO enrichment analysis using gene product annotations. The parquet file containing gene information (gene_id, symbol, description) could serve as reference annotation data for enrichment analysis.",
+        "parameter_name": "Gene Product Annotation File"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/goenrichment/Repository_Actions\nGOEnrichment",
+        "name": "Repository Actions\nGOEnrichment",
+        "category": "Genome annotation",
+        "confidence": 0.7,
+        "reasoning": "Updated version of GOEnrichment. Same rationale - parquet file with gene annotations could serve as reference for GO enrichment analysis in functional genomics context.",
+        "parameter_name": "Gene Product Annotation File"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/goslimmer/Repository_Actions\nGOSlimmer",
+        "name": "Repository Actions\nGOSlimmer",
+        "category": "Genome annotation",
+        "confidence": 0.7,
+        "reasoning": "Updated version of GOSlimmer. The gene annotation parquet file could serve as gene product annotation reference for GO term slimming operations.",
+        "parameter_name": "Gene Product Annotation File"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_genebass_missense_LC_filtered_pkl",
+    "dataset_name": "genebass_missense_LC_filtered.pkl",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nVariant_Associations",
+        "name": "Repository Actions\nVariant Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool retrieves variant associations from Monarch Initiative BioLink API. The dataset contains variant and phenotype data with p-values from GWAS, which aligns with variant association analysis. The pkl file could serve as a reference database for filtering or annotating variant associations.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "Tool retrieves gene associations from BioLink API. The dataset contains gene-level data with phenotype associations and p-values, making it suitable as a reference for gene association queries. The gene column in the dataset aligns with the tool's gene parameter.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "This tool queries disease associations. The dataset contains phenotype data which often relates to disease traits in GWAS studies. The pkl format could serve as a reference for disease-phenotype associations with statistical significance (pvalue column).",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.78,
+        "reasoning": "Strong match - tool specifically handles phenotype-gene associations. The dataset has both gene and phenotype columns with p-values from GWAS, making it highly relevant as a reference database for phenotype-gene association analysis.",
+        "parameter_name": "reference_database"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_genebass_pLoF_filtered_pkl",
+    "dataset_name": "genebass_pLoF_filtered.pkl",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nVariant_Associations",
+        "name": "Repository Actions\nVariant Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool retrieves variant associations from Monarch Initiative BioLink API. The dataset contains variant and phenotype data with p-values, which aligns with variant association analysis. The pkl format could be converted or the tool might accept variant lists extracted from this data for querying associations.",
+        "parameter_name": "Variant"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.8,
+        "reasoning": "This tool retrieves gene associations from Monarch Initiative. The dataset contains gene-level LoF data with phenotype associations, making it highly relevant. Gene identifiers from the pkl file could be used to query this tool for additional association data.",
+        "parameter_name": "Gene"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "This tool queries disease associations from Monarch Initiative. Since the dataset contains phenotype data (which often relates to diseases) and gene associations, it could be used to cross-reference or enrich the phenotype information with disease association data.",
+        "parameter_name": "Disease"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "Strong match - this tool specifically retrieves phenotype-gene associations from Monarch Initiative. The dataset contains gene, variant, and phenotype columns with p-values, which is exactly the type of data this tool works with. The pkl file could serve as reference data for phenotype IDs to query.",
+        "parameter_name": "Phenotype ID"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_genebass_synonymous_filtered_pkl",
+    "dataset_name": "genebass_synonymous_filtered.pkl",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nVariant_Associations",
+        "name": "Repository Actions\nVariant Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool retrieves variant associations from Monarch Initiative BioLink API. The dataset contains variant and phenotype data with p-values, which could serve as a reference for filtering or comparing variant associations. The tool works with variant identifiers and could use the dataset to filter or validate results.",
+        "parameter_name": "reference_variants"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "This tool retrieves gene associations from Monarch Initiative. The dataset contains gene-variant-phenotype associations which could serve as a reference database for filtering or validating gene association queries, particularly for negative controls given the synonymous variant nature.",
+        "parameter_name": "reference_associations"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "This tool queries disease associations from Monarch Initiative. The dataset contains phenotype data with p-values that could be used as a reference for filtering disease-phenotype associations, especially as negative controls for variant filtering.",
+        "parameter_name": "reference_phenotypes"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.78,
+        "reasoning": "This tool retrieves phenotype-gene associations. The dataset explicitly contains gene, variant, and phenotype columns with p-values, making it highly suitable as a reference database for filtering or validating phenotype-gene associations, particularly for negative controls.",
+        "parameter_name": "reference_database"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  }
+]

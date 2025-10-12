@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_bamaligncleaner" name="nf-core bamaligncleaner" version="1.0.0" profile="20.01">
+  <description>removes unused references from header of sorted BAM/CRAM files.</description>
+  <requirements>
+    <requirement type="package" version="0.2.2">bamaligncleaner</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+bamAlignCleaner \\
+        $args \\
+        -o ${prefix}.bam \\
+        ${bam}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bamaligncleaner: \$(bamAlignCleaner --version | sed 's/.*version //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*.bam"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+removes unused references from header of sorted BAM/CRAM files.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: bamaligncleaner
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/bamaligncleaner
+]]&gt;</help>
+</tool>

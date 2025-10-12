@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_peddy" name="nf-core peddy" version="1.0.0" profile="20.01">
+  <description>Manipulation, validation and exploration of pedigrees</description>
+  <requirements>
+    <requirement type="package" version="0.4.8">peddy</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+peddy \\
+        $args \\
+        --prefix $prefix \\
+        --plot \\
+        -p $task.cpus \\
+        $vcf \\
+        $sites_arg \\
+        $ped
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        peddy: \$( peddy --version 2&gt;&amp;1 | tail -1 | sed 's/peddy, version //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="vcf" format="data" label="Vcf"/>
+    <param type="data" name="ped" format="data" label="Ped"/>
+    <param type="data" name="sites" format="data" label="Sites"/>
+  </inputs>
+  <outputs>
+    <data name="vs_html" format="html" label="Vs Html" from_work_dir="${prefix}.vs.html"/>
+    <data name="html" format="html" label="Html" from_work_dir="${prefix}.html"/>
+    <data name="ped" format="data" label="Ped" from_work_dir="*.peddy.ped"/>
+    <data name="het_check_png" format="data" label="Het Check Png" from_work_dir="*.het_check.png"/>
+    <data name="ped_check_png" format="data" label="Ped Check Png" from_work_dir="*.ped_check.png"/>
+    <data name="sex_check_png" format="data" label="Sex Check Png" from_work_dir="*.sex_check.png"/>
+    <data name="het_check_csv" format="data" label="Het Check Csv" from_work_dir="*.het_check.csv"/>
+    <data name="ped_check_csv" format="data" label="Ped Check Csv" from_work_dir="*.ped_check.csv"/>
+    <data name="sex_check_csv" format="data" label="Sex Check Csv" from_work_dir="*.sex_check.csv"/>
+    <data name="ped_check_rel_difference_csv" format="data" label="Ped Check Rel Difference Csv" from_work_dir="*.ped_check.rel-difference.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Manipulation, validation and exploration of pedigrees
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: peddy
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/peddy
+]]&gt;</help>
+</tool>

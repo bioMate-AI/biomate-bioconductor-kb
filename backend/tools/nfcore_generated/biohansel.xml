@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_biohansel" name="nf-core biohansel" version="1.0.0" profile="20.01">
+  <description>Use k-mers to rapidly subtype S. enterica genomes</description>
+  <requirements>
+    <requirement type="package" version="2.6.1">bio_hansel</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+hansel \\
+        $args \\
+        $scheme_metadata_opt \\
+        --threads $task.cpus \\
+        --output-summary ${prefix}-summary.txt \\
+        --output-kmer-results ${prefix}-kmer-results.txt \\
+        --output-simple-summary ${prefix}-simple-summary.txt \\
+        $input_type \\
+        $seqs
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        biohansel: \$(echo \$(hansel --version 2&gt;&amp;1) | sed 's/^.*hansel //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="seqs" format="data" label="Seqs"/>
+  </inputs>
+  <outputs>
+    <data name="summary" format="txt" label="Summary" from_work_dir="${prefix}-summary.txt"/>
+    <data name="kmer_results" format="txt" label="Kmer Results" from_work_dir="${prefix}-kmer-results.txt"/>
+    <data name="simple_summary" format="txt" label="Simple Summary" from_work_dir="${prefix}-simple-summary.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Use k-mers to rapidly subtype S. enterica genomes
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: biohansel
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/biohansel
+]]&gt;</help>
+</tool>

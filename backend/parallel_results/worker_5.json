@@ -1,0 +1,333 @@
+[
+  {
+    "dataset_key": "biomni_data_lake_msigdb_human_c7_immunologic_signature_geneset_parquet",
+    "dataset_name": "msigdb_human_c7_immunologic_signature_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool pulls data from Monarch Initiative BioLink API and works with biological categories (phenotype, disease). The dataset contains gene sets with biological annotations (immunologic signatures) that could potentially be used as reference data for querying or filtering biological entities, though the connection is indirect.",
+        "parameter_name": "Object Category or filtering reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "This tool retrieves gene associations from Monarch Initiative. The dataset contains gene sets organized by immunologic signatures with gene lists. This could serve as a reference for filtering or annotating gene association queries, particularly for immunologic-related gene sets.",
+        "parameter_name": "Gene reference or filtering parameter"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "This tool performs over-representation analysis on bioentity sets (genes). The dataset contains curated gene sets (MSigDB immunologic signatures) with gene lists, which is exactly the type of reference data needed for gene set enrichment/over-representation analysis. The parquet format can be converted to the required input format.",
+        "parameter_name": "Reference gene sets for over-representation analysis"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "This tool retrieves phenotype-gene associations. The dataset contains immunologic signature gene sets that could serve as reference data for filtering or annotating phenotype-gene relationships, particularly for immune-related phenotypes.",
+        "parameter_name": "Gene set reference for filtering"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_msigdb_human_c8_celltype_signature_geneset_parquet",
+    "dataset_name": "msigdb_human_c8_celltype_signature_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool performs over-representation analysis on gene sets, which aligns with the dataset containing geneset_name, genes, category, and description columns. The MSigDB C8 cell type signature geneset could serve as a reference database for enrichment analysis.",
+        "parameter_name": "reference geneset database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool retrieves phenotype-gene associations from BioLink API. The MSigDB geneset data containing genes and cell type signatures could potentially be used as a reference for gene-phenotype mapping or filtering, though the primary use would be as supplementary reference data.",
+        "parameter_name": "gene reference set"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_msigdb_human_h_hallmark_geneset_parquet",
+    "dataset_name": "msigdb_human_h_hallmark_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "This tool performs over-representation analysis on gene sets, which directly aligns with the dataset's use cases (pathway analysis, GSEA, functional enrichment). The tool accepts entity IDs (genes) and requires reference gene sets for enrichment testing. The parquet file contains geneset_name, genes, category, and description columns - perfect for defining reference pathways.",
+        "parameter_name": "reference_gene_sets"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "This tool retrieves gene associations from BioLink API. While it's primarily a data source tool, it could potentially use the MSigDB gene sets as reference data to filter or annotate retrieved associations. The gene sets could serve as pathway/functional context for gene association queries.",
+        "parameter_name": "reference_pathways"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "This tool retrieves phenotype-gene associations and could benefit from MSigDB hallmark gene sets as reference data for functional annotation or filtering of results. The gene sets provide biological context (hallmark pathways) that could be used to categorize or enrich phenotype associations.",
+        "parameter_name": "functional_gene_sets"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_omim_parquet",
+    "dataset_name": "omim.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool queries Monarch Initiative BioLink API for disease and phenotype data. The OMIM dataset contains disease-gene-phenotype associations that could serve as reference data for filtering or validating bulk operations on disease/phenotype queries.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "Tool retrieves associations from Monarch Initiative. The OMIM parquet file with gene-disease-phenotype-inheritance data could be used as a reference to filter, validate, or enrich association queries.",
+        "parameter_name": "reference_data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nVariant_Associations",
+        "name": "Repository Actions\nVariant Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Queries variant associations from Monarch Initiative. OMIM data linking genes to diseases could serve as reference for validating variant-disease associations, especially for clinical genetics applications.",
+        "parameter_name": "disease_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Retrieves bioentity associations from Monarch Initiative. OMIM dataset with gene-disease-phenotype relationships could be used as reference data for bioentity association queries.",
+        "parameter_name": "reference_associations"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.82,
+        "reasoning": "Tool queries gene associations from Monarch Initiative. OMIM parquet contains gene-disease-phenotype data which directly aligns with gene association queries. Strong category match for disease genomics.",
+        "parameter_name": "gene_disease_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nDisease_Associations",
+        "name": "Repository Actions\nDisease Associations",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "Explicitly queries disease associations and mentions OMIM format (OMIM:605543) in examples. The OMIM parquet dataset with disease-gene-phenotype-inheritance columns is highly relevant as reference data for disease association queries.",
+        "parameter_name": "disease_reference_db"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGenotype_Associations",
+        "name": "Repository Actions\nGenotype Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Queries genotype associations from Monarch Initiative. OMIM data with inheritance patterns and gene-disease relationships could serve as reference for genotype-phenotype associations.",
+        "parameter_name": "reference_data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGet_Object",
+        "name": "Repository Actions\nGet Object",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Retrieves objects from Monarch Initiative with association rendering. OMIM dataset could be used as reference for disease/phenotype object queries and association validation.",
+        "parameter_name": "reference_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.8,
+        "reasoning": "Queries phenotype-gene associations from Monarch Initiative. OMIM parquet with gene-disease-phenotype columns directly matches this use case for clinical genetics applications.",
+        "parameter_name": "phenotype_reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_proteinatlas_tsv",
+    "dataset_name": "proteinatlas.tsv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/bed_to_protein_map/Repository_Actions\nbed_to_protein_map",
+        "name": "Repository Actions\nbed to protein map",
+        "category": "Proteomics",
+        "confidence": 0.65,
+        "reasoning": "Tool converts BED format to tabular format for proteomics visualization. The proteinatlas.tsv could serve as a reference for protein annotations, mapping gene/protein information to genomic coordinates.",
+        "parameter_name": "protein annotation reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lnguyen/id_converter/Repository_Actions\nID_Converter",
+        "name": "Repository Actions\nID Converter",
+        "category": "Proteomics",
+        "confidence": 0.7,
+        "reasoning": "Tool converts between different protein/gene identifier types. The proteinatlas.tsv with gene and protein columns could serve as a mapping reference for ID conversion between gene names and protein identifiers.",
+        "parameter_name": "ID mapping reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lnguyen/link2reactome/Repository_Actions\nAnalyse_your_data_with_Reactome",
+        "name": "Repository Actions\nAnalyse your data with Reactome",
+        "category": "Proteomics",
+        "confidence": 0.65,
+        "reasoning": "Reactome analysis tool for biological processes. The proteinatlas.tsv with tissue expression data could provide tissue-specific protein expression context for pathway analysis.",
+        "parameter_name": "expression reference data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/map_peptides_to_bed/Repository_Actions\nMap_peptides_to_a_bed_file",
+        "name": "Repository Actions\nMap peptides to a bed file",
+        "category": "Proteomics",
+        "confidence": 0.68,
+        "reasoning": "Tool maps peptides to genomic coordinates. The proteinatlas.tsv could serve as a protein annotation reference to enhance peptide mapping with tissue localization and expression information.",
+        "parameter_name": "protein annotation reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multigsea/Repository_Actions\nmultiGSEA",
+        "name": "Repository Actions\nmultiGSEA",
+        "category": "Proteomics",
+        "confidence": 0.72,
+        "reasoning": "Multi-omics gene set enrichment analysis tool that integrates transcriptomics and proteomics. The proteinatlas.tsv with tissue-specific protein expression could serve as a reference database for tissue-specific enrichment analysis.",
+        "parameter_name": "tissue expression reference"
+      }
+    ],
+    "total_candidates": 397,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_proximity_label_ms_parquet",
+    "dataset_name": "proximity_label-ms.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bornea/apostl_static_bubblegraph_generator/Repository_Actions\nAPOSTL_Static_Bubblegraph_Generator",
+        "name": "Repository Actions\nAPOSTL Static Bubblegraph Generator",
+        "category": "Proteomics",
+        "confidence": 0.75,
+        "reasoning": "Proteomics tool for protein interaction visualization. The parquet file contains protein proximity/interaction data which aligns with APOSTL's purpose of analyzing protein-protein interactions. The 'Inter File' parameter likely accepts interaction data.",
+        "parameter_name": "Inter File"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/recetox/bioconductor_scp/Repository_Actions\nbioconductor-scp",
+        "name": "Repository Actions\nbioconductor-scp",
+        "category": "Proteomics",
+        "confidence": 0.65,
+        "reasoning": "Single-cell proteomics tool that processes protein abundance data. The parquet format with id/name/value columns could represent protein quantification data. May accept as sample annotations or evidence table.",
+        "parameter_name": "Sample annotations table"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/calisp/Repository_Actions\ncalisp",
+        "name": "Repository Actions\ncalisp",
+        "category": "Proteomics",
+        "confidence": 0.62,
+        "reasoning": "Proteomics tool for peptide/protein analysis. While primarily focused on spectrum and peptide files, the protein proximity data in parquet format could potentially be used as reference data for protein identification or filtering.",
+        "parameter_name": "Peptide file"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/diffacto/Repository_Actions\nDiffacto",
+        "name": "Repository Actions\nDiffacto",
+        "category": "Proteomics",
+        "confidence": 0.68,
+        "reasoning": "Proteomics differential analysis tool accepting tabular/csv peptide abundances. The parquet file with id/name/value structure matches the expected format for peptide/protein abundance data. Parquet is a tabular format.",
+        "parameter_name": "Peptides abundances"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_reconstituted_complex_parquet",
+    "dataset_name": "reconstituted_complex.parquet",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_sgRNA_KO_SP_human_txt",
+    "dataset_name": "sgRNA_KO_SP_human.txt",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_sgRNA_KO_SP_mouse_txt",
+    "dataset_name": "sgRNA_KO_SP_mouse.txt",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_synthetic_growth_defect_parquet",
+    "dataset_name": "synthetic_growth_defect.parquet",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_synthetic_lethality_parquet",
+    "dataset_name": "synthetic_lethality.parquet",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_synthetic_rescue_parquet",
+    "dataset_name": "synthetic_rescue.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/janktoolshed/agouti/Repository_Actions\nAGouTI_annotate",
+        "name": "Repository Actions\nAGouTI annotate",
+        "category": "Genome annotation",
+        "confidence": 0.75,
+        "reasoning": "Tool accepts database files and mentions 'database file created with the agouti create_db run mode'. The parquet format could serve as a custom database with id/name/value columns for genomic annotation. The tool explicitly supports CUSTOM format with user-specified columns including 'id'.",
+        "parameter_name": "Input database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/benringham/annotatemyhits/Repository_Actions\nannotateMyHits",
+        "name": "Repository Actions\nannotateMyHits",
+        "category": "Genome annotation",
+        "confidence": 0.65,
+        "reasoning": "Tool accepts 'File with list of identifiers to download annotation information' in tabular format. The parquet file with id/name/value columns could be converted to tabular and used as an identifier list for annotation purposes in genetics context.",
+        "parameter_name": "File with list of identifiers"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/annotatemyids/Repository_Actions\nannotateMyIDs",
+        "name": "Repository Actions\nannotateMyIDs",
+        "category": "Genome annotation",
+        "confidence": 0.65,
+        "reasoning": "Similar to annotateMyHits, accepts 'File with IDs' in tabular format with first column containing identifiers. The parquet file's id column could serve this purpose for genetic annotation workflows.",
+        "parameter_name": "File with IDs"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  }
+]

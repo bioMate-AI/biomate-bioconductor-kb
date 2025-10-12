@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_stranger" name="nf-core stranger" version="1.0.0" profile="20.01">
+  <description>Annotates output files from ExpansionHunter with the pathologic implications of the repeat sizes.</description>
+  <requirements>
+    <requirement type="package" version="0.9.5">stranger</requirement>
+    <requirement type="package" version="1.11">tabix</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+stranger \\
+        $args \\
+        $vcf \\
+        $options_variant_catalog | bgzip $args2 -c --threads ${task.cpus} &gt; ${prefix}.vcf.gz
+
+    tabix \\
+        $args3 \\
+        --threads ${task.cpus} \\
+        ${prefix}.vcf.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        stranger: \$( stranger --version | sed 's/stranger, version //g' )
+        tabix: \$(echo \$(tabix -h 2&gt;&amp;1) | sed 's/^.*Version: //; s/ .*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="vcf" format="data" label="Vcf"/>
+    <param type="data" name="variant_catalog" format="data" label="Variant Catalog"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="tbi" format="data" label="Tbi" from_work_dir="*.vcf.gz.tbi"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Annotates output files from ExpansionHunter with the pathologic implications of the repeat sizes.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: stranger
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/stranger
+]]&gt;</help>
+</tool>

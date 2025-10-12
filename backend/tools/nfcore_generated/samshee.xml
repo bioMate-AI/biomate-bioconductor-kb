@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_samshee" name="nf-core samshee" version="1.0.0" profile="20.01">
+  <description>Module to validate illumina® Sample Sheet v2 files.</description>
+  <requirements>
+    <requirement type="package" version="0.2.10">samshee</requirement>
+    <requirement type="package" version="3.13.0">python</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Run validation command and capture output
+    python -m samshee $samplesheet \
+    $args \
+    $arg_file_schema_validator \
+    &gt; ${samplesheet.baseName}_formatted.csv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        samshee: \$( python -m pip show --version samshee | grep &quot;Version&quot; | sed -e &quot;s/Version: //g&quot; )
+        python: \$( python --version | sed -e &quot;s/Python //g&quot; )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="samplesheet" format="data" label="Samplesheet"/>
+    <param type="data" name="file_schema_validator" format="data" label="File Schema Validator"/>
+  </inputs>
+  <outputs>
+    <data name="samplesheet" format="data" label="Samplesheet" from_work_dir="*_formatted.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Module to validate illumina® Sample Sheet v2 files.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: samshee
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/samshee
+]]&gt;</help>
+</tool>

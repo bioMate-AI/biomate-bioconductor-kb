@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_ultraplex" name="nf-core ultraplex" version="1.0.0" profile="20.01">
+  <description>Ultraplex is an all-in-one software package for processing and demultiplexing fastq files.</description>
+  <requirements>
+    <requirement type="package" version="1.2.9">ultraplex</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+ultraplex \\
+        --inputfastq ${reads[0]} \\
+        $input2 \\
+        --barcodes $barcode_file \\
+        --threads $task.cpus \\
+        --outputprefix ${prefix} \\
+        $args
+
+    ## rename the matched files to be able to emit only the matched files
+    MATCHES=\$( find . -type f -name '*.fastq.gz' ! -name '*_no_match_*.fastq.gz' )
+    for MATCH in \$MATCHES; do
+        mv \$MATCH \${MATCH/.fastq.gz/_matched.fastq.gz}
+    done
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        ultraplex: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="barcode_file" format="data" label="Barcode File"/>
+  </inputs>
+  <outputs>
+    <data name="fastq" format="data" label="Fastq" from_work_dir="*_matched.fastq.gz"/>
+    <data name="no_match_fastq" format="data" label="No Match Fastq" from_work_dir="*_no_match_*.fastq.gz"/>
+    <data name="report" format="txt" label="Report" from_work_dir="*.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Ultraplex is an all-in-one software package for processing and demultiplexing fastq files.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: ultraplex
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/ultraplex
+]]&gt;</help>
+</tool>

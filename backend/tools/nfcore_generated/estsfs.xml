@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_estsfs" name="nf-core estsfs" version="1.0.0" profile="20.01">
+  <description>estimation of the unfolded site frequency spectrum</description>
+  <requirements>
+    <requirement type="package" version="2.04">est-sfs</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+est-sfs ${e_config} ${data} ${seed} ${prefix}_sfs.txt ${prefix}_pvalues.txt
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        est-sfs: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="e_config" format="data" label="E Config"/>
+  </inputs>
+  <outputs>
+    <data name="sfs_out" format="txt" label="Sfs Out" from_work_dir="${prefix}_sfs.txt"/>
+    <data name="pvalues_out" format="txt" label="Pvalues Out" from_work_dir="${prefix}_pvalues.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+estimation of the unfolded site frequency spectrum
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: estsfs
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/estsfs
+]]&gt;</help>
+</tool>

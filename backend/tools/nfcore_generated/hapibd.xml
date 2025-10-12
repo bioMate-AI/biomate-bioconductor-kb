@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_hapibd" name="nf-core hapibd" version="1.0.0" profile="20.01">
+  <description>The hap-ibd program detects identity-by-descent (IBD) segments and homozygosity-by-descent (HBD) segments in phased genotype data. The hap-ibd program can analyze data sets with hundreds of thousands of samples.</description>
+  <requirements>
+    <requirement type="package" version="1.0.rev20May22.818">hap-ibd</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+hap-ibd -Xmx${avail_mem}M \\
+        gt=${vcf} \\
+        map=${map} \\
+        out=${prefix} \\
+        $args \\
+        ${excludesamples_command}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        hapibd: \$(hap-ibd 2&gt;&amp;1 |head -n1 | sed 's/^hap-ibd.jar  \\[ version //; s/, /rev/; s/ \\]//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="vcf" format="data" label="Vcf"/>
+    <param type="data" name="map" format="data" label="Map"/>
+    <param type="data" name="exclude" format="data" label="Exclude"/>
+  </inputs>
+  <outputs>
+    <data name="hbd" format="data" label="Hbd" from_work_dir="*.hbd.gz"/>
+    <data name="ibd" format="data" label="Ibd" from_work_dir="*.ibd.gz"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+The hap-ibd program detects identity-by-descent (IBD) segments and homozygosity-by-descent (HBD) segments in phased genotype data. The hap-ibd program can analyze data sets with hundreds of thousands of samples.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: hapibd
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/hapibd
+]]&gt;</help>
+</tool>

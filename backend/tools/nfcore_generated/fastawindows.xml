@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_fastawindows" name="nf-core fastawindows" version="1.0.0" profile="20.01">
+  <description>Quickly compute statistics over a fasta file in windows.</description>
+  <requirements>
+    <requirement type="package" version="0.2.4">fasta_windows</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+rm -rf fw_out
+    env RAYON_NUM_THREADS=$task.cpus \\
+    fasta_windows \\
+        $args \\
+        --fasta $fasta \\
+        --output ${prefix}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        fasta_windows: \$(fasta_windows --version | cut -d' ' -f3)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="freq" format="data" label="Freq" from_work_dir="fw_out/*_freq_windows.tsv"/>
+    <data name="mononuc" format="data" label="Mononuc" from_work_dir="fw_out/*_mononuc_windows.tsv"/>
+    <data name="dinuc" format="data" label="Dinuc" from_work_dir="fw_out/*_dinuc_windows.tsv"/>
+    <data name="trinuc" format="data" label="Trinuc" from_work_dir="fw_out/*_trinuc_windows.tsv"/>
+    <data name="tetranuc" format="data" label="Tetranuc" from_work_dir="fw_out/*_tetranuc_windows.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Quickly compute statistics over a fasta file in windows.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: fastawindows
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/fastawindows
+]]&gt;</help>
+</tool>

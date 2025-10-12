@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_raven" name="nf-core raven" version="1.0.0" profile="20.01">
+  <description>De novo genome assembler for long uncorrected reads.</description>
+  <requirements>
+    <requirement type="package" version="1.6.1">raven-assembler</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# run tool
+    raven \\
+        -t $task.cpus \\
+        --graphical-fragment-assembly ${prefix}.gfa \\
+        $args \\
+        $reads | \\
+        gzip -c &gt; ${prefix}.fasta.gz
+
+    # compress assembly graph
+    gzip -c ${prefix}.gfa &gt; ${prefix}.gfa.gz
+
+    # get tool version
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        raven: \$( raven --version )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="fasta" format="data" label="Fasta" from_work_dir="*.fasta.gz"/>
+    <data name="gfa" format="data" label="Gfa" from_work_dir="*.gfa.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+De novo genome assembler for long uncorrected reads.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: raven
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/raven
+]]&gt;</help>
+</tool>

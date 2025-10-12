@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_snpdists" name="nf-core snpdists" version="1.0.0" profile="20.01">
+  <description>Pairwise SNP distance matrix from a FASTA sequence alignment</description>
+  <requirements>
+    <requirement type="package" version="0.8.2">snp-dists</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+snp-dists \\
+        $args \\
+        $alignment &gt; ${prefix}.tsv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        snpdists: \$(snp-dists -v 2&gt;&amp;1 | sed 's/snp-dists //;')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="alignment" format="data" label="Alignment"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Pairwise SNP distance matrix from a FASTA sequence alignment
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: snpdists
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/snpdists
+]]&gt;</help>
+</tool>

@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_unzipfiles" name="nf-core unzipfiles" version="1.0.0" profile="20.01">
+  <description>Unzip ZIP archive files</description>
+  <requirements>
+    <requirement type="package" version="16.02">p7zip</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+7za \\
+        x \\
+        -o&quot;${prefix}&quot;/ \\
+        $args \\
+        $archive
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        7za: \$(echo \$(7za --help) | sed 's/.*p7zip Version //; s/(.*//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="archive" format="data" label="Archive"/>
+  </inputs>
+  <outputs>
+    <data name="files" format="data" label="Files" from_work_dir="${prefix}/**"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Unzip ZIP archive files
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: unzipfiles
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/unzipfiles
+]]&gt;</help>
+</tool>

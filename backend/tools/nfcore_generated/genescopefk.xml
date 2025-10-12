@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_genescopefk" name="nf-core genescopefk" version="1.0.0" profile="20.01">
+  <description>A derivative of GenomeScope2.0 modified to work with FastK</description>
+  <requirements>
+    <container type="docker">ghcr.io/nbisweden/fastk_genescopefk_merquryfk:1.2</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+GeneScopeFK.R \\
+        $args \\
+        --input $fastk_histex_histogram \\
+        --output . \\
+        --name_prefix ${prefix}
+
+    printf -v KMERCOV &quot;%.2f&quot; \$( grep &quot;^kmercov&quot; *_model.txt | cut -d&quot; &quot; -f2 )
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        genescopefk: $GENESCOPE_VERSION
+        r: \$( R --version | sed '1!d; s/.*version //; s/ .*//' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fastk_histex_histogram" format="data" label="Fastk Histex Histogram"/>
+  </inputs>
+  <outputs>
+    <data name="linear_plot" format="data" label="Linear Plot" from_work_dir="*_linear_plot.png"/>
+    <data name="log_plot" format="data" label="Log Plot" from_work_dir="*_log_plot.png"/>
+    <data name="model" format="txt" label="Model" from_work_dir="*_model.txt"/>
+    <data name="summary" format="txt" label="Summary" from_work_dir="*_summary.txt"/>
+    <data name="transformed_linear_plot" format="data" label="Transformed Linear Plot" from_work_dir="*_transformed_linear_plot.png"/>
+    <data name="transformed_log_plot" format="data" label="Transformed Log Plot" from_work_dir="*_transformed_log_plot.png"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A derivative of GenomeScope2.0 modified to work with FastK
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: genescopefk
+Container: ghcr.io/nbisweden/fastk_genescopefk_merquryfk:1.2
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/genescopefk
+]]&gt;</help>
+</tool>

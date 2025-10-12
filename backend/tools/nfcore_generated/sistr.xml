@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_sistr" name="nf-core sistr" version="1.0.0" profile="20.01">
+  <description>Serovar prediction of salmonella assemblies</description>
+  <requirements>
+    <requirement type="package" version="1.1.1">sistr_cmd</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+if [ &quot;$is_compressed&quot; == &quot;true&quot; ]; then
+        gzip -c -d $fasta &gt; $fasta_name
+    fi
+
+    sistr \\
+        --qc \\
+        $args \\
+        --threads $task.cpus \\
+        --alleles-output ${prefix}-allele.json \\
+        --novel-alleles ${prefix}-allele.fasta \\
+        --cgmlst-profiles ${prefix}-cgmlst.csv \\
+        --output-prediction ${prefix} \\
+        --output-format tab \\
+        $fasta_name
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        sistr: \$(echo \$(sistr --version 2&gt;&amp;1) | sed 's/^.*sistr_cmd //; s/ .*\$//' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tab"/>
+    <data name="allele_fasta" format="data" label="Allele Fasta" from_work_dir="*-allele.fasta"/>
+    <data name="allele_json" format="data" label="Allele Json" from_work_dir="*-allele.json"/>
+    <data name="cgmlst_csv" format="data" label="Cgmlst Csv" from_work_dir="*-cgmlst.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Serovar prediction of salmonella assemblies
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: sistr
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/sistr
+]]&gt;</help>
+</tool>

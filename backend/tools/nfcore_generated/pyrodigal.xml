@@ -1,0 +1,57 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_pyrodigal" name="nf-core pyrodigal" version="1.0.0" profile="20.01">
+  <description>Pyrodigal is a Python module that provides bindings to Prodigal, a fast, reliable protein-coding gene prediction for prokaryotic genomes.</description>
+  <requirements>
+    <requirement type="package" version="3.6.3">pyrodigal</requirement>
+    <requirement type="package" version="2.8">pigz</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+pigz -cdf ${fasta} &gt; pigz_fasta.fna
+
+    pyrodigal \\
+        -j ${task.cpus} \\
+        $args \\
+        -i pigz_fasta.fna \\
+        -f $output_format \\
+        -o &quot;${prefix}.${output_format}&quot; \\
+        -d ${prefix}.fna \\
+        -a ${prefix}.faa \\
+        -s ${prefix}.score
+
+    pigz -nmf ${prefix}*
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        pyrodigal: \$(echo \$(pyrodigal --version 2&gt;&amp;1 | sed 's/pyrodigal v//'))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="text" name="output_format" label="Output Format" value=""/>
+  </inputs>
+  <outputs>
+    <data name="annotations" format="data" label="Annotations" from_work_dir="*.${output_format}.gz"/>
+    <data name="fna" format="data" label="Fna" from_work_dir="*.fna.gz"/>
+    <data name="faa" format="data" label="Faa" from_work_dir="*.faa.gz"/>
+    <data name="score" format="data" label="Score" from_work_dir="*.score.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Pyrodigal is a Python module that provides bindings to Prodigal, a fast, reliable protein-coding gene prediction for prokaryotic genomes.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: pyrodigal
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/pyrodigal
+]]&gt;</help>
+</tool>

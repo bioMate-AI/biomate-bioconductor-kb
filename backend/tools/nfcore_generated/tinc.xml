@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_tinc" name="nf-core tinc" version="1.0.0" profile="20.01">
+  <description>TINC is a package to determine the contamination of tumour DNA in a matched normal sample. The approach uses evolutionary theory applied to read counts data from whole-genome sequencing assays.</description>
+  <requirements>
+    <requirement type="package" version="0.1.0">r-tinc</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+touch ${prefix}_fit.rds
+    touch ${prefix}_plot.rds
+    touch ${prefix}.pdf
+    touch ${prefix}_qc.csv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bioconductor-rtinc: \$(Rscript -e &quot;library(TINC); cat(as.character(packageVersion('TINC')))&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="cna_rds" format="data" label="Cna Rds"/>
+  </inputs>
+  <outputs>
+    <data name="rds" format="data" label="Rds" from_work_dir="*_fit.rds"/>
+    <data name="plot_rds" format="data" label="Plot Rds" from_work_dir="*_plot.rds"/>
+    <data name="plot_pdf" format="data" label="Plot Pdf" from_work_dir="*.pdf"/>
+    <data name="tinc_csv" format="data" label="Tinc Csv" from_work_dir="*_qc.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+TINC is a package to determine the contamination of tumour DNA in a matched normal sample. The approach uses evolutionary theory applied to read counts data from whole-genome sequencing assays.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: tinc
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/tinc
+]]&gt;</help>
+</tool>

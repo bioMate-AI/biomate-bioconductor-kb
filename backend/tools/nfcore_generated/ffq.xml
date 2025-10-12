@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_ffq" name="nf-core ffq" version="1.0.0" profile="20.01">
+  <description>A command line tool that makes it easier to find sequencing data from the SRA / GEO / ENA.</description>
+  <requirements>
+    <requirement type="package" version="0.2.1">ffq</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+ffq \\
+        ${id_list.join(' ')} \\
+        $args \\
+        &gt; ${prefix}.json
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        ffq: \$(echo \$(ffq --help 2&gt;&amp;1) | sed 's/^.*ffq //; s/: A command.*\$//' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="json" format="data" label="Json" from_work_dir="*.json"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A command line tool that makes it easier to find sequencing data from the SRA / GEO / ENA.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: ffq
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/ffq
+]]&gt;</help>
+</tool>

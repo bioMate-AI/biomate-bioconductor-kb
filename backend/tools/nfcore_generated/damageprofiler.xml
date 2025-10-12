@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_damageprofiler" name="nf-core damageprofiler" version="1.0.0" profile="20.01">
+  <description>A Java based tool to determine damage patterns on ancient DNA as a replacement for mapDamage</description>
+  <requirements>
+    <requirement type="package" version="1.1">damageprofiler</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+damageprofiler \\
+        -i $bam \\
+        -o $prefix/ \\
+        $args \\
+        $reference \\
+        $species_list
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        damageprofiler: \$(damageprofiler -v | sed 's/^DamageProfiler v//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="results" format="data" label="Results" from_work_dir="${prefix}"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A Java based tool to determine damage patterns on ancient DNA as a replacement for mapDamage
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: damageprofiler
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/damageprofiler
+]]&gt;</help>
+</tool>

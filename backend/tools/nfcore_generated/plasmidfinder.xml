@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_plasmidfinder" name="nf-core plasmidfinder" version="1.0.0" profile="20.01">
+  <description>Identify plasmids in bacterial sequences and assemblies</description>
+  <requirements>
+    <requirement type="package" version="2.1.6">plasmidfinder</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+plasmidfinder.py \\
+        $args \\
+        -i $seqs \\
+        -o ./ \\
+        -x
+
+    # Rename hard-coded outputs with prefix to avoid name collisions
+    mv data.json ${prefix}.json
+    mv results.txt ${prefix}.txt
+    mv results_tab.tsv ${prefix}.tsv
+    mv Hit_in_genome_seq.fsa ${prefix}-hit_in_genome_seq.fsa
+    mv Plasmid_seqs.fsa ${prefix}-plasmid_seqs.fsa
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        plasmidfinder: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="seqs" format="data" label="Seqs"/>
+  </inputs>
+  <outputs>
+    <data name="json" format="data" label="Json" from_work_dir="*.json"/>
+    <data name="txt" format="txt" label="Txt" from_work_dir="*.txt"/>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="genome_seq" format="data" label="Genome Seq" from_work_dir="*-hit_in_genome_seq.fsa"/>
+    <data name="plasmid_seq" format="data" label="Plasmid Seq" from_work_dir="*-plasmid_seqs.fsa"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Identify plasmids in bacterial sequences and assemblies
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: plasmidfinder
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/plasmidfinder
+]]&gt;</help>
+</tool>

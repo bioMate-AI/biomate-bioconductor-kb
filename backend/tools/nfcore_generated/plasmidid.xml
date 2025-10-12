@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_plasmidid" name="nf-core plasmidid" version="1.0.0" profile="20.01">
+  <description>assembles bacterial plasmids</description>
+  <requirements>
+    <requirement type="package" version="1.6.5">plasmidid</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+plasmidID \\
+        -d $fasta \\
+        -s $prefix \\
+        -c $scaffold \\
+        $args \\
+        -o .
+
+    mv NO_GROUP/$prefix ./$prefix
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        plasmidid: \$(echo \$(plasmidID --version 2&gt;&amp;1))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="scaffold" format="data" label="Scaffold"/>
+  </inputs>
+  <outputs>
+    <data name="html" format="html" label="Html" from_work_dir="${prefix}/*final_results.html"/>
+    <data name="tab" format="data" label="Tab" from_work_dir="${prefix}/*final_results.tab"/>
+    <data name="images" format="data" label="Images" from_work_dir="${prefix}/images/"/>
+    <data name="logs" format="data" label="Logs" from_work_dir="${prefix}/logs/"/>
+    <data name="data" format="data" label="Data" from_work_dir="${prefix}/data/"/>
+    <data name="database" format="data" label="Database" from_work_dir="${prefix}/database/"/>
+    <data name="fasta_files" format="data" label="Fasta Files" from_work_dir="${prefix}/fasta_files/"/>
+    <data name="kmer" format="data" label="Kmer" from_work_dir="${prefix}/kmer/"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+assembles bacterial plasmids
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: plasmidid
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/plasmidid
+]]&gt;</help>
+</tool>

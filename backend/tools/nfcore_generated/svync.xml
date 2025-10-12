@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_svync" name="nf-core svync" version="1.0.0" profile="20.01">
+  <description>A tool to standardize VCF files from structural variant callers</description>
+  <requirements>
+    <requirement type="package" version="0.3.0">svync</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+svync \\
+        $args \\
+        --config $config \\
+        --input $vcf \\
+        | bgzip --threads $task.cpus $args2 &gt; ${prefix}.vcf.gz \\
+        &amp;&amp; tabix $args3 ${prefix}.vcf.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        svync: \$(svync --version | sed 's/svync version //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="vcf" format="data" label="Vcf"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="tbi" format="data" label="Tbi" from_work_dir="*.tbi"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A tool to standardize VCF files from structural variant callers
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: svync
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/svync
+]]&gt;</help>
+</tool>

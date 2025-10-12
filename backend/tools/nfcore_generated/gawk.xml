@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_gawk" name="nf-core gawk" version="1.0.0" profile="20.01">
+  <description>If you are like many computer users, you would frequently like to make changes in various text files
+wherever certain patterns appear, or extract data from parts of certain lines while discarding the rest.
+The job is easy with awk, especially the GNU implementation gawk.
+</description>
+  <requirements>
+    <requirement type="package" version="5.3.0">gawk</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+${unzip}
+
+    awk \\
+        ${args} \\
+        ${program} \\
+        ${input_cmd} \\
+        ${output}
+
+    ${cleanup}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        gawk: \$(awk -Wversion | sed '1!d; s/.*Awk //; s/,.*//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="program_file" format="data" label="Program File"/>
+    <param type="text" name="disable_redirect_output" label="Disable Redirect Output" value=""/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output" from_work_dir="*.${suffix}"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+If you are like many computer users, you would frequently like to make changes in various text files
+wherever certain patterns appear, or extract data from parts of certain lines while discarding the rest.
+The job is easy with awk, especially the GNU implementation gawk.
+
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: gawk
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/gawk
+]]&gt;</help>
+</tool>

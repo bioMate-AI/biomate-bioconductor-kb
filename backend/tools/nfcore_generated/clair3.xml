@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_clair3" name="nf-core clair3" version="1.0.0" profile="20.01">
+  <description>Clair3 is a germline small variant caller for long-reads</description>
+  <requirements>
+    <requirement type="package" version="1.2.0">clair3</requirement>
+    <container type="docker">${workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+run_clair3.sh \\
+        --bam_fn=${bam} \\
+        --ref_fn=${reference} \\
+        --threads=${task.cpus} \\
+        --output=. \\
+        --platform=${platform} \\
+        --model=${model} \\
+        ${args}
+
+    # Rename to add prefix
+    for file in merge_output.vcf.gz \
+            merge_output.vcf.gz.tbi \
+            phased_merge_output.vcf.gz \
+            phased_merge_output.vcf.gz.tbi \
+            merge_output.gvcf.gz \
+            merge_output.gvcf.gz.tbi; do
+    if [ -e &quot;\$file&quot; ]; then
+        mv &quot;\$file&quot; &quot;${prefix}\$file&quot;
+    fi
+    done
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        clair3: \$(run_clair3.sh  --version |&amp; sed '1!d ; s/Clair3 v//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="reference" format="data" label="Reference"/>
+    <param type="data" name="index" format="data" label="Index"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="${prefix}merge_output.vcf.gz"/>
+    <data name="tbi" format="data" label="Tbi" from_work_dir="${prefix}merge_output.vcf.gz.tbi"/>
+    <data name="phased_vcf" format="data" label="Phased Vcf" from_work_dir="${prefix}phased_merge_output.vcf.gz"/>
+    <data name="phased_tbi" format="data" label="Phased Tbi" from_work_dir="${prefix}phased_merge_output.vcf.gz.tbi"/>
+    <data name="gvcf" format="data" label="Gvcf" from_work_dir="${prefix}merge_output.gvcf.gz"/>
+    <data name="gtbi" format="data" label="Gtbi" from_work_dir="${prefix}merge_output.gvcf.gz.tbi"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Clair3 is a germline small variant caller for long-reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: clair3
+Container: ${workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/clair3
+]]&gt;</help>
+</tool>

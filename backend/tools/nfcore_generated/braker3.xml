@@ -1,0 +1,71 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_braker3" name="nf-core braker3" version="1.0.0" profile="20.01">
+  <description>Gene prediction in novel genomes using RNA-seq and protein homology information
+</description>
+  <requirements>
+    <container type="docker">docker.io/teambraker/braker3:v3.0.7.5</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+cp -r \$AUGUSTUS_CONFIG_PATH \\
+        augustus_config
+
+    chmod -R a+w \\
+        augustus_config
+
+    perl -p -e 's/^(&gt;\\S+).*\$/\$1/' \\
+        $fasta \\
+        &gt; ${prefix}.name.only.genome.masked.fasta
+
+    braker.pl \\
+        --genome ${prefix}.name.only.genome.masked.fasta \\
+        $new_species \\
+        --workingdir $prefix \\
+        --AUGUSTUS_CONFIG_PATH &quot;\$(pwd)/augustus_config&quot; \\
+        --threads $task.cpus \\
+        $rna_ids \\
+        $rna_dirs \\
+        $bam_arg \\
+        $prot_arg \\
+        $hints \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        braker3: \$(braker.pl --version 2&gt;/dev/null | sed 's/braker.pl version //')
+        augustus: \$(augustus --version |&amp; sed -n 's/AUGUSTUS (\\(.*\\)) is a gene .*/\\1/p')
+        genemark-etp: \$(echo &quot;\$(gmetp.pl || echo '')&quot; | sed -n 's/ETP version \\(.*\\)/\\1/p')
+        prothint: \$(prothint.py --version | sed 's/prothint.py //1')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="gtf" format="data" label="Gtf" from_work_dir="$prefix/braker.gtf"/>
+    <data name="cds" format="data" label="Cds" from_work_dir="$prefix/braker.codingseq"/>
+    <data name="aa" format="data" label="Aa" from_work_dir="$prefix/braker.aa"/>
+    <data name="log" format="txt" label="Log" from_work_dir="$prefix/braker.log"/>
+    <data name="hintsfile" format="data" label="Hintsfile" from_work_dir="$prefix/hintsfile.gff"/>
+    <data name="gff3" format="data" label="Gff3" from_work_dir="$prefix/braker.gff3"/>
+    <data name="citations" format="txt" label="Citations" from_work_dir="$prefix/what-to-cite.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Gene prediction in novel genomes using RNA-seq and protein homology information
+
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: braker3
+Container: docker.io/teambraker/braker3:v3.0.7.5
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/braker3
+]]&gt;</help>
+</tool>

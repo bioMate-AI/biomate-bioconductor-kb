@@ -1,0 +1,57 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_hasheddrops" name="nf-core hasheddrops" version="1.0.0" profile="20.01">
+  <description>Generating cell hashing calls from a matrix of count data.</description>
+  <requirements>
+    <requirement type="package" version="1.26.0">bioconductor-dropletutils</requirement>
+    <requirement type="package" version="5.3.0">r-seurat</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+touch ${prefix}_emptyDrops.png
+    touch ${prefix}_emptyDrops.csv
+    touch ${prefix}_emptyDrops.rds
+    touch ${prefix}_results_hasheddrops.csv
+    touch ${prefix}_id_to_hash.csv
+    touch ${prefix}_hasheddrops.rds
+    touch ${prefix}_plot_hasheddrops.png
+    touch ${prefix}_params_hasheddrops.csv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        r-base: \$(Rscript -e &quot;cat(strsplit(R.version[['version.string']], ' ')[[1]][3])&quot;)
+        r-seurat: \$(Rscript -e &quot;library(Seurat); cat(as.character(packageVersion('Seurat')))&quot;)
+        dropletutils: \$(Rscript -e &quot;library(DropletUtils); cat(as.character(packageVersion('DropletUtils')))&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="hto_matrix" format="data" label="Hto Matrix"/>
+  </inputs>
+  <outputs>
+    <data name="empty_drops_plot" format="data" label="Empty Drops Plot" from_work_dir="*_emptyDrops.png"/>
+    <data name="empty_drops_csv" format="data" label="Empty Drops Csv" from_work_dir="*_emptyDrops.csv"/>
+    <data name="empty_drops_rds" format="data" label="Empty Drops Rds" from_work_dir="*_emptyDrops.rds"/>
+    <data name="results" format="data" label="Results" from_work_dir="*_results_hasheddrops.csv"/>
+    <data name="id_to_hash" format="data" label="Id To Hash" from_work_dir="*_id_to_hash.csv"/>
+    <data name="rds" format="data" label="Rds" from_work_dir="*_hasheddrops.rds"/>
+    <data name="plot" format="data" label="Plot" from_work_dir="*_plot_hasheddrops.png"/>
+    <data name="params" format="data" label="Params" from_work_dir="*_params_hasheddrops.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Generating cell hashing calls from a matrix of count data.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: hasheddrops
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/hasheddrops
+]]&gt;</help>
+</tool>

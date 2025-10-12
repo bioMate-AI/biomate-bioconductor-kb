@@ -1,0 +1,78 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_velocyto" name="nf-core velocyto" version="1.0.0" profile="20.01">
+  <description>Velocyto is a library for the analysis of RNA velocity. velocyto.py CLI use
+`Path(resolve_path=True)` and breaks the nextflow logic of symbolic links.
+If in the work dir velocyto find a file named EXACTLY `cellsorted_[ORIGINAL_BAM_NAME]`
+it will skip the samtools sort step.
+Cellsorted bam file should be cell sorted with:
+```bash
+    samtools sort -t CB -O BAM -o cellsorted_input.bam input.bam
+```
+See module test for an example with the SAMTOOLS_SORT nf-core module.
+Config example to cellsort input bam using SAMTOOLS_SORT:
+```groovy
+    withName: SAMTOOLS_SORT {
+        ext.prefix = { &quot;cellsorted_${bam.baseName}&quot; }
+        ext.args = '-t CB -O BAM'
+    }
+```
+Optional mask must be passed with `ext.args` and option `--mask`
+This is why I need to stage in the work dir 2 bam files (cellsorted and original).
+See also [velocyto tutorial](https://velocyto.org/velocyto.py/tutorial/cli.html#notes-on-first-runtime-and-parallelization)
+</description>
+  <requirements>
+    <requirement type="package" version="0.17.17">velocyto.py</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+velocyto run $args -e ${meta.id} -b ${barcodes} -o . ${bam} ${gtf} &gt; ${prefix}.velocyto.log
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        velocyto: \$(echo \$(velocyto --version) | sed 's/^.*version //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="barcodes" format="data" label="Barcodes"/>
+  </inputs>
+  <outputs>
+    <data name="loom" format="data" label="Loom" from_work_dir="*.loom"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Velocyto is a library for the analysis of RNA velocity. velocyto.py CLI use
+`Path(resolve_path=True)` and breaks the nextflow logic of symbolic links.
+If in the work dir velocyto find a file named EXACTLY `cellsorted_[ORIGINAL_BAM_NAME]`
+it will skip the samtools sort step.
+Cellsorted bam file should be cell sorted with:
+```bash
+    samtools sort -t CB -O BAM -o cellsorted_input.bam input.bam
+```
+See module test for an example with the SAMTOOLS_SORT nf-core module.
+Config example to cellsort input bam using SAMTOOLS_SORT:
+```groovy
+    withName: SAMTOOLS_SORT {
+        ext.prefix = { &quot;cellsorted_${bam.baseName}&quot; }
+        ext.args = '-t CB -O BAM'
+    }
+```
+Optional mask must be passed with `ext.args` and option `--mask`
+This is why I need to stage in the work dir 2 bam files (cellsorted and original).
+See also [velocyto tutorial](https://velocyto.org/velocyto.py/tutorial/cli.html#notes-on-first-runtime-and-parallelization)
+
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: velocyto
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/velocyto
+]]&gt;</help>
+</tool>

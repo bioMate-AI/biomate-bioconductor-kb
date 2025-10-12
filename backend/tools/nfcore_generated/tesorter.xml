@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_tesorter" name="nf-core tesorter" version="1.0.0" profile="20.01">
+  <description>An accurate and fast method to classify LTR-retrotransposons in plant genomes</description>
+  <requirements>
+    <requirement type="package" version="1.4.7">tesorter</requirement>
+    <requirement type="package" version="3.12.8">python</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+TEsorter \\
+        $db_hmm_arg \\
+        --processors $task.cpus \\
+        -pre $prefix \\
+        $args \\
+        $fasta
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        TEsorter: \$(TEsorter -v | tr -d 'TEsorter ')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="db_hmm" format="data" label="Db Hmm"/>
+  </inputs>
+  <outputs>
+    <data name="domtbl" format="data" label="Domtbl" from_work_dir="*.domtbl"/>
+    <data name="dom_faa" format="data" label="Dom Faa" from_work_dir="*.dom.faa"/>
+    <data name="dom_tsv" format="data" label="Dom Tsv" from_work_dir="*.dom.tsv"/>
+    <data name="dom_gff3" format="data" label="Dom Gff3" from_work_dir="*.dom.gff3"/>
+    <data name="cls_tsv" format="data" label="Cls Tsv" from_work_dir="*.cls.tsv"/>
+    <data name="cls_lib" format="data" label="Cls Lib" from_work_dir="*.cls.lib"/>
+    <data name="cls_pep" format="data" label="Cls Pep" from_work_dir="*.cls.pep"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+An accurate and fast method to classify LTR-retrotransposons in plant genomes
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: tesorter
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/tesorter
+]]&gt;</help>
+</tool>

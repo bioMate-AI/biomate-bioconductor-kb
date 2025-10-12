@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_muscle" name="nf-core muscle" version="1.0.0" profile="20.01">
+  <description>MUSCLE is a program for creating multiple alignments of amino acid or nucleotide sequences. A range of options are provided that give you the choice of optimizing accuracy, speed, or some compromise between the two</description>
+  <requirements>
+    <requirement type="package" version="3.8.1551">muscle</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+muscle \\
+        $args \\
+        -in $fasta \\
+        $fasta_out \\
+        $clw_out \\
+        $msf_out \\
+        $phys_out \\
+        $phyi_out \\
+        $html_out \\
+        $tree_out \\
+        -loga muscle_msa.log
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        muscle: \$(muscle -version |  sed 's/^MUSCLE v//; s/by.*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="aligned_fasta" format="data" label="Aligned Fasta" from_work_dir="*.afa"/>
+    <data name="phyi" format="data" label="Phyi" from_work_dir="*.phyi"/>
+    <data name="phys" format="data" label="Phys" from_work_dir="*.phys"/>
+    <data name="clustalw" format="data" label="Clustalw" from_work_dir="*.clw"/>
+    <data name="html" format="html" label="Html" from_work_dir="*.html"/>
+    <data name="msf" format="data" label="Msf" from_work_dir="*.msf"/>
+    <data name="tree" format="data" label="Tree" from_work_dir="*.tree"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+MUSCLE is a program for creating multiple alignments of amino acid or nucleotide sequences. A range of options are provided that give you the choice of optimizing accuracy, speed, or some compromise between the two
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: muscle
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/muscle
+]]&gt;</help>
+</tool>

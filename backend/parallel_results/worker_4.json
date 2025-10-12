@@ -1,0 +1,433 @@
+[
+  {
+    "dataset_key": "biomni_data_lake_mousemine_m2_curated_geneset_parquet",
+    "dataset_name": "mousemine_m2_curated_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Data Source tool that pulls data from Monarch Initiative BioLink API. The parquet file with id/name/value columns could serve as a reference list for bulk operations on biological entities (genes, phenotypes). The structured format matches typical reference data patterns.",
+        "parameter_name": "reference_list"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "BioLink API tool for associations. The mousemine curated geneset parquet could provide reference gene IDs for querying associations. The id/name/value structure fits biological entity reference data.",
+        "parameter_name": "reference_entities"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Queries bioentity associations from Monarch Initiative. The mousemine geneset parquet with gene IDs could serve as reference input for batch bioentity queries.",
+        "parameter_name": "bioentity_reference"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Specifically queries gene associations. The mousemine_m2_curated_geneset.parquet is explicitly a curated geneset, making it highly relevant as a reference for gene-based queries. Strong domain alignment.",
+        "parameter_name": "gene_reference_list"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Performs over-representation analysis on bioentity sets. A curated geneset parquet is ideal reference data for defining background or test gene sets in enrichment analysis.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Queries phenotype-gene associations with taxon filtering. The mousemine curated geneset could provide reference gene lists for mouse-specific phenotype queries.",
+        "parameter_name": "gene_reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_mousemine_m3_regulatory_target_geneset_parquet",
+    "dataset_name": "mousemine_m3_regulatory_target_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool pulls data from Monarch Initiative BioLink API and works with biological entity data (genes, phenotypes, diseases). The dataset contains regulatory target geneset data with id/name/value columns that could potentially be used as input for bulk operations on biological entities, though the parquet format compatibility is uncertain.",
+        "parameter_name": "Input data for bulk operations"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool retrieves biological associations from Monarch Initiative. The mousemine regulatory target geneset could serve as reference data for querying or filtering associations, as it contains gene-related regulatory information with id/name/value structure.",
+        "parameter_name": "Reference geneset for associations"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Tool queries bioentity associations from Monarch Initiative. The regulatory target geneset from mousemine contains biological entity information (genes and their regulatory targets) that could be used as reference data for filtering or contextualizing bioentity queries.",
+        "parameter_name": "Reference bioentity data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "This tool retrieves gene associations from Monarch Initiative. The mousemine regulatory target geneset explicitly contains gene-related data, making it a strong candidate for use as reference data to filter or contextualize gene association queries.",
+        "parameter_name": "Reference gene list"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool performs over-representation analysis on sets of bioentities (genes). The mousemine regulatory target geneset with id/name/value columns is well-suited as either the test set or background reference for gene set enrichment analysis.",
+        "parameter_name": "Reference geneset or background"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Tool retrieves phenotype-gene associations with taxon filtering (supports mouse - NCBITaxon:10090). The mousemine regulatory target geneset contains mouse gene data that could serve as reference for filtering or contextualizing phenotype-gene associations.",
+        "parameter_name": "Reference gene list"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_mousemine_m5_ontology_geneset_parquet",
+    "dataset_name": "mousemine_m5_ontology_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool pulls data from Monarch Initiative BioLink API and works with biological ontology data (taxon, phenotype, disease). The dataset name 'mousemine_m5_ontology_geneset.parquet' suggests it contains ontology-based gene set data that could serve as a reference for filtering or enriching bulk operations queries.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Tool retrieves biological associations from BioLink API. The ontology geneset dataset with id/name/value columns could provide reference gene sets for filtering or annotating association queries, particularly for mouse-related associations.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Retrieves bioentity associations from Monarch Initiative. The mousemine ontology geneset could serve as a reference database for filtering or annotating bioentity queries, especially for mouse gene-related associations.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Tool specifically queries gene associations. The 'mousemine_m5_ontology_geneset.parquet' dataset appears to contain mouse gene ontology information that could be used as a reference for gene association queries or filtering.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool performs over-representation analysis on gene sets with phenotype/function categories. The mousemine ontology geneset with id/name/value structure is highly suitable as a reference database for background gene sets or ontology term mappings in enrichment analysis.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Tool retrieves phenotype-gene associations with taxon filtering (including mouse NCBITaxon:10090). The mousemine ontology geneset could serve as a reference for annotating or filtering phenotype-gene associations.",
+        "parameter_name": "reference_geneset"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_mousemine_m8_celltype_signature_geneset_parquet",
+    "dataset_name": "mousemine_m8_celltype_signature_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool performs over-representation analysis on gene sets. The dataset contains gene set signatures (id, name, value columns) which could serve as a reference for enrichment analysis. The tool accepts entity IDs which aligns with the dataset's structure containing gene identifiers.",
+        "parameter_name": "reference gene set"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pimarin/abromics_extractor_summarize/Repository_Actions\nabromics_extractor_summarize",
+        "name": "Repository Actions\nabromics_extractor_summarize",
+        "category": "Sequence Analysis",
+        "confidence": 0.65,
+        "reasoning": "This tool summarizes JSON results and the dataset is in parquet format (a structured data format). Parquet files can contain structured data similar to JSON and could potentially be used as reference data for summarization operations, especially given the generic 'id, name, value' structure.",
+        "parameter_name": "reference data"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pimarin/abromics_galaxy_json_extractor/Repository_Actions\nabromics_galaxy_json_extractor",
+        "name": "Repository Actions\nabromics_galaxy_json_extractor",
+        "category": "Sequence Analysis",
+        "confidence": 0.65,
+        "reasoning": "This tool extracts and processes structured data from multiple bioinformatics tools. The parquet dataset with id/name/value columns could serve as a reference lookup table for annotation or data extraction purposes, particularly for cell type signature mapping.",
+        "parameter_name": "reference annotation"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_mousemine_mh_hallmark_geneset_parquet",
+    "dataset_name": "mousemine_mh_hallmark_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBulk_Operations",
+        "name": "Repository Actions\nBulk Operations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool pulls data from Monarch Initiative BioLink API and works with biological entities (genes, phenotypes, diseases). The dataset contains gene set information (mousemine_mh_hallmark_geneset) with id/name/value columns that could serve as reference data for filtering or annotating bulk operations on biological entities.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nAssociations",
+        "name": "Repository Actions\nAssociations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Retrieves biological associations from Monarch Initiative. A hallmark geneset with id/name/value structure could be used as reference data to filter or annotate association queries, particularly for gene-related associations.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Associations",
+        "name": "Repository Actions\nBioentity Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Queries bioentity associations from Monarch Initiative. The mousemine hallmark geneset could serve as a reference database for filtering or annotating bioentity queries, especially for gene-related entities.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "Specifically retrieves gene associations from Monarch Initiative. A mouse hallmark geneset with gene identifiers (id/name/value) is highly relevant as reference data for gene association queries and filtering.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool performs over-representation analysis on bioentity sets. The mousemine hallmark geneset is a perfect candidate as a reference database for comparing against query gene sets to identify enriched pathways or gene sets.",
+        "parameter_name": "reference_geneset_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.68,
+        "reasoning": "Retrieves phenotype-gene associations with taxon filtering. The mouse hallmark geneset could be used as reference data to filter or annotate phenotype-gene associations, particularly relevant given the mouse-specific nature of the dataset.",
+        "parameter_name": "reference_geneset"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_msigdb_human_c1_positional_geneset_parquet",
+    "dataset_name": "msigdb_human_c1_positional_geneset.parquet",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_msigdb_human_c2_curated_geneset_parquet",
+    "dataset_name": "msigdb_human_c2_curated_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "This tool performs over-representation analysis on gene sets, which directly aligns with the dataset containing geneset_name, genes, category, and description columns from MSigDB. The tool takes entity IDs (genes) as input and performs enrichment analysis against reference gene sets.",
+        "parameter_name": "reference_geneset_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.72,
+        "reasoning": "This tool retrieves gene associations from BioLink API. The MSigDB geneset data containing gene lists and categories could serve as a reference database for annotating or filtering gene association results, particularly for pathway/functional enrichment context.",
+        "parameter_name": "reference_geneset"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "This tool retrieves phenotype-gene associations. The MSigDB curated genesets (especially C2 collection with pathway/functional annotations) could be used as reference data to contextualize phenotype-gene relationships within known biological pathways.",
+        "parameter_name": "pathway_reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_msigdb_human_c3_regulatory_target_geneset_parquet",
+    "dataset_name": "msigdb_human_c3_regulatory_target_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool performs over-representation analysis on gene sets, which aligns with the dataset containing geneset_name, genes, category, and description columns. The MSigDB regulatory target geneset data could serve as a reference database for enrichment analysis.",
+        "parameter_name": "reference gene sets"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool retrieves phenotype-gene associations from BioLink API. The dataset contains gene sets with regulatory targets that could be used as reference data for filtering or annotating phenotype-gene relationships.",
+        "parameter_name": "reference gene sets"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_msigdb_human_c3_subset_transcription_factor_targets_from_GTRD_parquet",
+    "dataset_name": "msigdb_human_c3_subset_transcription_factor_targets_from_GTRD.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool performs over-representation analysis on gene sets, which aligns with the dataset containing transcription factor target gene sets. The dataset has 'geneset_name' and 'genes' columns that could be used as reference for enrichment analysis. The tool accepts entity IDs which could be matched against the gene sets in the parquet file.",
+        "parameter_name": "reference gene sets"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool retrieves gene associations from BioLink API. The transcription factor target dataset could serve as a reference database for validating or enriching gene association queries, particularly for transcription factor-gene relationships.",
+        "parameter_name": "reference database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.62,
+        "reasoning": "This tool queries phenotype-gene associations. The transcription factor target gene sets could be used as a reference to contextualize or filter gene associations, especially since transcription factors often regulate genes involved in specific phenotypes.",
+        "parameter_name": "gene set reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_msigdb_human_c4_computational_geneset_parquet",
+    "dataset_name": "msigdb_human_c4_computational_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool performs over-representation analysis on gene sets, which directly aligns with the MSigDB computational geneset dataset. The dataset contains geneset_name, genes, category, and description columns - exactly what's needed for enrichment/over-representation analysis. The tool accepts entity IDs (genes) and can use reference genesets for comparison.",
+        "parameter_name": "reference_geneset_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool retrieves phenotype-gene associations from BioLink API. The MSigDB geneset data containing genes and their functional categories could serve as a reference database for validating or enriching phenotype-gene relationships, particularly for the C4 computational category which includes gene sets from computational analyses.",
+        "parameter_name": "reference_gene_annotations"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_msigdb_human_c5_ontology_geneset_parquet",
+    "dataset_name": "msigdb_human_c5_ontology_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.85,
+        "reasoning": "This tool performs over-representation analysis on gene sets, which directly aligns with the dataset containing geneset_name, genes, category, and description columns from MSigDB. The tool takes entity IDs (genes) as input and performs enrichment analysis against reference gene sets - this dataset could serve as the reference ontology/geneset database.",
+        "parameter_name": "reference_geneset_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.7,
+        "reasoning": "This tool retrieves phenotype-gene associations from BioLink API. The MSigDB C5 ontology geneset contains gene sets organized by biological processes and ontology terms, which could be used as a reference for mapping genes to phenotypes/ontologies. The dataset's category and description fields align with ontology-based gene-phenotype relationships.",
+        "parameter_name": "ontology_reference"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_msigdb_human_c6_oncogenic_signature_geneset_parquet",
+    "dataset_name": "msigdb_human_c6_oncogenic_signature_geneset.parquet",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nBioentity_Set_Get_Over_Representation",
+        "name": "Repository Actions\nBioentity Set Get Over Representation",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool performs over-representation analysis on gene sets, which directly aligns with the dataset containing oncogenic signature genesets with gene lists. The dataset's 'genes' column can serve as reference genesets for enrichment analysis.",
+        "parameter_name": "reference_geneset_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nGene_Associations",
+        "name": "Repository Actions\nGene Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "Tool retrieves gene associations from BioLink API. The oncogenic signature geneset dataset with gene lists and descriptions could serve as a reference database for gene-based queries and association lookups.",
+        "parameter_name": "reference_gene_database"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nPhenotype_Gene_Associations",
+        "name": "Repository Actions\nPhenotype Gene Associations",
+        "category": "Data Source",
+        "confidence": 0.65,
+        "reasoning": "This tool finds phenotype-gene associations. The oncogenic signature geneset dataset contains curated gene sets with oncogenic phenotypes/categories, which could serve as reference data for phenotype-gene relationship queries.",
+        "parameter_name": "reference_phenotype_geneset"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  }
+]

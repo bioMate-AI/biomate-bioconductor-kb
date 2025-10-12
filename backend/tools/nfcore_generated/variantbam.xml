@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_variantbam" name="nf-core variantbam" version="1.0.0" profile="20.01">
+  <description>Filtering, downsampling and profiling alignments in BAM/CRAM formats</description>
+  <requirements>
+    <requirement type="package" version="1.4.4a">variantbam</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+variant \\
+        $bam \\
+        -o ${prefix}.bam \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        variantbam: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*.bam"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Filtering, downsampling and profiling alignments in BAM/CRAM formats
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: variantbam
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/variantbam
+]]&gt;</help>
+</tool>

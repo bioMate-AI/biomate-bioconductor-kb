@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_dysgu" name="nf-core dysgu" version="1.0.0" profile="20.01">
+  <description>Dysgu calls structural variants (SVs) from mapped sequencing reads. It is designed for accurate and efficient detection of structural variations.</description>
+  <requirements>
+    <requirement type="package" version="1.6.5">dysgu</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+dysgu run \\
+        -p ${task.cpus} \\
+        -x \\
+        $fasta \\
+        . \\
+        $input \\
+        | bgzip ${args2} --threads ${task.cpus} --stdout &gt; ${prefix}.vcf.gz
+    tabix ${args3} ${prefix}.vcf.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        dysgu: \$(dysgu --version 2&gt;&amp;1)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input" format="data" label="Input"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="tbi" format="data" label="Tbi" from_work_dir="*.vcf.gz.tbi"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Dysgu calls structural variants (SVs) from mapped sequencing reads. It is designed for accurate and efficient detection of structural variations.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: dysgu
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/dysgu
+]]&gt;</help>
+</tool>

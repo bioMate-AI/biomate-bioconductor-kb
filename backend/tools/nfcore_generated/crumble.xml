@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_crumble" name="nf-core crumble" version="1.0.0" profile="20.01">
+  <description>Controllable lossy compression of BAM/CRAM files</description>
+  <requirements>
+    <requirement type="package" version="0.9.1">crumble</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+crumble \\
+        $args \\
+        $bedin \\
+        $bedout \\
+        $input \\
+        ${prefix}.${extension}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        crumble: $CRUMBLE_VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input" format="data" label="Input"/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*.bam"/>
+    <data name="cram" format="data" label="Cram" from_work_dir="*.cram"/>
+    <data name="sam" format="data" label="Sam" from_work_dir="*.sam"/>
+    <data name="bed" format="data" label="Bed" from_work_dir="*.bed"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Controllable lossy compression of BAM/CRAM files
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: crumble
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/crumble
+]]&gt;</help>
+</tool>

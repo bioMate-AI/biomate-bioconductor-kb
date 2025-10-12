@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_humid" name="nf-core humid" version="1.0.0" profile="20.01">
+  <description>HUMID is a tool to quickly and easily remove duplicate reads from FastQ files, with or without UMIs.</description>
+  <requirements>
+    <requirement type="package" version="1.0.4">humid</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+humid \\
+        $args \\
+        -d ${prefix} \\
+        -l ${prefix}.log \\
+        $reads \\
+        $umis \\
+
+    mv ${prefix}/*.fastq* .
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        humid: ${VERSION}
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="umi_file" format="data" label="Umi File"/>
+  </inputs>
+  <outputs>
+    <data name="log" format="txt" label="Log" from_work_dir="${prefix}.log"/>
+    <data name="dedup" format="data" label="Dedup" from_work_dir="*_dedup*.fastq.gz"/>
+    <data name="annotated" format="data" label="Annotated" from_work_dir="*_annotated*.fastq.gz"/>
+    <data name="stats" format="data" label="Stats" from_work_dir="${prefix}"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+HUMID is a tool to quickly and easily remove duplicate reads from FastQ files, with or without UMIs.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: humid
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/humid
+]]&gt;</help>
+</tool>

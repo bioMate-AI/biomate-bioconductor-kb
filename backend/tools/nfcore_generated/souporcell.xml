@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_souporcell" name="nf-core souporcell" version="1.0.0" profile="20.01">
+  <description>souporcell is a method for clustering mixed-genotype scRNAseq experiments by individual.</description>
+  <requirements>
+    <requirement type="package" version="2.5">souporcell</requirement>
+    <requirement type="package" version="9.5.0">gxx</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mkdir -p temp
+    export TMPDIR=./temp
+    souporcell_pipeline.py \\
+        -i $bam \\
+        -b $barcodes \\
+        -f $fasta \\
+        -t $task.cpus \\
+        -o $prefix \\
+        -k $clusters \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        souporcell: \$(souporcell_pipeline.py --version 2&gt;&amp;1 || echo &quot;N/A&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="text" name="clusters" label="Clusters" value=""/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="vcf" label="Vcf" from_work_dir="*/*.vcf"/>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*/*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+souporcell is a method for clustering mixed-genotype scRNAseq experiments by individual.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: souporcell
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/souporcell
+]]&gt;</help>
+</tool>

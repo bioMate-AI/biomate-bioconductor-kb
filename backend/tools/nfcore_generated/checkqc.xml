@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_checkqc" name="nf-core checkqc" version="1.0.0" profile="20.01">
+  <description>A simple program to parse Illumina NGS data and check it for quality criteria</description>
+  <requirements>
+    <requirement type="package" version="1.26">numpy</requirement>
+    <requirement type="package">pip</requirement>
+    <requirement type="package" version="3.8">python</requirement>
+    <container type="docker">community.wave.seqera.io/library/python_numpy_pip_checkqc_interop:b5301d9801b8e66b</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+checkqc \
+        $args \
+        $config \
+        --json \
+        $run_dir &gt; checkqc_report.json || true
+
+    # Check if the output JSON file is empty
+    if [[ ! -s checkqc_report.json ]] ; then
+        echo &quot;Error: Empty JSON files. Most likely due to missing files in run directory. See .command.log file for errors.&quot;
+        exit 1
+    fi
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        checkqc: \$( checkqc --version | sed -e &quot;s/checkqc, version //g&quot; )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="run_dir" format="data" label="Run Dir"/>
+    <param type="data" name="checkqc_config" format="data" label="Checkqc Config"/>
+  </inputs>
+  <outputs>
+    <data name="report" format="data" label="Report" from_work_dir="*checkqc_report.json"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A simple program to parse Illumina NGS data and check it for quality criteria
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: checkqc
+Container: community.wave.seqera.io/library/python_numpy_pip_checkqc_interop:b5301d9801b8e66b
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/checkqc
+]]&gt;</help>
+</tool>

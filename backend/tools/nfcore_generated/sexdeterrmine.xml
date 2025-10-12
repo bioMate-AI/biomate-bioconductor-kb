@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_sexdeterrmine" name="nf-core sexdeterrmine" version="1.0.0" profile="20.01">
+  <description>Calculate the relative coverage on the Gonosomes vs Autosomes from the output of samtools depth, with error bars.</description>
+  <requirements>
+    <requirement type="package" version="1.1.2">sexdeterrmine</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+sexdeterrmine \\
+        -I $depth \\
+        $sample_list \\
+        $args \\
+        &gt; ${prefix}.tsv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        sexdeterrmine: \$(echo \$(sexdeterrmine --version 2&gt;&amp;1))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="depth" format="data" label="Depth"/>
+  </inputs>
+  <outputs>
+    <data name="json" format="data" label="Json" from_work_dir="*.json"/>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Calculate the relative coverage on the Gonosomes vs Autosomes from the output of samtools depth, with error bars.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: sexdeterrmine
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/sexdeterrmine
+]]&gt;</help>
+</tool>

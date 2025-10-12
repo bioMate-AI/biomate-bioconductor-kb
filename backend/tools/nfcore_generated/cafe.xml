@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_cafe" name="nf-core cafe" version="1.0.0" profile="20.01">
+  <description>Analysis of gene family evolution</description>
+  <requirements>
+    <requirement type="package" version="5.1.0">cafe</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+tr '\\r' '\\n' &lt; $infile &gt; infile.txt
+    tr '\\r' '\\n' &lt; $tree &gt; treefile.txt
+    cafe5 \\
+        -i infile.txt \\
+        -t treefile.txt \\
+        $args \\
+        --cores ${task.cpus} \\
+        -o ${prefix}
+
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        cafe: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="infile" format="data" label="Infile"/>
+    <param type="data" name="tree" format="data" label="Tree"/>
+  </inputs>
+  <outputs>
+    <data name="cafe" format="data" label="Cafe" from_work_dir="${prefix}"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+    <data name="cafe_base_count" format="data" label="Cafe Base Count" from_work_dir="$prefix/*_count.tab"/>
+    <data name="cafe_significant_trees" format="data" label="Cafe Significant Trees" from_work_dir="$prefix/*.tre"/>
+    <data name="cafe_report" format="data" label="Cafe Report" from_work_dir="$prefix/*_report.cafe"/>
+    <data name="cafe_results" format="txt" label="Cafe Results" from_work_dir="$prefix/*results.txt"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Analysis of gene family evolution
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: cafe
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/cafe
+]]&gt;</help>
+</tool>

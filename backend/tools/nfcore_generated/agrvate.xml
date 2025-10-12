@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_agrvate" name="nf-core agrvate" version="1.0.0" profile="20.01">
+  <description>Rapid identification of Staphylococcus aureus agr locus type and agr operon variants</description>
+  <requirements>
+    <requirement type="package" version="1.0.2">agrvate</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+agrvate \\
+        ${args} \\
+        -i ${fasta}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        agrvate: \$(echo \$(agrvate -v 2&gt;&amp;1) | sed 's/agrvate v//;')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="summary" format="data" label="Summary" from_work_dir="${fasta.baseName}-results/${fasta.baseName}-summary.tab"/>
+    <data name="results_dir" format="data" label="Results Dir" from_work_dir="${fasta.baseName}-results"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Rapid identification of Staphylococcus aureus agr locus type and agr operon variants
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: agrvate
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/agrvate
+]]&gt;</help>
+</tool>

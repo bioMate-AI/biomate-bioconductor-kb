@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_nanolyse" name="nf-core nanolyse" version="1.0.0" profile="20.01">
+  <description>DNA contaminant removal using NanoLyse</description>
+  <requirements>
+    <requirement type="package" version="1.2.0">nanolyse</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+gunzip -c $fastq | NanoLyse -r $fasta | gzip &gt; ${prefix}.fastq.gz
+    mv NanoLyse.log ${prefix}.nanolyse.log
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        nanolyse: \$(NanoLyse --version 2&gt;&amp;1 | sed -e &quot;s/NanoLyse //g&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fastq" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="fastq" format="data" label="Fastq" from_work_dir="*.fastq.gz"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+DNA contaminant removal using NanoLyse
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: nanolyse
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/nanolyse
+]]&gt;</help>
+</tool>

@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_umicollapse" name="nf-core umicollapse" version="1.0.0" profile="20.01">
+  <description>Deduplicate reads based on the mapping co-ordinate and the UMI attached to the read.</description>
+  <requirements>
+    <requirement type="package" version="1.1.0">umicollapse</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Getting the umicollapse jar file like this because `umicollapse` is a Python wrapper script generated
+    # by conda that allows to set the heap size (Xmx), but not the stack size (Xss).
+    # `which` allows us to get the directory that contains `umicollapse`, independent of whether we
+    # are in a container or conda environment.
+    UMICOLLAPSE_JAR=\$(dirname \$(which umicollapse))/../share/umicollapse-${VERSION}/umicollapse.jar
+    java \\
+        -Xmx${max_heap_size_mega}M \\
+        -Xss${max_stack_size_mega}M \\
+        -jar \$UMICOLLAPSE_JAR \\
+        $mode \\
+        -i ${input} \\
+        -o ${prefix}.${extension} \\
+        $args | tee ${prefix}_UMICollapse.log
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        umicollapse: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input" format="data" label="Input"/>
+    <param type="text" name="mode" label="Mode" value=""/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*.bam"/>
+    <data name="fastq" format="data" label="Fastq" from_work_dir="*dedup*fastq.gz"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*_UMICollapse.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Deduplicate reads based on the mapping co-ordinate and the UMI attached to the read.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: umicollapse
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/umicollapse
+]]&gt;</help>
+</tool>

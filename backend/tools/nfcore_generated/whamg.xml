@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_whamg" name="nf-core whamg" version="1.0.0" profile="20.01">
+  <description>The wham suite consists of two programs, wham and whamg. wham, the original tool, is a very sensitive method with a high false discovery rate. The second program, whamg, is more accurate and better suited for general structural variant (SV) discovery.</description>
+  <requirements>
+    <requirement type="package" version="1.11">tabix</requirement>
+    <requirement type="package" version="1.8.0">wham</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+whamg \\
+        -x ${task.cpus} \\
+        -f ${bam} \\
+        -a ${fasta} \\
+        ${args} \\
+        | bgzip ${args2} --threads ${task.cpus} --stdout &gt; ${prefix}.vcf.gz
+
+        tabix ${args3} ${prefix}.vcf.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        whamg: \$(echo \$(whamg 2&gt;&amp;1 | grep Version | sed 's/^Version: v//; s/-.*\$//' ))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fasta_fai" format="data" label="Fasta Fai"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="tbi" format="data" label="Tbi" from_work_dir="*.vcf.gz.tbi"/>
+    <data name="graph" format="txt" label="Graph" from_work_dir="*.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+The wham suite consists of two programs, wham and whamg. wham, the original tool, is a very sensitive method with a high false discovery rate. The second program, whamg, is more accurate and better suited for general structural variant (SV) discovery.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: whamg
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/whamg
+]]&gt;</help>
+</tool>

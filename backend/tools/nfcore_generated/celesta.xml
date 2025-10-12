@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_celesta" name="nf-core celesta" version="1.0.0" profile="20.01">
+  <description>Unsupervised machine learning for cell type identification in multiplexed imaging using protein expression and cell neighborhood information without ground truth</description>
+  <requirements>
+    <container type="docker">ghcr.io/schapirolabor/mcmicro-celesta:v0.0.2</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript /local/CELESTA_CLI.R \\
+        -i $img_data \\
+        -s $signature \\
+        --high $high_thresholds \\
+        $low_thresholds_cmd \\
+        -o . \\
+        -t $prefix \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        celesta: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="img_data" format="data" label="Img Data"/>
+    <param type="data" name="signature" format="data" label="Signature"/>
+    <param type="data" name="high_thresholds" format="data" label="High Thresholds"/>
+    <param type="data" name="low_thresholds" format="data" label="Low Thresholds"/>
+  </inputs>
+  <outputs>
+    <data name="celltypes" format="data" label="Celltypes" from_work_dir="*results.csv"/>
+    <data name="quality" format="data" label="Quality" from_work_dir="*quality.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Unsupervised machine learning for cell type identification in multiplexed imaging using protein expression and cell neighborhood information without ground truth
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: celesta
+Container: ghcr.io/schapirolabor/mcmicro-celesta:v0.0.2
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/celesta
+]]&gt;</help>
+</tool>

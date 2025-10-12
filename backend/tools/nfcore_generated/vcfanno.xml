@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_vcfanno" name="nf-core vcfanno" version="1.0.0" profile="20.01">
+  <description>quickly annotate your VCF with any number of INFO fields from any number of VCFs or BED files</description>
+  <requirements>
+    <requirement type="package" version="1.22.1">htslib</requirement>
+    <requirement type="package" version="0.3.7">vcfanno</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+vcfanno \\
+        -p ${task.cpus} \\
+        ${args} \\
+        ${lua_cmd} \\
+        ${toml} \\
+        ${vcf} \\
+        | bgzip ${args2} --threads ${task.cpus} \\
+        &gt; ${prefix}.vcf.gz \\
+        &amp;&amp; tabix ${args3} ${prefix}.vcf.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        vcfanno: \$(echo \$(vcfanno 2&gt;&amp;1 | grep version | cut -f3 -d' ' ))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="vcf" format="data" label="Vcf"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="tbi" format="data" label="Tbi" from_work_dir="*.vcf.gz.tbi"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+quickly annotate your VCF with any number of INFO fields from any number of VCFs or BED files
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: vcfanno
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/vcfanno
+]]&gt;</help>
+</tool>

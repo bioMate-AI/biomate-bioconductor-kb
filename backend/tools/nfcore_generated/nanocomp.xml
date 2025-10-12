@@ -1,0 +1,61 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_nanocomp" name="nf-core nanocomp" version="1.0.0" profile="20.01">
+  <description>Compare multiple runs of long read sequencing data and alignments</description>
+  <requirements>
+    <requirement type="package" version="1.21.0">nanocomp</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+NanoComp \\
+        --$filetype $filelist \\
+        --threads $task.cpus \\
+        $prefixflag \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        nanocomp: \$(echo \$(NanoComp --version 2&gt;&amp;1) | sed 's/^.*NanoComp //; s/Using.*\$//' ))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="filelist" format="data" label="Filelist"/>
+  </inputs>
+  <outputs>
+    <data name="report_html" format="html" label="Report Html" from_work_dir="*NanoComp-report.html"/>
+    <data name="lengths_violin_html" format="html" label="Lengths Violin Html" from_work_dir="*NanoComp_lengths_violin.html"/>
+    <data name="log_length_violin_html" format="html" label="Log Length Violin Html" from_work_dir="*NanoComp_log_length_violin.html"/>
+    <data name="n50_html" format="html" label="N50 Html" from_work_dir="*NanoComp_N50.html"/>
+    <data name="number_of_reads_html" format="html" label="Number Of Reads Html" from_work_dir="*NanoComp_number_of_reads.html"/>
+    <data name="overlay_histogram_html" format="html" label="Overlay Histogram Html" from_work_dir="*NanoComp_OverlayHistogram.html"/>
+    <data name="overlay_histogram_normalized_html" format="html" label="Overlay Histogram Normalized Html" from_work_dir="*NanoComp_OverlayHistogram_Normalized.html"/>
+    <data name="overlay_log_histogram_html" format="html" label="Overlay Log Histogram Html" from_work_dir="*NanoComp_OverlayLogHistogram.html"/>
+    <data name="overlay_log_histogram_normalized_html" format="html" label="Overlay Log Histogram Normalized Html" from_work_dir="*NanoComp_OverlayLogHistogram_Normalized.html"/>
+    <data name="total_throughput_html" format="html" label="Total Throughput Html" from_work_dir="*NanoComp_total_throughput.html"/>
+    <data name="quals_violin_html" format="html" label="Quals Violin Html" from_work_dir="*NanoComp_quals_violin.html"/>
+    <data name="overlay_histogram_identity_html" format="html" label="Overlay Histogram Identity Html" from_work_dir="*NanoComp_OverlayHistogram_Identity.html"/>
+    <data name="overlay_histogram_phredscore_html" format="html" label="Overlay Histogram Phredscore Html" from_work_dir="*NanoComp_OverlayHistogram_PhredScore.html"/>
+    <data name="percent_identity_violin_html" format="html" label="Percent Identity Violin Html" from_work_dir="*NanoComp_percentIdentity_violin.html"/>
+    <data name="active_pores_over_time_html" format="html" label="Active Pores Over Time Html" from_work_dir="*NanoComp_ActivePoresOverTime.html"/>
+    <data name="cumulative_yield_plot_gigabases_html" format="html" label="Cumulative Yield Plot Gigabases Html" from_work_dir="*NanoComp_CumulativeYieldPlot_Gigabases.html"/>
+    <data name="sequencing_speed_over_time_html" format="html" label="Sequencing Speed Over Time Html" from_work_dir="*NanoComp_sequencing_speed_over_time.html"/>
+    <data name="stats_txt" format="txt" label="Stats Txt" from_work_dir="*NanoStats.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Compare multiple runs of long read sequencing data and alignments
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: nanocomp
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/nanocomp
+]]&gt;</help>
+</tool>

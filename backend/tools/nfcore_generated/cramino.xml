@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_cramino" name="nf-core cramino" version="1.0.0" profile="20.01">
+  <description>Quality assessment of long-read bam files using cramino.</description>
+  <requirements>
+    <requirement type="package" version="1.1.0">cramino</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+cramino \\
+        $args \\
+        --threads $task.cpus \\
+        ${bam} &gt; ${prefix}.txt
+
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        cramino: \$(echo \$(cramino -V) | sed 's/cramino //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="stats" format="txt" label="Stats" from_work_dir="*.txt"/>
+    <data name="arrow" format="data" label="Arrow" from_work_dir="*.arrow"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Quality assessment of long-read bam files using cramino.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: cramino
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/cramino
+]]&gt;</help>
+</tool>

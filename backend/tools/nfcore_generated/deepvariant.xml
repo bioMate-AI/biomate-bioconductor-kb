@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_deepvariant" name="nf-core deepvariant" version="1.0.0" profile="20.01">
+  <description>(DEPRECATED - see main.nf) DeepVariant is an analysis pipeline that uses a deep neural network to call genetic variants from next-generation DNA sequencing data</description>
+  <requirements>
+    <container type="docker">docker.io/google/deepvariant:1.9.0</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="input" format="data" label="Input"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fai" format="data" label="Fai"/>
+    <param type="data" name="gzi" format="data" label="Gzi"/>
+    <param type="data" name="par_bed" format="data" label="Par Bed"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="${prefix}.vcf.gz"/>
+    <data name="vcf_tbi" format="data" label="Vcf Tbi" from_work_dir="${prefix}.vcf.gz.tbi"/>
+    <data name="gvcf" format="data" label="Gvcf" from_work_dir="${prefix}.g.vcf.gz"/>
+    <data name="gvcf_tbi" format="data" label="Gvcf Tbi" from_work_dir="${prefix}.g.vcf.gz.tbi"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+(DEPRECATED - see main.nf) DeepVariant is an analysis pipeline that uses a deep neural network to call genetic variants from next-generation DNA sequencing data
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: deepvariant
+Container: docker.io/google/deepvariant:1.9.0
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/deepvariant
+]]&gt;</help>
+</tool>

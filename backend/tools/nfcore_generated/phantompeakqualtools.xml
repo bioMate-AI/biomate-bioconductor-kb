@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_phantompeakqualtools" name="nf-core phantompeakqualtools" version="1.0.0" profile="20.01">
+  <description>&quot;This package computes informative enrichment and quality measures
+for ChIP-seq/DNase-seq/FAIRE-seq/MNase-seq data. It can also be used
+to obtain robust estimates of the predominant fragment length or
+characteristic tag shift values in these assays.&quot;
+</description>
+  <requirements>
+    <requirement type="package" version="1.2.2">phantompeakqualtools</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+RUN_SPP=`which run_spp.R`
+    Rscript $args -e &quot;library(caTools); source(\\&quot;\$RUN_SPP\\&quot;)&quot; -c=&quot;$bam&quot; -savp=&quot;${prefix}.spp.pdf&quot; -savd=&quot;${prefix}.spp.Rdata&quot; -out=&quot;${prefix}.spp.out&quot; $args2
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        phantompeakqualtools: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="spp" format="data" label="Spp" from_work_dir="*.out"/>
+    <data name="pdf" format="data" label="Pdf" from_work_dir="*.pdf"/>
+    <data name="rdata" format="data" label="Rdata" from_work_dir="*.Rdata"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+&quot;This package computes informative enrichment and quality measures
+for ChIP-seq/DNase-seq/FAIRE-seq/MNase-seq data. It can also be used
+to obtain robust estimates of the predominant fragment length or
+characteristic tag shift values in these assays.&quot;
+
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: phantompeakqualtools
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/phantompeakqualtools
+]]&gt;</help>
+</tool>

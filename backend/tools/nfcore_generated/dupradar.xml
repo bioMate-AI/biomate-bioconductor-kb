@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_dupradar" name="nf-core dupradar" version="1.0.0" profile="20.01">
+  <description>Assessment of duplication rates in RNA-Seq datasets</description>
+  <requirements>
+    <requirement type="package" version="1.38.0">bioconductor-dupradar</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+touch ${meta.id}_duprateExpDens.pdf
+    touch ${meta.id}_duprateExpBoxplot.pdf
+    touch ${meta.id}_expressionHist.pdf
+    touch ${meta.id}_dupMatrix.txt
+    touch ${meta.id}_intercept_slope.txt
+    touch ${meta.id}_dup_intercept_mqc.txt
+    touch ${meta.id}_duprateExpDensCurve_mqc.txt
+    touch ${meta.id}.R_sessionInfo.log
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bioconductor-dupradar: \$(Rscript -e &quot;library(dupRadar); cat(as.character(packageVersion('dupRadar')))&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+    <param type="data" name="gtf" format="data" label="Gtf"/>
+  </inputs>
+  <outputs>
+    <data name="scatter2d" format="data" label="Scatter2D" from_work_dir="*_duprateExpDens.pdf"/>
+    <data name="boxplot" format="data" label="Boxplot" from_work_dir="*_duprateExpBoxplot.pdf"/>
+    <data name="hist" format="data" label="Hist" from_work_dir="*_expressionHist.pdf"/>
+    <data name="dupmatrix" format="txt" label="Dupmatrix" from_work_dir="*_dupMatrix.txt"/>
+    <data name="intercept_slope" format="txt" label="Intercept Slope" from_work_dir="*_intercept_slope.txt"/>
+    <data name="multiqc" format="txt" label="Multiqc" from_work_dir="*_mqc.txt"/>
+    <data name="session_info" format="txt" label="Session Info" from_work_dir="*.R_sessionInfo.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Assessment of duplication rates in RNA-Seq datasets
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: dupradar
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/dupradar
+]]&gt;</help>
+</tool>

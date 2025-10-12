@@ -1,0 +1,68 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_hifiasm" name="nf-core hifiasm" version="1.0.0" profile="20.01">
+  <description>Whole-genome assembly using PacBio HiFi reads</description>
+  <requirements>
+    <requirement type="package" version="0.25.0">hifiasm</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+hifiasm \\
+        $args \\
+        -t ${task.cpus} \\
+        ${input_trio} \\
+        ${input_hic} \\
+        ${ultralong} \\
+        -o ${prefix} \\
+        ${long_reads_sorted} \\
+        2&gt;| &gt;( tee ${prefix}.stderr.log &gt;&amp;2 )
+
+    if [ -f ${prefix}.ec.fa ]; then
+        gzip ${prefix}.ec.fa
+    fi
+
+    if [ -f ${prefix}.ovlp.paf ]; then
+        gzip ${prefix}.ovlp.paf
+    fi
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        hifiasm: \$(hifiasm --version 2&gt;&amp;1)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="long_reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="paternal_kmer_dump" format="data" label="Paternal Kmer Dump"/>
+    <param type="data" name="hic_read1" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="bin_files" format="data" label="Bin Files"/>
+  </inputs>
+  <outputs>
+    <data name="raw_unitigs" format="data" label="Raw Unitigs" from_work_dir="*.r_utg.gfa"/>
+    <data name="bin_files" format="data" label="Bin Files" from_work_dir="*.bin"/>
+    <data name="processed_unitigs" format="data" label="Processed Unitigs" from_work_dir="*.p_utg.gfa"/>
+    <data name="primary_contigs" format="data" label="Primary Contigs" from_work_dir="${prefix}.{p_ctg,bp.p_ctg,hic.p_ctg}.gfa"/>
+    <data name="alternate_contigs" format="data" label="Alternate Contigs" from_work_dir="${prefix}.{a_ctg,hic.a_ctg}.gfa"/>
+    <data name="hap1_contigs" format="data" label="Hap1 Contigs" from_work_dir="${prefix}.*.hap1.p_ctg.gfa"/>
+    <data name="hap2_contigs" format="data" label="Hap2 Contigs" from_work_dir="${prefix}.*.hap2.p_ctg.gfa"/>
+    <data name="corrected_reads" format="data" label="Corrected Reads" from_work_dir="*.ec.fa.gz"/>
+    <data name="read_overlaps" format="data" label="Read Overlaps" from_work_dir="*.ovlp.paf.gz"/>
+    <data name="log" format="txt" label="Log" from_work_dir="${prefix}.stderr.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Whole-genome assembly using PacBio HiFi reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: hifiasm
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/hifiasm
+]]&gt;</help>
+</tool>

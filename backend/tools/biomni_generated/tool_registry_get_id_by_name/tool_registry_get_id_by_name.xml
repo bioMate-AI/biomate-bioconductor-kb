@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<tool id="biomni_get_id_by_name" name="BioMni: Get Id By Name" version="1.0.0" profile="20.01">
+  <description>get_id_by_name</description>
+  <requirements>
+    <!-- BioMni Python function wrapper -->
+    <requirement type="package">pandas</requirement>
+    <requirement type="package">biomni</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python '$__tool_directory__/wrapper.py' --self 'self' --name 'name'
+]]&gt;</command>
+  <inputs>
+    <param type="text" name="self" label="Self" help="" value=""/>
+    <param type="text" name="name" label="Name" help="" value=""/>
+  </inputs>
+  <outputs>
+    <data name="output" format="auto" label="get_id_by_name output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+
+
+**Source**
+
+This tool wraps the BioMni function: `get_id_by_name`
+
+Module: tool_registry
+
+**BioMni**
+
+BioMni is a Python library for biological data analysis.
+For more information: https://github.com/batmen-lab/BioMni
+
+**Requirements**
+
+This tool requires the following conda packages:
+pandas
+]]&gt;</help>
+</tool>

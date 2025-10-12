@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_irescue" name="nf-core irescue" version="1.0.0" profile="20.01">
+  <description>Quantification of transposable elements expression in scRNA-seq</description>
+  <requirements>
+    <requirement type="package" version="1.1.2">irescue</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mkdir -p $prefix
+
+    irescue \\
+        --bam $bam \\
+        $reference \\
+        $genome_assembly \\
+        --outdir $prefix \\
+        --threads $task.cpus \\
+        $args 2&gt;| &gt;(tee -a ${prefix}/irescue.log &gt;&amp;2)
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        irescue: \$(irescue --version |&amp; sed '1!d ; s/IRescue //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="results" format="data" label="Results" from_work_dir="${prefix}"/>
+    <data name="counts" format="data" label="Counts" from_work_dir="${prefix}/counts"/>
+    <data name="log" format="txt" label="Log" from_work_dir="${prefix}/irescue.log"/>
+    <data name="tmp" format="data" label="Tmp" from_work_dir="${prefix}/tmp"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Quantification of transposable elements expression in scRNA-seq
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: irescue
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/irescue
+]]&gt;</help>
+</tool>

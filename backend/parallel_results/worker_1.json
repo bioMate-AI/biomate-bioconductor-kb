@@ -1,0 +1,112 @@
+[
+  {
+    "dataset_key": "biomni_data_lake_co_fractionation_parquet",
+    "dataset_name": "co-fractionation.parquet",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_czi_census_datasets_v4_parquet",
+    "dataset_name": "czi_census_datasets_v4.parquet",
+    "compatible_tools": [],
+    "total_candidates": 0,
+    "validated": 0
+  },
+  {
+    "dataset_key": "biomni_data_lake_ddinter_alimentary_tract_metabolism_csv",
+    "dataset_name": "ddinter_alimentary_tract_metabolism.csv",
+    "compatible_tools": [],
+    "total_candidates": 417,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_ddinter_antineoplastic_csv",
+    "dataset_name": "ddinter_antineoplastic.csv",
+    "compatible_tools": [],
+    "total_candidates": 417,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_ddinter_antiparasitic_csv",
+    "dataset_name": "ddinter_antiparasitic.csv",
+    "compatible_tools": [],
+    "total_candidates": 417,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_ddinter_blood_organs_csv",
+    "dataset_name": "ddinter_blood_organs.csv",
+    "compatible_tools": [],
+    "total_candidates": 417,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_ddinter_dermatological_csv",
+    "dataset_name": "ddinter_dermatological.csv",
+    "compatible_tools": [],
+    "total_candidates": 417,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_ddinter_hormonal_csv",
+    "dataset_name": "ddinter_hormonal.csv",
+    "compatible_tools": [],
+    "total_candidates": 417,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_ddinter_respiratory_csv",
+    "dataset_name": "ddinter_respiratory.csv",
+    "compatible_tools": [],
+    "total_candidates": 417,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_ddinter_various_csv",
+    "dataset_name": "ddinter_various.csv",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/align_it/Repository_Actions\nPharmacophore_alignment",
+        "name": "Repository Actions\nPharmacophore alignment",
+        "category": "Computational chemistry",
+        "confidence": 0.65,
+        "reasoning": "This tool screens molecules from a database and could potentially use drug interaction data to filter or prioritize compounds based on known interactions. The CSV format with drug pairs and interaction types could inform compound selection or filtering strategies.",
+        "parameter_name": "database of molecules"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/luis/ball/Repository_Actions\nAntitargetRescorer",
+        "name": "Repository Actions\nAntitargetRescorer",
+        "category": "Computational chemistry",
+        "confidence": 0.68,
+        "reasoning": "This tool rescores docking results to enhance target specificity. A drug interaction database could be used as reference data to avoid compounds with known problematic interactions or to prioritize compounds with favorable interaction profiles.",
+        "parameter_name": "reference data for rescoring"
+      }
+    ],
+    "total_candidates": 417,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_dosage_growth_defect_parquet",
+    "dataset_name": "dosage_growth_defect.parquet",
+    "compatible_tools": [],
+    "total_candidates": 500,
+    "validated": 100
+  },
+  {
+    "dataset_key": "biomni_data_lake_enamine_cloud_library_smiles_pkl",
+    "dataset_name": "enamine_cloud_library_smiles.pkl",
+    "compatible_tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nathandunn/biolinkmonarchinitiative/Repository_Actions\nSubstance_Associations",
+        "name": "Repository Actions\nSubstance Associations",
+        "category": "Data Source",
+        "confidence": 0.75,
+        "reasoning": "This tool queries substance associations from BioLink API. The dataset contains chemical library data (SMILES format) which represents chemical substances. The tool accepts substance identifiers (e.g., CHEBI:40036) and could potentially use the chemical library as a reference for substance lookups or filtering, though the pkl format may require preprocessing.",
+        "parameter_name": "Substance reference database"
+      }
+    ],
+    "total_candidates": 500,
+    "validated": 100
+  }
+]

@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_bases2fastq" name="nf-core bases2fastq" version="1.0.0" profile="20.01">
+  <description>Demultiplex Element Biosciences bases files</description>
+  <requirements>
+    <container type="docker">docker.io/elembio/bases2fastq:1.8.0</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+bases2fastq \\
+        -p $task.cpus \\
+        $runManifest \\
+        $args \\
+        $run_dir \\
+        output
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        bases2fastq: \$(bases2fastq --version | sed -e &quot;s/bases2fastq version //g&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="run_manifest" format="data" label="Run Manifest"/>
+  </inputs>
+  <outputs>
+    <data name="sample_fastq" format="data" label="Sample Fastq" from_work_dir="output/Samples/**/*_R*.fastq.gz"/>
+    <data name="sample_json" format="data" label="Sample Json" from_work_dir="output/Samples/**/*_stats.json"/>
+    <data name="qc_report" format="html" label="Qc Report" from_work_dir="output/*.html"/>
+    <data name="run_stats" format="data" label="Run Stats" from_work_dir="output/RunStats.json"/>
+    <data name="generated_run_manifest" format="data" label="Generated Run Manifest" from_work_dir="output/RunManifest.json"/>
+    <data name="metrics" format="data" label="Metrics" from_work_dir="output/Metrics.csv"/>
+    <data name="unassigned" format="data" label="Unassigned" from_work_dir="output/UnassignedSequences.csv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Demultiplex Element Biosciences bases files
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: bases2fastq
+Container: docker.io/elembio/bases2fastq:1.8.0
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/bases2fastq
+]]&gt;</help>
+</tool>

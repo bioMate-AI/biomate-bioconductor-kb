@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_htodemux" name="nf-core htodemux" version="1.0.0" profile="20.01">
+  <description>Demultiplex samples based on data from cell hashing.</description>
+  <requirements>
+    <requirement type="package" version="5.3.0">r-seurat</requirement>
+    <requirement type="package" version="5.1.0">r-seuratobject</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+touch ${prefix}_params_htodemux.csv
+    touch ${prefix}_assignment_htodemux.csv
+    touch ${prefix}_classification_htodemux.csv
+    touch ${prefix}_htodemux.rds
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        htodemux: \$(htodemux --version)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="seurat_object" format="data" label="Seurat Object"/>
+  </inputs>
+  <outputs>
+    <data name="params" format="data" label="Params" from_work_dir="*_params_htodemux.csv"/>
+    <data name="assignment" format="data" label="Assignment" from_work_dir="*_assignment_htodemux.csv"/>
+    <data name="classification" format="data" label="Classification" from_work_dir="*_classification_htodemux.csv"/>
+    <data name="rds" format="data" label="Rds" from_work_dir="*_htodemux.rds"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Demultiplex samples based on data from cell hashing.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: htodemux
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/htodemux
+]]&gt;</help>
+</tool>

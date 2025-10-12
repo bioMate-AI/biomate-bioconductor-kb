@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_gfaffix" name="nf-core gfaffix" version="1.0.0" profile="20.01">
+  <description>Collapse walk-preserving shared affixes in variation graphs in GFA format</description>
+  <requirements>
+    <requirement type="package" version="0.1.5b">gfaffix</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+gfaffix \\
+        $args \\
+        $gfa \\
+        -o ${prefix}.gfaffix.gfa &gt; ${prefix}.affixes.txt
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        gfaffix: \$(gfaffix --version | grep -o 'gfaffix .*' | cut -f2 -d ' ')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="gfa" format="data" label="Gfa"/>
+  </inputs>
+  <outputs>
+    <data name="gfa" format="data" label="Gfa" from_work_dir="*.gfa"/>
+    <data name="affixes" format="txt" label="Affixes" from_work_dir="*.txt"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Collapse walk-preserving shared affixes in variation graphs in GFA format
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: gfaffix
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/gfaffix
+]]&gt;</help>
+</tool>

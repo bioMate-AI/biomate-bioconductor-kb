@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_tagbam" name="nf-core tagbam" version="1.0.0" profile="20.01">
+  <description>A tool for tagging BAM files.</description>
+  <requirements>
+    <requirement type="package" version="0.1.0">tagbam</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+tagbam \\
+        $args \\
+        --threads $task.cpus \\
+        --input $bam \\
+        --output-file ${prefix}.bam
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        tagbam: \$(tagbam --version | sed 's/tagbam //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*.bam"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+A tool for tagging BAM files.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: tagbam
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/tagbam
+]]&gt;</help>
+</tool>

@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_calder2" name="nf-core calder2" version="1.0.0" profile="20.01">
+  <description>Hierarchical Hi-C compartment computation</description>
+  <requirements>
+    <requirement type="package" version="0.7">r-calder2</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# getting binsize as mandatory input for calder
+    binsize=&quot;\$(cooler info --field bin-size $cool$suffix)&quot;
+
+    calder --input $cool$suffix \\
+        --outpath ${prefix} \\
+        --nproc $cpus \\
+        --type cool \\
+        --bin_size &quot;\${binsize}&quot; \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        calder: $VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="cool" format="data" label="Cool"/>
+  </inputs>
+  <outputs>
+    <data name="output_folder" format="data" label="Output Folder" from_work_dir="${prefix}/"/>
+    <data name="intermediate_data_folder" format="data" label="Intermediate Data Folder" from_work_dir="${prefix}/intermediate_data/"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Hierarchical Hi-C compartment computation
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: calder2
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/calder2
+]]&gt;</help>
+</tool>

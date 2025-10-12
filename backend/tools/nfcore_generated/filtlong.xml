@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_filtlong" name="nf-core filtlong" version="1.0.0" profile="20.01">
+  <description>Filtlong filters long reads based on quality measures or short read data.</description>
+  <requirements>
+    <requirement type="package" version="0.2.1">filtlong</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+filtlong \\
+        $short_reads \\
+        $args \\
+        $longreads \\
+        2&gt;| &gt;(tee ${prefix}.log &gt;&amp;2) \\
+        | gzip -n &gt; ${prefix}.fastq.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        filtlong: \$( filtlong --version | sed -e &quot;s/Filtlong v//g&quot; )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="shortreads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="reads" format="data" label="Reads" from_work_dir="*.fastq.gz"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Filtlong filters long reads based on quality measures or short read data.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: filtlong
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/filtlong
+]]&gt;</help>
+</tool>

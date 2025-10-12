@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_vardictjava" name="nf-core vardictjava" version="1.0.0" profile="20.01">
+  <description>The Java port of the VarDict variant caller</description>
+  <requirements>
+    <requirement type="package" version="1.20">htslib</requirement>
+    <requirement type="package" version="1.8.3">vardict-java</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+export JAVA_OPTS='&quot;-Xms${task.memory.toMega()/4}m&quot; &quot;-Xmx${task.memory.toGiga()}g&quot; &quot;-Dsamjdk.reference_fasta=${fasta}&quot;'
+    vardict-java \\
+        ${args} \\
+        ${input} \\
+        -th ${task.cpus} \\
+        -G ${fasta} \\
+        ${bed} \\
+    ${test} \\
+    | ${convert_to_vcf} \\
+        ${args2} \\
+    | bgzip ${args3} --threads ${task.cpus} &gt; ${prefix}.vcf.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        vardict-java: \$( realpath \$( command -v vardict-java ) | sed 's/.*java-//;s/-.*//' )
+        var2vcf_valid.pl: \$( var2vcf_valid.pl -h | sed '2!d;s/.* //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bams" format="data" label="Bams"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fasta_fai" format="data" label="Fasta Fai"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+The Java port of the VarDict variant caller
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: vardictjava
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/vardictjava
+]]&gt;</help>
+</tool>

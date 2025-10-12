@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_staphopiasccmec" name="nf-core staphopiasccmec" version="1.0.0" profile="20.01">
+  <description>Predicts Staphylococcus aureus SCCmec type based on primers.</description>
+  <requirements>
+    <requirement type="package" version="1.0.0">staphopia-sccmec</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+staphopia-sccmec --assembly $fasta $args &gt; ${prefix}.tsv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        staphopiasccmec: \$(staphopia-sccmec --version 2&gt;&amp;1 | sed 's/^.*staphopia-sccmec //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Predicts Staphylococcus aureus SCCmec type based on primers.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: staphopiasccmec
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/staphopiasccmec
+]]&gt;</help>
+</tool>

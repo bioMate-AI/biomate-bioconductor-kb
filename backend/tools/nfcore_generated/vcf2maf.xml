@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_vcf2maf" name="nf-core vcf2maf" version="1.0.0" profile="20.01">
+  <description>vcf2maf</description>
+  <requirements>
+    <requirement type="package" version="113.3">ensembl-vep</requirement>
+    <requirement type="package" version="1.6.22">vcf2maf</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+if [ &quot;$vep_cache&quot; ]; then
+        VEP_CMD=&quot;--vep-path \$(dirname \$(type -p vep))&quot;
+        VEP_VERSION=\$(echo -e &quot;\\n    ensemblvep: \$( echo \$(vep --help 2&gt;&amp;1) | sed 's/^.*Versions:.*ensembl-vep : //;s/ .*\$//')&quot;)
+    else
+        VEP_CMD=&quot;&quot;
+        VEP_VERSION=&quot;&quot;
+    fi
+
+    vcf2maf.pl \\
+        $args \\
+        \$VEP_CMD \\
+        $vep_cache_cmd \\
+        --ref-fasta $fasta \\
+        --input-vcf $vcf \\
+        --output-maf ${prefix}.maf
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        vcf2maf: $VERSION\$VEP_VERSION
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="vcf" format="data" label="Vcf"/>
+  </inputs>
+  <outputs>
+    <data name="maf" format="data" label="Maf" from_work_dir="*.maf"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+vcf2maf
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: vcf2maf
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/vcf2maf
+]]&gt;</help>
+</tool>

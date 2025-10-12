@@ -1,0 +1,65 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_trnascanse" name="nf-core trnascanse" version="1.0.0" profile="20.01">
+  <description>Detection of tRNA sequences using covariance models</description>
+  <requirements>
+    <requirement type="package" version="2.0.12">trnascan-se</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+${unzip}
+
+    ## larger genomes can fill up the limited temp space in the singularity container
+    ## expected location of the default config file is with the exectuable
+    ## copy this and modify to use the working dir as the temp directory
+    conf=\$(which tRNAscan-SE).conf
+    cp \${conf} trnascan.conf
+    sed -i s#/tmp#.#g trnascan.conf
+
+    tRNAscan-SE \\
+        --thread ${task.cpus} \\
+        -c trnascan.conf \\
+        ${args} \\
+        -o ${prefix}.tsv \\
+        -l ${prefix}.log \\
+        -m ${prefix}.stats \\
+        ${input}
+
+    find . -name &quot;*.fasta&quot; -exec gzip {} \\;
+
+    ${cleanup}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        tRNAscan-SE: \$(tRNAscan-SE 2&gt;&amp;1 &gt;/dev/null | awk 'NR==2 {print \$2}')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="stats" format="data" label="Stats" from_work_dir="*.stats"/>
+    <data name="fasta" format="data" label="Fasta" from_work_dir="*.fasta"/>
+    <data name="gff" format="data" label="Gff" from_work_dir="*.gff"/>
+    <data name="bed" format="data" label="Bed" from_work_dir="*.bed"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Detection of tRNA sequences using covariance models
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: trnascanse
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/trnascanse
+]]&gt;</help>
+</tool>

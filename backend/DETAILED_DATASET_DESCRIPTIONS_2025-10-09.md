@@ -1,5 +1,6 @@
 # Detailed Dataset and Database Descriptions
 **Generated:** 2025-10-09
+**Last Updated:** 2025-10-12 (Corrected NL = Neutral Loss terminology)
 
 ## MetaboAnalyst SQLite Databases
 
@@ -10,15 +11,15 @@ MS/MS spectral reference databases for metabolite identification via spectral ma
 | Database | Size | Tables | Category | Primary Use |
 | ---------|------|--------|----------|-------------|
 | FragsAnnotateDB_v02042024.sqlite | 1.4 GB | 25 | Fragment Annotation | Structure elucidation via fragment matching |
-| FragsAnnotateDBNL_v02042024.sqlite | 1.2 GB | 25 | Fragment Annotation | Non-lipid fragment matching |
+| FragsAnnotateDBNL_v02042024.sqlite | 1.2 GB | 25 | Fragment Annotation (NL) | Neutral loss pattern matching |
 | MS2ID_Bio_v09102023.sqlite | 0.7 GB | 25 | Biological | General biological metabolite ID |
-| MS2ID_BioNL_v09102023.sqlite | 0.7 GB | 25 | Biological | Non-lipid biological metabolite ID |
+| MS2ID_BioNL_v09102023.sqlite | 0.7 GB | 25 | Biological (NL) | Neutral loss matching for biological compounds |
 | MS2ID_Exposomics_v09102023.sqlite | 0.7 GB | 25 | Exposomics | Environmental chemical ID |
-| MS2ID_ExposomicsNL_v09102023.sqlite | 0.7 GB | 25 | Exposomics | Non-lipid environmental chemical ID |
+| MS2ID_ExposomicsNL_v09102023.sqlite | 0.7 GB | 25 | Exposomics (NL) | Neutral loss matching for environmental chemicals |
 | MS2ID_Lipids_v09102023.sqlite | 0.7 GB | 25 | Lipidomics | Comprehensive lipid identification |
-| MS2ID_LipidsNL_v09102023.sqlite | 0.7 GB | 25 | Lipidomics | Focused lipid identification |
+| MS2ID_LipidsNL_v09102023.sqlite | 0.7 GB | 25 | Lipidomics (NL) | Neutral loss matching for lipids |
 | MS2ID_Pathway_v09102023.sqlite | 0.7 GB | 25 | Pathway | Pathway metabolite ID |
-| MS2ID_PathwayNL_v09102023.sqlite | 0.7 GB | 25 | Pathway | Non-lipid pathway metabolite ID |
+| MS2ID_PathwayNL_v09102023.sqlite | 0.7 GB | 25 | Pathway (NL) | Neutral loss matching for pathway metabolites |
 
 ### Detailed Database Descriptions
 
@@ -42,24 +43,25 @@ Database for detailed fragment-level annotation of MS/MS spectra. Contains fragm
 
 **Typical Applications:** Unknown metabolite identification, structure validation
 
-#### Fragment Annotation Database (No Lipids)
+#### Fragment Annotation Database (Neutral Loss)
 
-**File:** `FragsAnnotateDBNL_v02042024.sqlite`  
-**Purpose:** Fragment annotation for non-lipid compounds (NL = No Lipids)
+**File:** `FragsAnnotateDBNL_v02042024.sqlite`
+**Purpose:** Fragment annotation optimized for neutral loss pattern matching (NL = Neutral Loss)
 
-**Description:**  
-Fragment annotation database with lipid-specific fragmentation patterns excluded. NL stands for "No Lipids". Contains fragment patterns for non-lipid metabolites including amino acids, carbohydrates, organic acids, nucleotides, and other polar compounds. Removes common lipid fragments (fatty acid chains, phosphate head groups, sphingoid bases) to reduce false positives when analyzing non-lipid samples. Recommended for HILIC-MS studies and polar metabolite structure elucidation.
+**Description:**
+Fragment annotation database optimized for **neutral loss (NL) fragmentation pattern matching** in MS/MS spectra. NL stands for "Neutral Loss" - a mass spectrometry technique that identifies compounds by characteristic neutral fragments lost during fragmentation (e.g., loss of H2O, CO2, NH3, CH3). This database indexes fragments by their neutral loss patterns rather than absolute masses, enabling identification of compounds with characteristic fragmentation behavior. Particularly powerful for compound class identification (e.g., phosphorylated metabolites lose HPO3, glycosides lose sugar moieties). Complements absolute fragment matching by focusing on differential mass losses.
 
-**Data Sources:** MassBank (non-lipid), HMDB (non-lipid fragmentation)
+**Data Sources:** MassBank, GNPS, HMDB (neutral loss patterns), literature fragmentation studies
 
 **Use Cases:**
-- Non-lipid metabolite fragment annotation
-- Polar compound structure elucidation
-- HILIC-MS fragment validation
-- Reduced false positives from lipid fragments
-- Amino acid and carbohydrate fragmentation analysis
+- Neutral loss scan interpretation and annotation
+- Compound class identification via characteristic losses
+- Phosphorylated metabolite detection (neutral loss of H3PO4)
+- Glycoside identification (neutral loss of sugar units)
+- Sulfated metabolite detection (neutral loss of SO3)
+- Complementary evidence for structure elucidation
 
-**Typical Applications:** Polar metabolomics, amino acid/nucleotide studies
+**Typical Applications:** Compound class profiling, modified metabolite detection
 
 #### MS2ID Biological Metabolites Database
 
@@ -80,24 +82,24 @@ Comprehensive MS/MS spectral database for endogenous biological metabolites incl
 
 **Typical Applications:** Clinical diagnostics, biomarker discovery, nutritional studies
 
-#### MS2ID Biological Metabolites Database (No Lipids)
+#### MS2ID Biological Metabolites Database (Neutral Loss)
 
-**File:** `MS2ID_BioNL_v09102023.sqlite`  
-**Purpose:** MS/MS spectral reference for non-lipid biological metabolites (NL = No Lipids)
+**File:** `MS2ID_BioNL_v09102023.sqlite`
+**Purpose:** MS/MS spectral reference optimized for neutral loss matching of biological metabolites (NL = Neutral Loss)
 
-**Description:**  
-Biological metabolite database with all lipid compounds removed. NL stands for "No Lipids". Includes polar and semi-polar biological metabolites: amino acids, organic acids, carbohydrates, nucleotides, vitamins, neurotransmitters, hormones (non-steroid), and other water-soluble endogenous compounds. Recommended when lipidomics is not part of the study design or when using chromatography methods optimized for polar metabolites (HILIC, ion-pairing RP).
+**Description:**
+Biological metabolite MS/MS database optimized for **neutral loss (NL) fragmentation pattern matching**. NL stands for "Neutral Loss" - indexing spectra by characteristic neutral fragments lost during MS/MS fragmentation rather than absolute fragment masses. Contains biological metabolites with well-characterized neutral loss patterns: phosphorylated compounds (loss of H3PO4/HPO3), sulfated metabolites (loss of SO3), glucuronides (loss of C6H8O6), glycosides (loss of sugar moieties), and amino acid conjugates (loss of amino acid residues). Enables identification based on diagnostic neutral losses that indicate specific functional groups or modifications.
 
-**Data Sources:** HMDB (non-lipid entries), KEGG (polar metabolites)
+**Data Sources:** HMDB, KEGG, MassBank (neutral loss-annotated spectra)
 
 **Use Cases:**
-- Polar metabolite profiling in biological samples
-- Non-lipid biomarker discovery
-- HILIC or ion-pair chromatography-MS workflows
-- Aqueous metabolite extraction studies
-- Reduced database for faster, focused searches
+- Neutral loss scan data interpretation
+- Modified metabolite detection (phosphorylation, sulfation, glycosylation)
+- Phase II drug metabolite identification (glucuronidation, sulfation)
+- Compound class profiling via diagnostic neutral losses
+- Complementary identification evidence alongside fragment matching
 
-**Typical Applications:** Urine/serum polar metabolomics, neurotransmitter analysis
+**Typical Applications:** Modified metabolite profiling, drug metabolism studies
 
 #### MS2ID Exposomics Database
 
@@ -119,24 +121,24 @@ Specialized MS/MS database for exposome research containing environmental chemic
 
 **Typical Applications:** Environmental health, toxicology, regulatory monitoring
 
-#### MS2ID Exposomics Database (No Lipids)
+#### MS2ID Exposomics Database (Neutral Loss)
 
-**File:** `MS2ID_ExposomicsNL_v09102023.sqlite`  
-**Purpose:** MS/MS spectral reference for non-lipid environmental chemicals (NL = No Lipids)
+**File:** `MS2ID_ExposomicsNL_v09102023.sqlite`
+**Purpose:** MS/MS spectral reference optimized for neutral loss matching of environmental chemicals (NL = Neutral Loss)
 
-**Description:**  
-Exposomics database with lipophilic pollutants excluded. NL stands for "No Lipids". Contains water-soluble environmental chemicals, polar pesticides, pharmaceutical compounds, and other non-lipid xenobiotics. Focuses on compounds with log P < 3 that are typically found in aqueous environmental matrices (surface water, groundwater, wastewater). Use for studies targeting polar exposome compounds or when using chromatography optimized for polar analytes.
+**Description:**
+Exposomics MS/MS database optimized for **neutral loss (NL) fragmentation pattern matching**. NL stands for "Neutral Loss" - focusing on characteristic neutral fragments lost during MS/MS fragmentation of environmental chemicals and xenobiotics. Contains environmental compounds with diagnostic neutral loss patterns: organophosphate pesticides (loss of CH3OH, C2H5OH), chlorinated compounds (loss of HCl, Cl2), pharmaceuticals with common moieties (loss of CO2, H2O, NH3), and metabolized xenobiotics (loss of glucuronide, sulfate). Enables identification and classification of environmental chemicals based on their characteristic fragmentation behavior.
 
-**Data Sources:** EPA CompTox (polar subset), NORMAN suspect list
+**Data Sources:** EPA CompTox, NORMAN network, MassBank (environmental spectra)
 
 **Use Cases:**
-- Water quality monitoring and analysis
-- Polar pesticide and herbicide detection
-- Pharmaceutical pollutant screening in wastewater
-- Drinking water contamination studies
-- Non-lipid food additive analysis
+- Neutral loss screening for pesticide metabolites
+- Organophosphate and carbamate detection via diagnostic losses
+- Pharmaceutical transformation product identification
+- Halogenated compound class profiling (Cl/Br loss patterns)
+- Environmental metabolite structure elucidation
 
-**Typical Applications:** Water quality studies, pharmaceutical environmental fate
+**Typical Applications:** Environmental monitoring, pesticide residue analysis
 
 #### MS2ID Lipids Database
 
@@ -158,24 +160,25 @@ Comprehensive lipidomics MS/MS database containing reference spectra for lipids 
 
 **Typical Applications:** Clinical lipidomics, lipid metabolism, membrane biology
 
-#### MS2ID Lipids Database (Subset)
+#### MS2ID Lipids Database (Neutral Loss)
 
-**File:** `MS2ID_LipidsNL_v09102023.sqlite`  
-**Purpose:** MS/MS spectral reference for focused lipidomics (reduced database)
+**File:** `MS2ID_LipidsNL_v09102023.sqlite`
+**Purpose:** MS/MS spectral reference optimized for neutral loss matching in lipidomics (NL = Neutral Loss)
 
-**Description:**  
-Curated subset of the comprehensive lipids database. Despite "NL" in the filename, this database DOES contain lipids - the "NL" likely refers to a different filtering criterion (possibly "No Low-abundance" or "No Lipid-like" non-lipid compounds). Contains core lipid classes with high-quality reference spectra: major glycerophospholipids (PC, PE, PS, PI, PG), sphingolipids (SM, Cer), and abundant glycerolipids (TG, DG). Recommended for targeted lipidomics or when faster search times are needed with a focused lipid scope.
+**Description:**
+Lipidomics MS/MS database optimized for **neutral loss (NL) fragmentation pattern matching**. NL stands for "Neutral Loss" - a critical technique in lipidomics where lipid classes are identified by diagnostic neutral losses. Contains lipid spectra indexed by characteristic neutral loss patterns: phosphatidylcholines (loss of phosphocholine headgroup, 183.066 Da or 59.073 Da in positive mode), phosphatidylethanolamines (loss of 141.019 Da), phosphatidylserines (loss of serine, 87.032 Da), sphingomyelins (loss of phosphocholine, 183.066 Da), and glycerolipids (loss of fatty acid chains as neutral losses). Essential for lipid class identification and fatty acid composition determination via neutral loss scanning.
 
-**Data Sources:** LipidBlast (curated), LIPID MAPS (major classes)
+**Data Sources:** LipidBlast (neutral loss annotations), LIPID MAPS
 
 **Use Cases:**
-- Targeted lipidomics for major lipid classes
-- Clinical lipid profiling (major species)
-- High-throughput lipidomics with faster searches
-- Focused membrane phospholipid analysis
-- Lipid quality control and method development
+- Lipid class identification via diagnostic neutral losses
+- Fatty acid composition profiling (neutral loss of FA chains)
+- Headgroup determination in phospholipids
+- Sphingolipid structure elucidation (sphingoid base loss)
+- High-confidence lipid class assignments
+- Precursor ion and neutral loss scan interpretation
 
-**Typical Applications:** Clinical lipidomics, high-throughput screening
+**Typical Applications:** Targeted lipidomics, lipid class profiling
 
 #### MS2ID Pathway Database
 
@@ -196,35 +199,38 @@ MS/MS spectral matching database containing reference spectra for metabolites in
 
 **Typical Applications:** Clinical metabolomics, systems biology, drug metabolism
 
-#### MS2ID Pathway Database (No Lipids)
+#### MS2ID Pathway Database (Neutral Loss)
 
-**File:** `MS2ID_PathwayNL_v09102023.sqlite`  
-**Purpose:** MS/MS spectral reference for non-lipid pathway metabolites (NL = No Lipids)
+**File:** `MS2ID_PathwayNL_v09102023.sqlite`
+**Purpose:** MS/MS spectral reference optimized for neutral loss matching of pathway metabolites (NL = Neutral Loss)
 
-**Description:**  
-Subset of pathway database with all lipid compounds excluded. NL stands for "No Lipids". Contains only polar metabolites from central metabolism including carbohydrates, amino acids, organic acids, nucleotides, vitamins, and cofactors. Use this database when analyzing non-lipid pathway metabolites to reduce database size, improve search speed, and eliminate false matches from lipid fragmentation patterns.
+**Description:**
+Pathway metabolite MS/MS database optimized for **neutral loss (NL) fragmentation pattern matching**. NL stands for "Neutral Loss" - indexing pathway metabolite spectra by characteristic neutral fragments lost during MS/MS fragmentation. Contains metabolites from central metabolism with diagnostic neutral loss patterns: phosphorylated intermediates (loss of H3PO4/HPO3), carboxylated compounds (loss of CO2), amino acids (loss of NH3, H2O), CoA derivatives (loss of adenosine moieties), nucleotides (loss of phosphate/ribose), and carbohydrate phosphates (loss of sugar/phosphate units). Enables pathway metabolite identification based on functional group-specific fragmentation patterns.
 
-**Data Sources:** HMDB (non-lipid), KEGG (non-lipid pathways), Reactome
+**Data Sources:** HMDB, KEGG, Reactome, MassBank (pathway metabolite spectra)
 
 **Use Cases:**
-- Polar metabolite analysis in HILIC or RP-LC
-- Central carbon and nitrogen metabolism studies
-- Amino acid, nucleotide, and organic acid profiling
-- Reduced search space for faster processing
-- Studies explicitly excluding lipidomics
+- Central metabolism pathway analysis via neutral loss patterns
+- Phosphorylated intermediate detection (glycolytic/TCA cycle)
+- CoA ester identification (loss of CoA moiety)
+- Nucleotide metabolism profiling
+- Amino acid and organic acid neutral loss profiling
+- Functional group-based metabolite classification
 
-**Typical Applications:** HILIC-MS metabolomics, targeted amino acid analysis
+**Typical Applications:** Metabolic pathway analysis, flux studies
 
 
-**Key Terminology:**  
+**Key Terminology:**
 
-- **NL (No Lipids):** Database variant with lipid compounds excluded for focused non-lipid analysis
+- **NL (Neutral Loss):** Database variant optimized for neutral loss fragmentation pattern matching. Neutral loss is the mass difference between precursor and product ions, indicating loss of specific functional groups (e.g., H2O = 18.015 Da, CO2 = 43.990 Da, NH3 = 17.027 Da)
 
 - **MS/MS Spectral Matching:** Comparing experimental tandem mass spectra to reference spectra for compound identification
 
 - **Precursor m/z:** Mass-to-charge ratio of the parent ion before fragmentation
 
 - **Fragment Annotation:** Identifying and labeling individual fragment peaks in MS/MS spectra
+
+- **Neutral Loss Scanning:** MS/MS acquisition mode that monitors for precursor ions that lose a specific neutral fragment mass, enabling class-specific detection
 
 
 ## Local Datasets - Detailed Descriptions
@@ -365,3 +371,138 @@ Genome-scale CRISPR single guide RNA (sgRNA) library sequences for human and mou
 - CRISPR screen data analysis
 - Off-target effect prediction
 - Gene essentiality studies
+
+---
+
+## UniProt Protein Databases
+
+### UniProt/Swiss-Prot
+
+**Purpose:** Manually curated protein sequence and functional annotation database
+
+**Description:**
+UniProt (Universal Protein Resource) is the most comprehensive, high-quality protein knowledge base. Swiss-Prot is the manually reviewed section containing expert-curated protein entries with experimental evidence. Each entry includes protein sequence, function, structure, post-translational modifications, tissue expression, subcellular localization, disease associations, protein-protein interactions, and extensive literature references. UniProt integrates data from genomics, proteomics, and literature to provide gold-standard protein annotations essential for proteomics, drug discovery, and systems biology research.
+
+**Data Sources:** Manual curation from literature, PDB, EMBL, GenBank, RefSeq, Ensembl
+
+**Key File Types:**
+
+### 1. UniProt FASTA Files (Species-Specific)
+
+**Files:**
+- **uniprot_sprot_human.fasta.gz** (7.4 MB) - Human proteome (Homo sapiens, 20,400+ reviewed proteins)
+- **uniprot_sprot_mouse.fasta.gz** (7.7 MB) - Mouse proteome (Mus musculus, 17,100+ reviewed proteins)
+- **uniprot_sprot_rat.fasta.gz** (7.6 MB) - Rat proteome (Rattus norvegicus, 8,100+ reviewed proteins)
+
+**Purpose:** Protein sequence databases in FASTA format for proteomics searches
+
+**Description:**
+Species-specific Swiss-Prot protein sequences in FASTA format. Each entry contains UniProt accession, protein name, gene name, organism, and amino acid sequence. These are reference proteomes containing one representative protein per gene (canonical isoforms). Used as search databases for mass spectrometry-based proteomics (peptide identification via search engines like Mascot, MaxQuant, SEQUEST). Essential for peptide-to-protein mapping, protein quantification, and post-translational modification analysis.
+
+**FASTA Header Format:**
+```
+>sp|P12345|PROT_HUMAN Protein name OS=Homo sapiens OX=9606 GN=GENE PE=1 SV=3
+```
+- **sp**: Swiss-Prot entry
+- **P12345**: UniProt accession
+- **PROT_HUMAN**: Entry name
+- **OS**: Organism species
+- **OX**: NCBI taxonomy ID
+- **GN**: Gene name
+- **PE**: Protein existence level (1=experimental evidence, 5=predicted)
+- **SV**: Sequence version
+
+**Use Cases:**
+- MS/MS proteomics database searches
+- Peptide spectrum matching (PSM)
+- Protein identification and quantification
+- Post-translational modification (PTM) mapping
+- Proteogenomics analysis
+- Protein isoform detection
+
+### 2. UniProt ID Mapping Files
+
+**Files:**
+- **HUMAN_9606_idmapping.dat.gz** (34 MB) - Human protein ID cross-references
+- **MOUSE_10090_idmapping.dat.gz** (15 MB) - Mouse protein ID cross-references
+- **RAT_10116_idmapping.dat.gz** (12 MB) - Rat protein ID cross-references
+
+**Purpose:** Cross-reference mappings between UniProt IDs and external database identifiers
+
+**Description:**
+Comprehensive ID mapping files linking UniProt accessions to 150+ external databases including Ensembl, RefSeq, PDB, NCBI Gene, GO, KEGG, Reactome, STRING, and disease databases (OMIM, Orphanet). Three-column tab-delimited format: UniProt accession, database name, database ID. Essential for integrating proteomic data with genomic, transcriptomic, and pathway databases. Enables conversion between different protein/gene identifier systems used across bioinformatics resources.
+
+**File Format (tab-delimited):**
+```
+UniProt_AC    Database_Name    Database_ID
+P12345        Ensembl          ENSG00000123456
+P12345        RefSeq           NP_001234.1
+P12345        PDB              1ABC
+P12345        GO               GO:0005737
+```
+
+**Mapped Databases Include:**
+- **Genomic:** Ensembl, RefSeq, NCBI Gene, HGNC, MGI, RGD
+- **Structural:** PDB, AlphaFoldDB, BMRB, EMDB
+- **Functional:** GO (Gene Ontology), InterPro, Pfam, PROSITE
+- **Pathways:** KEGG, Reactome, BioCyc, PathwayCommons
+- **Disease:** OMIM, Orphanet, MalaCards, DisGeNET
+- **Interactions:** STRING, IntAct, BioGRID, MINT
+- **Expression:** Human Protein Atlas, PRIDE, PaxDb
+- **Other:** DrugBank, ChEMBL, PubChem, PubMed
+
+**Use Cases:**
+- Converting between protein/gene ID systems
+- Integrating proteomics with transcriptomics data
+- Mapping proteins to pathways and ontologies
+- Linking proteins to disease phenotypes
+- Retrieving structural information (PDB IDs)
+- Protein-protein interaction network analysis
+- Cross-database data integration
+
+### 3. UniProt/Swiss-Prot Full Database
+
+**File:** **uniprot_sprot.dat.gz** (655 MB)
+
+**Purpose:** Complete Swiss-Prot database with full annotations in flat-file format
+
+**Description:**
+Complete manually curated Swiss-Prot database containing all reviewed protein entries across all organisms (570,000+ proteins from 14,000+ species) in UniProtKB flat-file format. Each entry is a comprehensive record containing: protein sequence, function, catalytic activity, cofactors, enzyme regulation, tissue specificity, developmental stage expression, subcellular localization, post-translational modifications (phosphorylation, glycosylation, acetylation, etc.), protein domains and motifs, 3D structure references, disease associations, genetic variants (SNPs), protein-protein interactions, pathway memberships, and extensive literature citations. This is the most detailed protein annotation resource available.
+
+**Entry Structure (Selected Fields):**
+- **ID**: Entry name and length
+- **AC**: Primary and secondary accessions
+- **DE**: Protein description and nomenclature
+- **GN**: Gene names (primary, synonyms, ORF names)
+- **OS/OC/OX**: Organism taxonomy
+- **CC**: Extensive comments covering:
+  - FUNCTION: Biological role
+  - CATALYTIC ACTIVITY: Enzyme reactions
+  - SUBCELLULAR LOCATION: Cellular compartmentalization
+  - TISSUE SPECIFICITY: Expression patterns
+  - PTM: Post-translational modifications
+  - DISEASE: Associated human diseases
+  - INTERACTION: Protein-protein interactions
+- **DR**: Cross-references to 150+ databases
+- **FT**: Feature table (domains, motifs, modifications, variants)
+- **SQ**: Amino acid sequence
+
+**Use Cases:**
+- Comprehensive protein functional annotation retrieval
+- Enzyme mechanism and regulation information
+- Post-translational modification site mapping
+- Disease variant interpretation
+- Protein localization prediction validation
+- Domain and motif analysis
+- Protein family classification
+- Literature mining and evidence assessment
+- Training machine learning models for protein function prediction
+- Constructing knowledge graphs
+
+**Typical Applications:**
+- Clinical variant interpretation (pathogenicity assessment)
+- Drug target validation and characterization
+- Systems biology network construction
+- Comparative proteomics annotation
+- Functional genomics interpretation
+- Personalized medicine (variant effects)

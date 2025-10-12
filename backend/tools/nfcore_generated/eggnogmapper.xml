@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_eggnogmapper" name="nf-core eggnogmapper" version="1.0.0" profile="20.01">
+  <description>Fast genome-wide functional annotation through orthology assignment.</description>
+  <requirements>
+    <requirement type="package" version="2.1.12">eggnog-mapper</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+if [ &quot;$is_compressed&quot; == &quot;true&quot; ]; then
+        gzip -c -d $fasta &gt; $fasta_name
+    fi
+
+    emapper.py \\
+        --cpu ${task.cpus} \\
+        -i ${fasta_name} \\
+        --data_dir ${eggnog_data_dir} \\
+        -m diamond \\
+        $dmnd_db_arg \\
+        $database_arg \\
+        --output ${prefix} \\
+        ${dbmem} \\
+        $args
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        eggnog-mapper: \$(echo \$(emapper.py --version) | grep -o &quot;emapper-[0-9]\\+\\.[0-9]\\+\\.[0-9]\\+&quot; | sed &quot;s/emapper-//&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="eggnog_db" format="data" label="Eggnog Db"/>
+    <param type="data" name="eggnog_data_dir" format="data" label="Eggnog Data Dir"/>
+    <param type="data" name="eggnog_diamond_db" format="data" label="Eggnog Diamond Db"/>
+  </inputs>
+  <outputs>
+    <data name="annotations" format="data" label="Annotations" from_work_dir="*.emapper.annotations"/>
+    <data name="orthologs" format="data" label="Orthologs" from_work_dir="*.emapper.seed_orthologs"/>
+    <data name="hits" format="data" label="Hits" from_work_dir="*.emapper.hits"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Fast genome-wide functional annotation through orthology assignment.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: eggnogmapper
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/eggnogmapper
+]]&gt;</help>
+</tool>

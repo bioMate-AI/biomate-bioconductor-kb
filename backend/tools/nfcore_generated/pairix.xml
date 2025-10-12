@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_pairix" name="nf-core pairix" version="1.0.0" profile="20.01">
+  <description>a tool for indexing and querying on a block-compressed text file
+containing pairs of genomic coordinates
+</description>
+  <requirements>
+    <requirement type="package" version="0.3.7">pairix</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+pairix \\
+        $args \\
+        $pair
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        pairix: \$(echo \$(pairix --help 2&gt;&amp;1) | sed 's/^.*Version: //; s/Usage.*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="pair" format="data" label="Pair"/>
+  </inputs>
+  <outputs>
+    <data name="index" format="data" label="Index" from_work_dir="*.px2"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+a tool for indexing and querying on a block-compressed text file
+containing pairs of genomic coordinates
+
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: pairix
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/pairix
+]]&gt;</help>
+</tool>

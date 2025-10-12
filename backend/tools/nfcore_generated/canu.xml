@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_canu" name="nf-core canu" version="1.0.0" profile="20.01">
+  <description>Accurate assembly of segmental duplications, satellites, and allelic variants from high-fidelity long reads.</description>
+  <requirements>
+    <requirement type="package" version="2.3">canu</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+canu \\
+        -p ${prefix} \\
+        genomeSize=${genomesize} \\
+        $args \\
+        maxThreads=$task.cpus \\
+        $mode $reads
+
+    gzip *.fasta
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        canu: \$(echo \$(canu --version 2&gt;&amp;1) | sed 's/^.*canu //; s/Using.*\$//' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="report" format="data" label="Report" from_work_dir="*.report"/>
+    <data name="assembly" format="data" label="Assembly" from_work_dir="*.contigs.fasta.gz"/>
+    <data name="contigs" format="data" label="Contigs" from_work_dir="*.unassembled.fasta.gz"/>
+    <data name="corrected_reads" format="data" label="Corrected Reads" from_work_dir="*.correctedReads.fasta.gz"/>
+    <data name="corrected_trimmed_reads" format="data" label="Corrected Trimmed Reads" from_work_dir="*.trimmedReads.fasta.gz"/>
+    <data name="metadata" format="data" label="Metadata" from_work_dir="*.contigs.layout"/>
+    <data name="contig_position" format="data" label="Contig Position" from_work_dir="*.contigs.layout.readToTig"/>
+    <data name="contig_info" format="data" label="Contig Info" from_work_dir="*.contigs.layout.tigInfo"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Accurate assembly of segmental duplications, satellites, and allelic variants from high-fidelity long reads.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: canu
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/canu
+]]&gt;</help>
+</tool>

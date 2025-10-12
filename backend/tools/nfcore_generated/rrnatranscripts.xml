@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_rrnatranscripts" name="nf-core rrnatranscripts" version="1.0.0" profile="20.01">
+  <description>Ribosomal RNA extraction from a GTF file.</description>
+  <requirements>
+    <requirement type="package" version="3.12.2">python</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+touch ${prefix}_rrna_intervals.gtf
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        python: \$(python --version | sed -e &quot;s/Python //g&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="gtf" format="data" label="Gtf"/>
+  </inputs>
+  <outputs>
+    <data name="rrna_gtf" format="data" label="Rrna Gtf" from_work_dir="*_rrna_intervals.gtf"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Ribosomal RNA extraction from a GTF file.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: rrnatranscripts
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/rrnatranscripts
+]]&gt;</help>
+</tool>

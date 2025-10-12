@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_seq2hla" name="nf-core seq2hla" version="1.0.0" profile="20.01">
+  <description>Precision HLA typing and expression from RNA-seq data using seq2HLA</description>
+  <requirements>
+    <requirement type="package" version="2.3">seq2hla</requirement>
+    <container type="docker">${workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+[ ! -f  ${prefix}_1.fastq.gz ] &amp;&amp; ln -sf ${reads[0]} ${prefix}_1.fastq.gz
+    [ ! -f  ${prefix}_2.fastq.gz ] &amp;&amp; ln -sf ${reads[1]} ${prefix}_2.fastq.gz
+
+    seq2HLA \\
+        -1 ${prefix}_1.fastq.gz \\
+        -2 ${prefix}_2.fastq.gz \\
+        -r ${prefix} \\
+        -p ${task.cpus} \\
+        ${args}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        seq2hla: \$(seq2HLA --version |&amp; sed 's/seq2HLA.py //')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="class1_bowtielog" format="data" label="Class1 Bowtielog" from_work_dir="*ClassI-class.bowtielog"/>
+    <data name="class1_expression" format="data" label="Class1 Expression" from_work_dir="*ClassI-class.expression"/>
+    <data name="class1_genotype_2d" format="data" label="Class1 Genotype 2D" from_work_dir="*ClassI-class.HLAgenotype2digits"/>
+    <data name="class1_genotype_4d" format="data" label="Class1 Genotype 4D" from_work_dir="*ClassI-class.HLAgenotype4digits"/>
+    <data name="class1_nonclass_bowtielog" format="data" label="Class1 Nonclass Bowtielog" from_work_dir="*ClassI-nonclass.bowtielog"/>
+    <data name="class1_nonclass_expression" format="data" label="Class1 Nonclass Expression" from_work_dir="*ClassI-nonclass.expression"/>
+    <data name="class1_nonclass_genotype_2d" format="data" label="Class1 Nonclass Genotype 2D" from_work_dir="*ClassI-nonclass.HLAgenotype2digits"/>
+    <data name="class1_nonclass_genotype_4d" format="data" label="Class1 Nonclass Genotype 4D" from_work_dir="*ClassI-nonclass.HLAgenotype4digits"/>
+    <data name="class2_bowtielog" format="data" label="Class2 Bowtielog" from_work_dir="*ClassII.bowtielog"/>
+    <data name="class2_expression" format="data" label="Class2 Expression" from_work_dir="*ClassII.expression"/>
+    <data name="class2_genotype_2d" format="data" label="Class2 Genotype 2D" from_work_dir="*ClassII.HLAgenotype2digits"/>
+    <data name="class2_genotype_4d" format="data" label="Class2 Genotype 4D" from_work_dir="*ClassII.HLAgenotype4digits"/>
+    <data name="ambiguity" format="data" label="Ambiguity" from_work_dir="*.ambiguity"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Precision HLA typing and expression from RNA-seq data using seq2HLA
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: seq2hla
+Container: ${workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/seq2hla
+]]&gt;</help>
+</tool>

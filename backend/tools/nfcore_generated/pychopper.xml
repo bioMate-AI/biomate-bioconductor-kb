@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_pychopper" name="nf-core pychopper" version="1.0.0" profile="20.01">
+  <description>Identify, orient and trim nanopore cDNA reads</description>
+  <requirements>
+    <requirement type="package" version="2.7.10">pychopper</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+pychopper \\
+        $args \\
+        -t $task.cpus \\
+        $fastq \\
+        ${prefix}.out.fastq
+
+    gzip -f ${prefix}.out.fastq &gt; ${prefix}.out.fastq.gz
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        pychopper: $PYCHOPPER_VERSION (hard coded- check container used for this module)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fastq" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="fastq" format="data" label="Fastq" from_work_dir="*.out.fastq.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Identify, orient and trim nanopore cDNA reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: pychopper
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/pychopper
+]]&gt;</help>
+</tool>

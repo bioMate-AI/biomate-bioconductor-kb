@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_mlst" name="nf-core mlst" version="1.0.0" profile="20.01">
+  <description>Run Torsten Seemann's classic MLST on a genome assembly</description>
+  <requirements>
+    <requirement type="package" version="2.23.0">mlst</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mlst \\
+        $args \\
+        --threads $task.cpus \\
+        $fasta \\
+        &gt; ${prefix}.tsv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        mlst: \$( echo \$(mlst --version 2&gt;&amp;1) | sed 's/mlst //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Run Torsten Seemann's classic MLST on a genome assembly
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: mlst
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/mlst
+]]&gt;</help>
+</tool>

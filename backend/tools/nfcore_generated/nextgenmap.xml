@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_nextgenmap" name="nf-core nextgenmap" version="1.0.0" profile="20.01">
+  <description>Performs fastq alignment to a fasta reference using NextGenMap</description>
+  <requirements>
+    <requirement type="package" version="0.5.5">nextgenmap</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+ngm \\
+            -r $fasta \\
+            -q $reads \\
+            -t $threads \\
+            --bam \\
+            -o ${prefix}.bam \\
+            $args
+
+        cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+        &quot;${task.process}&quot;:
+            NextGenMap: \$(ngm 2&gt;&amp;1 | head -1 | grep -o -E '[[:digit:]]+.[[:digit:]]+.[[:digit:]]+')
+        END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="bam" format="bam" label="Bam" from_work_dir="*.bam"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Performs fastq alignment to a fasta reference using NextGenMap
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: nextgenmap
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/nextgenmap
+]]&gt;</help>
+</tool>

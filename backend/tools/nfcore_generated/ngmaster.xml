@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_ngmaster" name="nf-core ngmaster" version="1.0.0" profile="20.01">
+  <description>Serotyping Neisseria gonorrhoeae assemblies</description>
+  <requirements>
+    <requirement type="package" version="0.5.8">ngmaster</requirement>
+    <requirement type="package" version="3.9.7">python</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+ngmaster \\
+        $args \\
+        $fasta \\
+        &gt; ${prefix}.tsv
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        ngmaster: \$( echo \$(ngmaster --version 2&gt;&amp;1) | sed 's/^.*ngmaster //' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+  </inputs>
+  <outputs>
+    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Serotyping Neisseria gonorrhoeae assemblies
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: ngmaster
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/ngmaster
+]]&gt;</help>
+</tool>

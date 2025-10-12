@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_pilon" name="nf-core pilon" version="1.0.0" profile="20.01">
+  <description>Automatically improve draft assemblies and find variation among strains, including large event detection</description>
+  <requirements>
+    <requirement type="package" version="1.24">pilon</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# `which` allows us to get the directory that contains `pilon`, independent of whether we
+    # are in a container or conda environment.
+    PILON_JAR=\$(dirname \$(which pilon))/../share/pilon*/pilon.jar
+    java -Xmx${mem_mb}M -jar \$PILON_JAR \\
+        --genome $fasta \\
+        --output ${prefix} \\
+        $args \\
+        --$pilon_mode $bam
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        pilon: \$(echo \$(pilon --version) | sed 's/^.*version //; s/ .*\$//' )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="bam" format="data" label="Bam"/>
+  </inputs>
+  <outputs>
+    <data name="improved_assembly" format="data" label="Improved Assembly" from_work_dir="*.fasta"/>
+    <data name="vcf" format="vcf" label="Vcf" from_work_dir="*.vcf"/>
+    <data name="change_record" format="data" label="Change Record" from_work_dir="*.change"/>
+    <data name="tracks_bed" format="data" label="Tracks Bed" from_work_dir="*.bed"/>
+    <data name="tracks_wig" format="data" label="Tracks Wig" from_work_dir="*.wig"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Automatically improve draft assemblies and find variation among strains, including large event detection
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: pilon
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/pilon
+]]&gt;</help>
+</tool>

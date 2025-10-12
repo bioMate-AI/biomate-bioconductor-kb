@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_sigprofiler" name="nf-core sigprofiler" version="1.0.0" profile="20.01">
+  <description>mutational signature deconvolution of cancer cells</description>
+  <requirements>
+    <requirement type="package">pip</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+mkdir -p results/input
+    touch results/input/input_data.txt
+    
+    # Create per-context outputs
+
+    for sig in ${signatures.join(&quot; &quot;)}; do
+       
+        mkdir -p results/\$sig/\$sig/Suggested_Solution/COSMIC_\${sig}_Decomposed_Solution/Signatures/
+        touch    results/\$sig/\$sig/Samples.txt
+        touch    results/\$sig/\$sig/Suggested_Solution/COSMIC_\${sig}_Decomposed_Solution/Signatures/COSMIC_\${sig}_Signatures.txt
+
+        type=\$(echo &quot;\$sig&quot; | sed 's/[0-9]*//')   # e.g. SBS96 → SBS, ID83 → ID, DBS78 → DBS
+        mkdir -p results/output/\$type
+        touch    results/output/\$type/${prefix}.\${sig}.all
+    done
+    
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        python: \$(python3 -c 'import sys; print(&quot;.&quot;.join(map(str, sys.version_info[:3])))')
+        SigProfilerAssignment: \$(python3 -c &quot;import SigProfilerAssignment as sig; print(sig.__version__)&quot;)
+        SigProfilerExtractor: \$(python3 -c &quot;import SigProfilerExtractor as sig; print(sig.__version__)&quot;)
+        SigProfilerMatrixGenerator: \$(python3 -c &quot;import SigProfilerMatrixGenerator as matGen; print(matGen.__version__)&quot;)
+        pandas: \$(python3 -c &quot;import pandas as pd; print(pd.__version__)&quot;)
+        sigProfilerPlotting: \$(python3 -c &quot;import sigProfilerPlotting as sig; print(sig.__version__)&quot;)
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="text" name="genome" label="Genome" value=""/>
+    <param type="data" name="genome_installed_path" format="data" label="Genome Installed Path"/>
+  </inputs>
+  <outputs>
+    <data name="results_sigprofiler" format="data" label="Results Sigprofiler" from_work_dir="results/*"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+mutational signature deconvolution of cancer cells
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: sigprofiler
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/sigprofiler
+]]&gt;</help>
+</tool>

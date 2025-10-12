@@ -1,0 +1,67 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_jasminesv" name="nf-core jasminesv" version="1.0.0" profile="20.01">
+  <description>Jointly Accurate Sv Merging with Intersample Network Edges</description>
+  <requirements>
+    <requirement type="package" version="1.15.1">htslib</requirement>
+    <requirement type="package" version="1.1.5">jasminesv</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+${unzip_inputs}
+
+    ls *.vcf &gt; vcfs.txt
+    ${make_bam}
+
+    jasmine \\
+        file_list=vcfs.txt \\
+        out_file=${prefix}.vcf \\
+        threads=${task.cpus} \\
+        genome_file=${fasta} \\
+        ${bam_argument} \\
+        ${iris_argument} \\
+        ${sample_dists_argument} \\
+        ${chr_norm_argument} \\
+        ${args}
+
+    if [ -s ${prefix}.vcf ]; then
+        echo &quot;The file is not empty&quot;
+        bgzip --threads ${task.cpus} ${args3} ${prefix}.vcf
+    else
+        echo &quot;The file is empty, using the header of the first VCF as output file&quot;
+        cat ${first_vcf} | grep &quot;#&quot; | bgzip --threads ${task.cpus} ${args3} &gt; ${prefix}.vcf.gz
+    fi
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        jasminesv: \$(echo \$(jasmine 2&gt;&amp;1 | grep &quot;version&quot; | sed 's/Jasmine version //'))
+        bgzip: \$(echo \$(bgzip -h 2&gt;&amp;1) | sed 's/^.*Version: //; s/ .*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="bams" format="data" label="Bams"/>
+    <param type="data" name="fasta" format="data" label="Fasta"/>
+    <param type="data" name="fasta_fai" format="data" label="Fasta Fai"/>
+    <param type="data" name="chr_norm" format="data" label="Chr Norm"/>
+  </inputs>
+  <outputs>
+    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Jointly Accurate Sv Merging with Intersample Network Edges
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: jasminesv
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/jasminesv
+]]&gt;</help>
+</tool>

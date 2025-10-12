@@ -1,0 +1,57 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_universc" name="nf-core universc" version="1.0.0" profile="20.01">
+  <description>Module to run UniverSC an open-source pipeline to demultiplex and process single-cell RNA-Seq data</description>
+  <requirements>
+    <container type="docker">nf-core/universc:1.2.5.1</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+export PYTHON_EGG_CACHE=\$(pwd)/.cache
+    universc \\
+        --id ${prefix} \\
+        ${input_reads} \\
+        --technology ${technology} \\
+        --reference ${reference_name} \\
+        --jobmode &quot;local&quot; \\
+        --localcores ${task.cpus} \\
+        --localmem ${task.memory.toGiga()} \\
+        --per-cell-data \\
+        ${args} 1&gt; _log 2&gt; _err
+
+    # save log files
+    echo !! &gt; ${prefix}/outs/_invocation
+    cp _log ${prefix}/outs/_log
+    cp _err ${prefix}/outs/_err
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        cellranger:  \$(echo \$(cellranger count --version 2&gt;&amp;1 | head -n 2 | tail -n 1 | sed 's/^.* //g' | sed 's/(//g' | sed 's/)//g' ))
+        universc:  \$(echo \$(bash /universc/launch_universc.sh --version | grep version | grep universc  | sed 's/^.* //g' ))
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+    <param type="data" name="reference" format="data" label="Reference"/>
+    <param type="text" name="technology" label="Technology" value=""/>
+  </inputs>
+  <outputs>
+    <data name="outs" format="data" label="Outs" from_work_dir="${prefix}/outs/*"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+Module to run UniverSC an open-source pipeline to demultiplex and process single-cell RNA-Seq data
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: universc
+Container: nf-core/universc:1.2.5.1
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/universc
+]]&gt;</help>
+</tool>

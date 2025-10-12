@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_raxmlng" name="nf-core raxmlng" version="1.0.0" profile="20.01">
+  <description>RAxML-NG is a phylogenetic tree inference tool which uses maximum-likelihood (ML) optimality criterion.</description>
+  <requirements>
+    <requirement type="package" version="1.2.2">raxml-ng</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+raxml-ng \\
+        $args \\
+        --msa $alignment \\
+        --model $model \\
+        --threads $task.cpus \\
+        --prefix ${prefix}
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        raxmlng: \$(echo \$(raxml-ng --version 2&gt;&amp;1) | sed 's/^.*RAxML-NG v. //; s/released.*\$//')
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="alignment" format="data" label="Alignment"/>
+  </inputs>
+  <outputs>
+    <data name="phylogeny" format="data" label="Phylogeny" from_work_dir="*.raxml.bestTree"/>
+    <data name="phylogeny_bootstrapped" format="data" label="Phylogeny Bootstrapped" from_work_dir="*.raxml.bootstraps"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+RAxML-NG is a phylogenetic tree inference tool which uses maximum-likelihood (ML) optimality criterion.
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: raxmlng
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/raxmlng
+]]&gt;</help>
+</tool>

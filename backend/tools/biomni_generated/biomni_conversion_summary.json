@@ -1,0 +1,35 @@
+{
+  "converted": [
+    "track_immune_cells_under_flow",
+    "run_diffdock_with_smiles",
+    "docking_autodock_vina",
+    "run_autosite",
+    "retrieve_topk_repurposing_drugs_from_disease_txgnn",
+    "predict_admet_properties",
+    "register_tool",
+    "validate_tool",
+    "get_tool_by_name",
+    "get_tool_by_id",
+    "get_id_by_name"
+  ],
+  "skipped": [
+    "biochemistry",
+    "bioengineering",
+    "biophysics",
+    "cancer_biology",
+    "cell_biology",
+    "database",
+    "genetics",
+    "genomics",
+    "literature",
+    "microbiology",
+    "molecular_biology",
+    "pathology",
+    "physiology",
+    "synthetic_biology",
+    "systems_biology"
+  ],
+  "errors": {},
+  "total_converted": 11,
+  "output_dir": "/Users/jingqiwang/biomate/backend/tools/biomni_generated"
+}

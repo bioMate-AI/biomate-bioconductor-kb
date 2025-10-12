@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+<tool id="nfcore_flye" name="nf-core flye" version="1.0.0" profile="20.01">
+  <description>De novo assembler for single molecule sequencing reads</description>
+  <requirements>
+    <requirement type="package" version="2.9.5">flye</requirement>
+    <container type="docker">${ workflow.containerEngine == </container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+flye \\
+        $mode \\
+        $reads \\
+        --out-dir . \\
+        --threads \\
+        $task.cpus \\
+        $args
+
+    gzip -c assembly.fasta &gt; ${prefix}.assembly.fasta.gz
+    gzip -c assembly_graph.gfa &gt; ${prefix}.assembly_graph.gfa.gz
+    gzip -c assembly_graph.gv &gt; ${prefix}.assembly_graph.gv.gz
+    mv assembly_info.txt ${prefix}.assembly_info.txt
+    mv flye.log ${prefix}.flye.log
+    mv params.json ${prefix}.params.json
+
+    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
+    &quot;${task.process}&quot;:
+        flye: \$( flye --version )
+    END_VERSIONS
+]]&gt;</command>
+  <inputs>
+    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
+  </inputs>
+  <outputs>
+    <data name="fasta" format="data" label="Fasta" from_work_dir="*.fasta.gz"/>
+    <data name="gfa" format="data" label="Gfa" from_work_dir="*.gfa.gz"/>
+    <data name="gv" format="data" label="Gv" from_work_dir="*.gv.gz"/>
+    <data name="txt" format="txt" label="Txt" from_work_dir="*.txt"/>
+    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
+    <data name="json" format="data" label="Json" from_work_dir="*.json"/>
+    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**What it does**
+
+De novo assembler for single molecule sequencing reads
+
+**nf-core Module**
+
+This tool is automatically generated from nf-core modules repository.
+
+Module: flye
+Container: ${ workflow.containerEngine == 
+
+**More Information**
+
+For more information about this tool, visit:
+https://github.com/nf-core/modules/tree/master/modules/nf-core/flye
+]]&gt;</help>
+</tool>
