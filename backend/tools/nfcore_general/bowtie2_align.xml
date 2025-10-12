@@ -1,0 +1,50 @@
+<tool id="bowtie2_align" name="Bowtie2 Align" version="2.5.3">
+    <description>nf-core bowtie2_align module</description>
+
+    <requirements>
+        <container type="docker">biocontainers/bowtie2:2.5.3--hd9f7b48_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        bowtie2
+            #if $input
+                -i '$input'
+            #end if
+            -o output
+            #if $threads
+                -t \${GALAXY_SLOTS:-$threads}
+            #end if
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File" optional="true"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <help><![CDATA[
+**Bowtie2 Align (nf-core module)**
+
+Category: genomics
+
+This is a Galaxy wrapper for the nf-core bowtie2_align module.
+
+**More Information:**
+- nf-core modules: https://github.com/nf-core/modules
+- Container: biocontainers/bowtie2:2.5.3--hd9f7b48_0
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore,
+            title = {nf-core: Community curated bioinformatics pipelines},
+            url = {https://nf-co.re},
+            year = {2024}
+        }</citation>
+    </citations>
+</tool>

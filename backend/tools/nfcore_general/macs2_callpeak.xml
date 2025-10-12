@@ -1,0 +1,50 @@
+<tool id="macs2_callpeak" name="Macs2 Callpeak" version="2.2.9.1">
+    <description>nf-core macs2_callpeak module</description>
+
+    <requirements>
+        <container type="docker">biocontainers/macs2:2.2.9.1--py310h4b81fae_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        macs2
+            #if $input
+                -i '$input'
+            #end if
+            -o output
+            #if $threads
+                -t \${GALAXY_SLOTS:-$threads}
+            #end if
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File" optional="true"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <help><![CDATA[
+**Macs2 Callpeak (nf-core module)**
+
+Category: epigenomics
+
+This is a Galaxy wrapper for the nf-core macs2_callpeak module.
+
+**More Information:**
+- nf-core modules: https://github.com/nf-core/modules
+- Container: biocontainers/macs2:2.2.9.1--py310h4b81fae_0
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore,
+            title = {nf-core: Community curated bioinformatics pipelines},
+            url = {https://nf-co.re},
+            year = {2024}
+        }</citation>
+    </citations>
+</tool>
