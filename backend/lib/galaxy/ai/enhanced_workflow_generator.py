@@ -13,6 +13,7 @@ from datetime import datetime
 
 from .workflow_templates import WorkflowTemplateLibrary
 from .galaxy_tool_rag import GalaxyToolRAG
+from .tool_auto_installer import ToolAutoInstaller
 from .types import WorkflowTemplate, UserRequest
 from .config import AIConfig
 from .llm_client import LLMClient
@@ -23,12 +24,21 @@ log = logging.getLogger(__name__)
 class EnhancedWorkflowGenerator:
     """Enhanced workflow generator using templates and RAG."""
     
-    def __init__(self, config: AIConfig, galaxy_app=None):
+    def __init__(self, config: AIConfig, galaxy_app=None, galaxy_root=None):
         self.config = config
         self.llm_client = LLMClient(config)
         self.template_library = WorkflowTemplateLibrary()
         self.tool_rag = GalaxyToolRAG(galaxy_app)
-        
+
+        # Auto-installer for missing tools
+        self.tool_installer = None
+        if galaxy_root:
+            try:
+                self.tool_installer = ToolAutoInstaller(galaxy_root)
+                log.info("Tool auto-installer initialized")
+            except Exception as e:
+                log.warning(f"Could not initialize tool auto-installer: {e}")
+
         # Generation strategies
         self.strategies = {
             "template_based": self._generate_from_template,
@@ -36,15 +46,15 @@ class EnhancedWorkflowGenerator:
             "hybrid": self._generate_hybrid
         }
     
-    def generate_workflow(self, user_request: UserRequest) -> Dict[str, Any]:
+    def generate_workflow(self, user_request: UserRequest, auto_install_tools: bool = True) -> Dict[str, Any]:
         """Generate workflow using the best available strategy."""
-        
+
         # Step 1: Try to find matching templates
         template_matches = self.template_library.search_templates(
-            user_request.request_text, 
+            user_request.request_text,
             user_request.request_text
         )
-        
+
         # Step 2: Determine generation strategy
         if template_matches and template_matches[0]["relevance_score"] >= 15:
             # High confidence template match
@@ -58,16 +68,39 @@ class EnhancedWorkflowGenerator:
             # Low confidence - use RAG-assisted generation
             strategy = "rag_assisted"
             log.info(f"Using RAG-assisted strategy for: {user_request.request_text}")
-        
+
         # Step 3: Generate workflow
         generation_method = self.strategies[strategy]
         workflow_result = generation_method(user_request, template_matches)
-        
-        # Step 4: Add metadata
+
+        # Step 4: Auto-install missing tools (if enabled and installer available)
+        if auto_install_tools and self.tool_installer and "workflow" in workflow_result:
+            try:
+                success, msg, failed = self.tool_installer.auto_install_workflow_tools(
+                    workflow_result["workflow"]
+                )
+                workflow_result["tool_installation"] = {
+                    "success": success,
+                    "message": msg,
+                    "failed_tools": failed
+                }
+                if success:
+                    log.info(f"Auto-installed tools for workflow: {msg}")
+                else:
+                    log.warning(f"Tool installation had issues: {msg}")
+            except Exception as e:
+                log.error(f"Tool auto-installation failed: {e}")
+                workflow_result["tool_installation"] = {
+                    "success": False,
+                    "message": f"Installation error: {str(e)}",
+                    "failed_tools": []
+                }
+
+        # Step 5: Add metadata
         workflow_result["generation_strategy"] = strategy
         workflow_result["generation_timestamp"] = datetime.now().isoformat()
         workflow_result["template_matches"] = len(template_matches)
-        
+
         return workflow_result
     
     def _generate_from_template(self, user_request: UserRequest, 
