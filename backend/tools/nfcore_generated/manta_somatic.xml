@@ -1,11 +1,12 @@
+<?xml version='1.0' encoding='UTF-8'?>
 <tool id="nfcore_manta/somatic" name="manta_somatic" version="1.0" profile="21.05">
     <description>Manta calls structural variants (SVs) and indels from mapped paired-end sequencing reads. It is optimized for analysis of germline variation in small sets of individuals and somatic variation in tumor/normal sample pairs.</description>
 
     <requirements>
-        <container type="docker">biocontainers/manta/somatic:latest</container>
+        <container type="docker">biocontainers/manta:1.6.0</container>
     </requirements>
 
-    <command detect_errors="exit_code"><![CDATA[
+    <command detect_errors="exit_code">
         manta/somatic
         #if $input
             --input '$input'
@@ -15,33 +16,29 @@
             --threads \${GALAXY_SLOTS:-$threads}
         #end if
         $advanced_options
-    ]]></command>
+    </command>
 
     <inputs>
-        <param name="input" type="data" format="auto" label="Input File"
-               help="Input data file for processing"/>
-        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
-               help="Number of CPU threads to use"/>
-        <param name="advanced_options" type="text" value="" label="Advanced Options"
-               help="Additional command-line options (advanced users)"/>
+        <param name="input" type="data" format="auto" label="Input File" help="Input data file for processing" />
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads" help="Number of CPU threads to use" />
+        <param name="advanced_options" type="text" value="" label="Advanced Options" help="Additional command-line options (advanced users)" />
     </inputs>
 
     <outputs>
-        <data name="output" format="auto" from_work_dir="output*"
-              label="${tool.name} on ${on_string}: Output"/>
+        <data name="output" format="auto" from_work_dir="output*" label="${tool.name} on ${on_string}: Output" />
     </outputs>
 
     <tests>
         <test>
             <output name="output">
                 <assert_contents>
-                    <has_size value="0" compare="gt"/>
+                    <has_size value="0" compare="gt" />
                 </assert_contents>
             </output>
         </test>
     </tests>
 
-    <help><![CDATA[
+    <help>
 **manta_somatic**
 
 Manta calls structural variants (SVs) and indels from mapped paired-end sequencing reads. It is optimized for analysis of germline variation in small sets of individuals and somatic variation in tumor/normal sample pairs.
@@ -49,11 +46,11 @@ Manta calls structural variants (SVs) and indels from mapped paired-end sequenci
 **nf-core Module Information:**
 
 - Module: manta/somatic
-- Container: biocontainers/manta/somatic:latest
+- Container: biocontainers/manta:1.6.0
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.
-    ]]></help>
+    </help>
 
     <citations>
         <citation type="bibtex">@misc{nfcore_manta/somatic,

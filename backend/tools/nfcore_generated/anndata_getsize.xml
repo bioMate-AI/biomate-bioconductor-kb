@@ -2,7 +2,7 @@
     <description>Get the size (n_cells or n_genes) of an anndata object stored as a h5ad file</description>
 
     <requirements>
-        <container type="docker">biocontainers/anndata/getsize:latest</container>
+        <container type="docker">biocontainers/anndata:0.10.9</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Get the size (n_cells or n_genes) of an anndata object stored as a h5ad file
 **nf-core Module Information:**
 
 - Module: anndata/getsize
-- Container: biocontainers/anndata/getsize:latest
+- Container: biocontainers/anndata:0.10.9
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

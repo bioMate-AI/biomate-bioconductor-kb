@@ -2,7 +2,7 @@
     <description>Identify singlets, doublets and negative cells from multiplexing experiments. Annotate singlets by tags.</description>
 
     <requirements>
-        <container type="docker">biocontainers/multiseqdemux:latest</container>
+        <container type="docker">biocontainers/r-seurat:5.3.0</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Identify singlets, doublets and negative cells from multiplexing experiments. An
 **nf-core Module Information:**
 
 - Module: multiseqdemux
-- Container: biocontainers/multiseqdemux:latest
+- Container: biocontainers/r-seurat:5.3.0
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

@@ -2,7 +2,7 @@
     <description>NCBI tool for detecting vector contamination in nucleic acid sequences. This tool is older than NCBI's FCS-adaptor, which is for the same purpose</description>
 
     <requirements>
-        <container type="docker">biocontainers/ncbitools/vecscreen:latest</container>
+        <container type="docker">biocontainers/ncbi-tools-bin:6.1.20170106-6-deb_cv2</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ NCBI tool for detecting vector contamination in nucleic acid sequences. This too
 **nf-core Module Information:**
 
 - Module: ncbitools/vecscreen
-- Container: biocontainers/ncbitools/vecscreen:latest
+- Container: biocontainers/ncbi-tools-bin:6.1.20170106-6-deb_cv2
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

@@ -2,7 +2,7 @@
     <description>Cell and nuclear segmentation with star-convex shapes</description>
 
     <requirements>
-        <container type="docker">biocontainers/stardist:latest</container>
+        <container type="docker">biocontainers/python:3.9</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Cell and nuclear segmentation with star-convex shapes
 **nf-core Module Information:**
 
 - Module: stardist
-- Container: biocontainers/stardist:latest
+- Container: biocontainers/python:3.9
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

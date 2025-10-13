@@ -2,7 +2,7 @@
     <description>Unsupervised machine learning for cell type identification in multiplexed imaging using protein expression and cell neighborhood information without ground truth</description>
 
     <requirements>
-        <container type="docker">biocontainers/celesta:latest</container>
+        <container type="docker">ghcr.io/schapirolabor/mcmicro-celesta:v0.0.2</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Unsupervised machine learning for cell type identification in multiplexed imagin
 **nf-core Module Information:**
 
 - Module: celesta
-- Container: biocontainers/celesta:latest
+- Container: ghcr.io/schapirolabor/mcmicro-celesta:v0.0.2
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

@@ -2,7 +2,7 @@
     <description>A YAML template engine with Python expressions</description>
 
     <requirements>
-        <container type="docker">biocontainers/yte:latest</container>
+        <container type="docker">biocontainers/pip:25.1.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ A YAML template engine with Python expressions
 **nf-core Module Information:**
 
 - Module: yte
-- Container: biocontainers/yte:latest
+- Container: biocontainers/pip:25.1.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

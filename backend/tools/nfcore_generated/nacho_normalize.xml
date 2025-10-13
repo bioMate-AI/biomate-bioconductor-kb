@@ -6,7 +6,7 @@ As a result each count of a specific barcode represents the presence of its targ
 </description>
 
     <requirements>
-        <container type="docker">biocontainers/nacho/normalize:latest</container>
+        <container type="docker">biocontainers/r-dplyr:1.1.4</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -57,7 +57,7 @@ As a result each count of a specific barcode represents the presence of its targ
 **nf-core Module Information:**
 
 - Module: nacho/normalize
-- Container: biocontainers/nacho/normalize:latest
+- Container: biocontainers/r-dplyr:1.1.4
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

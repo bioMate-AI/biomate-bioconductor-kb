@@ -2,7 +2,7 @@
     <description>Detect doublets in single-cell RNA-Seq data</description>
 
     <requirements>
-        <container type="docker">biocontainers/scvitools/solo:latest</container>
+        <container type="docker">biocontainers/scvi-tools:1.3.3</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Detect doublets in single-cell RNA-Seq data
 **nf-core Module Information:**
 
 - Module: scvitools/solo
-- Container: biocontainers/scvitools/solo:latest
+- Container: biocontainers/scvi-tools:1.3.3
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

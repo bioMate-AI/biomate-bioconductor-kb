@@ -2,7 +2,7 @@
     <description>NVIDIA Clara Parabricks GPU-accelerated variant calls annotation based on dbSNP database</description>
 
     <requirements>
-        <container type="docker">biocontainers/parabricks/dbsnp:latest</container>
+        <container type="docker">nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ NVIDIA Clara Parabricks GPU-accelerated variant calls annotation based on dbSNP 
 **nf-core Module Information:**
 
 - Module: parabricks/dbsnp
-- Container: biocontainers/parabricks/dbsnp:latest
+- Container: nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

@@ -2,7 +2,7 @@
     <description>Module to build the reference needed by the 10x Genomics Cell Ranger Arc tool. Uses the cellranger-arc mkref command.</description>
 
     <requirements>
-        <container type="docker">biocontainers/cellrangerarc/mkref:latest</container>
+        <container type="docker">nf-core/cellranger-arc:2.0.2</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Module to build the reference needed by the 10x Genomics Cell Ranger Arc tool. U
 **nf-core Module Information:**
 
 - Module: cellrangerarc/mkref
-- Container: biocontainers/cellrangerarc/mkref:latest
+- Container: nf-core/cellranger-arc:2.0.2
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

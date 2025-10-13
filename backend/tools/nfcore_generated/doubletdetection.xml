@@ -2,7 +2,7 @@
     <description>Doublet detection in single-cell RNA-seq data</description>
 
     <requirements>
-        <container type="docker">biocontainers/doubletdetection:latest</container>
+        <container type="docker">biocontainers/pip:25.0.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Doublet detection in single-cell RNA-seq data
 **nf-core Module Information:**
 
 - Module: doubletdetection
-- Container: biocontainers/doubletdetection:latest
+- Container: biocontainers/pip:25.0.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

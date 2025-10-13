@@ -2,7 +2,7 @@
     <description>NVIDIA Clara Parabricks GPU-accelerated somatic variant calling, replicating GATK Mutect2.</description>
 
     <requirements>
-        <container type="docker">biocontainers/parabricks/mutectcaller:latest</container>
+        <container type="docker">nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ NVIDIA Clara Parabricks GPU-accelerated somatic variant calling, replicating GAT
 **nf-core Module Information:**
 
 - Module: parabricks/mutectcaller
-- Container: biocontainers/parabricks/mutectcaller:latest
+- Container: nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

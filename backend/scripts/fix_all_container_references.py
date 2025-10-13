@@ -100,14 +100,8 @@ class ContainerFixer:
             nfcore_bwa/mem -> bwa/mem
             nfcore_fastqc -> fastqc
         """
-        # Remove nfcore_ prefix
+        # Remove nfcore_ prefix - tool ID already has correct format
         name = tool_id.replace("nfcore_", "")
-
-        # Handle underscores - convert to slashes for nf-core paths
-        # samtools_sort -> samtools/sort
-        if "_" in name and "/" not in name:
-            parts = name.split("_", 1)
-            name = f"{parts[0]}/{parts[1]}"
 
         return name
 

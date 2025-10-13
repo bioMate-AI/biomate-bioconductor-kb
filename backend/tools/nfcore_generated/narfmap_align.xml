@@ -2,7 +2,7 @@
     <description>Performs fastq alignment to a reference using NARFMAP</description>
 
     <requirements>
-        <container type="docker">biocontainers/narfmap/align:latest</container>
+        <container type="docker">biocontainers/narfmap:1.4.2</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Performs fastq alignment to a reference using NARFMAP
 **nf-core Module Information:**
 
 - Module: narfmap/align
-- Container: biocontainers/narfmap/align:latest
+- Container: biocontainers/narfmap:1.4.2
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

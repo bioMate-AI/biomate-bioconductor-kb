@@ -2,7 +2,7 @@
     <description>(DEPRECATED - see main.nf) DeepVariant is an analysis pipeline that uses a deep neural network to call genetic variants from next-generation DNA sequencing data</description>
 
     <requirements>
-        <container type="docker">biocontainers/deepvariant:latest</container>
+        <container type="docker">google/deepvariant:1.9.0</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@
 **nf-core Module Information:**
 
 - Module: deepvariant
-- Container: biocontainers/deepvariant:latest
+- Container: google/deepvariant:1.9.0
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

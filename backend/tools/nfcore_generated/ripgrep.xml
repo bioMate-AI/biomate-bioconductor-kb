@@ -2,7 +2,7 @@
     <description>ripgrep recursively searches directories for a regex pattern</description>
 
     <requirements>
-        <container type="docker">biocontainers/ripgrep:latest</container>
+        <container type="docker">biocontainers/pigz:2.8</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ ripgrep recursively searches directories for a regex pattern
 **nf-core Module Information:**
 
 - Module: ripgrep
-- Container: biocontainers/ripgrep:latest
+- Container: biocontainers/pigz:2.8
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

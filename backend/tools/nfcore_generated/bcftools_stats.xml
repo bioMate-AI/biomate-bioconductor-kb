@@ -1,11 +1,12 @@
+<?xml version='1.0' encoding='UTF-8'?>
 <tool id="nfcore_bcftools/stats" name="bcftools_stats" version="1.0" profile="21.05">
     <description>Generates stats from VCF files</description>
 
     <requirements>
-        <container type="docker">biocontainers/bcftools/stats:latest</container>
+        <container type="docker">biocontainers/htslib:1.22.1</container>
     </requirements>
 
-    <command detect_errors="exit_code"><![CDATA[
+    <command detect_errors="exit_code">
         bcftools/stats
         #if $input
             --input '$input'
@@ -15,33 +16,29 @@
             --threads \${GALAXY_SLOTS:-$threads}
         #end if
         $advanced_options
-    ]]></command>
+    </command>
 
     <inputs>
-        <param name="input" type="data" format="auto" label="Input File"
-               help="Input data file for processing"/>
-        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
-               help="Number of CPU threads to use"/>
-        <param name="advanced_options" type="text" value="" label="Advanced Options"
-               help="Additional command-line options (advanced users)"/>
+        <param name="input" type="data" format="auto" label="Input File" help="Input data file for processing" />
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads" help="Number of CPU threads to use" />
+        <param name="advanced_options" type="text" value="" label="Advanced Options" help="Additional command-line options (advanced users)" />
     </inputs>
 
     <outputs>
-        <data name="output" format="auto" from_work_dir="output*"
-              label="${tool.name} on ${on_string}: Output"/>
+        <data name="output" format="auto" from_work_dir="output*" label="${tool.name} on ${on_string}: Output" />
     </outputs>
 
     <tests>
         <test>
             <output name="output">
                 <assert_contents>
-                    <has_size value="0" compare="gt"/>
+                    <has_size value="0" compare="gt" />
                 </assert_contents>
             </output>
         </test>
     </tests>
 
-    <help><![CDATA[
+    <help>
 **bcftools_stats**
 
 Generates stats from VCF files
@@ -49,11 +46,11 @@ Generates stats from VCF files
 **nf-core Module Information:**
 
 - Module: bcftools/stats
-- Container: biocontainers/bcftools/stats:latest
+- Container: biocontainers/htslib:1.22.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.
-    ]]></help>
+    </help>
 
     <citations>
         <citation type="bibtex">@misc{nfcore_bcftools/stats,

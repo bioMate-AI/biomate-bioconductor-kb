@@ -2,7 +2,7 @@
     <description>Create MD5 (128-bit) checksums</description>
 
     <requirements>
-        <container type="docker">biocontainers/md5sum:latest</container>
+        <container type="docker">biocontainers/coreutils:9.5</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Create MD5 (128-bit) checksums
 **nf-core Module Information:**
 
 - Module: md5sum
-- Container: biocontainers/md5sum:latest
+- Container: biocontainers/coreutils:9.5
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

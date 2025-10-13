@@ -1,13 +1,14 @@
+<?xml version='1.0' encoding='UTF-8'?>
 <tool id="nfcore_vizgenpostprocessing/preparesegmentation" name="vizgenpostprocessing_preparesegmentation" version="1.0" profile="21.05">
     <description>The module prepares the specification JSON file for Vizgen's post-processing tool
 cell segmentation workflow.
 </description>
 
     <requirements>
-        <container type="docker">biocontainers/vizgenpostprocessing/preparesegmentation:latest</container>
+        <container type="docker">biocontainers/vpt:1.3.0</container>
     </requirements>
 
-    <command detect_errors="exit_code"><![CDATA[
+    <command detect_errors="exit_code">
         vizgenpostprocessing/preparesegmentation
         #if $input
             --input '$input'
@@ -17,33 +18,29 @@ cell segmentation workflow.
             --threads \${GALAXY_SLOTS:-$threads}
         #end if
         $advanced_options
-    ]]></command>
+    </command>
 
     <inputs>
-        <param name="input" type="data" format="auto" label="Input File"
-               help="Input data file for processing"/>
-        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
-               help="Number of CPU threads to use"/>
-        <param name="advanced_options" type="text" value="" label="Advanced Options"
-               help="Additional command-line options (advanced users)"/>
+        <param name="input" type="data" format="auto" label="Input File" help="Input data file for processing" />
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads" help="Number of CPU threads to use" />
+        <param name="advanced_options" type="text" value="" label="Advanced Options" help="Additional command-line options (advanced users)" />
     </inputs>
 
     <outputs>
-        <data name="output" format="auto" from_work_dir="output*"
-              label="${tool.name} on ${on_string}: Output"/>
+        <data name="output" format="auto" from_work_dir="output*" label="${tool.name} on ${on_string}: Output" />
     </outputs>
 
     <tests>
         <test>
             <output name="output">
                 <assert_contents>
-                    <has_size value="0" compare="gt"/>
+                    <has_size value="0" compare="gt" />
                 </assert_contents>
             </output>
         </test>
     </tests>
 
-    <help><![CDATA[
+    <help>
 **vizgenpostprocessing_preparesegmentation**
 
 The module prepares the specification JSON file for Vizgen's post-processing tool
@@ -53,11 +50,11 @@ cell segmentation workflow.
 **nf-core Module Information:**
 
 - Module: vizgenpostprocessing/preparesegmentation
-- Container: biocontainers/vizgenpostprocessing/preparesegmentation:latest
+- Container: biocontainers/vpt:1.3.0
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.
-    ]]></help>
+    </help>
 
     <citations>
         <citation type="bibtex">@misc{nfcore_vizgenpostprocessing/preparesegmentation,

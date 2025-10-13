@@ -2,7 +2,7 @@
     <description>Parses Rastair mbias output to assess the ideal cutoff for read trimming and reports the values.</description>
 
     <requirements>
-        <container type="docker">biocontainers/rastair/mbiasparser:latest</container>
+        <container type="docker">biocontainers/r-base:4.4.0</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Parses Rastair mbias output to assess the ideal cutoff for read trimming and rep
 **nf-core Module Information:**
 
 - Module: rastair/mbiasparser
-- Container: biocontainers/rastair/mbiasparser:latest
+- Container: biocontainers/r-base:4.4.0
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

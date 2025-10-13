@@ -2,7 +2,7 @@
     <description>Module to subset AnnData object to cells with matching barcodes from the csv file</description>
 
     <requirements>
-        <container type="docker">biocontainers/anndata/barcodes:latest</container>
+        <container type="docker">biocontainers/anndata:0.11.4</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Module to subset AnnData object to cells with matching barcodes from the csv fil
 **nf-core Module Information:**
 
 - Module: anndata/barcodes
-- Container: biocontainers/anndata/barcodes:latest
+- Container: biocontainers/anndata:0.11.4
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

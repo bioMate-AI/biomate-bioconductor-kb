@@ -2,7 +2,7 @@
     <description>NVIDIA Clara Parabricks GPU-accelerated minimap2 for aligning long read sequences against a large reference database using an accelerated KSW2 to convert FASTQ to BAM/CRAM.</description>
 
     <requirements>
-        <container type="docker">biocontainers/parabricks/minimap2:latest</container>
+        <container type="docker">nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ NVIDIA Clara Parabricks GPU-accelerated minimap2 for aligning long read sequence
 **nf-core Module Information:**
 
 - Module: parabricks/minimap2
-- Container: biocontainers/parabricks/minimap2:latest
+- Container: nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

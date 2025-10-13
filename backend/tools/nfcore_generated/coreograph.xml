@@ -2,7 +2,7 @@
     <description>Great....yet another TMA dearray program. What does this one do? Coreograph uses UNet, a deep learning model, to identify complete/incomplete tissue cores on a tissue microarray. It has been trained on 9 TMA slides of different sizes and tissue types.</description>
 
     <requirements>
-        <container type="docker">biocontainers/coreograph:latest</container>
+        <container type="docker">labsyspharm/unetcoreograph:2.2.9</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Great....yet another TMA dearray program. What does this one do? Coreograph uses
 **nf-core Module Information:**
 
 - Module: coreograph
-- Container: biocontainers/coreograph:latest
+- Container: labsyspharm/unetcoreograph:2.2.9
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

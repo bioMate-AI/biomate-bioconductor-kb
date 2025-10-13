@@ -2,7 +2,7 @@
     <description>Mcquant extracts single-cell data given a multi-channel image and a segmentation mask.</description>
 
     <requirements>
-        <container type="docker">biocontainers/mcquant:latest</container>
+        <container type="docker">nf-core/quantification:1.5.4</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Mcquant extracts single-cell data given a multi-channel image and a segmentation
 **nf-core Module Information:**
 
 - Module: mcquant
-- Container: biocontainers/mcquant:latest
+- Container: nf-core/quantification:1.5.4
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

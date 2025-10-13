@@ -2,7 +2,7 @@
     <description>SpatialLDA uses an LDA based approach for the identification of cellular neighborhoods, using cell type identities.</description>
 
     <requirements>
-        <container type="docker">biocontainers/scimap/spatiallda:latest</container>
+        <container type="docker">miguelib/scimap:0.0.3</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ SpatialLDA uses an LDA based approach for the identification of cellular neighbo
 **nf-core Module Information:**
 
 - Module: scimap/spatiallda
-- Container: biocontainers/scimap/spatiallda:latest
+- Container: miguelib/scimap:0.0.3
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

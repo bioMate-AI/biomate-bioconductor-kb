@@ -2,7 +2,7 @@
     <description>NVIDIA Clara Parabricks GPU-accelerated germline variant calling, replicating GATK haplotypecaller.</description>
 
     <requirements>
-        <container type="docker">biocontainers/parabricks/haplotypecaller:latest</container>
+        <container type="docker">nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ NVIDIA Clara Parabricks GPU-accelerated germline variant calling, replicating GA
 **nf-core Module Information:**
 
 - Module: parabricks/haplotypecaller
-- Container: biocontainers/parabricks/haplotypecaller:latest
+- Container: nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

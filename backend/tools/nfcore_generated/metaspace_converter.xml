@@ -2,7 +2,7 @@
     <description>Export METASPACE datasets to AnnData and SpatialData objects</description>
 
     <requirements>
-        <container type="docker">biocontainers/metaspace/converter:latest</container>
+        <container type="docker">biocontainers/pip:25.0.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Export METASPACE datasets to AnnData and SpatialData objects
 **nf-core Module Information:**
 
 - Module: metaspace/converter
-- Container: biocontainers/metaspace/converter:latest
+- Container: biocontainers/pip:25.0.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

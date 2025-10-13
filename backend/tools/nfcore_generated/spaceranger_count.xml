@@ -2,7 +2,7 @@
     <description>Module to use the 10x Space Ranger pipeline to process 10x spatial transcriptomics data</description>
 
     <requirements>
-        <container type="docker">biocontainers/spaceranger/count:latest</container>
+        <container type="docker">nf-core/spaceranger:3.1.3</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Module to use the 10x Space Ranger pipeline to process 10x spatial transcriptomi
 **nf-core Module Information:**
 
 - Module: spaceranger/count
-- Container: biocontainers/spaceranger/count:latest
+- Container: nf-core/spaceranger:3.1.3
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

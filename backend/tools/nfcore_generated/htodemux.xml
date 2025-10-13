@@ -2,7 +2,7 @@
     <description>Demultiplex samples based on data from cell hashing.</description>
 
     <requirements>
-        <container type="docker">biocontainers/htodemux:latest</container>
+        <container type="docker">biocontainers/r-seurat:5.3.0</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Demultiplex samples based on data from cell hashing.
 **nf-core Module Information:**
 
 - Module: htodemux
-- Container: biocontainers/htodemux:latest
+- Container: biocontainers/r-seurat:5.3.0
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

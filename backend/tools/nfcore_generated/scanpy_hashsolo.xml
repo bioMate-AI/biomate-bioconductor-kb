@@ -2,7 +2,7 @@
     <description>Probabilistic demultiplexing of cell hashing data</description>
 
     <requirements>
-        <container type="docker">biocontainers/scanpy/hashsolo:latest</container>
+        <container type="docker">biocontainers/matplotlib:3.10.5</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Probabilistic demultiplexing of cell hashing data
 **nf-core Module Information:**
 
 - Module: scanpy/hashsolo
-- Container: biocontainers/scanpy/hashsolo:latest
+- Container: biocontainers/matplotlib:3.10.5
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

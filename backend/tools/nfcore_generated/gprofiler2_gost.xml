@@ -2,7 +2,7 @@
     <description>runs a functional enrichment analysis with gprofiler2</description>
 
     <requirements>
-        <container type="docker">biocontainers/gprofiler2/gost:latest</container>
+        <container type="docker">biocontainers/r-ggplot2:3.4.3</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ runs a functional enrichment analysis with gprofiler2
 **nf-core Module Information:**
 
 - Module: gprofiler2/gost
-- Container: biocontainers/gprofiler2/gost:latest
+- Container: biocontainers/r-ggplot2:3.4.3
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

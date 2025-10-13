@@ -2,7 +2,7 @@
     <description>SCIMAP is a suite of tools that enables spatial single-cell analyses</description>
 
     <requirements>
-        <container type="docker">biocontainers/scimap/mcmicro:latest</container>
+        <container type="docker">labsyspharm/scimap:2.1.3</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ SCIMAP is a suite of tools that enables spatial single-cell analyses
 **nf-core Module Information:**
 
 - Module: scimap/mcmicro
-- Container: biocontainers/scimap/mcmicro:latest
+- Container: labsyspharm/scimap:2.1.3
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

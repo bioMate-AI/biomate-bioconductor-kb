@@ -2,7 +2,7 @@
     <description>Module to use Cell Ranger's pipelines analyze sequencing data produced from Chromium Single Cell Gene Expression.</description>
 
     <requirements>
-        <container type="docker">biocontainers/cellranger/count:latest</container>
+        <container type="docker">nf-core/cellranger:9.0.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Module to use Cell Ranger's pipelines analyze sequencing data produced from Chro
 **nf-core Module Information:**
 
 - Module: cellranger/count
-- Container: biocontainers/cellranger/count:latest
+- Container: nf-core/cellranger:9.0.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

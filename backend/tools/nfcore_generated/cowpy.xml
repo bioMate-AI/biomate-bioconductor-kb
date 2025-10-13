@@ -2,7 +2,7 @@
     <description>Print any text in a cow or other characters</description>
 
     <requirements>
-        <container type="docker">biocontainers/cowpy:latest</container>
+        <container type="docker">biocontainers/cowpy:1.1.5</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Print any text in a cow or other characters
 **nf-core Module Information:**
 
 - Module: cowpy
-- Container: biocontainers/cowpy:latest
+- Container: biocontainers/cowpy:1.1.5
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

@@ -1,11 +1,12 @@
+<?xml version='1.0' encoding='UTF-8'?>
 <tool id="nfcore_vcflib/vcffixup" name="vcflib_vcffixup" version="1.0" profile="21.05">
     <description>Generates a VCF stream where AC and NS have been generated for each record using sample genotypes.</description>
 
     <requirements>
-        <container type="docker">biocontainers/vcflib/vcffixup:latest</container>
+        <container type="docker">biocontainers/vcflib:1.0.14</container>
     </requirements>
 
-    <command detect_errors="exit_code"><![CDATA[
+    <command detect_errors="exit_code">
         vcflib/vcffixup
         #if $input
             --input '$input'
@@ -15,33 +16,29 @@
             --threads \${GALAXY_SLOTS:-$threads}
         #end if
         $advanced_options
-    ]]></command>
+    </command>
 
     <inputs>
-        <param name="input" type="data" format="auto" label="Input File"
-               help="Input data file for processing"/>
-        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
-               help="Number of CPU threads to use"/>
-        <param name="advanced_options" type="text" value="" label="Advanced Options"
-               help="Additional command-line options (advanced users)"/>
+        <param name="input" type="data" format="auto" label="Input File" help="Input data file for processing" />
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads" help="Number of CPU threads to use" />
+        <param name="advanced_options" type="text" value="" label="Advanced Options" help="Additional command-line options (advanced users)" />
     </inputs>
 
     <outputs>
-        <data name="output" format="auto" from_work_dir="output*"
-              label="${tool.name} on ${on_string}: Output"/>
+        <data name="output" format="auto" from_work_dir="output*" label="${tool.name} on ${on_string}: Output" />
     </outputs>
 
     <tests>
         <test>
             <output name="output">
                 <assert_contents>
-                    <has_size value="0" compare="gt"/>
+                    <has_size value="0" compare="gt" />
                 </assert_contents>
             </output>
         </test>
     </tests>
 
-    <help><![CDATA[
+    <help>
 **vcflib_vcffixup**
 
 Generates a VCF stream where AC and NS have been generated for each record using sample genotypes.
@@ -49,11 +46,11 @@ Generates a VCF stream where AC and NS have been generated for each record using
 **nf-core Module Information:**
 
 - Module: vcflib/vcffixup
-- Container: biocontainers/vcflib/vcffixup:latest
+- Container: biocontainers/vcflib:1.0.14
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.
-    ]]></help>
+    </help>
 
     <citations>
         <citation type="bibtex">@misc{nfcore_vcflib/vcffixup,

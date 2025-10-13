@@ -4,7 +4,7 @@ This list can be used by downstream analysis tasks to limit processing to the ar
 </description>
 
     <requirements>
-        <container type="docker">biocontainers/force/tileextent:latest</container>
+        <container type="docker">nf-core/force:3.8.01</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -53,7 +53,7 @@ This list can be used by downstream analysis tasks to limit processing to the ar
 **nf-core Module Information:**
 
 - Module: force/tileextent
-- Container: biocontainers/force/tileextent:latest
+- Container: nf-core/force:3.8.01
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

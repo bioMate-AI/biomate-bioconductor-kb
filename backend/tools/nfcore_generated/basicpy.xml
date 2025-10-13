@@ -2,7 +2,7 @@
     <description>BaSiCPy is a python package for background and shading correction of optical microscopy images. It is developed based on the Matlab version of BaSiC tool with major improvements in the algorithm.</description>
 
     <requirements>
-        <container type="docker">biocontainers/basicpy:latest</container>
+        <container type="docker">labsyspharm/basicpy-docker-mcmicro:1.2.0-patch2</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ BaSiCPy is a python package for background and shading correction of optical mic
 **nf-core Module Information:**
 
 - Module: basicpy
-- Container: biocontainers/basicpy:latest
+- Container: labsyspharm/basicpy-docker-mcmicro:1.2.0-patch2
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

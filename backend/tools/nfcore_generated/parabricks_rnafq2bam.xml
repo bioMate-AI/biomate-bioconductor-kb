@@ -2,7 +2,7 @@
     <description>This tool is the equivalent of fq2bam for RNA-Seq samples, receiving inputs in FASTQ format, performing alignment with the splice-aware STAR algorithm, optionally marking of duplicate reads, and outputting an aligned BAM file ready for variant and fusion calling.</description>
 
     <requirements>
-        <container type="docker">biocontainers/parabricks/rnafq2bam:latest</container>
+        <container type="docker">nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ This tool is the equivalent of fq2bam for RNA-Seq samples, receiving inputs in F
 **nf-core Module Information:**
 
 - Module: parabricks/rnafq2bam
-- Container: biocontainers/parabricks/rnafq2bam:latest
+- Container: nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

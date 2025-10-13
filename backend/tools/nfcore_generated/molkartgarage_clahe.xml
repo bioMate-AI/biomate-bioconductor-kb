@@ -2,7 +2,7 @@
     <description>Contrast-limited adjusted histogram equalization (CLAHE) on single-channel tif images.</description>
 
     <requirements>
-        <container type="docker">biocontainers/molkartgarage/clahe:latest</container>
+        <container type="docker">ghcr.io/schapirolabor/molkart-local:v0.1.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Contrast-limited adjusted histogram equalization (CLAHE) on single-channel tif i
 **nf-core Module Information:**
 
 - Module: molkartgarage/clahe
-- Container: biocontainers/molkartgarage/clahe:latest
+- Container: ghcr.io/schapirolabor/molkart-local:v0.1.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

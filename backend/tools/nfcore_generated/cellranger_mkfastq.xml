@@ -2,7 +2,7 @@
     <description>Module to create FASTQs needed by the 10x Genomics Cell Ranger tool. Uses the cellranger mkfastq command.</description>
 
     <requirements>
-        <container type="docker">biocontainers/cellranger/mkfastq:latest</container>
+        <container type="docker">nf-core/cellrangermkfastq:9.0.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Module to create FASTQs needed by the 10x Genomics Cell Ranger tool. Uses the ce
 **nf-core Module Information:**
 
 - Module: cellranger/mkfastq
-- Container: biocontainers/cellranger/mkfastq:latest
+- Container: nf-core/cellrangermkfastq:9.0.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

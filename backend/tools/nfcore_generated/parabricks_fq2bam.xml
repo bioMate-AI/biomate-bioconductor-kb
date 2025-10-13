@@ -2,7 +2,7 @@
     <description>NVIDIA Clara Parabricks GPU-accelerated alignment, sorting, BQSR calculation, and duplicate marking. Note this nf-core module requires files to be copied into the working directory and not symlinked.</description>
 
     <requirements>
-        <container type="docker">biocontainers/parabricks/fq2bam:latest</container>
+        <container type="docker">nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ NVIDIA Clara Parabricks GPU-accelerated alignment, sorting, BQSR calculation, an
 **nf-core Module Information:**
 
 - Module: parabricks/fq2bam
-- Container: biocontainers/parabricks/fq2bam:latest
+- Container: nvcr.io/nvidia/clara/clara-parabricks:4.5.1-1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

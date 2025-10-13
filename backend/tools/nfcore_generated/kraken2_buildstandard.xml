@@ -2,7 +2,7 @@
     <description>Downloads and builds Kraken2 standard database</description>
 
     <requirements>
-        <container type="docker">biocontainers/kraken2/buildstandard:latest</container>
+        <container type="docker">biocontainers/kraken2:2.1.6</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Downloads and builds Kraken2 standard database
 **nf-core Module Information:**
 
 - Module: kraken2/buildstandard
-- Container: biocontainers/kraken2/buildstandard:latest
+- Container: biocontainers/kraken2:2.1.6
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

@@ -2,7 +2,7 @@
     <description>Module to run UniverSC an open-source pipeline to demultiplex and process single-cell RNA-Seq data</description>
 
     <requirements>
-        <container type="docker">biocontainers/universc:latest</container>
+        <container type="docker">nf-core/universc:1.2.5.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Module to run UniverSC an open-source pipeline to demultiplex and process single
 **nf-core Module Information:**
 
 - Module: universc
-- Container: biocontainers/universc:latest
+- Container: nf-core/universc:1.2.5.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

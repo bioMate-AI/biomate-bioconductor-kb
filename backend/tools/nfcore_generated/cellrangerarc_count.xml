@@ -2,7 +2,7 @@
     <description>Module to use Cell Ranger's ARC pipelines analyze sequencing data produced from Chromium Single Cell ARC. Uses the cellranger-arc count command.</description>
 
     <requirements>
-        <container type="docker">biocontainers/cellrangerarc/count:latest</container>
+        <container type="docker">nf-core/cellranger-arc:2.0.2</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Module to use Cell Ranger's ARC pipelines analyze sequencing data produced from 
 **nf-core Module Information:**
 
 - Module: cellrangerarc/count
-- Container: biocontainers/cellrangerarc/count:latest
+- Container: nf-core/cellranger-arc:2.0.2
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

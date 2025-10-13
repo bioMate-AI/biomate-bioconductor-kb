@@ -4,7 +4,7 @@ DSSP is a standard tool for assigning secondary structure to amino acids in prot
 </description>
 
     <requirements>
-        <container type="docker">biocontainers/dssp/mkdssp:latest</container>
+        <container type="docker">biocontainers/dssp:4.5.3</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -53,7 +53,7 @@ DSSP is a standard tool for assigning secondary structure to amino acids in prot
 **nf-core Module Information:**
 
 - Module: dssp/mkdssp
-- Container: biocontainers/dssp/mkdssp:latest
+- Container: biocontainers/dssp:4.5.3
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

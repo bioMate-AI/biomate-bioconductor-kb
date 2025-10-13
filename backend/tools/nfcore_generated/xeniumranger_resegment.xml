@@ -2,7 +2,7 @@
     <description>The xeniumranger resegment module allows you to generate a new segmentation of the morphology image space by rerunning the Xenium Onboard Analysis (XOA) segmentation algorithms with modified parameters.</description>
 
     <requirements>
-        <container type="docker">biocontainers/xeniumranger/resegment:latest</container>
+        <container type="docker">nf-core/xeniumranger:3.0.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ The xeniumranger resegment module allows you to generate a new segmentation of t
 **nf-core Module Information:**
 
 - Module: xeniumranger/resegment
-- Container: biocontainers/xeniumranger/resegment:latest
+- Container: nf-core/xeniumranger:3.0.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

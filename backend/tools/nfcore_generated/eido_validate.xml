@@ -2,7 +2,7 @@
     <description>Validate samplesheet or PEP config against a schema</description>
 
     <requirements>
-        <container type="docker">biocontainers/eido/validate:latest</container>
+        <container type="docker">biocontainers/eido:0.1.9</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Validate samplesheet or PEP config against a schema
 **nf-core Module Information:**
 
 - Module: eido/validate
-- Container: biocontainers/eido/validate:latest
+- Container: biocontainers/eido:0.1.9
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

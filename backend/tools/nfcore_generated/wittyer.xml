@@ -2,7 +2,7 @@
     <description>A large variant benchmarking tool analogous to hap.py for small variants.</description>
 
     <requirements>
-        <container type="docker">biocontainers/wittyer:latest</container>
+        <container type="docker">nf-core/modules/wittyer:4c55c27c711b558f</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ A large variant benchmarking tool analogous to hap.py for small variants.
 **nf-core Module Information:**
 
 - Module: wittyer
-- Container: biocontainers/wittyer:latest
+- Container: nf-core/modules/wittyer:4c55c27c711b558f
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

@@ -2,7 +2,7 @@
     <description>DeepSomatic is an extension of deep learning-based variant caller DeepVariant that takes aligned reads (in BAM or CRAM format) from tumor and normal data, produces pileup image tensors from them, classifies each tensor using a convolutional neural network, and finally reports somatic variants in a standard VCF or gVCF file.</description>
 
     <requirements>
-        <container type="docker">biocontainers/deepsomatic:latest</container>
+        <container type="docker">google/deepsomatic:1.7.0</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ DeepSomatic is an extension of deep learning-based variant caller DeepVariant th
 **nf-core Module Information:**
 
 - Module: deepsomatic
-- Container: biocontainers/deepsomatic:latest
+- Container: google/deepsomatic:1.7.0
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

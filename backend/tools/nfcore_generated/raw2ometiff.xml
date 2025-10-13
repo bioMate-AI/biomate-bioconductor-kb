@@ -2,7 +2,7 @@
     <description>write your description here</description>
 
     <requirements>
-        <container type="docker">biocontainers/raw2ometiff:latest</container>
+        <container type="docker">biocontainers/blosc:1.21.6</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ write your description here
 **nf-core Module Information:**
 
 - Module: raw2ometiff
-- Container: biocontainers/raw2ometiff:latest
+- Container: biocontainers/blosc:1.21.6
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

@@ -2,7 +2,7 @@
     <description>Module to use Cell Ranger's pipelines to analyze sequencing data produced from various Chromium technologies, including Single Cell Gene Expression, Single Cell Immune Profiling, Feature Barcoding, and Cell Multiplexing.</description>
 
     <requirements>
-        <container type="docker">biocontainers/cellranger/multi:latest</container>
+        <container type="docker">nf-core/cellranger:9.0.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Module to use Cell Ranger's pipelines to analyze sequencing data produced from v
 **nf-core Module Information:**
 
 - Module: cellranger/multi
-- Container: biocontainers/cellranger/multi:latest
+- Container: nf-core/cellranger:9.0.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

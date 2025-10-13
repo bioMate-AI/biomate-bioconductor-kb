@@ -2,7 +2,7 @@
     <description>The xeniumranger relabel module allows you to change the gene labels applied to decoded transcripts.</description>
 
     <requirements>
-        <container type="docker">biocontainers/xeniumranger/relabel:latest</container>
+        <container type="docker">nf-core/xeniumranger:3.0.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ The xeniumranger relabel module allows you to change the gene labels applied to 
 **nf-core Module Information:**
 
 - Module: xeniumranger/relabel
-- Container: biocontainers/xeniumranger/relabel:latest
+- Container: nf-core/xeniumranger:3.0.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

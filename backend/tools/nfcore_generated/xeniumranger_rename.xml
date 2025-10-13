@@ -2,7 +2,7 @@
     <description>The xeniumranger rename module allows you to change the sample region_name and cassette_name throughout all the Xenium Onboard Analysis output files that contain this information.</description>
 
     <requirements>
-        <container type="docker">biocontainers/xeniumranger/rename:latest</container>
+        <container type="docker">nf-core/xeniumranger:3.0.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ The xeniumranger rename module allows you to change the sample region_name and c
 **nf-core Module Information:**
 
 - Module: xeniumranger/rename
-- Container: biocontainers/xeniumranger/rename:latest
+- Container: nf-core/xeniumranger:3.0.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

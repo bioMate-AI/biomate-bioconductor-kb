@@ -2,7 +2,7 @@
     <description>Module to build a filtered GTF needed by the 10x Genomics Cell Ranger tool. Uses the cellranger mkgtf command.</description>
 
     <requirements>
-        <container type="docker">biocontainers/cellranger/mkgtf:latest</container>
+        <container type="docker">nf-core/cellranger:9.0.1</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Module to build a filtered GTF needed by the 10x Genomics Cell Ranger tool. Uses
 **nf-core Module Information:**
 
 - Module: cellranger/mkgtf
-- Container: biocontainers/cellranger/mkgtf:latest
+- Container: nf-core/cellranger:9.0.1
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

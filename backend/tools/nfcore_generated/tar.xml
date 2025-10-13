@@ -2,7 +2,7 @@
     <description>Compress directories into tarballs with various compression options</description>
 
     <requirements>
-        <container type="docker">biocontainers/tar:latest</container>
+        <container type="docker">biocontainers/bzip2:1.0.8</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Compress directories into tarballs with various compression options
 **nf-core Module Information:**
 
 - Module: tar
-- Container: biocontainers/tar:latest
+- Container: biocontainers/bzip2:1.0.8
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

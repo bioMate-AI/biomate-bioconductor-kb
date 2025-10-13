@@ -2,7 +2,7 @@
     <description>Dysgu calls structural variants (SVs) from mapped sequencing reads. It is designed for accurate and efficient detection of structural variations.</description>
 
     <requirements>
-        <container type="docker">biocontainers/dysgu:latest</container>
+        <container type="docker">biocontainers/dysgu:1.6.5</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Dysgu calls structural variants (SVs) from mapped sequencing reads. It is design
 **nf-core Module Information:**
 
 - Module: dysgu
-- Container: biocontainers/dysgu:latest
+- Container: biocontainers/dysgu:1.6.5
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

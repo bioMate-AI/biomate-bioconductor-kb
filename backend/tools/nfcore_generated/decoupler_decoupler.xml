@@ -10,7 +10,7 @@ phosphosites that are targeted by a kinase.
 </description>
 
     <requirements>
-        <container type="docker">biocontainers/decoupler/decoupler:latest</container>
+        <container type="docker">biocontainers/decoupler-py:1.8.0</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -65,7 +65,7 @@ phosphosites that are targeted by a kinase.
 **nf-core Module Information:**
 
 - Module: decoupler/decoupler
-- Container: biocontainers/decoupler/decoupler:latest
+- Container: biocontainers/decoupler-py:1.8.0
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.

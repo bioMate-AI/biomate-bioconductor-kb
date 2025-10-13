@@ -2,7 +2,7 @@
     <description>Staging module for MCMICRO transforming PhenoImager .tif files into stacked and normalized ome-tif files per cycle, compatible as ASHLAR input.</description>
 
     <requirements>
-        <container type="docker">biocontainers/mcstaging/phenoimager2mc:latest</container>
+        <container type="docker">ghcr.io/schapirolabor/phenoimager2mc:v0.2.2</container>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
@@ -49,7 +49,7 @@ Staging module for MCMICRO transforming PhenoImager .tif files into stacked and 
 **nf-core Module Information:**
 
 - Module: mcstaging/phenoimager2mc
-- Container: biocontainers/mcstaging/phenoimager2mc:latest
+- Container: ghcr.io/schapirolabor/phenoimager2mc:v0.2.2
 
 **Usage:**
 This tool provides the functionality from the nf-core module within Galaxy workflows.
