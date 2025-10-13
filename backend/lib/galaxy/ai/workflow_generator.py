@@ -137,6 +137,10 @@ class WorkflowGenerator:
             # Calculate step position for workflow editor
             position = self._calculate_step_position(i, len(execution_order))
             
+            # Detect tool type and container requirement
+            tool_type = getattr(tool, 'tool_type', 'default')
+            requires_container = tool.requires_containerization() if hasattr(tool, 'requires_containerization') else (tool_type not in ['data_source', 'data_source_async'])
+
             step = WorkflowStep(
                 step_id=step_id,
                 tool_id=tool.id,
@@ -144,7 +148,9 @@ class WorkflowGenerator:
                 input_connections=input_connections,
                 parameters=parameters,
                 annotation=f"{task.name}: {task.description}",
-                position=position
+                position=position,
+                tool_type=tool_type,
+                requires_container=requires_container
             )
             
             steps.append(step)

@@ -64,7 +64,8 @@ class Tool:
     edam_operations: List[str] = None
     edam_topics: List[str] = None
     citations: List[str] = None
-    
+    tool_type: Optional[str] = None  # "data_source", "data_source_async", "default", etc.
+
     def __post_init__(self):
         if self.edam_operations is None:
             self.edam_operations = []
@@ -72,6 +73,24 @@ class Tool:
             self.edam_topics = []
         if self.citations is None:
             self.citations = []
+        # Auto-detect tool type if not specified
+        if self.tool_type is None:
+            self.tool_type = self._detect_tool_type()
+
+    def _detect_tool_type(self) -> str:
+        """Auto-detect tool type based on tool_id."""
+        if self.id.startswith('biomate_dm_'):
+            return 'data_source'
+        elif self.id.startswith('query_'):
+            return 'data_source'
+        elif self.id in ['ebi_sra_main', 'ucsc_table_direct', 'flymine', 'wormbase', 'biomart']:
+            return 'data_source'
+        else:
+            return 'default'
+
+    def requires_containerization(self) -> bool:
+        """Check if this tool requires container installation."""
+        return self.tool_type not in ['data_source', 'data_source_async', 'manage_data']
 
 
 @dataclass
@@ -113,6 +132,8 @@ class WorkflowStep:
     parameters: Dict[str, Any]
     annotation: Optional[str] = None
     position: Optional[Dict[str, int]] = None
+    tool_type: Optional[str] = None  # Track tool type for execution optimization
+    requires_container: bool = True  # Flag for container installation requirement
 
 
 @dataclass

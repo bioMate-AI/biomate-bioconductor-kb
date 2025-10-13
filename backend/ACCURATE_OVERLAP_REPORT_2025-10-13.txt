@@ -1,0 +1,3619 @@
+ACCURATE OVERLAP ANALYSIS: nf-core vs Galaxy ToolShed
+================================================================================
+Generated: 2025-10-13
+
+
+EXACT MATCHES (221 tools)
+================================================================================
+
+nf-core: admixture
+  Tool ID: nfcore_admixture
+  Display: admixture
+Galaxy:  Admixture
+  Tool ID: toolshed.g2.bx.psu.edu/repos/dereeper/admixture/Repository_Actions
+Admixture
+  Owner:   dereeper/admixture
+
+nf-core: argnorm
+  Tool ID: nfcore_argnorm
+  Display: argnorm
+Galaxy:  argNorm
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/argnorm/Repository_Actions
+argNorm
+  Owner:   iuc/argnorm
+
+nf-core: art_illumina
+  Tool ID: nfcore_art/illumina
+  Display: art_illumina
+Galaxy:  ART Illumina
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/art/Repository_Actions
+ART_Illumina
+  Owner:   iuc/art
+
+nf-core: artic_guppyplex
+  Tool ID: nfcore_artic/guppyplex
+  Display: artic_guppyplex
+Galaxy:  ARTIC guppyplex
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/artic_guppyplex/Repository_Actions
+ARTIC_guppyplex
+  Owner:   iuc/artic_guppyplex
+
+nf-core: artic_minion
+  Tool ID: nfcore_artic/minion
+  Display: artic_minion
+Galaxy:  ARTIC minion
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/artic_minion/Repository_Actions
+ARTIC_minion
+  Owner:   iuc/artic_minion
+
+nf-core: ashlar
+  Tool ID: nfcore_ashlar
+  Display: ashlar
+Galaxy:  ASHLAR
+  Tool ID: toolshed.g2.bx.psu.edu/repos/perssond/ashlar/Repository_Actions
+ASHLAR
+  Owner:   perssond/ashlar
+
+nf-core: bamclipper
+  Tool ID: nfcore_bamclipper
+  Display: bamclipper
+Galaxy:  BAMClipper
+  Tool ID: toolshed.g2.bx.psu.edu/repos/nml/bamclipper/Repository_Actions
+BAMClipper
+  Owner:   nml/bamclipper
+
+nf-core: bamutil_clipoverlap
+  Tool ID: nfcore_bamutil/clipoverlap
+  Display: bamutil_clipoverlap
+Galaxy:  BamUtil clipOverlap
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/bamutil_clip_overlap/Repository_Actions
+BamUtil_clipOverlap
+  Owner:   iuc/bamutil_clip_overlap
+
+nf-core: bandage_image
+  Tool ID: nfcore_bandage/image
+  Display: bandage_image
+Galaxy:  Bandage Image
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/bandage/Repository_Actions
+Bandage_Image
+  Owner:   iuc/bandage
+
+nf-core: barrnap
+  Tool ID: nfcore_barrnap
+  Display: barrnap
+Galaxy:  barrnap
+  Tool ID: toolshed.g2.bx.psu.edu/repos/simon-gladman/barrnap/Repository_Actions
+barrnap
+  Owner:   simon-gladman/barrnap
+
+nf-core: bcftools_csq
+  Tool ID: nfcore_bcftools/csq
+  Display: bcftools_csq
+Galaxy:  bcftools csq
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/bcftools_csq/Repository_Actions
+bcftools_csq
+  Owner:   iuc/bcftools_csq
+
+nf-core: bcftools_index
+  Tool ID: nfcore_bcftools/index
+  Display: bcftools_index
+Galaxy:  BCF Tools Index
+  Tool ID: toolshed.g2.bx.psu.edu/repos/nilesh/bcftools/Repository_Actions
+BCF_Tools_Index
+  Owner:   nilesh/bcftools
+
+nf-core: bcftools_mpileup
+  Tool ID: nfcore_bcftools/mpileup
+  Display: bcftools_mpileup
+Galaxy:  bcftools mpileup
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/bcftools_mpileup/Repository_Actions
+bcftools_mpileup
+  Owner:   iuc/bcftools_mpileup
+
+nf-core: bcftools_sort
+  Tool ID: nfcore_bcftools/sort
+  Display: bcftools_sort
+Galaxy:  bcftools sort
+  Tool ID: toolshed.g2.bx.psu.edu/repos/greg/bcftools_sort/Repository_Actions
+bcftools_sort
+  Owner:   greg/bcftools_sort
+
+nf-core: bcftools_view
+  Tool ID: nfcore_bcftools/view
+  Display: bcftools_view
+Galaxy:  bcftools view
+  Tool ID: toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions
+bcftools_view
+  Owner:   gregory-minevich/bcftools_view
+
+nf-core: bedtools_bamtobed
+  Tool ID: nfcore_bedtools/bamtobed
+  Display: bedtools_bamtobed
+Galaxy:  bedtools BAM to BED
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/Repository_Actions
+bedtools_BAM_to_BED
+  Owner:   iuc/bedtools
+
+nf-core: bedtools_getfasta
+  Tool ID: nfcore_bedtools/getfasta
+  Display: bedtools_getfasta
+Galaxy:  bedtools getfasta
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/bedtools/Repository_Actions
+bedtools_getfasta
+  Owner:   iuc/bedtools
+
+nf-core: biohansel
+  Tool ID: nfcore_biohansel
+  Display: biohansel
+Galaxy:  bio_hansel
+  Tool ID: toolshed.g2.bx.psu.edu/repos/nml/bio_hansel/Repository_Actions
+bio_hansel
+  Owner:   nml/bio_hansel
+
+nf-core: bismark_deduplicate
+  Tool ID: nfcore_bismark/deduplicate
+  Display: bismark_deduplicate
+Galaxy:  Bismark Deduplicate
+  Tool ID: toolshed.g2.bx.psu.edu/repos/bgruening/bismark/Repository_Actions
+Bismark_Deduplicate
+  Owner:   bgruening/bismark
+
+nf-core: blat
+  Tool ID: nfcore_blat
+  Display: blat
+Galaxy:  BLAT
+  Tool ID: toolshed.g2.bx.psu.edu/repos/crs4/blat/Repository_Actions
+BLAT
+  Owner:   crs4/blat
+
+nf-core: braker3
+  Tool ID: nfcore_braker3
+  Display: braker3
+Galaxy:  BRAKER3
+  Tool ID: toolshed.g2.bx.psu.edu/repos/genouest/braker3/Repository_Actions
+BRAKER3
+  Owner:   genouest/braker3
+
+nf-core: bwameth_index
+  Tool ID: nfcore_bwameth/index
+  Display: bwameth_index
+Galaxy:  bwa-meth index
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/data_manager_bwameth_index_builder/Repository_Actions
+bwa-meth_index
+  Owner:   iuc/data_manager_bwameth_index_builder
+
+nf-core: checkm_lineagewf
+  Tool ID: nfcore_checkm/lineagewf
+  Display: checkm_lineagewf
+Galaxy:  CheckM lineage_wf
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/checkm_lineage_wf/Repository_Actions
+CheckM_lineage_wf
+  Owner:   iuc/checkm_lineage_wf
+
+nf-core: checkm_qa
+  Tool ID: nfcore_checkm/qa
+  Display: checkm_qa
+Galaxy:  CheckM qa
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/checkm_qa/Repository_Actions
+CheckM_qa
+  Owner:   iuc/checkm_qa
+
+nf-core: chewbbaca_allelecall
+  Tool ID: nfcore_chewbbaca/allelecall
+  Display: chewbbaca_allelecall
+Galaxy:  ChewBBACA AlleleCall
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/chewbbaca_allelecall/Repository_Actions
+ChewBBACA_AlleleCall
+  Owner:   iuc/chewbbaca_allelecall
+
+nf-core: chopper
+  Tool ID: nfcore_chopper
+  Display: chopper
+Galaxy:  Chopper
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/chopper/Repository_Actions
+Chopper
+  Owner:   iuc/chopper
+
+nf-core: clair3
+  Tool ID: nfcore_clair3
+  Display: clair3
+Galaxy:  Clair3
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/clair3/Repository_Actions
+Clair3
+  Owner:   iuc/clair3
+
+nf-core: clonalframeml
+  Tool ID: nfcore_clonalframeml
+  Display: clonalframeml
+Galaxy:  clonalframeML
+  Tool ID: toolshed.g2.bx.psu.edu/repos/dazeone/clonalframeml/Repository_Actions
+clonalframeML
+  Owner:   dazeone/clonalframeml
+
+nf-core: cnvkit_access
+  Tool ID: nfcore_cnvkit/access
+  Display: cnvkit_access
+Galaxy:  CNVkit Access
+  Tool ID: iuc_cnvkit_access_CNVkit_Access_0.9.12+galaxy0
+  Owner:   iuc/cnvkit_access
+
+nf-core: cnvkit_antitarget
+  Tool ID: nfcore_cnvkit/antitarget
+  Display: cnvkit_antitarget
+Galaxy:  CNVkit Antitarget
+  Tool ID: iuc_cnvkit_antitarget_CNVkit_Antitarget_0.9.12+galaxy0
+  Owner:   iuc/cnvkit_antitarget
+
+nf-core: cnvkit_batch
+  Tool ID: nfcore_cnvkit/batch
+  Display: cnvkit_batch
+Galaxy:  CNVkit Batch
+  Tool ID: iuc_cnvkit_batch_CNVkit_Batch_0.9.12+galaxy0
+  Owner:   iuc/cnvkit_batch
+
+nf-core: cnvkit_call
+  Tool ID: nfcore_cnvkit/call
+  Display: cnvkit_call
+Galaxy:  CNVkit Call
+  Tool ID: iuc_cnvkit_call_CNVkit_Call_0.9.12+galaxy0
+  Owner:   iuc/cnvkit_call
+
+nf-core: cnvkit_genemetrics
+  Tool ID: nfcore_cnvkit/genemetrics
+  Display: cnvkit_genemetrics
+Galaxy:  CNVkit Genemetrics
+  Tool ID: iuc_cnvkit_genemetrics_CNVkit_Genemetrics_0.9.12+galaxy0
+  Owner:   iuc/cnvkit_genemetrics
+
+nf-core: cnvkit_reference
+  Tool ID: nfcore_cnvkit/reference
+  Display: cnvkit_reference
+Galaxy:  CNVkit Reference
+  Tool ID: iuc_cnvkit_reference_CNVkit_Reference_0.9.12+galaxy0
+  Owner:   iuc/cnvkit_reference
+
+nf-core: cnvkit_target
+  Tool ID: nfcore_cnvkit/target
+  Display: cnvkit_target
+Galaxy:  CNVkit Target
+  Tool ID: iuc_cnvkit_target_CNVkit_Target_0.9.12+galaxy0
+  Owner:   iuc/cnvkit_target
+
+nf-core: cooler_balance
+  Tool ID: nfcore_cooler/balance
+  Display: cooler_balance
+Galaxy:  cooler_balance
+  Tool ID: toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_balance/Repository_Actions
+cooler_balance
+  Owner:   lldelisle/cooler_balance
+
+nf-core: cooler_zoomify
+  Tool ID: nfcore_cooler/zoomify
+  Display: cooler_zoomify
+Galaxy:  Cooler zoomify
+  Tool ID: toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_zoomify/Repository_Actions
+Cooler_zoomify
+  Owner:   lldelisle/cooler_zoomify
+
+nf-core: coverm_contig
+  Tool ID: nfcore_coverm/contig
+  Display: coverm_contig
+Galaxy:  CoverM contig
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/coverm_contig/Repository_Actions
+CoverM_contig
+  Owner:   iuc/coverm_contig
+
+nf-core: coverm_genome
+  Tool ID: nfcore_coverm/genome
+  Display: coverm_genome
+Galaxy:  CoverM genome
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/coverm_genome/Repository_Actions
+CoverM_genome
+  Owner:   iuc/coverm_genome
+
+nf-core: cramino
+  Tool ID: nfcore_cramino
+  Display: cramino
+Galaxy:  Cramino
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/cramino/Repository_Actions
+Cramino
+  Owner:   iuc/cramino
+
+nf-core: crispresso2
+  Tool ID: nfcore_crispresso2
+  Display: crispresso2
+Galaxy:  CRISPResso2
+  Tool ID: toolshed.g2.bx.psu.edu/repos/ieguinoa/crispresso2/Repository_Actions
+CRISPResso2
+  Owner:   ieguinoa/crispresso2
+
+nf-core: csvtk_join
+  Tool ID: nfcore_csvtk/join
+  Display: csvtk_join
+Galaxy:  csvtk-join
+  Tool ID: nml_csvtk_join_csvtk-join_0.20.0+galaxy0
+  Owner:   nml/csvtk_join
+
+nf-core: csvtk_sort
+  Tool ID: nfcore_csvtk/sort
+  Display: csvtk_sort
+Galaxy:  csvtk-sort
+  Tool ID: nml_csvtk_sort_csvtk-sort_0.20.0+galaxy0
+  Owner:   nml/csvtk_sort
+
+nf-core: csvtk_split
+  Tool ID: nfcore_csvtk/split
+  Display: csvtk_split
+Galaxy:  csvtk-split
+  Tool ID: nml_csvtk_split_csvtk-split_0.20.0+galaxy0
+  Owner:   nml/csvtk_split
+
+nf-core: cutadapt
+  Tool ID: nfcore_cutadapt
+  Display: cutadapt
+Galaxy:  Cutadapt
+  Tool ID: toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/Repository_Actions
+Cutadapt
+  Owner:   lparsons/cutadapt
+
+nf-core: cutesv
+  Tool ID: nfcore_cutesv
+  Display: cutesv
+Galaxy:  cuteSV
+  Tool ID: iuc_cutesv_cuteSV_2.1.3+galaxy0
+  Owner:   iuc/cutesv
+
+nf-core: deeparg_predict
+  Tool ID: nfcore_deeparg/predict
+  Display: deeparg_predict
+Galaxy:  DeepARG predict
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/deeparg_predict/Repository_Actions
+DeepARG_predict
+  Owner:   iuc/deeparg_predict
+
+nf-core: deepvariant
+  Tool ID: nfcore_deepvariant
+  Display: deepvariant
+Galaxy:  DeepVariant
+  Tool ID: iuc_deepvariant_DeepVariant_1.5.0+galaxy1
+  Owner:   iuc/deepvariant
+
+nf-core: delly_call
+  Tool ID: nfcore_delly/call
+  Display: delly_call
+Galaxy:  Delly call
+  Tool ID: iuc_delly_call_Delly_call_0.9.1+galaxy1
+  Owner:   iuc/delly_call
+
+nf-core: drep_compare
+  Tool ID: nfcore_drep/compare
+  Display: drep_compare
+Galaxy:  dRep compare
+  Tool ID: toolshed.g2.bx.psu.edu/repos/jjohnson/drep/Repository_Actions
+dRep_compare
+  Owner:   jjohnson/drep
+
+nf-core: drep_dereplicate
+  Tool ID: nfcore_drep/dereplicate
+  Display: drep_dereplicate
+Galaxy:  dRep dereplicate
+  Tool ID: toolshed.g2.bx.psu.edu/repos/jjohnson/drep/Repository_Actions
+dRep_dereplicate
+  Owner:   jjohnson/drep
+
+nf-core: ectyper
+  Tool ID: nfcore_ectyper
+  Display: ectyper
+Galaxy:  ectyper
+  Tool ID: toolshed.g2.bx.psu.edu/repos/nml/ectyper/Repository_Actions
+ectyper
+  Owner:   nml/ectyper
+
+nf-core: eggnogmapper
+  Tool ID: nfcore_eggnogmapper
+  Display: eggnogmapper
+Galaxy:  eggNOG Mapper
+  Tool ID: toolshed.g2.bx.psu.edu/repos/galaxyp/eggnog_mapper/Repository_Actions
+eggNOG_Mapper
+  Owner:   galaxyp/eggnog_mapper
+
+nf-core: falco
+  Tool ID: nfcore_falco
+  Display: falco
+Galaxy:  Falco
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/falco/Repository_Actions
+Falco
+  Owner:   iuc/falco
+
+nf-core: fargene
+  Tool ID: nfcore_fargene
+  Display: fargene
+Galaxy:  fARGene
+  Tool ID: toolshed.g2.bx.psu.edu/repos/thanhlv/fargene/Repository_Actions
+fARGene
+  Owner:   thanhlv/fargene
+
+nf-core: fastani
+  Tool ID: nfcore_fastani
+  Display: fastani
+Galaxy:  FastANI
+  Tool ID: toolshed.g2.bx.psu.edu/repos/thanhlv/fastani/Repository_Actions
+FastANI
+  Owner:   thanhlv/fastani
+
+nf-core: fastavalidator
+  Tool ID: nfcore_fastavalidator
+  Display: fastavalidator
+Galaxy:  Fasta Validator
+  Tool ID: toolshed.g2.bx.psu.edu/repos/pieterlukasse/prims_masscomb/Repository_Actions
+Fasta_Validator
+  Owner:   pieterlukasse/prims_masscomb
+
+nf-core: fastme
+  Tool ID: nfcore_fastme
+  Display: fastme
+Galaxy:  FastME
+  Tool ID: toolshed.g2.bx.psu.edu/repos/gandres/fastme/Repository_Actions
+FastME
+  Owner:   gandres/fastme
+
+nf-core: fastp
+  Tool ID: nfcore_fastp
+  Display: fastp
+Galaxy:  fastp
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/fastp/Repository_Actions
+fastp
+  Owner:   iuc/fastp
+
+nf-core: fastplong
+  Tool ID: nfcore_fastplong
+  Display: fastplong
+Galaxy:  Fastplong
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/fastplong/Repository_Actions
+Fastplong
+  Owner:   iuc/fastplong
+
+nf-core: fastqc
+  Tool ID: nfcore_fastqc
+  Display: fastqc
+Galaxy:  FastQC
+  Tool ID: toolshed.g2.bx.psu.edu/repos/devteam/fastqc/Repository_Actions
+FastQC
+  Owner:   devteam/fastqc
+
+nf-core: fastqdl
+  Tool ID: nfcore_fastqdl
+  Display: fastqdl
+Galaxy:  fastq-dl
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/fastq_dl/Repository_Actions
+fastq-dl
+  Owner:   iuc/fastq_dl
+
+nf-core: fastqe
+  Tool ID: nfcore_fastqe
+  Display: fastqe
+Galaxy:  FASTQE
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/fastqe/Repository_Actions
+FASTQE
+  Owner:   iuc/fastqe
+
+nf-core: fasttree
+  Tool ID: nfcore_fasttree
+  Display: fasttree
+Galaxy:  FASTTREE
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/fasttree/Repository_Actions
+FASTTREE
+  Owner:   iuc/fasttree
+
+nf-core: fgbio_callmolecularconsensusreads
+  Tool ID: nfcore_fgbio/callmolecularconsensusreads
+  Display: fgbio_callmolecularconsensusreads
+Galaxy:  fgbio CallMolecularConsensusReads
+  Tool ID: toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_call_molecular_consensus_reads/Repository_Actions
+fgbio_CallMolecularConsensusReads
+  Owner:   jjohnson/fgbio_call_molecular_consensus_reads
+
+nf-core: fgbio_fastqtobam
+  Tool ID: nfcore_fgbio/fastqtobam
+  Display: fgbio_fastqtobam
+Galaxy:  fgbio FastqToBam
+  Tool ID: toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_fastq_to_bam/Repository_Actions
+fgbio_FastqToBam
+  Owner:   jjohnson/fgbio_fastq_to_bam
+
+nf-core: fgbio_groupreadsbyumi
+  Tool ID: nfcore_fgbio/groupreadsbyumi
+  Display: fgbio_groupreadsbyumi
+Galaxy:  fgbio GroupReadsByUmi
+  Tool ID: toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_group_reads_by_umi/Repository_Actions
+fgbio_GroupReadsByUmi
+  Owner:   jjohnson/fgbio_group_reads_by_umi
+
+nf-core: fgbio_sortbam
+  Tool ID: nfcore_fgbio/sortbam
+  Display: fgbio_sortbam
+Galaxy:  fgbio SortBam
+  Tool ID: toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_sort_bam/Repository_Actions
+fgbio_SortBam
+  Owner:   jjohnson/fgbio_sort_bam
+
+nf-core: filtlong
+  Tool ID: nfcore_filtlong
+  Display: filtlong
+Galaxy:  filtlong
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/filtlong/Repository_Actions
+filtlong
+  Owner:   iuc/filtlong
+
+nf-core: flash
+  Tool ID: nfcore_flash
+  Display: flash
+Galaxy:  FLASH
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/flash/Repository_Actions
+FLASH
+  Owner:   iuc/flash
+
+nf-core: flye
+  Tool ID: nfcore_flye
+  Display: flye
+Galaxy:  Flye
+  Tool ID: toolshed.g2.bx.psu.edu/repos/bgruening/flye/Repository_Actions
+Flye
+  Owner:   bgruening/flye
+
+nf-core: freebayes
+  Tool ID: nfcore_freebayes
+  Display: freebayes
+Galaxy:  FreeBayes
+  Tool ID: devteam_freebayes_FreeBayes_1.3.10+galaxy1
+  Owner:   devteam/freebayes
+
+nf-core: gatk4_filtermutectcalls
+  Tool ID: nfcore_gatk4/filtermutectcalls
+  Display: gatk4_filtermutectcalls
+Galaxy:  gatk4 FilterMutectCalls
+  Tool ID: artbio_gatk4_gatk4_FilterMutectCalls_4.1.7.0+galaxy3
+  Owner:   artbio/gatk4
+
+nf-core: gatk4_mergemutectstats
+  Tool ID: nfcore_gatk4/mergemutectstats
+  Display: gatk4_mergemutectstats
+Galaxy:  gatk4 MergeMutectStats
+  Tool ID: artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3
+  Owner:   artbio/gatk4
+
+nf-core: gatk4_mutect2
+  Tool ID: nfcore_gatk4/mutect2
+  Display: gatk4_mutect2
+Galaxy:  GATK4 Mutect2
+  Tool ID: iuc_gatk4_mutect2_GATK4_Mutect2_4.1.7.0+galaxy1+galaxy1
+  Owner:   iuc/gatk4_mutect2
+
+nf-core: genrich
+  Tool ID: nfcore_genrich
+  Display: genrich
+Galaxy:  Genrich
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/genrich/Repository_Actions
+Genrich
+  Owner:   iuc/genrich
+
+nf-core: getorganelle_fromreads
+  Tool ID: nfcore_getorganelle/fromreads
+  Display: getorganelle_fromreads
+Galaxy:  Get organelle from reads
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/getorganelle/Repository_Actions
+Get_organelle_from_reads
+  Owner:   iuc/getorganelle
+
+nf-core: gfastats
+  Tool ID: nfcore_gfastats
+  Display: gfastats
+Galaxy:  gfastats
+  Tool ID: toolshed.g2.bx.psu.edu/repos/bgruening/gfastats/Repository_Actions
+gfastats
+  Owner:   bgruening/gfastats
+
+nf-core: gffcompare
+  Tool ID: nfcore_gffcompare
+  Display: gffcompare
+Galaxy:  GffCompare
+  Tool ID: toolshed.g2.bx.psu.edu/repos/enios/nc_rna/Repository_Actions
+GffCompare
+  Owner:   enios/nc_rna
+
+nf-core: gffread
+  Tool ID: nfcore_gffread
+  Display: gffread
+Galaxy:  gffread
+  Tool ID: toolshed.g2.bx.psu.edu/repos/jjohnson/gffread/Repository_Actions
+gffread
+  Owner:   jjohnson/gffread
+
+nf-core: gubbins
+  Tool ID: nfcore_gubbins
+  Display: gubbins
+Galaxy:  Gubbins
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/gubbins/Repository_Actions
+Gubbins
+  Owner:   iuc/gubbins
+
+nf-core: hifiasm
+  Tool ID: nfcore_hifiasm
+  Display: hifiasm
+Galaxy:  Hifiasm
+  Tool ID: toolshed.g2.bx.psu.edu/repos/bgruening/hifiasm/Repository_Actions
+Hifiasm
+  Owner:   bgruening/hifiasm
+
+nf-core: homer_annotatepeaks
+  Tool ID: nfcore_homer/annotatepeaks
+  Display: homer_annotatepeaks
+Galaxy:  homer_annotatePeaks
+  Tool ID: toolshed.g2.bx.psu.edu/repos/kevyin/homer/Repository_Actions
+homer_annotatePeaks
+  Owner:   kevyin/homer
+
+nf-core: htseq_count
+  Tool ID: nfcore_htseq/count
+  Display: htseq_count
+Galaxy:  htseq-count
+  Tool ID: toolshed.g2.bx.psu.edu/repos/lparsons/htseq_count/Repository_Actions
+htseq-count
+  Owner:   lparsons/htseq_count
+
+nf-core: hypo
+  Tool ID: nfcore_hypo
+  Display: hypo
+Galaxy:  HyPo
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/hypo/Repository_Actions
+HyPo
+  Owner:   iuc/hypo
+
+nf-core: idr
+  Tool ID: nfcore_idr
+  Display: idr
+Galaxy:  IDR
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/idr/Repository_Actions
+IDR
+  Owner:   iuc/idr
+
+nf-core: instrain_compare
+  Tool ID: nfcore_instrain/compare
+  Display: instrain_compare
+Galaxy:  InStrain Compare
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/instrain_compare/Repository_Actions
+InStrain_Compare
+  Owner:   iuc/instrain_compare
+
+nf-core: instrain_profile
+  Tool ID: nfcore_instrain/profile
+  Display: instrain_profile
+Galaxy:  InStrain Profile
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/instrain_profile/Repository_Actions
+InStrain_Profile
+  Owner:   iuc/instrain_profile
+
+nf-core: integronfinder
+  Tool ID: nfcore_integronfinder
+  Display: integronfinder
+Galaxy:  Integron Finder
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/integron_finder/Repository_Actions
+Integron_Finder
+  Owner:   iuc/integron_finder
+
+nf-core: interproscan
+  Tool ID: nfcore_interproscan
+  Display: interproscan
+Galaxy:  InterProScan
+  Tool ID: toolshed.g2.bx.psu.edu/repos/bgruening/interproscan/Repository_Actions
+InterProScan
+  Owner:   bgruening/interproscan
+
+nf-core: iqtree
+  Tool ID: nfcore_iqtree
+  Display: iqtree
+Galaxy:  IQ-TREE
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/iqtree/Repository_Actions
+IQ-TREE
+  Owner:   iuc/iqtree
+
+nf-core: islandpath
+  Tool ID: nfcore_islandpath
+  Display: islandpath
+Galaxy:  IslandPath
+  Tool ID: toolshed.g2.bx.psu.edu/repos/brinkmanlab/islandpath/Repository_Actions
+IslandPath
+  Owner:   brinkmanlab/islandpath
+
+nf-core: ivar_consensus
+  Tool ID: nfcore_ivar/consensus
+  Display: ivar_consensus
+Galaxy:  ivar consensus
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/ivar_consensus/Repository_Actions
+ivar_consensus
+  Owner:   iuc/ivar_consensus
+
+nf-core: ivar_trim
+  Tool ID: nfcore_ivar/trim
+  Display: ivar_trim
+Galaxy:  ivar trim
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/ivar_trim/Repository_Actions
+ivar_trim
+  Owner:   iuc/ivar_trim
+
+nf-core: ivar_variants
+  Tool ID: nfcore_ivar/variants
+  Display: ivar_variants
+Galaxy:  ivar variants
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/ivar_variants/Repository_Actions
+ivar_variants
+  Owner:   iuc/ivar_variants
+
+nf-core: jasminesv
+  Tool ID: nfcore_jasminesv
+  Display: jasminesv
+Galaxy:  JasmineSV
+  Tool ID: iuc_jasminesv_JasmineSV_1.0.11+galaxy1
+  Owner:   iuc/jasminesv
+
+nf-core: kleborate
+  Tool ID: nfcore_kleborate
+  Display: kleborate
+Galaxy:  Kleborate
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/kleborate/Repository_Actions
+Kleborate
+  Owner:   iuc/kleborate
+
+nf-core: kofamscan
+  Tool ID: nfcore_kofamscan
+  Display: kofamscan
+Galaxy:  KofamScan
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/kofamscan/Repository_Actions
+KofamScan
+  Owner:   iuc/kofamscan
+
+nf-core: last_split
+  Tool ID: nfcore_last/split
+  Display: last_split
+Galaxy:  LAST-split
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/last/Repository_Actions
+LAST-split
+  Owner:   iuc/last
+
+nf-core: last_train
+  Tool ID: nfcore_last/train
+  Display: last_train
+Galaxy:  LAST-train
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/last/Repository_Actions
+LAST-train
+  Owner:   iuc/last
+
+nf-core: legsta
+  Tool ID: nfcore_legsta
+  Display: legsta
+Galaxy:  legsta
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/legsta/Repository_Actions
+legsta
+  Owner:   iuc/legsta
+
+nf-core: links
+  Tool ID: nfcore_links
+  Display: links
+Galaxy:  LINKS
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/links/Repository_Actions
+LINKS
+  Owner:   iuc/links
+
+nf-core: lissero
+  Tool ID: nfcore_lissero
+  Display: lissero
+Galaxy:  lissero
+  Tool ID: toolshed.g2.bx.psu.edu/repos/estrain/lissero/Repository_Actions
+lissero
+  Owner:   estrain/lissero
+
+nf-core: lofreq_filter
+  Tool ID: nfcore_lofreq/filter
+  Display: lofreq_filter
+Galaxy:  Lofreq filter
+  Tool ID: iuc_lofreq_filter_Lofreq_filter_2.1.5+galaxy0
+  Owner:   iuc/lofreq_filter
+
+nf-core: mageck_count
+  Tool ID: nfcore_mageck/count
+  Display: mageck_count
+Galaxy:  MAGeCK count
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/mageck_count/Repository_Actions
+MAGeCK_count
+  Owner:   iuc/mageck_count
+
+nf-core: mageck_mle
+  Tool ID: nfcore_mageck/mle
+  Display: mageck_mle
+Galaxy:  MAGeCK mle
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/mageck_mle/Repository_Actions
+MAGeCK_mle
+  Owner:   iuc/mageck_mle
+
+nf-core: mashmap
+  Tool ID: nfcore_mashmap
+  Display: mashmap
+Galaxy:  mashmap
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/mashmap/Repository_Actions
+mashmap
+  Owner:   iuc/mashmap
+
+nf-core: maxbin2
+  Tool ID: nfcore_maxbin2
+  Display: maxbin2
+Galaxy:  MaxBin2
+  Tool ID: toolshed.g2.bx.psu.edu/repos/mbernt/maxbin2/Repository_Actions
+MaxBin2
+  Owner:   mbernt/maxbin2
+
+nf-core: mcquant
+  Tool ID: nfcore_mcquant
+  Display: mcquant
+Galaxy:  MCQUANT
+  Tool ID: toolshed.g2.bx.psu.edu/repos/perssond/quantification/Repository_Actions
+MCQUANT
+  Owner:   perssond/quantification
+
+nf-core: mdust
+  Tool ID: nfcore_mdust
+  Display: mdust
+Galaxy:  mdust
+  Tool ID: toolshed.g2.bx.psu.edu/repos/urgi-team/mdust/Repository_Actions
+mdust
+  Owner:   urgi-team/mdust
+
+nf-core: megahit
+  Tool ID: nfcore_megahit
+  Display: megahit
+Galaxy:  MEGAHIT
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/megahit/Repository_Actions
+MEGAHIT
+  Owner:   iuc/megahit
+
+nf-core: meningotype
+  Tool ID: nfcore_meningotype
+  Display: meningotype
+Galaxy:  Meningotype
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/meningotype/Repository_Actions
+Meningotype
+  Owner:   iuc/meningotype
+
+nf-core: metaeuk_easypredict
+  Tool ID: nfcore_metaeuk/easypredict
+  Display: metaeuk_easypredict
+Galaxy:  MetaEuk Easy Predict
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/metaeuk_easy_predict/Repository_Actions
+MetaEuk_Easy_Predict
+  Owner:   iuc/metaeuk_easy_predict
+
+nf-core: minia
+  Tool ID: nfcore_minia
+  Display: minia
+Galaxy:  Minia
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/minia/Repository_Actions
+Minia
+  Owner:   iuc/minia
+
+nf-core: miniasm
+  Tool ID: nfcore_miniasm
+  Display: miniasm
+Galaxy:  miniasm
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/miniasm/Repository_Actions
+miniasm
+  Owner:   iuc/miniasm
+
+nf-core: miniprot_align
+  Tool ID: nfcore_miniprot/align
+  Display: miniprot_align
+Galaxy:  Miniprot align
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/miniprot/Repository_Actions
+Miniprot_align
+  Owner:   iuc/miniprot
+
+nf-core: miniprot_index
+  Tool ID: nfcore_miniprot/index
+  Display: miniprot_index
+Galaxy:  Miniprot index
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/miniprot_index/Repository_Actions
+Miniprot_index
+  Owner:   iuc/miniprot_index
+
+nf-core: miranda
+  Tool ID: nfcore_miranda
+  Display: miranda
+Galaxy:  miRanda
+  Tool ID: toolshed.g2.bx.psu.edu/repos/earlhaminst/miranda/Repository_Actions
+miRanda
+  Owner:   earlhaminst/miranda
+
+nf-core: mlst
+  Tool ID: nfcore_mlst
+  Display: mlst
+Galaxy:  MLST
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/mlst/Repository_Actions
+MLST
+  Owner:   iuc/mlst
+
+nf-core: mosdepth
+  Tool ID: nfcore_mosdepth
+  Display: mosdepth
+Galaxy:  mosdepth
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/mosdepth/Repository_Actions
+mosdepth
+  Owner:   iuc/mosdepth
+
+nf-core: multiqc
+  Tool ID: nfcore_multiqc
+  Display: multiqc
+Galaxy:  MultiQC
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/multiqc/Repository_Actions
+MultiQC
+  Owner:   iuc/multiqc
+
+nf-core: mummer
+  Tool ID: nfcore_mummer
+  Display: mummer
+Galaxy:  MUMmer
+  Tool ID: toolshed.g2.bx.psu.edu/repos/abossers/mummer_toolsuite/Repository_Actions
+MUMmer
+  Owner:   abossers/mummer_toolsuite
+
+nf-core: muscle
+  Tool ID: nfcore_muscle
+  Display: muscle
+Galaxy:  MUSCLE
+  Tool ID: toolshed.g2.bx.psu.edu/repos/crs4/muscle/Repository_Actions
+MUSCLE
+  Owner:   crs4/muscle
+
+nf-core: nanocomp
+  Tool ID: nfcore_nanocomp
+  Display: nanocomp
+Galaxy:  NanoComp
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/nanocomp/Repository_Actions
+NanoComp
+  Owner:   iuc/nanocomp
+
+nf-core: nanofilt
+  Tool ID: nfcore_nanofilt
+  Display: nanofilt
+Galaxy:  NanoFilt
+  Tool ID: toolshed.g2.bx.psu.edu/repos/leomrtns/nanofilt/Repository_Actions
+NanoFilt
+  Owner:   leomrtns/nanofilt
+
+nf-core: nanoplot
+  Tool ID: nfcore_nanoplot
+  Display: nanoplot
+Galaxy:  NanoPlot
+  Tool ID: iuc_nanoplot_NanoPlot_1.46.1+galaxy0
+  Owner:   iuc/nanoplot
+
+nf-core: nextgenmap
+  Tool ID: nfcore_nextgenmap
+  Display: nextgenmap
+Galaxy:  NextGenMap
+  Tool ID: toolshed.g2.bx.psu.edu/repos/dnbenso/nextgenmap/Repository_Actions
+NextGenMap
+  Owner:   dnbenso/nextgenmap
+
+nf-core: nucmer
+  Tool ID: nfcore_nucmer
+  Display: nucmer
+Galaxy:  Nucmer
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/mummer_nucmer/Repository_Actions
+Nucmer
+  Owner:   iuc/mummer_nucmer
+
+nf-core: odgi_build
+  Tool ID: nfcore_odgi/build
+  Display: odgi_build
+Galaxy:  odgi build
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/odgi_build/Repository_Actions
+odgi_build
+  Owner:   iuc/odgi_build
+
+nf-core: odgi_viz
+  Tool ID: nfcore_odgi/viz
+  Display: odgi_viz
+Galaxy:  odgi viz
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/odgi_viz/Repository_Actions
+odgi_viz
+  Owner:   iuc/odgi_viz
+
+nf-core: optitype
+  Tool ID: nfcore_optitype
+  Display: optitype
+Galaxy:  OptiType
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/optitype/Repository_Actions
+OptiType
+  Owner:   iuc/optitype
+
+nf-core: orthofinder
+  Tool ID: nfcore_orthofinder
+  Display: orthofinder
+Galaxy:  OrthoFinder
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/orthofinder_onlygroups/Repository_Actions
+OrthoFinder
+  Owner:   iuc/orthofinder_onlygroups
+
+nf-core: pairtools_dedup
+  Tool ID: nfcore_pairtools/dedup
+  Display: pairtools_dedup
+Galaxy:  Pairtools dedup
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/pairtools_dedup/Repository_Actions
+Pairtools_dedup
+  Owner:   iuc/pairtools_dedup
+
+nf-core: pairtools_parse
+  Tool ID: nfcore_pairtools/parse
+  Display: pairtools_parse
+Galaxy:  Pairtools parse
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/pairtools_parse/Repository_Actions
+Pairtools_parse
+  Owner:   iuc/pairtools_parse
+
+nf-core: pairtools_sort
+  Tool ID: nfcore_pairtools/sort
+  Display: pairtools_sort
+Galaxy:  Pairtools sort
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/pairtools_sort/Repository_Actions
+Pairtools_sort
+  Owner:   iuc/pairtools_sort
+
+nf-core: pairtools_split
+  Tool ID: nfcore_pairtools/split
+  Display: pairtools_split
+Galaxy:  Pairtools split
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/pairtools_split/Repository_Actions
+Pairtools_split
+  Owner:   iuc/pairtools_split
+
+nf-core: pairtools_stats
+  Tool ID: nfcore_pairtools/stats
+  Display: pairtools_stats
+Galaxy:  Pairtools Stats
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/pairtools_stats/Repository_Actions
+Pairtools_Stats
+  Owner:   iuc/pairtools_stats
+
+nf-core: pear
+  Tool ID: nfcore_pear
+  Display: pear
+Galaxy:  Pear
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/pear/Repository_Actions
+Pear
+  Owner:   iuc/pear
+
+nf-core: pilon
+  Tool ID: nfcore_pilon
+  Display: pilon
+Galaxy:  pilon
+  Tool ID: iuc_pilon_pilon_1.20.1
+  Owner:   iuc/pilon
+
+nf-core: plasmidfinder
+  Tool ID: nfcore_plasmidfinder
+  Display: plasmidfinder
+Galaxy:  PlasmidFinder
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/plasmidfinder/Repository_Actions
+/srv/toolshed-repos/main/006/repo_6558/plasmidfinder.xml_-_This_file_refers_to_a_file_named_plasmidfinder_database.loc.sample._Upload_a_file_named_plasmidfinder_database.loc.sample.sample_to_the_repository_to_correct_this_error.
+
+PlasmidFinder
+  Owner:   iuc/plasmidfinder
+
+nf-core: pneumocat
+  Tool ID: nfcore_pneumocat
+  Display: pneumocat
+Galaxy:  PneumoCaT
+  Tool ID: nml_pneumocat_PneumoCaT_1.2.1
+  Owner:   nml/pneumocat
+
+nf-core: presto_filterseq
+  Tool ID: nfcore_presto/filterseq
+  Display: presto_filterseq
+Galaxy:  pRESTO FilterSeq
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/presto_filterseq/Repository_Actions
+pRESTO_FilterSeq
+  Owner:   iuc/presto_filterseq
+
+nf-core: pretextmap
+  Tool ID: nfcore_pretextmap
+  Display: pretextmap
+Galaxy:  PretextMap
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/pretext_map/Repository_Actions
+PretextMap
+  Owner:   iuc/pretext_map
+
+nf-core: pretextsnapshot
+  Tool ID: nfcore_pretextsnapshot
+  Display: pretextsnapshot
+Galaxy:  Pretext Snapshot
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/pretext_snapshot/Repository_Actions
+Pretext_Snapshot
+  Owner:   iuc/pretext_snapshot
+
+nf-core: prodigal
+  Tool ID: nfcore_prodigal
+  Display: prodigal
+Galaxy:  prodigal
+  Tool ID: toolshed.g2.bx.psu.edu/repos/edward-kirton/prodigal/Repository_Actions
+prodigal
+  Owner:   edward-kirton/prodigal
+
+nf-core: prokka
+  Tool ID: nfcore_prokka
+  Display: prokka
+Galaxy:  Prokka
+  Tool ID: toolshed.g2.bx.psu.edu/repos/crs4/prokka/Repository_Actions
+Prokka
+  Owner:   crs4/prokka
+
+nf-core: proteinortho
+  Tool ID: nfcore_proteinortho
+  Display: proteinortho
+Galaxy:  Proteinortho
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/proteinortho/Repository_Actions
+Proteinortho
+  Owner:   iuc/proteinortho
+
+nf-core: pureclip
+  Tool ID: nfcore_pureclip
+  Display: pureclip
+Galaxy:  PureCLIP
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/pureclip/Repository_Actions
+PureCLIP
+  Owner:   iuc/pureclip
+
+nf-core: pycoqc
+  Tool ID: nfcore_pycoqc
+  Display: pycoqc
+Galaxy:  Pycoqc
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/pycoqc/Repository_Actions
+Pycoqc
+  Owner:   iuc/pycoqc
+
+nf-core: qcat
+  Tool ID: nfcore_qcat
+  Display: qcat
+Galaxy:  Qcat
+  Tool ID: toolshed.g2.bx.psu.edu/repos/alyssa/seqkit_seq/Repository_Actions
+Qcat
+  Owner:   alyssa/seqkit_seq
+
+nf-core: qualimap_bamqc
+  Tool ID: nfcore_qualimap/bamqc
+  Display: qualimap_bamqc
+Galaxy:  QualiMap BamQC
+  Tool ID: iuc_qualimap_bamqc_QualiMap_BamQC_2.3+galaxy0
+  Owner:   iuc/qualimap_bamqc
+
+nf-core: quast
+  Tool ID: nfcore_quast
+  Display: quast
+Galaxy:  Quast
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/quast/Repository_Actions
+Quast
+  Owner:   iuc/quast
+
+nf-core: rasusa
+  Tool ID: nfcore_rasusa
+  Display: rasusa
+Galaxy:  rasusa
+  Tool ID: iuc_rasusa_rasusa_2.0.0+galaxy0
+  Owner:   iuc/rasusa
+
+nf-core: raven
+  Tool ID: nfcore_raven
+  Display: raven
+Galaxy:  Raven
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/raven/Repository_Actions
+Raven
+  Owner:   iuc/raven
+
+nf-core: regtools_junctionsextract
+  Tool ID: nfcore_regtools/junctionsextract
+  Display: regtools_junctionsextract
+Galaxy:  regtools junctions extract
+  Tool ID: toolshed.g2.bx.psu.edu/repos/yating-l/regtools_junctions_extract/Repository_Actions
+regtools_junctions_extract
+  Owner:   yating-l/regtools_junctions_extract
+
+nf-core: ribowaltz
+  Tool ID: nfcore_ribowaltz
+  Display: ribowaltz
+Galaxy:  riboWaltz
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/ribowaltz_process/Repository_Actions
+riboWaltz
+  Owner:   iuc/ribowaltz_process
+
+nf-core: rnaquast
+  Tool ID: nfcore_rnaquast
+  Display: rnaquast
+Galaxy:  rnaQUAST
+  Tool ID: toolshed.g2.bx.psu.edu/repos/lehmanju/rnaquast/Repository_Actions
+rnaQUAST
+  Owner:   lehmanju/rnaquast
+
+nf-core: roary
+  Tool ID: nfcore_roary
+  Display: roary
+Galaxy:  Roary
+  Tool ID: iuc_roary_Roary_3.13.0+galaxy3
+  Owner:   iuc/roary
+
+nf-core: rsem_calculateexpression
+  Tool ID: nfcore_rsem/calculateexpression
+  Display: rsem_calculateexpression
+Galaxy:  RSEM calculate expression
+  Tool ID: toolshed.g2.bx.psu.edu/repos/jjohnson/rsem/Repository_Actions
+RSEM_calculate_expression
+  Owner:   jjohnson/rsem
+
+nf-core: rsem_preparereference
+  Tool ID: nfcore_rsem/preparereference
+  Display: rsem_preparereference
+Galaxy:  RSEM prepare reference
+  Tool ID: toolshed.g2.bx.psu.edu/repos/jjohnson/rsem/Repository_Actions
+RSEM_prepare_reference
+  Owner:   jjohnson/rsem
+
+nf-core: sambamba_flagstat
+  Tool ID: nfcore_sambamba/flagstat
+  Display: sambamba_flagstat
+Galaxy:  Sambamba flagstat
+  Tool ID: toolshed.g2.bx.psu.edu/repos/bgruening/sambamba_flagstat/Repository_Actions
+Sambamba_flagstat
+  Owner:   bgruening/sambamba_flagstat
+
+nf-core: sambamba_markdup
+  Tool ID: nfcore_sambamba/markdup
+  Display: sambamba_markdup
+Galaxy:  Sambamba markdup
+  Tool ID: toolshed.g2.bx.psu.edu/repos/bgruening/sambamba_markdup/Repository_Actions
+Sambamba_markdup
+  Owner:   bgruening/sambamba_markdup
+
+nf-core: samblaster
+  Tool ID: nfcore_samblaster
+  Display: samblaster
+Galaxy:  samblaster
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/samblaster/Repository_Actions
+samblaster
+  Owner:   iuc/samblaster
+
+nf-core: samtools_ampliconclip
+  Tool ID: nfcore_samtools/ampliconclip
+  Display: samtools_ampliconclip
+Galaxy:  Samtools ampliconclip
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/samtools_ampliconclip/Repository_Actions
+Samtools_ampliconclip
+  Owner:   iuc/samtools_ampliconclip
+
+nf-core: samtools_bedcov
+  Tool ID: nfcore_samtools/bedcov
+  Display: samtools_bedcov
+Galaxy:  Samtools bedcov
+  Tool ID: toolshed.g2.bx.psu.edu/repos/devteam/samtools_bedcov/Repository_Actions
+Samtools_bedcov
+  Owner:   devteam/samtools_bedcov
+
+nf-core: samtools_calmd
+  Tool ID: nfcore_samtools/calmd
+  Display: samtools_calmd
+Galaxy:  Samtools calmd
+  Tool ID: toolshed.g2.bx.psu.edu/repos/devteam/samtools_calmd/Repository_Actions
+Samtools_calmd
+  Owner:   devteam/samtools_calmd
+
+nf-core: samtools_coverage
+  Tool ID: nfcore_samtools/coverage
+  Display: samtools_coverage
+Galaxy:  Samtools coverage
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/samtools_coverage/Repository_Actions
+Samtools_coverage
+  Owner:   iuc/samtools_coverage
+
+nf-core: samtools_depth
+  Tool ID: nfcore_samtools/depth
+  Display: samtools_depth
+Galaxy:  Samtools depth
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/samtools_depth/Repository_Actions
+Samtools_depth
+  Owner:   iuc/samtools_depth
+
+nf-core: samtools_faidx
+  Tool ID: nfcore_samtools/faidx
+  Display: samtools_faidx
+Galaxy:  Samtools faidx
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/samtools_faidx/Repository_Actions
+Samtools_faidx
+  Owner:   iuc/samtools_faidx
+
+nf-core: samtools_fixmate
+  Tool ID: nfcore_samtools/fixmate
+  Display: samtools_fixmate
+Galaxy:  Samtools fixmate
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/samtools_fixmate/Repository_Actions
+Samtools_fixmate
+  Owner:   iuc/samtools_fixmate
+
+nf-core: samtools_flagstat
+  Tool ID: nfcore_samtools/flagstat
+  Display: samtools_flagstat
+Galaxy:  Samtools flagstat
+  Tool ID: toolshed.g2.bx.psu.edu/repos/devteam/samtools_flagstat/Repository_Actions
+Samtools_flagstat
+  Owner:   devteam/samtools_flagstat
+
+nf-core: samtools_idxstats
+  Tool ID: nfcore_samtools/idxstats
+  Display: samtools_idxstats
+Galaxy:  Samtools idxstats
+  Tool ID: toolshed.g2.bx.psu.edu/repos/devteam/samtools_idxstats/Repository_Actions
+Samtools_idxstats
+  Owner:   devteam/samtools_idxstats
+
+nf-core: samtools_markdup
+  Tool ID: nfcore_samtools/markdup
+  Display: samtools_markdup
+Galaxy:  Samtools markdup
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/samtools_markdup/Repository_Actions
+Samtools_markdup
+  Owner:   iuc/samtools_markdup
+
+nf-core: samtools_merge
+  Tool ID: nfcore_samtools/merge
+  Display: samtools_merge
+Galaxy:  Samtools merge
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/samtools_merge/Repository_Actions
+Samtools_merge
+  Owner:   iuc/samtools_merge
+
+nf-core: samtools_mpileup
+  Tool ID: nfcore_samtools/mpileup
+  Display: samtools_mpileup
+Galaxy:  Samtools mpileup
+  Tool ID: toolshed.g2.bx.psu.edu/repos/devteam/samtools_mpileup/Repository_Actions
+Samtools_mpileup
+  Owner:   devteam/samtools_mpileup
+
+nf-core: samtools_reheader
+  Tool ID: nfcore_samtools/reheader
+  Display: samtools_reheader
+Galaxy:  Samtools reheader
+  Tool ID: toolshed.g2.bx.psu.edu/repos/devteam/samtools_reheader/Repository_Actions
+Samtools_reheader
+  Owner:   devteam/samtools_reheader
+
+nf-core: samtools_sort
+  Tool ID: nfcore_samtools/sort
+  Display: samtools_sort
+Galaxy:  Samtools sort
+  Tool ID: toolshed.g2.bx.psu.edu/repos/devteam/samtools_sort/Repository_Actions
+Samtools_sort
+  Owner:   devteam/samtools_sort
+
+nf-core: samtools_stats
+  Tool ID: nfcore_samtools/stats
+  Display: samtools_stats
+Galaxy:  Samtools stats
+  Tool ID: toolshed.g2.bx.psu.edu/repos/devteam/samtools_stats/Repository_Actions
+Samtools_stats
+  Owner:   devteam/samtools_stats
+
+nf-core: samtools_view
+  Tool ID: nfcore_samtools/view
+  Display: samtools_view
+Galaxy:  Samtools view
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/Repository_Actions
+Samtools_view
+  Owner:   iuc/samtools_view
+
+nf-core: scanpy_filter
+  Tool ID: nfcore_scanpy/filter
+  Display: scanpy_filter
+Galaxy:  Scanpy filter
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/scanpy_filter/Repository_Actions
+Scanpy_filter
+  Owner:   iuc/scanpy_filter
+
+nf-core: scanpy_scrublet
+  Tool ID: nfcore_scanpy/scrublet
+  Display: scanpy_scrublet
+Galaxy:  Scanpy Scrublet
+  Tool ID: toolshed.g2.bx.psu.edu/repos/ebi-gxa/scanpy_multiplet_scrublet/Repository_Actions
+Scanpy_Scrublet
+  Owner:   ebi-gxa/scanpy_multiplet_scrublet
+
+nf-core: scoary
+  Tool ID: nfcore_scoary
+  Display: scoary
+Galaxy:  Scoary
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/scoary/Repository_Actions
+Scoary
+  Owner:   iuc/scoary
+
+nf-core: seq2hla
+  Tool ID: nfcore_seq2hla
+  Display: seq2hla
+Galaxy:  seq2HLA
+  Tool ID: toolshed.g2.bx.psu.edu/repos/sebastian-boegel/seq2hla/Repository_Actions
+seq2HLA
+  Owner:   sebastian-boegel/seq2hla
+
+nf-core: seqkit_fx2tab
+  Tool ID: nfcore_seqkit/fx2tab
+  Display: seqkit_fx2tab
+Galaxy:  SeqKit fx2tab
+  Tool ID: iuc_seqkit_fx2tab_SeqKit_fx2tab_2.10.1+galaxy0
+  Owner:   iuc/seqkit_fx2tab
+
+nf-core: seqkit_grep
+  Tool ID: nfcore_seqkit/grep
+  Display: seqkit_grep
+Galaxy:  SeqKit grep
+  Tool ID: iuc_seqkit_grep_SeqKit_grep_2.10.1+galaxy0
+  Owner:   iuc/seqkit_grep
+
+nf-core: seqkit_head
+  Tool ID: nfcore_seqkit/head
+  Display: seqkit_head
+Galaxy:  SeqKit Head
+  Tool ID: iuc_seqkit_head_SeqKit_Head_2.10.1+galaxy0
+  Owner:   iuc/seqkit_head
+
+nf-core: seqkit_sort
+  Tool ID: nfcore_seqkit/sort
+  Display: seqkit_sort
+Galaxy:  SeqKit sort
+  Tool ID: iuc_seqkit_sort_SeqKit_sort_2.10.1+galaxy0
+  Owner:   iuc/seqkit_sort
+
+nf-core: seqkit_split2
+  Tool ID: nfcore_seqkit/split2
+  Display: seqkit_split2
+Galaxy:  Seqkit Split2
+  Tool ID: iuc_seqkit_split2_Seqkit_Split2_2.10.1+galaxy1
+  Owner:   iuc/seqkit_split2
+
+nf-core: seqkit_translate
+  Tool ID: nfcore_seqkit/translate
+  Display: seqkit_translate
+Galaxy:  SeqKit translate
+  Tool ID: iuc_seqkit_translate_SeqKit_translate_2.10.1+galaxy0
+  Owner:   iuc/seqkit_translate
+
+nf-core: seqsero2
+  Tool ID: nfcore_seqsero2
+  Display: seqsero2
+Galaxy:  SeqSero2
+  Tool ID: iuc_seqsero2_SeqSero2_1.3.2+galaxy0
+  Owner:   iuc/seqsero2
+
+nf-core: seqtk_comp
+  Tool ID: nfcore_seqtk/comp
+  Display: seqtk_comp
+Galaxy:  seqtk_comp
+  Tool ID: iuc_seqtk_seqtk_comp_1.5+galaxy0
+  Owner:   iuc/seqtk
+
+nf-core: sequali
+  Tool ID: nfcore_sequali
+  Display: sequali
+Galaxy:  sequali
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/sequali/Repository_Actions
+sequali
+  Owner:   iuc/sequali
+
+nf-core: shasta
+  Tool ID: nfcore_shasta
+  Display: shasta
+Galaxy:  Shasta
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/shasta/Repository_Actions
+Shasta
+  Owner:   iuc/shasta
+
+nf-core: shovill
+  Tool ID: nfcore_shovill
+  Display: shovill
+Galaxy:  Shovill
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/shovill/Repository_Actions
+Shovill
+  Owner:   iuc/shovill
+
+nf-core: sickle
+  Tool ID: nfcore_sickle
+  Display: sickle
+Galaxy:  Sickle
+  Tool ID: toolshed.g2.bx.psu.edu/repos/nikhil-joshi/sickle/Repository_Actions
+Sickle
+  Owner:   nikhil-joshi/sickle
+
+nf-core: sniffles
+  Tool ID: nfcore_sniffles
+  Display: sniffles
+Galaxy:  sniffles
+  Tool ID: iuc_sniffles_sniffles_2.5.2+galaxy0
+  Owner:   iuc/sniffles
+
+nf-core: snpsift_annotate
+  Tool ID: nfcore_snpsift/annotate
+  Display: snpsift_annotate
+Galaxy:  SnpSift Annotate
+  Tool ID: pcingola_snpeff_SnpSift_Annotate_1.0
+  Owner:   pcingola/snpeff
+
+nf-core: snpsift_dbnsfp
+  Tool ID: nfcore_snpsift/dbnsfp
+  Display: snpsift_dbnsfp
+Galaxy:  SnpSift dbNSFP
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/data_manager_snpsift_dbnsfp/Repository_Actions
+SnpSift_dbNSFP
+  Owner:   iuc/data_manager_snpsift_dbnsfp
+
+nf-core: spades
+  Tool ID: nfcore_spades
+  Display: spades
+Galaxy:  SPAdes
+  Tool ID: toolshed.g2.bx.psu.edu/repos/nml/spades/Repository_Actions
+SPAdes
+  Owner:   nml/spades
+
+nf-core: sylph_profile
+  Tool ID: nfcore_sylph/profile
+  Display: sylph_profile
+Galaxy:  sylph profile
+  Tool ID: toolshed.g2.bx.psu.edu/repos/bgruening/sylph_profile/Repository_Actions
+sylph_profile
+  Owner:   bgruening/sylph_profile
+
+nf-core: syri
+  Tool ID: nfcore_syri
+  Display: syri
+Galaxy:  SyRI
+  Tool ID: iuc_syri_SyRI_1.7.1+galaxy0
+  Owner:   iuc/syri
+
+nf-core: tbprofiler_profile
+  Tool ID: nfcore_tbprofiler/profile
+  Display: tbprofiler_profile
+Galaxy:  TB-Profiler Profile
+  Tool ID: iuc_tbprofiler_TB-Profiler_Profile_6.6.4+galaxy0
+  Owner:   iuc/tbprofiler
+
+nf-core: trimal
+  Tool ID: nfcore_trimal
+  Display: trimal
+Galaxy:  trimAl
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/trimal/Repository_Actions
+trimAl
+  Owner:   iuc/trimal
+
+nf-core: trimmomatic
+  Tool ID: nfcore_trimmomatic
+  Display: trimmomatic
+Galaxy:  Trimmomatic
+  Tool ID: toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/Repository_Actions
+Trimmomatic
+  Owner:   pjbriggs/trimmomatic
+
+nf-core: trinity
+  Tool ID: nfcore_trinity
+  Display: trinity
+Galaxy:  Trinity
+  Tool ID: toolshed.g2.bx.psu.edu/repos/nate/trinity_psc/Repository_Actions
+Trinity
+  Owner:   nate/trinity_psc
+
+nf-core: trycycler_cluster
+  Tool ID: nfcore_trycycler/cluster
+  Display: trycycler_cluster
+Galaxy:  Trycycler cluster
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/trycycler_cluster/Repository_Actions
+Trycycler_cluster
+  Owner:   iuc/trycycler_cluster
+
+nf-core: trycycler_subsample
+  Tool ID: nfcore_trycycler/subsample
+  Display: trycycler_subsample
+Galaxy:  Trycycler subsample
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/trycycler_subsample/Repository_Actions
+Trycycler_subsample
+  Owner:   iuc/trycycler_subsample
+
+nf-core: tsebra
+  Tool ID: nfcore_tsebra
+  Display: tsebra
+Galaxy:  TSEBRA
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/tsebra/Repository_Actions
+TSEBRA
+  Owner:   iuc/tsebra
+
+nf-core: umitools_extract
+  Tool ID: nfcore_umitools/extract
+  Display: umitools_extract
+Galaxy:  UMI-tools extract
+  Tool ID: iuc_umi_tools_extract_UMI-tools_extract_1.1.6+galaxy0
+  Owner:   iuc/umi_tools_extract
+
+nf-core: umitools_group
+  Tool ID: nfcore_umitools/group
+  Display: umitools_group
+Galaxy:  UMI-tools group
+  Tool ID: iuc_umi_tools_group_UMI-tools_group_1.1.6+galaxy0
+  Owner:   iuc/umi_tools_group
+
+nf-core: unzip
+  Tool ID: nfcore_unzip
+  Display: unzip
+Galaxy:  Unzip
+  Tool ID: toolshed.g2.bx.psu.edu/repos/imgteam/unzip/Repository_Actions
+Unzip
+  Owner:   imgteam/unzip
+
+nf-core: vcfanno
+  Tool ID: nfcore_vcfanno
+  Display: vcfanno
+Galaxy:  vcfanno
+  Tool ID: iuc_vcfanno_vcfanno_0.3.7+galaxy0
+  Owner:   iuc/vcfanno
+
+nf-core: vcftools
+  Tool ID: nfcore_vcftools
+  Display: vcftools
+Galaxy:  VCFtools
+  Tool ID: nilesh_vcftools_VCFtools_0.0.1
+  Owner:   nilesh/vcftools
+
+nf-core: vg_deconstruct
+  Tool ID: nfcore_vg/deconstruct
+  Display: vg_deconstruct
+Galaxy:  vg deconstruct
+  Tool ID: iuc_vg_deconstruct_vg_deconstruct_1.23.0+galaxy1
+  Owner:   iuc/vg_deconstruct
+
+nf-core: vt_normalize
+  Tool ID: nfcore_vt/normalize
+  Display: vt_normalize
+Galaxy:  VT normalize
+  Tool ID: iuc_vt_variant_tools_VT_normalize_0.1.0
+  Owner:   iuc/vt_variant_tools
+
+nf-core: windowmasker_mkcounts
+  Tool ID: nfcore_windowmasker/mkcounts
+  Display: windowmasker_mkcounts
+Galaxy:  WindowMasker mkcounts
+  Tool ID: iuc_windowmasker_WindowMasker_mkcounts_1.0
+  Owner:   iuc/windowmasker
+
+nf-core: windowmasker_ustat
+  Tool ID: nfcore_windowmasker/ustat
+  Display: windowmasker_ustat
+Galaxy:  WindowMasker ustat
+  Tool ID: iuc_windowmasker_WindowMasker_ustat_1.0
+  Owner:   iuc/windowmasker
+
+nf-core: wisecondorx_convert
+  Tool ID: nfcore_wisecondorx/convert
+  Display: wisecondorx_convert
+Galaxy:  WisecondorX convert
+  Tool ID: artbio_wisecondorx_WisecondorX_convert_1.2.9+galaxy0
+  Owner:   artbio/wisecondorx
+
+nf-core: wisecondorx_predict
+  Tool ID: nfcore_wisecondorx/predict
+  Display: wisecondorx_predict
+Galaxy:  WisecondorX predict
+  Tool ID: artbio_wisecondorx_WisecondorX_predict_1.2.9+galaxy0
+  Owner:   artbio/wisecondorx
+
+nf-core: yahs
+  Tool ID: nfcore_yahs
+  Display: yahs
+Galaxy:  YAHS
+  Tool ID: toolshed.g2.bx.psu.edu/repos/iuc/yahs/Repository_Actions
+YAHS
+  Owner:   iuc/yahs
+
+nf-core: zip
+  Tool ID: nfcore_zip
+  Display: zip
+Galaxy:  Zip
+  Tool ID: toolshed.g2.bx.psu.edu/repos/cmonjeau/ziptool/Repository_Actions
+Zip
+  Owner:   cmonjeau/ziptool
+
+
+BASE NAME MATCHES (246 tools)
+================================================================================
+
+nf-core: abricate_run
+Galaxy:  ABRicate
+
+nf-core: abricate_summary
+Galaxy:  ABRicate
+
+nf-core: abritamr_run
+Galaxy:  abriTAMR
+
+nf-core: agat_convertbed2gff
+Galaxy:  AGAT
+
+nf-core: agat_convertgff2bed
+Galaxy:  AGAT
+
+nf-core: agat_convertspgff2gtf
+Galaxy:  AGAT
+
+nf-core: agat_convertspgff2tsv
+Galaxy:  AGAT
+
+nf-core: agat_convertspgxf2gxf
+Galaxy:  AGAT
+
+nf-core: agat_spaddintrons
+Galaxy:  AGAT
+
+nf-core: agat_spextractsequences
+Galaxy:  AGAT
+
+nf-core: agat_spfilterbyorfsize
+Galaxy:  AGAT
+
+nf-core: agat_spfilterfeaturefromkilllist
+Galaxy:  AGAT
+
+nf-core: agat_spflagshortintrons
+Galaxy:  AGAT
+
+nf-core: agat_spkeeplongestisoform
+Galaxy:  AGAT
+
+nf-core: agat_spmergeannotations
+Galaxy:  AGAT
+
+nf-core: agat_spstatistics
+Galaxy:  AGAT
+
+nf-core: agat_sqstatbasic
+Galaxy:  AGAT
+
+nf-core: amrfinderplus_run
+Galaxy:  AMRFinderPlus
+
+nf-core: amrfinderplus_update
+Galaxy:  AMRFinderPlus
+
+nf-core: antismash_antismash
+Galaxy:  Antismash
+
+nf-core: antismash_antismashdownloaddatabases
+Galaxy:  Antismash
+
+nf-core: antismash_antismashlite
+Galaxy:  Antismash
+
+nf-core: antismash_antismashlitedownloaddatabases
+Galaxy:  Antismash
+
+nf-core: arriba_arriba
+Galaxy:  Arriba
+
+nf-core: arriba_download
+Galaxy:  Arriba
+
+nf-core: arriba_visualisation
+Galaxy:  Arriba
+
+nf-core: bakta_bakta
+Galaxy:  Bakta
+
+nf-core: bakta_baktadbdownload
+Galaxy:  Bakta
+
+nf-core: blast_blastdbcmd
+Galaxy:  blast_to_scaffold
+
+nf-core: blast_blastn
+Galaxy:  blast_to_scaffold
+
+nf-core: blast_blastp
+Galaxy:  blast_to_scaffold
+
+nf-core: blast_makeblastdb
+Galaxy:  blast_to_scaffold
+
+nf-core: blast_tblastn
+Galaxy:  blast_to_scaffold
+
+nf-core: blast_updateblastdb
+Galaxy:  blast_to_scaffold
+
+nf-core: bowtie2_align
+Galaxy:  Bowtie2
+
+nf-core: bowtie2_build
+Galaxy:  Bowtie2
+
+nf-core: bracken_bracken
+Galaxy:  Bracken
+
+nf-core: bracken_build
+Galaxy:  Bracken
+
+nf-core: bracken_combinebrackenoutputs
+Galaxy:  Bracken
+
+nf-core: busco_busco
+Galaxy:  Busco
+
+nf-core: busco_download
+Galaxy:  Busco
+
+nf-core: busco_generateplot
+Galaxy:  Busco
+
+nf-core: busco_phylogenomics
+Galaxy:  Busco
+
+nf-core: bwameth_align
+Galaxy:  bwameth
+
+nf-core: centrifuge_build
+Galaxy:  Centrifuge
+
+nf-core: centrifuge_centrifuge
+Galaxy:  Centrifuge
+
+nf-core: centrifuge_kreport
+Galaxy:  Centrifuge
+
+nf-core: checkm2_databasedownload
+Galaxy:  CheckM2
+
+nf-core: checkm2_predict
+Galaxy:  CheckM2
+
+nf-core: checkv_downloaddatabase
+Galaxy:  CheckV
+
+nf-core: checkv_endtoend
+Galaxy:  CheckV
+
+nf-core: checkv_updatedatabase
+Galaxy:  CheckV
+
+nf-core: chewbbaca_createschema
+Galaxy:  chewBBACA
+
+nf-core: circexplorer2_annotate
+Galaxy:  CIRCexplorer2
+
+nf-core: circexplorer2_parse
+Galaxy:  CIRCexplorer2
+
+nf-core: comebin_runcomebin
+Galaxy:  COMEBin
+
+nf-core: concoct_concoct
+Galaxy:  CONCOCT
+
+nf-core: concoct_concoctcoveragetable
+Galaxy:  CONCOCT
+
+nf-core: concoct_cutupfasta
+Galaxy:  CONCOCT
+
+nf-core: concoct_extractfastabins
+Galaxy:  CONCOCT
+
+nf-core: concoct_mergecutupclustering
+Galaxy:  CONCOCT
+
+nf-core: cooler_cload
+Galaxy:  cooler_balance
+
+nf-core: cooler_digest
+Galaxy:  cooler_balance
+
+nf-core: cooler_dump
+Galaxy:  cooler_balance
+
+nf-core: cooler_makebins
+Galaxy:  cooler_balance
+
+nf-core: cooler_merge
+Galaxy:  cooler_balance
+
+nf-core: deseq2_differential
+Galaxy:  DESeq2
+
+nf-core: diamond_blastp
+Galaxy:  Diamond
+
+nf-core: diamond_blastx
+Galaxy:  Diamond
+
+nf-core: diamond_cluster
+Galaxy:  Diamond
+
+nf-core: diamond_makedb
+Galaxy:  Diamond
+
+nf-core: fastk_fastk
+Galaxy:  FastK
+
+nf-core: fastk_histex
+Galaxy:  FastK
+
+nf-core: fastk_merge
+Galaxy:  FastK
+
+nf-core: gamma_gamma
+Galaxy:  GAMMA
+
+nf-core: gatk_indelrealigner
+Galaxy:  GATK
+
+nf-core: gatk_realignertargetcreator
+Galaxy:  GATK
+
+nf-core: gatk_unifiedgenotyper
+Galaxy:  GATK
+
+nf-core: gecco_run
+Galaxy:  GECCO
+
+nf-core: genomad_download
+Galaxy:  geNomad
+
+nf-core: genomad_endtoend
+Galaxy:  geNomad
+
+nf-core: geoquery_getgeo
+Galaxy:  GEOQuery
+
+nf-core: hisat2_align
+Galaxy:  HISAT2
+
+nf-core: hisat2_build
+Galaxy:  HISAT2
+
+nf-core: hisat2_extractsplicesites
+Galaxy:  HISAT2
+
+nf-core: homer_findpeaks
+Galaxy:  homer_annotatePeaks
+
+nf-core: homer_maketagdirectory
+Galaxy:  homer_annotatePeaks
+
+nf-core: homer_makeucscfile
+Galaxy:  homer_annotatePeaks
+
+nf-core: homer_pos2bed
+Galaxy:  homer_annotatePeaks
+
+nf-core: iphop_download
+Galaxy:  iPHoP
+
+nf-core: iphop_predict
+Galaxy:  iPHoP
+
+nf-core: jellyfish_count
+Galaxy:  jellyfish
+
+nf-core: jellyfish_dump
+Galaxy:  jellyfish
+
+nf-core: kaiju_kaiju
+Galaxy:  kaiju
+
+nf-core: kaiju_kaiju2krona
+Galaxy:  kaiju
+
+nf-core: kaiju_kaiju2table
+Galaxy:  kaiju
+
+nf-core: kaiju_mergeoutputs
+Galaxy:  kaiju
+
+nf-core: kaiju_mkfmi
+Galaxy:  kaiju
+
+nf-core: kallisto_index
+Galaxy:  Kallisto
+
+nf-core: kallisto_quant
+Galaxy:  Kallisto
+
+nf-core: kraken2_add
+Galaxy:  Kraken2
+
+nf-core: kraken2_build
+Galaxy:  Kraken2
+
+nf-core: kraken2_buildstandard
+Galaxy:  Kraken2
+
+nf-core: kraken2_kraken2
+Galaxy:  Kraken2
+
+nf-core: krona_kronadb
+Galaxy:  Krona
+
+nf-core: krona_ktimportkrona
+Galaxy:  Krona
+
+nf-core: krona_ktimporttaxonomy
+Galaxy:  Krona
+
+nf-core: krona_ktimporttext
+Galaxy:  Krona
+
+nf-core: krona_ktupdatetaxonomy
+Galaxy:  Krona
+
+nf-core: limma_differential
+Galaxy:  limma
+
+nf-core: macs2_callpeak
+Galaxy:  MACS2
+
+nf-core: macs3_callpeak
+Galaxy:  MACS3
+
+nf-core: mafft_align
+Galaxy:  MAFFT
+
+nf-core: mafft_guidetree
+Galaxy:  MAFFT
+
+nf-core: manta_convertinversion
+Galaxy:  Manta
+
+nf-core: manta_germline
+Galaxy:  Manta
+
+nf-core: manta_somatic
+Galaxy:  Manta
+
+nf-core: manta_tumoronly
+Galaxy:  Manta
+
+nf-core: mash_dist
+Galaxy:  MASH
+
+nf-core: mash_screen
+Galaxy:  MASH
+
+nf-core: mash_sketch
+Galaxy:  MASH
+
+nf-core: maxquant_lfq
+Galaxy:  MaxQuant
+
+nf-core: merqury_hapmers
+Galaxy:  Merqury
+
+nf-core: merqury_merqury
+Galaxy:  Merqury
+
+nf-core: merquryfk_hapmaker
+Galaxy:  MerquryFK
+
+nf-core: merquryfk_katcomp
+Galaxy:  MerquryFK
+
+nf-core: merquryfk_katgc
+Galaxy:  MerquryFK
+
+nf-core: merquryfk_merquryfk
+Galaxy:  MerquryFK
+
+nf-core: merquryfk_ploidyplot
+Galaxy:  MerquryFK
+
+nf-core: meryl_count
+Galaxy:  Meryl
+
+nf-core: meryl_histogram
+Galaxy:  Meryl
+
+nf-core: meryl_unionsum
+Galaxy:  Meryl
+
+nf-core: metabat2_jgisummarizebamcontigdepths
+Galaxy:  MetaBAT2
+
+nf-core: metabat2_metabat2
+Galaxy:  MetaBAT2
+
+nf-core: metaphlan_makedb
+Galaxy:  MetaPhlAn
+
+nf-core: metaphlan_mergemetaphlantables
+Galaxy:  MetaPhlAn
+
+nf-core: metaphlan_metaphlan
+Galaxy:  MetaPhlAn
+
+nf-core: methyldackel_extract
+Galaxy:  MethylDackel
+
+nf-core: methyldackel_mbias
+Galaxy:  MethylDackel
+
+nf-core: mirdeep2_mapper
+Galaxy:  MiRDeep2
+
+nf-core: mirdeep2_mirdeep2
+Galaxy:  MiRDeep2
+
+nf-core: mitohifi_findmitoreference
+Galaxy:  MitoHiFi
+
+nf-core: mitohifi_mitohifi
+Galaxy:  MitoHiFi
+
+nf-core: motus_downloaddb
+Galaxy:  mOTUs_profiler
+
+nf-core: motus_merge
+Galaxy:  mOTUs_profiler
+
+nf-core: motus_preplong
+Galaxy:  mOTUs_profiler
+
+nf-core: motus_profile
+Galaxy:  mOTUs_profiler
+
+nf-core: mykrobe_predict
+Galaxy:  mykrobe_parseR
+
+nf-core: nextclade_datasetget
+Galaxy:  Nextclade
+
+nf-core: nextclade_run
+Galaxy:  Nextclade
+
+nf-core: nonpareil_curve
+Galaxy:  Nonpareil
+
+nf-core: nonpareil_nonpareil
+Galaxy:  Nonpareil
+
+nf-core: nonpareil_nonpareilcurvesr
+Galaxy:  Nonpareil
+
+nf-core: nonpareil_set
+Galaxy:  Nonpareil
+
+nf-core: panaroo_run
+Galaxy:  Panaroo
+
+nf-core: pangolin_run
+Galaxy:  PANGOLIN
+
+nf-core: pangolin_updatedata
+Galaxy:  PANGOLIN
+
+nf-core: pbmm2_align
+Galaxy:  pbmm2
+
+nf-core: pharokka_installdatabases
+Galaxy:  pharokka
+
+nf-core: pharokka_pharokka
+Galaxy:  pharokka
+
+nf-core: pindel_pindel
+Galaxy:  Pindel
+
+nf-core: plink_bcf
+Galaxy:  PLINK
+
+nf-core: plink_epistasis
+Galaxy:  PLINK
+
+nf-core: plink_exclude
+Galaxy:  PLINK
+
+nf-core: plink_extract
+Galaxy:  PLINK
+
+nf-core: plink_fastepistasis
+Galaxy:  PLINK
+
+nf-core: plink_genome
+Galaxy:  PLINK
+
+nf-core: plink_gwas
+Galaxy:  PLINK
+
+nf-core: plink_hwe
+Galaxy:  PLINK
+
+nf-core: plink_indep
+Galaxy:  PLINK
+
+nf-core: plink_indeppairwise
+Galaxy:  PLINK
+
+nf-core: plink_ld
+Galaxy:  PLINK
+
+nf-core: plink_recode
+Galaxy:  PLINK
+
+nf-core: plink_vcf
+Galaxy:  PLINK
+
+nf-core: polypolish_polish
+Galaxy:  Polypolish
+
+nf-core: porechop_abi
+Galaxy:  Porechop
+
+nf-core: porechop_porechop
+Galaxy:  Porechop
+
+nf-core: ragtag_patch
+Galaxy:  RagTag
+
+nf-core: ragtag_scaffold
+Galaxy:  RagTag
+
+nf-core: repeatmasker_repeatmasker
+Galaxy:  RepeatMasker
+
+nf-core: repeatmasker_rmouttogff3
+Galaxy:  RepeatMasker
+
+nf-core: repeatmodeler_builddatabase
+Galaxy:  RepeatModeler
+
+nf-core: repeatmodeler_repeatmodeler
+Galaxy:  RepeatModeler
+
+nf-core: resfinder_run
+Galaxy:  ResFinder
+
+nf-core: rgi_cardannotation
+Galaxy:  Rgi
+
+nf-core: rgi_main
+Galaxy:  Rgi
+
+nf-core: rseqc_bamstat
+Galaxy:  Rseqc
+
+nf-core: rseqc_inferexperiment
+Galaxy:  Rseqc
+
+nf-core: rseqc_innerdistance
+Galaxy:  Rseqc
+
+nf-core: rseqc_junctionannotation
+Galaxy:  Rseqc
+
+nf-core: rseqc_junctionsaturation
+Galaxy:  Rseqc
+
+nf-core: rseqc_readdistribution
+Galaxy:  Rseqc
+
+nf-core: rseqc_readduplication
+Galaxy:  Rseqc
+
+nf-core: rseqc_tin
+Galaxy:  Rseqc
+
+nf-core: salmon_index
+Galaxy:  Salmon
+
+nf-core: salmon_quant
+Galaxy:  Salmon
+
+nf-core: seacr_callpeak
+Galaxy:  SEACR
+
+nf-core: segemehl_align
+Galaxy:  segemehl
+
+nf-core: segemehl_index
+Galaxy:  segemehl
+
+nf-core: semibin_singleeasybin
+Galaxy:  SemiBin
+
+nf-core: seqtk_cutn
+Galaxy:  seqtk_comp
+
+nf-core: seqtk_mergepe
+Galaxy:  seqtk_comp
+
+nf-core: seqtk_rename
+Galaxy:  seqtk_comp
+
+nf-core: seqtk_sample
+Galaxy:  seqtk_comp
+
+nf-core: seqtk_seq
+Galaxy:  seqtk_comp
+
+nf-core: seqtk_subseq
+Galaxy:  seqtk_comp
+
+nf-core: seqtk_trim
+Galaxy:  seqtk_comp
+
+nf-core: seqwish_induce
+Galaxy:  seqwish
+
+nf-core: sistr
+Galaxy:  sistr_cmd
+
+nf-core: slamdunk_all
+Galaxy:  Slamdunk
+
+nf-core: slamdunk_map
+Galaxy:  Slamdunk
+
+nf-core: snippy_core
+Galaxy:  snippy
+
+nf-core: snippy_run
+Galaxy:  snippy
+
+nf-core: snpeff_download
+Galaxy:  SnpEff
+
+nf-core: snpeff_snpeff
+Galaxy:  SnpEff
+
+nf-core: srst2_srst2
+Galaxy:  SRST2
+
+nf-core: staramr_search
+Galaxy:  staramr
+
+nf-core: strelka_germline
+Galaxy:  Strelka
+
+nf-core: strelka_somatic
+Galaxy:  Strelka
+
+nf-core: stringtie_merge
+Galaxy:  StringTie
+
+nf-core: stringtie_stringtie
+Galaxy:  StringTie
+
+nf-core: svtyper_svtyper
+Galaxy:  svtyper
+
+nf-core: svtyper_svtypersso
+Galaxy:  svtyper
+
+nf-core: tabix_bgzip
+Galaxy:  tabix
+
+nf-core: tabix_bgziptabix
+Galaxy:  tabix
+
+nf-core: tabix_tabix
+Galaxy:  tabix
+
+nf-core: tar
+Galaxy:  TAR_GZ
+
+nf-core: taxpasta_merge
+Galaxy:  taxpasta
+
+nf-core: taxpasta_standardise
+Galaxy:  taxpasta
+
+nf-core: tiara_tiara
+Galaxy:  tiara
+
+nf-core: transdecoder_longorf
+Galaxy:  TransDecoder
+
+nf-core: transdecoder_predict
+Galaxy:  TransDecoder
+
+nf-core: ucsc_bedclip
+Galaxy:  UCSC
+
+nf-core: ucsc_bedgraphtobigwig
+Galaxy:  UCSC
+
+nf-core: ucsc_bedtobigbed
+Galaxy:  UCSC
+
+nf-core: ucsc_bigwigaverageoverbed
+Galaxy:  UCSC
+
+nf-core: ucsc_gtftogenepred
+Galaxy:  UCSC
+
+nf-core: ucsc_liftover
+Galaxy:  UCSC
+
+nf-core: ucsc_wigtobigwig
+Galaxy:  UCSC
+
+nf-core: varscan_fpfilter
+Galaxy:  VarScan
+
+nf-core: varscan_processsomatic
+Galaxy:  VarScan
+
+nf-core: varscan_somatic
+Galaxy:  VarScan
+
+nf-core: vrhyme_extractunbinned
+Galaxy:  vRhyme
+
+nf-core: vrhyme_linkbins
+Galaxy:  vRhyme
+
+nf-core: vrhyme_vrhyme
+Galaxy:  vRhyme
+
+nf-core: windowmasker_convert
+Galaxy:  WindowMasker_mkcounts
+
+
+UNMATCHED NF-CORE TOOLS (639 tools)
+================================================================================
+abra2
+adapterremovalfixprefix
+affy_justrma
+agrvate
+ale
+allelecounter
+ampcombi
+ampcombi2_complete
+ampcombi2_parsetables
+amplify_predict
+amps
+amulety_antiberta2
+amulety_antiberty
+amulety_balmpaired
+amulety_esm2
+amulety_translate
+angsd_contamination
+angsd_docounts
+angsd_gl
+anndata_barcodes
+anndata_getsize
+annosine
+annotsv_annotsv
+annotsv_installannotations
+anota2seq_anota2seqrun
+aria2
+ariba_getref
+ariba_run
+assemblyscan
+ataqv_ataqv
+ataqv_mkarv
+atlas_pmd
+atlas_recal
+atlasgeneannotationmanipulation_gtf2featureannotation
+authentict_deam2cont
+backsub
+bacphlip
+bam2fastx_bam2fastq
+bamcmp
+bamreadcount
+bamstats_generalstats
+bamtools_stats
+bases2fastq
+basicpy
+bbmap_bbduk
+bbmap_bbnorm
+bbmap_pileup
+bbmap_repair
+bbmap_sendsketch
+bcftools_call
+bcftools_concat
+bcftools_isec
+bcftools_norm
+bcftools_pluginfilltags
+bcftools_pluginimputeinfo
+bcftools_pluginscatter
+bcftools_pluginsetgt
+bcftools_plugintag2tag
+bcftools_roh
+bcftools_stats
+bcl2fastq
+bedgovcf
+bedops_gtf2bed
+bedtools_multiinter
+bedtools_shift
+bff
+bftools_showinf
+bioawk
+biobambam_bamsormadup
+biscuit_biscuitblaster
+biscuit_bsconv
+biscuit_epiread
+biscuit_pileup
+biscuit_qc
+biscuit_vcf2bed
+bismark_genomepreparation
+bismark_report
+bismark_summary
+blobtk_depth
+bowtie_build
+bwa_aln
+bwa_sampe
+bwa_samse
+cadd
+cafe
+calder2
+cat_cat
+cat_fastq
+catpack_addnames
+catpack_bins
+catpack_contigs
+catpack_prepare
+catpack_reads
+catpack_summarise
+cellbender_removebackground
+cellpose
+cellranger_count
+cellranger_mkfastq
+cellranger_mkgtf
+cellranger_mkref
+cellranger_mkvdjref
+cellranger_multi
+cellranger_vdj
+cellrangerarc_count
+cellrangerarc_mkfastq
+cellrangerarc_mkgtf
+cellrangerarc_mkref
+cellsnp_modea
+checkqc
+chromap_chromap
+chromograph
+clame
+clustalo_guidetree
+cmseq_polymut
+cnvnator_cnvnator
+cnvpytor_importreaddepth
+cnvpytor_partition
+cnvpytor_view
+cobrameta
+cobs_classicconstruct
+cobs_compactconstruct
+conifer
+cooltools_eigscis
+cooltools_insulation
+coptr_estimate
+coptr_map
+cowpy
+crabs_import
+crabs_insilicopcr
+crabz_compress
+crabz_decompress
+crumble
+ctatsplicing_prepgenomelib
+ctatsplicing_startocancerintrons
+custom_addmostsevereconsequence
+custom_addmostseverepli
+custom_getchromsizes
+custom_tabulartogseachip
+custom_tabulartogseacls
+custom_tabulartogseagct
+custom_tx2gene
+datavzrd
+decoupler_decoupler
+deepbgc_pipeline
+deepcell_mesmer
+deepsomatic
+deeptmhmm
+doubletdetection
+dragmap_hashtable
+dssp_mkdssp
+duphold
+dupradar
+dysgu
+eagle2
+eido_validate
+eklipse
+elprep_fastatoelfasta
+emboss_cons
+emmtyper
+emu_abundance
+endorspy
+entrezdirect_esearch
+entrezdirect_esummary
+entrezdirect_xtract
+epang_place
+estsfs
+evigene_tr2aacds
+expansionhunter
+falint
+famsa_guidetree
+faqcs
+fast2q
+fastawindows
+fastqscan
+fastqutils_info
+fcs_fcsadaptor
+fcs_fcsgx
+fcsgx_cleangenome
+fcsgx_fetchdb
+fcsgx_rungx
+ffq
+fgbio_copyumifromreadname
+fgbio_zipperbams
+fibertoolsrs_addnucleosomes
+fibertoolsrs_predictm6a
+find_unpigz
+foldcomp_compress
+foldcomp_decompress
+foldmason_createdb
+foldmason_easymsa
+foldmason_msa2lddtreport
+force_cube
+fq_lint
+fq_subsample
+fqtk
+freyja_boot
+freyja_demix
+freyja_update
+freyja_variants
+fusioncatcher_build
+fusioncatcher_fusioncatcher
+fusionreport_detect
+galah
+gangstr
+ganon_buildcustom
+ganon_classify
+ganon_report
+ganon_table
+gawk
+gem2_gem2bedmappability
+gem2_gemmappability
+genescopefk
+genmap_map
+genmod_compound
+genmod_models
+genmod_score
+genotyphi_parse
+geofetch
+getorganelle_config
+gfaffix
+gfatools_gfa2fa
+gfatools_stat
+gget_gget
+glimpse2_chunk
+glimpse2_concordance
+glimpse2_ligate
+glimpse2_phase
+glimpse_chunk
+glimpse_concordance
+glimpse_ligate
+glimpse_phase
+glimpse_sample
+glnexus
+goat_taxonsearch
+grabix_check
+graphtyper_genotype
+gridss_gridss
+gsea_gsea
+gstama_polyacleanup
+gt_gff3
+gt_ltrharvest
+gt_stat
+gt_suffixerator
+gtdbtk_classifywf
+gunc_run
+gzrt
+hamronization_deeparg
+hamronization_rgi
+hamronization_summarize
+hapibd
+haplocheck
+haplogrep2_classify
+haplogrep3_classify
+happy_ftxpy
+happy_happy
+happy_prepy
+happy_sompy
+hasheddrops
+helitronscanner_draw
+helitronscanner_scan
+hhsuite_hhblits
+hicap
+hiphase
+hlala_preparegraph
+hlala_typing
+hmmcopy_gccounter
+hmmcopy_mapcounter
+hmmcopy_readcounter
+hmmer_hmmrank
+hpsuissero
+htsnimtools_vcfcheck
+humid
+ichorcna_createpon
+ichorcna_run
+icountmini_metagene
+icountmini_peaks
+icountmini_segment
+icountmini_sigxls
+icountmini_summary
+igv_js
+igvreports
+ilastik_multicut
+ilastik_pixelclassification
+immunedeconv
+irescue
+isoseq3_tag
+isoseq_refine
+juicertools_pre
+jupyternotebook
+jvarkit_dict2bed
+jvarkit_sam2tsv
+jvarkit_vcf2table
+jvarkit_vcfpolyx
+kat_hist
+kma_kma
+kmcp_search
+last_mafswap
+last_postmask
+leehom
+leviosam2_lift
+liftoff
+lofreq_alnqual
+lofreq_call
+lofreq_callparallel
+lofreq_indelqual
+lofreq_somatic
+lofreq_viterbi
+longphase_phase
+longstitch
+ltrfinder
+ltrharvest
+ltrretriever_lai
+ltrretriever_ltrretriever
+macrel_contigs
+mageck_test
+magus_guidetree
+malt_build
+malt_run
+mapad_map
+mcroni
+mcstaging_imc2mc
+mcstaging_phenoimager2mc
+md5sum
+megan_daa2info
+megan_rma2info
+melon
+merfin_hist
+metacache_build
+metamaps_classify
+metamaps_mapdirectly
+metamdbg_asm
+midas_run
+mindagap_mindagap
+minimac4_compressref
+minimac4_impute
+mirtop_counts
+mirtop_gff
+mirtop_stats
+mirtrace_qc
+mmseqs_createdb
+mmseqs_createtsv
+mmseqs_databases
+mmseqs_easysearch
+mmseqs_linclust
+mmseqs_search
+mmseqs_taxonomy
+mobster
+mobsuite_recon
+modkit_bedmethyltobigwig
+modkit_callmods
+modkit_pileup
+modkit_repair
+molkartgarage_clahe
+msisensor2_msi
+msisensor_msi
+msisensor_scan
+msisensorpro_msisomatic
+msisensorpro_pro
+msisensorpro_scan
+mtnucratio
+mudskipper_bulk
+multivcfanalyzer
+muse_call
+muse_sump
+mygene
+myloasm
+nacho_qc
+nail_search
+nanolyse
+nanomonsv_parse
+nanoq
+narfmap_hashtable
+ngmaster
+ngsbits_samplegender
+ngsbits_updhunter
+ngscheckmate_fastq
+ngscheckmate_ncm
+ngscheckmate_patterngenerator
+ngscheckmate_vafncm
+oatk
+odgi_draw
+odgi_layout
+odgi_squeeze
+odgi_stats
+odgi_unchop
+odgi_view
+oncocnv
+opt_flip
+opt_stat
+opt_track
+osfclient_fetch
+paftools_sam2paf
+pairix
+pairtools_flip
+pairtools_select
+panacus_histgrowth
+parabricks_applybqsr
+parabricks_fq2bam
+parabricks_fq2bammeth
+parabricks_genotypegvcf
+parabricks_minimap2
+parabricks_mutectcaller
+parabricks_rnafq2bam
+paraclu
+paragraph_idxdepth
+paragraph_multigrmpy
+paragraph_vcf2paragraph
+paraphase
+pasty
+pbccs
+pbptyper
+pbsv_call
+pbtk_bam2fastq
+peddy
+peka
+perbase
+phantompeakqualtools
+phispy
+picard_createsequencedictionary
+picard_crosscheckfingerprints
+picard_liftovervcf
+picard_scatterintervalsbyns
+picard_setnmmdanduqtags
+pigz_compress
+pigz_uncompress
+pints_caller
+pirate
+plasmidid
+platypus
+poolsnp
+popscle_dscpileup
+popscle_freemuxlet
+portcullis_full
+preseq_ccurve
+preseq_lcextrap
+president
+propr_grea
+propr_logratio
+propr_propd
+propr_propr
+proseg_proseg
+proseg_proseg_to_baysor
+proteus_readproteingroups
+purecn_intervalfile
+purecn_normaldb
+purecn_run
+purgedups_calcuts
+purgedups_getseqs
+purgedups_pbcstat
+purgedups_purgedups
+pyclonevi
+pydamage_analyze
+pypgx_createinputvcf
+pypgx_runngspipeline
+pyrodigal
+quartonotebook
+quilt_quilt
+racon
+rapidnj
+rastair_call
+raw2ometiff
+rhocall_viz
+ribotish_predict
+ribotish_quality
+ripgrep
+rmarkdownnotebook
+rrnatranscripts
+rtgtools_bndeval
+rtgtools_svdecompose
+rtgtools_vcfeval
+rtn_tni
+rundbcan_cazymeannotation
+rundbcan_database
+rundbcan_easycgc
+rundbcan_easysubstrate
+s4pred_runmodel
+sageproteomics_sage
+sam2lca_analyze
+samshee
+samtools_bam2fq
+samtools_cat
+samtools_collate
+samtools_collatefastq
+samtools_cramsize
+samtools_dict
+samtools_fasta
+samtools_fastq
+samtools_getrg
+samtools_import
+samtools_sormadup
+scanpy_hashsolo
+scanpy_pca
+scds
+scimap_mcmicro
+scimap_spatiallda
+scvitools_scar
+scvitools_solo
+sentieon_applyvarcal
+sentieon_bwamem
+sentieon_dedup
+sentieon_dnamodelapply
+sentieon_dnascope
+sentieon_gvcftyper
+sentieon_qualcal
+sentieon_readwriter
+sentieon_tnscope
+sentieon_varcal
+seqfu_derep
+seqfu_stats
+seqkit_concat
+seqkit_pair
+seqkit_sana
+seqkit_seq
+seqkit_sliding
+seqkit_stats
+seqkit_tab2fx
+sequencetools_pileupcaller
+sequenzautils_bam2seqz
+sequenzautils_gcwiggle
+seroba_run
+severus
+shapeit5_ligate
+shapeit5_phasecommon
+shapeit5_phaserare
+shapeit5_switch
+shasum
+shigatyper
+shigeifinder
+shinyngs_app
+shinyngs_staticexploratory
+shinyngs_validatefomcomponents
+simpleaf_quant
+ska_distance
+ska_fasta
+skani_dist
+skani_search
+skani_sketch
+skani_triangle
+slimfastq
+smncopynumbercaller
+smoothxg
+smoove_call
+snakemake
+snpdists
+somalier_relate
+souporcell
+sourcepredict
+spaceranger_count
+spaceranger_mkgtf
+spaceranger_mkref
+sparsesignatures
+spatyper
+spotiflow
+spring_compress
+spring_decompress
+sratools_prefetch
+stadeniolib_scramble
+staphopiasccmec
+star_starsolo
+stardist
+stecfinder
+stranger
+strdust
+strvctvre_strvctvre
+summarizedexperiment_summarizedexperiment
+survivor_bedpetovcf
+survivor_simsv
+survivor_stats
+svaba
+svanalyzer_svbenchmark
+svdb_build
+svtk_baftest
+svtk_countsvtypes
+svtk_rdtest2vcf
+svtk_standardize
+svtk_vcf2bed
+svtools_vcftobedpe
+svync
+sylph_sketch
+sylphtax_taxprof
+tagbam
+tailfindr
+taxonkit_lineage
+taxonkit_list
+telseq
+tiddit_cov
+tiddit_sv
+tidk_explore
+tidk_search
+toulligqc
+trgt_genotype
+trust4
+truvari_bench
+truvari_consistency
+truvari_segment
+ultra_pipeline
+ultraplex
+umitools_prepareforrsem
+universc
+untar
+untarfiles
+upd
+vamb_bin
+variancepartition_dream
+variantbam
+vcf2cytosure
+vcf2db
+vcf2maf
+vcflib_vcfbreakmulti
+vcflib_vcffixup
+vcflib_vcfuniq
+verifybamid_verifybamid
+verifybamid_verifybamid2
+vg_construct
+viber
+vireo
+vizgenpostprocessing_preparesegmentation
+vsearch_sintax
+vsearch_usearchglobal
+vt_decompose
+vt_decomposeblocksub
+vuegen
+wget
+wgsim
+whamg
+wipertools_fastqgather
+wipertools_fastqscatter
+wipertools_fastqwiper
+wipertools_reportgather
+wisecondorx_gender
+wisecondorx_newref
+wittyer
+xeniumranger_import-segmentation
+xeniumranger_relabel
+xeniumranger_resegment
+xz_compress
+xz_decompress
+yak_count
+yte
+
+
+UNMATCHED GALAXY TOOLS (first 500 of 8652)
+================================================================================
+'FeatureStein' fragment overlay scoring            (bgruening/featurestein)
+0.9.7 Dev21                                        (estrain/qsnp2)
+1_create_conf                                      (gdroc/scaffremodler)
+1_create_conf                                      (gdroc/scaffremodler)
+2DNMRAnnotation                                    (marie-tremblay-metatoul/2dnmrannotation)
+2_map                                              (gdroc/scaffremodler)
+2_map                                              (gdroc/scaffremodler)
+3_filter_single_pair                               (gdroc/scaffremodler)
+3_filter_single_pair                               (gdroc/scaffremodler)
+4_filter_sam                                       (gdroc/scaffremodler)
+4_filter_sam                                       (gdroc/scaffremodler)
+5_calc_stat                                        (gdroc/scaffremodler)
+5_calc_stat                                        (gdroc/scaffremodler)
+6_parse_discord                                    (gdroc/scaffremodler)
+6_parse_discord                                    (gdroc/scaffremodler)
+7_select_on_cov                                    (gdroc/scaffremodler)
+7_select_on_cov                                    (gdroc/scaffremodler)
+8_ident_SV                                         (gdroc/scaffremodler)
+8_ident_SV                                         (gdroc/scaffremodler)
+A) Format Data for LEfSe                           (george-weingart/lefse)
+AARNet FileSender                                  (galaxy-australia/aarnet_filesender)
+ABRicate List                                      (iuc/abricate)
+ABRicate Summary                                   (iuc/abricate)
+ABySS                                              (iuc/abyss)
+ACGT Content                                       (bgruening/glimmer_acgt_content)
+ACPC                                               (marpiech/norwich_tools_dock)
+AEGeAn CanonGFF3                                   (iuc/aegean_canongff3)
+AEGeAn CanonGFF3                                   (iuc/aegean_canongff3)
+AEGeAn GAEVAL                                      (iuc/aegean_gaeval)
+AEGeAn GAEVAL                                      (iuc/aegean_gaeval)
+AEGeAn LocusPocus                                  (iuc/aegean_locuspocus)
+AEGeAn LocusPocus                                  (iuc/aegean_locuspocus)
+AEGeAn ParsEval                                    (iuc/aegean_parseval)
+AEGeAn ParsEval                                    (iuc/aegean_parseval)
+AGAT                                               (bgruening/agat)
+AGEseq                                             (lxue/ageseq)
+AGILE                                              (simonl/agile_wrapper)
+AGouTI annotate                                    (janktoolshed/agouti)
+AGouTI annotate                                    (janktoolshed/agouti)
+AGouTI create_db                                   (janktoolshed/agouti)
+AGouTI create_db                                   (janktoolshed/agouti)
+ALDEx2                                             (iuc/aldex2)
+ALFA                                               (biocomp-ibens/alfa)
+ALFA                                               (biocomp-ibens/alfa)
+ALFA indexes                                       (biocomp-ibens/data_manager_build_alfa_indexes)
+ALPHAFOLD                                          (biomate/biomate_datasets)
+ANCOM-BC                                           (iuc/ancombc)
+ANNOVAR Annotate VCF                               (devteam/table_annovar)
+APOSTL Static Bubblegraph Generator                (bornea/apostl_static_bubblegraph_generator)
+APoc                                               (earlhaminst/apoc)
+APoc                                               (marpiech/norwich_tools_dock)
+ART 454                                            (iuc/art)
+ART SOLiD                                          (iuc/art)
+ARTS                                               (mmaiensc/arts)
+ARTS                                               (mmaiensc/arts)
+ARTS Score                                         (mmaiensc/arts)
+ARTS Score                                         (mmaiensc/arts)
+ARTbio bam cleaning                                (artbio/artbio_bam_cleaning)
+ARTbio bam cleaning                                (artbio/artbio_bam_cleaning)
+ASAP                                               (itaxotools/asap)
+ASCA                                               (marie-tremblay-metatoul/asca)
+ASTRAL-III                                         (iuc/astral)
+ASTRAL-III. Tool for estimating an unrooted species tree given a set of unrooted gene trees. (padge/astral)
+AWK Script                                         (brinkmanlab/awkscript)
+AWK Script                                         (brinkmanlab/awkscript)
+Abundance index                                    (mnhn65mo/regionalgam)
+Abundance index                                    (ecology/regionalgam_ab_index)
+Abyss                                              (edward-kirton/abyss_toolsuite)
+Abyss Paired-End                                   (edward-kirton/abyss_toolsuite)
+AccurateMassSearch                                 (galaxyp/openms_accuratemasssearch)
+Adapt an elastic transformation                    (imgteam/imagej2_bunwarpj_adapt_transform)
+AdapterRemoval: remove adapter sequences           (iuc/adapter_removal)
+Add                                                (timpalpant/java_genomics_toolkit)
+Add                                                (timpalpant/java_genomics_toolkit)
+Add BLAST links                                    (erasmus-medical-center/mycrobiota)
+Add Feature Colours to GFF                         (portiahollyoak/gff_feature_colours)
+Add Header                                         (estrain/add_column_headers)
+Add Header                                         (estrain/add_column_headers)
+Add KEGG Pathway Information                       (malex/gait_gm)
+Add LoFreq alignment quality scores                (iuc/lofreq_alnqual)
+Add Rank Names to Phyloseq Object                  (iuc/phyloseq_add_rank_names)
+Add background sequences                           (iuc/data_manager_selection_background)
+Add barcodes                                       (bebatut/fasta_add_barcode)
+Add column                                         (devteam/add_value)
+Add column                                         (devteam/add_value)
+Add delta pI                                       (galaxyp/hirieftools)
+Add expression data                                (proteore/proteore_expression_rnaseq_abbased)
+Add gene annotations                               (gaelcge/r_signac_galaxy)
+Add gene annotations                               (gaelcge/r_signac_galaxy)
+Add hydrogen atoms                                 (bgruening/openbabel_addh)
+Add input name as column                           (mvdbeek/add_input_name_as_column)
+Add input name as column                           (mvdbeek/add_input_name_as_column)
+Add line to file                                   (bgruening/add_line_to_file)
+Add line to file                                   (bgruening/add_line_to_file)
+Add matesequence                                   (mvdbeek/bam_readtagger)
+Add matesequence                                   (mvdbeek/bam_readtagger)
+Add metadata                                       (iuc/biom_add_metadata)
+Add metadata to otutable                           (luka/naturalis_add_metadata_otutable)
+Add non match sequence from a fasta file to a blast result (ehirchaud/add_non_blast_match)
+Add non match sequence from a fasta file to a blast result (ehirchaud/add_non_blast_match)
+Add or remove noise                                (imgteam/imagej2_noise)
+Add organisms to JBrowse container                 (gga/jbrowse_to_container)
+Add protein features                               (proteore/proteore_prot_features)
+Add protein features                               (proteore/proteore_prot_features_3orga)
+Add sample information and merge                   (azomics/flclr_sample_name)
+Add sample name as first line                      (jowong/add_sample_as_first_line)
+Add sample name as first line                      (jowong/add_sample_as_first_line)
+Add shadow effect                                  (imgteam/imagej2_shadows)
+Add strain to cg/wgMLST database                   (bvalot/pymlst)
+Add surface field                                  (iuc/icqsol_add_surface_field_from_expression)
+Add texture                                        (iuc/icqsol_add_texture)
+AddCommentsToBam                                   (avowinkel/picard)
+AddCommentsToBam                                   (devteam/picard)
+AddCommentsToBam                                   (devteam/picard_plus)
+AddCommentsToBam                                   (avowinkel/picard)
+AddMissingAtoms                                    (luis/ball)
+AddOrReplaceReadGroups                             (avowinkel/picard)
+AddOrReplaceReadGroups                             (devteam/picard)
+AddOrReplaceReadGroups                             (devteam/picard_plus)
+AddOrReplaceReadGroups                             (avowinkel/picard)
+Adding New Topology Information                    (chemteam/gromacs_modify_topology)
+AdditiveSeries                                     (galaxyp/openms_additiveseries)
+Adds environment variables                         (ecology/iabiodiv_smartbiodiv_med_environ)
+Adjust Bracken Report for Unclassified Reads       (public-health-bioinformatics/adjust_bracken_for_unclassified_reads)
+Adjust Kraken-Style Bracken Report for Unclassified Reads (public-health-bioinformatics/adjust_bracken_for_unclassified_reads)
+Adjust threshold                                   (imgteam/imagej2_adjust_threshold_binary)
+Admixture                                          (dereeper/admixture)
+Admixture                                          (miller-lab/genome_diversity)
+Advanced Cut                                       (bgruening/text_processing)
+Advanced NG-CHM Generator                          (md-anderson-bioinformatics/heat_map_creation_advanced)
+Advanced restitution: 'Point fixe' protocol        (ecology/vigiechiro_bilanenrichipf)
+Advanced restitution: 'Routier'or 'Pedestre' protocols (ecology/vigiechiro_bilanenrichirp)
+Advanced restitution: raw approach                 (mnhn65mo/vigiechiro)
+Advanced restitution: summary                      (mnhn65mo/vigiechiro)
+Aggregate Individuals                              (miller-lab/genome_diversity)
+Aggregate and filter alignment metrics             (rnateam/graphclust_aggregate_alignments)
+Alchemical Analysis                                (chemteam/alchemical_analysis)
+Alchemical Run                                     (chemteam/gmx_fep)
+Alevin                                             (bgruening/alevin)
+Alevin                                             (bgruening/alevin)
+AlevinQC                                           (fwuennemann/alevinqc)
+AlevinQC                                           (fwuennemann/alevinqc)
+Align Custom Amplicon                              (fcaramia/custom_amplicon_alignment)
+Align DB fractions                                 (galaxyp/hirieftools)
+Align Samples                                      (computational-metabolomics/dimspy_align_samples)
+Align and Estimate Abundance                       (anmoljh/align_and_estimate_abundance)
+Align and Estimate Abundance                       (anmoljh/align_and_estimate_abundance)
+Align reads and estimate abundance                 (iuc/trinity_align_and_estimate_abundance)
+Align reads and estimate abundance                 (iuc/trinity_align_and_estimate_abundance)
+Align sequences                                    (iuc/bioext_bealign)
+Align sequences                                    (iuc/qiime_align_seqs)
+Align structures and compute relative RMSDs        (chemteam/biopdb_align_and_rmsd)
+Align to the Genome with Bowtie                    (triasteran/bowtie_genomic_wrapper)
+Align to the Genome with Bowtie                    (triasteran/bowtie_genomic_wrapper)
+Align two images                                   (imgteam/imagej2_bunwarpj_align)
+Align values in a matrix                           (timpalpant/java_genomics_toolkit)
+Align values in a matrix                           (timpalpant/java_genomics_toolkit)
+Align.check                                        (iuc/mothur_align_check)
+Align.seqs                                         (iuc/mothur_align_seqs)
+Allegro                                            (iuc/allegro)
+Allegro                                            (iuc/allegro)
+Alleyoop                                           (iuc/slamdunk)
+Alleyoop                                           (iuc/slamdunk)
+Allow dovetailing                                  (mvdbeek/bam_readtagger)
+Allow dovetailing                                  (mvdbeek/bam_readtagger)
+AlvisPlan                                          (moba/alvis_rep)
+AlvisPlan                                          (moba/alvis_rep)
+Amino Acid Coverage                                (nml/quasitools)
+Amino Acid Variants                                (nml/quasitools)
+Amova                                              (iuc/mothur_amova)
+AmpliCan                                           (iuc/amplican)
+AmpliGone                                          (iuc/ampligone)
+Amplicon Analysis Pipeline                         (pjbriggs/amplicon_analysis_pipeline)
+Analyse CpGo/e ratios                              (cristian/notos)
+Analyse CpGo/e ratios                              (cristian/notos)
+Analyse Mutational Patterns/Signatures             (artbio/mutational_patterns)
+Analyse SAM/BAM with bamqc                         (joachim-jacob/qualimap_suite)
+Analyse canonical genes against 'peak' data        (pjbriggs/rnachipintegrator)
+Analyse your data with Reactome                    (lnguyen/link2reactome)
+Analysis of artifacts with Tasmanian               (iuc/tasmanian_mismatch)
+Analytic correlation filtration                    (melpetera/acorf)
+Analyze Covariates                                 (devteam/analyze_covariates)
+Analyze and visualize spatial multi-omics data     (goeckslab/squidpy_spatial)
+Analyze and visualize spatial multi-omics data     (goeckslab/squidpy_spatial)
+Analyze particles                                  (imgteam/imagej2_analyze_particles_binary)
+Analyze skeleton                                   (imgteam/imagej2_analyze_skeleton)
+Analyze statistical significance of sample groupings (iuc/qiime_compare_categories)
+Analyze_Differential_Expression                    (gkumar09/trinityrnaseq_protocol)
+Analyze_Differential_Expression                    (gkumar09/trinityrnaseq_protocol)
+Ancestry                                           (miller-lab/genome_diversity)
+Angle Analysis                                     (chemteam/mdanalysis_angle)
+AnnData Operations                                 (ebi-gxa/anndata_ops)
+AnnData Operations                                 (ebi-gxa/anndata_ops)
+Annotate                                           (iuc/hyphy_annotate)
+Annotate                                           (gga/apollo_iframe)
+Annotate                                           (devteam/vcf_annotate)
+Annotate                                           (devteam/vcftools_annotate)
+Annotate                                           (gga/apollo_iframe)
+Annotate Amplicons                                 (geert-vandeweyer/varamplicnv)
+Annotate DESeq2/DEXSeq output tables               (iuc/deg_annotate)
+Annotate DESeq2/DEXSeq output tables               (iuc/deg_annotate)
+Annotate RNAz                                      (bgruening/rnaz_annotate)
+Annotate smRNA dataset                             (artbio/sr_bowtie_dataset_annotation)
+Annotate with DGI                                  (devteam/dgidb_annotator)
+Annotate with DGI                                  (devteam/dgidb_annotator)
+AnnotateGenes                                      (alermine/nebula)
+AnnotatePeaks                                      (alermine/nebula)
+Annotates                                          (xiaoyi-cao/bedtools_annotate)
+Annotates a text with bio-ontology terms           (mikel-egana-aranguren/ncbo_services)
+Annovar YAML                                       (niels/annovar_yaml_wrapper)
+Anomaly                                            (crs4/glimmer)
+Anosim                                             (iuc/mothur_anosim)
+Anova                                              (lecorguille/anova)
+Anova                                              (lecorguille/anova)
+AnteChamber                                        (chemteam/ambertools_antechamber)
+AntitargetRescorer                                 (luis/ball)
+Apollo User Manager                                (yating-l/gonramp_apollo_tools)
+Appendfdr                                          (galaxyp/appendfdr)
+Apples after Skmer                                 (alexmonell/genome_skimming_workflow_tools)
+Apply Variant Recalibration                        (iuc/gatk2)
+Apply Variant Recalibration                        (lz_hust/gatktools)
+Apply Variant Recalibration                        (devteam/variant_apply_recalibration)
+Apply a morphological operation                    (imgteam/morphological_operations)
+Apply anisotropic diffusion                        (imgteam/anisotropic_diffusion)
+Apply elastic transformation                       (imgteam/imagej2_bunwarpj_elastic_transform)
+Apply filter                                       (imgteam/imagej2_filter)
+Apply raw transformation                           (imgteam/imagej2_bunwarpj_raw_transform)
+ApplyMdae                                          (chemteam/biobb_pytorch)
+AquaINFRA Importer                                 (ecology/aquainfra_importer)
+AquaINFRA OGC API Processes                        (ecology/aquainfra)
+AquaINFRA OGC API Processes                        (ecology/aquainfra_ogc_api_processes)
+Argo data access                                   (ecology/argo_getdata)
+Arithmetic Operations                              (devteam/tables_arithmetic_operations)
+Arriba                                             (iuc/arriba)
+Arriba                                             (jjohnson/arriba)
+Arriba                                             (iuc/arriba)
+Arriba Draw Fusions                                (jjohnson/arriba_draw_fusions)
+Arriba Draw Fusions                                (iuc/arriba_draw_fusions)
+Arriba Draw Fusions                                (iuc/arriba_draw_fusions)
+Arriba Draw Fusions                                (jjohnson/arriba_draw_fusions)
+Arriba Get Filters                                 (jjohnson/arriba_get_filters)
+Arriba Get Filters                                 (iuc/arriba_get_filters)
+Arriba Get Filters                                 (iuc/arriba_get_filters)
+Arriba Get Filters                                 (jjohnson/arriba_get_filters)
+Arriba Reference                                   (jjohnson/arriba_download_reference)
+Arriba Reference                                   (jjohnson/arriba_download_reference)
+AskOmics                                           (gga/askomics_integrate)
+AskOmics                                           (gga/askomics_integrate)
+AskoR DE                                           (genouest/askor_de)
+AskoR DE                                           (genouest/askor_de)
+AssayGeneratorMetabo                               (galaxyp/openms_assaygeneratormetabo)
+Assemble organelle genome from genomic skimming data (petr-novak/get_organelle)
+Assemble with MIRA v3.4                            (peterjc/mira_assembler)
+Assembly stats                                     (iuc/assembly_stats)
+AssemblyPostProcessor                              (greg/plant_tribes_assembly_post_processor)
+Assign taxonomy                                    (iuc/qiime_assign_taxonomy)
+Assign weighted-average                            (devteam/weightedaverage)
+Associate                                          (iuc/humann2_associate)
+Associate FLOCK populations                        (immport-devteam/profile_cl)
+Association rules                                  (bgruening/sklearn_mlxtend_association_rules)
+Association rules                                  (bgruening/sklearn_mlxtend_association_rules)
+Associations                                       (nathandunn/biolinkmonarchinitiative)
+Associations                                       (nathandunn/biolinkplanteome)
+Associations                                       (nathandunn/biolinkmonarchinitiative)
+Associations                                       (nathandunn/biolinkplanteome)
+Atlas FASTQ provider                               (ebi-gxa/atlas_fastq_provider)
+Atlas FASTQ provider                               (ebi-gxa/atlas_fastq_provider)
+Augustus                                           (bgruening/augustus)
+Aurora Galaxy WGCNA                                (spficklin/aurora_wgcna)
+AutoModel                                          (luis/ball)
+Autoclustering analysis                            (azomics/meta_autocluster)
+Autocorrelation test                               (mnhn65mo/regionalgam)
+Autocorrelation test                               (ecology/regionalgam_autocor_acf)
+Automated multiple sequence                        (iuc/pipelign)
+Autospill                                          (azomics/autospill)
+Average                                            (timpalpant/java_genomics_toolkit)
+Average                                            (timpalpant/java_genomics_toolkit)
+Average intervals                                  (timpalpant/java_genomics_toolkit)
+Average intervals                                  (timpalpant/java_genomics_toolkit)
+BAM BED GFF coverage bigWig                        (fubar/bbgbigwig_dev)
+BAM BED GFF coverage bigWig                        (fubar/bbgbigwig_dev)
+BAM BED GFF coverage bigWigs                       (iuc/bbgbigwig)
+BAM Coverage Plotter                               (iuc/jvarkit_wgscoverageplotter)
+BAM coverage statistics                            (peterjc/coverage_stats)
+BAM filter                                         (iuc/ngsutils_bam_filter)
+BAM mapping statistics                             (peterjc/samtools_idxstats)
+BAM preprocessing                                  (bzeitouni/svdetect)
+BAM preprocessing                                  (bzeitouni/svdetect)
+BAM preprocessing                                  (scisjnu123/ngsap_vc)
+BAM to BigWig                                      (brad-chapman/bam_to_bigwig)
+BAM to BigWig                                      (brad-chapman/bam_to_bigwig)
+BAM to Sqlite                                      (jackcurragh/trips_viz_bam_to_sqlite)
+BAM to Wiggle                                      (nilesh/rseqc)
+BAM to Wiggle                                      (nilesh/rseqc)
+BAM to consensus                                   (jvolkening/b2b_bam2consensus)
+BAM to fastq                                       (brad-chapman/bam_to_fastq)
+BAM-to-BED                                         (geoffrey.dintilhac/bam_to_bed_test)
+BAM-to-SAM                                         (devteam/bam_to_sam)
+BAM/SAM Mapping Stats                              (nilesh/rseqc)
+BAM/SAM Mapping Stats                              (nilesh/rseqc)
+BAMEdit                                            (modencode-dcc/bamedit)
+BARIC Archive                                      (genouest/baric_archive_rennes)
+BARIC Archive                                      (genouest/baric_archive_toulouse)
+BBMap Clumpify: Deduplication                      (jobucher/bbtools_clumpify)
+BBTools: BBMap                                     (iuc/bbtools_bbmap)
+BBTools: BBMerge                                   (iuc/bbtools_bbmerge)
+BBTools: BBNorm                                    (iuc/bbtools_bbnorm)
+BBTools: BBduk                                     (iuc/bbtools_bbduk)
+BBTools: Tadpole                                   (iuc/bbtools_tadpole)
+BBTools: call variants                             (iuc/bbtools_callvariants)
+BCF Tools Cat                                      (nilesh/bcftools)
+BCF Tools Cat                                      (nilesh/bcftools)
+BCF Tools Index                                    (nilesh/bcftools)
+BCIL-Unfold                                        (bioitcore/transcriptomics_easy_for_discovery_toolkit)
+BCIL-Unfold                                        (bioitcore/transcriptomics_easy_for_discovery_toolkit)
+BDSS client                                        (mingchen0919/rmarkdown_bdss_client)
+BDSS client SRA                                    (mingchen0919/rmarkdown_bdss_client)
+BEAMSpy                                            (metabolights/beamspy_galaxy)
+BEC                                                (matces/carpet_toolsuite)
+BEC                                                (matces/carpet_toolsuite)
+BED to sorted BAM                                  (brenninc/bedtools_bedtobam)
+BED-format primer scheme data manager              (iuc/data_manager_primer_scheme_bedfiles)
+BED-to-GFF                                         (vipints/fml_gff3togtf)
+BLAST Reporting                                    (damion/blast_reporting)
+BLAST XML to selected tabular columns              (galaxyp/blastxml_to_tabular_selectable)
+BLAST XML to tabular                               (devteam/ncbi_blast_plus)
+BLAST caller for ORF                               (nedias/blast_tool)
+BLAST parser                                       (earlhaminst/blast_parser)
+BLAST report                                       (public-health-bioinformatics/blast_report_basic)
+BLAST top hit descriptions                         (peterjc/blastxml_to_top_descr)
+BLAST top hit descriptions                         (peterjc/blastxml_to_top_descr)
+BLUP/BLUE                                          (dereeper/blup_calculator)
+BREW3R.r                                           (iuc/brew3r_r)
+BREW3R.r                                           (iuc/brew3r_r)
+BRT tool prediction                                (ecology/ecoregion_brt_analysis)
+BSMAP Mapper                                       (eiriche/bsmap)
+BSMAP Methylation Caller                           (eiriche/bsmap)
+BTyper                                             (estrain/btyper)
+BWA-MEM index                                      (devteam/data_manager_bwa_mem_index_builder)
+BWA-MEM2                                           (iuc/bwa_mem2)
+BWA-MEM2 index builder                             (iuc/data_manager_bwa_mem2_index_builder)
+BWA-MEM2 indexer                                   (iuc/bwa_mem2)
+BWASplitSAM                                        (malex/bayesase)
+BWASplitSAM                                        (malex/bayesase)
+BaSiC Illumination                                 (perssond/basic_illumination)
+Bacillus Thuringiensis serovars aizaiwai and kurstaki detection (p.lucas/bt_typer)
+Bacillus Thuringiensis serovars aizaiwai and kurstaki detection (p.lucas/bt_typer)
+Backbone for APPLES                                (alexmonell/genome_skimming_workflow_tools)
+Backbone for APPLES                                (st__/test)
+Background subtraction                             (goeckslab/backsub)
+Badread                                            (jvolkening/badread)
+Bagging Embeddings Processor                       (goeckslab/bagging_tool)
+Bakta                                              (iuc/bakta)
+Bakta                                              (thanhlv/bakta)
+Ballgown                                           (theo.collard/ballgown_wrapper)
+Ballgown                                           (theo.collard/ballgown_wrapper)
+BamHash                                            (bgruening/bamhash)
+BamLeftAlign                                       (devteam/bamleftalign)
+BamLeftAlign                                       (devteam/bamleftalign)
+BamLeftAlign                                       (devteam/freebayes)
+BamUtil diff                                       (iuc/bamutil_diff)
+Bandage Image                                      (iuc/bandage)
+Bandage Info                                       (iuc/bandage)
+Bandage Info                                       (iuc/bandage)
+Bar plot                                           (ecology/bar_plot)
+Barcode Splitter                                   (devteam/fastx_barcode_splitter)
+Barcode Splitter                                   (lparsons/fastx_barcode_splitter_enhanced)
+Barcode Splitter                                   (iuc/barcode_splitter)
+Barcode Splitter                                   (hepcat72/barcode_splitter_multi)
+Barcode sorting for Stacks                         (tiagoantao/barcode_stacks)
+Barcoding Gap Inference                            (lmansi/barcoding_gap_wrapper)
+Barplot                                            (iuc/humann2_barplot)
+Barplot                                            (iuc/humann_barplot)
+Barplot                                            (thanhlv/humann_barplot)
+Barplot w ggplot2                                  (iuc/ggplot2_barplot)
+Base Coverage                                      (devteam/basecoverage)
+Base Recalibrator                                  (iuc/gatk2)
+Base Recalibrator                                  (lz_hust/gatktools)
+Baseline                                           (fcaramia/contra)
+Baseline                                           (fcaramia/contra)
+Baseline toxicity calculator                       (mbernt/baseline_toxicity_calculator)
+Baseline toxicity calculator                       (mbernt/baseline_toxicity_calculator)
+BaselineFilter                                     (galaxyp/openms_baselinefilter)
+BasicDesign                                        (tduigou/rpbasicdesign)
+BasicDesign                                        (iuc/rpbasicdesign)
+Batch_correction                                   (melpetera/batchcorrection)
+Batched LASTZ                                      (richard-burhans/batched_lastz)
+BayeScan                                           (iuc/bayescan)
+Beacon2 Analyses                                   (iuc/beacon2_analyses)
+Beacon2 Analyses                                   (iuc/beacon2_analyses)
+Beacon2 Biosamples                                 (iuc/beacon2_biosamples)
+Beacon2 Biosamples                                 (iuc/beacon2_biosamples)
+Beacon2 Bracket                                    (iuc/beacon2_bracket)
+Beacon2 Bracket                                    (iuc/beacon2_bracket)
+Beacon2 CNV                                        (iuc/beacon2_cnv)
+Beacon2 CNV                                        (iuc/beacon2_cnv)
+Beacon2 CSV2XLSX                                   (iuc/beacon2_csv2xlsx)
+Beacon2 CSV2XLSX                                   (iuc/beacon2_csv2xlsx)
+Beacon2 Cohorts                                    (iuc/beacon2_cohorts)
+Beacon2 Cohorts                                    (iuc/beacon2_cohorts)
+Beacon2 Datasets                                   (iuc/beacon2_datasets)
+Beacon2 Datasets                                   (iuc/beacon2_datasets)
+Beacon2 Gene                                       (iuc/beacon2_gene)
+Beacon2 Gene                                       (iuc/beacon2_gene)
+Beacon2 Import                                     (iuc/beacon2_import)
+Beacon2 Import                                     (iuc/beacon2_import)
+Beacon2 Individuals                                (iuc/beacon2_individuals)
+Beacon2 Individuals                                (iuc/beacon2_individuals)
+Beacon2 PXF2BFF                                    (iuc/beacon2_pxf2bff)
+Beacon2 PXF2BFF                                    (iuc/beacon2_pxf2bff)
+Beacon2 Range                                      (iuc/beacon2_range)
+Beacon2 Range                                      (iuc/beacon2_range)
+Beacon2 Runs                                       (iuc/beacon2_runs)
+Beacon2 Runs                                       (iuc/beacon2_runs)
+Beacon2 Sequence                                   (iuc/beacon2_sequence)
+Beacon2 Sequence                                   (iuc/beacon2_sequence)
+Beacon2 VCF2BFF                                    (iuc/beacon2_vcf2bff)
+Beacon2 VCF2BFF                                    (iuc/beacon2_vcf2bff)
+Beagle                                             (dereeper/beagle)
+Beagle                                             (iuc/beagle)
+Beagle                                             (dereeper/beagle)
+Beagle                                             (iuc/beagle)
+Beagle4.0                                          (bobbledavidson/beagle4_0)
+Beagle4.0                                          (bobbledavidson/beagle4_0)
+Beagle_impute                                      (nicolas/oghma)
+Beagle_phase                                       (nicolas/oghma)
+Beast                                              (malex/beast)
+Bed/BedGraph/GFF to Wig                            (timpalpant/java_genomics_toolkit)
+Bed/BedGraph/GFF to Wig                            (timpalpant/java_genomics_toolkit)
+BedToIntervalList                                  (avowinkel/picard)
+BedToIntervalList                                  (devteam/picard)
+BedToIntervalList                                  (devteam/picard_plus)
+BedToIntervalList                                  (avowinkel/picard)
+Bellavista                                         (iuc/bellavista_prepare)
+Bellavista                                         (iuc/bellavista_prepare)
+Berokka                                            (iuc/berokka)
+Beta Diversity                                     (iuc/scikit_bio_diversity_beta_diversity)
+Between-table Correlation                          (melpetera/corr_table)
+BiG-SCAPE                                          (iuc/bigscape)
+BiH4BloodExposome                                  (fgiacomoni/bih4bloodexposome)
+BiSCoT                                             (iuc/biscot)
+BigWig to BedGraph                                 (artbio/bigwig_to_bedgraph)
+BigWig to Wig                                      (nikos/bigwig_to_wig)
+BigWig to Wig                                      (artbio/bigwig_to_wig)
+Bigwig extremes to bed features                    (fubar/bigwig_outlier_bed)
+Bigwig extremes to bed features                    (fubar/bigwig_outlier_bed)
+Bigwig outliers to bed features                    (iuc/bigwig_outlier_bed)
+Bih4MaConDa                                        (fgiacomoni/bih4maconda)
+Bin.seqs                                           (iuc/mothur_bin_seqs)
+BindingDBCleaner                                   (luis/ball)
+BindingDB_All_202409.tsv                           (biomate/biomate_datasets)
+Binette                                            (iuc/binette)
+Binning refiner                                    (iuc/binning_refiner)
+Bio-TraDis Essentiality Predictions                (iuc/biotradis)
+Bio-TraDis counts to gene insertion data           (iuc/biotradis)
+Bio-TraDis reads to counts                         (iuc/biotradis)
+BioGeoChemical calibration                         (ecology/tool_biogeochemical_calibration)
+BioMaS                                             (lmansi/biomas)
+BioPython Make Unique ID                           (brinkmanlab/make_unique_id)
+BioPython Phylo Parse Newick Leaf Order            (brinkmanlab/extract_tree_order)
+BioPython SeqIO Converter                          (brinkmanlab/biopython_convert)
+BioTransformer                                     (recetox/biotransformer)
+Biobox add taxid                                   (iuc/biobox_add_taxid)
+Bioentity Associations                             (nathandunn/biolinkmonarchinitiative)
+Bioentity Associations                             (nathandunn/biolinkplanteome)
+Bioentity Associations                             (nathandunn/biolinkmonarchinitiative)
+Bioentity Associations                             (nathandunn/biolinkplanteome)
+Bioentity Set Get Over Representation              (nathandunn/biolinkmonarchinitiative)
+Bioentity Set Get Over Representation              (nathandunn/biolinkmonarchinitiative)
+Biological theme comparison                        (proteore/proteore_go_terms_enrich_comparison)
+Biom.info                                          (iuc/mothur_biom_info)
+Bionano Hybrid Scaffold                            (bgruening/bionano_scaffold)
+Biosigner                                          (ethevenot/biosigner)
+Biosigner                                          (ethevenot/biosigner)
+BipartiteDistanceMatrix                            (metexplore/met4j)
+BipartiteDistanceMatrix                            (metexplore/met4j_bipartitedistancematrix)
+Bismark Mapper                                     (bgruening/bismark)
+Bismark Meth. Extractor                            (bgruening/bismark)
+Bismark Pretty Report                              (bgruening/bismark)
+Bismark to BedGraph                                (jobucher/bismark2bedgraph)
+Blank Filter                                       (computational-metabolomics/dimspy_blank_filter)
+Blast Unmatched                                    (artbio/blast_unmatched)
+Blast2GO                                           (peterjc/blast2go)
+BlastAlign                                         (abims-sbr/blastalign)
+BlastAlign                                         (abims-sbr/blastalign)
+BlastXML to gapped GFF3                            (iuc/blastxml_to_gapped_gff3)
+BlobToolKit                                        (bgruening/blobtoolkit)
+Blobtools plot                                     (galaxy-australia/blobtools)
+Blobtools view                                     (galaxy-australia/blobtools)
+BlockClust                                         (rnateam/blockclust)
+BloomTree Manager - Create                         (fabio/btman)
+BloomTree Manager - Create                         (fabio/btman)
+BloomTree Manager - Query                          (fabio/btman)
+BloomTree Manager - Query                          (fabio/btman)
+Blosum                                             (jfb/oscar_test)
+BondOrderAssigner                                  (luis/ball)
+Bowtie Genome Alignment                            (jackcurragh/ribogalaxy_bowtie_genome)
+Bowtie Genome Alignment                            (triasteran/ribogalaxy_genome_mapping)
+Bowtie Indexing                                    (nikhil-joshi/mirdeep2_and_targetspy)
+Bowtie Indexing                                    (david-hoover/mirdeep2_and_targetspy_dh)
