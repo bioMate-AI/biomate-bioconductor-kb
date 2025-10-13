@@ -20,17 +20,22 @@ log = logging.getLogger(__name__)
 class ToolAutoInstaller:
     """Automatically install missing Galaxy tools during workflow execution."""
 
-    def __init__(self, galaxy_root: str, biomate_tools_root: str = None):
+    def __init__(self, galaxy_root: str, biomate_tools_root: str = None,
+                 galaxy_api_url: str = None, galaxy_api_key: str = None):
         """
         Initialize the tool auto-installer.
 
         Args:
             galaxy_root: Path to Galaxy installation root
             biomate_tools_root: Path to BioMate tools repository (defaults to backend/tools)
+            galaxy_api_url: Galaxy API URL (e.g., http://localhost:8080) for Toolshed installs
+            galaxy_api_key: Galaxy admin API key for Toolshed installs
         """
         self.galaxy_root = Path(galaxy_root)
         self.galaxy_tools_dir = self.galaxy_root / "tools" / "biomate_custom"
         self.tool_conf_file = self.galaxy_root / "config" / "tool_conf_biomate.xml"
+        self.galaxy_api_url = galaxy_api_url
+        self.galaxy_api_key = galaxy_api_key
 
         if biomate_tools_root is None:
             # Default to backend/tools relative to this file
@@ -360,7 +365,7 @@ class ToolAutoInstaller:
         except Exception as e:
             log.warning(f"Could not reload Galaxy toolbox: {e}")
 
-    def validate_workflow_tools(self, workflow_dict: Dict) -> Tuple[List[str], List[str]]:
+    def validate_workflow_tools(self, workflow_dict: Dict) -> Tuple[List[str], List[str], List[str]]:
         """
         Validate that all tools in a workflow are available.
 
@@ -368,10 +373,11 @@ class ToolAutoInstaller:
             workflow_dict: Galaxy workflow dictionary
 
         Returns:
-            Tuple of (available_tools, missing_tools)
+            Tuple of (available_tools, missing_custom_tools, missing_toolshed_tools)
         """
         available = []
-        missing = []
+        missing_custom = []
+        missing_toolshed = []
 
         for step in workflow_dict.get("steps", {}).values():
             tool_id = step.get("tool_id")
@@ -379,22 +385,154 @@ class ToolAutoInstaller:
             if not tool_id:
                 continue
 
-            # Skip Toolshed tools (Galaxy handles those)
+            # Toolshed tools - use Galaxy's API to check/install
             if tool_id.startswith("toolshed.g2.bx.psu.edu"):
-                available.append(tool_id)
+                if self._is_toolshed_tool_installed(tool_id):
+                    available.append(tool_id)
+                else:
+                    missing_toolshed.append(tool_id)
                 continue
 
-            # Check if tool is installed
+            # Custom BioMate tools - use our installation system
             if self.is_tool_installed(tool_id):
                 available.append(tool_id)
             else:
-                missing.append(tool_id)
+                missing_custom.append(tool_id)
 
-        return available, missing
+        return available, missing_custom, missing_toolshed
+
+    def _is_toolshed_tool_installed(self, tool_id: str) -> bool:
+        """
+        Check if a Toolshed tool is installed in Galaxy.
+
+        Args:
+            tool_id: Full Toolshed tool ID (e.g., toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.73)
+
+        Returns:
+            True if installed, False otherwise
+        """
+        # TODO: Check via Galaxy API or toolbox
+        # For now, assume Toolshed tools need to be checked via Galaxy
+        # In production, this would query Galaxy's installed_repository_manager
+        try:
+            # Parse tool_id: toolshed.g2.bx.psu.edu/repos/{owner}/{name}/{tool}/{version}
+            parts = tool_id.split("/")
+            if len(parts) >= 5:
+                owner = parts[3]
+                name = parts[4]
+                # Check if repository is installed
+                # This would use Galaxy's API in production
+                return False  # Conservative: assume not installed, let Galaxy handle it
+        except Exception as e:
+            log.warning(f"Could not parse Toolshed tool ID {tool_id}: {e}")
+            return False
+
+    def _install_toolshed_tools(self, tool_ids: List[str]) -> Dict[str, Tuple[bool, str]]:
+        """
+        Install tools from Galaxy Toolshed using Galaxy's API.
+
+        Args:
+            tool_ids: List of Toolshed tool IDs
+
+        Returns:
+            Dictionary mapping tool_id to (success, message)
+        """
+        results = {}
+
+        # If Galaxy API is configured, use it for real installation
+        if self.galaxy_api_url and self.galaxy_api_key:
+            return self._install_toolshed_via_api(tool_ids)
+
+        # Otherwise, mark for Galaxy to handle on first use
+        for tool_id in tool_ids:
+            try:
+                # Parse Toolshed tool ID
+                # Format: toolshed.g2.bx.psu.edu/repos/{owner}/{name}/{tool}/{version}
+                parts = tool_id.split("/")
+                if len(parts) < 5:
+                    results[tool_id] = (False, "Invalid Toolshed tool ID format")
+                    continue
+
+                owner = parts[3]
+                repo_name = parts[4]
+
+                log.info(f"Toolshed tool detected: {owner}/{repo_name} (Galaxy will auto-install)")
+                results[tool_id] = (True, "Toolshed tool - Galaxy will auto-install on first use")
+
+            except Exception as e:
+                log.error(f"Failed to process Toolshed tool {tool_id}: {e}")
+                results[tool_id] = (False, str(e))
+
+        return results
+
+    def _install_toolshed_via_api(self, tool_ids: List[str]) -> Dict[str, Tuple[bool, str]]:
+        """
+        Install Toolshed tools via Galaxy Admin API.
+
+        Args:
+            tool_ids: List of Toolshed tool IDs
+
+        Returns:
+            Dictionary mapping tool_id to (success, message)
+        """
+        import requests
+
+        results = {}
+        headers = {"x-api-key": self.galaxy_api_key}
+
+        for tool_id in tool_ids:
+            try:
+                # Parse tool ID
+                parts = tool_id.split("/")
+                if len(parts) < 5:
+                    results[tool_id] = (False, "Invalid format")
+                    continue
+
+                toolshed_url = f"https://{parts[0]}"
+                owner = parts[3]
+                repo_name = parts[4]
+
+                # Check if already installing/installed
+                check_url = f"{self.galaxy_api_url}/api/tool_shed_repositories"
+                response = requests.get(check_url, headers=headers)
+
+                if response.status_code == 200:
+                    repos = response.json()
+                    if any(r["owner"] == owner and r["name"] == repo_name for r in repos):
+                        results[tool_id] = (True, "Already installed or installing")
+                        continue
+
+                # Install repository
+                install_url = f"{self.galaxy_api_url}/api/tool_shed_repositories"
+                payload = {
+                    "tool_shed_url": toolshed_url,
+                    "name": repo_name,
+                    "owner": owner,
+                    "changeset_revision": "latest",  # Or parse from tool_id
+                    "install_tool_dependencies": True,
+                    "install_repository_dependencies": True,
+                    "install_resolver_dependencies": True
+                }
+
+                log.info(f"Installing via API: {owner}/{repo_name}")
+                response = requests.post(install_url, json=payload, headers=headers)
+
+                if response.status_code in [200, 201]:
+                    results[tool_id] = (True, f"Installation initiated for {owner}/{repo_name}")
+                else:
+                    msg = f"API error {response.status_code}: {response.text[:100]}"
+                    results[tool_id] = (False, msg)
+
+            except Exception as e:
+                log.error(f"Failed to install {tool_id} via API: {e}")
+                results[tool_id] = (False, str(e))
+
+        return results
 
     def auto_install_workflow_tools(self, workflow_dict: Dict) -> Tuple[bool, str, List[str]]:
         """
         Automatically install all missing tools for a workflow.
+        Handles both custom BioMate tools and Toolshed tools differently.
 
         Args:
             workflow_dict: Galaxy workflow dictionary
@@ -402,18 +540,31 @@ class ToolAutoInstaller:
         Returns:
             Tuple of (all_success, message, failed_tools)
         """
-        available, missing = self.validate_workflow_tools(workflow_dict)
+        available, missing_custom, missing_toolshed = self.validate_workflow_tools(workflow_dict)
 
-        if not missing:
+        if not missing_custom and not missing_toolshed:
             return True, "All tools already available", []
 
-        log.info(f"Auto-installing {len(missing)} missing tools for workflow")
+        log.info(f"Auto-installing tools: {len(missing_custom)} custom, {len(missing_toolshed)} Toolshed")
 
-        # Install missing tools
-        results = self.install_missing_tools(missing)
+        failed = []
 
-        # Check results
-        failed = [tool_id for tool_id, (success, _) in results.items() if not success]
+        # Install custom BioMate tools
+        if missing_custom:
+            log.info(f"Installing {len(missing_custom)} custom BioMate tools")
+            custom_results = self.install_missing_tools(missing_custom)
+            failed.extend([tool_id for tool_id, (success, _) in custom_results.items() if not success])
+
+        # Install Toolshed tools
+        if missing_toolshed:
+            log.info(f"Installing {len(missing_toolshed)} Toolshed tools via Galaxy API")
+            toolshed_results = self._install_toolshed_tools(missing_toolshed)
+            # Note: Toolshed tools marked as "Galaxy will handle" are not failures
+            # Only real errors are failures
+            failed.extend([
+                tool_id for tool_id, (success, msg) in toolshed_results.items()
+                if not success and "Galaxy will auto-install" not in msg
+            ])
 
         if failed:
             msg = f"Failed to install {len(failed)} tools: {', '.join(failed[:5])}"
@@ -421,7 +572,8 @@ class ToolAutoInstaller:
                 msg += f" and {len(failed) - 5} more"
             return False, msg, failed
 
-        msg = f"Successfully installed {len(missing)} tools"
+        total_installed = len(missing_custom) + len(missing_toolshed)
+        msg = f"Successfully processed {total_installed} tools ({len(missing_custom)} custom, {len(missing_toolshed)} Toolshed)"
         return True, msg, []
 
 
