@@ -23,6 +23,7 @@ class GalaxyToolRAG:
         self.tool_index = {}
         self.tool_embeddings = {}
         self.category_index = {}
+        self.tool_source_mapping = {}  # NEW: Maps tools to their sources (BioMni, nf-core, Galaxy)
 
         # Set database path
         if db_path is None:
@@ -31,6 +32,9 @@ class GalaxyToolRAG:
 
         # Build index from comprehensive database
         self._build_tool_index()
+
+        # Load tool source mapping for enhanced scoring
+        self._load_tool_source_mapping()
 
     def _build_tool_index(self):
         """Build searchable index from comprehensive tool database (6,295 tools)."""
@@ -155,10 +159,24 @@ class GalaxyToolRAG:
         
         return tool_info
     
+    def _load_tool_source_mapping(self):
+        """Load tool source mapping (BioMni, nf-core, Galaxy) for enhanced scoring."""
+        try:
+            mapping_file = Path(__file__).parent.parent.parent.parent / "TOOL_SOURCE_MAPPING.json"
+            if mapping_file.exists():
+                with open(mapping_file) as f:
+                    data = json.load(f)
+                    self.tool_source_mapping = data.get("tools", {})
+                    log.info(f"Loaded source mapping for {len(self.tool_source_mapping)} tools")
+            else:
+                log.warning(f"Tool source mapping not found at {mapping_file}")
+        except Exception as e:
+            log.error(f"Could not load tool source mapping: {e}")
+
     def _index_tool_by_category(self, tool_id: str, tool_info: Dict[str, Any]):
         """Index tools by functional categories."""
         categories = self._categorize_tool(tool_info)
-        
+
         for category in categories:
             if category not in self.category_index:
                 self.category_index[category] = []
@@ -206,28 +224,28 @@ class GalaxyToolRAG:
         
         return categories if categories else ["other"]
 
-    def search_tools(self, query: str, data_types: List[str] = None, 
+    def search_tools(self, query: str, data_types: List[str] = None,
                     category: str = None, limit: int = 10) -> List[Dict[str, Any]]:
-        """Search for tools based on query and constraints."""
-        
+        """Search for tools based on query and constraints with source-aware scoring."""
+
         results = []
         query_lower = query.lower()
-        
+
         for tool_id, tool_info in self.tool_index.items():
             score = 0
-            
+
             # Text matching
             if query_lower in tool_info["name"].lower():
                 score += 20
             if query_lower in tool_info["description"].lower():
                 score += 10
-            
+
             # Category matching
             if category:
                 tool_categories = self._categorize_tool(tool_info)
                 if category in tool_categories:
                     score += 15
-            
+
             # Data type compatibility
             if data_types:
                 for data_type in data_types:
@@ -237,15 +255,72 @@ class GalaxyToolRAG:
                     for output_info in tool_info["outputs"]:
                         if data_type.lower() in str(output_info.get("type", "")).lower():
                             score += 8
-            
+
+            # NEW: Source-based scoring boost
+            source_boost = self._get_source_score_boost(tool_id, tool_info)
+            score += source_boost
+
             if score > 0:
                 result = tool_info.copy()
                 result["relevance_score"] = score
+
+                # Add source information to result
+                if tool_id in self.tool_source_mapping:
+                    source_info = self.tool_source_mapping[tool_id]
+                    result["sources"] = source_info.get("sources", [])
+                    result["source_count"] = source_info.get("source_count", 0)
+                    result["in_toolshed"] = source_info.get("in_toolshed", False)
+                    result["priority_score"] = source_info.get("priority_score", 1)
+
                 results.append(result)
-        
+
         # Sort by relevance and limit results
         results.sort(key=lambda x: x["relevance_score"], reverse=True)
         return results[:limit]
+
+    def _get_source_score_boost(self, tool_id: str, tool_info: Dict[str, Any]) -> float:
+        """Calculate score boost based on tool sources (BioMni, nf-core, Galaxy).
+
+        Tools in more sources get higher confidence:
+        - 3 sources (BioMni + nf-core + Galaxy): +10 points
+        - 2 sources: +5 points
+        - 1 source: +0 points
+        - In Galaxy Toolshed (auto-installable): +3 points
+        """
+        # Try exact match first
+        if tool_id in self.tool_source_mapping:
+            source_info = self.tool_source_mapping[tool_id]
+            boost = 0
+
+            # Boost based on source count
+            source_count = source_info.get("source_count", 0)
+            if source_count == 3:
+                boost += 10  # Highest confidence - in all 3 sources
+            elif source_count == 2:
+                boost += 5   # Medium confidence - in 2 sources
+
+            # Extra boost if in Galaxy Toolshed (auto-installable)
+            if source_info.get("in_toolshed", False):
+                boost += 3
+
+            return boost
+
+        # Try fuzzy matching for tool variants
+        tool_name_lower = tool_info.get("name", "").lower().replace("-", "").replace("_", "")
+        for mapped_tool, source_info in self.tool_source_mapping.items():
+            mapped_name = mapped_tool.lower().replace("-", "").replace("_", "").replace("/", "")
+            if tool_name_lower and tool_name_lower in mapped_name or mapped_name in tool_name_lower:
+                source_count = source_info.get("source_count", 0)
+                boost = 0
+                if source_count == 3:
+                    boost += 8  # Slightly lower for fuzzy match
+                elif source_count == 2:
+                    boost += 4
+                if source_info.get("in_toolshed", False):
+                    boost += 2
+                return boost
+
+        return 0  # No source information available
     
     def get_tools_by_category(self, category: str) -> List[Dict[str, Any]]:
         """Get all tools in a specific category."""
