@@ -223,15 +223,15 @@ def main():
             'in_galaxy': len(overlap['biomni_in_galaxy']),
             'missing': len(overlap['biomni_missing']),
             'converted': len(converted_biomni),
-            'in_galaxy_list': overlap['biomni_in_galaxy'][:20],
-            'missing_list': overlap['biomni_missing'][:20]
+            'in_galaxy_list': overlap['biomni_in_galaxy'],
+            'missing_list': overlap['biomni_missing']
         },
         'nfcore': {
             'total_modules': total_nfcore,
             'in_galaxy': len(overlap['nfcore_in_galaxy']),
             'missing': len(overlap['nfcore_missing']),
-            'in_galaxy_list': overlap['nfcore_in_galaxy'][:20],
-            'missing_list': overlap['nfcore_missing'][:20]
+            'in_galaxy_list': overlap['nfcore_in_galaxy'],
+            'missing_list': overlap['nfcore_missing']
         }
     }
 

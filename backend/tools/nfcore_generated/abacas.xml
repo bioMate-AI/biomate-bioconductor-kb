@@ -1,51 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_abacas" name="nf-core abacas" version="1.0.0" profile="20.01">
-  <description>Contiguate draft genome assembly</description>
-  <requirements>
-    <requirement type="package" version="1.3.1">abacas</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-abacas.pl \\
-        -r ${fasta} \\
-        -q ${scaffold} \\
-        ${args} \\
-        -o ${prefix}
+<tool id="nfcore_abacas" name="abacas" version="1.0" profile="21.05">
+    <description>Contiguate draft genome assembly</description>
 
-    sort &quot;${prefix}.bin&quot; &gt; &quot;${prefix}.bin.tmp&quot; &amp;&amp; mv &quot;${prefix}.bin.tmp&quot; &quot;${prefix}.bin&quot; # Needs to be sorted for consistency
-    mv nucmer.delta ${prefix}.nucmer.delta
-    mv nucmer.filtered.delta ${prefix}.nucmer.filtered.delta
-    mv nucmer.tiling ${prefix}.nucmer.tiling
-    mv unused_contigs.out ${prefix}.unused.contigs.out
+    <requirements>
+        <container type="docker">biocontainers/abacas:1.3.1--pl526_0</container>
+    </requirements>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        abacas: \$(echo \$(abacas.pl -v 2&gt;&amp;1) | sed 's/^.*ABACAS.//; s/ .*\$//')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="scaffold" format="data" label="Scaffold"/>
-    <param type="data" name="fasta" format="data" label="Fasta"/>
-  </inputs>
-  <outputs>
-    <data name="results" format="data" label="Results" from_work_dir="${prefix}.*"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <command detect_errors="exit_code"><![CDATA[
+        abacas
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**abacas**
 
 Contiguate draft genome assembly
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: abacas
+- Container: biocontainers/abacas:1.3.1--pl526_0
 
-Module: abacas
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/abacas
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_abacas,
+            title = {nf-core abacas module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/abacas},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

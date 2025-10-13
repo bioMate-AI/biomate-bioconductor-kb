@@ -1,0 +1,65 @@
+<tool id="nfcore_kallistobustools/count" name="kallistobustools_count" version="1.0" profile="21.05">
+    <description>quantifies scRNA-seq data from fastq files using kb-python.</description>
+
+    <requirements>
+        <container type="docker">biocontainers/kb-python:0.28.2--pyhdfd78af_2</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        kallistobustools/count
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**kallistobustools_count**
+
+quantifies scRNA-seq data from fastq files using kb-python.
+
+**nf-core Module Information:**
+
+- Module: kallistobustools/count
+- Container: biocontainers/kb-python:0.28.2--pyhdfd78af_2
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_kallistobustools/count,
+            title = {nf-core kallistobustools/count module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/kallistobustools/count},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

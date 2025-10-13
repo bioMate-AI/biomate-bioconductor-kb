@@ -1,11 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
 <tool id="scanpy_pca" name="Scanpy Pca" version="1.9.6">
-    <description>nf-core scanpy_pca module</description>
+    <description>Perform principal component analysis (PCA) on single-cell RNA-seq data using Scanpy</description>
 
     <requirements>
         <container type="docker">biocontainers/scanpy:1.9.6--pyhdfd78af_0</container>
     </requirements>
 
-    <command detect_errors="exit_code"><![CDATA[
+    <command detect_errors="exit_code">
         scanpy
             #if $input
                 -i '$input'
@@ -14,21 +15,18 @@
             #if $threads
                 -t \${GALAXY_SLOTS:-$threads}
             #end if
-    ]]></command>
+    </command>
 
     <inputs>
-        <param name="input" type="data" format="auto" label="Input File" optional="true"
-               help="Input data file for processing"/>
-        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
-               help="Number of CPU threads to use"/>
+        <param name="input" type="data" format="auto" label="Input File" optional="true" help="Input data file for processing" />
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads" help="Number of CPU threads to use" />
     </inputs>
 
     <outputs>
-        <data name="output" format="auto" from_work_dir="output*"
-              label="${tool.name} on ${on_string}: Output"/>
+        <data name="output" format="auto" from_work_dir="output*" label="${tool.name} on ${on_string}: Output" />
     </outputs>
 
-    <help><![CDATA[
+    <help>
 **Scanpy Pca (nf-core module)**
 
 Category: single_cell
@@ -38,7 +36,7 @@ This is a Galaxy wrapper for the nf-core scanpy_pca module.
 **More Information:**
 - nf-core modules: https://github.com/nf-core/modules
 - Container: biocontainers/scanpy:1.9.6--pyhdfd78af_0
-    ]]></help>
+    </help>
 
     <citations>
         <citation type="bibtex">@misc{nfcore,

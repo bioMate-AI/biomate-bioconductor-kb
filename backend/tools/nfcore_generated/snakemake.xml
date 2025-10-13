@@ -1,45 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_snakemake" name="nf-core snakemake" version="1.0.0" profile="20.01">
-  <description>The Snakemake workflow management system is a tool to create reproducible and scalable data analyses. This module runs a simple Snakemake pipeline based on input snakefile. Expect many limitations.&quot;</description>
-  <requirements>
-    <requirement type="package" version="7.31.0">snakemake</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-snakemake \\
-        $args \\
-        $cores \\
-        --snakefile $snakefile
+<tool id="nfcore_snakemake" name="snakemake" version="1.0" profile="21.05">
+    <description>The Snakemake workflow management system is a tool to create reproducible and scalable data analyses. This module runs a simple Snakemake pipeline based on input snakefile. Expect many limitations."</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        snakemake: \$(snakemake --version)
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="inputs" format="data" label="Inputs"/>
-    <param type="data" name="snakefile" format="data" label="Snakefile"/>
-  </inputs>
-  <outputs>
-    <data name="outputs" format="yaml" label="Outputs" from_work_dir="[!.snakemake|versions.yml]**"/>
-    <data name="snakemake_dir" format="data" label="Snakemake Dir" from_work_dir=".snakemake"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/snakemake:7.31.0--hdfd78af_1</container>
+    </requirements>
 
-The Snakemake workflow management system is a tool to create reproducible and scalable data analyses. This module runs a simple Snakemake pipeline based on input snakefile. Expect many limitations.&quot;
+    <command detect_errors="exit_code"><![CDATA[
+        snakemake
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-**nf-core Module**
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
 
-This tool is automatically generated from nf-core modules repository.
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
 
-Module: snakemake
-Container: ${ workflow.containerEngine == 
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
 
-**More Information**
+    <help><![CDATA[
+**snakemake**
 
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/snakemake
-]]&gt;</help>
+The Snakemake workflow management system is a tool to create reproducible and scalable data analyses. This module runs a simple Snakemake pipeline based on input snakefile. Expect many limitations."
+
+**nf-core Module Information:**
+
+- Module: snakemake
+- Container: biocontainers/snakemake:7.31.0--hdfd78af_1
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_snakemake,
+            title = {nf-core snakemake module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/snakemake},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

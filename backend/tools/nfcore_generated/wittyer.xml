@@ -1,55 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_wittyer" name="nf-core wittyer" version="1.0.0" profile="20.01">
-  <description>A large variant benchmarking tool analogous to hap.py for small variants.</description>
-  <requirements>
-    <container type="docker">nf-core/modules/wittyer:4c55c27c711b558f</container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-mkdir bench
+<tool id="nfcore_wittyer" name="wittyer" version="1.0" profile="21.05">
+    <description>A large variant benchmarking tool analogous to hap.py for small variants.</description>
 
-    dotnet /opt/Wittyer/Wittyer.dll \\
-        -t ${truth_vcf} \\
-        -i ${query_vcf} \\
-        -o bench \\
-        ${regions} \\
-        ${config_file} \\
-        ${args}
+    <requirements>
+        <container type="docker">biocontainers/wittyer:latest</container>
+    </requirements>
 
-    mv bench/Wittyer.Stats.json ${prefix}.json
-    mv bench/*.vcf.gz ${prefix}.vcf.gz
-    mv bench/*.vcf.gz.tbi ${prefix}.vcf.gz.tbi
+    <command detect_errors="exit_code"><![CDATA[
+        wittyer
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-    rm -rf bench
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        wittyer: \$(dotnet /opt/Wittyer/Wittyer.dll --version  |&amp; sed '1!d ; s/witty.er //')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="query_vcf" format="data" label="Query Vcf"/>
-  </inputs>
-  <outputs>
-    <data name="report" format="data" label="Report" from_work_dir="*.json"/>
-    <data name="bench_vcf" format="data" label="Bench Vcf" from_work_dir="*.vcf.gz"/>
-    <data name="bench_vcf_tbi" format="data" label="Bench Vcf Tbi" from_work_dir="*.vcf.gz.tbi"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**wittyer**
 
 A large variant benchmarking tool analogous to hap.py for small variants.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: wittyer
+- Container: biocontainers/wittyer:latest
 
-Module: wittyer
-Container: nf-core/modules/wittyer:4c55c27c711b558f
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/wittyer
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_wittyer,
+            title = {nf-core wittyer module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/wittyer},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

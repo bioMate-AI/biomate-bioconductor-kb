@@ -1,57 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_sparsesignatures" name="nf-core sparsesignatures" version="1.0.0" profile="20.01">
-  <description>mutational signature deconvolution of cancer cells</description>
-  <requirements>
-    <requirement type="package" version="0.99.1">bioconductor-bsgenome.hsapiens.1000genomes.hs37d5</requirement>
-    <requirement type="package" version="1.4.5">bioconductor-bsgenome.hsapiens.ucsc.hg38</requirement>
-    <requirement type="package" version="2.16.0">bioconductor-sparsesignatures</requirement>
-    <requirement type="package" version="1.1.4">r-dplyr</requirement>
-    <requirement type="package" version="1.3.0">r-patchwork</requirement>
-    <requirement type="package" version="1.3.1">r-tidyr</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-touch ${prefix}_mut_counts.rds
-    touch ${prefix}_cv_means_mse.rds
-    touch ${prefix}_best_params_config.rds
-    touch ${prefix}_nmf_Lasso_out.rds
-    touch ${prefix}_plot_all.rds
-    touch ${prefix}_plot_all.pdf
+<tool id="nfcore_sparsesignatures" name="sparse_signatures" version="1.0" profile="21.05">
+    <description>mutational signature deconvolution of cancer cells</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        bioconductor-sparsesignatures: \$(Rscript -e &quot;library(SparseSignatures); cat(as.character(packageVersion('SparseSignatures')))&quot;)
-        bioconductor-bsgenome.hsapiens.1000genomes.hs37d5: \$(Rscript -e &quot;library(BSgenome.Hsapiens.1000genomes.hs37d5); cat(as.character(packageVersion('BSgenome.Hsapiens.1000genomes.hs37d5')))&quot;)
-        bioconductor-bsgenome.hsapiens.ucsc.hg38: \$(Rscript -e &quot;library(BSgenome.Hsapiens.UCSC.hg38); cat(as.character(packageVersion('BSgenome.Hsapiens.UCSC.hg38')))&quot;)
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="text" name="genome" label="Genome" value=""/>
-  </inputs>
-  <outputs>
-    <data name="signatures_mutCounts_rds" format="data" label="Signatures Mutcounts Rds" from_work_dir="*_mut_counts.rds"/>
-    <data name="signatures_cv_rds" format="data" label="Signatures Cv Rds" from_work_dir="*_cv_means_mse.rds"/>
-    <data name="signatures_bestConf_rds" format="data" label="Signatures Bestconf Rds" from_work_dir="*_best_params_config.rds"/>
-    <data name="signatures_nmfOut_rds" format="data" label="Signatures Nmfout Rds" from_work_dir="*_nmf_Lasso_out.rds"/>
-    <data name="signatures_plot_rds" format="data" label="Signatures Plot Rds" from_work_dir="*_plot_all.rds"/>
-    <data name="signatures_plot_pdf" format="data" label="Signatures Plot Pdf" from_work_dir="*_plot_all.pdf"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/mulled-v2-d410175e2fbd9c47aa685bb5dfb87cfad76d408b:a995bb98b7122825523ffed7ae131cb006e56cbe-0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        sparsesignatures
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**sparse_signatures**
 
 mutational signature deconvolution of cancer cells
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: sparsesignatures
+- Container: biocontainers/mulled-v2-d410175e2fbd9c47aa685bb5dfb87cfad76d408b:a995bb98b7122825523ffed7ae131cb006e56cbe-0
 
-Module: sparsesignatures
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/sparsesignatures
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_sparsesignatures,
+            title = {nf-core sparsesignatures module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/sparsesignatures},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

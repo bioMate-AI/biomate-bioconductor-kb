@@ -1,47 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_tailfindr" name="nf-core tailfindr" version="1.0.0" profile="20.01">
-  <description>Estimating poly(A)-tail lengths from basecalled fast5 files produced by Nanopore sequencing of RNA and DNA</description>
-  <requirements>
-    <requirement type="package" version="0.4.1">ont-fast5-api</requirement>
-    <requirement type="package" version="1.3">r-tailfindr</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-R --vanilla --slave -e &quot;library(tailfindr);
-    find_tails(fast5_dir = './' ,
-    save_dir = './' ${args},
-    csv_filename = \'${meta.id}.csv\',
-    num_cores = ${task.cpus})&quot;;
-    gzip ${meta.id}.csv
+<tool id="nfcore_tailfindr" name="tailfindr" version="1.0" profile="21.05">
+    <description>Estimating poly(A)-tail lengths from basecalled fast5 files produced by Nanopore sequencing of RNA and DNA</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        tailfindr: \$(Rscript -e &quot;cat(paste(packageVersion('tailfindr'), collapse='.'))&quot;)
-        ont-fast5-api: \$(pip show ont-fast5-api | grep Version | awk '{print \$2}')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="fast5" format="data" label="Fast5"/>
-  </inputs>
-  <outputs>
-    <data name="csv_gz" format="data" label="Csv Gz" from_work_dir="*.csv.gz"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/mulled-v2-f24f1399a77784f913670cbb36a0f17b78e0631b:80e40d512cd5a71665e3e00e8d0ad1462fc58f76-0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        tailfindr
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**tailfindr**
 
 Estimating poly(A)-tail lengths from basecalled fast5 files produced by Nanopore sequencing of RNA and DNA
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: tailfindr
+- Container: biocontainers/mulled-v2-f24f1399a77784f913670cbb36a0f17b78e0631b:80e40d512cd5a71665e3e00e8d0ad1462fc58f76-0
 
-Module: tailfindr
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/tailfindr
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_tailfindr,
+            title = {nf-core tailfindr module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/tailfindr},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

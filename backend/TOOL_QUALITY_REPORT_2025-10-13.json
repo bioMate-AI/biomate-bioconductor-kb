@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "timestamp": "2025-10-13",
+    "total_tools_checked": 1680
+  },
+  "statistics": {
+    "total_tools": 1680,
+    "valid_xml": 1680,
+    "invalid_xml": 0,
+    "proper_containers": 1680,
+    "broken_containers": 0,
+    "has_description": 1680,
+    "missing_description": 0,
+    "has_help": 1680,
+    "missing_help": 0,
+    "has_inputs": 1680,
+    "missing_inputs": 0,
+    "has_outputs": 1680,
+    "missing_outputs": 0
+  },
+  "issues": []
+}

@@ -1,48 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_smncopynumbercaller" name="nf-core smncopynumbercaller" version="1.0.0" profile="20.01">
-  <description>tool to call the copy number of full-length SMN1, full-length SMN2, as well as SMN2Δ7–8 (SMN2 with a deletion of Exon7-8) from a whole-genome sequencing (WGS) BAM file.</description>
-  <requirements>
-    <requirement type="package" version="1.1.2">smncopynumbercaller</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-echo $bam | tr ' ' '
-    ' &gt; manifest.txt
-    smn_caller.py \\
-        $args \\
-        --manifest manifest.txt \\
-        --prefix $prefix \\
-        --outDir &quot;out&quot; \\
-        --threads $task.cpus
+<tool id="nfcore_smncopynumbercaller" name="smncopynumbercaller" version="1.0" profile="21.05">
+    <description>tool to call the copy number of full-length SMN1, full-length SMN2, as well as SMN2Δ7–8 (SMN2 with a deletion of Exon7-8) from a whole-genome sequencing (WGS) BAM file.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        SMNCopyNumberCaller: $VERSION
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="bam" format="data" label="Bam"/>
-  </inputs>
-  <outputs>
-    <data name="smncopynumber" format="data" label="Smncopynumber" from_work_dir="out/*.tsv"/>
-    <data name="run_metrics" format="data" label="Run Metrics" from_work_dir="out/*.json"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/smncopynumbercaller:1.1.2--py310h7cba7a3_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        smncopynumbercaller
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**smncopynumbercaller**
 
 tool to call the copy number of full-length SMN1, full-length SMN2, as well as SMN2Δ7–8 (SMN2 with a deletion of Exon7-8) from a whole-genome sequencing (WGS) BAM file.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: smncopynumbercaller
+- Container: biocontainers/smncopynumbercaller:1.1.2--py310h7cba7a3_0
 
-Module: smncopynumbercaller
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/smncopynumbercaller
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_smncopynumbercaller,
+            title = {nf-core smncopynumbercaller module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/smncopynumbercaller},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

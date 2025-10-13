@@ -1,53 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_tesorter" name="nf-core tesorter" version="1.0.0" profile="20.01">
-  <description>An accurate and fast method to classify LTR-retrotransposons in plant genomes</description>
-  <requirements>
-    <requirement type="package" version="1.4.7">tesorter</requirement>
-    <requirement type="package" version="3.12.8">python</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-TEsorter \\
-        $db_hmm_arg \\
-        --processors $task.cpus \\
-        -pre $prefix \\
-        $args \\
-        $fasta
+<tool id="nfcore_tesorter" name="tesorter" version="1.0" profile="21.05">
+    <description>An accurate and fast method to classify LTR-retrotransposons in plant genomes</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        TEsorter: \$(TEsorter -v | tr -d 'TEsorter ')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="fasta" format="data" label="Fasta"/>
-    <param type="data" name="db_hmm" format="data" label="Db Hmm"/>
-  </inputs>
-  <outputs>
-    <data name="domtbl" format="data" label="Domtbl" from_work_dir="*.domtbl"/>
-    <data name="dom_faa" format="data" label="Dom Faa" from_work_dir="*.dom.faa"/>
-    <data name="dom_tsv" format="data" label="Dom Tsv" from_work_dir="*.dom.tsv"/>
-    <data name="dom_gff3" format="data" label="Dom Gff3" from_work_dir="*.dom.gff3"/>
-    <data name="cls_tsv" format="data" label="Cls Tsv" from_work_dir="*.cls.tsv"/>
-    <data name="cls_lib" format="data" label="Cls Lib" from_work_dir="*.cls.lib"/>
-    <data name="cls_pep" format="data" label="Cls Pep" from_work_dir="*.cls.pep"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/tesorter:1.4.7--pyhdfd78af_1</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        tesorter
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**tesorter**
 
 An accurate and fast method to classify LTR-retrotransposons in plant genomes
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: tesorter
+- Container: biocontainers/tesorter:1.4.7--pyhdfd78af_1
 
-Module: tesorter
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/tesorter
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_tesorter,
+            title = {nf-core tesorter module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/tesorter},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

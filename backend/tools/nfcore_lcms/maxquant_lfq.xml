@@ -1,26 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
 <tool id="maxquant_lfq" name="MaxQuant LFQ" version="2.4.3.0">
-    <description>Label-free quantification for proteomics</description>
+    <description>Run standard proteomics data analysis with MaxQuant, mostly dedicated to label-free. Paths to fasta and raw files needs to be marked by "PLACEHOLDER"</description>
 
     <requirements>
         <container type="docker">biocontainers/maxquant:2.4.3.0--hdfd78af_1</container>
     </requirements>
 
-    <command detect_errors="exit_code"><![CDATA[
+    <command detect_errors="exit_code">
         maxquant '$mqpar_xml'
-    ]]></command>
+    </command>
 
     <inputs>
-        <param name="mqpar_xml" type="data" format="xml" label="MaxQuant Parameter File (mqpar.xml)"
-               help="MaxQuant configuration file specifying all analysis parameters"/>
+        <param name="mqpar_xml" type="data" format="xml" label="MaxQuant Parameter File (mqpar.xml)" help="MaxQuant configuration file specifying all analysis parameters" />
     </inputs>
 
     <outputs>
         <collection name="output_tables" type="list" label="${tool.name} on ${on_string}: Output Tables">
-            <discover_datasets pattern="(?P&lt;designation&gt;.+)\.txt$" directory="combined/txt" format="tabular"/>
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)\.txt$" directory="combined/txt" format="tabular" />
         </collection>
     </outputs>
 
-    <help><![CDATA[
+    <help>
 **MaxQuant Label-Free Quantification**
 
 MaxQuant is the gold standard for label-free quantification in proteomics, providing accurate protein quantification with advanced algorithms for peak detection, alignment, and FDR control.
@@ -41,7 +41,7 @@ MaxQuant is the gold standard for label-free quantification in proteomics, provi
 - **summary.txt**: Run summary statistics
 
 **Citation:** Cox J, Mann M. MaxQuant enables high peptide identification rates, individualized p.p.b.-range mass accuracies and proteome-wide protein quantification. Nat Biotechnol. 2008 Dec;26(12):1367-72. doi: 10.1038/nbt.1511
-    ]]></help>
+    </help>
 
     <citations>
         <citation type="doi">10.1038/nbt.1511</citation>

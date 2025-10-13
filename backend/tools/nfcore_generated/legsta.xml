@@ -1,42 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_legsta" name="nf-core legsta" version="1.0.0" profile="20.01">
-  <description>Typing of clinical and environmental isolates of Legionella pneumophila</description>
-  <requirements>
-    <requirement type="package" version="0.5.1">legsta</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-legsta \\
-        $args \\
-        $seqs &gt; ${prefix}.tsv
+<tool id="nfcore_legsta" name="legsta" version="1.0" profile="21.05">
+    <description>Typing of clinical and environmental isolates of Legionella pneumophila</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        legsta: \$(echo \$(legsta --version 2&gt;&amp;1) | sed 's/^.*legsta //; s/ .*\$//;')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="seqs" format="data" label="Seqs"/>
-  </inputs>
-  <outputs>
-    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/legsta:0.5.1--hdfd78af_2</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        legsta
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**legsta**
 
 Typing of clinical and environmental isolates of Legionella pneumophila
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: legsta
+- Container: biocontainers/legsta:0.5.1--hdfd78af_2
 
-Module: legsta
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/legsta
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_legsta,
+            title = {nf-core legsta module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/legsta},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

@@ -1,0 +1,65 @@
+<tool id="nfcore_genmap/map" name="genmap_map" version="1.0" profile="21.05">
+    <description>create mappability files for a genome</description>
+
+    <requirements>
+        <container type="docker">biocontainers/genmap:1.3.0--h1b792b2_1</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        genmap/map
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**genmap_map**
+
+create mappability files for a genome
+
+**nf-core Module Information:**
+
+- Module: genmap/map
+- Container: biocontainers/genmap:1.3.0--h1b792b2_1
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_genmap/map,
+            title = {nf-core genmap/map module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/genmap/map},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

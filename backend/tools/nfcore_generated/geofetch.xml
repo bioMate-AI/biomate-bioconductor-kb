@@ -1,43 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_geofetch" name="nf-core geofetch" version="1.0.0" profile="20.01">
-  <description>geofetch is a command-line tool that downloads and organizes data and metadata from GEO and SRA</description>
-  <requirements>
-    <requirement type="package" version="0.12.6">geofetch</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-geofetch \\
-        -i \\
-        $geo_accession \\
-        --processed \\
-        -g . \\
-        $args
+<tool id="nfcore_geofetch" name="geofetch" version="1.0" profile="21.05">
+    <description>geofetch is a command-line tool that downloads and organizes data and metadata from GEO and SRA</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        geofetch: \$(geofetch --version|&amp; sed '1!d ; s/geofetch //')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs/>
-  <outputs>
-    <data name="samples" format="data" label="Samples" from_work_dir="${geo_accession}/*.CEL.gz"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/geofetch:0.12.6--pyh7cba7a3_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        geofetch
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**geofetch**
 
 geofetch is a command-line tool that downloads and organizes data and metadata from GEO and SRA
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: geofetch
+- Container: biocontainers/geofetch:0.12.6--pyh7cba7a3_0
 
-Module: geofetch
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/geofetch
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_geofetch,
+            title = {nf-core geofetch module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/geofetch},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

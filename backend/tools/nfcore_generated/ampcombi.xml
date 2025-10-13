@@ -1,56 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_ampcombi" name="nf-core ampcombi" version="1.0.0" profile="20.01">
-  <description>A tool to parse and summarise results from antimicrobial peptides tools and present functional classification.</description>
-  <requirements>
-    <requirement type="package" version="0.1.7">ampcombi</requirement>
-    <requirement type="package" version="1.5.2">pandas</requirement>
-    <requirement type="package" version="3.11">python</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-WARNING: This module has been deprecated.
+<tool id="nfcore_ampcombi" name="ampcombi" version="1.0" profile="21.05">
+    <description>A tool to parse and summarise results from antimicrobial peptides tools and present functional classification.</description>
 
-    Reason:
-    This module is no longer recommended for use to parse results from antimicrobial tools.
-    It is recommended to use ampcombi v.0.2.2 submodules instead:
-    - nf-core/modules/ampcombi2/parse_tables
-    - nf-core/modules/ampcombi2/complete
-    - nf-core/modules/ampcombi2/cluster
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="amp_input" format="data" label="Amp Input"/>
-    <param type="data" name="faa_input" format="data" label="Faa Input"/>
-    <param type="data" name="opt_amp_db" format="data" label="Opt Amp Db"/>
-  </inputs>
-  <outputs>
-    <data name="sample_dir" format="data" label="Sample Dir" from_work_dir="${meta.id}/"/>
-    <data name="txt" format="txt" label="Txt" from_work_dir="${meta.id}/*diamond_matches.txt"/>
-    <data name="csv" format="data" label="Csv" from_work_dir="${meta.id}/*ampcombi.csv"/>
-    <data name="faa" format="data" label="Faa" from_work_dir="${meta.id}/*amp.faa"/>
-    <data name="summary_csv" format="data" label="Summary Csv" from_work_dir="AMPcombi_summary.csv"/>
-    <data name="summary_html" format="html" label="Summary Html" from_work_dir="AMPcombi_summary.html"/>
-    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
-    <data name="results_db" format="data" label="Results Db" from_work_dir="amp_ref_database/"/>
-    <data name="results_db_dmnd" format="data" label="Results Db Dmnd" from_work_dir="amp_ref_database/*.dmnd"/>
-    <data name="results_db_fasta" format="data" label="Results Db Fasta" from_work_dir="amp_ref_database/*.clean.fasta"/>
-    <data name="results_db_tsv" format="data" label="Results Db Tsv" from_work_dir="amp_ref_database/*.tsv"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/ampcombi:0.1.7--pyhdfd78af_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        ampcombi
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**ampcombi**
 
 A tool to parse and summarise results from antimicrobial peptides tools and present functional classification.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: ampcombi
+- Container: biocontainers/ampcombi:0.1.7--pyhdfd78af_0
 
-Module: ampcombi
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/ampcombi
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_ampcombi,
+            title = {nf-core ampcombi module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/ampcombi},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

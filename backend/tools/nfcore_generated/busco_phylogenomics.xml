@@ -1,0 +1,65 @@
+<tool id="nfcore_busco/phylogenomics" name="busco_phylogenomics" version="1.0" profile="21.05">
+    <description>Construct species phylogenies using BUSCO proteins</description>
+
+    <requirements>
+        <container type="docker">biocontainers/busco_phylogenomics:20240919--pyhdfd78af_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        busco/phylogenomics
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**busco_phylogenomics**
+
+Construct species phylogenies using BUSCO proteins
+
+**nf-core Module Information:**
+
+- Module: busco/phylogenomics
+- Container: biocontainers/busco_phylogenomics:20240919--pyhdfd78af_0
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_busco/phylogenomics,
+            title = {nf-core busco/phylogenomics module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/busco/phylogenomics},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

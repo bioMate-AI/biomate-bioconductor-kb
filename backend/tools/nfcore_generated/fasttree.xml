@@ -1,42 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_fasttree" name="nf-core fasttree" version="1.0.0" profile="20.01">
-  <description>Produces a Newick format phylogeny from a multiple sequence alignment. Capable of bacterial genome size alignments.</description>
-  <requirements>
-    <requirement type="package" version="2.1.10">fasttree</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-fasttree \\
-        $args \\
-        -log fasttree_phylogeny.tre.log \\
-        -nt $alignment \\
-        &gt; fasttree_phylogeny.tre
+<tool id="nfcore_fasttree" name="fasttree" version="1.0" profile="21.05">
+    <description>Produces a Newick format phylogeny from a multiple sequence alignment. Capable of bacterial genome size alignments.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        fasttree: \$(fasttree -help 2&gt;&amp;1 | head -1  | sed 's/^FastTree \\([0-9\\.]*\\) .*\$/\\1/')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs/>
-  <outputs>
-    <data name="phylogeny" format="data" label="Phylogeny" from_work_dir="*.tre"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/fasttree:2.1.10--h516909a_4</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        fasttree
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**fasttree**
 
 Produces a Newick format phylogeny from a multiple sequence alignment. Capable of bacterial genome size alignments.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: fasttree
+- Container: biocontainers/fasttree:2.1.10--h516909a_4
 
-Module: fasttree
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/fasttree
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_fasttree,
+            title = {nf-core fasttree module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/fasttree},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

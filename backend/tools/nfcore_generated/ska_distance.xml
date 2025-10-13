@@ -1,0 +1,65 @@
+<tool id="nfcore_ska/distance" name="ska_distance" version="1.0" profile="21.05">
+    <description>Calculate pairwise distances and basic clustering from SKA sketches</description>
+
+    <requirements>
+        <container type="docker">biocontainers/ska:1.0--h077b44d_6</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        ska/distance
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**ska_distance**
+
+Calculate pairwise distances and basic clustering from SKA sketches
+
+**nf-core Module Information:**
+
+- Module: ska/distance
+- Container: biocontainers/ska:1.0--h077b44d_6
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_ska/distance,
+            title = {nf-core ska/distance module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/ska/distance},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

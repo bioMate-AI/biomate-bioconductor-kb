@@ -1,0 +1,65 @@
+<tool id="nfcore_vsearch/cluster" name="vsearch_cluster" version="1.0" profile="21.05">
+    <description>Cluster sequences using a single-pass, greedy centroid-based clustering algorithm.</description>
+
+    <requirements>
+        <container type="docker">biocontainers/mulled-v2-53dae514294fca7b44842b784ed85a5303ac2d80:7b3365d778c690ca79bc85aaaeb86bb39a2dec69-0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        vsearch/cluster
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**vsearch_cluster**
+
+Cluster sequences using a single-pass, greedy centroid-based clustering algorithm.
+
+**nf-core Module Information:**
+
+- Module: vsearch/cluster
+- Container: biocontainers/mulled-v2-53dae514294fca7b44842b784ed85a5303ac2d80:7b3365d778c690ca79bc85aaaeb86bb39a2dec69-0
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_vsearch/cluster,
+            title = {nf-core vsearch/cluster module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/vsearch/cluster},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

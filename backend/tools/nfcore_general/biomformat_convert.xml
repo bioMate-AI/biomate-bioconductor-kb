@@ -1,11 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
 <tool id="biomformat_convert" name="Biomformat Convert" version="2.1.15">
-    <description>nf-core biomformat_convert module</description>
+    <description>Convert biom table to different format.
+Conversion between text tab-delimited, BIOM-v1 (JSON), and BIOM-v2 (HDF5) formats are supported
+</description>
 
     <requirements>
         <container type="docker">biocontainers/biom-format:2.1.15--pyhdfd78af_0</container>
     </requirements>
 
-    <command detect_errors="exit_code"><![CDATA[
+    <command detect_errors="exit_code">
         biomformat
             #if $input
                 -i '$input'
@@ -14,21 +17,18 @@
             #if $threads
                 -t \${GALAXY_SLOTS:-$threads}
             #end if
-    ]]></command>
+    </command>
 
     <inputs>
-        <param name="input" type="data" format="auto" label="Input File" optional="true"
-               help="Input data file for processing"/>
-        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
-               help="Number of CPU threads to use"/>
+        <param name="input" type="data" format="auto" label="Input File" optional="true" help="Input data file for processing" />
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads" help="Number of CPU threads to use" />
     </inputs>
 
     <outputs>
-        <data name="output" format="auto" from_work_dir="output*"
-              label="${tool.name} on ${on_string}: Output"/>
+        <data name="output" format="auto" from_work_dir="output*" label="${tool.name} on ${on_string}: Output" />
     </outputs>
 
-    <help><![CDATA[
+    <help>
 **Biomformat Convert (nf-core module)**
 
 Category: utilities
@@ -38,7 +38,7 @@ This is a Galaxy wrapper for the nf-core biomformat_convert module.
 **More Information:**
 - nf-core modules: https://github.com/nf-core/modules
 - Container: biocontainers/biom-format:2.1.15--pyhdfd78af_0
-    ]]></help>
+    </help>
 
     <citations>
         <citation type="bibtex">@misc{nfcore,

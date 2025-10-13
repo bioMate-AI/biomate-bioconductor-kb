@@ -1,66 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_stitch" name="nf-core stitch" version="1.0.0" profile="20.01">
-  <description>STITCH is an R program for reference panel free, read aware, low coverage sequencing genotype imputation. STITCH runs on a set of samples with sequencing reads in BAM format, as well as a list of positions to genotype, and outputs imputed genotypes in VCF format.</description>
-  <requirements>
-    <requirement type="package" version="1.21">htslib</requirement>
-    <requirement type="package" version="1.7.3">r-stitch</requirement>
-    <requirement type="package" version="4.4.2">r-base</requirement>
-    <requirement type="package" version="3.4.1">rsync</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-${rsync_cmd} ${args}
+<tool id="nfcore_stitch" name="stitch" version="1.0" profile="21.05">
+    <description>STITCH is an R program for reference panel free, read aware, low coverage sequencing genotype imputation. STITCH runs on a set of samples with sequencing reads in BAM format, as well as a list of positions to genotype, and outputs imputed genotypes in VCF format.</description>
 
-    ${stitch_cmd} \\
-        --chr ${chromosome_name} \\
-        --posfile ${posfile} \\
-        --outputdir . \\
-        --nCores ${task.cpus} \\
-        --K ${K} \\
-        --nGen ${nGen} \\
-        ${cramlist_cmd} \\
-        ${bamlist_cmd} \\
-        ${reference_cmd} \\
-        ${regenerate_input_cmd} \\
-        ${samplename_cmd} \\
-        --output_filename ${prefix}.${suffix} \\
-        ${args2}
+    <requirements>
+        <container type="docker">biocontainers/r-stitch:1.7.3--r44h64f727c_0</container>
+    </requirements>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        ${rsync_version_cmd}
-        r-base: \$(Rscript -e &quot;cat(strsplit(R.version[['version.string']], ' ')[[1]][3])&quot;)
-        r-stitch: \$(Rscript -e &quot;cat(as.character(utils::packageVersion('STITCH')))&quot;)
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="collected_crams" format="data" label="Collected Crams"/>
-    <param type="data" name="fasta" format="data" label="Fasta"/>
-    <param type="text" name="seed" label="Seed" value=""/>
-  </inputs>
-  <outputs>
-    <data name="input" format="data" label="Input" from_work_dir="input"/>
-    <data name="rdata" format="data" label="Rdata" from_work_dir="RData"/>
-    <data name="plots" format="data" label="Plots" from_work_dir="plots"/>
-    <data name="vcf" format="data" label="Vcf" from_work_dir="*.vcf.gz"/>
-    <data name="bgen" format="data" label="Bgen" from_work_dir="*.bgen"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <command detect_errors="exit_code"><![CDATA[
+        stitch
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**stitch**
 
 STITCH is an R program for reference panel free, read aware, low coverage sequencing genotype imputation. STITCH runs on a set of samples with sequencing reads in BAM format, as well as a list of positions to genotype, and outputs imputed genotypes in VCF format.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: stitch
+- Container: biocontainers/r-stitch:1.7.3--r44h64f727c_0
 
-Module: stitch
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/stitch
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_stitch,
+            title = {nf-core stitch module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/stitch},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

@@ -1,0 +1,65 @@
+<tool id="nfcore_jvarkit/vcfpolyx" name="jvarkit_vcfpolyx" version="1.0" profile="21.05">
+    <description>annotate VCF files for poly repeats</description>
+
+    <requirements>
+        <container type="docker">biocontainers/jvarkit:2024.08.25--hdfd78af_1</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        jvarkit/vcfpolyx
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**jvarkit_vcfpolyx**
+
+annotate VCF files for poly repeats
+
+**nf-core Module Information:**
+
+- Module: jvarkit/vcfpolyx
+- Container: biocontainers/jvarkit:2024.08.25--hdfd78af_1
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_jvarkit/vcfpolyx,
+            title = {nf-core jvarkit/vcfpolyx module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/jvarkit/vcfpolyx},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

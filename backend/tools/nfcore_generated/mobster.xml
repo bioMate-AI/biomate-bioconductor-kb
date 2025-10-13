@@ -1,58 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_mobster" name="nf-core mobster" version="1.0.0" profile="20.01">
-  <description>Subclonal deconvolution of cancer genome sequencing data.</description>
-  <requirements>
-    <requirement type="package" version="1.1.2">r-cnaqc</requirement>
-    <requirement type="package" version="0.1.1">r-mobster</requirement>
-    <requirement type="package" version="3.6.5">r-cli</requirement>
-    <requirement type="package" version="1.1.4">r-dplyr</requirement>
-    <requirement type="package" version="3.5.2">r-ggplot2</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-touch ${prefix}_mobster_fit.rds
-    touch ${prefix}_mobster_best_fit.rds
-    touch ${prefix}_mobster_best_plots.rds
-    touch ${prefix}_mobster_report.rds
-    touch ${prefix}_mobster_report.pdf
-    touch ${prefix}_mobster_report.png
+<tool id="nfcore_mobster" name="mobster" version="1.0" profile="21.05">
+    <description>Subclonal deconvolution of cancer genome sequencing data.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        CNAqc: \$(Rscript -e 'library(CNAqc); sessionInfo()\$otherPkgs\$CNAqc\$Version')
-        mobster: \$(Rscript -e 'library(mobster); sessionInfo()\$otherPkgs\$mobster\$Version')
-        cli: \$(Rscript -e 'library(cli); sessionInfo()\$otherPkgs\$cli\$Version')
-        dplyr: \$(Rscript -e 'library(dplyr); sessionInfo()\$otherPkgs\$dplyr\$Version')
-        ggplot2: \$(Rscript -e 'library(ggplot2); sessionInfo()\$otherPkgs\$ggplot2\$Version')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="rds_join" format="data" label="Rds Join"/>
-  </inputs>
-  <outputs>
-    <data name="mobster_rds" format="data" label="Mobster Rds" from_work_dir="*_mobster_fit.rds"/>
-    <data name="mobster_best_rds" format="data" label="Mobster Best Rds" from_work_dir="*_mobster_best_fit.rds"/>
-    <data name="mobster_best_plots_rds" format="data" label="Mobster Best Plots Rds" from_work_dir="*_mobster_best_plots.rds"/>
-    <data name="mobster_report_rds" format="data" label="Mobster Report Rds" from_work_dir="*_mobster_report.rds"/>
-    <data name="mobster_report_pdf" format="data" label="Mobster Report Pdf" from_work_dir="*_mobster_report.pdf"/>
-    <data name="mobster_report_png" format="data" label="Mobster Report Png" from_work_dir="*_mobster_report.png"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/mobster:latest</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        mobster
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**mobster**
 
 Subclonal deconvolution of cancer genome sequencing data.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: mobster
+- Container: biocontainers/mobster:latest
 
-Module: mobster
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/mobster
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_mobster,
+            title = {nf-core mobster module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/mobster},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

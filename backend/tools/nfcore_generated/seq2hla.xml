@@ -1,60 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_seq2hla" name="nf-core seq2hla" version="1.0.0" profile="20.01">
-  <description>Precision HLA typing and expression from RNA-seq data using seq2HLA</description>
-  <requirements>
-    <requirement type="package" version="2.3">seq2hla</requirement>
-    <container type="docker">${workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-[ ! -f  ${prefix}_1.fastq.gz ] &amp;&amp; ln -sf ${reads[0]} ${prefix}_1.fastq.gz
-    [ ! -f  ${prefix}_2.fastq.gz ] &amp;&amp; ln -sf ${reads[1]} ${prefix}_2.fastq.gz
+<tool id="nfcore_seq2hla" name="seq2hla" version="1.0" profile="21.05">
+    <description>Precision HLA typing and expression from RNA-seq data using seq2HLA</description>
 
-    seq2HLA \\
-        -1 ${prefix}_1.fastq.gz \\
-        -2 ${prefix}_2.fastq.gz \\
-        -r ${prefix} \\
-        -p ${task.cpus} \\
-        ${args}
+    <requirements>
+        <container type="docker">biocontainers/seq2hla:latest</container>
+    </requirements>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        seq2hla: \$(seq2HLA --version |&amp; sed 's/seq2HLA.py //')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
-  </inputs>
-  <outputs>
-    <data name="class1_bowtielog" format="data" label="Class1 Bowtielog" from_work_dir="*ClassI-class.bowtielog"/>
-    <data name="class1_expression" format="data" label="Class1 Expression" from_work_dir="*ClassI-class.expression"/>
-    <data name="class1_genotype_2d" format="data" label="Class1 Genotype 2D" from_work_dir="*ClassI-class.HLAgenotype2digits"/>
-    <data name="class1_genotype_4d" format="data" label="Class1 Genotype 4D" from_work_dir="*ClassI-class.HLAgenotype4digits"/>
-    <data name="class1_nonclass_bowtielog" format="data" label="Class1 Nonclass Bowtielog" from_work_dir="*ClassI-nonclass.bowtielog"/>
-    <data name="class1_nonclass_expression" format="data" label="Class1 Nonclass Expression" from_work_dir="*ClassI-nonclass.expression"/>
-    <data name="class1_nonclass_genotype_2d" format="data" label="Class1 Nonclass Genotype 2D" from_work_dir="*ClassI-nonclass.HLAgenotype2digits"/>
-    <data name="class1_nonclass_genotype_4d" format="data" label="Class1 Nonclass Genotype 4D" from_work_dir="*ClassI-nonclass.HLAgenotype4digits"/>
-    <data name="class2_bowtielog" format="data" label="Class2 Bowtielog" from_work_dir="*ClassII.bowtielog"/>
-    <data name="class2_expression" format="data" label="Class2 Expression" from_work_dir="*ClassII.expression"/>
-    <data name="class2_genotype_2d" format="data" label="Class2 Genotype 2D" from_work_dir="*ClassII.HLAgenotype2digits"/>
-    <data name="class2_genotype_4d" format="data" label="Class2 Genotype 4D" from_work_dir="*ClassII.HLAgenotype4digits"/>
-    <data name="ambiguity" format="data" label="Ambiguity" from_work_dir="*.ambiguity"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <command detect_errors="exit_code"><![CDATA[
+        seq2hla
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**seq2hla**
 
 Precision HLA typing and expression from RNA-seq data using seq2HLA
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: seq2hla
+- Container: biocontainers/seq2hla:latest
 
-Module: seq2hla
-Container: ${workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/seq2hla
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_seq2hla,
+            title = {nf-core seq2hla module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/seq2hla},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

@@ -1,48 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_bamreadcount" name="nf-core bamreadcount" version="1.0.0" profile="20.01">
-  <description>bam-readcount is a utility that runs on a BAM or CRAM file and generates low-level information about sequencing data at specific nucleotide positions. Its outputs include observed bases, readcounts, summarized mapping and base qualities, strandedness information, mismatch counts, and position within the reads.</description>
-  <requirements>
-    <requirement type="package" version="1.0.1">bam-readcount</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-bam-readcount \\
-        $args \\
-        -w 1 \\
-        -f ${reference} \\
-        -l ${bed} \\
-        $bam \\
-        &gt; ${prefix}.rc
+<tool id="nfcore_bamreadcount" name="bamreadcount" version="1.0" profile="21.05">
+    <description>bam-readcount is a utility that runs on a BAM or CRAM file and generates low-level information about sequencing data at specific nucleotide positions. Its outputs include observed bases, readcounts, summarized mapping and base qualities, strandedness information, mismatch counts, and position within the reads.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        bamreadcount: \$(bam-readcount --version | awk -F'version: ' '{print \$2}' | awk -F'-' '{print \$1}')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="bam" format="data" label="Bam"/>
-    <param type="data" name="reference" format="data" label="Reference"/>
-    <param type="data" name="bed" format="data" label="Bed"/>
-  </inputs>
-  <outputs>
-    <data name="rc" format="data" label="Rc" from_work_dir="*.rc"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/bam-readcount:1.0.1--h9aeec6d_3</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        bamreadcount
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**bamreadcount**
 
 bam-readcount is a utility that runs on a BAM or CRAM file and generates low-level information about sequencing data at specific nucleotide positions. Its outputs include observed bases, readcounts, summarized mapping and base qualities, strandedness information, mismatch counts, and position within the reads.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: bamreadcount
+- Container: biocontainers/bam-readcount:1.0.1--h9aeec6d_3
 
-Module: bamreadcount
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/bamreadcount
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_bamreadcount,
+            title = {nf-core bamreadcount module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/bamreadcount},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

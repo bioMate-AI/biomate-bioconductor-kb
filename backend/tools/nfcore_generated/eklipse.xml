@@ -1,49 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_eklipse" name="nf-core eklipse" version="1.0.0" profile="20.01">
-  <description>tool for detection and quantification of large mtDNA rearrangements.</description>
-  <requirements>
-    <requirement type="package" version="1.8">eklipse</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-echo &quot;$bam\t${prefix}&quot; &gt; infile.txt
-    eKLIPse.py \\
-        -in infile.txt \\
-        $args \\
-        -ref $ref_gb
-    mv eKLIPse_*/eKLIPse_deletions.csv eKLIPse_${prefix}_deletions.csv
-    mv eKLIPse_*/eKLIPse_genes.csv eKLIPse_${prefix}_genes.csv
-    mv eKLIPse_*/eKLIPse_${prefix}.png eKLIPse_${prefix}.png
+<tool id="nfcore_eklipse" name="eklipse" version="1.0" profile="21.05">
+    <description>tool for detection and quantification of large mtDNA rearrangements.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        eklipse: $VERSION
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="bam" format="data" label="Bam"/>
-  </inputs>
-  <outputs>
-    <data name="deletions" format="data" label="Deletions" from_work_dir="*deletions.csv"/>
-    <data name="genes" format="data" label="Genes" from_work_dir="*genes.csv"/>
-    <data name="circos" format="data" label="Circos" from_work_dir="*.png"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/eklipse:1.8--hdfd78af_1</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        eklipse
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**eklipse**
 
 tool for detection and quantification of large mtDNA rearrangements.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: eklipse
+- Container: biocontainers/eklipse:1.8--hdfd78af_1
 
-Module: eklipse
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/eklipse
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_eklipse,
+            title = {nf-core eklipse module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/eklipse},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

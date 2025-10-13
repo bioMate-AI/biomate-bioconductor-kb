@@ -1,0 +1,65 @@
+<tool id="nfcore_amrfinderplus/update" name="amrfinderplus_update" version="1.0" profile="21.05">
+    <description>Identify antimicrobial resistance in gene or protein sequences</description>
+
+    <requirements>
+        <container type="docker">biocontainers/ncbi-amrfinderplus:4.0.23--hf69ffd2_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        amrfinder_update
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**amrfinderplus_update**
+
+Identify antimicrobial resistance in gene or protein sequences
+
+**nf-core Module Information:**
+
+- Module: amrfinderplus/update
+- Container: biocontainers/ncbi-amrfinderplus:4.0.23--hf69ffd2_0
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_amrfinderplus/update,
+            title = {nf-core amrfinderplus/update module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/amrfinderplus/update},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

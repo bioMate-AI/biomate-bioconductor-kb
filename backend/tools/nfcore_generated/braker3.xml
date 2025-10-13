@@ -1,71 +1,67 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_braker3" name="nf-core braker3" version="1.0.0" profile="20.01">
-  <description>Gene prediction in novel genomes using RNA-seq and protein homology information
+<tool id="nfcore_braker3" name="braker3" version="1.0" profile="21.05">
+    <description>Gene prediction in novel genomes using RNA-seq and protein homology information
 </description>
-  <requirements>
-    <container type="docker">docker.io/teambraker/braker3:v3.0.7.5</container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-cp -r \$AUGUSTUS_CONFIG_PATH \\
-        augustus_config
 
-    chmod -R a+w \\
-        augustus_config
+    <requirements>
+        <container type="docker">biocontainers/braker3:latest</container>
+    </requirements>
 
-    perl -p -e 's/^(&gt;\\S+).*\$/\$1/' \\
-        $fasta \\
-        &gt; ${prefix}.name.only.genome.masked.fasta
+    <command detect_errors="exit_code"><![CDATA[
+        braker3
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-    braker.pl \\
-        --genome ${prefix}.name.only.genome.masked.fasta \\
-        $new_species \\
-        --workingdir $prefix \\
-        --AUGUSTUS_CONFIG_PATH &quot;\$(pwd)/augustus_config&quot; \\
-        --threads $task.cpus \\
-        $rna_ids \\
-        $rna_dirs \\
-        $bam_arg \\
-        $prot_arg \\
-        $hints \\
-        $args
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        braker3: \$(braker.pl --version 2&gt;/dev/null | sed 's/braker.pl version //')
-        augustus: \$(augustus --version |&amp; sed -n 's/AUGUSTUS (\\(.*\\)) is a gene .*/\\1/p')
-        genemark-etp: \$(echo &quot;\$(gmetp.pl || echo '')&quot; | sed -n 's/ETP version \\(.*\\)/\\1/p')
-        prothint: \$(prothint.py --version | sed 's/prothint.py //1')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="fasta" format="data" label="Fasta"/>
-  </inputs>
-  <outputs>
-    <data name="gtf" format="data" label="Gtf" from_work_dir="$prefix/braker.gtf"/>
-    <data name="cds" format="data" label="Cds" from_work_dir="$prefix/braker.codingseq"/>
-    <data name="aa" format="data" label="Aa" from_work_dir="$prefix/braker.aa"/>
-    <data name="log" format="txt" label="Log" from_work_dir="$prefix/braker.log"/>
-    <data name="hintsfile" format="data" label="Hintsfile" from_work_dir="$prefix/hintsfile.gff"/>
-    <data name="gff3" format="data" label="Gff3" from_work_dir="$prefix/braker.gff3"/>
-    <data name="citations" format="txt" label="Citations" from_work_dir="$prefix/what-to-cite.txt"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**braker3**
 
 Gene prediction in novel genomes using RNA-seq and protein homology information
 
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: braker3
+- Container: biocontainers/braker3:latest
 
-Module: braker3
-Container: docker.io/teambraker/braker3:v3.0.7.5
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/braker3
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_braker3,
+            title = {nf-core braker3 module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/braker3},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

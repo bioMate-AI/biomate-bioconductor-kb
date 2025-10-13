@@ -1,47 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_clippy" name="nf-core clippy" version="1.0.0" profile="20.01">
-  <description>Runs the Clippy CLIP peak caller</description>
-  <requirements>
-    <requirement type="package" version="1.5.0">clippy</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-clippy -i $bed \
-        -o $prefix \
-        -a $gtf \
-        -g $fai \
-        -t ${task.cpus} \
-        $args
+<tool id="nfcore_clippy" name="clippy" version="1.0" profile="21.05">
+    <description>Runs the Clippy CLIP peak caller</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        clippy: \$(clippy -v)
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="bed" format="data" label="Bed"/>
-  </inputs>
-  <outputs>
-    <data name="peaks" format="data" label="Peaks" from_work_dir="*_Peaks.bed"/>
-    <data name="summits" format="data" label="Summits" from_work_dir="*_Summits.bed"/>
-    <data name="intergenic_gtf" format="data" label="Intergenic Gtf" from_work_dir="*_intergenic_regions.gtf"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/clippy:1.5.0--pyhdfd78af_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        clippy
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**clippy**
 
 Runs the Clippy CLIP peak caller
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: clippy
+- Container: biocontainers/clippy:1.5.0--pyhdfd78af_0
 
-Module: clippy
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/clippy
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_clippy,
+            title = {nf-core clippy module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/clippy},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

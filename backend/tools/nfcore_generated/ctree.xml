@@ -1,74 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_ctree" name="nf-core ctree" version="1.0.0" profile="20.01">
-  <description>Clone trees for Cancer Evolution studies from bulk sequencing data.</description>
-  <requirements>
-    <requirement type="package" version="1.1.0">r-ctree</requirement>
-    <requirement type="package" version="0.1.1">r-mobster</requirement>
-    <requirement type="package" version="1.0.0">r-viber</requirement>
-    <requirement type="package" version="3.6.5">r-cli</requirement>
-    <requirement type="package" version="1.1.4">r-dplyr</requirement>
-    <requirement type="package" version="3.5.2">r-ggplot2</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-# outputs for mobster rds input
-    mkdir stub/
-    touch stub/${prefix}_ctree_mobster.rds
-    touch stub/${prefix}_ctree_mobster_plots.rds
-    touch stub/${prefix}_ctree_mobster_report.rds
-    touch stub/${prefix}_ctree_mobster_report.pdf
-    touch stub/${prefix}_ctree_mobster_report.png
+<tool id="nfcore_ctree" name="ctree" version="1.0" profile="21.05">
+    <description>Clone trees for Cancer Evolution studies from bulk sequencing data.</description>
 
-    # outputs for pyclonevi tsv input
-    touch ${prefix}_ctree_pyclonevi.rds
-    touch ${prefix}_ctree_pyclonevi_plots.rds
-    touch ${prefix}_ctree_pyclonevi_report.rds
-    touch ${prefix}_ctree_pyclonevi_report.pdf
-    touch ${prefix}_ctree_pyclonevi_report.png
+    <requirements>
+        <container type="docker">biocontainers/ctree:latest</container>
+    </requirements>
 
-    # outputs for VIBER rds input
-    touch ${prefix}_ctree_VIBER.rds
-    touch ${prefix}_ctree_VIBER_plots.rds
-    touch ${prefix}_ctree_VIBER_report.pdf
-    touch ${prefix}_ctree_VIBER_report.png
-    touch ${prefix}_ctree_VIBER_report.rds
+    <command detect_errors="exit_code"><![CDATA[
+        ctree
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        ctree: \$(Rscript -e 'library(ctree); sessionInfo()\$otherPkgs\$ctree\$Version')
-        mobster: \$(Rscript -e 'library(mobster); sessionInfo()\$otherPkgs\$mobster\$Version')
-        VIBER: \$(Rscript -e 'library(VIBER); sessionInfo()\$otherPkgs\$VIBER\$Version')
-        cli: \$(Rscript -e 'library(cli); sessionInfo()\$otherPkgs\$cli\$Version')
-        dplyr: \$(Rscript -e 'library(dplyr); sessionInfo()\$otherPkgs\$dplyr\$Version')
-        ggplot2: \$(Rscript -e 'library(ggplot2); sessionInfo()\$otherPkgs\$ggplot2\$Version')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="ctree_input" format="data" label="Ctree Input"/>
-  </inputs>
-  <outputs>
-    <data name="ctree_rds" format="data" label="Ctree Rds" from_work_dir="**ctree_{mobster,VIBER,pyclonevi}.rds"/>
-    <data name="ctree_plots_rds" format="data" label="Ctree Plots Rds" from_work_dir="**ctree_{mobster,VIBER,pyclonevi}_plots.rds"/>
-    <data name="ctree_report_rds" format="data" label="Ctree Report Rds" from_work_dir="**ctree_{mobster,VIBER,pyclonevi}_report.rds"/>
-    <data name="ctree_report_pdf" format="data" label="Ctree Report Pdf" from_work_dir="**ctree_{mobster,VIBER,pyclonevi}_report.pdf"/>
-    <data name="ctree_report_png" format="data" label="Ctree Report Png" from_work_dir="**ctree_{mobster,VIBER,pyclonevi}_report.png"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**ctree**
 
 Clone trees for Cancer Evolution studies from bulk sequencing data.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: ctree
+- Container: biocontainers/ctree:latest
 
-Module: ctree
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/ctree
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_ctree,
+            title = {nf-core ctree module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/ctree},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

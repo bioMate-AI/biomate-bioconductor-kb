@@ -1,0 +1,65 @@
+<tool id="nfcore_muscle5/super5" name="muscle5_super5" version="1.0" profile="21.05">
+    <description>Muscle is a program for creating multiple alignments of amino acid or nucleotide sequences. This particular module uses the super5 algorithm for very big alignments. It can permutate the guide tree according to a set of flags.</description>
+
+    <requirements>
+        <container type="docker">biocontainers/mulled-v2-8eb01a3c2755c935d070dd03ff2dee698eeb4466:ceb6e65e00346ed20d0d8078dddf9858a7af0fe2-0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        muscle5/super5
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**muscle5_super5**
+
+Muscle is a program for creating multiple alignments of amino acid or nucleotide sequences. This particular module uses the super5 algorithm for very big alignments. It can permutate the guide tree according to a set of flags.
+
+**nf-core Module Information:**
+
+- Module: muscle5/super5
+- Container: biocontainers/mulled-v2-8eb01a3c2755c935d070dd03ff2dee698eeb4466:ceb6e65e00346ed20d0d8078dddf9858a7af0fe2-0
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_muscle5/super5,
+            title = {nf-core muscle5/super5 module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/muscle5/super5},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

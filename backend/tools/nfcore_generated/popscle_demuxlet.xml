@@ -1,0 +1,65 @@
+<tool id="nfcore_popscle/demuxlet" name="popscle_demuxlet" version="1.0" profile="21.05">
+    <description>Software to deconvolute sample identity and identify multiplets when multiple samples are pooled by barcoded single cell sequencing and external genotyping data for each sample is available.</description>
+
+    <requirements>
+        <container type="docker">biocontainers/popscle:0.1beta--h2c78cec_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        popscle/demuxlet
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**popscle_demuxlet**
+
+Software to deconvolute sample identity and identify multiplets when multiple samples are pooled by barcoded single cell sequencing and external genotyping data for each sample is available.
+
+**nf-core Module Information:**
+
+- Module: popscle/demuxlet
+- Container: biocontainers/popscle:0.1beta--h2c78cec_0
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_popscle/demuxlet,
+            title = {nf-core popscle/demuxlet module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/popscle/demuxlet},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

@@ -1,48 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_coreograph" name="nf-core coreograph" version="1.0.0" profile="20.01">
-  <description>Great....yet another TMA dearray program. What does this one do? Coreograph uses UNet, a deep learning model, to identify complete/incomplete tissue cores on a tissue microarray. It has been trained on 9 TMA slides of different sizes and tissue types.</description>
-  <requirements>
-    <container type="docker">docker.io/labsyspharm/unetcoreograph:2.2.9</container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-export MPLCONFIGDIR=\$PWD
+<tool id="nfcore_coreograph" name="coreograph" version="1.0" profile="21.05">
+    <description>Great....yet another TMA dearray program. What does this one do? Coreograph uses UNet, a deep learning model, to identify complete/incomplete tissue cores on a tissue microarray. It has been trained on 9 TMA slides of different sizes and tissue types.</description>
 
-    python /app/UNetCoreograph.py \\
-        --imagePath ${image} \\
-        --outputPath . \\
-        $args
+    <requirements>
+        <container type="docker">biocontainers/coreograph:latest</container>
+    </requirements>
 
+    <command detect_errors="exit_code"><![CDATA[
+        coreograph
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        coreograph: $VERSION
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="image" format="data" label="Image"/>
-  </inputs>
-  <outputs>
-    <data name="cores" format="data" label="Cores" from_work_dir="*[0-9]*.tif"/>
-    <data name="masks" format="data" label="Masks" from_work_dir="masks/*.tif"/>
-    <data name="tma_map" format="data" label="Tma Map" from_work_dir="TMA_MAP.tif"/>
-    <data name="centroids" format="txt" label="Centroids" from_work_dir="centroidsY-X.txt"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**coreograph**
 
 Great....yet another TMA dearray program. What does this one do? Coreograph uses UNet, a deep learning model, to identify complete/incomplete tissue cores on a tissue microarray. It has been trained on 9 TMA slides of different sizes and tissue types.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: coreograph
+- Container: biocontainers/coreograph:latest
 
-Module: coreograph
-Container: docker.io/labsyspharm/unetcoreograph:2.2.9
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/coreograph
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_coreograph,
+            title = {nf-core coreograph module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/coreograph},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

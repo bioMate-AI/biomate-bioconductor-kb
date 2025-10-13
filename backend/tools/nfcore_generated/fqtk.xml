@@ -1,48 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_fqtk" name="nf-core fqtk" version="1.0.0" profile="20.01">
-  <description>Demultiplex fastq files</description>
-  <requirements>
-    <requirement type="package" version="0.3.1">fqtk</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-mkdir output
-    fqtk \\
-        demux \\
-            --inputs ${fastqs} \\
-            --read-structures ${read_structures} \\
-            --output output/ \\
-            --sample-metadata ${sample_sheet} \\
-            ${args}
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        fqtk: \$(echo \$(fqtk --version 2&gt;&amp;1) | cut -d &quot; &quot; -f2)
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="sample_sheet" format="data" label="Sample Sheet"/>
-  </inputs>
-  <outputs>
-    <data name="sample_fastq" format="data" label="Sample Fastq" from_work_dir="output/*.fq.gz"/>
-    <data name="metrics" format="txt" label="Metrics" from_work_dir="output/demux-metrics.txt"/>
-    <data name="most_frequent_unmatched" format="data" label="Most Frequent Unmatched" from_work_dir="output/unmatched*.fq.gz"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+<tool id="nfcore_fqtk" name="fqtk" version="1.0" profile="21.05">
+    <description>Demultiplex fastq files</description>
+
+    <requirements>
+        <container type="docker">biocontainers/fqtk:0.3.1--ha6fb395_2</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        fqtk
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**fqtk**
 
 Demultiplex fastq files
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: fqtk
+- Container: biocontainers/fqtk:0.3.1--ha6fb395_2
 
-Module: fqtk
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/fqtk
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_fqtk,
+            title = {nf-core fqtk module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/fqtk},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

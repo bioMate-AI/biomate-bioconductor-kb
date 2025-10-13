@@ -1,51 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_vcf2cytosure" name="nf-core vcf2cytosure" version="1.0.0" profile="20.01">
-  <description>Convert VCF with structural variations to CytoSure format</description>
-  <requirements>
-    <requirement type="package" version="0.9.1">vcf2cytosure</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-vcf2cytosure \\
-        --vcf $sv_vcf \\
-        --out ${prefix}.cgh \\
-        $coverage \\
-        $cnvkit \\
-        $snv \\
-        $blacklist \\
-        $args
+<tool id="nfcore_vcf2cytosure" name="vcf2cytosure" version="1.0" profile="21.05">
+    <description>Convert VCF with structural variations to CytoSure format</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        vcf2cytosure: \$(echo \$(vcf2cytosure --version 2&gt;&amp;1) | sed 's/^.* cytosure //' )
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="sv_vcf" format="data" label="Sv Vcf"/>
-    <param type="data" name="coverage_bed" format="data" label="Coverage Bed"/>
-    <param type="data" name="cns" format="data" label="Cns"/>
-    <param type="data" name="snv_vcf" format="data" label="Snv Vcf"/>
-    <param type="data" name="blacklist_bed" format="data" label="Blacklist Bed"/>
-  </inputs>
-  <outputs>
-    <data name="cgh" format="data" label="Cgh" from_work_dir="*.cgh"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/vcf2cytosure:0.9.1--pyh7cba7a3_1</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        vcf2cytosure
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**vcf2cytosure**
 
 Convert VCF with structural variations to CytoSure format
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: vcf2cytosure
+- Container: biocontainers/vcf2cytosure:0.9.1--pyh7cba7a3_1
 
-Module: vcf2cytosure
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/vcf2cytosure
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_vcf2cytosure,
+            title = {nf-core vcf2cytosure module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/vcf2cytosure},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

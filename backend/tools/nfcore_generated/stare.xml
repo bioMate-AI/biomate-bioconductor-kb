@@ -1,58 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_stare" name="nf-core stare" version="1.0.0" profile="20.01">
-  <description>Framework that scores enhancer–gene interactions using the Activity-By-Contact model and derives transcription factor affinities on gene level</description>
-  <requirements>
-    <requirement type="package" version="1.0.5">stare-abc</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-STARE.sh \\
-        ${args} \\
-        -a ${annotation} \\
-        -g ${genome} \\
-        -p ${psem} \\
-        -o ${meta.id} \\
-        -c ${task.cpus} \\
-        ${path_bed_file} \\
-        ${path_exclude_bed} \\
-        ${path_genes} \\
-        ${path_contact_folder} \\
-        ${path_existing_abc}
+<tool id="nfcore_stare" name="stare" version="1.0" profile="21.05">
+    <description>Framework that scores enhancer–gene interactions using the Activity-By-Contact model and derives transcription factor affinities on gene level</description>
 
-    gunzip -f ${meta.id}/Gene_TF_matrices/${meta.id}_TF_Gene_Affinities.txt.gz
+    <requirements>
+        <container type="docker">biocontainers/stare:latest</container>
+    </requirements>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        stare: \$(STARE.sh --version | cut -f3 -d&quot; &quot;)
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="bed_file" format="data" label="Bed File"/>
-    <param type="data" name="annotation" format="data" label="Annotation"/>
-    <param type="data" name="genome" format="data" label="Genome"/>
-    <param type="data" name="psem" format="data" label="Psem"/>
-    <param type="data" name="exclude_bed" format="data" label="Exclude Bed"/>
-    <param type="data" name="genes" format="data" label="Genes"/>
-  </inputs>
-  <outputs>
-    <data name="affinities" format="txt" label="Affinities" from_work_dir="${meta.id}/Gene_TF_matrices/${meta.id}_TF_Gene_Affinities.txt"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <command detect_errors="exit_code"><![CDATA[
+        stare
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**stare**
 
 Framework that scores enhancer–gene interactions using the Activity-By-Contact model and derives transcription factor affinities on gene level
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: stare
+- Container: biocontainers/stare:latest
 
-Module: stare
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/stare
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_stare,
+            title = {nf-core stare module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/stare},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

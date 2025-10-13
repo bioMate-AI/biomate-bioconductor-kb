@@ -1,11 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
 <tool id="thermorawfileparser" name="ThermoRawFileParser" version="1.4.5">
-    <description>Convert Thermo RAW files to open mass spectrometry formats</description>
+    <description>Parses a Thermo RAW file containing mass spectra to an open file format</description>
 
     <requirements>
         <container type="docker">biocontainers/thermorawfileparser:1.4.5--h05cac1d_1</container>
     </requirements>
 
-    <command detect_errors="exit_code"><![CDATA[
+    <command detect_errors="exit_code">
         ThermoRawFileParser.sh
             -i '$raw_input'
             -b output_file
@@ -22,11 +23,10 @@
             #if $advanced.collision_energy
                 --ignoreInstrumentErrors
             #end if
-    ]]></command>
+    </command>
 
     <inputs>
-        <param name="raw_input" type="data" format="raw,thermo.raw" label="Thermo RAW File"
-               help="Thermo Fisher RAW file containing mass spectrometry data"/>
+        <param name="raw_input" type="data" format="raw,thermo.raw" label="Thermo RAW File" help="Thermo Fisher RAW file containing mass spectrometry data" />
 
         <param name="output_format" type="select" label="Output Format" help="Select the output file format">
             <option value="0">MGF (Mascot Generic Format)</option>
@@ -35,12 +35,10 @@
             <option value="3">Apache Parquet</option>
         </param>
 
-        <param name="gzip_output" type="boolean" checked="false" label="Compress Output with gzip"
-               help="Enable gzip compression for output files"/>
+        <param name="gzip_output" type="boolean" checked="false" label="Compress Output with gzip" help="Enable gzip compression for output files" />
 
         <section name="metadata_options" title="Metadata Options" expanded="false">
-            <param name="output_metadata" type="boolean" checked="false" label="Output Metadata"
-                   help="Generate metadata file alongside converted spectra"/>
+            <param name="output_metadata" type="boolean" checked="false" label="Output Metadata" help="Generate metadata file alongside converted spectra" />
             <param name="metadata_format" type="select" label="Metadata Format">
                 <option value="0">TXT format</option>
                 <option value="1" selected="true">JSON format</option>
@@ -48,49 +46,45 @@
         </section>
 
         <section name="advanced" title="Advanced Options" expanded="false">
-            <param name="ms_level" type="select" optional="true" label="MS Level Filter"
-                   help="Only output spectra from specific MS level">
+            <param name="ms_level" type="select" optional="true" label="MS Level Filter" help="Only output spectra from specific MS level">
                 <option value="">All levels (default)</option>
                 <option value="1">MS1 only</option>
                 <option value="2">MS2 only</option>
                 <option value="3">MS3 only</option>
             </param>
 
-            <param name="collision_energy" type="boolean" checked="false"
-                   label="Ignore Instrument Errors"
-                   help="Continue conversion even if instrument errors are encountered"/>
+            <param name="collision_energy" type="boolean" checked="false" label="Ignore Instrument Errors" help="Continue conversion even if instrument errors are encountered" />
         </section>
     </inputs>
 
     <outputs>
         <data name="output_spectra" format="mzml" from_work_dir="output_file.*" label="${tool.name} on ${on_string}: Converted Spectra">
             <change_format>
-                <when input="output_format" value="0" format="mgf"/>
-                <when input="output_format" value="1" format="mzml"/>
-                <when input="output_format" value="2" format="mzml"/>
-                <when input="output_format" value="3" format="parquet"/>
+                <when input="output_format" value="0" format="mgf" />
+                <when input="output_format" value="1" format="mzml" />
+                <when input="output_format" value="2" format="mzml" />
+                <when input="output_format" value="3" format="parquet" />
             </change_format>
         </data>
 
-        <data name="metadata_file" format="json" from_work_dir="output_file-metadata.*"
-              label="${tool.name} on ${on_string}: Metadata">
+        <data name="metadata_file" format="json" from_work_dir="output_file-metadata.*" label="${tool.name} on ${on_string}: Metadata">
             <filter>metadata_options['output_metadata']</filter>
             <change_format>
-                <when input="metadata_options.metadata_format" value="0" format="txt"/>
-                <when input="metadata_options.metadata_format" value="1" format="json"/>
+                <when input="metadata_options.metadata_format" value="0" format="txt" />
+                <when input="metadata_options.metadata_format" value="1" format="json" />
             </change_format>
         </data>
     </outputs>
 
     <tests>
         <test>
-            <param name="raw_input" value="test_data.raw"/>
-            <param name="output_format" value="1"/>
-            <output name="output_spectra" file="test_output.mzML" compare="sim_size"/>
+            <param name="raw_input" value="test_data.raw" />
+            <param name="output_format" value="1" />
+            <output name="output_spectra" file="test_output.mzML" compare="sim_size" />
         </test>
     </tests>
 
-    <help><![CDATA[
+    <help>
 **What it does**
 
 ThermoRawFileParser converts Thermo Fisher RAW files to open mass spectrometry formats. This is the first critical step in creating vendor-independent, reproducible LC-MS workflows.
@@ -131,7 +125,7 @@ The tool uses the official ThermoFisher ThermoRawFileReader library, wrapped to 
 **Performance Notes**
 
 - Conversion time: ~1-5 minutes per RAW file (depends on size and MS levels)
-- Memory: <4GB for typical files
+- Memory: &lt;4GB for typical files
 - Gzip compression reduces file size by 50-70%
 - Indexed mzML provides 10-100x faster random access
 
@@ -152,7 +146,7 @@ Hulstaert N, Shofstahl J, Sachsenberg T, et al. ThermoRawFileParser: Modular, Sc
 
 - Homepage: https://github.com/compomics/ThermoRawFileParser
 - Documentation: https://github.com/compomics/ThermoRawFileParser/blob/master/README.md
-    ]]></help>
+    </help>
 
     <citations>
         <citation type="doi">10.1021/acs.jproteome.9b00328</citation>

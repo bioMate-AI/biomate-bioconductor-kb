@@ -1,0 +1,65 @@
+<tool id="nfcore_rhocall/viz" name="rhocall_viz" version="1.0" profile="21.05">
+    <description>Call regions of homozygosity and make tentative UPD calls</description>
+
+    <requirements>
+        <container type="docker">biocontainers/rhocall:0.5.1--py39hbf8eff0_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        rhocall/viz
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**rhocall_viz**
+
+Call regions of homozygosity and make tentative UPD calls
+
+**nf-core Module Information:**
+
+- Module: rhocall/viz
+- Container: biocontainers/rhocall:0.5.1--py39hbf8eff0_0
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_rhocall/viz,
+            title = {nf-core rhocall/viz module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/rhocall/viz},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

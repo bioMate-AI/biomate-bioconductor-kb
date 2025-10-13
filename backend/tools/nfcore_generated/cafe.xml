@@ -1,53 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_cafe" name="nf-core cafe" version="1.0.0" profile="20.01">
-  <description>Analysis of gene family evolution</description>
-  <requirements>
-    <requirement type="package" version="5.1.0">cafe</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-tr '\\r' '\\n' &lt; $infile &gt; infile.txt
-    tr '\\r' '\\n' &lt; $tree &gt; treefile.txt
-    cafe5 \\
-        -i infile.txt \\
-        -t treefile.txt \\
-        $args \\
-        --cores ${task.cpus} \\
-        -o ${prefix}
+<tool id="nfcore_cafe" name="cafe" version="1.0" profile="21.05">
+    <description>Analysis of gene family evolution</description>
 
+    <requirements>
+        <container type="docker">biocontainers/cafe:5.1.0--h43eeafb_0</container>
+    </requirements>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        cafe: $VERSION
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="infile" format="data" label="Infile"/>
-    <param type="data" name="tree" format="data" label="Tree"/>
-  </inputs>
-  <outputs>
-    <data name="cafe" format="data" label="Cafe" from_work_dir="${prefix}"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-    <data name="cafe_base_count" format="data" label="Cafe Base Count" from_work_dir="$prefix/*_count.tab"/>
-    <data name="cafe_significant_trees" format="data" label="Cafe Significant Trees" from_work_dir="$prefix/*.tre"/>
-    <data name="cafe_report" format="data" label="Cafe Report" from_work_dir="$prefix/*_report.cafe"/>
-    <data name="cafe_results" format="txt" label="Cafe Results" from_work_dir="$prefix/*results.txt"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <command detect_errors="exit_code"><![CDATA[
+        cafe
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**cafe**
 
 Analysis of gene family evolution
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: cafe
+- Container: biocontainers/cafe:5.1.0--h43eeafb_0
 
-Module: cafe
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/cafe
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_cafe,
+            title = {nf-core cafe module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/cafe},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

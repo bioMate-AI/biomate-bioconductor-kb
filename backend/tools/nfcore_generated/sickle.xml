@@ -1,50 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_sickle" name="nf-core sickle" version="1.0.0" profile="20.01">
-  <description>A windowed adaptive trimming tool for FASTQ files using quality</description>
-  <requirements>
-    <requirement type="package" version="1.33">sickle-trim</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-sickle \\
-        se \\
-        $args \\
-        -f $reads \\
-        -t $qual_type \\
-        -o ${prefix}.se.trimmed.fastq.gz \\
-        -g \\
-    &gt;${prefix}.sickle.log
+<tool id="nfcore_sickle" name="sickle" version="1.0" profile="21.05">
+    <description>A windowed adaptive trimming tool for FASTQ files using quality</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        sickle: \$(sickle --version|awk 'NR==1{print \$3}')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
-  </inputs>
-  <outputs>
-    <data name="single_trimmed" format="data" label="Single Trimmed" from_work_dir="${prefix}.se.trimmed.fastq.gz"/>
-    <data name="paired_trimmed" format="data" label="Paired Trimmed" from_work_dir="${prefix}.pe{1,2}.trimmed.fastq.gz"/>
-    <data name="singleton_trimmed" format="data" label="Singleton Trimmed" from_work_dir="${prefix}.singleton.trimmed.fastq.gz"/>
-    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/sickle-trim:1.33--h5bf99c6_6</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        sickle
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**sickle**
 
 A windowed adaptive trimming tool for FASTQ files using quality
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: sickle
+- Container: biocontainers/sickle-trim:1.33--h5bf99c6_6
 
-Module: sickle
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/sickle
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_sickle,
+            title = {nf-core sickle module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/sickle},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

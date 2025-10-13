@@ -1,0 +1,65 @@
+<tool id="nfcore_plink2/indeppairwise" name="plink2_indeppairwise" version="1.0" profile="21.05">
+    <description>Produce pruned set of variants in approximatelinkage equilibrium</description>
+
+    <requirements>
+        <container type="docker">biocontainers/plink2:2.00a5.10--h4ac6f70_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        plink2/indeppairwise
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**plink2_indeppairwise**
+
+Produce pruned set of variants in approximatelinkage equilibrium
+
+**nf-core Module Information:**
+
+- Module: plink2/indeppairwise
+- Container: biocontainers/plink2:2.00a5.10--h4ac6f70_0
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_plink2/indeppairwise,
+            title = {nf-core plink2/indeppairwise module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/plink2/indeppairwise},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

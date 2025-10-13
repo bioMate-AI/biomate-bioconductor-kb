@@ -1,0 +1,6764 @@
+{
+  "metadata": {
+    "timestamp": "2025-10-13",
+    "source": "/Users/jingqiwang/Biomni/biomni/tool",
+    "modules_analyzed": 19
+  },
+  "summary": {
+    "total_imports": 217,
+    "total_function_calls": 1096,
+    "total_subprocess_calls": 0,
+    "bioinformatics_python_libraries": 73,
+    "bioinformatics_r_packages": 0,
+    "command_line_tools": 0
+  },
+  "categorized_tools": {
+    "python_libraries": [
+      "Bio.Blast.NCBIWWW",
+      "gget",
+      "rdkit.Chem.Lipinski",
+      "pybedtools",
+      "Bio.PDB.PDBExceptions",
+      "Bio.Align.Applications",
+      "Bio.PDB.Superimposer",
+      "scanpy",
+      "Bio.Align.Applications.MuscleCommandline",
+      "Bio.Blast.NCBIXML",
+      "Bio.motifs",
+      "cellpose.models",
+      "Bio.SeqUtils.MeltingTemp",
+      "Bio.Data.CodonTable",
+      "Bio.Seq.Seq",
+      "Bio.Graphics",
+      "rdkit",
+      "Bio.PDB",
+      "Bio.Align.Applications.ClustalwCommandline",
+      "Bio.PDB.PDBExceptions.PDBConstructionWarning",
+      "Bio.Phylo.TreeConstruction",
+      "Bio.Graphics.GenomeDiagram",
+      "Bio.pairwise2",
+      "Bio.PDB.PDBIO",
+      "Bio.AlignIO",
+      "Bio.Phylo.TreeConstruction.DistanceTreeConstructor",
+      "Bio.SeqRecord.SeqRecord",
+      "Bio.Restriction",
+      "Bio.PDB.Select",
+      "rdkit.Chem.Descriptors",
+      "flowkit",
+      "cellpose",
+      "Bio.SeqRecord",
+      "rdkit.Chem.Crippen",
+      "Bio",
+      "cobra",
+      "Bio.Entrez",
+      "Bio.SeqFeature.SeqFeature",
+      "Bio.Align",
+      "Bio.Phylo",
+      "rdkit.Chem",
+      "Bio.PDB.PDBParser",
+      "Bio.Data",
+      "msprime",
+      "gseapy",
+      "Bio.SeqFeature.FeatureLocation",
+      "Bio.Seq",
+      "Bio.Blast",
+      "scvi",
+      "rdkit.Chem.MolStandardize.rdMolStandardize",
+      "cooler",
+      "Bio.Align.MultipleSeqAlignment",
+      "Bio.SeqFeature",
+      "rdkit.Chem.MolStandardize",
+      "Bio.SeqUtils",
+      "Bio.SeqIO",
+      "Bio.Phylo.TreeConstruction.DistanceCalculator",
+      "msprime.sim_ancestry",
+      "msprime.StandardCoalescent",
+      "msprime.sim_mutations",
+      "msprime.Demography",
+      "msprime.BetaCoalescent",
+      "scvi.model.SCANVI.from_scvi_model",
+      "scvi.model.SCVI.setup_anndata",
+      "scvi.model.SCVI",
+      "gget.enrichr",
+      "gget.archs4",
+      "gseapy.get_library_name",
+      "cooler.Cooler",
+      "pybedtools.BedTool",
+      "cobra.io.load_model",
+      "cobra.io.read_sbml_model",
+      "cobra.io.load_json_model"
+    ],
+    "r_packages": [],
+    "command_line_tools": [],
+    "other": []
+  },
+  "all_imports": [
+    "Bio",
+    "Bio.Align",
+    "Bio.Align.Applications",
+    "Bio.Align.Applications.ClustalwCommandline",
+    "Bio.Align.Applications.MuscleCommandline",
+    "Bio.Align.MultipleSeqAlignment",
+    "Bio.AlignIO",
+    "Bio.Blast",
+    "Bio.Blast.NCBIWWW",
+    "Bio.Blast.NCBIXML",
+    "Bio.Data",
+    "Bio.Data.CodonTable",
+    "Bio.Entrez",
+    "Bio.Graphics",
+    "Bio.Graphics.GenomeDiagram",
+    "Bio.PDB",
+    "Bio.PDB.PDBExceptions",
+    "Bio.PDB.PDBExceptions.PDBConstructionWarning",
+    "Bio.PDB.PDBIO",
+    "Bio.PDB.PDBParser",
+    "Bio.PDB.Select",
+    "Bio.PDB.Superimposer",
+    "Bio.Phylo",
+    "Bio.Phylo.TreeConstruction",
+    "Bio.Phylo.TreeConstruction.DistanceCalculator",
+    "Bio.Phylo.TreeConstruction.DistanceTreeConstructor",
+    "Bio.Restriction",
+    "Bio.Seq",
+    "Bio.Seq.Seq",
+    "Bio.SeqFeature",
+    "Bio.SeqFeature.FeatureLocation",
+    "Bio.SeqFeature.SeqFeature",
+    "Bio.SeqIO",
+    "Bio.SeqRecord",
+    "Bio.SeqRecord.SeqRecord",
+    "Bio.SeqUtils",
+    "Bio.SeqUtils.MeltingTemp",
+    "Bio.motifs",
+    "Bio.pairwise2",
+    "DeepPurpose",
+    "DeepPurpose.CompoundPred",
+    "DeepPurpose.DTI",
+    "DeepPurpose.utils",
+    "FlowCytometryTools",
+    "FlowCytometryTools.FCMeasurement",
+    "PyPDF2",
+    "RNA",
+    "SimpleITK",
+    "accelerate",
+    "accelerate.Accelerator",
+    "arxiv",
+    "biomni.config",
+    "biomni.config.default_config",
+    "biomni.llm",
+    "biomni.llm.get_llm",
+    "biomni.utils",
+    "biomni.utils.parse_hpo_obo",
+    "bs4",
+    "bs4.BeautifulSoup",
+    "cellpose",
+    "cellpose.models",
+    "cobra",
+    "collections",
+    "collections.Counter",
+    "collections.abc",
+    "collections.defaultdict",
+    "collections.namedtuple",
+    "community",
+    "community.best_partition",
+    "cooler",
+    "csv",
+    "cv2",
+    "datetime",
+    "datetime.datetime",
+    "difflib",
+    "difflib.get_close_matches",
+    "eval_single_anndata",
+    "eval_single_anndata.main",
+    "eval_single_anndata.parse_args_uce",
+    "flowkit",
+    "gget",
+    "glob",
+    "googlesearch",
+    "googlesearch.search",
+    "gseapy",
+    "harmony",
+    "harmony.harmonize",
+    "importlib",
+    "inspect",
+    "io",
+    "io.BytesIO",
+    "io.StringIO",
+    "json",
+    "langchain_core.messages",
+    "langchain_core.messages.HumanMessage",
+    "langchain_core.messages.SystemMessage",
+    "langchain_core.prompts",
+    "langchain_core.prompts.PromptTemplate",
+    "libsbml",
+    "math",
+    "math.log",
+    "matplotlib",
+    "matplotlib.cm",
+    "matplotlib.patches",
+    "matplotlib.patches.Patch",
+    "matplotlib.pyplot",
+    "msprime",
+    "networkx",
+    "nibabel",
+    "numpy",
+    "os",
+    "pandas",
+    "pathlib",
+    "pathlib.Path",
+    "pickle",
+    "pybedtools",
+    "pykalman",
+    "pykalman.KalmanFilter",
+    "pyliftover",
+    "pyliftover.LiftOver",
+    "pymed",
+    "pymed.PubMed",
+    "random",
+    "rdkit",
+    "rdkit.Chem",
+    "rdkit.Chem.Crippen",
+    "rdkit.Chem.Descriptors",
+    "rdkit.Chem.Lipinski",
+    "rdkit.Chem.MolStandardize",
+    "rdkit.Chem.MolStandardize.rdMolStandardize",
+    "re",
+    "reportlab.lib",
+    "reportlab.lib.colors",
+    "requests",
+    "scanpy",
+    "scholarly",
+    "scholarly.scholarly",
+    "scipy",
+    "scipy.cluster.hierarchy",
+    "scipy.cluster.hierarchy.fcluster",
+    "scipy.cluster.hierarchy.linkage",
+    "scipy.fftpack",
+    "scipy.fftpack.fft",
+    "scipy.integrate",
+    "scipy.integrate.odeint",
+    "scipy.integrate.solve_ivp",
+    "scipy.integrate.trapezoid",
+    "scipy.interpolate",
+    "scipy.interpolate.interp1d",
+    "scipy.linalg",
+    "scipy.ndimage",
+    "scipy.optimize",
+    "scipy.optimize.curve_fit",
+    "scipy.optimize.differential_evolution",
+    "scipy.optimize.minimize",
+    "scipy.signal",
+    "scipy.signal.find_peaks",
+    "scipy.spatial",
+    "scipy.spatial.distance",
+    "scipy.spatial.distance.pdist",
+    "scipy.stats",
+    "scipy.stats.linregress",
+    "scipy.stats.norm",
+    "scipy.stats.pearsonr",
+    "scvi",
+    "shutil",
+    "skimage",
+    "skimage.color",
+    "skimage.color.label2rgb",
+    "skimage.color.rgb2gray",
+    "skimage.exposure",
+    "skimage.feature",
+    "skimage.feature.graycomatrix",
+    "skimage.feature.graycoprops",
+    "skimage.filters",
+    "skimage.io",
+    "skimage.measure",
+    "skimage.morphology",
+    "skimage.segmentation",
+    "skimage.segmentation.clear_border",
+    "skimage.segmentation.find_boundaries",
+    "skimage.util",
+    "skimage.util.img_as_ubyte",
+    "sklearn.cluster",
+    "sklearn.cluster.KMeans",
+    "sklearn.decomposition",
+    "sklearn.decomposition.NMF",
+    "sklearn.decomposition.PCA",
+    "sklearn.metrics",
+    "sklearn.metrics.mean_squared_error",
+    "sklearn.model_selection",
+    "sklearn.model_selection.train_test_split",
+    "sklearn.neighbors",
+    "sklearn.neighbors.NearestNeighbors",
+    "statistics",
+    "statsmodels.api",
+    "statsmodels.formula.api",
+    "statsmodels.formula.api.ols",
+    "statsmodels.stats.multicomp",
+    "statsmodels.stats.multicomp.pairwise_tukeyhsd",
+    "subprocess",
+    "sys",
+    "tdc",
+    "tdc.Oracle",
+    "tempfile",
+    "time",
+    "torch",
+    "torch.nn",
+    "torch.optim",
+    "trackpy",
+    "transformers",
+    "transformers.pipeline",
+    "typing",
+    "typing.Any",
+    "urllib.parse",
+    "urllib.parse.urljoin",
+    "warnings"
+  ],
+  "all_function_calls": {
+    "datetime": [
+      "datetime.now",
+      "now"
+    ],
+    "np": [
+      "abs",
+      "any",
+      "apply_along_axis",
+      "arange",
+      "arctan2",
+      "argmax",
+      "argmin",
+      "argsort",
+      "array",
+      "clip",
+      "column_stack",
+      "concatenate",
+      "corrcoef",
+      "cos",
+      "cumsum",
+      "diag",
+      "diagonal",
+      "diff",
+      "dot",
+      "exp",
+      "expand_dims",
+      "eye",
+      "fft.fftfreq",
+      "full",
+      "gradient",
+      "hanning",
+      "histogram",
+      "linalg.lstsq",
+      "linalg.norm",
+      "linspace",
+      "log",
+      "log10",
+      "logical_or",
+      "max",
+      "maximum",
+      "mean",
+      "median",
+      "meshgrid",
+      "min",
+      "mod",
+      "nan_to_num",
+      "nanmean",
+      "ones",
+      "percentile",
+      "polyfit",
+      "radians",
+      "random.choice",
+      "random.exponential",
+      "random.normal",
+      "random.poisson",
+      "random.randint",
+      "random.seed",
+      "random.uniform",
+      "save",
+      "savetxt",
+      "savez",
+      "sin",
+      "sort",
+      "sqrt",
+      "stack",
+      "std",
+      "sum",
+      "trace",
+      "trapezoid",
+      "uint8",
+      "unique",
+      "var",
+      "where",
+      "zeros",
+      "zeros_like"
+    ],
+    "os": [
+      "environ.get",
+      "listdir",
+      "makedirs",
+      "path.abspath",
+      "path.basename",
+      "path.dirname",
+      "path.exists",
+      "path.getsize",
+      "path.isdir",
+      "path.isfile",
+      "path.join",
+      "path.splitext",
+      "rename"
+    ],
+    "sample_type": [
+      "lower"
+    ],
+    "f": [
+      "endswith",
+      "readline",
+      "readlines",
+      "write"
+    ],
+    "stack": [
+      "append",
+      "pop"
+    ],
+    "pairs": [
+      "append",
+      "sort"
+    ],
+    "stems": [
+      "append"
+    ],
+    "current_stem": [
+      "append"
+    ],
+    "loops": [
+      "append"
+    ],
+    "energy_params": [
+      "get"
+    ],
+    "stem_energies": [
+      "append"
+    ],
+    "plt": [
+      "Rectangle",
+      "axis",
+      "axvspan",
+      "bar",
+      "close",
+      "colorbar",
+      "contour",
+      "errorbar",
+      "figure",
+      "gca",
+      "grid",
+      "hexbin",
+      "imshow",
+      "legend",
+      "plot",
+      "savefig",
+      "scatter",
+      "subplot",
+      "subplots",
+      "tight_layout",
+      "title",
+      "xlabel",
+      "xticks",
+      "ylabel"
+    ],
+    "csv": [
+      "writer"
+    ],
+    "writer": [
+      "writerow"
+    ],
+    "modulators": [
+      "items"
+    ],
+    "modulator_activities": [
+      "append"
+    ],
+    "log": [
+      "append",
+      "strip"
+    ],
+    "itc_data_path": [
+      "endswith"
+    ],
+    "pd": [
+      "DataFrame",
+      "DataFrame.from_dict",
+      "concat",
+      "isna",
+      "read_csv",
+      "read_parquet"
+    ],
+    "SeqIO": [
+      "parse",
+      "read",
+      "write"
+    ],
+    "AlignIO": [
+      "read",
+      "write"
+    ],
+    "alignment": [
+      "get_alignment_length"
+    ],
+    "alignments": [
+      "append"
+    ],
+    "calculator": [
+      "get_distance"
+    ],
+    "constructor": [
+      "nj"
+    ],
+    "Phylo": [
+      "draw",
+      "read",
+      "write"
+    ],
+    "column": [
+      "count"
+    ],
+    "conserved_positions": [
+      "append"
+    ],
+    "io": [
+      "StringIO",
+      "imread",
+      "imsave",
+      "save",
+      "set_structure"
+    ],
+    "tp": [
+      "filter_stubs",
+      "link",
+      "link_df",
+      "locate",
+      "plot_traj"
+    ],
+    "features_list": [
+      "append"
+    ],
+    "all_features": [
+      "rename",
+      "to_csv"
+    ],
+    "trajectories": [
+      "reset_index",
+      "to_csv"
+    ],
+    "trajectories_reset": [
+      "to_csv"
+    ],
+    "metrics": [
+      "append"
+    ],
+    "metrics_df": [
+      "to_csv"
+    ],
+    "angles": [
+      "append"
+    ],
+    "ax": [
+      "add_patch",
+      "hist",
+      "plot_surface",
+      "scatter",
+      "set_title",
+      "set_xlabel",
+      "set_xlim",
+      "set_xticklabels",
+      "set_xticks",
+      "set_ylabel",
+      "set_ylim",
+      "set_yticks",
+      "set_zlabel",
+      "text"
+    ],
+    "guide": [
+      "upper"
+    ],
+    "valid_guides": [
+      "append"
+    ],
+    "target_genomic_loci": [
+      "upper"
+    ],
+    "target_seq": [
+      "find"
+    ],
+    "target_matches": [
+      "append"
+    ],
+    "cell_tissue_type": [
+      "lower"
+    ],
+    "delivery_efficiencies": [
+      "get"
+    ],
+    "random": [
+      "randint"
+    ],
+    "filters": [
+      "gaussian",
+      "get",
+      "threshold_li",
+      "threshold_local",
+      "threshold_otsu",
+      "threshold_yen"
+    ],
+    "ndimage": [
+      "binary_fill_holes",
+      "convolve",
+      "distance_transform_edt",
+      "find_objects",
+      "label",
+      "median_filter",
+      "sum"
+    ],
+    "feature": [
+      "canny",
+      "location.extract",
+      "peak_local_max",
+      "qualifiers.get"
+    ],
+    "measure": [
+      "label",
+      "marching_cubes",
+      "regionprops",
+      "regionprops_table"
+    ],
+    "segmentation": [
+      "astype",
+      "find_boundaries",
+      "watershed"
+    ],
+    "cell_time_series": [
+      "append"
+    ],
+    "time_series_data": [
+      "append"
+    ],
+    "events": [
+      "append"
+    ],
+    "event_rates": [
+      "append"
+    ],
+    "cell_decay_times": [
+      "append"
+    ],
+    "decay_times": [
+      "append"
+    ],
+    "snr_values": [
+      "append"
+    ],
+    "cell_metrics": [
+      "to_csv"
+    ],
+    "time_series_df": [
+      "to_csv"
+    ],
+    "models": [
+      "CellposeModel",
+      "items"
+    ],
+    "release_df": [
+      "to_csv"
+    ],
+    "exposure": [
+      "equalize_adapthist",
+      "equalize_hist",
+      "rescale_intensity"
+    ],
+    "morphology": [
+      "binary_closing",
+      "binary_dilation",
+      "closing",
+      "disk",
+      "local_maxima",
+      "remove_small_holes",
+      "remove_small_objects",
+      "skeletonize"
+    ],
+    "myofiber_data": [
+      "append"
+    ],
+    "df": [
+      "head",
+      "iterrows",
+      "to_csv"
+    ],
+    "pca": [
+      "fit_transform",
+      "transform"
+    ],
+    "kf": [
+      "em",
+      "filter"
+    ],
+    "pickle": [
+      "dump",
+      "load"
+    ],
+    "results_df": [
+      "groupby",
+      "head",
+      "insert",
+      "sort_values",
+      "to_csv"
+    ],
+    "initial_conditions": [
+      "keys",
+      "values"
+    ],
+    "parameters": [
+      "get",
+      "items"
+    ],
+    "final_state": [
+      "items"
+    ],
+    "re": [
+      "findall",
+      "search",
+      "sub"
+    ],
+    "requests": [
+      "Session",
+      "get",
+      "post"
+    ],
+    "response": [
+      "content.startswith",
+      "content.strip",
+      "get",
+      "headers.get",
+      "iter_content",
+      "json",
+      "raise_for_status",
+      "split",
+      "text.split",
+      "text.strip"
+    ],
+    "line": [
+      "split",
+      "startswith",
+      "strip"
+    ],
+    "scores": [
+      "append"
+    ],
+    "current_region": [
+      "append"
+    ],
+    "disordered_regions": [
+      "append"
+    ],
+    "cv2": [
+      "GaussianBlur",
+      "HoughLinesP",
+      "Sobel",
+      "VideoCapture",
+      "adaptiveThreshold",
+      "arcLength",
+      "arrowedLine",
+      "calcOpticalFlowPyrLK",
+      "circle",
+      "connectedComponents",
+      "connectedComponentsWithStats",
+      "contourArea",
+      "convexHull",
+      "createCLAHE",
+      "cvtColor",
+      "dilate",
+      "distanceTransform",
+      "drawContours",
+      "equalizeHist",
+      "findContours",
+      "imread",
+      "imwrite",
+      "moments",
+      "morphologyEx",
+      "putText",
+      "subtract",
+      "threshold",
+      "watershed"
+    ],
+    "edges": [
+      "astype"
+    ],
+    "orientations": [
+      "append"
+    ],
+    "cell_df": [
+      "to_csv"
+    ],
+    "fiber_df": [
+      "to_csv"
+    ],
+    "labeled_cells": [
+      "astype"
+    ],
+    "loaded_images": [
+      "append"
+    ],
+    "x": [
+      "flatten",
+      "replace",
+      "strip"
+    ],
+    "y": [
+      "flatten"
+    ],
+    "status": [
+      "flatten"
+    ],
+    "points": [
+      "astype",
+      "flatten"
+    ],
+    "flow_fields": [
+      "append"
+    ],
+    "divergence_maps": [
+      "append"
+    ],
+    "curl_maps": [
+      "append"
+    ],
+    "strain_maps": [
+      "append"
+    ],
+    "expr_data": [
+      "index.isin"
+    ],
+    "mut_data": [
+      "index.isin"
+    ],
+    "nx": [
+      "Graph",
+      "average_clustering",
+      "betweenness_centrality",
+      "degree_centrality",
+      "density",
+      "write_graphml"
+    ],
+    "G": [
+      "add_edge",
+      "add_node",
+      "edges",
+      "nodes",
+      "number_of_edges",
+      "number_of_nodes"
+    ],
+    "degree_centrality": [
+      "items"
+    ],
+    "betweenness_centrality": [
+      "items"
+    ],
+    "mutation_freq": [
+      "items"
+    ],
+    "partition": [
+      "items"
+    ],
+    "communities": [
+      "items"
+    ],
+    "ddr_expr": [
+      "mean"
+    ],
+    "gp": [
+      "enrichr"
+    ],
+    "gene_list": [
+      "index.tolist"
+    ],
+    "term": [
+      "lower"
+    ],
+    "enrichr_results": [
+      "results.to_csv"
+    ],
+    "synthetic_lethality_candidates": [
+      "append"
+    ],
+    "sample": [
+      "compensate",
+      "copy",
+      "gate",
+      "keys"
+    ],
+    "channel": [
+      "upper"
+    ],
+    "sample_filtered": [
+      "gate"
+    ],
+    "ch": [
+      "upper"
+    ],
+    "subprocess": [
+      "check_output",
+      "run"
+    ],
+    "result": [
+      "append",
+      "get",
+      "keys",
+      "stderr.strip",
+      "stdout.splitlines",
+      "stdout.strip"
+    ],
+    "sv_counts": [
+      "items",
+      "values"
+    ],
+    "annotation_cmd": [
+      "extend"
+    ],
+    "outfile": [
+      "write"
+    ],
+    "expression_data_path": [
+      "endswith"
+    ],
+    "expression_data": [
+      "columns.tolist",
+      "index.tolist"
+    ],
+    "model": [
+      "createCompartment",
+      "createReaction",
+      "createSpecies",
+      "elbo_loss",
+      "eval",
+      "fit_transform",
+      "get_latent_representation",
+      "metabolites.get_by_id",
+      "optimize",
+      "parameters",
+      "predict",
+      "reactions.get_by_id",
+      "setId",
+      "setName",
+      "train"
+    ],
+    "shutil": [
+      "rmtree",
+      "which"
+    ],
+    "batch_cmd": [
+      "extend"
+    ],
+    "c": [
+      "bins",
+      "lower",
+      "matrix",
+      "startswith"
+    ],
+    "statistics": [
+      "median"
+    ],
+    "math": [
+      "isnan"
+    ],
+    "seg_df": [
+      "sort_values"
+    ],
+    "seg_df_sorted": [
+      "iterrows"
+    ],
+    "hrd_metrics": [
+      "values"
+    ],
+    "overlaps": [
+      "apply",
+      "sort_values"
+    ],
+    "focal_events": [
+      "append"
+    ],
+    "summary": [
+      "append",
+      "update"
+    ],
+    "all_cells": [
+      "extend"
+    ],
+    "cell_features": [
+      "append"
+    ],
+    "phases": [
+      "append"
+    ],
+    "cells": [
+      "append"
+    ],
+    "current_centroids": [
+      "append",
+      "pop"
+    ],
+    "displacements": [
+      "append"
+    ],
+    "kmeans": [
+      "fit_predict"
+    ],
+    "feature_df": [
+      "groupby",
+      "to_csv"
+    ],
+    "cluster_stats": [
+      "to_csv",
+      "to_string"
+    ],
+    "cell_suspension_data": [
+      "copy",
+      "lower"
+    ],
+    "fk": [
+      "Sample"
+    ],
+    "fcs_data": [
+      "get_dataframe"
+    ],
+    "gating_strategy": [
+      "items"
+    ],
+    "current_population": [
+      "gate"
+    ],
+    "populations": [
+      "items"
+    ],
+    "summary_df": [
+      "iterrows",
+      "to_csv"
+    ],
+    "util": [
+      "img_as_float",
+      "img_as_ubyte"
+    ],
+    "skeleton": [
+      "astype"
+    ],
+    "hp_dict": [
+      "get"
+    ],
+    "hpo_names": [
+      "append"
+    ],
+    "json": [
+      "dump",
+      "dumps",
+      "load",
+      "loads"
+    ],
+    "system_template": [
+      "format"
+    ],
+    "llm": [
+      "invoke"
+    ],
+    "llm_text": [
+      "find",
+      "rfind"
+    ],
+    "method": [
+      "upper"
+    ],
+    "e": [
+      "response.json"
+    ],
+    "value": [
+      "keys"
+    ],
+    "d": [
+      "keys"
+    ],
+    "default_options": [
+      "items"
+    ],
+    "query_info": [
+      "get"
+    ],
+    "llm_result": [
+      "get"
+    ],
+    "endpoint": [
+      "endswith",
+      "lstrip",
+      "split",
+      "startswith"
+    ],
+    "file_format": [
+      "lower"
+    ],
+    "identifier": [
+      "isdigit",
+      "split"
+    ],
+    "data_response": [
+      "json",
+      "raise_for_status"
+    ],
+    "attr": [
+      "split"
+    ],
+    "detailed_results": [
+      "append"
+    ],
+    "pdb_file": [
+      "replace",
+      "write"
+    ],
+    "time": [
+      "sleep",
+      "strftime",
+      "time"
+    ],
+    "mapping": [
+      "get"
+    ],
+    "api_result": [
+      "get"
+    ],
+    "page_resp": [
+      "get"
+    ],
+    "data": [
+      "apply",
+      "get",
+      "groupby",
+      "iterrows",
+      "pivot_table",
+      "sort_values",
+      "to_csv"
+    ],
+    "gnomad_schema": [
+      "replace"
+    ],
+    "NCBIWWW": [
+      "qblast"
+    ],
+    "NCBIXML": [
+      "parse"
+    ],
+    "diagram_response": [
+      "raise_for_status"
+    ],
+    "steps": [
+      "append"
+    ],
+    "filtered_res": [
+      "append"
+    ],
+    "response_json": [
+      "get"
+    ],
+    "gene": [
+      "get"
+    ],
+    "access_result": [
+      "get"
+    ],
+    "access_data": [
+      "get"
+    ],
+    "lo": [
+      "convert_coordinate"
+    ],
+    "gwas_summary_path": [
+      "endswith"
+    ],
+    "norm": [
+      "ppf"
+    ],
+    "torch": [
+      "FloatTensor",
+      "bernoulli",
+      "matmul",
+      "no_grad",
+      "sigmoid",
+      "sum"
+    ],
+    "nn": [
+      "Linear",
+      "ReLU",
+      "Sequential",
+      "fit",
+      "kneighbors"
+    ],
+    "self": [
+      "_build_fda_search_params",
+      "_handle_rate_limiting",
+      "_make_request",
+      "_validate_response",
+      "encoder",
+      "get_tool_by_id",
+      "get_tool_by_name",
+      "log_alpha",
+      "register_tool",
+      "session.get",
+      "session.headers.update",
+      "time.sleep",
+      "time.time",
+      "tools.append",
+      "validate_tool"
+    ],
+    "pips": [
+      "unsqueeze"
+    ],
+    "optim": [
+      "Adam"
+    ],
+    "optimizer": [
+      "step",
+      "zero_grad"
+    ],
+    "loss": [
+      "backward",
+      "item"
+    ],
+    "losses": [
+      "append"
+    ],
+    "gwas_summary": [
+      "copy"
+    ],
+    "credible_set": [
+      "iterrows",
+      "to_csv"
+    ],
+    "reference_sequences": [
+      "items"
+    ],
+    "cell_line_info": [
+      "get"
+    ],
+    "edited_sequences": [
+      "get"
+    ],
+    "pairwise2": [
+      "align.globalms",
+      "align.globalxx"
+    ],
+    "insertions": [
+      "append"
+    ],
+    "deletions": [
+      "append"
+    ],
+    "site_results": [
+      "append"
+    ],
+    "site_mutation_counts": [
+      "items"
+    ],
+    "results": [
+      "append",
+      "extend",
+      "items",
+      "to_csv",
+      "to_dict"
+    ],
+    "mutation_counts": [
+      "items"
+    ],
+    "mut_counts": [
+      "items",
+      "values"
+    ],
+    "summary_data": [
+      "append"
+    ],
+    "original_sequence": [
+      "find"
+    ],
+    "guide_rna_seq": [
+      "reverse_complement"
+    ],
+    "indels": [
+      "append"
+    ],
+    "mutations": [
+      "append"
+    ],
+    "msprime": [
+      "BetaCoalescent",
+      "Demography",
+      "StandardCoalescent",
+      "sim_ancestry",
+      "sim_mutations"
+    ],
+    "demography": [
+      "add_population",
+      "add_population_parameters_change"
+    ],
+    "demographic_params": [
+      "get"
+    ],
+    "mts": [
+      "diversity",
+      "write_vcf"
+    ],
+    "motifs": [
+      "read"
+    ],
+    "pssm": [
+      "search"
+    ],
+    "binding_sites": [
+      "append",
+      "sort"
+    ],
+    "phenotypes": [
+      "reshape"
+    ],
+    "linalg": [
+      "inv"
+    ],
+    "trait_results": [
+      "append"
+    ],
+    "ind_data": [
+      "items"
+    ],
+    "reverse_seq": [
+      "reverse_complement"
+    ],
+    "dna_sequence": [
+      "find",
+      "upper"
+    ],
+    "rev_primer_seq": [
+      "reverse_complement"
+    ],
+    "tempfile": [
+      "NamedTemporaryFile",
+      "TemporaryDirectory",
+      "mkdtemp"
+    ],
+    "temp_fasta": [
+      "close",
+      "write"
+    ],
+    "fasta_sequences": [
+      "encode"
+    ],
+    "alignment_method": [
+      "lower"
+    ],
+    "dst": [
+      "write"
+    ],
+    "src": [
+      "read"
+    ],
+    "seq": [
+      "id.ljust",
+      "upper"
+    ],
+    "tree_method": [
+      "lower"
+    ],
+    "matplotlib": [
+      "use"
+    ],
+    "fig": [
+      "add_subplot",
+      "colorbar"
+    ],
+    "cluster_comp": [
+      "append"
+    ],
+    "sc": [
+      "read_h5ad",
+      "tl.rank_genes_groups"
+    ],
+    "cell_type": [
+      "strip"
+    ],
+    "chain": [
+      "invoke"
+    ],
+    "predicted_celltype": [
+      "lower"
+    ],
+    "annotation_reasons": [
+      "append"
+    ],
+    "reason_dict": [
+      "items"
+    ],
+    "adata": [
+      "write",
+      "write_h5ad"
+    ],
+    "scvi": [
+      "model.SCANVI.from_scvi_model",
+      "model.SCVI",
+      "model.SCVI.setup_anndata"
+    ],
+    "lvae": [
+      "get_latent_representation",
+      "train"
+    ],
+    "sys": [
+      "path.append"
+    ],
+    "custom_args": [
+      "extend",
+      "get"
+    ],
+    "indices": [
+      "flatten"
+    ],
+    "mapped_cell_types": [
+      "reshape"
+    ],
+    "distances": [
+      "append",
+      "mean"
+    ],
+    "gget": [
+      "archs4",
+      "enrichr"
+    ],
+    "gseapy": [
+      "get_library_name"
+    ],
+    "cooler": [
+      "Cooler"
+    ],
+    "str": [
+      "contains",
+      "upper"
+    ],
+    "chrom_enhancers": [
+      "iterrows"
+    ],
+    "chrom_promoters": [
+      "iterrows"
+    ],
+    "interactions": [
+      "append"
+    ],
+    "interactions_df": [
+      "to_csv"
+    ],
+    "stats": [
+      "append",
+      "linregress",
+      "pearsonr",
+      "sem",
+      "t.interval",
+      "ttest_1samp",
+      "zscore"
+    ],
+    "boundaries": [
+      "append"
+    ],
+    "tad_results": [
+      "append"
+    ],
+    "tads_df": [
+      "to_csv"
+    ],
+    "reference_seqs": [
+      "keys"
+    ],
+    "sample_seqs": [
+      "keys"
+    ],
+    "variants": [
+      "append"
+    ],
+    "variants_by_sample": [
+      "items",
+      "keys"
+    ],
+    "haplotype_groups": [
+      "items"
+    ],
+    "check_process": [
+      "stderr.decode",
+      "stdout.decode"
+    ],
+    "macs2_cmd": [
+      "extend"
+    ],
+    "file": [
+      "endswith",
+      "startswith"
+    ],
+    "homer_cmd": [
+      "extend"
+    ],
+    "glob": [
+      "glob"
+    ],
+    "motif_files": [
+      "sort"
+    ],
+    "header": [
+      "split"
+    ],
+    "set_names": [
+      "append"
+    ],
+    "pybedtools": [
+      "BedTool"
+    ],
+    "bedtools": [
+      "append"
+    ],
+    "unique_overlaps": [
+      "add"
+    ],
+    "overlap_with_bases": [
+      "saveas"
+    ],
+    "strain_name": [
+      "replace"
+    ],
+    "target_cell_type": [
+      "capitalize",
+      "lower"
+    ],
+    "tissue_type": [
+      "capitalize"
+    ],
+    "edu_positive": [
+      "append"
+    ],
+    "brdu_positive": [
+      "append"
+    ],
+    "double_positive": [
+      "append"
+    ],
+    "optimize": [
+      "curve_fit",
+      "minimize"
+    ],
+    "first_img": [
+      "copy"
+    ],
+    "frames": [
+      "append"
+    ],
+    "cap": [
+      "get",
+      "isOpened",
+      "read",
+      "release"
+    ],
+    "frame_features": [
+      "append"
+    ],
+    "features_by_frame": [
+      "append"
+    ],
+    "tp_features": [
+      "copy"
+    ],
+    "current_period": [
+      "append"
+    ],
+    "arrest_periods": [
+      "append"
+    ],
+    "behaviors": [
+      "append"
+    ],
+    "behavior_counts": [
+      "items"
+    ],
+    "all_behaviors": [
+      "groupby",
+      "to_csv"
+    ],
+    "research_log": [
+      "append"
+    ],
+    "generation_boundaries": [
+      "append"
+    ],
+    "generation_counts": [
+      "append"
+    ],
+    "fcs_files_dict": [
+      "items"
+    ],
+    "cd4_positive": [
+      "gate"
+    ],
+    "df_results": [
+      "to_csv",
+      "to_string"
+    ],
+    "raw_od_data": [
+      "items"
+    ],
+    "standard_curve_data": [
+      "items"
+    ],
+    "antibody_type": [
+      "endswith"
+    ],
+    "color": [
+      "label2rgb",
+      "rgb2gray",
+      "rgb2lab"
+    ],
+    "original_image": [
+      "copy"
+    ],
+    "distance": [
+      "euclidean"
+    ],
+    "soup": [
+      "find",
+      "find_all"
+    ],
+    "link": [
+      "get",
+      "get_text",
+      "split"
+    ],
+    "supplementary_links": [
+      "append"
+    ],
+    "downloaded_files": [
+      "append"
+    ],
+    "arxiv": [
+      "Client",
+      "Search"
+    ],
+    "client": [
+      "query_adverse_events",
+      "query_drug_labels",
+      "query_drug_recalls",
+      "results"
+    ],
+    "scholarly": [
+      "search_pubs"
+    ],
+    "pubmed": [
+      "query"
+    ],
+    "query": [
+      "split"
+    ],
+    "element": [
+      "decompose"
+    ],
+    "content": [
+      "find_all"
+    ],
+    "p": [
+      "get_text"
+    ],
+    "cleaned_text": [
+      "append"
+    ],
+    "url": [
+      "lower",
+      "split"
+    ],
+    "PyPDF2": [
+      "PdfReader"
+    ],
+    "page": [
+      "extract_text"
+    ],
+    "waste_characteristics": [
+      "items"
+    ],
+    "operational_parameters": [
+      "items"
+    ],
+    "target_output": [
+      "replace"
+    ],
+    "sensitivities": [
+      "append",
+      "sort"
+    ],
+    "sample_data": [
+      "items",
+      "iterrows",
+      "to_csv"
+    ],
+    "arsenic_species": [
+      "items"
+    ],
+    "sample_name": [
+      "replace"
+    ],
+    "species_data": [
+      "items"
+    ],
+    "numeric_concs": [
+      "items"
+    ],
+    "dist_transform": [
+      "max"
+    ],
+    "prokka_cmd": [
+      "extend"
+    ],
+    "prokka_output": [
+      "split"
+    ],
+    "feature_counts": [
+      "items"
+    ],
+    "dilution_concentrations": [
+      "append"
+    ],
+    "spot_counts": [
+      "append"
+    ],
+    "countable_dilutions": [
+      "append"
+    ],
+    "countable_df": [
+      "iterrows"
+    ],
+    "p_values": [
+      "append"
+    ],
+    "masks": [
+      "astype"
+    ],
+    "rna_sequence": [
+      "upper"
+    ],
+    "RNA": [
+      "fold"
+    ],
+    "structure": [
+      "count"
+    ],
+    "median_extinction_times": [
+      "append"
+    ],
+    "start_positions": [
+      "append",
+      "pop"
+    ],
+    "stop_positions": [
+      "append"
+    ],
+    "orf_bio_seq": [
+      "translate"
+    ],
+    "orfs": [
+      "append"
+    ],
+    "all_orfs": [
+      "extend",
+      "sort"
+    ],
+    "seq_obj": [
+      "reverse_complement"
+    ],
+    "filtered_orfs": [
+      "append"
+    ],
+    "cmd": [
+      "append"
+    ],
+    "Entrez": [
+      "efetch",
+      "esearch",
+      "read"
+    ],
+    "sequences": [
+      "append"
+    ],
+    "ADDGENE_PLASMID_SEQUENCES_PATH": [
+      "format"
+    ],
+    "textarea": [
+      "text.strip"
+    ],
+    "sequence_text": [
+      "split"
+    ],
+    "long_seq": [
+      "upper"
+    ],
+    "short_seqs": [
+      "upper"
+    ],
+    "complement": [
+      "get"
+    ],
+    "mismatches": [
+      "append"
+    ],
+    "products": [
+      "append"
+    ],
+    "fwd_positions": [
+      "index"
+    ],
+    "rev_positions": [
+      "index"
+    ],
+    "enzyme_obj": [
+      "search"
+    ],
+    "all_cut_positions": [
+      "extend"
+    ],
+    "fragments": [
+      "append",
+      "sort"
+    ],
+    "Restriction": [
+      "CommOnly.search",
+      "RestrictionBatch"
+    ],
+    "rb": [
+      "search"
+    ],
+    "analysis": [
+      "items"
+    ],
+    "enzyme": [
+      "elucidate"
+    ],
+    "sequence": [
+      "upper"
+    ],
+    "species": [
+      "lower",
+      "setBoundaryCondition",
+      "setCompartment",
+      "setConstant",
+      "setHasOnlySubstanceUnits",
+      "setId",
+      "setInitialConcentration"
+    ],
+    "gene_name": [
+      "upper"
+    ],
+    "gene_df": [
+      "head",
+      "sort_values"
+    ],
+    "thermal_protocol": [
+      "append"
+    ],
+    "insert_components": [
+      "append"
+    ],
+    "reaction_components": [
+      "append",
+      "extend"
+    ],
+    "candidate": [
+      "count"
+    ],
+    "mt": [
+      "Tm_Wallace"
+    ],
+    "merged": [
+      "append"
+    ],
+    "plasmid_sequence": [
+      "upper"
+    ],
+    "primer": [
+      "copy"
+    ],
+    "primer_pool": [
+      "append"
+    ],
+    "alignment_results": [
+      "get"
+    ],
+    "potential_primers": [
+      "append",
+      "pop",
+      "sort"
+    ],
+    "selected_primers": [
+      "append"
+    ],
+    "covered_regions": [
+      "append"
+    ],
+    "recommended_primers": [
+      "append"
+    ],
+    "coverage_map": [
+      "append",
+      "sort"
+    ],
+    "uncovered_regions": [
+      "append"
+    ],
+    "positions": [
+      "append"
+    ],
+    "TYPE_IIS_PROPERTIES": [
+      "keys"
+    ],
+    "backbone_sequence": [
+      "upper"
+    ],
+    "insert_sequence": [
+      "upper"
+    ],
+    "restriction_sites": [
+      "append"
+    ],
+    "cut_sites": [
+      "append"
+    ],
+    "fragment": [
+      "get"
+    ],
+    "fwd_sites": [
+      "append"
+    ],
+    "rev_sites": [
+      "append"
+    ],
+    "processed_fragments": [
+      "append"
+    ],
+    "cut_fragments": [
+      "append"
+    ],
+    "fragment_overhangs": [
+      "append"
+    ],
+    "possible_starts": [
+      "append"
+    ],
+    "assembled_fragments": [
+      "append"
+    ],
+    "clahe": [
+      "apply"
+    ],
+    "aorta_contour": [
+      "reshape"
+    ],
+    "hull": [
+      "reshape"
+    ],
+    "fresh_mask": [
+      "sum"
+    ],
+    "lysis_mask": [
+      "sum"
+    ],
+    "endothel_mask": [
+      "sum"
+    ],
+    "fibro_mask": [
+      "sum"
+    ],
+    "marker_type": [
+      "replace"
+    ],
+    "image": [
+      "astype"
+    ],
+    "image_normalized": [
+      "max",
+      "min"
+    ],
+    "cell_data": [
+      "append"
+    ],
+    "cell_masks": [
+      "astype"
+    ],
+    "gpu_check": [
+      "stdout.strip"
+    ],
+    "log_file": [
+      "read"
+    ],
+    "box_center_match": [
+      "group"
+    ],
+    "box_size_match": [
+      "group"
+    ],
+    "disease_predictions": [
+      "items"
+    ],
+    "sigmoid_predictions": [
+      "items"
+    ],
+    "CompoundPred": [
+      "model_pretrained"
+    ],
+    "utils": [
+      "data_process"
+    ],
+    "DTI": [
+      "model_pretrained"
+    ],
+    "affinity_model_type": [
+      "replace",
+      "split"
+    ],
+    "model_DTI": [
+      "predict"
+    ],
+    "formulation": [
+      "get"
+    ],
+    "condition": [
+      "get"
+    ],
+    "all_results": [
+      "extend"
+    ],
+    "form_results": [
+      "iterrows"
+    ],
+    "timepoints": [
+      "append"
+    ],
+    "symptom": [
+      "lower"
+    ],
+    "severity": [
+      "lower"
+    ],
+    "numeric_columns": [
+      "sort"
+    ],
+    "progression_analysis": [
+      "iterrows",
+      "to_csv"
+    ],
+    "trend_counts": [
+      "items"
+    ],
+    "trend": [
+      "capitalize"
+    ],
+    "grade_counts": [
+      "items"
+    ],
+    "symptom_summary": [
+      "iterrows"
+    ],
+    "most_severe": [
+      "iterrows"
+    ],
+    "tissue_data": [
+      "items",
+      "keys"
+    ],
+    "tissue": [
+      "capitalize",
+      "lower"
+    ],
+    "biodistribution_data": [
+      "items"
+    ],
+    "time_integrated_activity": [
+      "items"
+    ],
+    "absorbed_doses": [
+      "get",
+      "items"
+    ],
+    "methylation_data_path": [
+      "endswith"
+    ],
+    "metabolizer_status_path": [
+      "endswith"
+    ],
+    "covariates_path": [
+      "endswith"
+    ],
+    "methylation_data": [
+      "index.intersection"
+    ],
+    "metabolizer_status": [
+      "map"
+    ],
+    "significant_sites": [
+      "head",
+      "sort_values",
+      "to_csv"
+    ],
+    "Chem": [
+      "MolFromSmiles"
+    ],
+    "Descriptors": [
+      "MolLogP",
+      "MolWt",
+      "NumRotatableBonds",
+      "RingCount",
+      "TPSA"
+    ],
+    "Lipinski": [
+      "NumHAcceptors",
+      "NumHDonors"
+    ],
+    "mol": [
+      "GetAtoms",
+      "GetNumHeavyAtoms"
+    ],
+    "rdMolStandardize": [
+      "Uncharger"
+    ],
+    "uncharger": [
+      "uncharge"
+    ],
+    "atom": [
+      "GetDegree",
+      "GetNeighbors",
+      "GetSymbol"
+    ],
+    "neigh": [
+      "GetDegree",
+      "GetSymbol"
+    ],
+    "Crippen": [
+      "MolMR"
+    ],
+    "properties": [
+      "items"
+    ],
+    "data_path": [
+      "endswith"
+    ],
+    "data_df": [
+      "groupby"
+    ],
+    "stats_df": [
+      "to_csv"
+    ],
+    "subject_growth_rates": [
+      "append"
+    ],
+    "sm": [
+      "stats.anova_lm"
+    ],
+    "anova_table": [
+      "to_csv"
+    ],
+    "tukey": [
+      "summary"
+    ],
+    "sig_pairs": [
+      "iterrows"
+    ],
+    "tgi_results": [
+      "items"
+    ],
+    "csv_file": [
+      "replace"
+    ],
+    "dataframes": [
+      "append"
+    ],
+    "standardized": [
+      "replace"
+    ],
+    "combined_df": [
+      "iterrows"
+    ],
+    "drug_info": [
+      "get",
+      "items",
+      "values"
+    ],
+    "original_name": [
+      "lower"
+    ],
+    "connection_counts": [
+      "append",
+      "sort"
+    ],
+    "drug_name": [
+      "lower",
+      "strip",
+      "title"
+    ],
+    "name_mapping": [
+      "keys"
+    ],
+    "interaction": [
+      "get"
+    ],
+    "category": [
+      "replace"
+    ],
+    "standardized_names": [
+      "append"
+    ],
+    "missing_drugs": [
+      "append"
+    ],
+    "int_data": [
+      "get"
+    ],
+    "interactions_found": [
+      "append"
+    ],
+    "severity_counts": [
+      "get"
+    ],
+    "standardized_drugs": [
+      "append"
+    ],
+    "drug_a": [
+      "title"
+    ],
+    "drug_a_info": [
+      "get"
+    ],
+    "drug_b": [
+      "title"
+    ],
+    "drug_b_info": [
+      "get"
+    ],
+    "category_mechanisms": [
+      "get"
+    ],
+    "std_contraindicated": [
+      "append"
+    ],
+    "missing_contraindicated": [
+      "append"
+    ],
+    "target_info": [
+      "get"
+    ],
+    "drug_data": [
+      "get"
+    ],
+    "therapeutic_class": [
+      "lower"
+    ],
+    "cat": [
+      "lower"
+    ],
+    "alternatives": [
+      "append",
+      "sort"
+    ],
+    "params": [
+      "items"
+    ],
+    "name": [
+      "endswith",
+      "split"
+    ],
+    "response_data": [
+      "get"
+    ],
+    "filtered_results": [
+      "append"
+    ],
+    "drug": [
+      "get",
+      "strip"
+    ],
+    "reaction": [
+      "createKineticLaw",
+      "createProduct",
+      "createReactant",
+      "get",
+      "metabolites.items",
+      "setFast",
+      "setId",
+      "setName",
+      "setReversible"
+    ],
+    "drug_reactions": [
+      "items"
+    ],
+    "outcome": [
+      "get"
+    ],
+    "reaction_counts": [
+      "get",
+      "items"
+    ],
+    "section_mapping": [
+      "get",
+      "keys"
+    ],
+    "section_key": [
+      "title"
+    ],
+    "recall": [
+      "get"
+    ],
+    "signals_data": [
+      "get"
+    ],
+    "drug_signals": [
+      "get"
+    ],
+    "reaction_patterns": [
+      "items"
+    ],
+    "formatted_result": [
+      "replace",
+      "split",
+      "startswith"
+    ],
+    "lines": [
+      "insert"
+    ],
+    "all_responses": [
+      "append"
+    ],
+    "nib": [
+      "Nifti1Image",
+      "load",
+      "save"
+    ],
+    "mri_data": [
+      "get_fdata"
+    ],
+    "sitk": [
+      "BinaryOpeningByReconstruction",
+      "CurvatureFlow",
+      "GetArrayFromImage",
+      "GetImageFromArray",
+      "ReadImage",
+      "WriteImage"
+    ],
+    "binary_mask": [
+      "astype"
+    ],
+    "rois": [
+      "append"
+    ],
+    "frequencies": [
+      "append"
+    ],
+    "img1": [
+      "astype",
+      "mean"
+    ],
+    "img2": [
+      "astype",
+      "mean"
+    ],
+    "img1_norm": [
+      "flatten"
+    ],
+    "img2_norm": [
+      "flatten"
+    ],
+    "dwi_img": [
+      "get_fdata"
+    ],
+    "mask_img": [
+      "get_fdata"
+    ],
+    "signal": [
+      "butter",
+      "filtfilt",
+      "find_peaks"
+    ],
+    "expected_cols": [
+      "issubset"
+    ],
+    "fatty_acid_standards": [
+      "items"
+    ],
+    "identified_peaks": [
+      "values"
+    ],
+    "detected_results": [
+      "head"
+    ],
+    "top_fatty_acids": [
+      "iterrows"
+    ],
+    "valleys": [
+      "append"
+    ],
+    "species_names": [
+      "index"
+    ],
+    "volumes": [
+      "get"
+    ],
+    "plaque_data": [
+      "append"
+    ],
+    "mystdout": [
+      "getvalue"
+    ],
+    "command": [
+      "strip"
+    ],
+    "function_name": [
+      "split"
+    ],
+    "importlib": [
+      "import_module"
+    ],
+    "inspect": [
+      "getsource"
+    ],
+    "errors": [
+      "append"
+    ],
+    "features": [
+      "append"
+    ],
+    "GenomeDiagram": [
+      "Diagram"
+    ],
+    "gd_diagram": [
+      "draw",
+      "new_track",
+      "write"
+    ],
+    "gd_track": [
+      "new_set"
+    ],
+    "gd_feature_set": [
+      "add_feature"
+    ],
+    "input_file": [
+      "endswith"
+    ],
+    "barcodes": [
+      "append"
+    ],
+    "match": [
+      "group"
+    ],
+    "barcode_counts": [
+      "items"
+    ],
+    "filtered_barcodes": [
+      "items",
+      "keys"
+    ],
+    "s1": [
+      "ljust"
+    ],
+    "s2": [
+      "ljust"
+    ],
+    "cluster_counts": [
+      "values"
+    ],
+    "attractor_points": [
+      "append"
+    ],
+    "colors": [
+      "get"
+    ],
+    "system_name": [
+      "replace"
+    ],
+    "libsbml": [
+      "SBMLDocument",
+      "SBMLNamespaces",
+      "parseL3Formula",
+      "writeSBMLToFile"
+    ],
+    "document": [
+      "checkConsistency",
+      "createModel",
+      "getError",
+      "getNumErrors",
+      "setConsistencyChecks"
+    ],
+    "compartment": [
+      "setConstant",
+      "setId",
+      "setSize",
+      "setSpatialDimensions"
+    ],
+    "species_set": [
+      "add"
+    ],
+    "species_ref": [
+      "setConstant",
+      "setSpecies",
+      "setStoichiometry"
+    ],
+    "kinetic_law": [
+      "createParameter",
+      "setMath"
+    ],
+    "parameter": [
+      "setId",
+      "setValue"
+    ],
+    "error": [
+      "getMessage"
+    ],
+    "target_sequence": [
+      "replace"
+    ],
+    "standard_table": [
+      "forward_table.items"
+    ],
+    "codon_to_aa": [
+      "items"
+    ],
+    "host_codon_usage": [
+      "get"
+    ],
+    "optimized_codons": [
+      "append"
+    ],
+    "optimized_sequence": [
+      "replace"
+    ],
+    "circuit_topology": [
+      "tolist"
+    ],
+    "result_response": [
+      "json"
+    ],
+    "hit": [
+      "get"
+    ],
+    "domain": [
+      "get"
+    ],
+    "domains_found": [
+      "append"
+    ],
+    "fas_domains": [
+      "items"
+    ],
+    "fas_key": [
+      "lower"
+    ],
+    "fas_domains_found": [
+      "append"
+    ],
+    "model_file": [
+      "endswith"
+    ],
+    "cobra": [
+      "io.load_json_model",
+      "io.load_model",
+      "io.read_sbml_model"
+    ],
+    "constraints": [
+      "items"
+    ],
+    "flux_distribution": [
+      "to_csv"
+    ],
+    "top_reactions": [
+      "iterrows"
+    ],
+    "monomer_concentrations": [
+      "items",
+      "keys"
+    ],
+    "dimer_pairs": [
+      "append"
+    ],
+    "dimer_names": [
+      "append"
+    ],
+    "dimer_affinities": [
+      "append"
+    ],
+    "monomer_to_idx": [
+      "items"
+    ],
+    "final_monomer_concs": [
+      "items"
+    ],
+    "final_dimer_concs": [
+      "items"
+    ],
+    "metabolite_ids": [
+      "index"
+    ],
+    "perturbation": [
+      "copy",
+      "get"
+    ],
+    "perturbation_params": [
+      "copy"
+    ],
+    "conc_df": [
+      "to_csv"
+    ],
+    "flux_df": [
+      "to_csv"
+    ],
+    "significant_changes": [
+      "append"
+    ],
+    "network_structure": [
+      "items",
+      "keys"
+    ],
+    "all_proteins": [
+      "add"
+    ],
+    "reaction_params": [
+      "get"
+    ],
+    "regulation_terms": [
+      "append"
+    ],
+    "species_params": [
+      "items"
+    ],
+    "warnings": [
+      "filterwarnings"
+    ],
+    "parser": [
+      "get_structure"
+    ],
+    "residue": [
+      "has_id"
+    ],
+    "residues1": [
+      "keys"
+    ],
+    "residues2": [
+      "keys"
+    ],
+    "ca_atoms1": [
+      "append"
+    ],
+    "ca_atoms2": [
+      "append"
+    ],
+    "super_imposer": [
+      "apply",
+      "set_atoms"
+    ],
+    "structure2": [
+      "get_atoms"
+    ],
+    "distance_data": [
+      "append"
+    ],
+    "res1": [
+      "get_resname"
+    ],
+    "regions": [
+      "append"
+    ],
+    "tools": [
+      "values"
+    ],
+    "docs": [
+      "append"
+    ]
+  },
+  "subprocess_calls": [],
+  "module_details": [
+    {
+      "file": "biochemistry.py",
+      "imports": [
+        "Bio",
+        "Bio.Align",
+        "Bio.Align.Applications",
+        "Bio.Align.Applications.MuscleCommandline",
+        "Bio.Align.MultipleSeqAlignment",
+        "Bio.AlignIO",
+        "Bio.Phylo",
+        "Bio.Phylo.TreeConstruction",
+        "Bio.Phylo.TreeConstruction.DistanceCalculator",
+        "Bio.Phylo.TreeConstruction.DistanceTreeConstructor",
+        "Bio.Seq",
+        "Bio.Seq.Seq",
+        "Bio.SeqIO",
+        "Bio.SeqRecord",
+        "Bio.SeqRecord.SeqRecord",
+        "csv",
+        "datetime",
+        "datetime.datetime",
+        "matplotlib.pyplot",
+        "numpy",
+        "os",
+        "pandas",
+        "scipy.optimize",
+        "scipy.optimize.curve_fit"
+      ],
+      "function_calls": {
+        "datetime": [
+          "datetime.now",
+          "now"
+        ],
+        "np": [
+          "abs",
+          "argmin",
+          "array",
+          "cumsum",
+          "diag",
+          "exp",
+          "linspace",
+          "log",
+          "max",
+          "mean",
+          "min",
+          "polyfit",
+          "random.normal",
+          "random.seed",
+          "random.uniform",
+          "sqrt",
+          "sum",
+          "where",
+          "zeros",
+          "zeros_like"
+        ],
+        "os": [
+          "makedirs",
+          "path.exists",
+          "path.join"
+        ],
+        "sample_type": [
+          "lower"
+        ],
+        "f": [
+          "write"
+        ],
+        "stack": [
+          "append",
+          "pop"
+        ],
+        "pairs": [
+          "append",
+          "sort"
+        ],
+        "stems": [
+          "append"
+        ],
+        "current_stem": [
+          "append"
+        ],
+        "loops": [
+          "append"
+        ],
+        "energy_params": [
+          "get"
+        ],
+        "stem_energies": [
+          "append"
+        ],
+        "plt": [
+          "close",
+          "figure",
+          "grid",
+          "legend",
+          "plot",
+          "savefig",
+          "scatter",
+          "title",
+          "xlabel",
+          "ylabel"
+        ],
+        "csv": [
+          "writer"
+        ],
+        "writer": [
+          "writerow"
+        ],
+        "modulators": [
+          "items"
+        ],
+        "modulator_activities": [
+          "append"
+        ],
+        "log": [
+          "append"
+        ],
+        "itc_data_path": [
+          "endswith"
+        ],
+        "pd": [
+          "read_csv"
+        ],
+        "SeqIO": [
+          "parse"
+        ],
+        "AlignIO": [
+          "read",
+          "write"
+        ],
+        "alignment": [
+          "get_alignment_length"
+        ],
+        "alignments": [
+          "append"
+        ],
+        "calculator": [
+          "get_distance"
+        ],
+        "constructor": [
+          "nj"
+        ],
+        "Phylo": [
+          "write"
+        ],
+        "column": [
+          "count"
+        ],
+        "conserved_positions": [
+          "append"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "bioengineering.py",
+      "imports": [
+        "datetime",
+        "datetime.datetime",
+        "matplotlib.pyplot",
+        "numpy",
+        "os",
+        "pandas",
+        "pickle",
+        "pykalman",
+        "pykalman.KalmanFilter",
+        "random",
+        "scipy",
+        "scipy.integrate",
+        "scipy.integrate.solve_ivp",
+        "scipy.interpolate",
+        "scipy.interpolate.interp1d",
+        "scipy.ndimage",
+        "scipy.optimize",
+        "scipy.optimize.curve_fit",
+        "scipy.signal",
+        "skimage",
+        "skimage.color",
+        "skimage.color.label2rgb",
+        "skimage.exposure",
+        "skimage.feature",
+        "skimage.filters",
+        "skimage.io",
+        "skimage.measure",
+        "skimage.morphology",
+        "skimage.segmentation",
+        "sklearn.decomposition",
+        "sklearn.decomposition.PCA",
+        "sklearn.metrics",
+        "sklearn.metrics.mean_squared_error",
+        "sklearn.model_selection",
+        "sklearn.model_selection.train_test_split",
+        "trackpy"
+      ],
+      "function_calls": {
+        "os": [
+          "listdir",
+          "makedirs",
+          "path.exists",
+          "path.isdir",
+          "path.join"
+        ],
+        "f": [
+          "endswith",
+          "write"
+        ],
+        "io": [
+          "imread",
+          "imsave"
+        ],
+        "tp": [
+          "filter_stubs",
+          "link_df",
+          "locate",
+          "plot_traj"
+        ],
+        "features_list": [
+          "append"
+        ],
+        "pd": [
+          "DataFrame",
+          "concat"
+        ],
+        "all_features": [
+          "to_csv"
+        ],
+        "trajectories": [
+          "reset_index",
+          "to_csv"
+        ],
+        "trajectories_reset": [
+          "to_csv"
+        ],
+        "np": [
+          "arange",
+          "arctan2",
+          "argmax",
+          "array",
+          "diff",
+          "exp",
+          "gradient",
+          "linspace",
+          "log",
+          "max",
+          "mean",
+          "nan_to_num",
+          "nanmean",
+          "percentile",
+          "sqrt",
+          "std",
+          "sum",
+          "zeros",
+          "zeros_like"
+        ],
+        "metrics": [
+          "append"
+        ],
+        "metrics_df": [
+          "to_csv"
+        ],
+        "plt": [
+          "bar",
+          "close",
+          "figure",
+          "gca",
+          "grid",
+          "legend",
+          "plot",
+          "savefig",
+          "subplot",
+          "subplots",
+          "tight_layout",
+          "title",
+          "xlabel",
+          "xticks",
+          "ylabel"
+        ],
+        "angles": [
+          "append"
+        ],
+        "ax": [
+          "hist",
+          "set_title"
+        ],
+        "log": [
+          "append",
+          "strip"
+        ],
+        "datetime": [
+          "now"
+        ],
+        "guide": [
+          "upper"
+        ],
+        "valid_guides": [
+          "append"
+        ],
+        "target_genomic_loci": [
+          "upper"
+        ],
+        "target_seq": [
+          "find"
+        ],
+        "target_matches": [
+          "append"
+        ],
+        "cell_tissue_type": [
+          "lower"
+        ],
+        "delivery_efficiencies": [
+          "get"
+        ],
+        "random": [
+          "randint"
+        ],
+        "filters": [
+          "gaussian",
+          "threshold_local",
+          "threshold_otsu"
+        ],
+        "ndimage": [
+          "distance_transform_edt"
+        ],
+        "feature": [
+          "peak_local_max"
+        ],
+        "measure": [
+          "label",
+          "regionprops"
+        ],
+        "segmentation": [
+          "watershed"
+        ],
+        "cell_time_series": [
+          "append"
+        ],
+        "time_series_data": [
+          "append"
+        ],
+        "events": [
+          "append"
+        ],
+        "event_rates": [
+          "append"
+        ],
+        "cell_decay_times": [
+          "append"
+        ],
+        "decay_times": [
+          "append"
+        ],
+        "snr_values": [
+          "append"
+        ],
+        "cell_metrics": [
+          "to_csv"
+        ],
+        "time_series_df": [
+          "to_csv"
+        ],
+        "models": [
+          "items"
+        ],
+        "release_df": [
+          "to_csv"
+        ],
+        "exposure": [
+          "equalize_adapthist"
+        ],
+        "morphology": [
+          "binary_closing",
+          "disk",
+          "remove_small_objects"
+        ],
+        "myofiber_data": [
+          "append"
+        ],
+        "df": [
+          "to_csv"
+        ],
+        "pca": [
+          "fit_transform",
+          "transform"
+        ],
+        "kf": [
+          "em",
+          "filter"
+        ],
+        "pickle": [
+          "dump"
+        ],
+        "results_df": [
+          "insert",
+          "to_csv"
+        ],
+        "initial_conditions": [
+          "keys",
+          "values"
+        ],
+        "parameters": [
+          "items"
+        ],
+        "final_state": [
+          "items"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "biophysics.py",
+      "imports": [
+        "csv",
+        "cv2",
+        "datetime",
+        "datetime.datetime",
+        "numpy",
+        "os",
+        "pandas",
+        "re",
+        "requests",
+        "skimage",
+        "skimage.color",
+        "skimage.color.rgb2gray",
+        "skimage.exposure",
+        "skimage.feature",
+        "skimage.filters",
+        "skimage.io",
+        "skimage.measure",
+        "skimage.morphology"
+      ],
+      "function_calls": {
+        "re": [
+          "findall"
+        ],
+        "requests": [
+          "post"
+        ],
+        "response": [
+          "raise_for_status",
+          "text.split"
+        ],
+        "line": [
+          "split",
+          "startswith",
+          "strip"
+        ],
+        "scores": [
+          "append"
+        ],
+        "current_region": [
+          "append"
+        ],
+        "disordered_regions": [
+          "append"
+        ],
+        "csv": [
+          "writer"
+        ],
+        "writer": [
+          "writerow"
+        ],
+        "os": [
+          "makedirs",
+          "path.join"
+        ],
+        "datetime": [
+          "now"
+        ],
+        "io": [
+          "imread",
+          "imsave"
+        ],
+        "exposure": [
+          "equalize_hist"
+        ],
+        "filters": [
+          "threshold_local",
+          "threshold_otsu"
+        ],
+        "morphology": [
+          "binary_closing",
+          "disk",
+          "remove_small_holes",
+          "remove_small_objects"
+        ],
+        "measure": [
+          "label",
+          "regionprops_table"
+        ],
+        "pd": [
+          "DataFrame"
+        ],
+        "feature": [
+          "canny"
+        ],
+        "np": [
+          "abs",
+          "any",
+          "arctan2",
+          "array",
+          "cos",
+          "max",
+          "mean",
+          "mod",
+          "radians",
+          "save",
+          "sin",
+          "sqrt",
+          "stack",
+          "std",
+          "zeros"
+        ],
+        "cv2": [
+          "HoughLinesP",
+          "Sobel",
+          "arrowedLine",
+          "calcOpticalFlowPyrLK",
+          "cvtColor",
+          "imread",
+          "imwrite"
+        ],
+        "edges": [
+          "astype"
+        ],
+        "orientations": [
+          "append"
+        ],
+        "cell_df": [
+          "to_csv"
+        ],
+        "fiber_df": [
+          "to_csv"
+        ],
+        "labeled_cells": [
+          "astype"
+        ],
+        "loaded_images": [
+          "append"
+        ],
+        "x": [
+          "flatten"
+        ],
+        "y": [
+          "flatten"
+        ],
+        "status": [
+          "flatten"
+        ],
+        "points": [
+          "astype"
+        ],
+        "flow_fields": [
+          "append"
+        ],
+        "divergence_maps": [
+          "append"
+        ],
+        "curl_maps": [
+          "append"
+        ],
+        "strain_maps": [
+          "append"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "cancer_biology.py",
+      "imports": [
+        "FlowCytometryTools",
+        "FlowCytometryTools.FCMeasurement",
+        "community",
+        "community.best_partition",
+        "datetime",
+        "datetime.datetime",
+        "gseapy",
+        "math",
+        "networkx",
+        "numpy",
+        "os",
+        "pandas",
+        "scipy.stats",
+        "scipy.stats.pearsonr",
+        "shutil",
+        "sklearn.decomposition",
+        "sklearn.decomposition.NMF",
+        "statistics",
+        "subprocess"
+      ],
+      "function_calls": {
+        "os": [
+          "makedirs",
+          "path.basename",
+          "path.exists",
+          "path.join",
+          "path.splitext"
+        ],
+        "datetime": [
+          "datetime.now",
+          "now"
+        ],
+        "pd": [
+          "DataFrame",
+          "read_csv"
+        ],
+        "expr_data": [
+          "index.isin"
+        ],
+        "mut_data": [
+          "index.isin"
+        ],
+        "nx": [
+          "Graph",
+          "average_clustering",
+          "betweenness_centrality",
+          "degree_centrality",
+          "density",
+          "write_graphml"
+        ],
+        "G": [
+          "add_edge",
+          "add_node",
+          "edges",
+          "nodes",
+          "number_of_edges",
+          "number_of_nodes"
+        ],
+        "degree_centrality": [
+          "items"
+        ],
+        "betweenness_centrality": [
+          "items"
+        ],
+        "mutation_freq": [
+          "items"
+        ],
+        "partition": [
+          "items"
+        ],
+        "communities": [
+          "items"
+        ],
+        "ddr_expr": [
+          "mean"
+        ],
+        "gp": [
+          "enrichr"
+        ],
+        "gene_list": [
+          "index.tolist"
+        ],
+        "term": [
+          "lower"
+        ],
+        "enrichr_results": [
+          "results.to_csv"
+        ],
+        "synthetic_lethality_candidates": [
+          "append"
+        ],
+        "sample": [
+          "gate"
+        ],
+        "channel": [
+          "upper"
+        ],
+        "np": [
+          "abs",
+          "any",
+          "argsort",
+          "percentile",
+          "sum"
+        ],
+        "sample_filtered": [
+          "gate"
+        ],
+        "ch": [
+          "upper"
+        ],
+        "f": [
+          "write"
+        ],
+        "subprocess": [
+          "check_output",
+          "run"
+        ],
+        "log": [
+          "append"
+        ],
+        "result": [
+          "stdout.strip"
+        ],
+        "sv_counts": [
+          "items",
+          "values"
+        ],
+        "annotation_cmd": [
+          "extend"
+        ],
+        "line": [
+          "startswith"
+        ],
+        "outfile": [
+          "write"
+        ],
+        "expression_data_path": [
+          "endswith"
+        ],
+        "expression_data": [
+          "columns.tolist",
+          "index.tolist"
+        ],
+        "model": [
+          "fit_transform"
+        ],
+        "shutil": [
+          "which"
+        ],
+        "batch_cmd": [
+          "extend"
+        ],
+        "c": [
+          "lower",
+          "startswith"
+        ],
+        "statistics": [
+          "median"
+        ],
+        "math": [
+          "isnan"
+        ],
+        "seg_df": [
+          "sort_values"
+        ],
+        "seg_df_sorted": [
+          "iterrows"
+        ],
+        "hrd_metrics": [
+          "values"
+        ],
+        "x": [
+          "replace"
+        ],
+        "overlaps": [
+          "apply",
+          "sort_values"
+        ],
+        "focal_events": [
+          "append"
+        ],
+        "summary": [
+          "update"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "cell_biology.py",
+      "imports": [
+        "FlowCytometryTools",
+        "FlowCytometryTools.FCMeasurement",
+        "csv",
+        "cv2",
+        "datetime",
+        "flowkit",
+        "numpy",
+        "os",
+        "pandas",
+        "scipy",
+        "scipy.ndimage",
+        "skimage",
+        "skimage.filters",
+        "skimage.io",
+        "skimage.measure",
+        "skimage.morphology",
+        "skimage.util",
+        "sklearn.cluster",
+        "sklearn.cluster.KMeans"
+      ],
+      "function_calls": {
+        "os": [
+          "listdir",
+          "makedirs",
+          "path.abspath",
+          "path.basename",
+          "path.exists",
+          "path.join"
+        ],
+        "io": [
+          "imread",
+          "imsave"
+        ],
+        "np": [
+          "argmin",
+          "array",
+          "clip",
+          "max",
+          "mean",
+          "median",
+          "ones",
+          "percentile",
+          "sqrt",
+          "std",
+          "sum",
+          "unique",
+          "zeros"
+        ],
+        "filters": [
+          "gaussian",
+          "threshold_otsu"
+        ],
+        "morphology": [
+          "binary_closing",
+          "remove_small_objects",
+          "skeletonize"
+        ],
+        "measure": [
+          "label",
+          "regionprops"
+        ],
+        "all_cells": [
+          "extend"
+        ],
+        "cell_features": [
+          "append"
+        ],
+        "phases": [
+          "append"
+        ],
+        "pd": [
+          "DataFrame",
+          "read_csv"
+        ],
+        "results_df": [
+          "to_csv"
+        ],
+        "f": [
+          "endswith",
+          "write"
+        ],
+        "cv2": [
+          "contourArea",
+          "cvtColor",
+          "findContours",
+          "imread",
+          "moments",
+          "threshold"
+        ],
+        "cells": [
+          "append"
+        ],
+        "current_centroids": [
+          "append",
+          "pop"
+        ],
+        "displacements": [
+          "append"
+        ],
+        "kmeans": [
+          "fit_predict"
+        ],
+        "feature_df": [
+          "groupby",
+          "to_csv"
+        ],
+        "cluster_stats": [
+          "to_csv",
+          "to_string"
+        ],
+        "cell_suspension_data": [
+          "copy",
+          "lower"
+        ],
+        "fk": [
+          "Sample"
+        ],
+        "fcs_data": [
+          "get_dataframe"
+        ],
+        "cell_df": [
+          "to_csv"
+        ],
+        "sample": [
+          "compensate",
+          "copy"
+        ],
+        "gating_strategy": [
+          "items"
+        ],
+        "current_population": [
+          "gate"
+        ],
+        "populations": [
+          "items"
+        ],
+        "summary_df": [
+          "iterrows",
+          "to_csv"
+        ],
+        "log": [
+          "append"
+        ],
+        "datetime": [
+          "datetime.now"
+        ],
+        "util": [
+          "img_as_float",
+          "img_as_ubyte"
+        ],
+        "ndimage": [
+          "convolve",
+          "label",
+          "sum"
+        ],
+        "skeleton": [
+          "astype"
+        ],
+        "csv": [
+          "writer"
+        ],
+        "writer": [
+          "writerow"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "database.py",
+      "imports": [
+        "Bio.Blast",
+        "Bio.Blast.NCBIWWW",
+        "Bio.Blast.NCBIXML",
+        "Bio.Seq",
+        "Bio.Seq.Seq",
+        "biomni.config",
+        "biomni.config.default_config",
+        "biomni.llm",
+        "biomni.llm.get_llm",
+        "biomni.utils",
+        "biomni.utils.parse_hpo_obo",
+        "json",
+        "langchain_core.messages",
+        "langchain_core.messages.HumanMessage",
+        "langchain_core.messages.SystemMessage",
+        "os",
+        "pickle",
+        "requests",
+        "time",
+        "typing",
+        "typing.Any"
+      ],
+      "function_calls": {
+        "hp_dict": [
+          "get"
+        ],
+        "hpo_names": [
+          "append"
+        ],
+        "json": [
+          "dumps",
+          "loads"
+        ],
+        "system_template": [
+          "format"
+        ],
+        "llm": [
+          "invoke"
+        ],
+        "response": [
+          "content.strip",
+          "headers.get",
+          "iter_content",
+          "json",
+          "raise_for_status"
+        ],
+        "llm_text": [
+          "find",
+          "rfind"
+        ],
+        "method": [
+          "upper"
+        ],
+        "requests": [
+          "get",
+          "post"
+        ],
+        "e": [
+          "response.json"
+        ],
+        "value": [
+          "keys"
+        ],
+        "d": [
+          "keys"
+        ],
+        "result": [
+          "append",
+          "get"
+        ],
+        "default_options": [
+          "items"
+        ],
+        "os": [
+          "environ.get",
+          "makedirs",
+          "path.dirname",
+          "path.exists",
+          "path.join"
+        ],
+        "pickle": [
+          "load"
+        ],
+        "query_info": [
+          "get"
+        ],
+        "llm_result": [
+          "get"
+        ],
+        "endpoint": [
+          "endswith",
+          "lstrip",
+          "split",
+          "startswith"
+        ],
+        "file_format": [
+          "lower"
+        ],
+        "f": [
+          "write"
+        ],
+        "identifier": [
+          "split"
+        ],
+        "data_response": [
+          "json",
+          "raise_for_status"
+        ],
+        "attr": [
+          "split"
+        ],
+        "detailed_results": [
+          "append"
+        ],
+        "pdb_file": [
+          "write"
+        ],
+        "time": [
+          "sleep",
+          "time"
+        ],
+        "mapping": [
+          "get"
+        ],
+        "api_result": [
+          "get"
+        ],
+        "page_resp": [
+          "get"
+        ],
+        "data": [
+          "get"
+        ],
+        "gnomad_schema": [
+          "replace"
+        ],
+        "NCBIWWW": [
+          "qblast"
+        ],
+        "NCBIXML": [
+          "parse"
+        ],
+        "diagram_response": [
+          "raise_for_status"
+        ],
+        "steps": [
+          "append"
+        ],
+        "filtered_res": [
+          "append"
+        ],
+        "response_json": [
+          "get"
+        ],
+        "gene": [
+          "get"
+        ],
+        "access_result": [
+          "get"
+        ],
+        "access_data": [
+          "get"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "genetics.py",
+      "imports": [
+        "Bio",
+        "Bio.Align.Applications",
+        "Bio.Align.Applications.ClustalwCommandline",
+        "Bio.Align.Applications.MuscleCommandline",
+        "Bio.AlignIO",
+        "Bio.Phylo",
+        "Bio.Phylo.TreeConstruction",
+        "Bio.Phylo.TreeConstruction.DistanceCalculator",
+        "Bio.Phylo.TreeConstruction.DistanceTreeConstructor",
+        "Bio.Seq",
+        "Bio.Seq.Seq",
+        "Bio.SeqIO",
+        "Bio.motifs",
+        "Bio.pairwise2",
+        "collections",
+        "collections.defaultdict",
+        "datetime",
+        "datetime.datetime",
+        "io",
+        "matplotlib",
+        "matplotlib.pyplot",
+        "msprime",
+        "numpy",
+        "os",
+        "pandas",
+        "pyliftover",
+        "pyliftover.LiftOver",
+        "requests",
+        "scipy",
+        "scipy.linalg",
+        "scipy.stats",
+        "scipy.stats.norm",
+        "subprocess",
+        "tempfile",
+        "time",
+        "torch",
+        "torch.nn",
+        "torch.optim"
+      ],
+      "function_calls": {
+        "steps": [
+          "append"
+        ],
+        "lo": [
+          "convert_coordinate"
+        ],
+        "log": [
+          "append"
+        ],
+        "datetime": [
+          "datetime.now",
+          "now"
+        ],
+        "gwas_summary_path": [
+          "endswith"
+        ],
+        "pd": [
+          "DataFrame",
+          "read_csv"
+        ],
+        "norm": [
+          "ppf"
+        ],
+        "torch": [
+          "FloatTensor",
+          "bernoulli",
+          "matmul",
+          "no_grad",
+          "sigmoid",
+          "sum"
+        ],
+        "nn": [
+          "Linear",
+          "ReLU",
+          "Sequential"
+        ],
+        "self": [
+          "encoder",
+          "log_alpha"
+        ],
+        "pips": [
+          "unsqueeze"
+        ],
+        "optim": [
+          "Adam"
+        ],
+        "model": [
+          "elbo_loss",
+          "parameters"
+        ],
+        "optimizer": [
+          "step",
+          "zero_grad"
+        ],
+        "loss": [
+          "backward",
+          "item"
+        ],
+        "losses": [
+          "append"
+        ],
+        "gwas_summary": [
+          "copy"
+        ],
+        "results_df": [
+          "head",
+          "sort_values",
+          "to_csv"
+        ],
+        "credible_set": [
+          "iterrows",
+          "to_csv"
+        ],
+        "plt": [
+          "Rectangle",
+          "bar",
+          "close",
+          "figure",
+          "savefig",
+          "subplots",
+          "title",
+          "xlabel",
+          "ylabel"
+        ],
+        "reference_sequences": [
+          "items"
+        ],
+        "cell_line_info": [
+          "get"
+        ],
+        "edited_sequences": [
+          "get"
+        ],
+        "pairwise2": [
+          "align.globalms",
+          "align.globalxx"
+        ],
+        "insertions": [
+          "append"
+        ],
+        "deletions": [
+          "append"
+        ],
+        "site_results": [
+          "append"
+        ],
+        "site_mutation_counts": [
+          "items"
+        ],
+        "results": [
+          "extend"
+        ],
+        "mutation_counts": [
+          "items"
+        ],
+        "mut_counts": [
+          "items",
+          "values"
+        ],
+        "summary_data": [
+          "append"
+        ],
+        "summary_df": [
+          "to_csv"
+        ],
+        "original_sequence": [
+          "find"
+        ],
+        "guide_rna_seq": [
+          "reverse_complement"
+        ],
+        "indels": [
+          "append"
+        ],
+        "mutations": [
+          "append"
+        ],
+        "time": [
+          "time"
+        ],
+        "msprime": [
+          "BetaCoalescent",
+          "Demography",
+          "StandardCoalescent",
+          "sim_ancestry",
+          "sim_mutations"
+        ],
+        "demography": [
+          "add_population",
+          "add_population_parameters_change"
+        ],
+        "demographic_params": [
+          "get"
+        ],
+        "mts": [
+          "diversity",
+          "write_vcf"
+        ],
+        "os": [
+          "makedirs",
+          "path.abspath",
+          "path.basename",
+          "path.exists",
+          "path.isfile",
+          "path.join",
+          "path.splitext",
+          "rename"
+        ],
+        "requests": [
+          "get"
+        ],
+        "response": [
+          "json"
+        ],
+        "io": [
+          "StringIO"
+        ],
+        "motifs": [
+          "read"
+        ],
+        "pssm": [
+          "search"
+        ],
+        "binding_sites": [
+          "append",
+          "sort"
+        ],
+        "f": [
+          "write"
+        ],
+        "phenotypes": [
+          "reshape"
+        ],
+        "np": [
+          "arange",
+          "corrcoef",
+          "dot",
+          "eye",
+          "linalg.lstsq",
+          "log",
+          "mean",
+          "ones",
+          "trace",
+          "var",
+          "zeros_like"
+        ],
+        "linalg": [
+          "inv"
+        ],
+        "trait_results": [
+          "append"
+        ],
+        "ind_data": [
+          "items"
+        ],
+        "SeqIO": [
+          "parse",
+          "read"
+        ],
+        "reverse_seq": [
+          "reverse_complement"
+        ],
+        "dna_sequence": [
+          "find"
+        ],
+        "rev_primer_seq": [
+          "reverse_complement"
+        ],
+        "ax": [
+          "add_patch",
+          "set_title",
+          "set_xlim",
+          "set_xticklabels",
+          "set_xticks",
+          "set_ylim",
+          "set_yticks",
+          "text"
+        ],
+        "tempfile": [
+          "NamedTemporaryFile"
+        ],
+        "temp_fasta": [
+          "close",
+          "write"
+        ],
+        "fasta_sequences": [
+          "encode"
+        ],
+        "alignment_method": [
+          "lower"
+        ],
+        "dst": [
+          "write"
+        ],
+        "src": [
+          "read"
+        ],
+        "alignments": [
+          "append"
+        ],
+        "seq": [
+          "id.ljust"
+        ],
+        "tree_method": [
+          "lower"
+        ],
+        "subprocess": [
+          "run"
+        ],
+        "AlignIO": [
+          "read"
+        ],
+        "calculator": [
+          "get_distance"
+        ],
+        "constructor": [
+          "nj"
+        ],
+        "Phylo": [
+          "draw",
+          "read",
+          "write"
+        ],
+        "matplotlib": [
+          "use"
+        ],
+        "fig": [
+          "add_subplot"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "genomics.py",
+      "imports": [
+        "Bio",
+        "Bio.SeqIO",
+        "accelerate",
+        "accelerate.Accelerator",
+        "biomni.llm",
+        "biomni.llm.get_llm",
+        "collections",
+        "collections.defaultdict",
+        "cooler",
+        "datetime",
+        "datetime.datetime",
+        "eval_single_anndata",
+        "eval_single_anndata.main",
+        "eval_single_anndata.parse_args_uce",
+        "gget",
+        "glob",
+        "gseapy",
+        "harmony",
+        "harmony.harmonize",
+        "json",
+        "langchain_core.prompts",
+        "langchain_core.prompts.PromptTemplate",
+        "numpy",
+        "os",
+        "pandas",
+        "pybedtools",
+        "random",
+        "scanpy",
+        "scipy",
+        "scipy.stats",
+        "scvi",
+        "shutil",
+        "sklearn.neighbors",
+        "sklearn.neighbors.NearestNeighbors",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "time"
+      ],
+      "function_calls": {
+        "cluster_comp": [
+          "append"
+        ],
+        "steps": [
+          "append"
+        ],
+        "sc": [
+          "read_h5ad",
+          "tl.rank_genes_groups"
+        ],
+        "pd": [
+          "DataFrame",
+          "read_csv",
+          "read_parquet"
+        ],
+        "np": [
+          "apply_along_axis",
+          "argmax",
+          "array",
+          "diagonal",
+          "nanmean",
+          "save",
+          "sum",
+          "unique",
+          "zeros"
+        ],
+        "cell_type": [
+          "strip"
+        ],
+        "chain": [
+          "invoke"
+        ],
+        "x": [
+          "strip"
+        ],
+        "response": [
+          "split"
+        ],
+        "predicted_celltype": [
+          "lower"
+        ],
+        "annotation_reasons": [
+          "append"
+        ],
+        "reason_dict": [
+          "items"
+        ],
+        "adata": [
+          "write",
+          "write_h5ad"
+        ],
+        "subprocess": [
+          "run"
+        ],
+        "line": [
+          "split",
+          "strip"
+        ],
+        "result": [
+          "stdout.splitlines"
+        ],
+        "tempfile": [
+          "mkdtemp"
+        ],
+        "os": [
+          "makedirs",
+          "path.basename",
+          "path.dirname",
+          "path.exists",
+          "path.getsize",
+          "path.join"
+        ],
+        "f": [
+          "readline",
+          "readlines",
+          "write"
+        ],
+        "shutil": [
+          "rmtree"
+        ],
+        "json": [
+          "load"
+        ],
+        "scvi": [
+          "model.SCANVI.from_scvi_model",
+          "model.SCVI",
+          "model.SCVI.setup_anndata"
+        ],
+        "model": [
+          "get_latent_representation",
+          "train"
+        ],
+        "lvae": [
+          "get_latent_representation",
+          "train"
+        ],
+        "sys": [
+          "path.append"
+        ],
+        "custom_args": [
+          "extend",
+          "get"
+        ],
+        "nn": [
+          "fit",
+          "kneighbors"
+        ],
+        "indices": [
+          "flatten"
+        ],
+        "mapped_cell_types": [
+          "reshape"
+        ],
+        "distances": [
+          "mean"
+        ],
+        "gget": [
+          "archs4",
+          "enrichr"
+        ],
+        "data": [
+          "iterrows"
+        ],
+        "gseapy": [
+          "get_library_name"
+        ],
+        "df": [
+          "head",
+          "iterrows"
+        ],
+        "log": [
+          "append"
+        ],
+        "cooler": [
+          "Cooler"
+        ],
+        "c": [
+          "bins",
+          "matrix"
+        ],
+        "str": [
+          "contains"
+        ],
+        "chrom_enhancers": [
+          "iterrows"
+        ],
+        "chrom_promoters": [
+          "iterrows"
+        ],
+        "interactions": [
+          "append"
+        ],
+        "interactions_df": [
+          "to_csv"
+        ],
+        "stats": [
+          "append",
+          "zscore"
+        ],
+        "boundaries": [
+          "append"
+        ],
+        "tad_results": [
+          "append"
+        ],
+        "tads_df": [
+          "to_csv"
+        ],
+        "time": [
+          "strftime"
+        ],
+        "SeqIO": [
+          "parse"
+        ],
+        "reference_seqs": [
+          "keys"
+        ],
+        "sample_seqs": [
+          "keys"
+        ],
+        "variants": [
+          "append"
+        ],
+        "variants_by_sample": [
+          "items",
+          "keys"
+        ],
+        "haplotype_groups": [
+          "items"
+        ],
+        "random": [
+          "randint"
+        ],
+        "datetime": [
+          "datetime.now",
+          "now"
+        ],
+        "check_process": [
+          "stderr.decode",
+          "stdout.decode"
+        ],
+        "macs2_cmd": [
+          "extend"
+        ],
+        "file": [
+          "endswith"
+        ],
+        "homer_cmd": [
+          "extend"
+        ],
+        "glob": [
+          "glob"
+        ],
+        "motif_files": [
+          "sort"
+        ],
+        "header": [
+          "split"
+        ],
+        "set_names": [
+          "append"
+        ],
+        "pybedtools": [
+          "BedTool"
+        ],
+        "bedtools": [
+          "append"
+        ],
+        "unique_overlaps": [
+          "add"
+        ],
+        "results": [
+          "append"
+        ],
+        "overlap_with_bases": [
+          "saveas"
+        ],
+        "summary_df": [
+          "to_csv"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "immunology.py",
+      "imports": [
+        "FlowCytometryTools",
+        "FlowCytometryTools.FCMeasurement",
+        "collections",
+        "collections.abc",
+        "csv",
+        "cv2",
+        "datetime",
+        "datetime.datetime",
+        "math",
+        "math.log",
+        "matplotlib.pyplot",
+        "numpy",
+        "os",
+        "pandas",
+        "scipy",
+        "scipy.optimize",
+        "scipy.optimize.curve_fit",
+        "scipy.spatial",
+        "scipy.spatial.distance",
+        "skimage",
+        "skimage.color",
+        "skimage.color.rgb2gray",
+        "skimage.exposure",
+        "skimage.feature",
+        "skimage.feature.graycomatrix",
+        "skimage.feature.graycoprops",
+        "skimage.filters",
+        "skimage.io",
+        "skimage.measure",
+        "skimage.morphology",
+        "skimage.segmentation",
+        "subprocess",
+        "time",
+        "trackpy"
+      ],
+      "function_calls": {
+        "os": [
+          "listdir",
+          "makedirs",
+          "path.basename",
+          "path.exists",
+          "path.isdir",
+          "path.isfile",
+          "path.join"
+        ],
+        "datetime": [
+          "datetime.now",
+          "now"
+        ],
+        "subprocess": [
+          "run"
+        ],
+        "np": [
+          "any",
+          "array",
+          "concatenate",
+          "exp",
+          "histogram",
+          "linspace",
+          "log",
+          "log10",
+          "mean",
+          "median",
+          "ones",
+          "percentile",
+          "polyfit",
+          "random.normal",
+          "random.randint",
+          "random.seed",
+          "random.uniform",
+          "sort",
+          "sqrt",
+          "stack",
+          "sum",
+          "where",
+          "zeros",
+          "zeros_like"
+        ],
+        "pd": [
+          "DataFrame",
+          "concat"
+        ],
+        "plt": [
+          "close",
+          "figure",
+          "grid",
+          "legend",
+          "plot",
+          "savefig",
+          "scatter",
+          "title",
+          "xlabel",
+          "ylabel"
+        ],
+        "strain_name": [
+          "replace"
+        ],
+        "log": [
+          "append"
+        ],
+        "target_cell_type": [
+          "capitalize",
+          "lower"
+        ],
+        "tissue_type": [
+          "capitalize"
+        ],
+        "df": [
+          "to_csv"
+        ],
+        "time": [
+          "strftime",
+          "time"
+        ],
+        "edu_positive": [
+          "append"
+        ],
+        "brdu_positive": [
+          "append"
+        ],
+        "double_positive": [
+          "append"
+        ],
+        "optimize": [
+          "minimize"
+        ],
+        "f": [
+          "endswith",
+          "write"
+        ],
+        "cv2": [
+          "GaussianBlur",
+          "VideoCapture",
+          "adaptiveThreshold",
+          "connectedComponentsWithStats",
+          "cvtColor",
+          "equalizeHist",
+          "imread",
+          "morphologyEx"
+        ],
+        "first_img": [
+          "copy"
+        ],
+        "frames": [
+          "append"
+        ],
+        "cap": [
+          "isOpened",
+          "read",
+          "release"
+        ],
+        "frame_features": [
+          "append"
+        ],
+        "features_by_frame": [
+          "append"
+        ],
+        "all_features": [
+          "rename"
+        ],
+        "tp_features": [
+          "copy"
+        ],
+        "tp": [
+          "filter_stubs",
+          "link"
+        ],
+        "current_period": [
+          "append"
+        ],
+        "arrest_periods": [
+          "append"
+        ],
+        "behaviors": [
+          "append"
+        ],
+        "behavior_counts": [
+          "items"
+        ],
+        "all_behaviors": [
+          "groupby",
+          "to_csv"
+        ],
+        "research_log": [
+          "append"
+        ],
+        "sample": [
+          "compensate",
+          "gate"
+        ],
+        "generation_boundaries": [
+          "append"
+        ],
+        "generation_counts": [
+          "append"
+        ],
+        "fcs_files_dict": [
+          "items"
+        ],
+        "cd4_positive": [
+          "gate"
+        ],
+        "df_results": [
+          "to_csv",
+          "to_string"
+        ],
+        "raw_od_data": [
+          "items"
+        ],
+        "standard_curve_data": [
+          "items"
+        ],
+        "antibody_type": [
+          "endswith"
+        ],
+        "results_df": [
+          "groupby",
+          "to_csv"
+        ],
+        "io": [
+          "imread",
+          "imsave"
+        ],
+        "color": [
+          "rgb2gray"
+        ],
+        "exposure": [
+          "equalize_adapthist",
+          "rescale_intensity"
+        ],
+        "filters": [
+          "threshold_otsu"
+        ],
+        "morphology": [
+          "remove_small_holes",
+          "remove_small_objects"
+        ],
+        "measure": [
+          "label",
+          "regionprops"
+        ],
+        "segmentation": [
+          "find_boundaries"
+        ],
+        "original_image": [
+          "copy"
+        ],
+        "distances": [
+          "append"
+        ],
+        "distance": [
+          "euclidean"
+        ],
+        "csv": [
+          "writer"
+        ],
+        "writer": [
+          "writerow"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "literature.py",
+      "imports": [
+        "PyPDF2",
+        "arxiv",
+        "bs4",
+        "bs4.BeautifulSoup",
+        "googlesearch",
+        "googlesearch.search",
+        "io",
+        "io.BytesIO",
+        "os",
+        "pymed",
+        "pymed.PubMed",
+        "re",
+        "requests",
+        "scholarly",
+        "scholarly.scholarly",
+        "time",
+        "urllib.parse",
+        "urllib.parse.urljoin"
+      ],
+      "function_calls": {
+        "research_log": [
+          "append"
+        ],
+        "requests": [
+          "get"
+        ],
+        "soup": [
+          "find",
+          "find_all"
+        ],
+        "link": [
+          "get",
+          "get_text",
+          "split"
+        ],
+        "supplementary_links": [
+          "append"
+        ],
+        "os": [
+          "makedirs",
+          "path.join"
+        ],
+        "f": [
+          "write"
+        ],
+        "downloaded_files": [
+          "append"
+        ],
+        "arxiv": [
+          "Client",
+          "Search"
+        ],
+        "client": [
+          "results"
+        ],
+        "scholarly": [
+          "search_pubs"
+        ],
+        "pubmed": [
+          "query"
+        ],
+        "query": [
+          "split"
+        ],
+        "time": [
+          "sleep"
+        ],
+        "response": [
+          "content.startswith",
+          "headers.get",
+          "text.strip"
+        ],
+        "element": [
+          "decompose"
+        ],
+        "content": [
+          "find_all"
+        ],
+        "p": [
+          "get_text"
+        ],
+        "cleaned_text": [
+          "append"
+        ],
+        "url": [
+          "lower",
+          "split"
+        ],
+        "re": [
+          "findall",
+          "sub"
+        ],
+        "PyPDF2": [
+          "PdfReader"
+        ],
+        "page": [
+          "extract_text"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "microbiology.py",
+      "imports": [
+        "RNA",
+        "cellpose",
+        "cellpose.models",
+        "cv2",
+        "datetime",
+        "datetime.datetime",
+        "matplotlib",
+        "matplotlib.cm",
+        "matplotlib.pyplot",
+        "numpy",
+        "os",
+        "pandas",
+        "scipy",
+        "scipy.integrate",
+        "scipy.integrate.odeint",
+        "scipy.integrate.solve_ivp",
+        "scipy.ndimage",
+        "scipy.optimize",
+        "scipy.optimize.differential_evolution",
+        "scipy.optimize.minimize",
+        "scipy.stats",
+        "skimage",
+        "skimage.color",
+        "skimage.filters",
+        "skimage.io",
+        "skimage.measure",
+        "skimage.morphology",
+        "skimage.segmentation",
+        "skimage.segmentation.find_boundaries",
+        "subprocess",
+        "time"
+      ],
+      "function_calls": {
+        "waste_characteristics": [
+          "items"
+        ],
+        "operational_parameters": [
+          "items"
+        ],
+        "target_output": [
+          "replace"
+        ],
+        "np": [
+          "any",
+          "arange",
+          "argmax",
+          "array",
+          "column_stack",
+          "dot",
+          "linspace",
+          "max",
+          "mean",
+          "median",
+          "meshgrid",
+          "min",
+          "ones",
+          "random.choice",
+          "random.exponential",
+          "random.poisson",
+          "random.seed",
+          "savetxt",
+          "std",
+          "sum",
+          "uint8",
+          "unique",
+          "zeros",
+          "zeros_like"
+        ],
+        "plt": [
+          "axis",
+          "close",
+          "contour",
+          "figure",
+          "imshow",
+          "savefig"
+        ],
+        "fig": [
+          "add_subplot",
+          "colorbar"
+        ],
+        "ax": [
+          "plot_surface",
+          "scatter",
+          "set_title",
+          "set_xlabel",
+          "set_ylabel",
+          "set_zlabel"
+        ],
+        "sensitivities": [
+          "append",
+          "sort"
+        ],
+        "datetime": [
+          "now"
+        ],
+        "sample_data": [
+          "items"
+        ],
+        "arsenic_species": [
+          "items"
+        ],
+        "sample": [
+          "keys"
+        ],
+        "pd": [
+          "DataFrame",
+          "DataFrame.from_dict"
+        ],
+        "sample_name": [
+          "replace"
+        ],
+        "results_df": [
+          "insert",
+          "to_csv"
+        ],
+        "results": [
+          "append",
+          "items"
+        ],
+        "species_data": [
+          "items"
+        ],
+        "numeric_concs": [
+          "items"
+        ],
+        "os": [
+          "listdir",
+          "makedirs",
+          "path.basename",
+          "path.getsize",
+          "path.join"
+        ],
+        "cv2": [
+          "GaussianBlur",
+          "circle",
+          "connectedComponents",
+          "cvtColor",
+          "dilate",
+          "distanceTransform",
+          "imread",
+          "imwrite",
+          "morphologyEx",
+          "putText",
+          "subtract",
+          "threshold",
+          "watershed"
+        ],
+        "dist_transform": [
+          "max"
+        ],
+        "original_image": [
+          "copy"
+        ],
+        "ndimage": [
+          "binary_fill_holes",
+          "distance_transform_edt",
+          "find_objects",
+          "label"
+        ],
+        "time": [
+          "time"
+        ],
+        "prokka_cmd": [
+          "extend"
+        ],
+        "subprocess": [
+          "run"
+        ],
+        "prokka_output": [
+          "split"
+        ],
+        "line": [
+          "split"
+        ],
+        "feature_counts": [
+          "items"
+        ],
+        "file": [
+          "startswith"
+        ],
+        "dilution_concentrations": [
+          "append"
+        ],
+        "spot_counts": [
+          "append"
+        ],
+        "countable_dilutions": [
+          "append"
+        ],
+        "countable_df": [
+          "iterrows"
+        ],
+        "df": [
+          "to_csv"
+        ],
+        "stats": [
+          "sem",
+          "t.interval",
+          "ttest_1samp"
+        ],
+        "p_values": [
+          "append"
+        ],
+        "io": [
+          "imread",
+          "imsave"
+        ],
+        "color": [
+          "label2rgb",
+          "rgb2gray"
+        ],
+        "filters": [
+          "gaussian",
+          "threshold_otsu"
+        ],
+        "morphology": [
+          "binary_closing",
+          "disk",
+          "local_maxima",
+          "remove_small_objects"
+        ],
+        "measure": [
+          "label",
+          "regionprops_table"
+        ],
+        "segmentation": [
+          "watershed"
+        ],
+        "metrics_df": [
+          "to_csv"
+        ],
+        "models": [
+          "CellposeModel"
+        ],
+        "model": [
+          "eval"
+        ],
+        "masks": [
+          "astype"
+        ],
+        "rna_sequence": [
+          "upper"
+        ],
+        "RNA": [
+          "fold"
+        ],
+        "f": [
+          "write"
+        ],
+        "stack": [
+          "append",
+          "pop"
+        ],
+        "pairs": [
+          "append"
+        ],
+        "structure": [
+          "count"
+        ],
+        "median_extinction_times": [
+          "append"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "molecular_biology.py",
+      "imports": [
+        "Bio",
+        "Bio.Entrez",
+        "Bio.Restriction",
+        "Bio.Seq",
+        "Bio.Seq.Seq",
+        "Bio.SeqIO",
+        "Bio.SeqUtils",
+        "Bio.SeqUtils.MeltingTemp",
+        "bs4",
+        "bs4.BeautifulSoup",
+        "collections",
+        "collections.namedtuple",
+        "os",
+        "pandas",
+        "requests",
+        "subprocess",
+        "tempfile",
+        "typing",
+        "typing.Any"
+      ],
+      "function_calls": {
+        "start_positions": [
+          "append",
+          "pop"
+        ],
+        "stop_positions": [
+          "append"
+        ],
+        "orf_bio_seq": [
+          "translate"
+        ],
+        "orfs": [
+          "append"
+        ],
+        "all_orfs": [
+          "extend",
+          "sort"
+        ],
+        "seq_obj": [
+          "reverse_complement"
+        ],
+        "filtered_orfs": [
+          "append"
+        ],
+        "tempfile": [
+          "TemporaryDirectory"
+        ],
+        "os": [
+          "path.exists",
+          "path.join"
+        ],
+        "f": [
+          "write"
+        ],
+        "cmd": [
+          "append"
+        ],
+        "subprocess": [
+          "run"
+        ],
+        "pd": [
+          "read_csv"
+        ],
+        "results": [
+          "append",
+          "to_dict"
+        ],
+        "Entrez": [
+          "efetch",
+          "esearch",
+          "read"
+        ],
+        "SeqIO": [
+          "read"
+        ],
+        "feature": [
+          "location.extract",
+          "qualifiers.get"
+        ],
+        "sequences": [
+          "append"
+        ],
+        "ADDGENE_PLASMID_SEQUENCES_PATH": [
+          "format"
+        ],
+        "requests": [
+          "get"
+        ],
+        "soup": [
+          "find"
+        ],
+        "textarea": [
+          "text.strip"
+        ],
+        "sequence_text": [
+          "split"
+        ],
+        "identifier": [
+          "isdigit"
+        ],
+        "long_seq": [
+          "upper"
+        ],
+        "short_seqs": [
+          "upper"
+        ],
+        "seq": [
+          "upper"
+        ],
+        "complement": [
+          "get"
+        ],
+        "mismatches": [
+          "append"
+        ],
+        "alignments": [
+          "append"
+        ],
+        "products": [
+          "append"
+        ],
+        "fwd_positions": [
+          "index"
+        ],
+        "rev_positions": [
+          "index"
+        ],
+        "enzyme_obj": [
+          "search"
+        ],
+        "all_cut_positions": [
+          "extend"
+        ],
+        "fragments": [
+          "append",
+          "sort"
+        ],
+        "dna_sequence": [
+          "upper"
+        ],
+        "Restriction": [
+          "CommOnly.search",
+          "RestrictionBatch"
+        ],
+        "rb": [
+          "search"
+        ],
+        "analysis": [
+          "items"
+        ],
+        "enzyme": [
+          "elucidate"
+        ],
+        "sequence": [
+          "upper"
+        ],
+        "mutations": [
+          "append"
+        ],
+        "species": [
+          "lower"
+        ],
+        "gene_name": [
+          "upper"
+        ],
+        "str": [
+          "contains",
+          "upper"
+        ],
+        "gene_df": [
+          "head",
+          "sort_values"
+        ],
+        "thermal_protocol": [
+          "append"
+        ],
+        "insert_components": [
+          "append"
+        ],
+        "reaction_components": [
+          "append",
+          "extend"
+        ],
+        "candidate": [
+          "count"
+        ],
+        "mt": [
+          "Tm_Wallace"
+        ],
+        "merged": [
+          "append"
+        ],
+        "plasmid_sequence": [
+          "upper"
+        ],
+        "primer": [
+          "copy"
+        ],
+        "primer_pool": [
+          "append"
+        ],
+        "alignment_results": [
+          "get"
+        ],
+        "result": [
+          "get"
+        ],
+        "potential_primers": [
+          "append",
+          "pop",
+          "sort"
+        ],
+        "selected_primers": [
+          "append"
+        ],
+        "covered_regions": [
+          "append"
+        ],
+        "recommended_primers": [
+          "append"
+        ],
+        "coverage_map": [
+          "append",
+          "sort"
+        ],
+        "uncovered_regions": [
+          "append"
+        ],
+        "positions": [
+          "append"
+        ],
+        "TYPE_IIS_PROPERTIES": [
+          "keys"
+        ],
+        "backbone_sequence": [
+          "upper"
+        ],
+        "insert_sequence": [
+          "upper"
+        ],
+        "restriction_sites": [
+          "append"
+        ],
+        "cut_sites": [
+          "append"
+        ],
+        "fragment": [
+          "get"
+        ],
+        "fwd_sites": [
+          "append"
+        ],
+        "rev_sites": [
+          "append"
+        ],
+        "processed_fragments": [
+          "append"
+        ],
+        "cut_fragments": [
+          "append"
+        ],
+        "fragment_overhangs": [
+          "append"
+        ],
+        "possible_starts": [
+          "append"
+        ],
+        "assembled_fragments": [
+          "append"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "pathology.py",
+      "imports": [
+        "csv",
+        "cv2",
+        "datetime",
+        "datetime.datetime",
+        "json",
+        "matplotlib.pyplot",
+        "numpy",
+        "os",
+        "pandas",
+        "scipy",
+        "scipy.ndimage",
+        "skimage",
+        "skimage.color",
+        "skimage.color.rgb2gray",
+        "skimage.filters",
+        "skimage.io",
+        "skimage.measure",
+        "skimage.morphology",
+        "skimage.segmentation",
+        "skimage.util"
+      ],
+      "function_calls": {
+        "os": [
+          "makedirs",
+          "path.basename",
+          "path.exists",
+          "path.join"
+        ],
+        "log": [
+          "append"
+        ],
+        "datetime": [
+          "now"
+        ],
+        "cv2": [
+          "GaussianBlur",
+          "arcLength",
+          "circle",
+          "contourArea",
+          "convexHull",
+          "createCLAHE",
+          "cvtColor",
+          "drawContours",
+          "findContours",
+          "imread",
+          "imwrite",
+          "moments",
+          "morphologyEx",
+          "threshold"
+        ],
+        "clahe": [
+          "apply"
+        ],
+        "np": [
+          "expand_dims",
+          "max",
+          "maximum",
+          "mean",
+          "min",
+          "ones",
+          "polyfit",
+          "sqrt",
+          "sum",
+          "zeros_like"
+        ],
+        "aorta_contour": [
+          "reshape"
+        ],
+        "hull": [
+          "reshape"
+        ],
+        "f": [
+          "write"
+        ],
+        "pd": [
+          "DataFrame",
+          "read_csv"
+        ],
+        "sample_data": [
+          "iterrows",
+          "to_csv"
+        ],
+        "color": [
+          "rgb2lab"
+        ],
+        "fresh_mask": [
+          "sum"
+        ],
+        "lysis_mask": [
+          "sum"
+        ],
+        "endothel_mask": [
+          "sum"
+        ],
+        "fibro_mask": [
+          "sum"
+        ],
+        "csv": [
+          "writer"
+        ],
+        "writer": [
+          "writerow"
+        ],
+        "plt": [
+          "close",
+          "colorbar",
+          "figure",
+          "imshow",
+          "savefig",
+          "title"
+        ],
+        "marker_type": [
+          "replace"
+        ],
+        "io": [
+          "imread",
+          "imsave"
+        ],
+        "image": [
+          "astype"
+        ],
+        "image_normalized": [
+          "max",
+          "min"
+        ],
+        "filters": [
+          "threshold_local",
+          "threshold_otsu"
+        ],
+        "morphology": [
+          "binary_closing",
+          "binary_dilation",
+          "closing",
+          "disk",
+          "remove_small_objects"
+        ],
+        "measure": [
+          "label",
+          "regionprops"
+        ],
+        "util": [
+          "img_as_ubyte"
+        ],
+        "segmentation": [
+          "watershed"
+        ],
+        "ndimage": [
+          "distance_transform_edt",
+          "median_filter"
+        ],
+        "cell_data": [
+          "append"
+        ],
+        "cell_df": [
+          "to_csv"
+        ],
+        "cell_masks": [
+          "astype"
+        ],
+        "json": [
+          "dump"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "pharmacology.py",
+      "imports": [
+        "DeepPurpose",
+        "DeepPurpose.CompoundPred",
+        "DeepPurpose.DTI",
+        "DeepPurpose.utils",
+        "collections",
+        "collections.defaultdict",
+        "csv",
+        "datetime",
+        "datetime.datetime",
+        "difflib",
+        "difflib.get_close_matches",
+        "json",
+        "matplotlib.pyplot",
+        "numpy",
+        "os",
+        "pandas",
+        "pathlib",
+        "pathlib.Path",
+        "pickle",
+        "rdkit",
+        "rdkit.Chem",
+        "rdkit.Chem.Crippen",
+        "rdkit.Chem.Descriptors",
+        "rdkit.Chem.Lipinski",
+        "rdkit.Chem.MolStandardize",
+        "rdkit.Chem.MolStandardize.rdMolStandardize",
+        "re",
+        "requests",
+        "scipy",
+        "scipy.integrate",
+        "scipy.integrate.trapezoid",
+        "scipy.optimize",
+        "scipy.optimize.curve_fit",
+        "scipy.stats",
+        "scipy.stats.linregress",
+        "skimage",
+        "skimage.io",
+        "statsmodels.api",
+        "statsmodels.formula.api",
+        "statsmodels.formula.api.ols",
+        "statsmodels.stats.multicomp",
+        "statsmodels.stats.multicomp.pairwise_tukeyhsd",
+        "subprocess",
+        "sys",
+        "tdc",
+        "tdc.Oracle",
+        "time"
+      ],
+      "function_calls": {
+        "os": [
+          "makedirs",
+          "path.abspath",
+          "path.basename",
+          "path.dirname",
+          "path.exists",
+          "path.join"
+        ],
+        "summary": [
+          "append"
+        ],
+        "subprocess": [
+          "run"
+        ],
+        "gpu_check": [
+          "stdout.strip"
+        ],
+        "result": [
+          "get",
+          "keys",
+          "stderr.strip"
+        ],
+        "log": [
+          "append"
+        ],
+        "pdb_file": [
+          "replace"
+        ],
+        "log_file": [
+          "read"
+        ],
+        "re": [
+          "search"
+        ],
+        "box_center_match": [
+          "group"
+        ],
+        "box_size_match": [
+          "group"
+        ],
+        "np": [
+          "argmax",
+          "exp",
+          "log",
+          "mean",
+          "sum"
+        ],
+        "pickle": [
+          "dump",
+          "load"
+        ],
+        "disease_predictions": [
+          "items"
+        ],
+        "sigmoid_predictions": [
+          "items"
+        ],
+        "CompoundPred": [
+          "model_pretrained"
+        ],
+        "utils": [
+          "data_process"
+        ],
+        "model": [
+          "predict"
+        ],
+        "DTI": [
+          "model_pretrained"
+        ],
+        "affinity_model_type": [
+          "replace",
+          "split"
+        ],
+        "model_DTI": [
+          "predict"
+        ],
+        "datetime": [
+          "now"
+        ],
+        "formulation": [
+          "get"
+        ],
+        "results": [
+          "append"
+        ],
+        "condition": [
+          "get"
+        ],
+        "all_results": [
+          "extend"
+        ],
+        "pd": [
+          "DataFrame",
+          "concat",
+          "isna",
+          "read_csv"
+        ],
+        "results_df": [
+          "to_csv"
+        ],
+        "form_results": [
+          "iterrows"
+        ],
+        "timepoints": [
+          "append"
+        ],
+        "symptom": [
+          "lower"
+        ],
+        "severity": [
+          "lower"
+        ],
+        "data": [
+          "apply",
+          "groupby",
+          "pivot_table",
+          "sort_values",
+          "to_csv"
+        ],
+        "numeric_columns": [
+          "sort"
+        ],
+        "progression_analysis": [
+          "iterrows",
+          "to_csv"
+        ],
+        "trend_counts": [
+          "items"
+        ],
+        "trend": [
+          "capitalize"
+        ],
+        "grade_counts": [
+          "items"
+        ],
+        "symptom_summary": [
+          "iterrows"
+        ],
+        "most_severe": [
+          "iterrows"
+        ],
+        "json": [
+          "dump"
+        ],
+        "tissue_data": [
+          "items",
+          "keys"
+        ],
+        "tissue": [
+          "capitalize",
+          "lower"
+        ],
+        "biodistribution_data": [
+          "items"
+        ],
+        "time_integrated_activity": [
+          "items"
+        ],
+        "absorbed_doses": [
+          "get",
+          "items"
+        ],
+        "csv": [
+          "writer"
+        ],
+        "writer": [
+          "writerow"
+        ],
+        "time": [
+          "time"
+        ],
+        "methylation_data_path": [
+          "endswith"
+        ],
+        "metabolizer_status_path": [
+          "endswith"
+        ],
+        "covariates_path": [
+          "endswith"
+        ],
+        "methylation_data": [
+          "index.intersection"
+        ],
+        "metabolizer_status": [
+          "map"
+        ],
+        "significant_sites": [
+          "head",
+          "sort_values",
+          "to_csv"
+        ],
+        "Chem": [
+          "MolFromSmiles"
+        ],
+        "Descriptors": [
+          "MolLogP",
+          "MolWt",
+          "NumRotatableBonds",
+          "RingCount",
+          "TPSA"
+        ],
+        "Lipinski": [
+          "NumHAcceptors",
+          "NumHDonors"
+        ],
+        "mol": [
+          "GetAtoms",
+          "GetNumHeavyAtoms"
+        ],
+        "rdMolStandardize": [
+          "Uncharger"
+        ],
+        "uncharger": [
+          "uncharge"
+        ],
+        "atom": [
+          "GetDegree",
+          "GetNeighbors",
+          "GetSymbol"
+        ],
+        "neigh": [
+          "GetDegree",
+          "GetSymbol"
+        ],
+        "Crippen": [
+          "MolMR"
+        ],
+        "properties": [
+          "items"
+        ],
+        "data_path": [
+          "endswith"
+        ],
+        "data_df": [
+          "groupby"
+        ],
+        "stats": [
+          "linregress",
+          "sem"
+        ],
+        "stats_df": [
+          "to_csv"
+        ],
+        "subject_growth_rates": [
+          "append"
+        ],
+        "sm": [
+          "stats.anova_lm"
+        ],
+        "anova_table": [
+          "to_csv"
+        ],
+        "f": [
+          "write"
+        ],
+        "tukey": [
+          "summary"
+        ],
+        "sig_pairs": [
+          "iterrows"
+        ],
+        "plt": [
+          "close",
+          "errorbar",
+          "figure",
+          "grid",
+          "legend",
+          "savefig",
+          "title",
+          "xlabel",
+          "ylabel"
+        ],
+        "tgi_results": [
+          "items"
+        ],
+        "io": [
+          "imread"
+        ],
+        "csv_file": [
+          "replace"
+        ],
+        "dataframes": [
+          "append"
+        ],
+        "standardized": [
+          "replace"
+        ],
+        "df": [
+          "iterrows"
+        ],
+        "combined_df": [
+          "iterrows"
+        ],
+        "drug_info": [
+          "get",
+          "items",
+          "values"
+        ],
+        "original_name": [
+          "lower"
+        ],
+        "connection_counts": [
+          "append",
+          "sort"
+        ],
+        "drug_name": [
+          "lower",
+          "strip",
+          "title"
+        ],
+        "name_mapping": [
+          "keys"
+        ],
+        "interaction": [
+          "get"
+        ],
+        "category": [
+          "replace"
+        ],
+        "standardized_names": [
+          "append"
+        ],
+        "missing_drugs": [
+          "append"
+        ],
+        "int_data": [
+          "get"
+        ],
+        "interactions_found": [
+          "append"
+        ],
+        "severity_counts": [
+          "get"
+        ],
+        "standardized_drugs": [
+          "append"
+        ],
+        "drug_a": [
+          "title"
+        ],
+        "drug_a_info": [
+          "get"
+        ],
+        "drug_b": [
+          "title"
+        ],
+        "drug_b_info": [
+          "get"
+        ],
+        "category_mechanisms": [
+          "get"
+        ],
+        "std_contraindicated": [
+          "append"
+        ],
+        "missing_contraindicated": [
+          "append"
+        ],
+        "target_info": [
+          "get"
+        ],
+        "drug_data": [
+          "get"
+        ],
+        "therapeutic_class": [
+          "lower"
+        ],
+        "cat": [
+          "lower"
+        ],
+        "alternatives": [
+          "append",
+          "sort"
+        ],
+        "requests": [
+          "Session"
+        ],
+        "self": [
+          "_build_fda_search_params",
+          "_handle_rate_limiting",
+          "_make_request",
+          "_validate_response",
+          "session.get",
+          "session.headers.update",
+          "time.sleep",
+          "time.time"
+        ],
+        "params": [
+          "items"
+        ],
+        "response": [
+          "get",
+          "json",
+          "raise_for_status"
+        ],
+        "name": [
+          "endswith"
+        ],
+        "response_data": [
+          "get"
+        ],
+        "filters": [
+          "get"
+        ],
+        "filtered_results": [
+          "append"
+        ],
+        "drug": [
+          "get",
+          "strip"
+        ],
+        "reaction": [
+          "get"
+        ],
+        "drug_reactions": [
+          "items"
+        ],
+        "outcome": [
+          "get"
+        ],
+        "reaction_counts": [
+          "get",
+          "items"
+        ],
+        "section_mapping": [
+          "get",
+          "keys"
+        ],
+        "section_key": [
+          "title"
+        ],
+        "recall": [
+          "get"
+        ],
+        "signals_data": [
+          "get"
+        ],
+        "drug_signals": [
+          "get"
+        ],
+        "reaction_patterns": [
+          "items"
+        ],
+        "client": [
+          "query_adverse_events",
+          "query_drug_labels",
+          "query_drug_recalls"
+        ],
+        "formatted_result": [
+          "replace",
+          "split",
+          "startswith"
+        ],
+        "line": [
+          "startswith"
+        ],
+        "lines": [
+          "insert"
+        ],
+        "all_responses": [
+          "append"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "physiology.py",
+      "imports": [
+        "SimpleITK",
+        "cv2",
+        "datetime",
+        "datetime.datetime",
+        "matplotlib.pyplot",
+        "nibabel",
+        "numpy",
+        "os",
+        "pandas",
+        "scipy",
+        "scipy.fftpack",
+        "scipy.fftpack.fft",
+        "scipy.integrate",
+        "scipy.integrate.solve_ivp",
+        "scipy.optimize",
+        "scipy.optimize.curve_fit",
+        "scipy.signal",
+        "scipy.signal.find_peaks",
+        "scipy.stats",
+        "skimage",
+        "skimage.color",
+        "skimage.exposure",
+        "skimage.filters",
+        "skimage.io",
+        "skimage.measure",
+        "skimage.morphology",
+        "skimage.segmentation",
+        "skimage.segmentation.clear_border",
+        "skimage.util",
+        "skimage.util.img_as_ubyte",
+        "time"
+      ],
+      "function_calls": {
+        "os": [
+          "makedirs",
+          "path.abspath",
+          "path.basename",
+          "path.join"
+        ],
+        "log": [
+          "append"
+        ],
+        "datetime": [
+          "now"
+        ],
+        "time": [
+          "time"
+        ],
+        "nib": [
+          "Nifti1Image",
+          "load",
+          "save"
+        ],
+        "mri_data": [
+          "get_fdata"
+        ],
+        "sitk": [
+          "BinaryOpeningByReconstruction",
+          "CurvatureFlow",
+          "GetArrayFromImage",
+          "GetImageFromArray",
+          "ReadImage",
+          "WriteImage"
+        ],
+        "np": [
+          "abs",
+          "any",
+          "argmax",
+          "argmin",
+          "array",
+          "cos",
+          "diag",
+          "diff",
+          "exp",
+          "fft.fftfreq",
+          "hanning",
+          "linspace",
+          "logical_or",
+          "max",
+          "mean",
+          "median",
+          "min",
+          "sqrt",
+          "std",
+          "sum",
+          "trapezoid",
+          "where",
+          "zeros",
+          "zeros_like"
+        ],
+        "binary_mask": [
+          "astype"
+        ],
+        "segmentation": [
+          "astype"
+        ],
+        "measure": [
+          "label",
+          "marching_cubes",
+          "regionprops"
+        ],
+        "f": [
+          "write"
+        ],
+        "cv2": [
+          "VideoCapture",
+          "cvtColor"
+        ],
+        "cap": [
+          "get",
+          "isOpened",
+          "read",
+          "release"
+        ],
+        "rois": [
+          "append"
+        ],
+        "frequencies": [
+          "append"
+        ],
+        "pd": [
+          "DataFrame",
+          "read_csv"
+        ],
+        "df": [
+          "to_csv"
+        ],
+        "io": [
+          "imread",
+          "imsave"
+        ],
+        "img1": [
+          "astype",
+          "mean"
+        ],
+        "img2": [
+          "astype",
+          "mean"
+        ],
+        "exposure": [
+          "rescale_intensity"
+        ],
+        "filters": [
+          "gaussian",
+          "threshold_li",
+          "threshold_local",
+          "threshold_otsu",
+          "threshold_yen"
+        ],
+        "stats": [
+          "pearsonr"
+        ],
+        "img1_norm": [
+          "flatten"
+        ],
+        "img2_norm": [
+          "flatten"
+        ],
+        "plt": [
+          "axis",
+          "close",
+          "figure",
+          "hexbin",
+          "imshow",
+          "savefig",
+          "subplot",
+          "tight_layout",
+          "title",
+          "xlabel",
+          "ylabel"
+        ],
+        "optimize": [
+          "curve_fit"
+        ],
+        "results": [
+          "items",
+          "to_csv"
+        ],
+        "dwi_img": [
+          "get_fdata"
+        ],
+        "mask_img": [
+          "get_fdata"
+        ],
+        "signal": [
+          "butter",
+          "filtfilt",
+          "find_peaks"
+        ],
+        "expected_cols": [
+          "issubset"
+        ],
+        "fatty_acid_standards": [
+          "items"
+        ],
+        "identified_peaks": [
+          "values"
+        ],
+        "detected_results": [
+          "head"
+        ],
+        "top_fatty_acids": [
+          "iterrows"
+        ],
+        "valleys": [
+          "append"
+        ],
+        "results_df": [
+          "insert",
+          "to_csv"
+        ],
+        "parameters": [
+          "get"
+        ],
+        "initial_conditions": [
+          "keys"
+        ],
+        "species_names": [
+          "index"
+        ],
+        "volumes": [
+          "get"
+        ],
+        "name": [
+          "split"
+        ],
+        "color": [
+          "label2rgb",
+          "rgb2gray"
+        ],
+        "morphology": [
+          "remove_small_objects"
+        ],
+        "plaque_data": [
+          "append"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "support_tools.py",
+      "imports": [
+        "importlib",
+        "inspect",
+        "io",
+        "io.StringIO",
+        "os",
+        "subprocess",
+        "sys"
+      ],
+      "function_calls": {
+        "mystdout": [
+          "getvalue"
+        ],
+        "command": [
+          "strip"
+        ],
+        "function_name": [
+          "split"
+        ],
+        "importlib": [
+          "import_module"
+        ],
+        "inspect": [
+          "getsource"
+        ],
+        "os": [
+          "environ.get",
+          "makedirs"
+        ],
+        "subprocess": [
+          "run"
+        ],
+        "cmd": [
+          "append"
+        ],
+        "results": [
+          "append"
+        ],
+        "errors": [
+          "append"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "synthetic_biology.py",
+      "imports": [
+        "Bio",
+        "Bio.Data",
+        "Bio.Data.CodonTable",
+        "Bio.Graphics",
+        "Bio.Graphics.GenomeDiagram",
+        "Bio.Seq",
+        "Bio.Seq.Seq",
+        "Bio.SeqFeature",
+        "Bio.SeqFeature.FeatureLocation",
+        "Bio.SeqFeature.SeqFeature",
+        "Bio.SeqIO",
+        "Bio.SeqRecord",
+        "Bio.SeqRecord.SeqRecord",
+        "collections",
+        "collections.Counter",
+        "datetime",
+        "datetime.datetime",
+        "json",
+        "libsbml",
+        "matplotlib.patches",
+        "matplotlib.patches.Patch",
+        "matplotlib.pyplot",
+        "numpy",
+        "os",
+        "re",
+        "reportlab.lib",
+        "reportlab.lib.colors",
+        "requests",
+        "scipy.cluster.hierarchy",
+        "scipy.cluster.hierarchy.fcluster",
+        "scipy.cluster.hierarchy.linkage",
+        "scipy.integrate",
+        "scipy.integrate.solve_ivp",
+        "scipy.optimize",
+        "scipy.optimize.curve_fit",
+        "scipy.signal",
+        "scipy.signal.find_peaks",
+        "scipy.spatial.distance",
+        "scipy.spatial.distance.pdist",
+        "time"
+      ],
+      "function_calls": {
+        "log": [
+          "append"
+        ],
+        "datetime": [
+          "datetime.now",
+          "now"
+        ],
+        "SeqIO": [
+          "parse",
+          "read",
+          "write"
+        ],
+        "features": [
+          "append"
+        ],
+        "GenomeDiagram": [
+          "Diagram"
+        ],
+        "gd_diagram": [
+          "draw",
+          "new_track",
+          "write"
+        ],
+        "gd_track": [
+          "new_set"
+        ],
+        "gd_feature_set": [
+          "add_feature"
+        ],
+        "os": [
+          "makedirs",
+          "path.abspath",
+          "path.exists",
+          "path.join"
+        ],
+        "np": [
+          "abs",
+          "array",
+          "diff",
+          "exp",
+          "full",
+          "linspace",
+          "log",
+          "mean",
+          "savez",
+          "sum",
+          "unique",
+          "where",
+          "zeros"
+        ],
+        "plt": [
+          "axvspan",
+          "close",
+          "figure",
+          "grid",
+          "legend",
+          "plot",
+          "savefig",
+          "scatter",
+          "title",
+          "xlabel",
+          "ylabel"
+        ],
+        "strain_name": [
+          "replace"
+        ],
+        "input_file": [
+          "endswith"
+        ],
+        "re": [
+          "search"
+        ],
+        "barcodes": [
+          "append"
+        ],
+        "match": [
+          "group"
+        ],
+        "barcode_counts": [
+          "items"
+        ],
+        "f": [
+          "write"
+        ],
+        "filtered_barcodes": [
+          "items",
+          "keys"
+        ],
+        "s1": [
+          "ljust"
+        ],
+        "s2": [
+          "ljust"
+        ],
+        "cluster_counts": [
+          "values"
+        ],
+        "attractor_points": [
+          "append"
+        ],
+        "points": [
+          "flatten"
+        ],
+        "colors": [
+          "get"
+        ],
+        "system_name": [
+          "replace"
+        ],
+        "libsbml": [
+          "SBMLDocument",
+          "SBMLNamespaces",
+          "parseL3Formula",
+          "writeSBMLToFile"
+        ],
+        "document": [
+          "checkConsistency",
+          "createModel",
+          "getError",
+          "getNumErrors",
+          "setConsistencyChecks"
+        ],
+        "model": [
+          "createCompartment",
+          "createReaction",
+          "createSpecies",
+          "setId",
+          "setName"
+        ],
+        "compartment": [
+          "setConstant",
+          "setId",
+          "setSize",
+          "setSpatialDimensions"
+        ],
+        "species_set": [
+          "add"
+        ],
+        "species": [
+          "setBoundaryCondition",
+          "setCompartment",
+          "setConstant",
+          "setHasOnlySubstanceUnits",
+          "setId",
+          "setInitialConcentration"
+        ],
+        "reaction": [
+          "createKineticLaw",
+          "createProduct",
+          "createReactant",
+          "setFast",
+          "setId",
+          "setName",
+          "setReversible"
+        ],
+        "species_ref": [
+          "setConstant",
+          "setSpecies",
+          "setStoichiometry"
+        ],
+        "kinetic_law": [
+          "createParameter",
+          "setMath"
+        ],
+        "parameter": [
+          "setId",
+          "setValue"
+        ],
+        "error": [
+          "getMessage"
+        ],
+        "target_sequence": [
+          "replace"
+        ],
+        "standard_table": [
+          "forward_table.items"
+        ],
+        "codon_to_aa": [
+          "items"
+        ],
+        "host_codon_usage": [
+          "get"
+        ],
+        "optimized_codons": [
+          "append"
+        ],
+        "optimized_sequence": [
+          "replace"
+        ],
+        "circuit_topology": [
+          "tolist"
+        ],
+        "json": [
+          "dump",
+          "dumps"
+        ],
+        "requests": [
+          "get",
+          "post"
+        ],
+        "response": [
+          "headers.get"
+        ],
+        "time": [
+          "sleep"
+        ],
+        "result_response": [
+          "json"
+        ],
+        "hit": [
+          "get"
+        ],
+        "domain": [
+          "get"
+        ],
+        "domains_found": [
+          "append"
+        ],
+        "fas_domains": [
+          "items"
+        ],
+        "fas_key": [
+          "lower"
+        ],
+        "fas_domains_found": [
+          "append"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "systems_biology.py",
+      "imports": [
+        "Bio.PDB",
+        "Bio.PDB.PDBExceptions",
+        "Bio.PDB.PDBExceptions.PDBConstructionWarning",
+        "Bio.PDB.PDBIO",
+        "Bio.PDB.PDBParser",
+        "Bio.PDB.Select",
+        "Bio.PDB.Superimposer",
+        "cobra",
+        "csv",
+        "numpy",
+        "pandas",
+        "scipy.integrate",
+        "scipy.integrate.solve_ivp",
+        "time",
+        "transformers",
+        "transformers.pipeline",
+        "warnings"
+      ],
+      "function_calls": {
+        "model_file": [
+          "endswith"
+        ],
+        "cobra": [
+          "io.load_json_model",
+          "io.load_model",
+          "io.read_sbml_model"
+        ],
+        "constraints": [
+          "items"
+        ],
+        "model": [
+          "metabolites.get_by_id",
+          "optimize",
+          "reactions.get_by_id"
+        ],
+        "pd": [
+          "DataFrame"
+        ],
+        "flux_distribution": [
+          "to_csv"
+        ],
+        "top_reactions": [
+          "iterrows"
+        ],
+        "time": [
+          "time"
+        ],
+        "monomer_concentrations": [
+          "items",
+          "keys"
+        ],
+        "dimer_pairs": [
+          "append"
+        ],
+        "dimer_names": [
+          "append"
+        ],
+        "dimer_affinities": [
+          "append"
+        ],
+        "np": [
+          "linalg.norm",
+          "linspace",
+          "ones",
+          "where",
+          "zeros",
+          "zeros_like"
+        ],
+        "monomer_to_idx": [
+          "items"
+        ],
+        "final_monomer_concs": [
+          "items"
+        ],
+        "final_dimer_concs": [
+          "items"
+        ],
+        "reaction": [
+          "metabolites.items"
+        ],
+        "metabolite_ids": [
+          "index"
+        ],
+        "perturbation": [
+          "copy",
+          "get"
+        ],
+        "perturbation_params": [
+          "copy"
+        ],
+        "conc_df": [
+          "to_csv"
+        ],
+        "flux_df": [
+          "to_csv"
+        ],
+        "significant_changes": [
+          "append"
+        ],
+        "network_structure": [
+          "items",
+          "keys"
+        ],
+        "all_proteins": [
+          "add"
+        ],
+        "reaction_params": [
+          "get"
+        ],
+        "regulation_terms": [
+          "append"
+        ],
+        "species_params": [
+          "items"
+        ],
+        "csv": [
+          "writer"
+        ],
+        "writer": [
+          "writerow"
+        ],
+        "warnings": [
+          "filterwarnings"
+        ],
+        "research_log": [
+          "append"
+        ],
+        "parser": [
+          "get_structure"
+        ],
+        "residue": [
+          "has_id"
+        ],
+        "residues1": [
+          "keys"
+        ],
+        "residues2": [
+          "keys"
+        ],
+        "ca_atoms1": [
+          "append"
+        ],
+        "ca_atoms2": [
+          "append"
+        ],
+        "super_imposer": [
+          "apply",
+          "set_atoms"
+        ],
+        "structure2": [
+          "get_atoms"
+        ],
+        "distance_data": [
+          "append"
+        ],
+        "res1": [
+          "get_resname"
+        ],
+        "io": [
+          "save",
+          "set_structure"
+        ],
+        "f": [
+          "write"
+        ],
+        "current_region": [
+          "append"
+        ],
+        "regions": [
+          "append"
+        ],
+        "results_df": [
+          "insert",
+          "to_csv"
+        ]
+      },
+      "subprocess_calls": []
+    },
+    {
+      "file": "tool_registry.py",
+      "imports": [
+        "pandas",
+        "pickle"
+      ],
+      "function_calls": {
+        "tools": [
+          "values"
+        ],
+        "self": [
+          "get_tool_by_id",
+          "get_tool_by_name",
+          "register_tool",
+          "tools.append",
+          "validate_tool"
+        ],
+        "docs": [
+          "append"
+        ],
+        "pd": [
+          "DataFrame"
+        ],
+        "pickle": [
+          "dump",
+          "load"
+        ]
+      },
+      "subprocess_calls": []
+    }
+  ]
+}

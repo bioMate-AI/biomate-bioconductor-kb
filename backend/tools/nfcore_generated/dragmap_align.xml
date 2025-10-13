@@ -1,0 +1,65 @@
+<tool id="nfcore_dragmap/align" name="dragmap_align" version="1.0" profile="21.05">
+    <description>Performs fastq alignment to a reference using DRAGMAP</description>
+
+    <requirements>
+        <container type="docker">biocontainers/mulled-v2-580d344d9d4a496cd403932da8765f9e0187774d:df80ed8d23d0a2c43181a2b3dd1b39f2d00fab5c-0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        dragmap/align
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**dragmap_align**
+
+Performs fastq alignment to a reference using DRAGMAP
+
+**nf-core Module Information:**
+
+- Module: dragmap/align
+- Container: biocontainers/mulled-v2-580d344d9d4a496cd403932da8765f9e0187774d:df80ed8d23d0a2c43181a2b3dd1b39f2d00fab5c-0
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_dragmap/align,
+            title = {nf-core dragmap/align module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/dragmap/align},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

@@ -1,0 +1,65 @@
+<tool id="nfcore_foldmason/easymsa" name="foldmason_easymsa" version="1.0" profile="21.05">
+    <description>Aligns protein structures using foldmason</description>
+
+    <requirements>
+        <container type="docker">biocontainers/foldmason/easymsa:latest</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        foldmason/easymsa
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**foldmason_easymsa**
+
+Aligns protein structures using foldmason
+
+**nf-core Module Information:**
+
+- Module: foldmason/easymsa
+- Container: biocontainers/foldmason/easymsa:latest
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_foldmason/easymsa,
+            title = {nf-core foldmason/easymsa module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/foldmason/easymsa},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

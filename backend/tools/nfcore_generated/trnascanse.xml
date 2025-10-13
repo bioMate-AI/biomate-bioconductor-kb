@@ -1,65 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_trnascanse" name="nf-core trnascanse" version="1.0.0" profile="20.01">
-  <description>Detection of tRNA sequences using covariance models</description>
-  <requirements>
-    <requirement type="package" version="2.0.12">trnascan-se</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-${unzip}
+<tool id="nfcore_trnascanse" name="trnascanse" version="1.0" profile="21.05">
+    <description>Detection of tRNA sequences using covariance models</description>
 
-    ## larger genomes can fill up the limited temp space in the singularity container
-    ## expected location of the default config file is with the exectuable
-    ## copy this and modify to use the working dir as the temp directory
-    conf=\$(which tRNAscan-SE).conf
-    cp \${conf} trnascan.conf
-    sed -i s#/tmp#.#g trnascan.conf
+    <requirements>
+        <container type="docker">biocontainers/trnascan-se:2.0.12--pl5321h7b50bb2_2</container>
+    </requirements>
 
-    tRNAscan-SE \\
-        --thread ${task.cpus} \\
-        -c trnascan.conf \\
-        ${args} \\
-        -o ${prefix}.tsv \\
-        -l ${prefix}.log \\
-        -m ${prefix}.stats \\
-        ${input}
+    <command detect_errors="exit_code"><![CDATA[
+        trnascanse
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-    find . -name &quot;*.fasta&quot; -exec gzip {} \\;
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
 
-    ${cleanup}
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        tRNAscan-SE: \$(tRNAscan-SE 2&gt;&amp;1 &gt;/dev/null | awk 'NR==2 {print \$2}')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="fasta" format="data" label="Fasta"/>
-  </inputs>
-  <outputs>
-    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
-    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
-    <data name="stats" format="data" label="Stats" from_work_dir="*.stats"/>
-    <data name="fasta" format="data" label="Fasta" from_work_dir="*.fasta"/>
-    <data name="gff" format="data" label="Gff" from_work_dir="*.gff"/>
-    <data name="bed" format="data" label="Bed" from_work_dir="*.bed"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**trnascanse**
 
 Detection of tRNA sequences using covariance models
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: trnascanse
+- Container: biocontainers/trnascan-se:2.0.12--pl5321h7b50bb2_2
 
-Module: trnascanse
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/trnascanse
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_trnascanse,
+            title = {nf-core trnascanse module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/trnascanse},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

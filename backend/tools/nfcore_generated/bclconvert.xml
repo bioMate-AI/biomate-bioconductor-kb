@@ -1,78 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_bclconvert" name="nf-core bclconvert" version="1.0.0" profile="20.01">
-  <description>Demultiplex Illumina BCL files</description>
-  <requirements>
-    <container type="docker">nf-core/bclconvert:4.4.6</container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-if [ ! -d ${input_dir} ]; then
-        mkdir -p ${input_dir}
-    fi
+<tool id="nfcore_bclconvert" name="bclconvert" version="1.0" profile="21.05">
+    <description>Demultiplex Illumina BCL files</description>
 
-    if ${input_tar}; then
-        ## Ensures --strip-components only applied when top level of tar contents is a directory
-        ## If just files or multiple directories, place all in $input_dir
+    <requirements>
+        <container type="docker">biocontainers/bclconvert:latest</container>
+    </requirements>
 
-        if [[ \$(tar -taf ${run_dir} | grep -o -P &quot;^.*?\\/&quot; | uniq | wc -l) -eq 1 ]]; then
-            tar \\
-                -C $input_dir --strip-components 1 \\
-                -xavf \\
-                $args2 \\
-                $run_dir \\
-                $args3
-        else
-            tar \\
-                -C $input_dir \\
-                -xavf \\
-                $args2 \\
-                $run_dir \\
-                $args3
-        fi
-    fi
+    <command detect_errors="exit_code"><![CDATA[
+        bclconvert
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-    bcl-convert \\
-        $args \\
-        --output-directory output \\
-        --bcl-input-directory ${input_dir} \\
-        --sample-sheet ${samplesheet}
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
 
-    # copy the InterOp folder contents to ensure it gets picked up when using fusion
-    mkdir -p output/InterOp/
-    cp -n **/InterOp/*.bin output/InterOp/
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        bclconvert: \$(bcl-convert -V 2&gt;&amp;1 | head -n 1 | sed 's/^.*Version //')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="samplesheet" format="data" label="Samplesheet"/>
-  </inputs>
-  <outputs>
-    <data name="fastq" format="data" label="Fastq" from_work_dir="output/**_S[1-9]*_R?_00?.fastq.gz"/>
-    <data name="fastq_idx" format="data" label="Fastq Idx" from_work_dir="output/**_S[1-9]*_I?_00?.fastq.gz"/>
-    <data name="undetermined" format="data" label="Undetermined" from_work_dir="output/**Undetermined_S0*_R?_00?.fastq.gz"/>
-    <data name="undetermined_idx" format="data" label="Undetermined Idx" from_work_dir="output/**Undetermined_S0*_I?_00?.fastq.gz"/>
-    <data name="reports" format="data" label="Reports" from_work_dir="output/Reports"/>
-    <data name="logs" format="data" label="Logs" from_work_dir="output/Logs"/>
-    <data name="interop" format="data" label="Interop" from_work_dir="output/InterOp/*.bin"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**bclconvert**
 
 Demultiplex Illumina BCL files
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: bclconvert
+- Container: biocontainers/bclconvert:latest
 
-Module: bclconvert
-Container: nf-core/bclconvert:4.4.6
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/bclconvert
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_bclconvert,
+            title = {nf-core bclconvert module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/bclconvert},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

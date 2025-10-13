@@ -1,41 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_falco" name="nf-core falco" version="1.0.0" profile="20.01">
-  <description>Run falco on sequenced reads</description>
-  <requirements>
-    <requirement type="package" version="1.2.1">falco</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-falco $args --threads $task.cpus ${reads} -D ${prefix}_fastqc_data.txt -S ${prefix}_summary.txt -R ${prefix}_report.html
+<tool id="nfcore_falco" name="falco" version="1.0" profile="21.05">
+    <description>Run falco on sequenced reads</description>
 
-        cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-        &quot;${task.process}&quot;:
-            falco:\$( falco --version | sed -e &quot;s/falco//g&quot; )
-        END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="reads" format="fastq,fastqsanger,fastqsanger.gz" label="Input reads"/>
-  </inputs>
-  <outputs>
-    <data name="html" format="html" label="Html" from_work_dir="*.html"/>
-    <data name="txt" format="txt" label="Txt" from_work_dir="*.txt"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/falco:1.2.1--h867801b_3</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        falco
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**falco**
 
 Run falco on sequenced reads
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: falco
+- Container: biocontainers/falco:1.2.1--h867801b_3
 
-Module: falco
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/falco
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_falco,
+            title = {nf-core falco module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/falco},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

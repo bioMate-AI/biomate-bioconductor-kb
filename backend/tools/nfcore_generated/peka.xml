@@ -1,57 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_peka" name="nf-core peka" version="1.0.0" profile="20.01">
-  <description>Runs PEKA CLIP peak k-mer analysis</description>
-  <requirements>
-    <requirement type="package" version="1.0.0">peka</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-# If the modification date and time of the fai is before the fasta then
-    # there will be an error. Touching the file first avoids that.
-    touch $fai
-    mkdir tmp
-    TMPDIR=\$(pwd)/tmp peka \
-        -i $peaks \
-        -x $crosslinks \
-        -g $fasta \
-        -gi $fai \
-        -r $gtf \
-        $args
+<tool id="nfcore_peka" name="peka" version="1.0" profile="21.05">
+    <description>Runs PEKA CLIP peak k-mer analysis</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        peka: $VERSION
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="peaks" format="data" label="Peaks"/>
-    <param type="data" name="crosslinks" format="data" label="Crosslinks"/>
-  </inputs>
-  <outputs>
-    <data name="cluster" format="data" label="Cluster" from_work_dir="*mer_cluster_distribution*"/>
-    <data name="distribution" format="data" label="Distribution" from_work_dir="*mer_distribution*"/>
-    <data name="rtxn" format="data" label="Rtxn" from_work_dir="*rtxn*"/>
-    <data name="pdf" format="data" label="Pdf" from_work_dir="*.pdf"/>
-    <data name="tsites" format="data" label="Tsites" from_work_dir="*thresholded_sites*.bed.gz"/>
-    <data name="oxn" format="data" label="Oxn" from_work_dir="*oxn*.bed.gz"/>
-    <data name="clust" format="data" label="Clust" from_work_dir="*_clusters.csv"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/peka:1.0.0--pyhdfd78af_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        peka
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**peka**
 
 Runs PEKA CLIP peak k-mer analysis
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: peka
+- Container: biocontainers/peka:1.0.0--pyhdfd78af_0
 
-Module: peka
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/peka
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_peka,
+            title = {nf-core peka module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/peka},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

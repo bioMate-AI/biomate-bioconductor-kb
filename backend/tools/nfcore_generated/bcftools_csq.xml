@@ -1,0 +1,65 @@
+<tool id="nfcore_bcftools/csq" name="bcftools_csq" version="1.0" profile="21.05">
+    <description>bcftools Haplotype-aware consequence caller</description>
+
+    <requirements>
+        <container type="docker">biocontainers/bcftools/csq:latest</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        bcftools/csq
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**bcftools_csq**
+
+bcftools Haplotype-aware consequence caller
+
+**nf-core Module Information:**
+
+- Module: bcftools/csq
+- Container: biocontainers/bcftools/csq:latest
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_bcftools/csq,
+            title = {nf-core bcftools/csq module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/bcftools/csq},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

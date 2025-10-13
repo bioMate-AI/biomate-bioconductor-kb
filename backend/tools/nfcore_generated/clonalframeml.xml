@@ -1,49 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_clonalframeml" name="nf-core clonalframeml" version="1.0.0" profile="20.01">
-  <description>Predict recomination events in bacterial genomes</description>
-  <requirements>
-    <requirement type="package" version="1.12">clonalframeml</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-ClonalFrameML \\
-        $newick \\
-        &lt;(gzip -cdf $msa) \\
-        $prefix \\
-        $args
+<tool id="nfcore_clonalframeml" name="clonalframeml" version="1.0" profile="21.05">
+    <description>Predict recomination events in bacterial genomes</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        clonalframeml: \$( echo \$(ClonalFrameML -version 2&gt;&amp;1) | sed 's/^.*ClonalFrameML v//' )
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="newick" format="data" label="Newick"/>
-  </inputs>
-  <outputs>
-    <data name="emsim" format="txt" label="Emsim" from_work_dir="*.emsim.txt"/>
-    <data name="em" format="txt" label="Em" from_work_dir="*.em.txt"/>
-    <data name="status" format="txt" label="Status" from_work_dir="*.importation_status.txt"/>
-    <data name="newick" format="data" label="Newick" from_work_dir="*.labelled_tree.newick"/>
-    <data name="fasta" format="data" label="Fasta" from_work_dir="*.ML_sequence.fasta"/>
-    <data name="pos_ref" format="txt" label="Pos Ref" from_work_dir="*.position_cross_reference.txt"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/clonalframeml:1.12--h7d875b9_1</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        clonalframeml
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**clonalframeml**
 
 Predict recomination events in bacterial genomes
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: clonalframeml
+- Container: biocontainers/clonalframeml:1.12--h7d875b9_1
 
-Module: clonalframeml
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/clonalframeml
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_clonalframeml,
+            title = {nf-core clonalframeml module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/clonalframeml},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

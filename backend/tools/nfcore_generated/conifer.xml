@@ -1,43 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_conifer" name="nf-core conifer" version="1.0.0" profile="20.01">
-  <description>Calculate confidence scores from Kraken2 output</description>
-  <requirements>
-    <requirement type="package" version="1.0.2">conifer</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-conifer \\
-        $args \\
-        --input $kraken_result \\
-        --db $kraken_taxon_db &gt; ${prefix}.score
+<tool id="nfcore_conifer" name="conifer" version="1.0" profile="21.05">
+    <description>Calculate confidence scores from Kraken2 output</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        conifer: \$(echo \$(conifer --version 2&gt;&amp;1) | sed 's/^.*Conifer //')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="kraken_result" format="data" label="Kraken Result"/>
-  </inputs>
-  <outputs>
-    <data name="score" format="data" label="Score" from_work_dir="*.score"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/conifer:1.0.2--he4a0461_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        conifer
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**conifer**
 
 Calculate confidence scores from Kraken2 output
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: conifer
+- Container: biocontainers/conifer:1.0.2--he4a0461_0
 
-Module: conifer
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/conifer
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_conifer,
+            title = {nf-core conifer module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/conifer},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

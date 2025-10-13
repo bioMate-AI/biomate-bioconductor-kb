@@ -1,0 +1,65 @@
+<tool id="nfcore_scramble/clusteranalysis" name="scramble_clusteranalysis" version="1.0" profile="21.05">
+    <description>The Cluster Analysis tool of Scramble analyses and interprets the soft-clipped clusters found by `cluster_identifier`</description>
+
+    <requirements>
+        <container type="docker">biocontainers/scramble/clusteranalysis:latest</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        scramble/clusteranalysis
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**scramble_clusteranalysis**
+
+The Cluster Analysis tool of Scramble analyses and interprets the soft-clipped clusters found by `cluster_identifier`
+
+**nf-core Module Information:**
+
+- Module: scramble/clusteranalysis
+- Container: biocontainers/scramble/clusteranalysis:latest
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_scramble/clusteranalysis,
+            title = {nf-core scramble/clusteranalysis module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/scramble/clusteranalysis},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

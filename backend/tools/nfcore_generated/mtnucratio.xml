@@ -1,45 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_mtnucratio" name="nf-core mtnucratio" version="1.0.0" profile="20.01">
-  <description>A small Java tool to calculate ratios between MT and nuclear sequencing reads in a given BAM file.</description>
-  <requirements>
-    <requirement type="package" version="0.7">mtnucratio</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-mtnucratio \\
-        $args \\
-        $bam \\
-        $mt_id
+<tool id="nfcore_mtnucratio" name="mtnucratio" version="1.0" profile="21.05">
+    <description>A small Java tool to calculate ratios between MT and nuclear sequencing reads in a given BAM file.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        mtnucratio: \$(echo \$(mtnucratio --version 2&gt;&amp;1) | head -n1 | sed 's/Version: //')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="bam" format="data" label="Bam"/>
-    <param type="text" name="mt_id" label="Mt Id" value=""/>
-  </inputs>
-  <outputs>
-    <data name="mtnucratio" format="data" label="Mtnucratio" from_work_dir="*.mtnucratio"/>
-    <data name="json" format="data" label="Json" from_work_dir="*.json"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/mtnucratio:0.7--hdfd78af_2</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        mtnucratio
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**mtnucratio**
 
 A small Java tool to calculate ratios between MT and nuclear sequencing reads in a given BAM file.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: mtnucratio
+- Container: biocontainers/mtnucratio:0.7--hdfd78af_2
 
-Module: mtnucratio
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/mtnucratio
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_mtnucratio,
+            title = {nf-core mtnucratio module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/mtnucratio},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

@@ -1,85 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_rmarkdownnotebook" name="nf-core rmarkdownnotebook" version="1.0.0" profile="20.01">
-  <description>Render an rmarkdown notebook. Supports parametrization.</description>
-  <requirements>
-    <requirement type="package" version="4.1.0">r-base</requirement>
-    <requirement type="package" version="2.9">r-rmarkdown</requirement>
-    <requirement type="package" version="2.2.1">r-yaml</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-\
-            params = yaml::read_yaml('.params.yml')
+<tool id="nfcore_rmarkdownnotebook" name="rmarkdownnotebook" version="1.0" profile="21.05">
+    <description>Render an rmarkdown notebook. Supports parametrization.</description>
 
-            # Instead of rendering with params, produce a version of the R
-            # markdown with param definitions set, so the notebook itself can
-            # be reused
-            rmd_content &lt;- readLines('${prefix}.Rmd')
+    <requirements>
+        <container type="docker">biocontainers/mulled-v2-31ad840d814d356e5f98030a4ee308a16db64ec5:0e852a1e4063fdcbe3f254ac2c7469747a60e361-0</container>
+    </requirements>
 
-            # Extract YAML content between the first two '---'
-            start_idx &lt;- which(rmd_content == &quot;---&quot;)[1]
-            end_idx &lt;- which(rmd_content == &quot;---&quot;)[2]
-            rmd_yaml_content &lt;- paste(rmd_content[(start_idx+1):(end_idx-1)], collapse = &quot;\\n&quot;)
-            rmd_params &lt;- yaml::yaml.load(rmd_yaml_content)
+    <command detect_errors="exit_code"><![CDATA[
+        rmarkdownnotebook
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-            # Override the params
-            rmd_params[['params']] &lt;- modifyList(rmd_params[['params']], params)
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
 
-            # Recursive function to add 'value' to list elements, except for top-level
-            add_value_recursively &lt;- function(lst, is_top_level = FALSE) {
-                if (!is.list(lst)) {
-                    return(lst)
-                }
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
 
-                lst &lt;- lapply(lst, add_value_recursively)
-                if (!is_top_level) {
-                    lst &lt;- list(value = lst)
-                }
-                return(lst)
-            }
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
 
-            # Reformat nested lists under 'params' to have a 'value' key recursively
-            rmd_params[['params']] &lt;- add_value_recursively(rmd_params[['params']], is_top_level = TRUE)
-
-            # Convert back to YAML string
-            updated_yaml_content &lt;- as.character(yaml::as.yaml(rmd_params))
-
-            # Remove the old YAML content
-            rmd_content &lt;- rmd_content[-((start_idx+1):(end_idx-1))]
-
-            # Insert the updated YAML content at the right position
-            rmd_content &lt;- append(rmd_content, values = unlist(strsplit(updated_yaml_content, split = &quot;\\n&quot;)), after = start_idx)
-
-            writeLines(rmd_content, '${prefix}.parameterised.Rmd')
-
-            # Render based on the updated file
-            rmarkdown::render('${prefix}.parameterised.Rmd', output_file='${prefix}.html', envir = new.env())
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="notebook" format="data" label="Notebook"/>
-  </inputs>
-  <outputs>
-    <data name="report" format="html" label="Report" from_work_dir="*.html"/>
-    <data name="parameterised_notebook" format="data" label="Parameterised Notebook" from_work_dir="*.parameterised.Rmd"/>
-    <data name="artifacts" format="data" label="Artifacts" from_work_dir="artifacts/*"/>
-    <data name="session_info" format="txt" label="Session Info" from_work_dir="session_info.log"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <help><![CDATA[
+**rmarkdownnotebook**
 
 Render an rmarkdown notebook. Supports parametrization.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: rmarkdownnotebook
+- Container: biocontainers/mulled-v2-31ad840d814d356e5f98030a4ee308a16db64ec5:0e852a1e4063fdcbe3f254ac2c7469747a60e361-0
 
-Module: rmarkdownnotebook
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/rmarkdownnotebook
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_rmarkdownnotebook,
+            title = {nf-core rmarkdownnotebook module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/rmarkdownnotebook},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

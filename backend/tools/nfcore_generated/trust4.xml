@@ -1,65 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_trust4" name="nf-core trust4" version="1.0.0" profile="20.01">
-  <description>Run TRUST4 on RNA-seq data</description>
-  <requirements>
-    <requirement type="package" version="1.1.5">trust4</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-run-trust4 \\
-        ${bam_mode} \\
-        ${single_end_mode} \\
-        ${paired_end_mode} \\
-        ${barcode} \\
-        ${readFormat} \\
-        ${umi} \\
-        -t $task.cpus \\
-        -f ${fasta} \\
-        -o ${prefix} \\
-        ${reference} \\
-        ${barcodeWhitelist} \\
-        $args
+<tool id="nfcore_trust4" name="trust4" version="1.0" profile="21.05">
+    <description>Run TRUST4 on RNA-seq data</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        trust4: \$(run-trust4 2&gt;&amp;1 | grep -o 'v[0-9.]*-r[0-9]*' | sed 's/^/TRUST4 using /' )
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="bam" format="data" label="Bam"/>
-    <param type="data" name="fasta" format="data" label="Fasta"/>
-    <param type="data" name="vdj_reference" format="data" label="Vdj Reference"/>
-    <param type="data" name="barcode_whitelist" format="data" label="Barcode Whitelist"/>
-    <param type="text" name="cell_barcode_read" label="Cell Barcode Read" value=""/>
-    <param type="text" name="umi_read" label="Umi Read" value=""/>
-    <param type="text" name="read_format" label="Read Format" value=""/>
-  </inputs>
-  <outputs>
-    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
-    <data name="airr_files" format="data" label="Airr Files" from_work_dir="*_airr.tsv"/>
-    <data name="airr_tsv" format="data" label="Airr Tsv" from_work_dir="${meta.id}_airr.tsv"/>
-    <data name="report_tsv" format="data" label="Report Tsv" from_work_dir="*_report.tsv"/>
-    <data name="fasta" format="data" label="Fasta" from_work_dir="*.fa"/>
-    <data name="out" format="data" label="Out" from_work_dir="*.out"/>
-    <data name="fq" format="data" label="Fq" from_work_dir="*.fq"/>
-    <data name="outs" format="data" label="Outs" from_work_dir="**"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/trust4:1.1.5--h5ca1c30_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        trust4
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**trust4**
 
 Run TRUST4 on RNA-seq data
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: trust4
+- Container: biocontainers/trust4:1.1.5--h5ca1c30_0
 
-Module: trust4
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/trust4
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_trust4,
+            title = {nf-core trust4 module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/trust4},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

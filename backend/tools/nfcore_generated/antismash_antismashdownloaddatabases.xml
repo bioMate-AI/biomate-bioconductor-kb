@@ -1,0 +1,65 @@
+<tool id="nfcore_antismash/antismashdownloaddatabases" name="antismash_antismashdownloaddatabases" version="1.0" profile="21.05">
+    <description>antiSMASH allows the rapid genome-wide identification, annotation and analysis of secondary metabolite biosynthesis gene clusters. This module downloads the antiSMASH databases for conda and docker/singularity runs.</description>
+
+    <requirements>
+        <container type="docker">biocontainers/antismash/antismashdownloaddatabases:latest</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        antismash/antismashdownloaddatabases
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**antismash_antismashdownloaddatabases**
+
+antiSMASH allows the rapid genome-wide identification, annotation and analysis of secondary metabolite biosynthesis gene clusters. This module downloads the antiSMASH databases for conda and docker/singularity runs.
+
+**nf-core Module Information:**
+
+- Module: antismash/antismashdownloaddatabases
+- Container: biocontainers/antismash/antismashdownloaddatabases:latest
+
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">@misc{nfcore_antismash/antismashdownloaddatabases,
+            title = {nf-core antismash/antismashdownloaddatabases module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/antismash/antismashdownloaddatabases},
+            year = {2024}
+        }}</citation>
+    </citations>
+</tool>

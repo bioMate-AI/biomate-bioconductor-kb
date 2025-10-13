@@ -1,46 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_raw2ometiff" name="nf-core raw2ometiff" version="1.0.0" profile="20.01">
-  <description>write your description here</description>
-  <requirements>
-    <requirement type="package" version="1.21.6">blosc</requirement>
-    <requirement type="package" version="0.7.1">raw2ometiff</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-raw2ometiff \\
-        ${zarr_dir} \\
-        ${prefix}.ome.tiff \\
-        --max_workers $task.cpus \\
-        $args 
+<tool id="nfcore_raw2ometiff" name="raw2ometiff" version="1.0" profile="21.05">
+    <description>write your description here</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        raw2ometiff: \$(raw2ometiff --version |&amp; sed -n '1s/Version = //p')
-        bio-formats: \$(bioformats2raw --version |&amp; sed -n '2s/Bio-Formats version = //p')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="zarr_dir" format="data" label="Zarr Dir"/>
-  </inputs>
-  <outputs>
-    <data name="ometiff" format="data" label="Ometiff" from_work_dir="*.ome.tiff"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/raw2ometiff:latest</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        raw2ometiff
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**raw2ometiff**
 
 write your description here
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: raw2ometiff
+- Container: biocontainers/raw2ometiff:latest
 
-Module: raw2ometiff
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/raw2ometiff
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_raw2ometiff,
+            title = {nf-core raw2ometiff module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/raw2ometiff},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

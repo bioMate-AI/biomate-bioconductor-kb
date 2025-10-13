@@ -1,60 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_interproscan" name="nf-core interproscan" version="1.0.0" profile="20.01">
-  <description>Produces protein annotations and predictions from an amino acids FASTA file</description>
-  <requirements>
-    <requirement type="package" version="5.59_91.0">interproscan</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-if [ -d 'data' ]; then
-        # Find interproscan.properties to link data/ from work directory
-        INTERPROSCAN_DIR=&quot;\$( dirname &quot;\$( dirname &quot;\$( which interproscan.sh )&quot; )&quot; )&quot;
-        INTERPROSCAN_PROPERTIES=&quot;\$( find &quot;\$INTERPROSCAN_DIR/share&quot; -name &quot;interproscan.properties&quot; )&quot;
-        cp &quot;\$INTERPROSCAN_PROPERTIES&quot; .
-        sed -i &quot;/^bin\\.directory=/ s|.*|bin.directory=\$INTERPROSCAN_DIR/bin|&quot; interproscan.properties
-        export INTERPROSCAN_CONF=interproscan.properties
-    fi # else use sample DB included with conda ( testing only! )
+<tool id="nfcore_interproscan" name="interproscan" version="1.0" profile="21.05">
+    <description>Produces protein annotations and predictions from an amino acids FASTA file</description>
 
-    if ${is_compressed} ; then
-        gzip -c -d ${fasta} &gt; ${fasta_name}
-    fi
+    <requirements>
+        <container type="docker">biocontainers/interproscan:5.59_91.0--hec16e2b_1</container>
+    </requirements>
 
-    interproscan.sh \\
-        --cpu ${task.cpus} \\
-        --input ${fasta_name} \\
-        ${args} \\
-        --output-file-base ${prefix}
+    <command detect_errors="exit_code"><![CDATA[
+        interproscan
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        interproscan: \$( interproscan.sh --version | sed '1!d; s/.*version //' )
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="fasta" format="data" label="Fasta"/>
-  </inputs>
-  <outputs>
-    <data name="tsv" format="data" label="Tsv" from_work_dir="*.tsv"/>
-    <data name="xml" format="data" label="Xml" from_work_dir="*.xml"/>
-    <data name="gff3" format="data" label="Gff3" from_work_dir="*.gff3"/>
-    <data name="json" format="data" label="Json" from_work_dir="*.json"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**interproscan**
 
 Produces protein annotations and predictions from an amino acids FASTA file
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: interproscan
+- Container: biocontainers/interproscan:5.59_91.0--hec16e2b_1
 
-Module: interproscan
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/interproscan
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_interproscan,
+            title = {nf-core interproscan module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/interproscan},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

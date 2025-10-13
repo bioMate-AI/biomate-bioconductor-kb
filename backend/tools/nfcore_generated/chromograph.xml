@@ -1,55 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_chromograph" name="nf-core chromograph" version="1.0.0" profile="20.01">
-  <description>Chromograph is a python package to create PNG images from genetics data such as BED and WIG files.</description>
-  <requirements>
-    <requirement type="package" version="1.3.1">chromograph</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-chromograph \\
-        $args \\
-        $autozyg_param \\
-        $coverage_param \\
-        $exome_param \\
-        $fracsnp_param \\
-        $ideogram_param \\
-        $regions_param \\
-        $sites_param \\
-        --outd ${prefix}
+<tool id="nfcore_chromograph" name="chromograph" version="1.0" profile="21.05">
+    <description>Chromograph is a python package to create PNG images from genetics data such as BED and WIG files.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        chromograph: \$(echo \$(chromograph --version 2&gt;&amp;1) | sed 's/chromograph //' )
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="autozyg" format="data" label="Autozyg"/>
-    <param type="data" name="coverage" format="data" label="Coverage"/>
-    <param type="data" name="exome" format="data" label="Exome"/>
-    <param type="data" name="fracsnp" format="data" label="Fracsnp"/>
-    <param type="data" name="ideogram" format="data" label="Ideogram"/>
-    <param type="data" name="regions" format="data" label="Regions"/>
-    <param type="data" name="sites" format="data" label="Sites"/>
-  </inputs>
-  <outputs>
-    <data name="plots" format="data" label="Plots" from_work_dir="${prefix}"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/chromograph:1.3.1--pyhdfd78af_2</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        chromograph
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**chromograph**
 
 Chromograph is a python package to create PNG images from genetics data such as BED and WIG files.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: chromograph
+- Container: biocontainers/chromograph:1.3.1--pyhdfd78af_2
 
-Module: chromograph
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/chromograph
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_chromograph,
+            title = {nf-core chromograph module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/chromograph},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

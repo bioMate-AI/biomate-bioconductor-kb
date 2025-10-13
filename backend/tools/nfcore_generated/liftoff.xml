@@ -1,75 +1,69 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_liftoff" name="nf-core liftoff" version="1.0.0" profile="20.01">
-  <description>Uses Liftoff to accurately map annotations in GFF or GTF between assemblies of the same,
+<tool id="nfcore_liftoff" name="liftoff" version="1.0" profile="21.05">
+    <description>Uses Liftoff to accurately map annotations in GFF or GTF between assemblies of the same,
 or closely-related species
 </description>
-  <requirements>
-    <requirement type="package" version="1.6.3">liftoff</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-if [[ ${target_fa} == *.gz ]]; then
-        zcat ${target_fa} &gt; target.fasta
-    fi
 
-    if [[ ${target_fa} != *.gz ]]; then
-        ln -s ${target_fa} target.fasta
-    fi
+    <requirements>
+        <container type="docker">biocontainers/liftoff:1.6.3--pyhdfd78af_0</container>
+    </requirements>
 
-    if [[ ${ref_fa} == *.gz ]]; then
-        zcat ${ref_fa} &gt; reference.fasta
-    fi
+    <command detect_errors="exit_code"><![CDATA[
+        liftoff
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-    if [[ ${ref_fa} != *.gz  ]]; then
-        ln -s ${ref_fa} reference.fasta
-    fi
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
 
-    liftoff \\
-        $arg_g \\
-        $arg_db \\
-        -p $task.cpus \\
-        -o &quot;${prefix}.gff3&quot; \\
-        -u &quot;${prefix}.unmapped.txt&quot; \\
-        $args \\
-        target.fasta \\
-        reference.fasta
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
 
-    mv \\
-        &quot;${prefix}.gff3_polished&quot; \\
-        &quot;${prefix}.polished.gff3&quot; \\
-        || echo &quot;-polish is absent&quot;
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        liftoff: \$(liftoff --version 2&gt; /dev/null)
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="target_fa" format="data" label="Target Fa"/>
-  </inputs>
-  <outputs>
-    <data name="gff3" format="data" label="Gff3" from_work_dir="${prefix}.gff3"/>
-    <data name="polished_gff3" format="data" label="Polished Gff3" from_work_dir="*.polished.gff3"/>
-    <data name="unmapped_txt" format="txt" label="Unmapped Txt" from_work_dir="*.unmapped.txt"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <help><![CDATA[
+**liftoff**
 
 Uses Liftoff to accurately map annotations in GFF or GTF between assemblies of the same,
 or closely-related species
 
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: liftoff
+- Container: biocontainers/liftoff:1.6.3--pyhdfd78af_0
 
-Module: liftoff
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/liftoff
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_liftoff,
+            title = {nf-core liftoff module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/liftoff},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

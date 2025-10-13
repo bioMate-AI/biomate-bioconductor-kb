@@ -1,57 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_deepsomatic" name="nf-core deepsomatic" version="1.0.0" profile="20.01">
-  <description>DeepSomatic is an extension of deep learning-based variant caller DeepVariant that takes aligned reads (in BAM or CRAM format) from tumor and normal data, produces pileup image tensors from them, classifies each tensor using a convolutional neural network, and finally reports somatic variants in a standard VCF or gVCF file.</description>
-  <requirements>
-    <container type="docker">docker.io/google/deepsomatic:1.7.0</container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-run_deepsomatic \\
-        --ref=${fasta} \\
-        --reads_normal=${input_normal} \\
-        --reads_tumor=${input_tumor} \\
-        --output_vcf=${prefix}.vcf.gz \\
-        --output_gvcf=${prefix}.g.vcf.gz \\
-        --sample_name_tumor=&quot;tumor&quot; \\
-        --sample_name_normal=&quot;normal&quot; \\
-        ${args} \\
-        ${regions} \\
-        --intermediate_results_dir=tmp \\
-        --num_shards=${task.cpus}
+<tool id="nfcore_deepsomatic" name="deepsomatic" version="1.0" profile="21.05">
+    <description>DeepSomatic is an extension of deep learning-based variant caller DeepVariant that takes aligned reads (in BAM or CRAM format) from tumor and normal data, produces pileup image tensors from them, classifies each tensor using a convolutional neural network, and finally reports somatic variants in a standard VCF or gVCF file.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        deepsomatic: $VERSION
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="input_normal" format="data" label="Input Normal"/>
-    <param type="data" name="intervals" format="data" label="Intervals"/>
-    <param type="data" name="fasta" format="data" label="Fasta"/>
-    <param type="data" name="fai" format="data" label="Fai"/>
-    <param type="data" name="gzi" format="data" label="Gzi"/>
-  </inputs>
-  <outputs>
-    <data name="vcf" format="data" label="Vcf" from_work_dir="${prefix}.vcf.gz"/>
-    <data name="vcf_tbi" format="data" label="Vcf Tbi" from_work_dir="${prefix}.vcf.gz.tbi"/>
-    <data name="gvcf" format="data" label="Gvcf" from_work_dir="${prefix}.g.vcf.gz"/>
-    <data name="gvcf_tbi" format="data" label="Gvcf Tbi" from_work_dir="${prefix}.g.vcf.gz.tbi"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/deepsomatic:latest</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        deepsomatic
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**deepsomatic**
 
 DeepSomatic is an extension of deep learning-based variant caller DeepVariant that takes aligned reads (in BAM or CRAM format) from tumor and normal data, produces pileup image tensors from them, classifies each tensor using a convolutional neural network, and finally reports somatic variants in a standard VCF or gVCF file.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: deepsomatic
+- Container: biocontainers/deepsomatic:latest
 
-Module: deepsomatic
-Container: docker.io/google/deepsomatic:1.7.0
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/deepsomatic
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_deepsomatic,
+            title = {nf-core deepsomatic module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/deepsomatic},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

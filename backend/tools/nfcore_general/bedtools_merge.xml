@@ -1,11 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
 <tool id="bedtools_merge" name="Bedtools Merge" version="2.31.1">
-    <description>nf-core bedtools_merge module</description>
+    <description>combines overlapping or “book-ended” features in an interval file into a single feature which spans all of the combined features.</description>
 
     <requirements>
         <container type="docker">biocontainers/bedtools:2.31.1--hf5e1c6e_1</container>
     </requirements>
 
-    <command detect_errors="exit_code"><![CDATA[
+    <command detect_errors="exit_code">
         bedtools
             #if $input
                 -i '$input'
@@ -14,21 +15,18 @@
             #if $threads
                 -t \${GALAXY_SLOTS:-$threads}
             #end if
-    ]]></command>
+    </command>
 
     <inputs>
-        <param name="input" type="data" format="auto" label="Input File" optional="true"
-               help="Input data file for processing"/>
-        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
-               help="Number of CPU threads to use"/>
+        <param name="input" type="data" format="auto" label="Input File" optional="true" help="Input data file for processing" />
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads" help="Number of CPU threads to use" />
     </inputs>
 
     <outputs>
-        <data name="output" format="auto" from_work_dir="output*"
-              label="${tool.name} on ${on_string}: Output"/>
+        <data name="output" format="auto" from_work_dir="output*" label="${tool.name} on ${on_string}: Output" />
     </outputs>
 
-    <help><![CDATA[
+    <help>
 **Bedtools Merge (nf-core module)**
 
 Category: genomics
@@ -38,7 +36,7 @@ This is a Galaxy wrapper for the nf-core bedtools_merge module.
 **More Information:**
 - nf-core modules: https://github.com/nf-core/modules
 - Container: biocontainers/bedtools:2.31.1--hf5e1c6e_1
-    ]]></help>
+    </help>
 
     <citations>
         <citation type="bibtex">@misc{nfcore,

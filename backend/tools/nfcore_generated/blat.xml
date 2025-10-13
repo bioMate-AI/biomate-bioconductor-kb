@@ -1,57 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_blat" name="nf-core blat" version="1.0.0" profile="20.01">
-  <description>Queries a sequence subject</description>
-  <requirements>
-    <requirement type="package" version="472">ucsc-blat</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-in=$query
-    if $unzip
-    then
-        gunzip -cdf $query &gt; ${prefix}.fasta
-        in=${prefix}.fasta
-    fi
+<tool id="nfcore_blat" name="blat" version="1.0" profile="21.05">
+    <description>Queries a sequence subject</description>
 
-    blat \\
-        $args \\
-        $subject \\
-        \$in \\
-        ${prefix}.psl
+    <requirements>
+        <container type="docker">biocontainers/ucsc-blat:472--h664eb37_1</container>
+    </requirements>
 
-    if $unzip
-    then
-        rm ${prefix}.fasta
-    fi
+    <command detect_errors="exit_code"><![CDATA[
+        blat
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        blat: \$(echo \$(blat 2&gt;&amp;1) | sed 's/^.*BLAT v. //; s/ fast.*\$//')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="query" format="data" label="Query"/>
-    <param type="data" name="subject" format="data" label="Subject"/>
-  </inputs>
-  <outputs>
-    <data name="psl" format="data" label="Psl" from_work_dir="*.psl"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**blat**
 
 Queries a sequence subject
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: blat
+- Container: biocontainers/ucsc-blat:472--h664eb37_1
 
-Module: blat
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/blat
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_blat,
+            title = {nf-core blat module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/blat},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

@@ -1,49 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_hapibd" name="nf-core hapibd" version="1.0.0" profile="20.01">
-  <description>The hap-ibd program detects identity-by-descent (IBD) segments and homozygosity-by-descent (HBD) segments in phased genotype data. The hap-ibd program can analyze data sets with hundreds of thousands of samples.</description>
-  <requirements>
-    <requirement type="package" version="1.0.rev20May22.818">hap-ibd</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-hap-ibd -Xmx${avail_mem}M \\
-        gt=${vcf} \\
-        map=${map} \\
-        out=${prefix} \\
-        $args \\
-        ${excludesamples_command}
+<tool id="nfcore_hapibd" name="hapibd" version="1.0" profile="21.05">
+    <description>The hap-ibd program detects identity-by-descent (IBD) segments and homozygosity-by-descent (HBD) segments in phased genotype data. The hap-ibd program can analyze data sets with hundreds of thousands of samples.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        hapibd: \$(hap-ibd 2&gt;&amp;1 |head -n1 | sed 's/^hap-ibd.jar  \\[ version //; s/, /rev/; s/ \\]//')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="vcf" format="data" label="Vcf"/>
-    <param type="data" name="map" format="data" label="Map"/>
-    <param type="data" name="exclude" format="data" label="Exclude"/>
-  </inputs>
-  <outputs>
-    <data name="hbd" format="data" label="Hbd" from_work_dir="*.hbd.gz"/>
-    <data name="ibd" format="data" label="Ibd" from_work_dir="*.ibd.gz"/>
-    <data name="log" format="txt" label="Log" from_work_dir="*.log"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/hap-ibd:1.0.rev20May22.818--hdfd78af_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        hapibd
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**hapibd**
 
 The hap-ibd program detects identity-by-descent (IBD) segments and homozygosity-by-descent (HBD) segments in phased genotype data. The hap-ibd program can analyze data sets with hundreds of thousands of samples.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: hapibd
+- Container: biocontainers/hap-ibd:1.0.rev20May22.818--hdfd78af_0
 
-Module: hapibd
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/hapibd
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_hapibd,
+            title = {nf-core hapibd module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/hapibd},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

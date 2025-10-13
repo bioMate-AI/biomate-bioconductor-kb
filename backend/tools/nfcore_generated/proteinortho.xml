@@ -1,47 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_proteinortho" name="nf-core proteinortho" version="1.0.0" profile="20.01">
-  <description>Proteinortho is a tool to detect orthologous genes within different species.</description>
-  <requirements>
-    <requirement type="package" version="6.3.0">proteinortho</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-proteinortho \\
-        $args \\
-        -cpus=$task.cpus \\
-        -project=$prefix \\
-        $fasta_files
+<tool id="nfcore_proteinortho" name="proteinortho" version="1.0" profile="21.05">
+    <description>Proteinortho is a tool to detect orthologous genes within different species.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        proteinortho : \$(echo \$(proteinortho --version 2&gt;&amp;1) )
-        \$(echo \$( &quot;diamond:&quot;(diamond version 2&gt;/dev/null | head -n1 | sed 's/^.*version //;' ) || echo &quot;&quot;) )
-        \$(echo \$( &quot;blast:&quot;(blastp -version 2&gt;/dev/null |head -n1 | sed 's/^.*: //;'  ) || echo &quot;&quot;) )
-        \$(echo \$( &quot;mmseqs:&quot;(mmseqp version 2&gt;/dev/null ) || echo &quot;&quot;) )
-    END_VERSIONS
-]]&gt;</command>
-  <inputs/>
-  <outputs>
-    <data name="orthologgroups" format="data" label="Orthologgroups" from_work_dir="${meta.id}.proteinortho.tsv"/>
-    <data name="orthologgraph" format="data" label="Orthologgraph" from_work_dir="${meta.id}.proteinortho-graph"/>
-    <data name="blastgraph" format="data" label="Blastgraph" from_work_dir="${meta.id}.blast-graph"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/proteinortho:6.3.0--h70414c8_0</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        proteinortho
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**proteinortho**
 
 Proteinortho is a tool to detect orthologous genes within different species.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: proteinortho
+- Container: biocontainers/proteinortho:6.3.0--h70414c8_0
 
-Module: proteinortho
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/proteinortho
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_proteinortho,
+            title = {nf-core proteinortho module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/proteinortho},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

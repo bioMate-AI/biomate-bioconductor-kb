@@ -1,46 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_backsub" name="nf-core backsub" version="1.0.0" profile="20.01">
-  <description>Pixel-by-pixel channel subtraction scaled by exposure times of pre-stitched `tif` images.</description>
-  <requirements>
-    <container type="docker">ghcr.io/schapirolabor/background_subtraction:v0.4.1</container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-python3 /background_subtraction/background_sub.py \
-        -o &quot;${prefix}.ome.tif&quot; \
-        -mo &quot;${prefix}.csv&quot; \
-        -r $image \
-        -m $markerfile \
-        $args
+<tool id="nfcore_backsub" name="backsub" version="1.0" profile="21.05">
+    <description>Pixel-by-pixel channel subtraction scaled by exposure times of pre-stitched `tif` images.</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        backsub: \$(python3 /background_subtraction/background_sub.py --version | sed 's/v//g')
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="image" format="data" label="Image"/>
-    <param type="data" name="markerfile" format="data" label="Markerfile"/>
-  </inputs>
-  <outputs>
-    <data name="backsub_tif" format="data" label="Backsub Tif" from_work_dir="*.ome.tif"/>
-    <data name="markerout" format="data" label="Markerout" from_work_dir="*.csv"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/backsub:latest</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        backsub
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**backsub**
 
 Pixel-by-pixel channel subtraction scaled by exposure times of pre-stitched `tif` images.
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: backsub
+- Container: biocontainers/backsub:latest
 
-Module: backsub
-Container: ghcr.io/schapirolabor/background_subtraction:v0.4.1
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/backsub
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_backsub,
+            title = {nf-core backsub module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/backsub},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

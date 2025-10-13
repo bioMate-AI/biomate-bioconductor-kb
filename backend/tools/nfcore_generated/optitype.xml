@@ -1,58 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_optitype" name="nf-core optitype" version="1.0.0" profile="20.01">
-  <description>Perform HLA-I typing of sequencing data</description>
-  <requirements>
-    <requirement type="package" version="1.3.5">optitype</requirement>
-    <requirement type="package" version="2.10.10">coincbc</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-# Create a config for OptiType on a per sample basis with task.ext.args2
+<tool id="nfcore_optitype" name="optitype" version="1.0" profile="21.05">
+    <description>Perform HLA-I typing of sequencing data</description>
 
-    #Doing it old school now
-    echo &quot;[mapping]&quot; &gt; config.ini
-    echo &quot;razers3=razers3&quot; &gt;&gt; config.ini
-    echo &quot;threads=$task.cpus&quot; &gt;&gt; config.ini
-    echo &quot;[ilp]&quot; &gt;&gt; config.ini
-    echo &quot;$args2&quot; &gt;&gt; config.ini
-    echo &quot;threads=1&quot; &gt;&gt; config.ini
-    echo &quot;[behavior]&quot; &gt;&gt; config.ini
-    echo &quot;deletebam=true&quot; &gt;&gt; config.ini
-    echo &quot;unpaired_weight=0&quot; &gt;&gt; config.ini
-    echo &quot;use_discordant=false&quot; &gt;&gt; config.ini
+    <requirements>
+        <container type="docker">biocontainers/mulled-v2-f3579993d544920cc7c09e8ddf77569e95ea8950:d3ee2331cb4615915b1eda5d23f231da6b0741d7-0</container>
+    </requirements>
 
-    # Run the actual OptiType typing with args
-    OptiTypePipeline.py -i ${bam} -c config.ini --${meta.seq_type} $args --prefix $prefix --outdir $prefix
+    <command detect_errors="exit_code"><![CDATA[
+        optitype
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
 
-    #Couldn't find a nicer way of doing this
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        optitype: \$(cat \$(which OptiTypePipeline.py) | grep -e &quot;Version:&quot; | sed -e &quot;s/Version: //g&quot;)
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="bam" format="data" label="Bam"/>
-  </inputs>
-  <outputs>
-    <data name="hla_type" format="data" label="Hla Type" from_work_dir="${prefix}/*.tsv"/>
-    <data name="coverage_plot" format="data" label="Coverage Plot" from_work_dir="${prefix}/*.pdf"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**optitype**
 
 Perform HLA-I typing of sequencing data
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: optitype
+- Container: biocontainers/mulled-v2-f3579993d544920cc7c09e8ddf77569e95ea8950:d3ee2331cb4615915b1eda5d23f231da6b0741d7-0
 
-Module: optitype
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/optitype
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_optitype,
+            title = {nf-core optitype module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/optitype},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>

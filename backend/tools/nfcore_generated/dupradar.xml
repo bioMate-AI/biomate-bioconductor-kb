@@ -1,54 +1,65 @@
-<?xml version="1.0" ?>
-<tool id="nfcore_dupradar" name="nf-core dupradar" version="1.0.0" profile="20.01">
-  <description>Assessment of duplication rates in RNA-Seq datasets</description>
-  <requirements>
-    <requirement type="package" version="1.38.0">bioconductor-dupradar</requirement>
-    <container type="docker">${ workflow.containerEngine == </container>
-  </requirements>
-  <command detect_errors="exit_code">&lt;![CDATA[
-touch ${meta.id}_duprateExpDens.pdf
-    touch ${meta.id}_duprateExpBoxplot.pdf
-    touch ${meta.id}_expressionHist.pdf
-    touch ${meta.id}_dupMatrix.txt
-    touch ${meta.id}_intercept_slope.txt
-    touch ${meta.id}_dup_intercept_mqc.txt
-    touch ${meta.id}_duprateExpDensCurve_mqc.txt
-    touch ${meta.id}.R_sessionInfo.log
+<tool id="nfcore_dupradar" name="dupradar" version="1.0" profile="21.05">
+    <description>Assessment of duplication rates in RNA-Seq datasets</description>
 
-    cat &lt;&lt;-END_VERSIONS &gt; versions.yml
-    &quot;${task.process}&quot;:
-        bioconductor-dupradar: \$(Rscript -e &quot;library(dupRadar); cat(as.character(packageVersion('dupRadar')))&quot;)
-    END_VERSIONS
-]]&gt;</command>
-  <inputs>
-    <param type="data" name="bam" format="data" label="Bam"/>
-    <param type="data" name="gtf" format="data" label="Gtf"/>
-  </inputs>
-  <outputs>
-    <data name="scatter2d" format="data" label="Scatter2D" from_work_dir="*_duprateExpDens.pdf"/>
-    <data name="boxplot" format="data" label="Boxplot" from_work_dir="*_duprateExpBoxplot.pdf"/>
-    <data name="hist" format="data" label="Hist" from_work_dir="*_expressionHist.pdf"/>
-    <data name="dupmatrix" format="txt" label="Dupmatrix" from_work_dir="*_dupMatrix.txt"/>
-    <data name="intercept_slope" format="txt" label="Intercept Slope" from_work_dir="*_intercept_slope.txt"/>
-    <data name="multiqc" format="txt" label="Multiqc" from_work_dir="*_mqc.txt"/>
-    <data name="session_info" format="txt" label="Session Info" from_work_dir="*.R_sessionInfo.log"/>
-    <data name="versions" format="yaml" label="Versions" from_work_dir="versions.yml"/>
-  </outputs>
-  <help>&lt;![CDATA[
-**What it does**
+    <requirements>
+        <container type="docker">biocontainers/dupradar:latest</container>
+    </requirements>
+
+    <command detect_errors="exit_code"><![CDATA[
+        dupradar
+        #if $input
+            --input '$input'
+        #end if
+        --output output
+        #if $threads
+            --threads \${GALAXY_SLOTS:-$threads}
+        #end if
+        $advanced_options
+    ]]></command>
+
+    <inputs>
+        <param name="input" type="data" format="auto" label="Input File"
+               help="Input data file for processing"/>
+        <param name="threads" type="integer" value="4" min="1" max="32" label="Number of Threads"
+               help="Number of CPU threads to use"/>
+        <param name="advanced_options" type="text" value="" label="Advanced Options"
+               help="Additional command-line options (advanced users)"/>
+    </inputs>
+
+    <outputs>
+        <data name="output" format="auto" from_work_dir="output*"
+              label="${tool.name} on ${on_string}: Output"/>
+    </outputs>
+
+    <tests>
+        <test>
+            <output name="output">
+                <assert_contents>
+                    <has_size value="0" compare="gt"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+
+    <help><![CDATA[
+**dupradar**
 
 Assessment of duplication rates in RNA-Seq datasets
 
-**nf-core Module**
+**nf-core Module Information:**
 
-This tool is automatically generated from nf-core modules repository.
+- Module: dupradar
+- Container: biocontainers/dupradar:latest
 
-Module: dupradar
-Container: ${ workflow.containerEngine == 
+**Usage:**
+This tool provides the functionality from the nf-core module within Galaxy workflows.
+    ]]></help>
 
-**More Information**
-
-For more information about this tool, visit:
-https://github.com/nf-core/modules/tree/master/modules/nf-core/dupradar
-]]&gt;</help>
+    <citations>
+        <citation type="bibtex">@misc{nfcore_dupradar,
+            title = {nf-core dupradar module},
+            url = {https://github.com/nf-core/modules/tree/master/modules/nf-core/dupradar},
+            year = {2024}
+        }}</citation>
+    </citations>
 </tool>
