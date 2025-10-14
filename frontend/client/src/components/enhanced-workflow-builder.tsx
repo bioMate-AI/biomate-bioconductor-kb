@@ -522,7 +522,10 @@ export function EnhancedWorkflowBuilder({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Status:</span>
-                  <Badge variant={workflowStatus === 'running' ? 'default' : 'secondary'}>
+                  <Badge
+                    variant={workflowStatus === 'running' ? 'default' : 'secondary'}
+                    data-testid={`workflow-status-${workflowStatus}`}
+                  >
                     {workflowStatus}
                   </Badge>
                 </div>
@@ -578,10 +581,10 @@ export function EnhancedWorkflowBuilder({
                 <Button
                   onClick={() => handleWorkflowAction('start')}
                   disabled={!canStartWorkflow}
-                  data-testid="button-workflow-start"
+                  data-testid="button-execute-workflow"
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Start Workflow
+                  Execute Workflow
                 </Button>
 
                 {canPauseWorkflow && (
