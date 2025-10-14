@@ -12,7 +12,7 @@ This ensures NO non-existent tools are used in generated workflows.
 import os
 import json
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -59,6 +59,11 @@ class GalaxyWorkflowGenerator:
             self.dataset_selector = WorkflowDatasetSelector(api_key=self.api_key)
         else:
             self.dataset_selector = dataset_selector
+
+        # LLM Parameter Generator for intelligent parameter inference
+        from .llm_parameter_generator import LLMParameterGenerator
+        from .config import DEFAULT_AI_CONFIG
+        self.parameter_generator = LLMParameterGenerator(config=DEFAULT_AI_CONFIG)
 
         import anthropic
         self.client = anthropic.Anthropic(api_key=self.api_key)
@@ -119,11 +124,12 @@ class GalaxyWorkflowGenerator:
             workflow_structure=workflow_structure.get('steps', [])
         )
 
-        # STEP 4: Build Galaxy .ga JSON
+        # STEP 4: Build Galaxy .ga JSON with LLM parameter generation
         log.info("Building Galaxy .ga workflow JSON...")
-        galaxy_workflow = self._build_galaxy_workflow_json(
+        galaxy_workflow, generated_parameters = self._build_galaxy_workflow_json(
             workflow_structure,
-            dataset_assignments
+            dataset_assignments,
+            user_intent=user_intent
         )
 
         return {
@@ -132,7 +138,8 @@ class GalaxyWorkflowGenerator:
             "workflow_structure": workflow_structure,
             "dataset_assignments": dataset_assignments,
             "tool_selections": available_tools,
-            "user_intent": user_intent
+            "user_intent": user_intent,
+            "generated_parameters": generated_parameters  # NEW: LLM-generated parameters with confidence scores
         }
 
     def _retrieve_tools_from_index(
@@ -408,8 +415,9 @@ Return JSON only.
     def _build_galaxy_workflow_json(
         self,
         workflow_structure: Dict[str, Any],
-        dataset_assignments: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        dataset_assignments: Dict[str, Any],
+        user_intent: Optional[str] = None
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """
         Build Galaxy .ga workflow JSON with embedded datasets and parameter templates.
 
@@ -428,6 +436,9 @@ Return JSON only.
             }
           }
         }
+
+        Returns:
+            Tuple of (workflow_json, generated_parameters_list)
         """
 
         # Create dataset assignments lookup
@@ -437,14 +448,63 @@ Return JSON only.
             if step_data.get('dataset_needed') and step_data.get('selected_datasets'):
                 dataset_lookup[step_num] = step_data['selected_datasets']
 
+        # Track generated parameters for all steps
+        generated_parameters_list = []
+
         # Build Galaxy steps with parameters and help text
         galaxy_steps = {}
         for step in workflow_structure.get('steps', []):
             step_num = step['step']
             tool_id = step['tool_id']
+            tool_name = step['tool_name']
 
             # Get tool parameters and help from database
             tool_params, tool_help = self._get_tool_parameters_and_help(tool_id)
+
+            # Determine if this is a data source tool that needs LLM parameter generation
+            is_data_source = self._is_data_source_tool(tool_id)
+
+            # Generate parameters using LLM for data source tools
+            tool_state_json = None
+            param_metadata = None
+
+            if is_data_source and user_intent and tool_params:
+                log.info(f"[WorkflowGen] Generating parameters for data source tool: {tool_id}")
+                try:
+                    parameters, confidence, reasoning = self.parameter_generator.generate_parameters(
+                        tool_id=tool_id,
+                        tool_name=tool_name,
+                        user_intent=user_intent,
+                        tool_parameters=tool_params,
+                        context={
+                            'step_number': step_num,
+                            'previous_steps': workflow_structure.get('steps', [])[:step_num-1]
+                        }
+                    )
+
+                    # Build tool state from generated parameters
+                    tool_state_json = json.dumps(parameters)
+
+                    # Track generated parameters
+                    param_metadata = {
+                        "step_id": step_num,
+                        "tool_id": tool_id,
+                        "tool_name": tool_name,
+                        "parameters": parameters,
+                        "confidence": confidence,
+                        "reasoning": reasoning
+                    }
+                    generated_parameters_list.append(param_metadata)
+
+                    log.info(f"[WorkflowGen] Generated parameters with confidence {confidence:.2f}")
+
+                except Exception as e:
+                    log.error(f"[WorkflowGen] Failed to generate parameters for {tool_id}: {e}")
+                    # Fallback to defaults
+                    tool_state_json = self._build_tool_state(tool_params)
+            else:
+                # Regular tool or no parameters - use defaults
+                tool_state_json = self._build_tool_state(tool_params)
 
             # Base step structure
             galaxy_step = {
@@ -452,8 +512,8 @@ Return JSON only.
                 "tool_id": tool_id,
                 "tool_version": None,  # Will be resolved by Galaxy
                 "type": "tool",
-                "name": step['tool_name'],
-                "tool_state": self._build_tool_state(tool_params),
+                "name": tool_name,
+                "tool_state": tool_state_json,
                 "annotation": self._build_step_annotation(step, tool_help),
                 "inputs": [],
                 "position": {
@@ -486,7 +546,7 @@ Return JSON only.
             "steps": galaxy_steps
         }
 
-        return galaxy_workflow
+        return galaxy_workflow, generated_parameters_list
 
     def _get_tool_parameters_and_help(self, tool_id: str) -> tuple:
         """Get tool parameters and help text from comprehensive database."""
@@ -556,6 +616,50 @@ Return JSON only.
             annotations.append(f"Input: {help_text['input_description']}")
 
         return " | ".join(annotations) if annotations else step.get('tool_name', '')
+
+    def _is_data_source_tool(self, tool_id: str) -> bool:
+        """
+        Determine if a tool is a data source tool that needs parameter generation.
+
+        Data source tools include:
+        - BioMni data lake tools (biomate_dm_*)
+        - BioMate API tools (biomate_datasource_api_*)
+        - Galaxy native data source tools (biomart, ucsc_table_direct, etc.)
+
+        Args:
+            tool_id: Tool identifier
+
+        Returns:
+            True if tool is a data source tool
+        """
+        # BioMni data management tools (local data lakes)
+        if tool_id.startswith('biomate_dm_'):
+            return True
+
+        # BioMate API data source tools
+        if tool_id.startswith('biomate_datasource_api_'):
+            return True
+
+        # Galaxy native data source tools
+        galaxy_data_sources = [
+            'biomart', 'ucsc_table_direct', 'ebi_sra_main',
+            'flymine', 'wormbase', 'yeastmine',
+            'ncbi_datasets', 'uniprot_rest',
+            'query_tabular'  # Generic query tool
+        ]
+
+        if tool_id in galaxy_data_sources:
+            return True
+
+        # Check if tool name contains data source indicators
+        tool_id_lower = tool_id.lower()
+        data_source_keywords = ['query', 'fetch', 'download', 'retrieve', 'datasource', 'data_source']
+
+        for keyword in data_source_keywords:
+            if keyword in tool_id_lower:
+                return True
+
+        return False
 
     def save_workflow(self, workflow_data: Dict[str, Any], output_path: str):
         """Save workflow to .ga JSON file."""
