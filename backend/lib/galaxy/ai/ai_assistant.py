@@ -290,6 +290,7 @@ class AIAssistant:
                 if result['success']:
                     workflow_ga = result['workflow_ga']
                     datasets_assigned = True  # Constrained generator includes dataset assignment
+                    generated_parameters = result.get('generated_parameters', [])  # NEW: Get LLM-generated parameters
                     message = f"Generated new workflow with {len(result['workflow_structure']['steps'])} steps (tool-constrained)"
                 else:
                     raise Exception(f"Constrained generator failed: {result['error']}")
@@ -302,7 +303,8 @@ class AIAssistant:
                 'confidence': score if score > 0 else 0.3,  # Default low confidence for scratch generation
                 'message': message,
                 'datasets_assigned': datasets_assigned,
-                'template_match_score': score
+                'template_match_score': score,
+                'generated_parameters': generated_parameters  # NEW: Include LLM-generated parameters with confidence scores
             }
 
         except Exception as e:

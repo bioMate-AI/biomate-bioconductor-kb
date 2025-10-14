@@ -388,6 +388,7 @@ def generate_workflow_unified(
                 'confidence': result['confidence'],
                 'template_match_score': result.get('template_match_score', 0.0),
                 'datasets_assigned': result.get('datasets_assigned', False),
+                'generated_parameters': result.get('generated_parameters', []),
                 'message': result.get('message', 'Workflow generated successfully'),
                 'note': f"Generated using {result['source']} strategy"
             }
