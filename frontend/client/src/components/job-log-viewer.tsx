@@ -201,7 +201,7 @@ export function JobLogViewer({
   }
 
   return (
-    <Card>
+    <Card data-testid={`job-log-viewer-${stepId}`}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -232,6 +232,7 @@ export function JobLogViewer({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8"
+              data-testid={`log-search-${stepId}`}
             />
           </div>
           <Button
@@ -239,6 +240,7 @@ export function JobLogViewer({
             variant="outline"
             onClick={() => setAutoScroll(!autoScroll)}
             className={cn(autoScroll && "bg-blue-50 dark:bg-blue-950/30")}
+            data-testid={`log-auto-scroll-${stepId}`}
           >
             <ChevronDown className={cn(
               "h-4 w-4",
@@ -249,6 +251,7 @@ export function JobLogViewer({
             size="sm"
             variant="outline"
             onClick={handleDownload}
+            data-testid={`button-download-logs-${stepId}`}
           >
             <Download className="h-4 w-4" />
           </Button>
@@ -257,6 +260,7 @@ export function JobLogViewer({
               size="sm"
               variant="outline"
               onClick={onClear}
+              data-testid={`button-clear-logs-${stepId}`}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -280,7 +284,7 @@ export function JobLogViewer({
 
           <TabsContent value={currentTab} className="mt-4">
             <ScrollArea className="h-[400px] w-full rounded-md border bg-muted/20">
-              <div className="p-4 font-mono text-xs space-y-1">
+              <div className="p-4 font-mono text-xs space-y-1" data-testid={`log-content-${stepId}`}>
                 {filteredLogs.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     No logs match your search criteria
@@ -296,6 +300,7 @@ export function JobLogViewer({
                           "flex items-start gap-2 p-2 rounded",
                           getLogBackgroundColor(entry.level)
                         )}
+                        data-testid={`log-entry-${stepId}-${index}`}
                       >
                         <LevelIcon
                           className={cn(

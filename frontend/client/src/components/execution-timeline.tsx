@@ -137,7 +137,7 @@ export function ExecutionTimeline({
   }
 
   return (
-    <Card>
+    <Card data-testid="execution-timeline">
       <CardHeader>
         <CardTitle>Execution Timeline</CardTitle>
         <p className="text-sm text-muted-foreground">
@@ -158,6 +158,7 @@ export function ExecutionTimeline({
                     "flex items-start gap-4 pb-4",
                     index < events.length - 1 && "border-b"
                   )}
+                  data-testid={`timeline-event-${event.stepId}`}
                 >
                   {/* Timeline indicator */}
                   <div className="relative flex flex-col items-center">
@@ -192,7 +193,10 @@ export function ExecutionTimeline({
                           </Badge>
                         )}
                       </div>
-                      <Badge variant={getStateBadgeVariant(event.state)}>
+                      <Badge
+                        variant={getStateBadgeVariant(event.state)}
+                        data-testid={`timeline-event-status-${event.state}`}
+                      >
                         {getStateLabel(event.state)}
                       </Badge>
                     </div>
@@ -204,13 +208,13 @@ export function ExecutionTimeline({
                       </div>
 
                       {event.elapsedMs !== undefined && event.elapsedMs > 0 && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1" data-testid={`timeline-elapsed-${event.stepId}`}>
                           <span>Elapsed: {formatElapsedTime(event.elapsedMs)}</span>
                         </div>
                       )}
 
                       {event.jobId && (
-                        <div className="text-xs">
+                        <div className="text-xs" data-testid={`timeline-job-${event.stepId}`}>
                           Job: {event.jobId.substring(0, 8)}...
                         </div>
                       )}
