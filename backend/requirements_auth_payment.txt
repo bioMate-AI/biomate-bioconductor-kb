@@ -1,0 +1,26 @@
+# BioMate Authentication & Payment System Requirements
+# Install with: pip install -r requirements_auth_payment.txt
+
+# Core Authentication
+bcrypt>=4.0.0              # Password hashing (bcrypt algorithm)
+PyJWT>=2.8.0               # JWT token generation and validation
+
+# Payment Processing
+stripe>=7.0.0              # Stripe payment integration
+
+# Email Services (choose one or more)
+sendgrid>=6.11.0           # SendGrid email service (recommended for ease)
+boto3>=1.28.0              # AWS SDK (for SES email service)
+
+# Data Validation (likely already installed with FastAPI)
+pydantic>=2.0.0            # Request/response models
+pydantic[email]>=2.0.0     # Email validation
+
+# Web Framework (likely already installed)
+fastapi>=0.100.0           # FastAPI web framework
+uvicorn>=0.23.0            # ASGI server
+python-multipart>=0.0.6    # Form data parsing
+
+# Optional but recommended
+python-dotenv>=1.0.0       # Environment variable management
+pyyaml>=6.0                # YAML config file parsing

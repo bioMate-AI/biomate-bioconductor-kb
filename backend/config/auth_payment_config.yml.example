@@ -1,0 +1,233 @@
+# BioMate Authentication & Payment Configuration
+# Copy this file to auth_payment_config.yml and fill in your values
+# DO NOT commit auth_payment_config.yml with real credentials to git!
+
+# Application Settings
+app:
+  name: "BioMate"
+  base_url: "http://localhost:8080"  # Change to your domain in production
+  frontend_url: "http://localhost:8081"  # Frontend URL for redirects
+
+# Security Settings
+security:
+  # JWT Secret Key - MUST be changed in production!
+  # Generate with: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+  jwt_secret_key: "CHANGE_ME_IN_PRODUCTION_USE_LONG_RANDOM_STRING"
+  jwt_algorithm: "HS256"
+  jwt_expiry_days: 30
+
+  # Password Requirements
+  password_min_length: 8
+  password_require_uppercase: true
+  password_require_lowercase: true
+  password_require_number: true
+  password_require_special: false
+
+  # Rate Limiting
+  login_max_attempts: 5
+  login_lockout_minutes: 15
+  email_resend_min_interval_minutes: 20
+  email_max_per_hour: 3
+
+# Email Settings (SendGrid)
+email:
+  provider: "sendgrid"  # Options: "sendgrid", "aws_ses", "smtp"
+
+  # SendGrid Configuration
+  sendgrid:
+    api_key: "YOUR_SENDGRID_API_KEY_HERE"
+    from_email: "noreply@biomate.com"
+    from_name: "BioMate"
+
+  # AWS SES Configuration (alternative)
+  aws_ses:
+    region: "us-east-1"
+    access_key_id: "YOUR_AWS_ACCESS_KEY"
+    secret_access_key: "YOUR_AWS_SECRET_KEY"
+    from_email: "noreply@biomate.com"
+    from_name: "BioMate"
+
+  # Generic SMTP Configuration (alternative)
+  smtp:
+    host: "smtp.example.com"
+    port: 587
+    username: "your_username"
+    password: "your_password"
+    use_tls: true
+    from_email: "noreply@biomate.com"
+    from_name: "BioMate"
+
+  # Email Templates
+  templates:
+    verification_subject: "Verify Your BioMate Account"
+    verification_expiry_hours: 24
+    welcome_subject: "Welcome to BioMate!"
+    password_reset_subject: "Reset Your BioMate Password"
+    trial_expiry_warning_days: [7, 3, 1]  # Send warnings at these days before expiry
+
+# Subscription & Payment Settings
+subscription:
+  # Trial Settings
+  trial_duration_days: 10
+  trial_auto_start: true  # Automatically start trial on registration
+
+  # Pricing (USD)
+  pricing:
+    monthly:
+      amount: 20.00
+      currency: "USD"
+      interval: "month"
+    annual:
+      amount: 200.00
+      currency: "USD"
+      interval: "year"
+      savings: 40.00  # Total savings vs monthly ($240 - $200)
+
+  # Grace Period (days to allow access after payment failure)
+  grace_period_days: 7
+
+  # Features by Plan
+  features:
+    trial:
+      - "9,000+ bioinformatics tools"
+      - "122 curated datasets"
+      - "AI workflow generation"
+      - "Unlimited workflow execution"
+      - "Cloud storage (10GB)"
+
+    paid:
+      - "Everything in trial"
+      - "Priority support"
+      - "Advanced analytics"
+      - "Increased storage (100GB)"
+      - "Team collaboration (coming soon)"
+
+# Stripe Configuration
+stripe:
+  # Get these from: https://dashboard.stripe.com/apikeys
+  publishable_key: "pk_test_YOUR_PUBLISHABLE_KEY_HERE"  # Starts with pk_test_ or pk_live_
+  secret_key: "sk_test_YOUR_SECRET_KEY_HERE"  # Starts with sk_test_ or sk_live_
+
+  # Webhook Secret (get from: https://dashboard.stripe.com/webhooks)
+  webhook_secret: "whsec_YOUR_WEBHOOK_SECRET_HERE"
+
+  # Price IDs (create these in Stripe Dashboard under Products)
+  price_ids:
+    monthly: "price_YOUR_MONTHLY_PRICE_ID"
+    annual: "price_YOUR_ANNUAL_PRICE_ID"
+
+  # API Version
+  api_version: "2023-10-16"
+
+  # Test Mode
+  test_mode: true  # Set to false in production
+
+# Database Settings
+database:
+  # Path to main database
+  path: "galaxy_ai_tools.db"
+
+  # Connection Pool
+  pool_size: 10
+  pool_timeout: 30
+
+  # Backup Settings
+  auto_backup: true
+  backup_interval_hours: 24
+  backup_retention_days: 30
+  backup_path: "backups/"
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # Log Files
+  auth_log: "logs/auth.log"
+  payment_log: "logs/payment.log"
+  state_sync_log: "logs/state_sync.log"
+
+  # Log Rotation
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+
+# User State Sync Settings
+state_sync:
+  # Sync Strategy
+  enabled: true
+  debounce_interval_seconds: 5
+  batch_max_size: 50
+
+  # Offline Queue
+  offline_queue_max_size: 1000
+  offline_retry_attempts: 3
+  offline_retry_delay_seconds: 60
+
+  # Priority Levels
+  immediate_sync_categories:
+    - "workflow_drafts"
+    - "ai_conversations"
+    - "subscription_status"
+
+  periodic_sync_categories:
+    - "tool_usage"
+    - "dataset_usage"
+    - "favorites"
+    - "layout_preferences"
+
+  cache_only_categories:
+    - "ui_component_states"
+    - "temporary_filters"
+
+# Monitoring & Analytics
+monitoring:
+  enabled: true
+
+  # Metrics to Track
+  track_user_logins: true
+  track_workflow_generations: true
+  track_tool_usage: true
+  track_payment_events: true
+
+  # Alerts
+  alert_on_payment_failures: true
+  alert_on_high_error_rate: true
+  error_rate_threshold: 0.05  # 5%
+
+# Development Settings
+development:
+  debug_mode: true
+  mock_email: true  # Don't actually send emails, just log them
+  mock_payments: false  # Use Stripe test mode instead
+  skip_email_verification: false  # Set true to auto-verify for testing
+
+  # Test Users (auto-created in dev mode)
+  test_users:
+    - email: "test@biomate.com"
+      username: "testuser"
+      password: "Test1234"
+      email_verified: true
+      subscription_status: "active"
+
+# Production Settings (override development settings)
+production:
+  debug_mode: false
+  mock_email: false
+  mock_payments: false
+  skip_email_verification: false
+
+  # Security Headers
+  security_headers:
+    strict_transport_security: "max-age=31536000; includeSubDomains"
+    x_content_type_options: "nosniff"
+    x_frame_options: "DENY"
+    x_xss_protection: "1; mode=block"
+
+  # CORS Settings
+  cors:
+    allowed_origins:
+      - "https://biomate.com"
+      - "https://www.biomate.com"
+    allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: ["Content-Type", "Authorization"]
+    allow_credentials: true
