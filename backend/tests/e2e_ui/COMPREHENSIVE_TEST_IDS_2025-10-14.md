@@ -118,13 +118,14 @@ page.locator('[data-testid="button-graph-run-step2"]').click()
 
 ## Progress Tracking Test IDs
 
-### Execution Timeline *(Needs to be added)*
-| Test ID | Element | Purpose | Location |
-|---------|---------|---------|----------|
-| `execution-timeline` | Component | Show step-by-step progress | execution-timeline.tsx |
-| `timeline-event-{stepId}` | Div | Individual timeline event | execution-timeline.tsx |
-| `timeline-event-status-{status}` | Badge | Event status indicator | execution-timeline.tsx |
-| `timeline-elapsed-time` | Span | Total elapsed time | execution-timeline.tsx |
+### Execution Timeline *(✅ Complete)*
+| Test ID | Element | Purpose | File (Line) |
+|---------|---------|---------|-------------|
+| `execution-timeline` | Card | Show step-by-step progress | execution-timeline.tsx:140 |
+| `timeline-event-{stepId}` | Div | Individual timeline event | execution-timeline.tsx:161 |
+| `timeline-event-status-{state}` | Badge | Event status indicator (queued/running/ok/error) | execution-timeline.tsx:196 |
+| `timeline-elapsed-{stepId}` | Div | Step elapsed time display | execution-timeline.tsx:211 |
+| `timeline-job-{stepId}` | Div | Job ID display | execution-timeline.tsx:217 |
 
 ### Progress Indicators
 | Test ID Pattern | Element | Purpose | Location |
@@ -157,13 +158,16 @@ page.locator('[data-testid="button-graph-run-step2"]').click()
 
 ## Execution Output Test IDs
 
-### Job Logs *(Needs to be added)*
-| Test ID | Element | Purpose | Location |
-|---------|---------|---------|----------|
-| `job-log-viewer` | Component | Show real-time logs | job-log-viewer.tsx |
-| `log-content-{stepId}` | Pre | Log text content | job-log-viewer.tsx |
-| `button-clear-logs` | Button | Clear log display | job-log-viewer.tsx |
-| `log-auto-scroll` | Checkbox | Auto-scroll logs | (needs to be added) |
+### Job Logs *(✅ Complete)*
+| Test ID | Element | Purpose | File (Line) |
+|---------|---------|---------|-------------|
+| `job-log-viewer-{stepId}` | Card | Show real-time logs for step | job-log-viewer.tsx:204 |
+| `log-search-{stepId}` | Input | Search log content | job-log-viewer.tsx:235 |
+| `log-auto-scroll-{stepId}` | Button | Toggle auto-scroll | job-log-viewer.tsx:243 |
+| `button-download-logs-{stepId}` | Button | Download logs | job-log-viewer.tsx:254 |
+| `button-clear-logs-{stepId}` | Button | Clear log display | job-log-viewer.tsx:263 |
+| `log-content-{stepId}` | Div | Log text container | job-log-viewer.tsx:287 |
+| `log-entry-{stepId}-{index}` | Div | Individual log entry | job-log-viewer.tsx:303 |
 
 ### Output Files
 | Test ID Pattern | Element | Purpose | Location |
@@ -309,36 +313,44 @@ page.locator(f'[data-testid="button-graph-restart-{failed_step_id}"]').click()
 
 ---
 
-## Missing Test IDs - Priority List
+## Test IDs Status - Priority List
 
 ### High Priority (Required for basic E2E tests)
-1. ✅ Individual step nodes - **DONE** (`graph-node-{stepId}`)
-2. ✅ Step-level execution buttons - **DONE** (`button-graph-run-{stepId}`)
-3. ⏳ **Parameter dialog** - `parameter-dialog`, `button-save-parameters`
-4. ⏳ **Execution timeline** - `execution-timeline`, `timeline-event-{stepId}`
-5. ⏳ **Job log viewer** - `job-log-viewer`, `log-content-{stepId}`
+1. ✅ Individual step nodes - **DONE** (`graph-node-{stepId}`) - workflow-graph.tsx:184
+2. ✅ Step-level execution buttons - **DONE** (`button-graph-run-{stepId}`) - workflow-graph.tsx:233
+3. ✅ **Parameter dialog** - **DONE** (`parameter-dialog`, `parameter-input-*`, `button-save-parameters`) - parameter-dialog.tsx (Commit: a2f98b4)
+4. ✅ **Execution timeline** - **DONE** (`execution-timeline`, `timeline-event-{stepId}`, `timeline-event-status-{state}`) - execution-timeline.tsx (Commit: 53e7ee6)
+5. ✅ **Job log viewer** - **DONE** (`job-log-viewer-{stepId}`, `log-content-{stepId}`, `log-entry-{stepId}-{index}`) - job-log-viewer.tsx (Commit: 53e7ee6)
 
 ### Medium Priority (Enhanced testing)
-6. ⏳ **Dataset input dialog** - `dataset-input-dialog`, `dataset-item-{id}`
-7. ⏳ **Step progress indicators** - `step-progress-{stepId}`
-8. ⏳ **Output file display** - `output-file-{stepId}-{fileId}`
-9. ⏳ **Error details** - `error-details`, `button-retry-step`
+6. ⏳ **Dataset input dialog** - `dataset-input-dialog`, `dataset-item-{id}` - (pending)
+7. ⏳ **Step progress indicators** - `step-progress-{stepId}` - (pending)
+8. ⏳ **Output file display** - `output-file-{stepId}-{fileId}` - (pending)
+9. ⏳ **Error details** - `error-details`, `button-retry-step` - (pending)
 
 ### Low Priority (Nice to have)
-10. ⏳ **Parameter confidence badges** - `param-confidence-badge-{stepId}`
-11. ⏳ **Log auto-scroll** - `log-auto-scroll`
-12. ⏳ **Upload progress** - `upload-progress`
+10. ⏳ **Parameter confidence badges** - `param-confidence-badge-{stepId}` - (pending)
+11. ✅ **Log auto-scroll** - **DONE** (`log-auto-scroll-{stepId}`) - job-log-viewer.tsx:243
+12. ⏳ **Upload progress** - `upload-progress` - (pending)
 
 ---
 
 ## Next Steps
 
-1. Add test IDs to ParameterDialog/ParameterEditor component
-2. Add test IDs to ExecutionTimeline component
-3. Add test IDs to JobLogViewer component
-4. Add test IDs to dataset-related dialogs
-5. Create first complete E2E test case with step-level validation
-6. Implement screenshot + log capture for each step
+1. ✅ ~~Add test IDs to ParameterDialog/ParameterEditor component~~ - **DONE** (Commit: a2f98b4)
+2. ✅ ~~Add test IDs to ExecutionTimeline component~~ - **DONE** (Commit: 53e7ee6)
+3. ✅ ~~Add test IDs to JobLogViewer component~~ - **DONE** (Commit: 53e7ee6)
+4. ⏳ Add test IDs to dataset-related dialogs (Medium Priority)
+5. ⏳ Create first complete E2E test case with step-level validation
+6. ⏳ Implement screenshot + log capture for each step
+
+**All High Priority Test IDs Complete!** The frontend now has comprehensive test IDs for:
+- Individual workflow step execution
+- Parameter editing
+- Progress tracking (timeline + logs)
+- Step-level controls (run, pause, restart, edit, delete)
+
+Ready to implement E2E test cases with Playwright.
 
 ---
 
@@ -370,6 +382,21 @@ page.locator(f'[data-testid="button-graph-restart-{failed_step_id}"]').click()
 
 ---
 
-**Status**: Core test IDs complete, enhancement test IDs pending
+**Status**: All High Priority test IDs complete! Ready for E2E test implementation.
 **Branch**: `frontend_stronger`
-**Commit**: `14593ba` (initial test IDs) + upcoming enhancement commit
+**Commits**:
+- `14593ba` - Initial test IDs (chat, workflow controls)
+- `a2f98b4` - Parameter dialog test IDs
+- `53e7ee6` - Progress tracking test IDs (timeline + logs)
+
+**Summary**:
+- ✅ 5/5 High Priority test IDs complete
+- ⏳ 4/4 Medium Priority test IDs pending
+- ✅ 1/3 Low Priority test IDs complete
+
+**Test Coverage**:
+- Individual step operations (run, pause, restart, edit, delete)
+- Parameter editing with 3-tier UI (essential, common, advanced)
+- Real-time progress tracking via ExecutionTimeline
+- Real-time log monitoring via JobLogViewer
+- Step-level state transitions and elapsed time tracking
