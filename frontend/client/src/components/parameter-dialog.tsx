@@ -159,6 +159,7 @@ export function ParameterDialog({
             value={value}
             onChange={(e) => handleParameterChange(param.name, e.target.value)}
             placeholder={`Enter ${param.name.toLowerCase()}`}
+            data-testid={`parameter-input-${param.name.toLowerCase().replace(/\s+/g, '-')}`}
           />
         )}
 
@@ -170,6 +171,7 @@ export function ParameterDialog({
             onChange={(e) => handleParameterChange(param.name, parseFloat(e.target.value) || 0)}
             min={param.min}
             max={param.max}
+            data-testid={`parameter-input-${param.name.toLowerCase().replace(/\s+/g, '-')}`}
           />
         )}
 
@@ -179,6 +181,7 @@ export function ParameterDialog({
               id={param.name}
               checked={value}
               onCheckedChange={(checked) => handleParameterChange(param.name, checked)}
+              data-testid={`parameter-input-${param.name.toLowerCase().replace(/\s+/g, '-')}`}
             />
             <Label htmlFor={param.name} className="text-sm text-muted-foreground">
               {value ? 'Enabled' : 'Disabled'}
@@ -191,7 +194,7 @@ export function ParameterDialog({
             value={value}
             onValueChange={(val) => handleParameterChange(param.name, val)}
           >
-            <SelectTrigger id={param.name}>
+            <SelectTrigger id={param.name} data-testid={`parameter-input-${param.name.toLowerCase().replace(/\s+/g, '-')}`}>
               <SelectValue placeholder={`Select ${param.name.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent>
@@ -211,7 +214,7 @@ export function ParameterDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" data-testid="parameter-dialog">
         <DialogHeader>
           <DialogTitle>Configure {step.title}</DialogTitle>
           <DialogDescription>
@@ -295,10 +298,10 @@ export function ParameterDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-parameters">
             Cancel
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} data-testid="button-save-parameters">
             Save Parameters
           </Button>
         </DialogFooter>
