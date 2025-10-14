@@ -456,6 +456,7 @@ Respond in JSON format:
       console.log('[GalaxyAssistant] Confidence score:', response.confidence?.toFixed(2));
       console.log('[GalaxyAssistant] Template match:', response.template_match_score?.toFixed(2));
       console.log('[GalaxyAssistant] Datasets assigned:', response.datasets_assigned);
+      console.log('[GalaxyAssistant] Generated parameters:', response.generated_parameters?.length || 0);
       console.log('[GalaxyAssistant] Message:', response.message);
       console.log('[GalaxyAssistant] ========================================');
     } else {
