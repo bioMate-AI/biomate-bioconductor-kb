@@ -91,7 +91,9 @@ class LLMClient:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
     
     async def generate_async(self, prompt: str, **kwargs) -> str:
-        """Generate response asynchronously."""
+        """Generate response asynchronously with automatic fallback to Claude."""
+        primary_error = None
+
         try:
             if self.provider == 'openai':
                 return await self._generate_openai(prompt, **kwargs)
@@ -104,10 +106,51 @@ class LLMClient:
                 return await self._generate_local(prompt, **kwargs)
             else:
                 raise ValueError(f"Unsupported provider: {self.provider}")
-                
+
         except Exception as e:
-            log.error(f"LLM generation failed: {e}")
-            raise
+            primary_error = e
+            log.error(f"Primary LLM ({self.provider}) generation failed: {e}")
+
+            # Automatic fallback to Claude 3.5 Sonnet if primary provider fails
+            if self.provider != 'anthropic':
+                log.warning(f"Attempting fallback to Claude 3.5 Sonnet...")
+                try:
+                    # Get Anthropic API key from environment if available
+                    import os
+                    fallback_api_key = os.environ.get('ANTHROPIC_API_KEY')
+
+                    if fallback_api_key:
+                        # Temporarily switch to Anthropic
+                        original_provider = self.provider
+                        original_model = self.model
+                        original_api_key = self.api_key
+                        original_api_base = self.api_base
+                        original_headers = self.headers
+
+                        self.provider = 'anthropic'
+                        self.model = 'claude-3-5-sonnet-20241022'
+                        self.api_key = fallback_api_key
+                        self._setup_provider()  # Re-setup with Anthropic config
+
+                        try:
+                            result = await self._generate_anthropic(prompt, **kwargs)
+                            log.info("✅ Fallback to Claude 3.5 Sonnet succeeded!")
+                            return result
+                        finally:
+                            # Restore original config
+                            self.provider = original_provider
+                            self.model = original_model
+                            self.api_key = original_api_key
+                            self.api_base = original_api_base
+                            self.headers = original_headers
+                    else:
+                        log.warning("ANTHROPIC_API_KEY not found in environment, cannot fallback")
+
+                except Exception as fallback_error:
+                    log.error(f"Fallback to Claude also failed: {fallback_error}")
+
+            # Re-raise the original error if fallback also failed
+            raise primary_error
     
     def generate(self, prompt: str, **kwargs) -> str:
         """Synchronous wrapper for generate_async."""
@@ -145,22 +188,30 @@ class LLMClient:
     
     async def _generate_openai(self, prompt: str, **kwargs) -> str:
         """Generate using OpenAI API."""
+        # For newer models (gpt-5, gpt-4o-2024-08-06+), use max_completion_tokens
+        # For older models, use max_tokens
+        max_tokens_key = "max_completion_tokens" if "gpt-5" in self.model or "gpt-4o-2024" in self.model else "max_tokens"
+
         data = {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": "You are a helpful bioinformatics assistant."},
                 {"role": "user", "content": prompt}
             ],
-            "max_tokens": kwargs.get('max_tokens', 1000),
-            "temperature": kwargs.get('temperature', 0.3)
+            max_tokens_key: kwargs.get('max_tokens', 1000)
         }
-        
+
+        # GPT-5 only supports temperature=1 (default), older models support 0-2
+        # For precise workflow generation, use temperature=0 (deterministic)
+        if "gpt-5" not in self.model:
+            data["temperature"] = kwargs.get('temperature', 0.0)
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{self.api_base}/chat/completions",
                 headers=self.headers,
                 json=data,
-                timeout=30.0
+                timeout=60.0  # Increased to 60s for slower models like gpt-5
             )
             
             if response.status_code == 200:

@@ -39,43 +39,124 @@ class AIAssistant:
 
         self.galaxy_app = galaxy_app
 
-        # Initialize AI components
-        self.intent_parser = IntentParser(self.config)
-        self.task_decomposer = TaskDecomposer(self.config)
-        self.tool_recommender = ToolRecommender(self.config)
-        self.workflow_generator = EnhancedWorkflowGenerator(self.config, galaxy_app)
-        self.template_library = WorkflowTemplateLibrary()
-        self.workflow_optimizer = WorkflowOptimizer(self.config)
-        self.workflow_validator = WorkflowValidator(self.config)
-
-        # Initialize tool discovery system
-        self.tool_indexer = ToolIndexer(self.config)
-        self.tool_discovery = ToolDiscoveryEngine(self.config, self.tool_indexer)
-
-        # NEW: Initialize unified workflow generation components
+        # ONLY initialize components needed for generate_workflow_unified()
         self.workflow_search = WorkflowSearchRAG(galaxy_app)
         self.constrained_generator = GalaxyWorkflowGenerator(config=self.config)
         self.dataset_selector = WorkflowDatasetSelector()
-        self.dataset_rag = BioMNIDatasetRAG()
 
-        log.info("AIAssistant initialized with unified workflow generation")
+        # Lazy-load other components only when needed
+        self._workflow_generator = None  # EnhancedWorkflowGenerator - lazy loaded
+        self._intent_parser = None
+        self._task_decomposer = None
+        self._tool_recommender = None
+        self._template_library = None
+        self._workflow_optimizer = None
+        self._workflow_validator = None
+        self._tool_indexer = None
+        self._tool_discovery = None
+        self._dataset_rag = None
+
+        log.info("AIAssistant initialized (lightweight mode)")
         log.info(f"  - Template library: {len(self.workflow_search.templates)} templates")
-        log.info(f"  - Dataset catalog: {len(self.dataset_rag.dataset_index)} datasets")
 
         # Cache for frequently used data
         self._tool_cache = {}
         self._workflow_cache = {}
+        self._tools_indexed = False  # Lazy loading flag for tool indexing
 
-        # Initialize with Galaxy tools if available
-        if galaxy_app:
-            self._index_galaxy_tools()
-    
+    # Lazy-loaded properties
+    @property
+    def workflow_generator(self):
+        """Lazy-load EnhancedWorkflowGenerator."""
+        if self._workflow_generator is None:
+            self._workflow_generator = EnhancedWorkflowGenerator(self.config, self.galaxy_app)
+            log.info("EnhancedWorkflowGenerator loaded on-demand")
+        return self._workflow_generator
+
+    @property
+    def intent_parser(self):
+        """Lazy-load IntentParser."""
+        if self._intent_parser is None:
+            self._intent_parser = IntentParser(self.config)
+            log.info("IntentParser loaded on-demand")
+        return self._intent_parser
+
+    @property
+    def task_decomposer(self):
+        """Lazy-load TaskDecomposer."""
+        if self._task_decomposer is None:
+            self._task_decomposer = TaskDecomposer(self.config)
+            log.info("TaskDecomposer loaded on-demand")
+        return self._task_decomposer
+
+    @property
+    def tool_recommender(self):
+        """Lazy-load ToolRecommender."""
+        if self._tool_recommender is None:
+            self._tool_recommender = ToolRecommender(self.config)
+            log.info("ToolRecommender loaded on-demand")
+        return self._tool_recommender
+
+    @property
+    def template_library(self):
+        """Lazy-load WorkflowTemplateLibrary."""
+        if self._template_library is None:
+            self._template_library = WorkflowTemplateLibrary()
+            log.info("WorkflowTemplateLibrary loaded on-demand")
+        return self._template_library
+
+    @property
+    def workflow_optimizer(self):
+        """Lazy-load WorkflowOptimizer."""
+        if self._workflow_optimizer is None:
+            self._workflow_optimizer = WorkflowOptimizer(self.config)
+            log.info("WorkflowOptimizer loaded on-demand")
+        return self._workflow_optimizer
+
+    @property
+    def workflow_validator(self):
+        """Lazy-load WorkflowValidator."""
+        if self._workflow_validator is None:
+            self._workflow_validator = WorkflowValidator(self.config)
+            log.info("WorkflowValidator loaded on-demand")
+        return self._workflow_validator
+
+    @property
+    def tool_indexer(self):
+        """Lazy-load ToolIndexer."""
+        if self._tool_indexer is None:
+            self._tool_indexer = ToolIndexer(self.config)
+            log.info("ToolIndexer loaded on-demand")
+        return self._tool_indexer
+
+    @property
+    def tool_discovery(self):
+        """Lazy-load ToolDiscoveryEngine."""
+        if self._tool_discovery is None:
+            self._tool_discovery = ToolDiscoveryEngine(self.config, self.tool_indexer)
+            log.info("ToolDiscoveryEngine loaded on-demand")
+        return self._tool_discovery
+
+    @property
+    def dataset_rag(self):
+        """Lazy-load BioMNIDatasetRAG."""
+        if self._dataset_rag is None:
+            self._dataset_rag = BioMNIDatasetRAG()
+            log.info("BioMNIDatasetRAG loaded on-demand")
+        return self._dataset_rag
+
     def process_request(self, user_request: UserRequest) -> AIResponse:
         """Process a complete user research request and generate AI response."""
-        
+
+        # Lazy load tool indexing only when process_request is called
+        if not self._tools_indexed and self.galaxy_app:
+            log.info("Lazy loading Galaxy tools for process_request...")
+            self._index_galaxy_tools()
+            self._tools_indexed = True
+
         request_id = str(uuid.uuid4())
         warnings = []
-        
+
         try:
             # Step 1: Parse user intent
             parsed_intent = self.intent_parser.parse_request(user_request)
@@ -234,8 +315,8 @@ class AIAssistant:
                 # Assign datasets via WorkflowDatasetSelector
                 log.info("[UnifiedWorkflowGeneration] Assigning datasets...")
                 dataset_assignments = self.dataset_selector.select_datasets_for_workflow(
-                    user_intent=user_intent,
-                    workflow_structure=workflow_steps
+                    workflow={'steps': workflow_steps},
+                    user_intent=user_intent
                 )
 
                 # Build Galaxy .ga JSON with datasets
@@ -266,8 +347,8 @@ class AIAssistant:
                     # Add dataset assignment (enhanced generator doesn't do this)
                     log.info("[UnifiedWorkflowGeneration] Assigning datasets to adapted workflow...")
                     dataset_assignments = self.dataset_selector.select_datasets_for_workflow(
-                        user_intent=user_intent,
-                        workflow_structure=workflow_steps
+                        workflow={'steps': workflow_steps},
+                        user_intent=user_intent
                     )
 
                     workflow_ga = self._build_workflow_ga_from_generated(workflow_data, dataset_assignments)

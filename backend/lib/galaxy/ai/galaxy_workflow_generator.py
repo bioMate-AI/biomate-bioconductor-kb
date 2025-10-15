@@ -45,12 +45,9 @@ class GalaxyWorkflowGenerator:
         from galaxy.ai.llm_client import LLMClient
         self.llm_client = LLMClient(config)
 
-        # Tool search index for validation
-        if tool_search_index is None:
-            from galaxy.tools.search_index import ToolSearchIndex
-            self.tool_index = ToolSearchIndex()
-        else:
-            self.tool_index = tool_search_index
+        # Tool search index for validation - lazy loaded to avoid heavy imports
+        self._tool_index = tool_search_index
+        self._tool_index_loaded = False
 
         # Dataset selector for dataset integration
         if dataset_selector is None:
@@ -62,6 +59,16 @@ class GalaxyWorkflowGenerator:
         # LLM Parameter Generator for intelligent parameter inference
         from .llm_parameter_generator import LLMParameterGenerator
         self.parameter_generator = LLMParameterGenerator(config=self.config)
+
+    @property
+    def tool_index(self):
+        """Lazy-load tool index on first access to avoid heavy imports during init."""
+        if not self._tool_index_loaded:
+            if self._tool_index is None:
+                from galaxy.tools.search_index import ToolSearchIndex
+                self._tool_index = ToolSearchIndex()
+            self._tool_index_loaded = True
+        return self._tool_index
 
     def generate_workflow(
         self,
@@ -114,8 +121,8 @@ class GalaxyWorkflowGenerator:
         # STEP 3: Select datasets for workflow steps
         log.info("Selecting datasets for workflow steps...")
         dataset_assignments = self.dataset_selector.select_datasets_for_workflow(
-            user_intent=user_intent,
-            workflow_structure=workflow_structure.get('steps', [])
+            workflow=workflow_structure,
+            user_intent=user_intent
         )
 
         # STEP 4: Build Galaxy .ga JSON with LLM parameter generation
@@ -147,14 +154,12 @@ class GalaxyWorkflowGenerator:
         This ensures we only use tools that exist in Galaxy.
         """
         try:
-            # Transform user intent to FTS5-compatible query using LLM
-            raw_query = self._transform_intent_to_fts_query(user_intent)
-            # Sanitize to prevent FTS5 syntax errors
-            fts_query = self._sanitize_fts_query(raw_query)
-            log.info(f"Transformed query: {raw_query} → Sanitized: {fts_query}")
+            # ToolSearchIndex.search() now handles query transformation internally (converts to OR query)
+            # So we pass the user intent directly without transformation
+            log.info(f"Searching for tools with query: {user_intent}")
 
-            # Search tool index with sanitized query
-            results = self.tool_index.search(fts_query, limit=limit)
+            # Search tool index - it will handle query transformation and sanitization
+            results = self.tool_index.search(user_intent, limit=limit)
 
             # Format tools for LLM context (include keywords!)
             formatted_tools = []

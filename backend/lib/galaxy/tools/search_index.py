@@ -80,6 +80,14 @@ class ToolSearchIndex:
         # Replace hyphens with spaces to avoid FTS5 minus operator issues
         query = query.replace('-', ' ')
 
+        # Convert to OR query for broader matching (implicit AND is too restrictive)
+        # Split into terms and join with OR operators
+        terms = [term.strip() for term in query.split() if term.strip()]
+        if len(terms) > 1:
+            query = ' OR '.join(terms)
+        elif len(terms) == 1:
+            query = terms[0]
+
         with self._get_cursor() as cursor:
             if category:
                 sql = '''
