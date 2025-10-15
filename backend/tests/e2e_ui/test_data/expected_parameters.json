@@ -1,0 +1,311 @@
+{
+  "test_01_dia_lcms": {
+    "query": "Analyze DIA LC-MS data for protein identification and quantification",
+    "workflow_description": "DIA-NN/OpenSWATH workflow for data-independent acquisition mass spectrometry",
+    "expected_steps": [
+      "DIA-NN Search",
+      "Statistical Analysis",
+      "Protein Quantification",
+      "Quality Control"
+    ],
+    "expected_parameters": {
+      "step_0_diann": {
+        "tool_id": "biomate_dm_diann",
+        "step_name": "DIA-NN Search",
+        "params": {
+          "library_type": {
+            "value": "spectral",
+            "tier": "essential",
+            "description": "Type of spectral library to use"
+          },
+          "organism": {
+            "value": "human",
+            "tier": "essential",
+            "description": "Target organism for protein identification"
+          },
+          "fdr_threshold": {
+            "value": 0.01,
+            "tier": "common",
+            "description": "False discovery rate threshold"
+          },
+          "mass_accuracy": {
+            "value": 10.0,
+            "tier": "common",
+            "description": "Mass accuracy in ppm"
+          },
+          "min_peptide_length": {
+            "value": 7,
+            "tier": "advanced",
+            "description": "Minimum peptide length"
+          }
+        },
+        "min_confidence": 0.75,
+        "critical_params": ["library_type", "organism", "fdr_threshold"]
+      },
+      "step_1_stats": {
+        "tool_id": "biomate_dm_stats",
+        "step_name": "Statistical Analysis",
+        "params": {
+          "normalization_method": {
+            "value": "median",
+            "tier": "essential",
+            "description": "Normalization method for quantification"
+          },
+          "missing_value_imputation": {
+            "value": "knn",
+            "tier": "common",
+            "description": "Method for handling missing values"
+          },
+          "statistical_test": {
+            "value": "t-test",
+            "tier": "common",
+            "description": "Statistical test for differential analysis"
+          }
+        },
+        "min_confidence": 0.70,
+        "critical_params": ["normalization_method"]
+      },
+      "step_2_quant": {
+        "tool_id": "biomate_dm_protein_quant",
+        "step_name": "Protein Quantification",
+        "params": {
+          "quantification_method": {
+            "value": "maxlfq",
+            "tier": "essential",
+            "description": "Protein quantification algorithm"
+          },
+          "min_peptides": {
+            "value": 2,
+            "tier": "common",
+            "description": "Minimum peptides per protein"
+          },
+          "use_shared_peptides": {
+            "value": false,
+            "tier": "advanced",
+            "description": "Include shared peptides in quantification"
+          }
+        },
+        "min_confidence": 0.75,
+        "critical_params": ["quantification_method", "min_peptides"]
+      },
+      "step_3_qc": {
+        "tool_id": "biomate_dm_qc",
+        "step_name": "Quality Control",
+        "params": {
+          "cv_threshold": {
+            "value": 0.20,
+            "tier": "common",
+            "description": "Coefficient of variation threshold"
+          },
+          "generate_plots": {
+            "value": true,
+            "tier": "common",
+            "description": "Generate QC visualization plots"
+          }
+        },
+        "min_confidence": 0.60,
+        "critical_params": ["cv_threshold"]
+      }
+    },
+    "validation_strategy": {
+      "check_step_count": true,
+      "check_tool_ids": true,
+      "check_critical_params": true,
+      "allow_additional_params": true,
+      "check_parameter_tiers": true
+    }
+  },
+  "test_02_peptide_qc": {
+    "query": "Quality control analysis for peptide identification data",
+    "workflow_description": "Comprehensive QC workflow for peptide mass spectrometry results",
+    "expected_steps": [
+      "Data Import",
+      "QC Metrics",
+      "Visualization"
+    ],
+    "expected_parameters": {
+      "step_0_import": {
+        "tool_id": "biomate_dm_peptide_import",
+        "step_name": "Data Import",
+        "params": {
+          "input_format": {
+            "value": "pepxml",
+            "tier": "essential",
+            "description": "Format of input peptide data"
+          },
+          "confidence_threshold": {
+            "value": 0.95,
+            "tier": "essential",
+            "description": "Minimum confidence score for peptides"
+          }
+        },
+        "min_confidence": 0.80,
+        "critical_params": ["input_format", "confidence_threshold"]
+      },
+      "step_1_qc_metrics": {
+        "tool_id": "biomate_dm_qc_metrics",
+        "step_name": "QC Metrics",
+        "params": {
+          "compute_psm_count": {
+            "value": true,
+            "tier": "common",
+            "description": "Count peptide-spectrum matches"
+          },
+          "compute_mass_error": {
+            "value": true,
+            "tier": "common",
+            "description": "Calculate mass error distribution"
+          },
+          "compute_charge_state": {
+            "value": true,
+            "tier": "common",
+            "description": "Analyze charge state distribution"
+          }
+        },
+        "min_confidence": 0.70,
+        "critical_params": ["compute_psm_count"]
+      },
+      "step_2_viz": {
+        "tool_id": "biomate_dm_visualization",
+        "step_name": "Visualization",
+        "params": {
+          "plot_types": {
+            "value": ["mass_error", "charge_dist", "score_dist"],
+            "tier": "common",
+            "description": "Types of plots to generate"
+          },
+          "output_format": {
+            "value": "png",
+            "tier": "advanced",
+            "description": "Output format for plots"
+          }
+        },
+        "min_confidence": 0.65,
+        "critical_params": ["plot_types"]
+      }
+    },
+    "validation_strategy": {
+      "check_step_count": true,
+      "check_tool_ids": true,
+      "check_critical_params": true,
+      "allow_additional_params": true,
+      "check_parameter_tiers": true
+    }
+  },
+  "test_03_scrna_seq": {
+    "query": "Single-cell RNA sequencing analysis with clustering",
+    "workflow_description": "Standard scRNA-seq workflow with quality filtering and clustering",
+    "expected_steps": [
+      "Quality Filtering",
+      "Normalization",
+      "Dimensionality Reduction",
+      "Clustering"
+    ],
+    "expected_parameters": {
+      "step_0_qc": {
+        "tool_id": "biomate_scrna_qc",
+        "step_name": "Quality Filtering",
+        "params": {
+          "min_genes": {
+            "value": 200,
+            "tier": "essential",
+            "description": "Minimum genes per cell"
+          },
+          "max_genes": {
+            "value": 5000,
+            "tier": "common",
+            "description": "Maximum genes per cell"
+          },
+          "max_mitochondrial_percent": {
+            "value": 10.0,
+            "tier": "essential",
+            "description": "Maximum mitochondrial gene percentage"
+          }
+        },
+        "min_confidence": 0.80,
+        "critical_params": ["min_genes", "max_mitochondrial_percent"]
+      },
+      "step_1_norm": {
+        "tool_id": "biomate_scrna_normalize",
+        "step_name": "Normalization",
+        "params": {
+          "normalization_method": {
+            "value": "log_normalize",
+            "tier": "essential",
+            "description": "Normalization method"
+          },
+          "scale_factor": {
+            "value": 10000,
+            "tier": "common",
+            "description": "Scaling factor for normalization"
+          }
+        },
+        "min_confidence": 0.75,
+        "critical_params": ["normalization_method"]
+      },
+      "step_2_dim_reduce": {
+        "tool_id": "biomate_scrna_pca",
+        "step_name": "Dimensionality Reduction",
+        "params": {
+          "n_components": {
+            "value": 50,
+            "tier": "common",
+            "description": "Number of PCA components"
+          },
+          "highly_variable_genes": {
+            "value": 2000,
+            "tier": "common",
+            "description": "Number of highly variable genes to use"
+          }
+        },
+        "min_confidence": 0.70,
+        "critical_params": ["n_components"]
+      },
+      "step_3_cluster": {
+        "tool_id": "biomate_scrna_cluster",
+        "step_name": "Clustering",
+        "params": {
+          "resolution": {
+            "value": 0.8,
+            "tier": "essential",
+            "description": "Clustering resolution"
+          },
+          "algorithm": {
+            "value": "louvain",
+            "tier": "common",
+            "description": "Clustering algorithm"
+          }
+        },
+        "min_confidence": 0.75,
+        "critical_params": ["resolution", "algorithm"]
+      }
+    },
+    "validation_strategy": {
+      "check_step_count": true,
+      "check_tool_ids": false,
+      "check_critical_params": true,
+      "allow_additional_params": true,
+      "check_parameter_tiers": true
+    }
+  },
+  "validation_notes": {
+    "parameter_tiers": {
+      "essential": "Parameters critical to workflow function, always visible, must be validated",
+      "common": "Frequently used parameters, expandable section, should be validated",
+      "advanced": "Expert-level parameters, collapsed by default, optional validation"
+    },
+    "min_confidence_interpretation": {
+      "0.80+": "High confidence - LLM should generate accurate parameters",
+      "0.70-0.79": "Medium confidence - Review recommended",
+      "0.60-0.69": "Low confidence - Manual review required",
+      "<0.60": "Very low confidence - May need user input"
+    },
+    "validation_failures": {
+      "missing_critical_param": "FAIL - Critical parameter not generated",
+      "wrong_tier": "WARN - Parameter in unexpected tier",
+      "wrong_value_type": "FAIL - Parameter value type mismatch",
+      "confidence_too_low": "WARN - Confidence below threshold",
+      "unexpected_tool_id": "FAIL - Tool ID doesn't match expected"
+    }
+  }
+}

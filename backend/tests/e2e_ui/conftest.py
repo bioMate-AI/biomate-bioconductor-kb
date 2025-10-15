@@ -17,7 +17,7 @@ from playwright.sync_api import Browser, BrowserContext, Page, Playwright
 
 
 # Test configuration
-TEST_BASE_URL = os.getenv("BIOMATE_TEST_URL", "http://localhost:3000")
+TEST_BASE_URL = os.getenv("BIOMATE_TEST_URL", "http://localhost:5173")
 SCREENSHOTS_DIR = Path(__file__).parent / "test_screenshots"
 VIDEOS_DIR = Path(__file__).parent / "test_videos"
 REPORTS_DIR = Path(__file__).parent / "reports"

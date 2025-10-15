@@ -35,22 +35,16 @@ export function ChatMessage({
     message.metadata.recommendedDatasets
   )
 
-  // Check if this message contains workflow generation info
-  const hasWorkflowInfo = message.content?.includes('workflow') || message.content?.includes('Workflow') || message.metadata?.workflow
-
   return (
-    <div
-      className={cn("flex gap-4 p-4", isUser && "flex-row-reverse")}
-      data-testid={!isUser && hasWorkflowInfo ? "workflow-generated-message" : undefined}
-    >
+    <div className={cn("flex gap-4 p-4", isUser && "flex-row-reverse")}>
       <Avatar className="h-8 w-8 flex-shrink-0">
-        <AvatarImage
-          src={isUser ? userAvatar : assistantAvatar}
-          alt={isUser ? "User" : "Assistant"}
+        <AvatarImage 
+          src={isUser ? userAvatar : assistantAvatar} 
+          alt={isUser ? "User" : "Assistant"} 
         />
         <AvatarFallback>{isUser ? "U" : "AI"}</AvatarFallback>
       </Avatar>
-
+      
       <div className={cn("flex-1 space-y-2", isUser && "flex flex-col items-end")}>
         <div className="max-w-full space-y-3">
           <Card className={cn(
@@ -99,10 +93,10 @@ export function ChatMessage({
               variant="ghost"
               size="sm"
               onClick={onCreateWorkflow}
-              data-testid="button-view-workflow"
+              data-testid="button-create-workflow"
             >
               <Workflow className="h-3 w-3 mr-1" />
-              View Workflow
+              Create Workflow
             </Button>
           </div>
         )}

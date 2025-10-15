@@ -400,9 +400,9 @@ export function EnhancedWorkflowBuilder({
         ))
         break
       case 'edit':
-        const step = steps.find(s => s.id === stepId)
-        if (step) {
-          setEditingStep(step)
+        const editStep = steps.find(s => s.id === stepId)
+        if (editStep) {
+          setEditingStep(editStep)
         }
         break
       case 'delete':
@@ -522,10 +522,7 @@ export function EnhancedWorkflowBuilder({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Status:</span>
-                  <Badge
-                    variant={workflowStatus === 'running' ? 'default' : 'secondary'}
-                    data-testid={`workflow-status-${workflowStatus}`}
-                  >
+                  <Badge variant={workflowStatus === 'running' ? 'default' : 'secondary'}>
                     {workflowStatus}
                   </Badge>
                 </div>
@@ -581,10 +578,10 @@ export function EnhancedWorkflowBuilder({
                 <Button
                   onClick={() => handleWorkflowAction('start')}
                   disabled={!canStartWorkflow}
-                  data-testid="button-execute-workflow"
+                  data-testid="button-workflow-start"
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Execute Workflow
+                  Start Workflow
                 </Button>
 
                 {canPauseWorkflow && (

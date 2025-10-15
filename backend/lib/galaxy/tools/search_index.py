@@ -22,7 +22,7 @@ class ToolSearchIndex:
 
     def __init__(self, db_path: str = None):
         if db_path is None:
-            db_path = str(Path(__file__).parent.parent.parent.parent / "database" / "tool_search_index.db")
+            db_path = str(Path(__file__).parent.parent.parent.parent / "galaxy_ai_tools.db")
         self.db_path = db_path
         self._local = threading.local()
         self._lock = threading.RLock()
@@ -75,6 +75,10 @@ class ToolSearchIndex:
             raise ValueError("Limit must be between 1 and 1000")
 
         query = query.strip()
+
+        # Sanitize query for FTS5: quote terms with special characters
+        # Replace hyphens with spaces to avoid FTS5 minus operator issues
+        query = query.replace('-', ' ')
 
         with self._get_cursor() as cursor:
             if category:

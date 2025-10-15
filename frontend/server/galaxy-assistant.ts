@@ -247,10 +247,22 @@ Respond in JSON format:
       const query = keywords.join(' OR ');
       console.log('[GalaxyAssistant] Tool search query:', query);
 
-      // Search Galaxy tool index
-      const toolSearchResponse = await this.galaxyAPI.searchTools(query, undefined, 10);
+      // Search Galaxy tool index (increased limit to 100 for better coverage)
+      const toolSearchResponse = await this.galaxyAPI.searchTools(query, undefined, 100);
 
-      if (!toolSearchResponse.success || !toolSearchResponse.tools) {
+      console.log('[GalaxyAssistant] Raw Galaxy API response:', {
+        count: toolSearchResponse.count,
+        toolsReturned: toolSearchResponse.tools?.length || 0,
+        query: toolSearchResponse.query,
+        tools: toolSearchResponse.tools?.slice(0, 5).map(t => ({
+          tool_id: t.tool_id,
+          name: t.name,
+          category: t.category
+        })) || []
+      });
+
+      if (!toolSearchResponse.tools || toolSearchResponse.tools.length === 0) {
+        console.log('[GalaxyAssistant] No tools returned from Galaxy API');
         return [];
       }
 
@@ -259,6 +271,17 @@ Respond in JSON format:
         userMessage,
         toolSearchResponse.tools
       );
+
+      console.log('[GalaxyAssistant] After LLM ranking:', {
+        totalToolsFromGalaxy: toolSearchResponse.tools.length,
+        toolsAfterRanking: rankedTools.length,
+        topRankedTools: rankedTools.slice(0, 3).map(r => ({
+          tool_id: r.tool.tool_id,
+          name: r.tool.name,
+          relevanceScore: r.relevanceScore,
+          reasoning: r.reasoning
+        }))
+      });
 
       return rankedTools;
     } catch (error) {
@@ -299,7 +322,7 @@ Respond in JSON format:
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-5-2025-08-07',
         messages: [
           { role: 'system', content: systemPrompt },
           {
@@ -308,7 +331,7 @@ Respond in JSON format:
           },
         ],
         response_format: { type: 'json_object' },
-        max_tokens: 500,
+        max_completion_tokens: 500,
         temperature: 0.3,
       });
 

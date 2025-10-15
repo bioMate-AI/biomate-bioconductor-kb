@@ -54,7 +54,7 @@ class AIAssistant:
 
         # NEW: Initialize unified workflow generation components
         self.workflow_search = WorkflowSearchRAG(galaxy_app)
-        self.constrained_generator = GalaxyWorkflowGenerator()
+        self.constrained_generator = GalaxyWorkflowGenerator(config=self.config)
         self.dataset_selector = WorkflowDatasetSelector()
         self.dataset_rag = BioMNIDatasetRAG()
 

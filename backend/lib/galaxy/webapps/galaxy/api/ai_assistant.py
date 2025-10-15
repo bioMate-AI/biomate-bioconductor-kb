@@ -45,34 +45,43 @@ _ai_assistant_instance = None
 def get_ai_assistant(trans) -> Optional[AIAssistant]:
     """Get or create AI Assistant instance."""
     global _ai_assistant_instance
-    
+
+    log.info(f"[DEBUG] get_ai_assistant called, AI_AVAILABLE={AI_AVAILABLE}")
     if not AI_AVAILABLE:
+        log.warning("[DEBUG] AI modules not available - import failed")
         return None
-    
+
     if _ai_assistant_instance is None:
         try:
             # Get AI configuration from Galaxy config using the configuration loader
             app = trans.app
             ai_enabled = getattr(app.config, 'enable_ai_assistant', False)
-            
+            log.info(f"[DEBUG] enable_ai_assistant config value: {ai_enabled}")
+
             if not ai_enabled:
+                log.warning("[DEBUG] AI Assistant not enabled in config")
                 return None
-            
+
             # Use the proper AI configuration loader
             from galaxy.config.ai_config import configure_ai_assistant
+            log.info("[DEBUG] Calling configure_ai_assistant...")
             ai_config = configure_ai_assistant(app.config.__dict__, app.config.config_dir)
-            
+            log.info(f"[DEBUG] configure_ai_assistant returned: {ai_config}")
+
             if not ai_config:
                 log.warning("AI Assistant enabled but configuration failed")
                 return None
-            
+
+            log.info("[DEBUG] Creating AIAssistant instance...")
             _ai_assistant_instance = AIAssistant(ai_config, galaxy_app=app)
             log.info("AI Assistant initialized successfully")
-            
+
         except Exception as e:
             log.error(f"Failed to initialize AI Assistant: {e}")
+            import traceback
+            log.error(traceback.format_exc())
             return None
-    
+
     return _ai_assistant_instance
 
 

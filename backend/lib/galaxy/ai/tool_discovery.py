@@ -94,11 +94,17 @@ class ToolIndexer:
         """)
         
         # Create indexes for faster queries
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_tools_category ON tools (category)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_tools_popularity ON tools (popularity_score)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_compatibility_tool ON tool_compatibility (tool_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_compatibility_type ON tool_compatibility (data_type)")
-        
+        try:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_tools_category ON tools (category)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_tools_popularity ON tools (popularity_score)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_compatibility_tool ON tool_compatibility (tool_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_compatibility_type ON tool_compatibility (data_type)")
+        except sqlite3.OperationalError as e:
+            # Ignore if column doesn't exist - table will be recreated on next init
+            import logging
+            log = logging.getLogger(__name__)
+            log.warning(f"Could not create index (table may need migration): {e}")
+
         conn.commit()
         conn.close()
     

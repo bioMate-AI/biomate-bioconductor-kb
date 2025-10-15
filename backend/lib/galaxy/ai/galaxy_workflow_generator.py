@@ -33,18 +33,17 @@ class GalaxyWorkflowGenerator:
         self,
         tool_search_index=None,
         dataset_selector=None,
-        api_key: str = None
+        config=None
     ):
         """Initialize workflow generator with tool index and dataset selector."""
-        self.api_key = api_key or os.environ.get('ANTHROPIC_API_KEY')
+        # Use LLMClient for multi-provider support (OpenAI, Anthropic, etc.)
+        if config is None:
+            from galaxy.ai.config import DEFAULT_AI_CONFIG
+            config = DEFAULT_AI_CONFIG
 
-        # Validate API key is provided
-        if not self.api_key:
-            raise ValueError(
-                "ANTHROPIC_API_KEY is required. Provide via:\n"
-                "  1. api_key parameter in constructor\n"
-                "  2. ANTHROPIC_API_KEY environment variable"
-            )
+        self.config = config
+        from galaxy.ai.llm_client import LLMClient
+        self.llm_client = LLMClient(config)
 
         # Tool search index for validation
         if tool_search_index is None:
@@ -56,18 +55,13 @@ class GalaxyWorkflowGenerator:
         # Dataset selector for dataset integration
         if dataset_selector is None:
             from galaxy.ai.workflow_dataset_selector import WorkflowDatasetSelector
-            self.dataset_selector = WorkflowDatasetSelector(api_key=self.api_key)
+            self.dataset_selector = WorkflowDatasetSelector()
         else:
             self.dataset_selector = dataset_selector
 
         # LLM Parameter Generator for intelligent parameter inference
         from .llm_parameter_generator import LLMParameterGenerator
-        from .config import DEFAULT_AI_CONFIG
-        self.parameter_generator = LLMParameterGenerator(config=DEFAULT_AI_CONFIG)
-
-        import anthropic
-        self.client = anthropic.Anthropic(api_key=self.api_key)
-        self.model = "claude-sonnet-4-5-20250929"
+        self.parameter_generator = LLMParameterGenerator(config=self.config)
 
     def generate_workflow(
         self,
@@ -252,13 +246,8 @@ User Intent: "{user_intent}"
 Return ONLY the FTS5 query string, nothing else."""
 
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=100,
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            fts_query = response.content[0].text.strip()
+            response = self.llm_client.generate(prompt, max_tokens=100)
+            fts_query = response.strip()
             # Remove quotes if LLM added them
             fts_query = fts_query.strip('"').strip("'")
 
@@ -327,22 +316,10 @@ Return JSON only.
 """
 
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=4096,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_prompt}]
-            )
+            # Combine system and user prompts for LLMClient
+            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+            response_text = self.llm_client.generate(full_prompt, max_tokens=4096)
 
-            # Debug: log full response
-            log.debug(f"Full LLM response: {response}")
-
-            # Check if response has content
-            if not response.content or len(response.content) == 0:
-                log.error(f"LLM returned empty response. Full response: {response}")
-                return {"error": "Empty LLM response"}
-
-            response_text = response.content[0].text
             log.info(f"LLM response received: {len(response_text)} chars")
 
             # Parse JSON response
