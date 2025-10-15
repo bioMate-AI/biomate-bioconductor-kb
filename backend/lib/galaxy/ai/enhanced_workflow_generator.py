@@ -28,7 +28,10 @@ class EnhancedWorkflowGenerator:
         self.config = config
         self.llm_client = LLMClient(config)
         self.template_library = WorkflowTemplateLibrary()
-        self.tool_rag = GalaxyToolRAG(galaxy_app)
+
+        # Lazy-load tool_rag to avoid heavy initialization
+        self._tool_rag = None
+        self._galaxy_app = galaxy_app
 
         # Auto-installer for missing tools
         self.tool_installer = None
@@ -45,7 +48,15 @@ class EnhancedWorkflowGenerator:
             "rag_assisted": self._generate_with_rag,
             "hybrid": self._generate_hybrid
         }
-    
+
+    @property
+    def tool_rag(self):
+        """Lazy-load GalaxyToolRAG on first access to avoid heavy initialization."""
+        if self._tool_rag is None:
+            self._tool_rag = GalaxyToolRAG(self._galaxy_app)
+            log.info("GalaxyToolRAG initialized on-demand")
+        return self._tool_rag
+
     def generate_workflow(self, user_request: UserRequest, auto_install_tools: bool = True) -> Dict[str, Any]:
         """Generate workflow using the best available strategy."""
 

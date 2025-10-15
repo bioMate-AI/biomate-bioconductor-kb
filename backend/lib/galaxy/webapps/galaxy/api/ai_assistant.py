@@ -47,6 +47,8 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
     global _ai_assistant_instance
 
     log.info(f"[DEBUG] get_ai_assistant called, AI_AVAILABLE={AI_AVAILABLE}")
+    log.info(f"[DEBUG] _ai_assistant_instance is None: {_ai_assistant_instance is None}")
+
     if not AI_AVAILABLE:
         log.warning("[DEBUG] AI modules not available - import failed")
         return None
@@ -54,7 +56,11 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
     if _ai_assistant_instance is None:
         try:
             # Get AI configuration from Galaxy config using the configuration loader
+            log.info("[DEBUG] Accessing trans.app...")
             app = trans.app
+            log.info(f"[DEBUG] Got app: {app}")
+
+            log.info("[DEBUG] Getting enable_ai_assistant config...")
             ai_enabled = getattr(app.config, 'enable_ai_assistant', False)
             log.info(f"[DEBUG] enable_ai_assistant config value: {ai_enabled}")
 
@@ -63,6 +69,7 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
                 return None
 
             # Use the proper AI configuration loader
+            log.info("[DEBUG] Importing configure_ai_assistant...")
             from galaxy.config.ai_config import configure_ai_assistant
             log.info("[DEBUG] Calling configure_ai_assistant...")
             ai_config = configure_ai_assistant(app.config.__dict__, app.config.config_dir)
@@ -72,9 +79,12 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
                 log.warning("AI Assistant enabled but configuration failed")
                 return None
 
-            log.info("[DEBUG] Creating AIAssistant instance...")
-            _ai_assistant_instance = AIAssistant(ai_config, galaxy_app=app)
-            log.info("AI Assistant initialized successfully")
+            log.info("[DEBUG] About to create AIAssistant instance...")
+            # DO NOT pass galaxy_app to avoid triggering toolbox loading which causes OOM
+            # All tool access is via database queries, not galaxy_app.toolbox
+            _ai_assistant_instance = AIAssistant(ai_config, galaxy_app=None)
+            log.info("[DEBUG] AIAssistant instance created!")
+            log.info("AI Assistant initialized successfully (without galaxy_app to avoid OOM)")
 
         except Exception as e:
             log.error(f"Failed to initialize AI Assistant: {e}")
@@ -109,37 +119,85 @@ class AIResponseModel(BaseModel):
 
 
 @router.get(
+    "/api/ai_assistant/test_init",
+    summary="Test AI Assistant initialization only"
+)
+def test_ai_init(
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Test if AI Assistant can be initialized without crashing."""
+    try:
+        ai_assistant = get_ai_assistant(trans)
+        if ai_assistant:
+            return {"success": True, "message": "AI Assistant initialized successfully"}
+        else:
+            return {"success": False, "message": "AI Assistant not available"}
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+@router.get(
     "/api/ai_assistant/status",
     summary="Get AI Assistant status and configuration."
 )
 def get_ai_status(
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
-    """Get AI Assistant status and configuration."""
-    
+    """Get AI Assistant status and configuration - lightweight check without full initialization."""
+
     if not AI_AVAILABLE:
         return {
             "available": False,
             "error": "AI Assistant components not installed",
             "ready": False
         }
-    
-    ai_assistant = get_ai_assistant(trans)
-    
-    if not ai_assistant:
-        app = trans.app
-        ai_enabled = getattr(app.config, 'enable_ai_assistant', False)
-        api_key_configured = bool(getattr(app.config, 'ai_llm_api_key', None))
-        
+
+    # Don't initialize AI Assistant for status check - just validate configuration
+    app = trans.app
+    ai_enabled = getattr(app.config, 'enable_ai_assistant', False)
+
+    if not ai_enabled:
+        return {
+            "available": AI_AVAILABLE,
+            "enabled": False,
+            "ready": False,
+            "error": "AI Assistant not enabled in configuration"
+        }
+
+    # Check if we can configure AI Assistant (without full initialization)
+    from galaxy.config.ai_config import configure_ai_assistant
+    try:
+        ai_config = configure_ai_assistant(app.config.__dict__, app.config.config_dir)
+        if not ai_config:
+            return {
+                "available": AI_AVAILABLE,
+                "enabled": ai_enabled,
+                "ready": False,
+                "error": "AI Assistant configuration failed"
+            }
+
+        api_key_configured = bool(ai_config.llm_api_key)
+
         return {
             "available": AI_AVAILABLE,
             "enabled": ai_enabled,
             "api_key_configured": api_key_configured,
-            "ready": False,
-            "error": "AI Assistant not properly configured"
+            "ready": True,
+            "llm_provider": ai_config.llm_provider,
+            "llm_model": ai_config.llm_model
         }
-    
-    return ai_assistant.get_status()
+    except Exception as e:
+        log.error(f"Status check error: {e}")
+        return {
+            "available": AI_AVAILABLE,
+            "enabled": ai_enabled,
+            "ready": False,
+            "error": f"Configuration error: {str(e)}"
+        }
 
 
 @router.post(
@@ -373,7 +431,13 @@ def generate_workflow_unified(
     5. Always assign datasets via WorkflowDatasetSelector
     """
 
+    import sys
+    print("[DEBUG] generate_workflow_unified endpoint called", file=sys.stderr, flush=True)
+    print(f"[DEBUG] Request text: {request.request_text}", file=sys.stderr, flush=True)
+
+    print("[DEBUG] About to call get_ai_assistant...", file=sys.stderr, flush=True)
     ai_assistant = get_ai_assistant(trans)
+    print(f"[DEBUG] get_ai_assistant returned: {ai_assistant}", file=sys.stderr, flush=True)
     if not ai_assistant:
         raise HTTPException(status_code=503, detail="AI Assistant not available")
 

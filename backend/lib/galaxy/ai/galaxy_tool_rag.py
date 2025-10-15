@@ -20,21 +20,17 @@ class GalaxyToolRAG:
 
     def __init__(self, galaxy_app=None, db_path=None):
         self.galaxy_app = galaxy_app
-        self.tool_index = {}
-        self.tool_embeddings = {}
-        self.category_index = {}
-        self.tool_source_mapping = {}  # NEW: Maps tools to their sources (BioMni, nf-core, Galaxy)
 
-        # Set database path
+        # Set database path - tools are already indexed in database
         if db_path is None:
             db_path = str(Path(__file__).parent.parent.parent.parent / "galaxy_ai_tools.db")
         self.db_path = db_path
 
-        # Build index from comprehensive database
-        self._build_tool_index()
-
-        # Load tool source mapping for enhanced scoring
-        self._load_tool_source_mapping()
+        # Verify database exists
+        if not Path(self.db_path).exists():
+            log.warning(f"Galaxy tools database not found at {self.db_path}")
+        else:
+            log.info(f"GalaxyToolRAG initialized with database at {self.db_path}")
 
     def _build_tool_index(self):
         """Build searchable index from comprehensive tool database (6,295 tools)."""
@@ -226,57 +222,84 @@ class GalaxyToolRAG:
 
     def search_tools(self, query: str, data_types: List[str] = None,
                     category: str = None, limit: int = 10) -> List[Dict[str, Any]]:
-        """Search for tools based on query and constraints with source-aware scoring."""
+        """Search for tools based on query using database query (no memory loading)."""
+
+        if not Path(self.db_path).exists():
+            log.warning("Database not found, cannot search tools")
+            return []
 
         results = []
         query_lower = query.lower()
 
-        for tool_id, tool_info in self.tool_index.items():
-            score = 0
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
 
-            # Text matching
-            if query_lower in tool_info["name"].lower():
-                score += 20
-            if query_lower in tool_info["description"].lower():
-                score += 10
+                # Use SQL LIKE for efficient text search instead of loading all tools
+                # Schema: tool_id, name, version, repo_owner, repo_name, category, rawText, htmlContent, url
+                sql = """
+                    SELECT tool_id, name, version, category, repo_owner, repo_name, rawText
+                    FROM tools
+                    WHERE LOWER(name) LIKE ? OR LOWER(rawText) LIKE ?
+                    LIMIT ?
+                """
+                cursor.execute(sql, (f'%{query_lower}%', f'%{query_lower}%', limit * 3))
 
-            # Category matching
-            if category:
-                tool_categories = self._categorize_tool(tool_info)
-                if category in tool_categories:
-                    score += 15
+                for row in cursor.fetchall():
+                    tool_info = {
+                        "id": row['tool_id'],
+                        "name": row['name'] or '',
+                        "description": row['rawText'][:200] if row['rawText'] else '',  # First 200 chars as description
+                        "version": row['version'] or '',
+                        "category": row['category'] or '',
+                        "repo_owner": row['repo_owner'] or '',
+                        "repo_name": row['repo_name'] or '',
+                        "tool_type": "tool",
+                        "inputs": [],
+                        "outputs": [],
+                        "requirements": [],
+                        "parameters": [],
+                        "help_text": {},
+                        "edam_operations": [],
+                        "edam_topics": []
+                    }
 
-            # Data type compatibility
-            if data_types:
-                for data_type in data_types:
-                    for input_info in tool_info["inputs"]:
-                        if data_type.lower() in str(input_info.get("type", "")).lower():
-                            score += 12
-                    for output_info in tool_info["outputs"]:
-                        if data_type.lower() in str(output_info.get("type", "")).lower():
-                            score += 8
+                    # Score the result
+                    score = 0
+                    if query_lower in tool_info["name"].lower():
+                        score += 20
+                    if query_lower in tool_info["description"].lower():
+                        score += 10
 
-            # NEW: Source-based scoring boost
-            source_boost = self._get_source_score_boost(tool_id, tool_info)
-            score += source_boost
+                    # Category matching
+                    if category:
+                        tool_categories = self._categorize_tool(tool_info)
+                        if category in tool_categories:
+                            score += 15
 
-            if score > 0:
-                result = tool_info.copy()
-                result["relevance_score"] = score
+                    # Data type compatibility
+                    if data_types:
+                        for data_type in data_types:
+                            for input_info in tool_info["inputs"]:
+                                if data_type.lower() in str(input_info.get("type", "")).lower():
+                                    score += 12
+                            for output_info in tool_info["outputs"]:
+                                if data_type.lower() in str(output_info.get("type", "")).lower():
+                                    score += 8
 
-                # Add source information to result
-                if tool_id in self.tool_source_mapping:
-                    source_info = self.tool_source_mapping[tool_id]
-                    result["sources"] = source_info.get("sources", [])
-                    result["source_count"] = source_info.get("source_count", 0)
-                    result["in_toolshed"] = source_info.get("in_toolshed", False)
-                    result["priority_score"] = source_info.get("priority_score", 1)
+                    if score > 0:
+                        result = tool_info.copy()
+                        result["relevance_score"] = score
+                        results.append(result)
 
-                results.append(result)
+            # Sort by relevance and limit results
+            results.sort(key=lambda x: x["relevance_score"], reverse=True)
+            return results[:limit]
 
-        # Sort by relevance and limit results
-        results.sort(key=lambda x: x["relevance_score"], reverse=True)
-        return results[:limit]
+        except Exception as e:
+            log.error(f"Error searching tools in database: {e}")
+            return []
 
     def _get_source_score_boost(self, tool_id: str, tool_info: Dict[str, Any]) -> float:
         """Calculate score boost based on tool sources (BioMni, nf-core, Galaxy).
