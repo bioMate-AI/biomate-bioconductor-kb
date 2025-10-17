@@ -1,6 +1,5 @@
-# BioMate AWS Deployment Guide
+# BioMate AWS Deployment Guide - October 17, 2025
 **Single EC2 Instance Deployment (Budget: $30/month)**
-**Last Updated: October 15, 2025**
 
 This guide will help you deploy the entire BioMate system on a single AWS EC2 instance.
 
@@ -276,7 +275,359 @@ EOF
 
 ---
 
-## Step 6: Create Systemd Services
+## Step 6: Configure S3 for Dataset Storage
+
+If you have datasets stored in S3, you'll need to configure access and integrate with Galaxy.
+
+### 6.1 Create S3 Bucket for Datasets
+
+```bash
+# Set variables
+S3_BUCKET_NAME="biomate-datasets-$(date +%s)"  # Unique bucket name
+S3_REGION="us-east-1"  # Should match your EC2 region
+
+# Create S3 bucket
+aws s3 mb s3://$S3_BUCKET_NAME --region $S3_REGION
+
+# Enable versioning (optional but recommended)
+aws s3api put-bucket-versioning \
+  --bucket $S3_BUCKET_NAME \
+  --versioning-configuration Status=Enabled
+
+# Set bucket policy for private access
+cat > /tmp/bucket-policy.json << 'EOF'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PrivateAccess",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::BUCKET_NAME",
+        "arn:aws:s3:::BUCKET_NAME/*"
+      ],
+      "Condition": {
+        "StringNotEquals": {
+          "aws:PrincipalAccount": "YOUR_AWS_ACCOUNT_ID"
+        }
+      }
+    }
+  ]
+}
+EOF
+
+# Apply policy (replace BUCKET_NAME and YOUR_AWS_ACCOUNT_ID)
+aws s3api put-bucket-policy \
+  --bucket $S3_BUCKET_NAME \
+  --policy file:///tmp/bucket-policy.json
+```
+
+### 6.2 Create IAM Role for EC2 S3 Access
+
+```bash
+# Create trust policy for EC2
+cat > /tmp/ec2-trust-policy.json << 'EOF'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+
+# Create IAM role
+aws iam create-role \
+  --role-name BioMate-S3-Access-Role \
+  --assume-role-policy-document file:///tmp/ec2-trust-policy.json
+
+# Create S3 access policy
+cat > /tmp/s3-access-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::$S3_BUCKET_NAME",
+        "arn:aws:s3:::$S3_BUCKET_NAME/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListAllMyBuckets"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+
+# Attach policy to role
+aws iam put-role-policy \
+  --role-name BioMate-S3-Access-Role \
+  --policy-name BioMate-S3-Policy \
+  --policy-document file:///tmp/s3-access-policy.json
+
+# Create instance profile
+aws iam create-instance-profile \
+  --instance-profile-name BioMate-S3-Instance-Profile
+
+# Add role to instance profile
+aws iam add-role-to-instance-profile \
+  --instance-profile-name BioMate-S3-Instance-Profile \
+  --role-name BioMate-S3-Access-Role
+```
+
+### 6.3 Attach IAM Role to EC2 Instance
+
+```bash
+# Get your instance ID (from Step 1.3)
+INSTANCE_ID=$(aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=BioMate-Production" \
+  --query 'Reservations[0].Instances[0].InstanceId' \
+  --output text \
+  --region $REGION)
+
+# Associate IAM instance profile with EC2
+aws ec2 associate-iam-instance-profile \
+  --instance-id $INSTANCE_ID \
+  --iam-instance-profile Name=BioMate-S3-Instance-Profile \
+  --region $REGION
+
+echo "IAM role attached to EC2 instance: $INSTANCE_ID"
+```
+
+### 6.4 Configure Galaxy for S3 Storage
+
+**Update `/opt/biomate/backend/config/galaxy.yml`:**
+
+```yaml
+galaxy:
+  # ... existing configuration ...
+
+  # S3 Object Store Configuration
+  object_store_config_file: config/object_store_conf.xml
+
+  # S3 settings
+  aws_access_key_id: null  # Use IAM role instead
+  aws_secret_access_key: null  # Use IAM role instead
+```
+
+**Create `/opt/biomate/backend/config/object_store_conf.xml`:**
+
+```bash
+cat > /opt/biomate/backend/config/object_store_conf.xml << 'EOF'
+<?xml version="1.0"?>
+<object_store type="hierarchical">
+    <!-- Default: Local disk storage for system files -->
+    <backend id="files1" type="disk" weight="0">
+        <files_dir path="database/files"/>
+        <extra_dir type="temp" path="database/tmp"/>
+        <extra_dir type="job_work" path="database/job_working_directory"/>
+    </backend>
+
+    <!-- S3 storage for datasets -->
+    <backend id="s3_datasets" type="aws_s3" weight="1">
+        <auth>
+            <!-- Use IAM role credentials automatically -->
+            <access_key>${AWS_ACCESS_KEY_ID}</access_key>
+            <secret_key>${AWS_SECRET_ACCESS_KEY}</secret_key>
+        </auth>
+        <bucket name="YOUR_BUCKET_NAME" use_reduced_redundancy="False"/>
+        <connection>
+            <host>s3.amazonaws.com</host>
+            <port>443</port>
+            <is_secure>True</is_secure>
+            <conn_path>/</conn_path>
+        </connection>
+        <cache>
+            <path>database/object_store_cache</path>
+            <size>1000</size>  <!-- Cache size in MB -->
+        </cache>
+        <extra_dir type="temp" path="database/tmp"/>
+        <extra_dir type="job_work" path="database/job_working_directory"/>
+    </backend>
+</object_store>
+EOF
+
+# Replace YOUR_BUCKET_NAME with actual bucket name
+sed -i "s/YOUR_BUCKET_NAME/$S3_BUCKET_NAME/g" /opt/biomate/backend/config/object_store_conf.xml
+
+# Create cache directory
+mkdir -p /opt/biomate/backend/database/object_store_cache
+```
+
+### 6.5 Alternative: Direct S3 Bucket Configuration (Simple)
+
+If you don't need hybrid storage, configure Galaxy to use S3 directly:
+
+```bash
+cat > /opt/biomate/backend/config/object_store_conf.xml << EOF
+<?xml version="1.0"?>
+<object_store type="aws_s3">
+    <auth>
+        <!-- Credentials from IAM role -->
+        <access_key>\${AWS_ACCESS_KEY_ID}</access_key>
+        <secret_key>\${AWS_SECRET_ACCESS_KEY}</secret_key>
+    </auth>
+    <bucket name="$S3_BUCKET_NAME" use_reduced_redundancy="False"/>
+    <connection>
+        <host>s3.amazonaws.com</host>
+        <port>443</port>
+        <is_secure>True</is_secure>
+        <conn_path>/</conn_path>
+    </connection>
+    <cache>
+        <path>database/object_store_cache</path>
+        <size>1000</size>
+    </cache>
+    <extra_dir type="temp" path="database/tmp"/>
+    <extra_dir type="job_work" path="database/job_working_directory"/>
+</object_store>
+EOF
+```
+
+### 6.6 Update Environment Variables
+
+```bash
+# Update backend .env file
+cat >> /opt/biomate/backend/.env << EOF
+
+# S3 Configuration
+AWS_DEFAULT_REGION=$S3_REGION
+S3_BUCKET_NAME=$S3_BUCKET_NAME
+# AWS credentials will be automatically provided by IAM role
+EOF
+```
+
+### 6.7 Install boto3 for S3 Access
+
+```bash
+cd /opt/biomate/backend
+source .venv/bin/activate
+pip install boto3 botocore
+```
+
+### 6.8 Test S3 Access from EC2
+
+```bash
+# SSH into your EC2 instance
+ssh -i ~/.ssh/$KEY_NAME.pem ubuntu@$PUBLIC_IP
+
+# Test S3 access
+aws s3 ls s3://$S3_BUCKET_NAME
+
+# Test with Python boto3
+python3 << 'PYTHON_TEST'
+import boto3
+import os
+
+# Get bucket name from environment
+bucket_name = os.environ.get('S3_BUCKET_NAME', 'your-bucket-name')
+
+# Create S3 client (uses IAM role credentials automatically)
+s3 = boto3.client('s3')
+
+# List objects
+try:
+    response = s3.list_objects_v2(Bucket=bucket_name, MaxKeys=10)
+    print(f"✓ Successfully connected to S3 bucket: {bucket_name}")
+    print(f"  Found {response.get('KeyCount', 0)} objects")
+except Exception as e:
+    print(f"✗ Error accessing S3: {e}")
+PYTHON_TEST
+```
+
+### 6.9 Upload Sample Datasets to S3
+
+```bash
+# Upload your existing datasets to S3
+aws s3 sync /path/to/local/datasets s3://$S3_BUCKET_NAME/datasets/
+
+# Or upload individual files
+aws s3 cp /path/to/dataset.fastq s3://$S3_BUCKET_NAME/datasets/
+
+# List uploaded files
+aws s3 ls s3://$S3_BUCKET_NAME/datasets/ --recursive --human-readable
+```
+
+### 6.10 Configure S3 Lifecycle Policies (Optional)
+
+Optimize costs by moving old data to cheaper storage classes:
+
+```bash
+cat > /tmp/lifecycle-policy.json << 'EOF'
+{
+  "Rules": [
+    {
+      "Id": "MoveOldDatasetsToIA",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "datasets/"
+      },
+      "Transitions": [
+        {
+          "Days": 90,
+          "StorageClass": "STANDARD_IA"
+        },
+        {
+          "Days": 180,
+          "StorageClass": "GLACIER_IR"
+        }
+      ]
+    },
+    {
+      "Id": "DeleteTempFiles",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "temp/"
+      },
+      "Expiration": {
+        "Days": 7
+      }
+    }
+  ]
+}
+EOF
+
+# Apply lifecycle policy
+aws s3api put-bucket-lifecycle-configuration \
+  --bucket $S3_BUCKET_NAME \
+  --lifecycle-configuration file:///tmp/lifecycle-policy.json
+```
+
+### 6.11 Monitor S3 Usage
+
+```bash
+# Get bucket size
+aws s3 ls s3://$S3_BUCKET_NAME --recursive --summarize --human-readable
+
+# Enable S3 metrics (for CloudWatch monitoring)
+aws s3api put-bucket-metrics-configuration \
+  --bucket $S3_BUCKET_NAME \
+  --id EntireBucket \
+  --metrics-configuration '{"Id":"EntireBucket","Filter":{"Prefix":""}}'
+```
+
+---
+
+## Step 7: Create Systemd Services
 
 ### 6.1 Galaxy Backend Service
 

@@ -36,7 +36,7 @@ export function ChatMessage({
   )
 
   return (
-    <div className={cn("flex gap-4 p-4", isUser && "flex-row-reverse")}>
+    <div className={cn("flex gap-4 p-4", isUser && "flex-row-reverse")} data-testid={`chat-message-${message.id}`}>
       <Avatar className="h-8 w-8 flex-shrink-0">
         <AvatarImage 
           src={isUser ? userAvatar : assistantAvatar} 
@@ -66,6 +66,52 @@ export function ChatMessage({
               onToolClick={onToolClick}
               onDatasetClick={onDatasetClick}
             />
+          )}
+
+          {/* Workflow Display */}
+          {!isUser && message.metadata?.type === 'workflow' && message.metadata?.workflow && (
+            <Card className="p-4 bg-muted/50" data-testid="workflow-generated-message">
+              <div className="space-y-3">
+                <div>
+                  <h4 className="font-semibold text-sm">{message.metadata.workflow.name || 'Generated Workflow'}</h4>
+                  {message.metadata.steps && message.metadata.steps.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {message.metadata.steps.length} steps • Confidence: {((message.metadata.confidence || 0) * 100).toFixed(1)}%
+                    </p>
+                  )}
+                </div>
+                {message.metadata.workflow.annotation && (
+                  <p className="text-xs text-muted-foreground">
+                    {message.metadata.workflow.annotation}
+                  </p>
+                )}
+                {message.metadata.steps && message.metadata.steps.length > 0 && (
+                  <div className="space-y-1">
+                    {message.metadata.steps.slice(0, 5).map((step: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs">
+                        <span className="font-mono text-muted-foreground">{idx + 1}.</span>
+                        <span>{step.name || step.tool_id || 'Unknown step'}</span>
+                      </div>
+                    ))}
+                    {message.metadata.steps.length > 5 && (
+                      <p className="text-xs text-muted-foreground">
+                        ...and {message.metadata.steps.length - 5} more steps
+                      </p>
+                    )}
+                  </div>
+                )}
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={onCreateWorkflow}
+                  className="w-full"
+                  data-testid="button-open-workflow-builder"
+                >
+                  <Workflow className="h-3 w-3 mr-1" />
+                  Open in Workflow Builder
+                </Button>
+              </div>
+            </Card>
           )}
         </div>
 

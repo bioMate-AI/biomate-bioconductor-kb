@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Galaxy Backend
+  galaxy-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: biomate-galaxy
+    ports:
+      - "8080:8080"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - GALAXY_CONFIG_FILE=/app/config/galaxy.yml
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - ./backend/database:/app/database
+      - ./backend/logs:/app/logs
+      - ./backend/config:/app/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - biomate-network
+
+  # Frontend (React + Express)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: biomate-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - GALAXY_API_URL=http://galaxy-backend:8080
+    depends_on:
+      galaxy-backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - biomate-network
+
+networks:
+  biomate-network:
+    driver: bridge
+
+volumes:
+  galaxy-database:
+  galaxy-logs:
