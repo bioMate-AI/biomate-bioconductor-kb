@@ -67,6 +67,7 @@ interface ChatWithArtifactsProps {
 
 export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWithArtifactsProps) {
   const [showProgress, setShowProgress] = useState(false)
+  const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null)
 
   // Use workflow sync hook for bidirectional state management
   const {
@@ -78,26 +79,34 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     isFromChat,
   } = useWorkflowSync();
 
-  // Load existing workflows when chat session changes
+  // Load existing workflows when chat session changes (but not when same session is updated)
   useEffect(() => {
-    console.log('ChatWithArtifacts: Chat session changed', currentChatSession?.id, 'workflows:', currentChatSession?.workflows)
-    if (currentChatSession?.workflows && Array.isArray(currentChatSession.workflows) && currentChatSession.workflows.length > 0) {
-      // Convert chat session workflows to workflow sync format
-      const workflow = {
-        id: 'workflow-' + currentChatSession.id,
-        name: currentChatSession.workflows[0]?.tool ? `${currentChatSession.workflows[0].tool} Pipeline` : "Workflow from Chat",
-        steps: currentChatSession.workflows,
-      };
+    const sessionId = currentChatSession?.id || null;
+    console.log('ChatWithArtifacts: Chat session changed', sessionId, 'workflows:', currentChatSession?.workflows)
 
-      console.log('ChatWithArtifacts: Loading workflow from session');
-      setWorkflowFromChat(workflow);
-      setShowProgress(true);
+    // Only reload if we switched to a different session
+    if (sessionId !== loadedSessionId) {
+      console.log('ChatWithArtifacts: Session switched from', loadedSessionId, 'to', sessionId)
+      setLoadedSessionId(sessionId);
+
+      if (currentChatSession?.workflows && Array.isArray(currentChatSession.workflows) && currentChatSession.workflows.length > 0) {
+        const workflow = {
+          id: 'workflow-' + currentChatSession.id,
+          name: currentChatSession.workflows[0]?.tool ? `${currentChatSession.workflows[0].tool} Pipeline` : "Workflow from Chat",
+          steps: currentChatSession.workflows,
+        };
+
+        console.log('ChatWithArtifacts: Loading workflow from session');
+        setWorkflowFromChat(workflow);
+        setShowProgress(true);
+      } else {
+        console.log('ChatWithArtifacts: No workflows in session');
+        setShowProgress(false);
+      }
     } else {
-      // No workflows in this session
-      console.log('ChatWithArtifacts: No workflows in session');
-      setShowProgress(false);
+      console.log('ChatWithArtifacts: Same session updated, skipping workflow reload');
     }
-  }, [currentChatSession, setWorkflowFromChat])
+  }, [currentChatSession, loadedSessionId, setWorkflowFromChat])
   
   const getStatusIcon = (status: WorkflowProgress['status']) => {
     switch (status) {
@@ -132,22 +141,28 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
 
     // Save to chat session if available
     if (currentChatSession) {
-      const updatedSession = {
-        ...currentChatSession,
-        workflows: workflowState.workflowSteps.map(step => ({
-          id: step.id,
-          title: step.title,
-          description: step.description,
-          status: step.status,
-          tool: step.tool || 'Unknown',
-          complexity: step.complexity || 'simple' as const,
-          estimatedTime: step.estimatedTime || '5 min',
-          inputs: step.inputs || [],
-          outputs: step.outputs || [],
-        })),
-      };
-      console.log('ChatWithArtifacts: Saving workflow to session');
-      onChatUpdated(updatedSession);
+      // Get the FRESH session from chatHistoryService (not the stale prop)
+      const freshSession = chatHistoryService.getSession(currentChatSession.id);
+      if (freshSession) {
+        const updatedSession = {
+          ...freshSession,  // Use fresh session with all messages
+          workflows: workflowState.workflowSteps.map(step => ({
+            id: step.id,
+            title: step.title,
+            description: step.description,
+            status: step.status,
+            tool: step.tool || 'Unknown',
+            complexity: step.complexity || 'simple' as const,
+            estimatedTime: step.estimatedTime || '5 min',
+            inputs: step.inputs || [],
+            outputs: step.outputs || [],
+          })),
+        };
+        console.log('ChatWithArtifacts: Saving workflow to session (fresh session has', freshSession.messages.length, 'messages)');
+        onChatUpdated(updatedSession);
+      } else {
+        console.log('ChatWithArtifacts: Could not get fresh session, skipping save');
+      }
     }
   };
 

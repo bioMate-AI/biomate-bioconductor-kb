@@ -550,6 +550,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Workflow generation endpoint - proxies to Galaxy backend
+  app.post("/api/ai_assistant/generate_workflow", async (req, res) => {
+    try {
+      const { request_text, available_datasets, context, preferred_tools, constraints } = req.body;
+
+      if (!request_text) {
+        return res.status(400).json({ error: "request_text is required" });
+      }
+
+      console.log('[WorkflowGen API] Generating workflow for:', request_text);
+
+      // Call Galaxy backend via proxy
+      const response = await galaxyAPIProxy.generateWorkflow({
+        user_intent: request_text,
+        datasets: available_datasets,
+        max_tools_search: constraints?.max_tools_search,
+      });
+
+      console.log('[WorkflowGen API] Response:', {
+        success: response.success,
+        source: response.source,
+        confidence: response.confidence,
+        has_workflow_ga: !!response.workflow_ga,
+      });
+
+      console.log('[WorkflowGen API] Sending response to client...');
+      res.json(response);
+      console.log('[WorkflowGen API] Response sent successfully');
+    } catch (error: any) {
+      console.error("[WorkflowGen API] Error:", error);
+      res.status(500).json({
+        success: false,
+        error: 'WorkflowGenerationError',
+        message: error.message || 'Workflow generation failed',
+      });
+    }
+  });
+
   // ============================================================================
   // Parameter Template Repository API
   // ============================================================================

@@ -137,7 +137,7 @@ export function ExecutionTimeline({
   }
 
   return (
-    <Card>
+    <Card data-testid="execution-timeline">
       <CardHeader>
         <CardTitle>Execution Timeline</CardTitle>
         <p className="text-sm text-muted-foreground">
@@ -154,6 +154,7 @@ export function ExecutionTimeline({
               return (
                 <div
                   key={`${event.stepId}-${index}`}
+                  data-testid={`timeline-event-${event.stepId}`}
                   className={cn(
                     "flex items-start gap-4 pb-4",
                     index < events.length - 1 && "border-b"

@@ -23,8 +23,8 @@ For a budget of $30/month, we'll use **t3.medium** (2 vCPU, 4 GB RAM):
 
 ```bash
 # Set your variables
-REGION="us-east-1"  # Change to your preferred region
-KEY_NAME="biomate-key"  # Your SSH key pair name
+REGION="us-west-2"  # Change to your preferred region
+KEY_NAME="for_biomate_instance"  # Your SSH key pair name
 SECURITY_GROUP_NAME="biomate-sg"
 
 # Create security group
@@ -66,12 +66,13 @@ aws ec2 authorize-security-group-ingress \
   --region $REGION
 
 # Launch Ubuntu 22.04 LTS instance
+
 aws ec2 run-instances \
-  --image-id ami-0c7217cdde317cfec \
-  --instance-type t3.medium \
+  --image-id ami-03c1f788292172a4e \
+  --instance-type t3.small \
   --key-name $KEY_NAME \
   --security-group-ids $SG_ID \
-  --block-device-mappings DeviceName=/dev/sda1,Ebs={VolumeSize=30,VolumeType=gp3} \
+  --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=30,VolumeType=gp3}' \
   --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=BioMate-Production}]' \
   --region $REGION
 ```
@@ -100,8 +101,13 @@ echo "Your EC2 instance IP: $PUBLIC_IP"
 
 ## Step 2: Connect to EC2 Instance
 
+chmod 400 ~/Downloads/for_biomate_instance.pem
+
 ```bash
+PUBLIC_IP="16.144.70.240"
 # SSH into your instance
+ssh -i ~/Downloads/for_biomate_instance.pem ubuntu@$PUBLIC_IP
+
 ssh -i ~/.ssh/$KEY_NAME.pem ubuntu@$PUBLIC_IP
 ```
 
@@ -141,6 +147,10 @@ exit
 
 ```bash
 # SSH back in
+PUBLIC_IP="44.244.36.186"
+# SSH into your instance
+ssh -i ~/Downloads/for_biomate_instance.pem ubuntu@$PUBLIC_IP
+
 ssh -i ~/.ssh/$KEY_NAME.pem ubuntu@$PUBLIC_IP
 ```
 
@@ -180,12 +190,14 @@ sudo chown ubuntu:ubuntu /opt/biomate
 cd /opt/biomate
 
 # Clone your repository
-git clone https://github.com/YOUR_USERNAME/biomate.git .
+git clone https://github.com/yaoyun-dev/biomate.git .
 # Or use the correct repo URL
 
 # Checkout the production branch
-cd /opt/biomate/backend
 git checkout frontend_backend_connection
+
+
+git clone -b frontend_backend_connection https://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@github.com/bioMate-AI/biomate.git .
 ```
 
 ### 4.2 Setup Backend (Galaxy)
@@ -262,7 +274,7 @@ npm run build
 ```bash
 # Create .env file for backend
 cat > /opt/biomate/backend/.env << 'EOF'
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
+ANTHROPIC_API_KEY="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"
 GALAXY_CONFIG_FILE=/opt/biomate/backend/config/galaxy.yml
 EOF
 
@@ -305,8 +317,8 @@ cat > /tmp/bucket-policy.json << 'EOF'
       "Principal": "*",
       "Action": "s3:*",
       "Resource": [
-        "arn:aws:s3:::BUCKET_NAME",
-        "arn:aws:s3:::BUCKET_NAME/*"
+        "arn:aws:s3:::knowledge-datasets-1759951976",
+        "arn:aws:s3:::knowledge-datasets-1759951976/*"
       ],
       "Condition": {
         "StringNotEquals": {

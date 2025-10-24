@@ -209,7 +209,7 @@ export function WorkflowGraph({
                   {node.step.estimatedTime || "~5 min"}
                 </Badge>
               </div>
-              <CardTitle className="text-sm line-clamp-2">{node.step.title}</CardTitle>
+              <CardTitle className="text-sm line-clamp-2" data-testid={`graph-node-title-${node.id}`}>{node.step.title}</CardTitle>
             </CardHeader>
             
             <CardContent className="pt-0">

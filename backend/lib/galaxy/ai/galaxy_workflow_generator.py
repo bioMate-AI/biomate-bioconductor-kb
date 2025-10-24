@@ -535,7 +535,7 @@ Return JSON only.
         import sqlite3
 
         try:
-            db_path = Path(__file__).parent.parent.parent / "galaxy_ai_tools.db"
+            db_path = Path(__file__).parent.parent.parent.parent / "galaxy_ai_tools.db"
             with sqlite3.connect(str(db_path)) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()

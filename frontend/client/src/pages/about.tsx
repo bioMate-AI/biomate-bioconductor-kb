@@ -103,19 +103,22 @@ export default function AboutPage() {
           <div className="prose prose-lg dark:prose-invert max-w-none">
             <p>
               The complexity of biomedical research has grown exponentially. Researchers today must navigate massive datasets,
-              complex workflows, and rapidly evolving methodologies. Traditional tools haven't kept pace.
+              complex workflows, and rapidly evolving methodologies—while also worrying about infrastructure, software installation,
+              and coding expertise. Traditional tools haven't kept pace.
             </p>
             <p>
               BioMate was born from a simple observation: artificial intelligence could transform how researchers work,
-              but existing solutions were either too generic, too expensive, or too complex.
+              but existing solutions were either too generic, too expensive, or too complex. More importantly, they required researchers
+              to become IT experts just to run their analyses.
             </p>
             <p>
-              We built BioMate to be different. A platform that combines cutting-edge AI with deep domain expertise in biomedicine.
-              Tools that are powerful yet intuitive. Technology that augments human intelligence rather than replacing it.
+              We built BioMate to be different. <strong>100% cloud-based. Zero code required.</strong> A platform where researchers
+              simply chat with AI to design and run complex analyses. No servers to manage, no software to install, no programming
+              skills needed. Just focus on your science while our cloud infrastructure handles the complexity.
             </p>
             <p>
-              Today, we're proud to serve thousands of researchers across hundreds of institutions worldwide.
-              But we're just getting started.
+              Today, we're proud to serve thousands of researchers across hundreds of institutions worldwide, freeing them from
+              infrastructure headaches and letting them focus purely on discovery. But we're just getting started.
             </p>
           </div>
         </div>

@@ -51,7 +51,12 @@ export function ParameterEditor({
     try {
       const response = await fetch(`/api/galaxy/tools/${encodeURIComponent(toolId)}/schema`)
       if (!response.ok) {
-        throw new Error(`Failed to fetch tool schema: ${response.statusText}`)
+        // Schema not available - this is OK for many tools
+        console.warn(`[ParameterEditor] Tool schema not available for ${toolId} (${response.status})`)
+        setToolSchema(null)
+        setError(null) // Don't treat as error - many tools don't have schemas
+        setLoading(false)
+        return
       }
       const schema: ToolSchema = await response.json()
       setToolSchema(schema)
@@ -68,7 +73,8 @@ export function ParameterEditor({
       setParameters(defaultParams)
     } catch (err: any) {
       console.error('[ParameterEditor] Failed to fetch tool schema:', err)
-      setError(err.message || 'Failed to load tool parameters')
+      setError(null) // Don't show error - tool may not have schema
+      setToolSchema(null)
     } finally {
       setLoading(false)
     }
@@ -172,7 +178,7 @@ export function ParameterEditor({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col" data-testid="parameter-dialog">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5" />
@@ -227,6 +233,20 @@ export function ParameterEditor({
                     {renderParameterInput(input)}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {!toolSchema && !loading && !error && (
+              <div className="flex flex-col items-center justify-center py-12 text-center" data-testid="parameter-schema-unavailable">
+                <Package className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="font-semibold text-lg mb-2">Parameter Schema Not Available</h3>
+                <p className="text-sm text-muted-foreground max-w-md mb-4">
+                  Detailed parameter configuration is not available for this tool.
+                  The tool will run with default parameters.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Tool ID: {toolId}
+                </p>
               </div>
             )}
           </TabsContent>

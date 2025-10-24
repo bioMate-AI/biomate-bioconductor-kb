@@ -1,0 +1,27 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0 -- /Library/Developer/CommandLineTools/usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/jingqiwang/biomate/backend
+configfile: pytest.ini
+plugins: anyio-4.10.0, base-url-2.1.0, playwright-0.7.1
+collecting ... collected 10 items
+
+test_cases/test_01_dia_lcms.py::TestDiaLcmsWorkflow::test_01_navigate_to_chat PASSED [ 10%]
+test_cases/test_01_dia_lcms.py::TestDiaLcmsWorkflow::test_02_send_workflow_query PASSED [ 20%]
+test_cases/test_01_dia_lcms.py::TestDiaLcmsWorkflow::test_03_wait_for_workflow_generation FAILED [ 30%]
+
+=================================== FAILURES ===================================
+/Users/jingqiwang/Library/Python/3.9/lib/python/site-packages/playwright/_impl/_connection.py:558: playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 60000ms exceeded.
+=============================== warnings summary ===============================
+../../../../Library/Python/3.9/lib/python/site-packages/_pytest/config/__init__.py:1474
+  /Users/jingqiwang/Library/Python/3.9/lib/python/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED test_cases/test_01_dia_lcms.py::TestDiaLcmsWorkflow::test_03_wait_for_workflow_generation - playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 60000ms exceeded.
+Call log:
+  - waiting for locator("[data-testid=\"workflow-generated-message\"]") to be visible
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============== 1 failed, 2 passed, 1 warning in 73.36s (0:01:13) ===============

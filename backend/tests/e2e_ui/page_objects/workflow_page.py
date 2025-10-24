@@ -78,6 +78,9 @@ class WorkflowPage:
         Args:
             step_id: The step identifier to execute
         """
+        # First select the node to make run button visible
+        self.get_step_node(step_id).click()
+        # Then click the run button
         self.get_step_run_button(step_id).click()
 
     def pause_step(self, step_id: str):
@@ -87,6 +90,9 @@ class WorkflowPage:
         Args:
             step_id: The step identifier to pause
         """
+        # First select the node to make pause button visible
+        self.get_step_node(step_id).click()
+        # Then click the pause button
         self.get_step_pause_button(step_id).click()
 
     def restart_step(self, step_id: str):
@@ -96,6 +102,9 @@ class WorkflowPage:
         Args:
             step_id: The step identifier to restart
         """
+        # First select the node to make restart button visible
+        self.get_step_node(step_id).click()
+        # Then click the restart button
         self.get_step_restart_button(step_id).click()
 
     def edit_step_parameters(self, step_id: str):
@@ -105,6 +114,9 @@ class WorkflowPage:
         Args:
             step_id: The step identifier to edit
         """
+        # First select the node to make edit button visible
+        self.get_step_node(step_id).click()
+        # Then click the edit button
         self.get_step_edit_button(step_id).click()
         # Wait for parameter dialog to open
         self.page.locator('[data-testid="parameter-dialog"]').wait_for(state="visible")
@@ -116,6 +128,9 @@ class WorkflowPage:
         Args:
             step_id: The step identifier to delete
         """
+        # First select the node to make delete button visible
+        self.get_step_node(step_id).click()
+        # Then click the delete button
         self.get_step_delete_button(step_id).click()
 
     def is_step_visible(self, step_id: str) -> bool:
@@ -129,6 +144,15 @@ class WorkflowPage:
     def get_step_count(self) -> int:
         """Get the number of steps in the workflow"""
         return self.page.locator('[data-testid^="graph-node-"]').count()
+
+    def get_step_title(self, step_id: str) -> str:
+        """Get the title text of a specific step"""
+        return self.page.locator(f'[data-testid="graph-node-title-{step_id}"]').inner_text()
+
+    def get_all_step_titles(self) -> list[str]:
+        """Get titles of all workflow steps"""
+        title_elements = self.page.locator('[data-testid^="graph-node-title-"]').all()
+        return [element.inner_text() for element in title_elements]
 
     def wait_for_status(self, status: str, timeout: int = 60000):
         """

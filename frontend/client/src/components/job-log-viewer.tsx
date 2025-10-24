@@ -201,7 +201,7 @@ export function JobLogViewer({
   }
 
   return (
-    <Card>
+    <Card data-testid={`job-logs-${stepId}`}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">

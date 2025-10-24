@@ -79,8 +79,13 @@ class ScreenshotManager:
         filename = f"{self.step_counter:02d}_{clean_description}.png"
         filepath = self.test_dir / filename
 
-        # Capture screenshot
-        page.screenshot(path=str(filepath), full_page=full_page)
+        # Capture screenshot - handle timeout gracefully
+        # This is a workaround for Playwright's font loading timeout issues
+        try:
+            page.screenshot(path=str(filepath), full_page=full_page, timeout=3000)
+        except Exception as e:
+            # If screenshot times out, log warning and continue
+            print(f"Warning: Screenshot failed ({type(e).__name__}), test will continue...")
 
         # Record metadata
         self.screenshots.append({

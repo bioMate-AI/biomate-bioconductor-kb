@@ -11,40 +11,40 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: Bot,
-      title: "AI-Powered Analysis",
-      description: "Chat-based interface for customized study design and workflow generation",
-      details: "Natural language processing understands your research needs"
+      icon: MessageSquare,
+      title: "Chat-Based. Zero Code.",
+      description: "Design and run complex analyses through natural conversation—no programming required",
+      details: "Your AI mate understands research terminology and translates it into optimized workflows"
     },
     {
-      icon: Workflow,
-      title: "Automated Workflows",
-      description: "Pre-built workflows with automatic dataset integration",
-      details: "Connect your data sources seamlessly with intelligent orchestration"
+      icon: Shield,
+      title: "100% Cloud Infrastructure",
+      description: "Enterprise-grade compute that scales automatically—no servers to manage",
+      details: "Work from anywhere. Your analyses continue running even when you close your laptop"
+    },
+    {
+      icon: Bot,
+      title: "Smart Notifications",
+      description: "Get alerted when jobs complete or when AI needs your input to proceed",
+      details: "Stay in the loop without constantly checking status—focus on other work"
     },
     {
       icon: Settings,
       title: "Auto Parameter Tuning",
       description: "AI optimizes parameters for your specific analysis requirements",
-      details: "No manual tuning needed - our AI finds optimal settings"
+      details: "No manual tuning needed—our AI finds optimal settings based on your data"
     },
     {
       icon: Package,
-      title: "Massive Tool Library",
-      description: "Access 10,000+ tools from Bioconductor, Biocontainer, Bioconda, Conda, and HuggingFace",
-      details: "All containerized and ready to use instantly"
+      title: "10,000+ Ready-to-Use Tools",
+      description: "Instant access to Bioconductor, Biocontainer, Bioconda, Conda, and HuggingFace",
+      details: "All containerized and pre-configured—no installation or dependency hell"
     },
     {
       icon: GitBranch,
-      title: "Workflow Migration",
-      description: "Import from Galaxy, Nextflow, Snakemake, and other platforms",
-      details: "Seamless migration with automatic conversion and optimization"
-    },
-    {
-      icon: Zap,
-      title: "Lightning Fast",
-      description: "Distributed computing with automatic scaling",
-      details: "Run analyses in minutes, not hours"
+      title: "Seamless Workflow Migration",
+      description: "Import from Galaxy, Nextflow, Snakemake with one click",
+      details: "Automatically converts and optimizes your existing workflows for cloud execution"
     }
   ]
 
@@ -161,8 +161,8 @@ export default function LandingPage() {
                 </span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Accelerate your biomedical research with AI-powered workflow automation,
-                intelligent data analysis, and collaborative tools designed for scientists.
+                <strong>100% Cloud-Based. Zero Code Required.</strong> Just chat with your AI mate to design and run complex analyses.
+                No infrastructure setup, no programming skills needed—focus purely on your research.
               </p>
             </div>
 
@@ -186,7 +186,7 @@ export default function LandingPage() {
             </div>
 
             <p className="text-sm text-muted-foreground">
-              No credit card required • 14-day free trial • Cancel anytime
+              No credit card required • No installation • No coding skills needed
             </p>
           </div>
         </div>
@@ -202,6 +202,99 @@ export default function LandingPage() {
                 <div className="text-muted-foreground mt-2">{stat.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-24 border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge variant="secondary" className="mb-4">
+              Simple. Powerful. Cloud-Based.
+            </Badge>
+            <h2 className="text-4xl font-bold mb-4">
+              Research Without the Complexity
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              No infrastructure worries. No coding required. Just focus on your science.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <Card className="border-2">
+              <CardHeader>
+                <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mb-4">
+                  <MessageSquare className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <CardTitle className="text-xl">1. Chat Your Task</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Describe your analysis in plain English. "I need to analyze DIA-LCMS proteomics data with 50 samples."
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2">
+              <CardHeader>
+                <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center mb-4">
+                  <Bot className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <CardTitle className="text-xl">2. AI Takes Over</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Your AI mate designs the workflow, provisions cloud resources, and starts the analysis automatically.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2">
+              <CardHeader>
+                <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-4">
+                  <Sparkles className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <CardTitle className="text-xl">3. Switch Attention</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Close your laptop and focus on other work. Everything runs in the cloud while you're away.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2">
+              <CardHeader>
+                <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center mb-4">
+                  <Zap className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <CardTitle className="text-xl">4. Get Alerted</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Receive notifications when analysis completes, or when your mate needs clarification to proceed.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mt-12 text-center">
+            <Card className="max-w-3xl mx-auto bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-2">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Zero Infrastructure Headaches
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  No servers to manage. No software to install. No containers to configure.
+                  Your analyses run on enterprise-grade cloud infrastructure that automatically scales based on your needs.
+                  Pay only for what you use—just like your electricity bill.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>

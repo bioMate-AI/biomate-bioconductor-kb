@@ -67,6 +67,12 @@ export function ChatInterface({
   const displayMessages = chatSession?.messages || []
   const displayTyping = isTyping || isTypingLocal
 
+  // Debug: Log message count
+  useEffect(() => {
+    console.log('[ChatInterface] displayMessages count:', displayMessages.length)
+    console.log('[ChatInterface] displayMessages IDs:', displayMessages.map(m => m.id))
+  }, [displayMessages])
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -89,10 +95,22 @@ export function ChatInterface({
       return await response.json()
     },
     onSuccess: (data) => {
+      console.log('[ChatInterface] API Response:', data)
+
       // Galaxy API response format
       const workflowInfo = data.success && data.workflow_ga ?
         `✅ ${data.message}\n\n${data.workflow_ga.annotation || 'Workflow generated successfully'}` :
         'Workflow generation completed'
+
+      // Convert workflow_ga.steps object to array
+      const stepsArray = data.workflow_ga?.steps ?
+        Object.values(data.workflow_ga.steps).map((step: any) => ({
+          name: step.name || step.tool_id || 'Unknown step',
+          tool_id: step.tool_id,
+          annotation: step.annotation
+        })) : []
+
+      console.log('[ChatInterface] Steps array:', stepsArray)
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -103,23 +121,72 @@ export function ChatInterface({
         metadata: {
           type: data.success ? 'workflow' : 'text',
           workflow: data.workflow_ga,
-          steps: data.workflow_structure?.steps || [],
+          steps: stepsArray,
           confidence: data.confidence,
           source: data.source
         }
       }
 
+      console.log('[ChatInterface] Created AI message:', {
+        id: aiMessage.id,
+        metadata: aiMessage.metadata,
+        hasWorkflow: !!aiMessage.metadata?.workflow,
+        metadataType: aiMessage.metadata?.type
+      })
+
       // Add message to chat session (create one if it doesn't exist)
       if (chatSession) {
+        console.log('[ChatInterface] Adding message to existing session:', chatSession.id)
         const updatedSession = chatHistoryService.addMessage(chatSession.id, aiMessage)
+        console.log('[ChatInterface] Updated session:', updatedSession?.messages.length, 'messages')
+
+        // Also add workflow to session.workflows if workflow was generated
+        if (data.success && data.workflow_ga && stepsArray.length > 0) {
+          console.log('[ChatInterface] Extracting workflow to session.workflows')
+          const workflowSteps = stepsArray.map((step: any, index: number) => ({
+            id: `step_${index}`,
+            tool: step.tool_id || step.name || 'Unknown Tool',
+            name: step.name || step.tool_id || `Step ${index + 1}`,
+            description: step.annotation || '',
+            status: 'pending' as const,
+            complexity: 'intermediate' as const,
+            estimatedTime: '5 min',
+            parameters: {},
+            inputs: [],
+            outputs: [],
+          }))
+          chatHistoryService.addWorkflow(chatSession.id, workflowSteps)
+        }
+
         if (updatedSession && onChatUpdated) {
           onChatUpdated(updatedSession)
         }
       } else {
+        console.log('[ChatInterface] No session, creating new one')
         // Auto-create session if it doesn't exist (e.g., in test environment)
         const newSession = chatHistoryService.createNewSession()
         chatHistoryService.addMessage(newSession.id, aiMessage)
+
+        // Also add workflow to session.workflows if workflow was generated
+        if (data.success && data.workflow_ga && stepsArray.length > 0) {
+          console.log('[ChatInterface] Extracting workflow to new session.workflows')
+          const workflowSteps = stepsArray.map((step: any, index: number) => ({
+            id: `step_${index}`,
+            tool: step.tool_id || step.name || 'Unknown Tool',
+            name: step.name || step.tool_id || `Step ${index + 1}`,
+            description: step.annotation || '',
+            status: 'pending' as const,
+            complexity: 'intermediate' as const,
+            estimatedTime: '5 min',
+            parameters: {},
+            inputs: [],
+            outputs: [],
+          }))
+          chatHistoryService.addWorkflow(newSession.id, workflowSteps)
+        }
+
         const updatedSession = chatHistoryService.getSession(newSession.id)
+        console.log('[ChatInterface] New session created with', updatedSession?.messages.length, 'messages')
         if (updatedSession && onChatUpdated) {
           onChatUpdated(updatedSession)
         }
@@ -132,7 +199,12 @@ export function ChatInterface({
       }
     },
     onError: (error) => {
-      console.error('Chat error:', error)
+      console.error('[ChatInterface] API Error:', error)
+      console.error('[ChatInterface] Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      })
       // Fallback to demo response
       const responses = [
         "I understand you want to work on bioinformatics analysis. Let me help you build a workflow for that!",

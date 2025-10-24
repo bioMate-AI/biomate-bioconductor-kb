@@ -105,7 +105,13 @@ export function useWorkflowSync() {
     } else if (workflow?.steps) {
       // Simple format
       workflowName = workflow.name || workflow.title || 'Generated Workflow';
-      steps = workflow.steps.map((step: any, index: number) => ({
+
+      // Convert steps to array if it's an object (Galaxy .ga format)
+      const stepsArray = Array.isArray(workflow.steps)
+        ? workflow.steps
+        : Object.values(workflow.steps);
+
+      steps = stepsArray.map((step: any, index: number) => ({
         id: step.id || `step-${index}`,
         title: step.title || step.name || `Step ${index + 1}`,
         description: step.description || '',

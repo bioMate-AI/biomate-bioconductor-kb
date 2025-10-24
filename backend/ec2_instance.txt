@@ -1,0 +1,133 @@
+{
+    "ReservationId": "r-0beda593112d140d4",
+    "OwnerId": "399683337364",
+    "Groups": [],
+    "Instances": [
+        {
+            "Architecture": "x86_64",
+            "BlockDeviceMappings": [],
+            "ClientToken": "a62d78f3-8ffb-4836-bfbe-5c0c26d2c1a0",
+            "EbsOptimized": false,
+            "EnaSupport": true,
+            "Hypervisor": "xen",
+            "NetworkInterfaces": [
+                {
+                    "Attachment": {
+                        "AttachTime": "2025-10-17T17:00:52+00:00",
+                        "AttachmentId": "eni-attach-0587c7c740fc6199a",
+                        "DeleteOnTermination": true,
+                        "DeviceIndex": 0,
+                        "Status": "attaching",
+                        "NetworkCardIndex": 0
+                    },
+                    "Description": "",
+                    "Groups": [
+                        {
+                            "GroupId": "sg-0b2188a4d48d989b8",
+                            "GroupName": "biomate-sg"
+                        }
+                    ],
+                    "Ipv6Addresses": [],
+                    "MacAddress": "06:a5:ad:03:d2:b1",
+                    "NetworkInterfaceId": "eni-0210561a0b971fcba",
+                    "OwnerId": "399683337364",
+                    "PrivateDnsName": "ip-172-31-37-246.us-west-2.compute.internal",
+                    "PrivateIpAddress": "172.31.37.246",
+                    "PrivateIpAddresses": [
+                        {
+                            "Primary": true,
+                            "PrivateDnsName": "ip-172-31-37-246.us-west-2.compute.internal",
+                            "PrivateIpAddress": "172.31.37.246"
+                        }
+                    ],
+                    "SourceDestCheck": true,
+                    "Status": "in-use",
+                    "SubnetId": "subnet-09e4dce46682a6c60",
+                    "VpcId": "vpc-00059887828237f1f",
+                    "InterfaceType": "interface",
+                    "Operator": {
+                        "Managed": false
+                    }
+                }
+            ],
+            "RootDeviceName": "/dev/sda1",
+            "RootDeviceType": "ebs",
+            "SecurityGroups": [
+                {
+                    "GroupId": "sg-0b2188a4d48d989b8",
+                    "GroupName": "biomate-sg"
+                }
+            ],
+            "SourceDestCheck": true,
+            "StateReason": {
+                "Code": "pending",
+                "Message": "pending"
+            },
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "BioMate-Production"
+                }
+            ],
+            "VirtualizationType": "hvm",
+            "CpuOptions": {
+                "CoreCount": 1,
+                "ThreadsPerCore": 2
+            },
+            "CapacityReservationSpecification": {
+                "CapacityReservationPreference": "open"
+            },
+            "MetadataOptions": {
+                "State": "pending",
+                "HttpTokens": "optional",
+                "HttpPutResponseHopLimit": 1,
+                "HttpEndpoint": "enabled",
+                "HttpProtocolIpv6": "disabled",
+                "InstanceMetadataTags": "disabled"
+            },
+            "EnclaveOptions": {
+                "Enabled": false
+            },
+            "BootMode": "uefi-preferred",
+            "PrivateDnsNameOptions": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            },
+            "MaintenanceOptions": {
+                "AutoRecovery": "default",
+                "RebootMigration": "default"
+            },
+            "CurrentInstanceBootMode": "uefi",
+            "Operator": {
+                "Managed": false
+            },
+            "InstanceId": "i-06696b0d91f4346e0",
+            "ImageId": "ami-03c1f788292172a4e",
+            "State": {
+                "Code": 0,
+                "Name": "pending"
+            },
+            "PrivateDnsName": "ip-172-31-37-246.us-west-2.compute.internal",
+            "PublicDnsName": "",
+            "StateTransitionReason": "",
+            "KeyName": "for_biomate_instance",
+            "AmiLaunchIndex": 0,
+            "ProductCodes": [],
+            "InstanceType": "t3.small",
+            "LaunchTime": "2025-10-17T17:00:52+00:00",
+            "Placement": {
+                "AvailabilityZoneId": "usw2-az2",
+                "GroupName": "",
+                "Tenancy": "default",
+                "AvailabilityZone": "us-west-2a"
+            },
+            "Monitoring": {
+                "State": "disabled"
+            },
+            "SubnetId": "subnet-09e4dce46682a6c60",
+            "VpcId": "vpc-00059887828237f1f",
+            "PrivateIpAddress": "172.31.37.246"
+        }
+    ]
+}
