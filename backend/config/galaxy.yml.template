@@ -1,0 +1,40 @@
+galaxy:
+  # Enable AI Assistant
+  enable_ai_assistant: true
+
+  # Claude Sonnet 4.5 Configuration (Primary)
+  # Set ANTHROPIC_API_KEY environment variable or replace ${ANTHROPIC_API_KEY} with your key
+  ai_llm_provider: anthropic
+  ai_llm_model: claude-sonnet-4-5
+  ai_llm_api_key: ${ANTHROPIC_API_KEY}
+
+  # OpenAI Fallback (kept for backup)
+  # Uncomment and set OPENAI_API_KEY environment variable to use OpenAI
+  # ai_llm_provider: openai
+  # ai_llm_model: gpt-5-2025-08-07
+  # ai_llm_api_key: ${OPENAI_API_KEY}
+
+  # Basic Galaxy settings (use defaults for everything else)
+  admin_users: admin@galaxy.org
+  database_connection: sqlite:///./database/universe.sqlite?isolation_level=IMMEDIATE
+  file_path: database/files
+  new_file_path: database/tmp
+  tool_dependency_dir: database/dependencies
+  check_migrate_tools: false
+  tool_config_file: config/tool_conf.xml.sample,config/shed_tool_conf.xml
+
+  # Memory optimization - load tools on demand instead of preloading
+  preload_tool_panel: false
+
+gravity:
+  gunicorn:
+    # Reduce workers to prevent OOM on macOS
+    workers: 1
+    # Increase timeout for AI operations
+    timeout: 300
+    # Limit memory per worker
+    worker_class: sync
+    max_requests: 1000
+    max_requests_jitter: 50
+    # Do NOT preload app - load toolbox per worker to reduce memory
+    preload: false

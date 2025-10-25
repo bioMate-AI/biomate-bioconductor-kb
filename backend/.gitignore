@@ -193,3 +193,19 @@ involucro
 .DS_Store
 *.rej
 *~
+
+# BioMate specific - API keys and secrets
+config/galaxy.yml
+.env
+.env.*
+!.env.template
+
+# Database files (use Git LFS if needed)
+# galaxy_ai_tools.db
+
+# Optional: Exclude test artifacts to save space
+# tests/e2e_ui/test_videos/*.webm
+# tests/e2e_ui/test_screenshots/**/*.png
+
+# Allow template files in config
+!config/*.template
