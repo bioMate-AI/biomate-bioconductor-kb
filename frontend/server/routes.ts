@@ -29,11 +29,11 @@ const galaxyAPIProxy = galaxyAPIBackend; // Alias for consistency
 const galaxyPoller = createPoller(galaxyAPIBackend, { pollInterval: 2000 });
 const sseManager = new WorkflowSSEManager(galaxyPoller);
 
-// Initialize Galaxy Assistant (hybrid intelligence)
-const galaxyAssistant = new GalaxyAssistant({
-  openaiApiKey: process.env.OPENAI_API_KEY!,
+// Initialize Galaxy Assistant (hybrid intelligence with Claude Sonnet 4.5)
+const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   galaxyAPIProxy,
-});
+}) : null;
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), 'data', 'uploads');
@@ -197,14 +197,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get or create Galaxy history for this session
-      let historyId = req.session.galaxyHistoryId as string | undefined;
+      let historyId = req.session?.galaxyHistoryId as string | undefined;
 
       if (!historyId) {
         try {
           // Create a new history for this session
           const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
           historyId = await galaxyAPIProxy.createHistory(sessionName);
-          req.session.galaxyHistoryId = historyId;
+          if (req.session) {
+            req.session.galaxyHistoryId = historyId;
+          }
           console.log(`[FileUpload] Created new Galaxy history: ${historyId}`);
         } catch (error: any) {
           console.warn(`[FileUpload] Failed to create Galaxy history:`, error.message);
@@ -229,17 +231,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Store dataset in session for validation
-      if (!req.session.uploadedDatasets) {
-        req.session.uploadedDatasets = [];
+      if (req.session) {
+        if (!req.session.uploadedDatasets) {
+          req.session.uploadedDatasets = [];
+        }
+        req.session.uploadedDatasets.push({
+          dataset_id: datasetId,
+          galaxy_dataset_id: galaxyDatasetId,
+          name: file.originalname,
+          description: description,
+          file_type: file.mimetype,
+          file_size: file.size,
+        });
       }
-      req.session.uploadedDatasets.push({
-        dataset_id: datasetId,
-        galaxy_dataset_id: galaxyDatasetId,
-        name: file.originalname,
-        description: description,
-        file_type: file.mimetype,
-        file_size: file.size,
-      });
 
       // Return dataset information with both local and Galaxy IDs
       res.json({
@@ -305,7 +309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get Galaxy history from session
-      const historyId = req.session.galaxyHistoryId as string | undefined;
+      const historyId = req.session?.galaxyHistoryId as string | undefined;
 
       if (!historyId) {
         return res.status(400).json({
@@ -324,15 +328,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[StepExecution] Job submitted:`, job);
 
       // Store job info in session
-      if (!req.session.workflowJobs) {
-        req.session.workflowJobs = {};
+      if (req.session) {
+        if (!req.session.workflowJobs) {
+          req.session.workflowJobs = {};
+        }
+        req.session.workflowJobs[step_id] = {
+          job_id: job.id,
+          tool_id: tool_id,
+          state: job.state || 'queued',
+          started_at: new Date().toISOString()
+        };
       }
-      req.session.workflowJobs[step_id] = {
-        job_id: job.id,
-        tool_id: tool_id,
-        state: job.state || 'queued',
-        started_at: new Date().toISOString()
-      };
 
       res.json({
         step_id,
@@ -497,6 +503,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
+      }
+
+      if (!galaxyAssistant) {
+        return res.status(503).json({
+          error: "Galaxy Assistant not available. ANTHROPIC_API_KEY is not configured."
+        });
       }
 
       console.log('[Chat API] Processing message with Galaxy Assistant:', message);

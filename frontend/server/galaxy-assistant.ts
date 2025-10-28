@@ -2,16 +2,16 @@
  * Galaxy Assistant Service
  *
  * Hybrid intelligence system combining:
- * - OpenAI GPT-4 for natural language understanding
+ * - Claude Sonnet 4.5 for natural language understanding (with prompt caching)
  * - Galaxy Tool Search (2,177 indexed tools)
  * - BioMNI Dataset RAG (100+ GB data lake)
  * - Galaxy Workflow Generator (LLM-based with tool validation)
  *
  * Architecture:
- * User Query → NLU (GPT-4) → Tool Search + Dataset RAG → Workflow Generation
+ * User Query → NLU (Claude) → Tool Search + Dataset RAG → Workflow Generation
  */
 
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
 import type {
   GalaxyTool,
@@ -21,7 +21,7 @@ import type {
 } from '../../shared/galaxy-types';
 
 export interface GalaxyAssistantOptions {
-  openaiApiKey: string;
+  anthropicApiKey: string;
   galaxyAPIProxy: GalaxyAPIProxy;
 }
 
@@ -78,11 +78,11 @@ export interface GalaxyAssistantResponse {
 }
 
 export class GalaxyAssistant {
-  private openai: OpenAI;
+  private claude: Anthropic;
   private galaxyAPI: GalaxyAPIProxy;
 
   constructor(options: GalaxyAssistantOptions) {
-    this.openai = new OpenAI({ apiKey: options.openaiApiKey });
+    this.claude = new Anthropic({ apiKey: options.anthropicApiKey });
     this.galaxyAPI = options.galaxyAPIProxy;
   }
 
@@ -204,18 +204,28 @@ Respond in JSON format:
 }`;
 
     try {
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message },
-        ],
-        response_format: { type: 'json_object' },
+      const completion = await this.claude.messages.create({
+        model: 'claude-sonnet-4-5',
         max_tokens: 200,
         temperature: 0.3,
+        system: [
+          {
+            type: 'text',
+            text: systemPrompt,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        messages: [{ role: 'user', content: message }],
       });
 
-      const result = JSON.parse(completion.choices[0]?.message?.content || '{}');
+      const content = completion.content[0];
+      let resultText = content.type === 'text' ? content.text : '{}';
+
+      // Strip markdown code blocks if present
+      resultText = resultText.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+
+      const result = JSON.parse(resultText);
+
       return {
         type: result.type || 'general_question',
         keywords: result.keywords || [],
@@ -321,21 +331,32 @@ Respond in JSON format:
       .join('\n\n');
 
     try {
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-5-2025-08-07',
+      const completion = await this.claude.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 500,
+        temperature: 0.3,
+        system: [
+          {
+            type: 'text',
+            text: systemPrompt,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
         messages: [
-          { role: 'system', content: systemPrompt },
           {
             role: 'user',
             content: `User request: ${userMessage}\n\nAvailable tools:\n${toolCatalog}`,
           },
         ],
-        response_format: { type: 'json_object' },
-        max_completion_tokens: 500,
-        temperature: 0.3,
       });
 
-      const rankings = JSON.parse(completion.choices[0]?.message?.content || '{"rankings":[]}');
+      const content = completion.content[0];
+      let resultText = content.type === 'text' ? content.text : '{"rankings":[]}';
+
+      // Strip markdown code blocks if present
+      resultText = resultText.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+
+      const rankings = JSON.parse(resultText);
       const rankingArray = rankings.rankings || rankings;
 
       return tools
@@ -535,18 +556,28 @@ Provide a helpful response that:
 3. ${generatedWorkflow ? 'Explains the generated workflow' : 'Suggests next steps'}`;
 
     try {
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...(context.previousMessages || []),
-          { role: 'user', content: userPrompt },
-        ],
+      // Convert context messages to Claude format
+      const previousMessages = (context.previousMessages || []).map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      }));
+
+      const completion = await this.claude.messages.create({
+        model: 'claude-sonnet-4-5',
         max_tokens: 600,
         temperature: 0.7,
+        system: [
+          {
+            type: 'text',
+            text: systemPrompt,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        messages: [...previousMessages, { role: 'user', content: userPrompt }],
       });
 
-      return completion.choices[0]?.message?.content || 'I can help you with that!';
+      const content = completion.content[0];
+      return content.type === 'text' ? content.text : 'I can help you with that!';
     } catch (error) {
       console.error('[GalaxyAssistant] Response generation failed:', error);
       return 'I found some relevant tools and datasets for your analysis. How would you like to proceed?';

@@ -26,7 +26,8 @@ def configure_ai_assistant(
     # LLM Configuration
     ai_config_dict['llm_provider'] = raw_config.get('ai_llm_provider', 'openai')
     ai_config_dict['llm_model'] = raw_config.get('ai_llm_model', 'gpt-4')
-    ai_config_dict['llm_api_key'] = raw_config.get('ai_llm_api_key', os.getenv('GALAXY_AI_API_KEY'))
+    # Try ai_llm_api_key from config, then ANTHROPIC_API_KEY, then GALAXY_AI_API_KEY
+    ai_config_dict['llm_api_key'] = raw_config.get('ai_llm_api_key') or os.getenv('ANTHROPIC_API_KEY') or os.getenv('GALAXY_AI_API_KEY')
     ai_config_dict['llm_base_url'] = raw_config.get('ai_llm_base_url')
     
     # Tool Discovery Configuration

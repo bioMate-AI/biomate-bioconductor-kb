@@ -193,7 +193,10 @@ export function ExecutionTimeline({
                           </Badge>
                         )}
                       </div>
-                      <Badge variant={getStateBadgeVariant(event.state)}>
+                      <Badge
+                        variant={getStateBadgeVariant(event.state)}
+                        data-testid={`timeline-event-status-${getStateLabel(event.state).toLowerCase()}`}
+                      >
                         {getStateLabel(event.state)}
                       </Badge>
                     </div>

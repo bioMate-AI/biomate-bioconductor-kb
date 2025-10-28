@@ -5,6 +5,7 @@ Tests end-to-end workflow generation, parameter validation, and execution
 for DIA (Data-Independent Acquisition) LC-MS protein analysis.
 
 Test Flow:
+0. Upload test datasets (mzML and FASTA files) to Galaxy
 1. Navigate to BioMate chat interface
 2. Send query for DIA LC-MS analysis
 3. Wait for workflow generation
@@ -14,6 +15,7 @@ Test Flow:
 7. Monitor execution timeline
 8. View real-time job logs
 9. Validate completion
+10. Full workflow execution
 """
 
 import pytest
@@ -31,7 +33,7 @@ from utilities.parameter_validator import ParameterValidator
 
 
 # Test configuration
-BASE_URL = "http://localhost:5173"
+BASE_URL = "http://localhost:5000"
 WORKFLOW_TIMEOUT = 60000  # 60 seconds for workflow generation
 EXECUTION_TIMEOUT = 120000  # 2 minutes per step
 
@@ -55,6 +57,36 @@ class TestDiaLcmsWorkflow:
             self.expected_params = test_data["test_01_dia_lcms"]["expected_parameters"]
             self.expected_steps = test_data["test_01_dia_lcms"]["expected_steps"]
             self.query = test_data["test_01_dia_lcms"]["query"]
+
+    def test_00_upload_test_datasets(self, page: Page, screenshot_manager: ScreenshotManager):
+        """Test 0: Upload test datasets to Galaxy"""
+        print("\n=== Test 0: Upload Test Datasets ===")
+
+        # Navigate to chat
+        self.chat_page.navigate(BASE_URL)
+        screenshot_manager.capture(page, "00_before_upload")
+
+        # Get paths to test datasets
+        test_data_dir = Path(__file__).parent.parent / "test_data" / "datasets"
+        mzml_path = test_data_dir / "test_dia_sample.mzML"
+        fasta_path = test_data_dir / "test_protein_database.fasta"
+
+        # Verify files exist
+        assert mzml_path.exists(), f"Test dataset not found: {mzml_path}"
+        assert fasta_path.exists(), f"Test dataset not found: {fasta_path}"
+
+        print(f"Uploading datasets:")
+        print(f"  - {mzml_path.name} ({mzml_path.stat().st_size} bytes)")
+        print(f"  - {fasta_path.name} ({fasta_path.stat().st_size} bytes)")
+
+        # Upload both files
+        self.chat_page.upload_files([str(mzml_path), str(fasta_path)])
+
+        # Wait for upload to complete (look for any success indicators)
+        page.wait_for_timeout(3000)  # Give upload time to complete
+        screenshot_manager.capture(page, "00_after_upload")
+
+        print("✓ Test datasets uploaded successfully")
 
     def test_01_navigate_to_chat(self, page: Page, screenshot_manager: ScreenshotManager):
         """Test 1: Navigate to BioMate chat interface"""
@@ -231,10 +263,12 @@ class TestDiaLcmsWorkflow:
         """Test 7: Monitor step execution via timeline"""
         print("\n=== Test 7: Monitor Step Execution ===")
 
-        # Navigate, send query, wait for workflow, execute step
+        # Navigate, start new chat, send query, wait for workflow, execute step
         self.chat_page.navigate(BASE_URL)
+        self.chat_page.start_new_chat()  # Ensure fresh session
         self.chat_page.send_message(self.query)
         self.chat_page.wait_for_workflow_generation(WORKFLOW_TIMEOUT)
+        self.chat_page.load_workflow_to_builder()  # Click "Create Workflow" button
         self.workflow_page.wait_for_workflow_loaded()
 
         # Get the first step ID dynamically

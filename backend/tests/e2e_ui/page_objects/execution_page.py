@@ -113,7 +113,7 @@ class ExecutionTimeline:
         Returns:
             Locator for the status badge
         """
-        return self.page.locator(f'[data-testid="timeline-event-status-{status}"]')
+        return self.get_timeline_event(step_id).locator(f'[data-testid="timeline-event-status-{status}"]')
 
     def get_elapsed_time(self, step_id: str) -> Locator:
         """Get elapsed time display for a step"""

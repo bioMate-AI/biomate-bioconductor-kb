@@ -208,6 +208,7 @@ export function FileUpload({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={handleClick}
+          data-testid="file-upload-drop-zone"
         >
           <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-lg font-medium mb-2">
@@ -226,6 +227,7 @@ export function FileUpload({
             multiple={multiple}
             onChange={(e) => handleFileSelect(e.target.files)}
             className="hidden"
+            data-testid="file-upload-input"
           />
         </div>
 

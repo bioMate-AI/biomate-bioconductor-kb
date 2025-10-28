@@ -149,18 +149,34 @@ export function EnhancedWorkflowBuilder({
   } = useWorkflowExecution()
 
   // Convert execution steps to timeline events
+  // Use executionSteps from full workflow invocation, or fall back to local steps for individual execution
   const timelineEvents = useMemo(() => {
-    return Array.from(executionSteps.values()).map(step => {
-      const workflowStep = steps.find(s => s.id === step.stepId)
-      return {
-        stepId: step.stepId,
-        stepName: workflowStep?.title || step.stepId,
-        state: step.state,
-        timestamp: step.updateTime,
-        elapsedMs: step.elapsedMs,
-        jobId: step.jobId,
-      }
-    })
+    if (executionSteps.size > 0) {
+      // Full workflow mode: use executionSteps from SSE
+      return Array.from(executionSteps.values()).map(step => {
+        const workflowStep = steps.find(s => s.id === step.stepId)
+        return {
+          stepId: step.stepId,
+          stepName: workflowStep?.title || step.stepId,
+          state: step.state,
+          timestamp: step.updateTime,
+          elapsedMs: step.elapsedMs,
+          jobId: step.jobId,
+        }
+      })
+    } else {
+      // Individual step mode: use local steps state
+      return steps
+        .filter(s => s.status === 'running' || s.status === 'completed' || s.status === 'error')
+        .map(step => ({
+          stepId: step.id,
+          stepName: step.title,
+          state: step.status === 'running' ? 'running' : step.status === 'completed' ? 'ok' : 'error',
+          timestamp: new Date().toISOString(),
+          elapsedMs: undefined,
+          jobId: undefined,
+        }))
+    }
   }, [executionSteps, steps])
 
   // Get currently running step for log viewer
@@ -578,7 +594,7 @@ export function EnhancedWorkflowBuilder({
                 <Button
                   onClick={() => handleWorkflowAction('start')}
                   disabled={!canStartWorkflow}
-                  data-testid="button-workflow-start"
+                  data-testid="button-execute-workflow"
                 >
                   <Play className="w-4 h-4 mr-2" />
                   Start Workflow

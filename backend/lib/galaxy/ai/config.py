@@ -17,7 +17,8 @@ class AIConfig:
         # LLM Configuration
         self.llm_provider = self.config.get('llm_provider', 'openai')
         self.llm_model = self.config.get('llm_model', 'gpt-4')
-        self.llm_api_key = self.config.get('llm_api_key', os.getenv('GALAXY_AI_API_KEY'))
+        # Try config value, then ANTHROPIC_API_KEY, then GALAXY_AI_API_KEY
+        self.llm_api_key = self.config.get('llm_api_key') or os.getenv('ANTHROPIC_API_KEY') or os.getenv('GALAXY_AI_API_KEY')
         self.llm_base_url = self.config.get('llm_base_url', None)
         
         # Tool Discovery Configuration

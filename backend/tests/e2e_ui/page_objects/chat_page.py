@@ -17,13 +17,22 @@ class ChatPage:
         # Locators using test IDs
         self.chat_input = page.locator('[data-testid="chat-input"]')
         self.send_button = page.locator('[data-testid="chat-send-button"]')
-        self.workflow_message = page.locator('[data-testid="workflow-generated-message"]')
+        self.workflow_button = page.locator('[data-testid="button-create-workflow"]').last
         self.chat_messages = page.locator('[data-testid^="chat-message-"]')
+        self.new_chat_button = page.locator('[data-testid="button-new-chat"]')
 
     def navigate(self, base_url: str = "http://localhost:3000"):
         """Navigate to chat interface"""
         self.page.goto(base_url)
         self.page.wait_for_load_state("networkidle")
+
+    def start_new_chat(self):
+        """
+        Start a new chat session by clicking the New Chat button.
+        This ensures test isolation by clearing the current chat/workflow context.
+        """
+        self.new_chat_button.click()
+        self.page.wait_for_timeout(500)  # Brief wait for UI to update
 
     def send_message(self, message: str):
         """
@@ -43,10 +52,27 @@ class ChatPage:
             timeout: Maximum wait time in milliseconds (default 60s)
 
         Returns:
-            The workflow message element
+            The workflow button element
         """
-        self.workflow_message.wait_for(state="visible", timeout=timeout)
-        return self.workflow_message
+        self.workflow_button.wait_for(state="visible", timeout=timeout)
+        return self.workflow_button
+
+    def load_workflow_to_builder(self):
+        """
+        Click the "Create Workflow" button to load the generated workflow into the builder.
+        This should be called after wait_for_workflow_generation().
+        """
+        # Wait a bit longer to ensure message metadata is fully saved
+        self.page.wait_for_timeout(2000)
+
+        # Log what we're clicking for debugging
+        button_count = self.page.locator('[data-testid="button-create-workflow"]').count()
+        print(f"  Found {button_count} 'Create Workflow' buttons, clicking the last one")
+
+        self.workflow_button.click()
+
+        # Wait for workflow to load in builder
+        self.page.wait_for_timeout(2000)
 
     def get_latest_message(self):
         """Get the most recent chat message"""
@@ -72,7 +98,7 @@ class ChatPage:
 
     def is_workflow_generated(self) -> bool:
         """Check if workflow has been generated"""
-        return self.workflow_message.is_visible()
+        return self.workflow_button.is_visible()
 
     def clear_input(self):
         """Clear the chat input field"""
@@ -81,3 +107,25 @@ class ChatPage:
     def get_input_value(self) -> str:
         """Get current value of chat input"""
         return self.chat_input.input_value()
+
+    def upload_file(self, file_path: str):
+        """
+        Upload a file via the chat interface
+
+        Args:
+            file_path: Absolute path to the file to upload
+        """
+        # Use data-testid selector for file input
+        file_input = self.page.locator('[data-testid="file-upload-input"]')
+        file_input.set_input_files(file_path)
+
+    def upload_files(self, file_paths: list[str]):
+        """
+        Upload multiple files via the chat interface
+
+        Args:
+            file_paths: List of absolute paths to files to upload
+        """
+        # Use data-testid selector for file input
+        file_input = self.page.locator('[data-testid="file-upload-input"]')
+        file_input.set_input_files(file_paths)
