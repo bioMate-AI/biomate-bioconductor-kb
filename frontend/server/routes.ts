@@ -1095,3 +1095,309 @@ function validateDatasets(datasets: any): { valid: boolean; error?: string } {
     return { valid: false, error: "Dataset validation failed" };
   }
 }
+
+// Helper function to classify file type from extension
+function classifyFileType(extension: string): 'image' | 'table' | 'text' | 'binary' | 'interactive' {
+  const ext = extension.toLowerCase();
+
+  const imageExts = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'tiff', 'bmp'];
+  const tableExts = ['tsv', 'csv', 'tabular', 'txt', 'bed', 'gtf', 'gff', 'vcf'];
+  const interactiveExts = ['html', 'htm'];
+  const textExts = ['txt', 'log', 'md', 'json', 'xml', 'yaml', 'yml'];
+
+  if (imageExts.includes(ext)) return 'image';
+  if (tableExts.includes(ext)) return 'table';
+  if (interactiveExts.includes(ext)) return 'interactive';
+  if (textExts.includes(ext)) return 'text';
+  return 'binary';
+}
+
+function isVisualizable(extension: string): boolean {
+  const visualizableExts = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'html', 'htm'];
+  return visualizableExts.includes(extension.toLowerCase());
+}
+
+  // ============================================================================
+  // Workflow Invocation Management API
+  // ============================================================================
+
+  // Create a new invocation record (called when workflow starts)
+  app.post("/api/invocations", async (req, res) => {
+    try {
+      const invocationData = req.body;
+
+      const invocation = await storage.createInvocation({
+        userId: req.user?.id,
+        workflowName: invocationData.workflowName,
+        workflowDefinition: invocationData.workflowDefinition,
+        galaxyInvocationId: invocationData.galaxyInvocationId,
+        galaxyHistoryId: invocationData.galaxyHistoryId,
+        galaxyWorkflowId: invocationData.galaxyWorkflowId,
+        inputDatasets: invocationData.inputDatasets || [],
+        totalSteps: invocationData.totalSteps || 0,
+        status: 'running',
+      });
+
+      res.json(invocation);
+    } catch (error: any) {
+      console.error("Error creating invocation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all invocations for the current user
+  app.get("/api/invocations", async (req, res) => {
+    try {
+      const { limit } = req.query;
+      const invocations = await storage.getInvocations(
+        req.user?.id,
+        limit ? parseInt(limit as string) : 100
+      );
+      res.json(invocations);
+    } catch (error: any) {
+      console.error("Error fetching invocations:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get a specific invocation by ID
+  app.get("/api/invocations/:id", async (req, res) => {
+    try {
+      const invocation = await storage.getInvocation(req.params.id);
+      if (!invocation) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+      res.json(invocation);
+    } catch (error: any) {
+      console.error("Error fetching invocation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update an invocation (status, outputs, etc.)
+  app.patch("/api/invocations/:id", async (req, res) => {
+    try {
+      const updates = req.body;
+      const invocation = await storage.updateInvocation(req.params.id, updates);
+
+      if (!invocation) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+
+      res.json(invocation);
+    } catch (error: any) {
+      console.error("Error updating invocation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete an invocation
+  app.delete("/api/invocations/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteInvocation(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting invocation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get outputs for a specific invocation
+  app.get("/api/invocations/:id/outputs", async (req, res) => {
+    try {
+      const outputs = await storage.getInvocationOutputs(req.params.id);
+      res.json(outputs);
+    } catch (error: any) {
+      console.error("Error fetching outputs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Fetch outputs from Galaxy after workflow completion
+  app.post("/api/invocations/:id/fetch-outputs", async (req, res) => {
+    try {
+      const invocation = await storage.getInvocation(req.params.id);
+      if (!invocation) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+
+      // Fetch history contents from Galaxy
+      const historyContents = await galaxyAPIProxy.getHistoryContents(invocation.galaxyHistoryId);
+
+      // Filter outputs created by this invocation (after invocation start time)
+      const invocationOutputs = historyContents.filter((item: any) => {
+        const itemCreateTime = new Date(item.create_time);
+        return (
+          !item.deleted &&
+          item.state === 'ok' &&
+          item.history_content_type === 'dataset' &&
+          itemCreateTime >= invocation.createdAt
+        );
+      });
+
+      // Store each output in our database
+      const storedOutputs = [];
+      for (const galaxyOutput of invocationOutputs) {
+        const extension = galaxyOutput.extension || galaxyOutput.file_ext || 'txt';
+        const fileType = classifyFileType(extension);
+
+        const output = await storage.addOutput({
+          invocationId: invocation.id,
+          galaxyDatasetId: galaxyOutput.id,
+          name: galaxyOutput.name,
+          extension: extension,
+          size: galaxyOutput.file_size || 0,
+          fileType: fileType,
+          isVisualizable: isVisualizable(extension),
+          previewAvailable: fileType === 'table' || fileType === 'text',
+          metadata: {
+            dataType: galaxyOutput.data_type,
+            rows: galaxyOutput.metadata?.data_lines,
+            columns: galaxyOutput.metadata?.columns,
+          },
+        });
+
+        storedOutputs.push(output);
+      }
+
+      // Update invocation status to completed
+      await storage.updateInvocation(invocation.id, {
+        status: 'ok',
+        completedAt: new Date(),
+        completedSteps: invocation.totalSteps,
+      });
+
+      res.json({ outputs: storedOutputs, count: storedOutputs.length });
+    } catch (error: any) {
+      console.error("Error fetching outputs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Output Dataset Management API
+  // ============================================================================
+
+  // Get a specific output by ID
+  app.get("/api/outputs/:id", async (req, res) => {
+    try {
+      const output = await storage.getOutput(req.params.id);
+      if (!output) {
+        return res.status(404).json({ error: "Output not found" });
+      }
+      res.json(output);
+    } catch (error: any) {
+      console.error("Error fetching output:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Download output file from Galaxy
+  app.get("/api/outputs/:id/download", async (req, res) => {
+    try {
+      const output = await storage.getOutput(req.params.id);
+      if (!output) {
+        return res.status(404).json({ error: "Output not found" });
+      }
+
+      // Fetch file from Galaxy
+      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+
+      // Set appropriate headers
+      res.setHeader('Content-Disposition', `attachment; filename="${output.name}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+
+      // Pipe the stream to response
+      fileStream.pipe(res);
+    } catch (error: any) {
+      console.error("Error downloading output:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Display output file (for images, HTML, etc.)
+  app.get("/api/outputs/:id/display", async (req, res) => {
+    try {
+      const output = await storage.getOutput(req.params.id);
+      if (!output) {
+        return res.status(404).json({ error: "Output not found" });
+      }
+
+      // Fetch file from Galaxy
+      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+
+      // Set appropriate content type for inline display
+      const contentTypeMap: Record<string, string> = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'svg': 'image/svg+xml',
+        'gif': 'image/gif',
+        'pdf': 'application/pdf',
+        'html': 'text/html',
+        'htm': 'text/html',
+        'txt': 'text/plain',
+        'csv': 'text/csv',
+        'tsv': 'text/tab-separated-values',
+      };
+
+      const contentType = contentTypeMap[output.extension] || 'application/octet-stream';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', 'inline');
+
+      // Pipe the stream to response
+      fileStream.pipe(res);
+    } catch (error: any) {
+      console.error("Error displaying output:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Preview output (first N lines for tables/text files)
+  app.get("/api/outputs/:id/preview", async (req, res) => {
+    try {
+      const output = await storage.getOutput(req.params.id);
+      if (!output) {
+        return res.status(404).json({ error: "Output not found" });
+      }
+
+      if (output.fileType !== 'table' && output.fileType !== 'text') {
+        return res.status(400).json({ error: "Preview not available for this file type" });
+      }
+
+      // Fetch file content from Galaxy
+      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+
+      // Read first N lines
+      const lines: string[] = [];
+      let lineCount = 0;
+      const maxLines = parseInt(req.query.lines as string) || 100;
+
+      for await (const chunk of fileStream) {
+        const chunkLines = chunk.toString().split('\n');
+        for (const line of chunkLines) {
+          if (lineCount >= maxLines) break;
+          lines.push(line);
+          lineCount++;
+        }
+        if (lineCount >= maxLines) break;
+      }
+
+      res.json({
+        lines,
+        totalLines: output.metadata?.rows || lineCount,
+        hasMore: (output.metadata?.rows || 0) > maxLines
+      });
+    } catch (error: any) {
+      console.error("Error previewing output:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create HTTP server
+  const httpServer = createServer(app);
+  return httpServer;
+}

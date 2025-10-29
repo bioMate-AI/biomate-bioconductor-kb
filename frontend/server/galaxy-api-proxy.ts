@@ -425,6 +425,37 @@ export class GalaxyAPIProxy {
   }
 
   // ============================================================================
+  // History & Dataset Management
+  // ============================================================================
+
+  /**
+   * Get contents of a history (all datasets)
+   */
+  async getHistoryContents(historyId: string): Promise<any[]> {
+    const response = await this.client.get(`/api/histories/${historyId}/contents`);
+    return response.data;
+  }
+
+  /**
+   * Download a dataset file from Galaxy
+   * Returns a readable stream
+   */
+  async downloadDataset(datasetId: string): Promise<any> {
+    const response = await this.client.get(`/api/datasets/${datasetId}/display`, {
+      responseType: 'stream'
+    });
+    return response.data;
+  }
+
+  /**
+   * Get dataset metadata
+   */
+  async getDatasetMetadata(datasetId: string): Promise<any> {
+    const response = await this.client.get(`/api/datasets/${datasetId}`);
+    return response.data;
+  }
+
+  // ============================================================================
   // Health Check
   // ============================================================================
 
