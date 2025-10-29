@@ -1,30 +1,40 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import cookieParser from "cookie-parser";
+import passport from "passport";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { oauthService } from "./oauth-service";
+import { createSessionStore } from "./redis-session";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
-// Session middleware configuration
-const MemoryStore = createMemoryStore(session);
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'biomate-session-secret-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  store: new MemoryStore({
-    checkPeriod: 86400000 // prune expired entries every 24h
-  }),
-  cookie: {
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
-  }
-}));
+// Session middleware configuration (will be initialized async)
+async function initializeSession() {
+  const store = await createSessionStore();
+
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'biomate-session-secret-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    store,
+    cookie: {
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    }
+  }));
+
+  // Initialize OAuth/Passport
+  oauthService.initialize();
+  app.use(passport.initialize());
+  app.use(passport.session());
+}
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -57,6 +67,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize session store (Redis or Memory fallback)
+  await initializeSession();
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
@@ -15,11 +16,26 @@ import multer from "multer";
 import { promises as fs } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import { authService } from "./auth-service";
+import { authenticateToken, optionalAuth } from "./auth-middleware";
+import type { RegisterData, LoginData } from "./auth-service";
+import { s3Service } from "./s3-client";
+import {
+  apiLimiter,
+  authLimiter,
+  registerLimiter,
+  passwordResetLimiter,
+  emailVerificationLimiter,
+  uploadLimiter,
+} from "./rate-limit";
+import passport from "passport";
+import { oauthService } from "./oauth-service";
+import { stripeService } from "./stripe-service";
 
-// Initialize OpenAI
-const openai = new OpenAI({
+// Initialize OpenAI (optional for development)
+const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+}) : null;
 
 // Initialize Galaxy backend - using REAL Galaxy API (no more mock)
 const galaxyAPIBackend = new GalaxyAPIProxy(); // Real Galaxy API for all operations
@@ -76,6 +92,595 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // ============================================================================
+  // Authentication API
+  // ============================================================================
+
+  // Register new user
+  app.post("/api/auth/register", registerLimiter, async (req, res) => {
+    try {
+      const registerData: RegisterData = {
+        email: req.body.email,
+        password: req.body.password,
+        fullName: req.body.fullName || req.body.name,
+        organization: req.body.organization,
+        phone: req.body.phone,
+        termsAccepted: req.body.terms_accepted || req.body.termsAccepted || false,
+        marketingEmailsOptIn: req.body.marketing_emails_opt_in || req.body.marketingEmailsOptIn || false,
+      };
+
+      const result = await authService.register(registerData);
+
+      // Set HTTP-only cookie
+      res.cookie('biomate_token', result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: result.expiresIn * 1000, // Convert to milliseconds
+      });
+
+      res.status(201).json({
+        success: true,
+        user: result.user,
+        token: result.token,
+        expiresIn: result.expiresIn,
+      });
+    } catch (error: any) {
+      console.error('[Auth] Registration error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message || 'Registration failed',
+      });
+    }
+  });
+
+  // Login existing user
+  app.post("/api/auth/login", authLimiter, async (req, res) => {
+    try {
+      const loginData: LoginData = {
+        email: req.body.email,
+        password: req.body.password,
+      };
+
+      const result = await authService.login(loginData);
+
+      // Set HTTP-only cookie
+      res.cookie('biomate_token', result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: result.expiresIn * 1000,
+      });
+
+      // Check subscription status
+      const subscriptionStatus = authService.checkSubscriptionStatus(result.user);
+
+      res.json({
+        success: true,
+        user: result.user,
+        token: result.token,
+        subscription: subscriptionStatus,
+      });
+    } catch (error: any) {
+      console.error('[Auth] Login error:', error);
+
+      if (error.message === 'TRIAL_EXPIRED') {
+        return res.status(403).json({
+          success: false,
+          error: 'TRIAL_EXPIRED',
+          message: 'Your trial has expired. Please subscribe to continue.',
+        });
+      }
+
+      res.status(401).json({
+        success: false,
+        error: 'Invalid credentials',
+      });
+    }
+  });
+
+  // Logout
+  app.post("/api/auth/logout", (req, res) => {
+    res.clearCookie('biomate_token');
+    res.json({ success: true, message: 'Logged out successfully' });
+  });
+
+  // Get current user
+  app.get("/api/auth/me", authenticateToken, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const subscriptionStatus = authService.checkSubscriptionStatus(req.user as any);
+
+      res.json({
+        success: true,
+        user: req.user,
+        subscription: subscriptionStatus,
+      });
+    } catch (error: any) {
+      console.error('[Auth] Get current user error:', error);
+      res.status(500).json({ error: 'Failed to get user' });
+    }
+  });
+
+  // Resend verification email
+  app.post("/api/auth/resend-verification", emailVerificationLimiter, authenticateToken, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      await authService.sendVerificationEmail(req.user.id);
+
+      res.json({
+        success: true,
+        message: 'Verification email sent',
+      });
+    } catch (error: any) {
+      console.error('[Auth] Resend verification error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message || 'Failed to send verification email',
+      });
+    }
+  });
+
+  // Verify email with token
+  app.post("/api/auth/verify-email", emailVerificationLimiter, async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({
+          success: false,
+          error: 'Token is required',
+        });
+      }
+
+      const user = await authService.verifyEmail(token);
+
+      res.json({
+        success: true,
+        message: 'Email verified successfully',
+        user,
+      });
+    } catch (error: any) {
+      console.error('[Auth] Email verification error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message || 'Email verification failed',
+      });
+    }
+  });
+
+  // Request password reset
+  app.post("/api/auth/request-password-reset", passwordResetLimiter, async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          error: 'Email is required',
+        });
+      }
+
+      await authService.requestPasswordReset(email);
+
+      // Always return success to prevent email enumeration
+      res.json({
+        success: true,
+        message: 'If the email exists, a password reset link has been sent',
+      });
+    } catch (error: any) {
+      console.error('[Auth] Password reset request error:', error);
+      // Still return success for security
+      res.json({
+        success: true,
+        message: 'If the email exists, a password reset link has been sent',
+      });
+    }
+  });
+
+  // Reset password with token
+  app.post("/api/auth/reset-password", passwordResetLimiter, async (req, res) => {
+    try {
+      const { token, password } = req.body;
+
+      if (!token || !password) {
+        return res.status(400).json({
+          success: false,
+          error: 'Token and password are required',
+        });
+      }
+
+      // Basic password validation
+      if (password.length < 8) {
+        return res.status(400).json({
+          success: false,
+          error: 'Password must be at least 8 characters',
+        });
+      }
+
+      await authService.resetPassword(token, password);
+
+      res.json({
+        success: true,
+        message: 'Password reset successfully',
+      });
+    } catch (error: any) {
+      console.error('[Auth] Password reset error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message || 'Password reset failed',
+      });
+    }
+  });
+
+  // ============================================================================
+  // OAuth Authentication (Google & GitHub)
+  // ============================================================================
+
+  // Google OAuth - Initiate
+  app.get("/api/auth/google",
+    authLimiter,
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+  );
+
+  // Google OAuth - Callback
+  app.get("/api/auth/google/callback",
+    passport.authenticate('google', { session: false, failureRedirect: '/login?error=oauth_failed' }),
+    async (req, res) => {
+      try {
+        if (!req.user) {
+          return res.redirect('/login?error=oauth_failed');
+        }
+
+        // Generate JWT token
+        const token = oauthService.generateToken(req.user as any);
+        const subscriptionStatus = authService.checkSubscriptionStatus(req.user as any);
+
+        // Set cookie
+        res.cookie('biomate_token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        // Redirect to dashboard with token
+        res.redirect(`/dashboard?oauth_success=true`);
+      } catch (error: any) {
+        console.error('[OAuth] Google callback error:', error);
+        res.redirect('/login?error=oauth_error');
+      }
+    }
+  );
+
+  // GitHub OAuth - Initiate
+  app.get("/api/auth/github",
+    authLimiter,
+    passport.authenticate('github', { scope: ['user:email'] })
+  );
+
+  // GitHub OAuth - Callback
+  app.get("/api/auth/github/callback",
+    passport.authenticate('github', { session: false, failureRedirect: '/login?error=oauth_failed' }),
+    async (req, res) => {
+      try {
+        if (!req.user) {
+          return res.redirect('/login?error=oauth_failed');
+        }
+
+        // Generate JWT token
+        const token = oauthService.generateToken(req.user as any);
+        const subscriptionStatus = authService.checkSubscriptionStatus(req.user as any);
+
+        // Set cookie
+        res.cookie('biomate_token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        // Redirect to dashboard with token
+        res.redirect(`/dashboard?oauth_success=true`);
+      } catch (error: any) {
+        console.error('[OAuth] GitHub callback error:', error);
+        res.redirect('/login?error=oauth_error');
+      }
+    }
+  );
+
+  // Check OAuth configuration status
+  app.get("/api/auth/oauth/status", (req, res) => {
+    const status = oauthService.isConfigured();
+    res.json({
+      success: true,
+      oauth: status,
+    });
+  });
+
+  // ============================================================================
+  // S3 File Management API
+  // ============================================================================
+
+  // Initialize S3 upload (get presigned URL)
+  app.post("/api/s3/upload/init", uploadLimiter, authenticateToken, async (req, res) => {
+    try {
+      const { filename, fileSize, contentType } = req.body;
+
+      if (!filename || !fileSize || !contentType) {
+        return res.status(400).json({
+          error: 'Missing required fields: filename, fileSize, contentType',
+        });
+      }
+
+      const userId = req.user!.id;
+
+      // For files < 100MB, use simple presigned URL
+      if (fileSize < 100 * 1024 * 1024) {
+        const uploadData = await s3Service.generatePresignedUploadUrl(
+          userId,
+          filename,
+          contentType
+        );
+
+        res.json({
+          uploadId: uploadData.uploadId,
+          uploadUrl: uploadData.uploadUrl,
+          key: uploadData.key,
+          method: 'simple',
+          expiresIn: uploadData.expires_in,
+        });
+      } else {
+        // For large files, use multipart upload
+        const multipartData = await s3Service.generateMultipartUploadUrls(
+          userId,
+          filename,
+          fileSize,
+          contentType
+        );
+
+        res.json({
+          uploadId: multipartData.uploadId,
+          key: multipartData.key,
+          partUrls: multipartData.partUrls,
+          chunkSize: multipartData.chunkSize,
+          method: 'multipart',
+          expiresIn: 3600,
+        });
+      }
+    } catch (error: any) {
+      console.error('[S3] Upload init error:', error);
+      res.status(500).json({
+        error: 'Failed to initialize upload',
+        message: error.message,
+      });
+    }
+  });
+
+  // Get presigned download URL
+  app.post("/api/s3/download", authenticateToken, async (req, res) => {
+    try {
+      const { key } = req.body;
+
+      if (!key) {
+        return res.status(400).json({ error: 'Missing required field: key' });
+      }
+
+      // Verify user owns this file (key should start with users/{userId}/)
+      const userId = req.user!.id;
+      if (!key.startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Check if file exists
+      const exists = await s3Service.fileExists(key);
+      if (!exists) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      // Generate presigned URL
+      const downloadUrl = await s3Service.generatePresignedDownloadUrl(key);
+
+      res.json({
+        downloadUrl,
+        expiresIn: 3600,
+      });
+    } catch (error: any) {
+      console.error('[S3] Download URL generation error:', error);
+      res.status(500).json({
+        error: 'Failed to generate download URL',
+        message: error.message,
+      });
+    }
+  });
+
+  // Delete file from S3
+  app.delete("/api/s3/files/:key", authenticateToken, async (req, res) => {
+    try {
+      const key = decodeURIComponent(req.params.key);
+
+      // Verify user owns this file
+      const userId = req.user!.id;
+      if (!key.startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const success = await s3Service.deleteFile(key);
+
+      if (success) {
+        res.json({ success: true, message: 'File deleted successfully' });
+      } else {
+        res.status(500).json({ error: 'Failed to delete file' });
+      }
+    } catch (error: any) {
+      console.error('[S3] Delete file error:', error);
+      res.status(500).json({
+        error: 'Failed to delete file',
+        message: error.message,
+      });
+    }
+  });
+
+  // ============================================================================
+  // Payment & Subscription API (Stripe)
+  // ============================================================================
+
+  // Create checkout session for subscription
+  app.post("/api/payments/create-checkout-session", authenticateToken, async (req, res) => {
+    try {
+      if (!stripeService.isConfigured()) {
+        return res.status(503).json({
+          error: 'Payment system not configured',
+          message: 'Stripe is not set up. Contact support.',
+        });
+      }
+
+      const { priceId, successUrl, cancelUrl } = req.body;
+
+      if (!priceId) {
+        return res.status(400).json({ error: 'Price ID is required' });
+      }
+
+      const session = await stripeService.createCheckoutSession(
+        req.user!.id,
+        priceId,
+        successUrl,
+        cancelUrl
+      );
+
+      res.json({
+        success: true,
+        sessionId: session.id,
+        url: session.url,
+      });
+    } catch (error: any) {
+      console.error('[Payments] Checkout session error:', error);
+      res.status(500).json({
+        error: 'Failed to create checkout session',
+        message: error.message,
+      });
+    }
+  });
+
+  // Create customer portal session
+  app.post("/api/payments/create-portal-session", authenticateToken, async (req, res) => {
+    try {
+      if (!stripeService.isConfigured()) {
+        return res.status(503).json({
+          error: 'Payment system not configured',
+        });
+      }
+
+      const { returnUrl } = req.body;
+
+      const session = await stripeService.createPortalSession(req.user!.id, returnUrl);
+
+      res.json({
+        success: true,
+        url: session.url,
+      });
+    } catch (error: any) {
+      console.error('[Payments] Portal session error:', error);
+      res.status(500).json({
+        error: 'Failed to create portal session',
+        message: error.message,
+      });
+    }
+  });
+
+  // Get current subscription
+  app.get("/api/payments/subscription", authenticateToken, async (req, res) => {
+    try {
+      if (!stripeService.isConfigured()) {
+        return res.json({
+          success: true,
+          subscription: null,
+          configured: false,
+        });
+      }
+
+      const subscription = await stripeService.getSubscription(req.user!.id);
+
+      res.json({
+        success: true,
+        subscription,
+        configured: true,
+      });
+    } catch (error: any) {
+      console.error('[Payments] Get subscription error:', error);
+      res.status(500).json({
+        error: 'Failed to get subscription',
+        message: error.message,
+      });
+    }
+  });
+
+  // Cancel subscription
+  app.post("/api/payments/cancel-subscription", authenticateToken, async (req, res) => {
+    try {
+      if (!stripeService.isConfigured()) {
+        return res.status(503).json({
+          error: 'Payment system not configured',
+        });
+      }
+
+      await stripeService.cancelSubscription(req.user!.id);
+
+      res.json({
+        success: true,
+        message: 'Subscription canceled successfully',
+      });
+    } catch (error: any) {
+      console.error('[Payments] Cancel subscription error:', error);
+      res.status(500).json({
+        error: 'Failed to cancel subscription',
+        message: error.message,
+      });
+    }
+  });
+
+  // Get pricing tiers
+  app.get("/api/payments/pricing", (req, res) => {
+    if (!stripeService.isConfigured()) {
+      return res.json({
+        success: true,
+        pricing: null,
+        configured: false,
+      });
+    }
+
+    const pricing = stripeService.getPricingTiers();
+
+    res.json({
+      success: true,
+      pricing,
+      configured: true,
+    });
+  });
+
+  // Stripe webhook handler
+  app.post("/api/payments/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
+    const signature = req.headers['stripe-signature'];
+
+    if (!signature) {
+      return res.status(400).send('Missing stripe-signature header');
+    }
+
+    try {
+      await stripeService.handleWebhook(req.body, signature);
+      res.json({ received: true });
+    } catch (error: any) {
+      console.error('[Payments] Webhook error:', error);
+      res.status(400).send(`Webhook Error: ${error.message}`);
+    }
   });
 
   // ============================================================================
@@ -417,6 +1022,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
   // Galaxy Workflow Execution API
   // ============================================================================
+
+  // Create/upload workflow to Galaxy
+  app.post("/api/galaxy/workflows", async (req, res) => {
+    try {
+      const { workflow } = req.body;
+      if (!workflow) {
+        return res.status(400).json({ error: "workflow is required" });
+      }
+
+      console.log('[CreateWorkflow] Creating workflow in Galaxy:', workflow.name || 'unnamed');
+      const createdWorkflow = await galaxyAPIBackend.createWorkflow(workflow);
+      console.log('[CreateWorkflow] Successfully created workflow:', createdWorkflow.id);
+
+      res.json(createdWorkflow);
+    } catch (error: any) {
+      console.error("[CreateWorkflow] Error creating workflow:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'WorkflowCreationError',
+        message: error.message || 'Failed to create workflow',
+      });
+    }
+  });
 
   app.post("/api/galaxy/workflows/invoke", async (req, res) => {
     try {
@@ -795,6 +1422,286 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // ============================================================================
+  // Workflow Invocation Management API
+  // ============================================================================
+
+  // Create a new invocation record (called when workflow starts)
+  app.post("/api/invocations", async (req, res) => {
+    try {
+      const invocationData = req.body;
+
+      const invocation = await storage.createInvocation({
+        userId: req.user?.id,
+        workflowName: invocationData.workflowName,
+        workflowDefinition: invocationData.workflowDefinition,
+        galaxyInvocationId: invocationData.galaxyInvocationId,
+        galaxyHistoryId: invocationData.galaxyHistoryId,
+        galaxyWorkflowId: invocationData.galaxyWorkflowId,
+        inputDatasets: invocationData.inputDatasets || [],
+        totalSteps: invocationData.totalSteps || 0,
+        status: 'running',
+      });
+
+      res.json(invocation);
+    } catch (error: any) {
+      console.error("Error creating invocation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all invocations for the current user
+  app.get("/api/invocations", async (req, res) => {
+    try {
+      const { limit } = req.query;
+      const invocations = await storage.getInvocations(
+        req.user?.id,
+        limit ? parseInt(limit as string) : 100
+      );
+      res.json(invocations);
+    } catch (error: any) {
+      console.error("Error fetching invocations:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get a specific invocation by ID
+  app.get("/api/invocations/:id", async (req, res) => {
+    try {
+      const invocation = await storage.getInvocation(req.params.id);
+      if (!invocation) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+      res.json(invocation);
+    } catch (error: any) {
+      console.error("Error fetching invocation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update an invocation (status, outputs, etc.)
+  app.patch("/api/invocations/:id", async (req, res) => {
+    try {
+      const updates = req.body;
+      const invocation = await storage.updateInvocation(req.params.id, updates);
+
+      if (!invocation) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+
+      res.json(invocation);
+    } catch (error: any) {
+      console.error("Error updating invocation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete an invocation
+  app.delete("/api/invocations/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteInvocation(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting invocation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get outputs for a specific invocation
+  app.get("/api/invocations/:id/outputs", async (req, res) => {
+    try {
+      const outputs = await storage.getInvocationOutputs(req.params.id);
+      res.json(outputs);
+    } catch (error: any) {
+      console.error("Error fetching outputs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Fetch outputs from Galaxy after workflow completion
+  app.post("/api/invocations/:id/fetch-outputs", async (req, res) => {
+    try {
+      const invocation = await storage.getInvocation(req.params.id);
+      if (!invocation) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+
+      // Fetch history contents from Galaxy
+      const historyContents = await galaxyAPIProxy.getHistoryContents(invocation.galaxyHistoryId);
+
+      // Filter outputs created by this invocation (after invocation start time)
+      const invocationOutputs = historyContents.filter((item: any) => {
+        const itemCreateTime = new Date(item.create_time);
+        return (
+          !item.deleted &&
+          item.state === 'ok' &&
+          item.history_content_type === 'dataset' &&
+          itemCreateTime >= invocation.createdAt
+        );
+      });
+
+      // Store each output in our database
+      const storedOutputs = [];
+      for (const galaxyOutput of invocationOutputs) {
+        const extension = galaxyOutput.extension || galaxyOutput.file_ext || 'txt';
+        const fileType = classifyFileType(extension);
+
+        const output = await storage.addOutput({
+          invocationId: invocation.id,
+          galaxyDatasetId: galaxyOutput.id,
+          name: galaxyOutput.name,
+          extension: extension,
+          size: galaxyOutput.file_size || 0,
+          fileType: fileType,
+          isVisualizable: isVisualizable(extension),
+          previewAvailable: fileType === 'table' || fileType === 'text',
+          metadata: {
+            dataType: galaxyOutput.data_type,
+            rows: galaxyOutput.metadata?.data_lines,
+            columns: galaxyOutput.metadata?.columns,
+          },
+        });
+
+        storedOutputs.push(output);
+      }
+
+      // Update invocation status to completed
+      await storage.updateInvocation(invocation.id, {
+        status: 'ok',
+        completedAt: new Date(),
+        completedSteps: invocation.totalSteps,
+      });
+
+      res.json({ outputs: storedOutputs, count: storedOutputs.length });
+    } catch (error: any) {
+      console.error("Error fetching outputs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Output Dataset Management API
+  // ============================================================================
+
+  // Get a specific output by ID
+  app.get("/api/outputs/:id", async (req, res) => {
+    try {
+      const output = await storage.getOutput(req.params.id);
+      if (!output) {
+        return res.status(404).json({ error: "Output not found" });
+      }
+      res.json(output);
+    } catch (error: any) {
+      console.error("Error fetching output:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Download output file from Galaxy
+  app.get("/api/outputs/:id/download", async (req, res) => {
+    try {
+      const output = await storage.getOutput(req.params.id);
+      if (!output) {
+        return res.status(404).json({ error: "Output not found" });
+      }
+
+      // Fetch file from Galaxy
+      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+
+      // Set appropriate headers
+      res.setHeader('Content-Disposition', `attachment; filename="${output.name}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+
+      // Pipe the stream to response
+      fileStream.pipe(res);
+    } catch (error: any) {
+      console.error("Error downloading output:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Display output file (for images, HTML, etc.)
+  app.get("/api/outputs/:id/display", async (req, res) => {
+    try {
+      const output = await storage.getOutput(req.params.id);
+      if (!output) {
+        return res.status(404).json({ error: "Output not found" });
+      }
+
+      // Fetch file from Galaxy
+      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+
+      // Set appropriate content type for inline display
+      const contentTypeMap: Record<string, string> = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'svg': 'image/svg+xml',
+        'gif': 'image/gif',
+        'pdf': 'application/pdf',
+        'html': 'text/html',
+        'htm': 'text/html',
+        'txt': 'text/plain',
+        'csv': 'text/csv',
+        'tsv': 'text/tab-separated-values',
+      };
+
+      const contentType = contentTypeMap[output.extension] || 'application/octet-stream';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', 'inline');
+
+      // Pipe the stream to response
+      fileStream.pipe(res);
+    } catch (error: any) {
+      console.error("Error displaying output:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Preview output (first N lines for tables/text files)
+  app.get("/api/outputs/:id/preview", async (req, res) => {
+    try {
+      const output = await storage.getOutput(req.params.id);
+      if (!output) {
+        return res.status(404).json({ error: "Output not found" });
+      }
+
+      if (output.fileType !== 'table' && output.fileType !== 'text') {
+        return res.status(400).json({ error: "Preview not available for this file type" });
+      }
+
+      // Fetch file content from Galaxy
+      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+
+      // Read first N lines
+      const lines: string[] = [];
+      let lineCount = 0;
+      const maxLines = parseInt(req.query.lines as string) || 100;
+
+      for await (const chunk of fileStream) {
+        const chunkLines = chunk.toString().split('\n');
+        for (const line of chunkLines) {
+          if (lineCount >= maxLines) break;
+          lines.push(line);
+          lineCount++;
+        }
+        if (lineCount >= maxLines) break;
+      }
+
+      res.json({
+        lines,
+        totalLines: output.metadata?.rows || lineCount,
+        hasMore: (output.metadata?.rows || 0) > maxLines
+      });
+    } catch (error: any) {
+      console.error("Error previewing output:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
   const httpServer = createServer(app);
 
   return httpServer;
@@ -1117,282 +2024,3 @@ function isVisualizable(extension: string): boolean {
   return visualizableExts.includes(extension.toLowerCase());
 }
 
-  // ============================================================================
-  // Workflow Invocation Management API
-  // ============================================================================
-
-  // Create a new invocation record (called when workflow starts)
-  app.post("/api/invocations", async (req, res) => {
-    try {
-      const invocationData = req.body;
-
-      const invocation = await storage.createInvocation({
-        userId: req.user?.id,
-        workflowName: invocationData.workflowName,
-        workflowDefinition: invocationData.workflowDefinition,
-        galaxyInvocationId: invocationData.galaxyInvocationId,
-        galaxyHistoryId: invocationData.galaxyHistoryId,
-        galaxyWorkflowId: invocationData.galaxyWorkflowId,
-        inputDatasets: invocationData.inputDatasets || [],
-        totalSteps: invocationData.totalSteps || 0,
-        status: 'running',
-      });
-
-      res.json(invocation);
-    } catch (error: any) {
-      console.error("Error creating invocation:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get all invocations for the current user
-  app.get("/api/invocations", async (req, res) => {
-    try {
-      const { limit } = req.query;
-      const invocations = await storage.getInvocations(
-        req.user?.id,
-        limit ? parseInt(limit as string) : 100
-      );
-      res.json(invocations);
-    } catch (error: any) {
-      console.error("Error fetching invocations:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get a specific invocation by ID
-  app.get("/api/invocations/:id", async (req, res) => {
-    try {
-      const invocation = await storage.getInvocation(req.params.id);
-      if (!invocation) {
-        return res.status(404).json({ error: "Invocation not found" });
-      }
-      res.json(invocation);
-    } catch (error: any) {
-      console.error("Error fetching invocation:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Update an invocation (status, outputs, etc.)
-  app.patch("/api/invocations/:id", async (req, res) => {
-    try {
-      const updates = req.body;
-      const invocation = await storage.updateInvocation(req.params.id, updates);
-
-      if (!invocation) {
-        return res.status(404).json({ error: "Invocation not found" });
-      }
-
-      res.json(invocation);
-    } catch (error: any) {
-      console.error("Error updating invocation:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Delete an invocation
-  app.delete("/api/invocations/:id", async (req, res) => {
-    try {
-      const success = await storage.deleteInvocation(req.params.id);
-      if (!success) {
-        return res.status(404).json({ error: "Invocation not found" });
-      }
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error deleting invocation:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get outputs for a specific invocation
-  app.get("/api/invocations/:id/outputs", async (req, res) => {
-    try {
-      const outputs = await storage.getInvocationOutputs(req.params.id);
-      res.json(outputs);
-    } catch (error: any) {
-      console.error("Error fetching outputs:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Fetch outputs from Galaxy after workflow completion
-  app.post("/api/invocations/:id/fetch-outputs", async (req, res) => {
-    try {
-      const invocation = await storage.getInvocation(req.params.id);
-      if (!invocation) {
-        return res.status(404).json({ error: "Invocation not found" });
-      }
-
-      // Fetch history contents from Galaxy
-      const historyContents = await galaxyAPIProxy.getHistoryContents(invocation.galaxyHistoryId);
-
-      // Filter outputs created by this invocation (after invocation start time)
-      const invocationOutputs = historyContents.filter((item: any) => {
-        const itemCreateTime = new Date(item.create_time);
-        return (
-          !item.deleted &&
-          item.state === 'ok' &&
-          item.history_content_type === 'dataset' &&
-          itemCreateTime >= invocation.createdAt
-        );
-      });
-
-      // Store each output in our database
-      const storedOutputs = [];
-      for (const galaxyOutput of invocationOutputs) {
-        const extension = galaxyOutput.extension || galaxyOutput.file_ext || 'txt';
-        const fileType = classifyFileType(extension);
-
-        const output = await storage.addOutput({
-          invocationId: invocation.id,
-          galaxyDatasetId: galaxyOutput.id,
-          name: galaxyOutput.name,
-          extension: extension,
-          size: galaxyOutput.file_size || 0,
-          fileType: fileType,
-          isVisualizable: isVisualizable(extension),
-          previewAvailable: fileType === 'table' || fileType === 'text',
-          metadata: {
-            dataType: galaxyOutput.data_type,
-            rows: galaxyOutput.metadata?.data_lines,
-            columns: galaxyOutput.metadata?.columns,
-          },
-        });
-
-        storedOutputs.push(output);
-      }
-
-      // Update invocation status to completed
-      await storage.updateInvocation(invocation.id, {
-        status: 'ok',
-        completedAt: new Date(),
-        completedSteps: invocation.totalSteps,
-      });
-
-      res.json({ outputs: storedOutputs, count: storedOutputs.length });
-    } catch (error: any) {
-      console.error("Error fetching outputs:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // ============================================================================
-  // Output Dataset Management API
-  // ============================================================================
-
-  // Get a specific output by ID
-  app.get("/api/outputs/:id", async (req, res) => {
-    try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
-      }
-      res.json(output);
-    } catch (error: any) {
-      console.error("Error fetching output:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Download output file from Galaxy
-  app.get("/api/outputs/:id/download", async (req, res) => {
-    try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
-      }
-
-      // Fetch file from Galaxy
-      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
-
-      // Set appropriate headers
-      res.setHeader('Content-Disposition', `attachment; filename="${output.name}"`);
-      res.setHeader('Content-Type', 'application/octet-stream');
-
-      // Pipe the stream to response
-      fileStream.pipe(res);
-    } catch (error: any) {
-      console.error("Error downloading output:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Display output file (for images, HTML, etc.)
-  app.get("/api/outputs/:id/display", async (req, res) => {
-    try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
-      }
-
-      // Fetch file from Galaxy
-      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
-
-      // Set appropriate content type for inline display
-      const contentTypeMap: Record<string, string> = {
-        'png': 'image/png',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'svg': 'image/svg+xml',
-        'gif': 'image/gif',
-        'pdf': 'application/pdf',
-        'html': 'text/html',
-        'htm': 'text/html',
-        'txt': 'text/plain',
-        'csv': 'text/csv',
-        'tsv': 'text/tab-separated-values',
-      };
-
-      const contentType = contentTypeMap[output.extension] || 'application/octet-stream';
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', 'inline');
-
-      // Pipe the stream to response
-      fileStream.pipe(res);
-    } catch (error: any) {
-      console.error("Error displaying output:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Preview output (first N lines for tables/text files)
-  app.get("/api/outputs/:id/preview", async (req, res) => {
-    try {
-      const output = await storage.getOutput(req.params.id);
-      if (!output) {
-        return res.status(404).json({ error: "Output not found" });
-      }
-
-      if (output.fileType !== 'table' && output.fileType !== 'text') {
-        return res.status(400).json({ error: "Preview not available for this file type" });
-      }
-
-      // Fetch file content from Galaxy
-      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
-
-      // Read first N lines
-      const lines: string[] = [];
-      let lineCount = 0;
-      const maxLines = parseInt(req.query.lines as string) || 100;
-
-      for await (const chunk of fileStream) {
-        const chunkLines = chunk.toString().split('\n');
-        for (const line of chunkLines) {
-          if (lineCount >= maxLines) break;
-          lines.push(line);
-          lineCount++;
-        }
-        if (lineCount >= maxLines) break;
-      }
-
-      res.json({
-        lines,
-        totalLines: output.metadata?.rows || lineCount,
-        hasMore: (output.metadata?.rows || 0) > maxLines
-      });
-    } catch (error: any) {
-      console.error("Error previewing output:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
