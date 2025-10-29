@@ -1,17 +1,52 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  fullName: text("full_name").notNull(),
+  organization: text("organization"),
+  phone: text("phone"),
+
+  // Trial management
+  trialStartedAt: timestamp("trial_started_at").defaultNow(),
+  trialEndsAt: timestamp("trial_ends_at").default(sql`NOW() + INTERVAL '7 days'`),
+  trialUsed: boolean("trial_used").default(false),
+
+  // Subscription
+  stripeCustomerId: text("stripe_customer_id"),
+  subscriptionStatus: text("subscription_status").default("trialing"),
+  subscriptionTier: text("subscription_tier").default("academic"),
+  subscriptionId: text("subscription_id"),
+  currentPeriodEnd: timestamp("current_period_end"),
+
+  // Security
+  emailVerified: boolean("email_verified").default(false),
+  verificationToken: text("verification_token"),
+  resetPasswordToken: text("reset_password_token"),
+  resetPasswordExpires: timestamp("reset_password_expires"),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  lastLoginAt: timestamp("last_login_at"),
+
+  // Metadata
+  termsAcceptedAt: timestamp("terms_accepted_at"),
+  marketingEmailsOptIn: boolean("marketing_emails_opt_in").default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
+  email: true,
   password: true,
+  fullName: true,
+  organization: true,
+  phone: true,
+  termsAcceptedAt: true,
+  marketingEmailsOptIn: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -69,6 +104,7 @@ export const messageSchema = z.object({
   timestamp: z.coerce.date(),
   suggestions: z.array(z.string()).optional(),
   workflowId: z.string().optional(),
+  invocationId: z.string().optional(), // Reference to workflow invocation for output display
   datasets: z.array(datasetConfigSchema).optional()
 });
 

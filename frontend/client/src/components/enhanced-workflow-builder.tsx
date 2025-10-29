@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -133,6 +133,7 @@ export function EnhancedWorkflowBuilder({
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
   const [showValidationDialog, setShowValidationDialog] = useState(false)
   const [pendingWorkflowStart, setPendingWorkflowStart] = useState(false)
+  const [bioMateInvocationId, setBioMateInvocationId] = useState<string | null>(null)
 
   // Real-time workflow execution hook
   const {
@@ -147,6 +148,45 @@ export function EnhancedWorkflowBuilder({
     getTotalElapsedTime,
     formatElapsedTime,
   } = useWorkflowExecution()
+
+  // Handle workflow completion and fetch outputs
+  useEffect(() => {
+    const handleWorkflowCompletion = async () => {
+      if (isComplete && bioMateInvocationId) {
+        console.log('[Workflow] Workflow completed, fetching outputs for invocation:', bioMateInvocationId)
+
+        try {
+          // Update invocation status to completed
+          await fetch(`/api/invocations/${bioMateInvocationId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'ok',
+              completedSteps: steps.length,
+              completedAt: new Date().toISOString()
+            })
+          })
+
+          // Fetch outputs from Galaxy
+          const fetchResponse = await fetch(`/api/invocations/${bioMateInvocationId}/fetch-outputs`, {
+            method: 'POST'
+          })
+
+          if (fetchResponse.ok) {
+            const outputs = await fetchResponse.json()
+            console.log('[Workflow] Fetched', outputs.count, 'outputs')
+
+            // TODO: Notify parent component or add chat message with invocationId
+            setWorkflowStatus('completed')
+          }
+        } catch (error: any) {
+          console.error('[Workflow] Failed to fetch outputs:', error)
+        }
+      }
+    }
+
+    handleWorkflowCompletion()
+  }, [isComplete, bioMateInvocationId, steps.length])
 
   // Convert execution steps to timeline events
   // Use executionSteps from full workflow invocation, or fall back to local steps for individual execution
@@ -246,8 +286,41 @@ export function EnhancedWorkflowBuilder({
       const workflowId = workflowName.toLowerCase().replace(/\s+/g, '-')
 
       console.log('[Workflow] Invoking workflow:', workflowId, 'with inputs:', workflowInputs)
-      await invokeWorkflow(workflowId, workflowInputs)
-      console.log('[Workflow] Successfully invoked:', workflowId)
+
+      // Invoke workflow in Galaxy
+      const galaxyInvocation = await invokeWorkflow(workflowId, workflowInputs)
+      console.log('[Workflow] Successfully invoked:', workflowId, 'Galaxy invocation:', galaxyInvocation)
+
+      // Create invocation record in our backend for output tracking
+      try {
+        const invocationResponse = await fetch('/api/invocations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workflowName: workflowName,
+            workflowDefinition: {
+              id: workflowId,
+              name: workflowName,
+              steps: steps
+            },
+            galaxyInvocationId: galaxyInvocation.id,
+            galaxyHistoryId: galaxyInvocation.history_id || '',
+            totalSteps: steps.length,
+            status: 'running'
+          })
+        })
+
+        if (invocationResponse.ok) {
+          const bioMateInvocation = await invocationResponse.json()
+          console.log('[Workflow] Created bioMate invocation:', bioMateInvocation.id)
+
+          // Store invocation ID for tracking
+          setBioMateInvocationId(bioMateInvocation.id)
+        }
+      } catch (error: any) {
+        console.error('[Workflow] Failed to create bioMate invocation:', error)
+        // Don't fail workflow execution if tracking fails
+      }
     } catch (error: any) {
       console.error('[Workflow] Failed to invoke:', error)
       setWorkflowStatus('error')

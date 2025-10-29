@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { ChatInterface } from "./chat-interface"
 import { EnhancedWorkflowBuilder } from "./enhanced-workflow-builder"
+import { WorkflowHistoryPanel } from "./workflow-history-panel"
 import { useWorkflowSync } from "../hooks/useWorkflowSync"
 import { chatHistoryService } from "@/lib/chat-history"
 import type { ChatSession } from "@shared/schema"
@@ -197,6 +198,23 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
 
   return (
     <div className="h-full flex flex-col">
+      {/* Header with History Panel */}
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center justify-between px-4 py-2">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-muted-foreground" />
+            <h2 className="font-semibold">bioMate Workspace</h2>
+            {hasWorkflow && (
+              <Badge variant="secondary" className="ml-2">
+                <Workflow className="w-3 h-3 mr-1" />
+                Workflow Active
+              </Badge>
+            )}
+          </div>
+          <WorkflowHistoryPanel />
+        </div>
+      </div>
+
       {/* Content */}
       <div className="flex-1 overflow-hidden">
             {hasWorkflow ? (

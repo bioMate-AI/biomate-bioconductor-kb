@@ -77,7 +77,17 @@ export function WorkflowStep({
   }
 
   return (
-    <Card className="w-full" data-testid={`card-workflow-step-${step.id}`}>
+    <Card
+      className="w-full transition-all hover:shadow-lg cursor-pointer"
+      data-testid={`card-workflow-step-${step.id}`}
+      onClick={(e) => {
+        // Don't trigger card click if clicking on a button
+        const target = e.target as HTMLElement
+        if (target.closest('button')) return
+
+        onEdit(step)
+      }}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-muted-foreground text-sm font-medium">
@@ -88,13 +98,19 @@ export function WorkflowStep({
             <CardTitle className="text-base">{step.title}</CardTitle>
             <CardDescription className="text-sm">
               {step.tool} • {step.estimatedTime || "~5 min"}
+              <Badge variant="outline" className="ml-2 text-xs">
+                Click to edit
+              </Badge>
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsExpanded(!isExpanded)
+              }}
               data-testid={`button-expand-step-${step.id}`}
             >
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -175,24 +191,33 @@ export function WorkflowStep({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onEdit(step)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit(step)
+              }}
               data-testid={`button-edit-step-${step.id}`}
             >
-              Edit
+              Edit Parameters
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onRun(step)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onRun(step)
+              }}
               disabled={step.status === "running"}
               data-testid={`button-run-step-${step.id}`}
             >
-              {step.status === "running" ? "Running..." : "Run"}
+              {step.status === "running" ? "Running..." : "Run Step"}
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onRemove(step)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onRemove(step)
+              }}
               data-testid={`button-remove-step-${step.id}`}
             >
               Remove

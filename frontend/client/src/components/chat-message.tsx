@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card"
 import { Copy, RotateCcw, Workflow } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
+import { ChatOutputAttachments } from "./chat-output-attachments"
 import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba2b.png"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
 
@@ -112,6 +113,11 @@ export function ChatMessage({
                 </Button>
               </div>
             </Card>
+          )}
+
+          {/* Output Attachments - Show when workflow execution completes */}
+          {!isUser && message.invocationId && (
+            <ChatOutputAttachments invocationId={message.invocationId} />
           )}
         </div>
 

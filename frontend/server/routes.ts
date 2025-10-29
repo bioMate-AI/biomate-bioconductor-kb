@@ -1396,8 +1396,3 @@ function isVisualizable(extension: string): boolean {
       res.status(500).json({ error: error.message });
     }
   });
-
-  // Create HTTP server
-  const httpServer = createServer(app);
-  return httpServer;
-}
