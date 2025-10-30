@@ -37,14 +37,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const token = localStorage.getItem('auth_token')
         if (token) {
-          // TODO: Validate token with backend
-          const storedUser = localStorage.getItem('user')
-          if (storedUser) {
-            setUser(JSON.parse(storedUser))
+          // Validate token with backend
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include'
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.user) {
+              // Map backend user to frontend User type
+              const user: User = {
+                id: data.user.id,
+                email: data.user.email,
+                name: data.user.fullName,
+                role: data.subscription?.subscriptionTier === 'enterprise' ? 'enterprise' :
+                      data.subscription?.subscriptionTier === 'professional' ? 'pro' :
+                      data.subscription?.subscriptionTier === 'team' ? 'team' : 'free',
+                subscription: data.subscription ? {
+                  plan: data.subscription.subscriptionTier || 'Free',
+                  status: data.subscription.trialing ? 'trialing' : data.subscription.subscriptionStatus,
+                  currentPeriodEnd: data.user.currentPeriodEnd ||
+                                   (data.subscription.trialing ? data.user.trialEndsAt : new Date().toISOString())
+                } : undefined
+              }
+              setUser(user)
+            }
+          } else {
+            // Token invalid or expired, clear storage
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('user')
           }
         }
       } catch (error) {
         console.error('Auth check failed:', error)
+        // Clear storage on error
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('user')
       } finally {
         setIsLoading(false)
       }
@@ -55,95 +86,116 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      // TODO: Replace with actual API call
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies
         body: JSON.stringify({ email, password })
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error('Login failed')
+        // Handle trial expired error
+        if (data.error === 'TRIAL_EXPIRED') {
+          throw new Error('Your trial has expired. Please subscribe to continue.')
+        }
+        throw new Error(data.error || 'Login failed')
       }
 
-      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data.error || 'Login failed')
+      }
 
       // Store token and user data
       localStorage.setItem('auth_token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
-      setUser(data.user)
+
+      // Map backend user to frontend User type
+      const user: User = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.fullName,
+        role: data.subscription?.subscriptionTier === 'enterprise' ? 'enterprise' :
+              data.subscription?.subscriptionTier === 'professional' ? 'pro' :
+              data.subscription?.subscriptionTier === 'team' ? 'team' : 'free',
+        subscription: data.subscription ? {
+          plan: data.subscription.subscriptionTier || 'Free',
+          status: data.subscription.trialing ? 'trialing' : data.subscription.subscriptionStatus,
+          currentPeriodEnd: data.user.currentPeriodEnd ||
+                           (data.subscription.trialing ? data.user.trialEndsAt : new Date().toISOString())
+        } : undefined
+      }
+
+      setUser(user)
 
       // Redirect to dashboard
       setLocation('/dashboard')
     } catch (error) {
-      // For demo purposes, create a mock user
-      console.log('Using mock login')
-      const mockUser: User = {
-        id: '1',
-        email,
-        name: 'Dr. Jane Smith',
-        role: 'pro',
-        subscription: {
-          plan: 'Pro',
-          status: 'active',
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      }
-
-      localStorage.setItem('auth_token', 'mock_token_' + Date.now())
-      localStorage.setItem('user', JSON.stringify(mockUser))
-      setUser(mockUser)
-      setLocation('/dashboard')
+      console.error('Login error:', error)
+      throw error
     }
   }
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      // TODO: Replace with actual API call
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        credentials: 'include', // Include cookies
+        body: JSON.stringify({
+          fullName: name,
+          email,
+          password,
+          termsAccepted: true // Assume terms accepted if registering
+        })
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error('Registration failed')
+        throw new Error(data.error || 'Registration failed')
       }
 
-      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data.error || 'Registration failed')
+      }
 
       // Store token and user data
       localStorage.setItem('auth_token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
-      setUser(data.user)
 
-      // Redirect to pricing to select plan
-      setLocation('/pricing')
-    } catch (error) {
-      // For demo purposes, create a mock user
-      console.log('Using mock registration')
-      const mockUser: User = {
-        id: Date.now().toString(),
-        email,
-        name,
-        role: 'free'
+      // Map backend user to frontend User type
+      const user: User = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.fullName,
+        role: 'free', // New registrations start on free trial
+        subscription: {
+          plan: 'Trial',
+          status: 'trialing',
+          currentPeriodEnd: data.user.trialEndsAt
+        }
       }
 
-      localStorage.setItem('auth_token', 'mock_token_' + Date.now())
-      localStorage.setItem('user', JSON.stringify(mockUser))
-      setUser(mockUser)
-      setLocation('/pricing')
+      setUser(user)
+
+      // Redirect to dashboard (skip pricing for now)
+      setLocation('/dashboard')
+    } catch (error) {
+      console.error('Registration error:', error)
+      throw error
     }
   }
 
   const logout = async () => {
     try {
-      // TODO: Call backend logout endpoint
       await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
+        },
+        credentials: 'include'
       })
     } catch (error) {
       console.error('Logout error:', error)

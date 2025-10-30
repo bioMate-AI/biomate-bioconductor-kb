@@ -192,7 +192,10 @@ export function WorkflowGraph({
               node.step.status === 'running' ? "animate-pulse-subtle" : "",
               "hover:shadow-md"
             )}
-            onClick={() => setSelectedNode(isSelected ? null : node.id)}
+            onClick={() => {
+              setSelectedNode(node.id)
+              onStepAction(node.id, 'edit')
+            }}
           >
             <CardHeader className="pb-2 space-y-1">
               <div className="flex items-center justify-between">
@@ -266,7 +269,7 @@ export function WorkflowGraph({
                     variant="outline"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setEditingStep(node.step)
+                      onStepAction(node.id, 'edit')
                     }}
                     data-testid={`button-graph-edit-${node.id}`}
                   >

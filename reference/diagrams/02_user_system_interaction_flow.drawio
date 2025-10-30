@@ -1,0 +1,372 @@
+<mxfile host="app.diagrams.net" modified="2025-10-28T00:00:00.000Z" agent="BioMate Architecture" version="21.0.0">
+  <diagram name="Page 1: Authentication Flow" id="page1">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="BioMate User-System Interaction Flow - Authentication &amp; Data Upload" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="swimlane-user" value="User" style="swimlane;startSize=40;fontSize=14;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="50" y="100" width="250" height="1250" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-navigate" value="Navigate to&#xa;biomate.ai" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="swimlane-user">
+          <mxGeometry x="20" y="70" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-enter-creds" value="Enter Email &amp;&#xa;Password&#xa;(+ MFA if enabled)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="swimlane-user">
+          <mxGeometry x="20" y="280" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-see-dashboard" value="View Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="swimlane-user">
+          <mxGeometry x="20" y="810" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-select-files" value="Select Files&#xa;(FASTQ, BAM, VCF)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="swimlane-user">
+          <mxGeometry x="20" y="900" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="swimlane-frontend" value="Frontend (Browser)" style="swimlane;startSize=40;fontSize=14;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="300" y="100" width="250" height="1250" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-load-app" value="Load React App&#xa;Check Auth Token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;" vertex="1" parent="swimlane-frontend">
+          <mxGeometry x="20" y="140" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-show-login" value="Show Login Page" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;" vertex="1" parent="swimlane-frontend">
+          <mxGeometry x="20" y="210" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-submit-login" value="Submit Login&#xa;Request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;" vertex="1" parent="swimlane-frontend">
+          <mxGeometry x="20" y="360" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-store-token" value="Store JWT in&#xa;localStorage&#xa;Redirect to Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;" vertex="1" parent="swimlane-frontend">
+          <mxGeometry x="20" y="730" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-init-upload" value="Request Presigned&#xa;URLs for Upload" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;" vertex="1" parent="swimlane-frontend">
+          <mxGeometry x="20" y="970" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-upload-chunks" value="Upload File Chunks&#xa;to S3 (Parallel)&#xa;Show Progress" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;" vertex="1" parent="swimlane-frontend">
+          <mxGeometry x="20" y="1120" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="swimlane-backend" value="Backend API" style="swimlane;startSize=40;fontSize=14;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="550" y="100" width="250" height="1250" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-validate-creds" value="Validate Credentials&#xa;Check Password Hash&#xa;Verify MFA Token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9cc;strokeColor=#d6b656;" vertex="1" parent="swimlane-backend">
+          <mxGeometry x="20" y="430" width="210" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-gen-jwt" value="Generate JWT Token&#xa;Store Session (Redis)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9cc;strokeColor=#d6b656;" vertex="1" parent="swimlane-backend">
+          <mxGeometry x="20" y="590" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-gen-presigned" value="Generate S3&#xa;Presigned URLs&#xa;(Multipart Upload)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9cc;strokeColor=#d6b656;" vertex="1" parent="swimlane-backend">
+          <mxGeometry x="20" y="1040" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="swimlane-services" value="Services &amp; Data" style="swimlane;startSize=40;fontSize=14;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="800" y="100" width="250" height="1250" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="db-check-user" value="PostgreSQL&#xa;SELECT FROM users" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6d0de;strokeColor=#996185;" vertex="1" parent="swimlane-services">
+          <mxGeometry x="20" y="520" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="redis-session" value="Redis&#xa;Store Session Data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6d0de;strokeColor=#996185;" vertex="1" parent="swimlane-services">
+          <mxGeometry x="20" y="660" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="db-track-upload" value="DynamoDB&#xa;Create Upload Record" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6d0de;strokeColor=#996185;" vertex="1" parent="swimlane-services">
+          <mxGeometry x="20" y="1120" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3-store-data" value="AWS S3&#xa;Store User Data&#xa;(SSE-S3 Encryption)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6d0de;strokeColor=#996185;" vertex="1" parent="swimlane-services">
+          <mxGeometry x="20" y="1190" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="swimlane-security" value="Security &amp; Audit" style="swimlane;startSize=40;fontSize=14;fontStyle=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="100" width="300" height="1250" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-note1" value="✓ TLS 1.2+ Encryption" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="swimlane-security">
+          <mxGeometry x="20" y="70" width="260" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-note2" value="✓ JWT Validation&#xa;✓ Password Hashing (bcrypt)&#xa;✓ MFA Verification (TOTP)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security">
+          <mxGeometry x="20" y="430" width="260" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-note3" value="✓ Audit Log: User Login&#xa;  • User ID&#xa;  • IP Address&#xa;  • Timestamp&#xa;  • Success/Failure" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security">
+          <mxGeometry x="20" y="520" width="260" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-note4" value="✓ Session Timeout: 30 min&#xa;✓ Secure Cookie (HttpOnly)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security">
+          <mxGeometry x="20" y="660" width="260" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-note5" value="✓ Presigned URLs (1h TTL)&#xa;✓ S3 Encryption (SSE-S3)&#xa;✓ Access Logging Enabled" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security">
+          <mxGeometry x="20" y="1040" width="260" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-note6" value="✓ Audit Log: File Upload&#xa;  • User ID&#xa;  • File Name&#xa;  • File Size&#xa;  • Timestamp" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security">
+          <mxGeometry x="20" y="1120" width="260" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066CC;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="user-navigate" target="fe-load-app">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066CC;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="user-enter-creds" target="fe-submit-login">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF6600;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="fe-submit-login" target="be-validate-creds">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF6600;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="be-validate-creds" target="db-check-user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF6600;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="be-gen-jwt" target="redis-session">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066CC;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="be-gen-jwt" target="fe-store-token">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066CC;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="user-select-files" target="fe-init-upload">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF6600;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="fe-init-upload" target="be-gen-presigned">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9933FF;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="fe-upload-chunks" target="s3-store-data">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend-box" value="Legend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="1300" width="200" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend-1" value="" style="endArrow=classic;html=1;strokeColor=#0066CC;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1170" y="1340" as="sourcePoint"/>
+            <mxPoint x="1230" y="1340" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-1-text" value="User Action" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="1330" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend-2" value="" style="endArrow=classic;html=1;strokeColor=#FF6600;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1170" y="1370" as="sourcePoint"/>
+            <mxPoint x="1230" y="1370" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-2-text" value="API Call" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="1360" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend-3" value="" style="endArrow=classic;html=1;strokeColor=#9933FF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1170" y="1400" as="sourcePoint"/>
+            <mxPoint x="1230" y="1400" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-3-text" value="Direct S3" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="1390" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Page 2: Workflow Generation &amp; Execution" id="page2">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title2" value="BioMate User-System Interaction Flow - Workflow Generation &amp; Execution" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="150" y="20" width="1100" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="swimlane-user2" value="User" style="swimlane;startSize=40;fontSize=14;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="50" y="100" width="250" height="1450" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-chat-query" value="Send Chat Message:&#xa;&quot;Analyze RNA-seq data&#xa;from FASTQ files&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="swimlane-user2">
+          <mxGeometry x="20" y="70" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-review-wf" value="Review Workflow:&#xa;• Step sequence&#xa;• Parameters&#xa;• Tools used" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;align=left;" vertex="1" parent="swimlane-user2">
+          <mxGeometry x="20" y="450" width="210" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-approve" value="Click &quot;Run Workflow&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="swimlane-user2">
+          <mxGeometry x="20" y="540" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-monitor" value="Watch Progress:&#xa;✓ Step 1 Complete&#xa;⏳ Step 2 Running&#xa;○ Step 3 Pending" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;align=left;" vertex="1" parent="swimlane-user2">
+          <mxGeometry x="20" y="1100" width="210" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-view-results" value="View Results" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="swimlane-user2">
+          <mxGeometry x="20" y="1350" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="swimlane-frontend2" value="Frontend" style="swimlane;startSize=40;fontSize=14;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="300" y="100" width="250" height="1450" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-send-chat" value="Send Chat Request&#xa;(WebSocket)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;" vertex="1" parent="swimlane-frontend2">
+          <mxGeometry x="20" y="150" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-show-wf" value="Display Workflow&#xa;Visualization&#xa;(Step List + Graph)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;" vertex="1" parent="swimlane-frontend2">
+          <mxGeometry x="20" y="370" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-exec-request" value="Send Execute&#xa;Request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;" vertex="1" parent="swimlane-frontend2">
+          <mxGeometry x="20" y="620" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-update-timeline" value="Update Execution&#xa;Timeline (Real-time)&#xa;Show Progress Bars" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;" vertex="1" parent="swimlane-frontend2">
+          <mxGeometry x="20" y="1020" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-show-results" value="Display Results:&#xa;• DEG table (CSV)&#xa;• Volcano plot (PNG)&#xa;• Heatmap (PNG)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;align=left;" vertex="1" parent="swimlane-frontend2">
+          <mxGeometry x="20" y="1280" width="210" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="swimlane-backend2" value="Backend API" style="swimlane;startSize=40;fontSize=14;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="550" y="100" width="250" height="1450" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-forward-ai" value="Forward to&#xa;Galaxy Assistant&#xa;Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9cc;strokeColor=#d6b656;" vertex="1" parent="swimlane-backend2">
+          <mxGeometry x="20" y="220" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-save-wf" value="Save Workflow&#xa;to Database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9cc;strokeColor=#d6b656;" vertex="1" parent="swimlane-backend2">
+          <mxGeometry x="20" y="390" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-check-quota" value="Check User Quota&#xa;(Workflows remaining)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9cc;strokeColor=#d6b656;" vertex="1" parent="swimlane-backend2">
+          <mxGeometry x="20" y="690" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-queue-job" value="Add Job to Queue&#xa;(Bull/Redis)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9cc;strokeColor=#d6b656;" vertex="1" parent="swimlane-backend2">
+          <mxGeometry x="20" y="830" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-status-update" value="Poll Job Status&#xa;(Every 5 sec)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9cc;strokeColor=#d6b656;" vertex="1" parent="swimlane-backend2">
+          <mxGeometry x="20" y="1040" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-finalize" value="Update Job Status&#xa;Log Usage Event&#xa;Send Notification" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9cc;strokeColor=#d6b656;" vertex="1" parent="swimlane-backend2">
+          <mxGeometry x="20" y="1210" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="swimlane-compute2" value="Workflow Execution" style="swimlane;startSize=40;fontSize=14;fontStyle=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="800" y="100" width="250" height="1450" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ai-gen-workflow" value="Claude AI&#xa;Generate Workflow&#xa;Recommend Tools" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5c7c7;strokeColor=#b85450;" vertex="1" parent="swimlane-compute2">
+          <mxGeometry x="20" y="290" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="galaxy-create-wf" value="Galaxy API&#xa;Create Workflow&#xa;Definition" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5c7c7;strokeColor=#b85450;" vertex="1" parent="swimlane-compute2">
+          <mxGeometry x="20" y="370" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="worker-pickup" value="Worker Picks Up Job&#xa;Initialize Galaxy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5c7c7;strokeColor=#b85450;" vertex="1" parent="swimlane-compute2">
+          <mxGeometry x="20" y="900" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="galaxy-exec" value="Execute Workflow:&#xa;• Step 1: FastQC&#xa;• Step 2: STAR&#xa;• Step 3: featureCounts&#xa;• Step 4: DESeq2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5c7c7;strokeColor=#b85450;align=left;" vertex="1" parent="swimlane-compute2">
+          <mxGeometry x="20" y="970" width="210" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="galaxy-complete" value="Workflow Complete&#xa;Upload Results to S3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5c7c7;strokeColor=#b85450;" vertex="1" parent="swimlane-compute2">
+          <mxGeometry x="20" y="1150" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="swimlane-security2" value="Security &amp; Audit" style="swimlane;startSize=40;fontSize=14;fontStyle=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="100" width="300" height="1450" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec2-note1" value="✓ WebSocket Auth (JWT)&#xa;✓ Rate Limiting (Chat)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security2">
+          <mxGeometry x="20" y="150" width="260" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec2-note2" value="✓ Audit Log: Workflow Created&#xa;  • User ID&#xa;  • Workflow Name&#xa;  • Tools Used" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security2">
+          <mxGeometry x="20" y="390" width="260" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec2-note3" value="✓ Quota Enforcement&#xa;✓ Usage Tracking (Billing)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security2">
+          <mxGeometry x="20" y="690" width="260" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec2-note4" value="✓ Job Queue Isolation&#xa;✓ Resource Limits Enforced" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security2">
+          <mxGeometry x="20" y="900" width="260" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec2-note5" value="✓ Container Isolation (Kubernetes)&#xa;✓ Network Policies&#xa;✓ Resource Quotas" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security2">
+          <mxGeometry x="20" y="970" width="260" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec2-note6" value="✓ Audit Log: Workflow Execution&#xa;  • User ID&#xa;  • Workflow ID&#xa;  • Compute Time&#xa;  • Cost&#xa;  • Success/Failure" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="swimlane-security2">
+          <mxGeometry x="20" y="1210" width="260" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066CC;" edge="1" parent="1" source="user-chat-query" target="fe-send-chat">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF6600;" edge="1" parent="1" source="fe-send-chat" target="be-forward-ai">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#009900;dashed=1;" edge="1" parent="1" source="be-forward-ai" target="ai-gen-workflow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#CC0000;dashed=1;" edge="1" parent="1" source="ai-gen-workflow" target="galaxy-create-wf">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066CC;" edge="1" parent="1" source="galaxy-create-wf" target="fe-show-wf">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="750" y="510"/>
+              <mxPoint x="750" y="500"/>
+              <mxPoint x="425" y="500"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arr6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066CC;" edge="1" parent="1" source="user-approve" target="fe-exec-request">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF6600;" edge="1" parent="1" source="fe-exec-request" target="be-check-quota">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

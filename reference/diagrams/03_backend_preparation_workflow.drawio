@@ -1,0 +1,255 @@
+<mxfile host="app.diagrams.net" modified="2025-10-28T00:00:00.000Z" agent="BioMate Architecture" version="21.0.0">
+  <diagram name="Backend Preparation Workflow" id="backend-prep">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="2800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="BioMate Backend Preparation Workflow&#xa;(Production Deployment with SOC 2 / HIPAA Compliance)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="800" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="phase1-title" value="PHASE 1: Infrastructure Setup (Week 1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0066cc;strokeColor=#003d7a;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="120" width="1400" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-1-1-box" value="1.1 AWS Account Setup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="180" width="320" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-1-1-items" value="☐ Create production AWS account&#xa;☐ Enable MFA for root account&#xa;☐ Set up billing alerts&#xa;☐ Create IAM admin users&#xa;☐ Configure AWS Organizations&#xa;☐ Enable CloudTrail (all regions)&#xa;☐ Enable GuardDuty&#xa;☐ Set up Cost Explorer" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="210" width="300" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-1-2-box" value="1.2 Network Configuration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="480" y="180" width="320" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-1-2-items" value="☐ Create VPC (10.0.0.0/16)&#xa;☐ Create public subnets (2 AZs)&#xa;☐ Create private subnets (2 AZs)&#xa;☐ Create NAT gateways&#xa;☐ Configure route tables&#xa;☐ Set up Internet Gateway&#xa;☐ Create security groups&#xa;☐ Configure NACLs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="210" width="300" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-1-3-box" value="1.3 Sign Business Associate Agreements" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="840" y="180" width="320" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-1-3-items" value="☐ AWS BAA (HIPAA)&#xa;☐ Review compliance programs:&#xa;  • SOC 2 Type II&#xa;  • ISO 27001&#xa;  • PCI DSS (if applicable)&#xa;☐ Stripe BAA (if handling PHI)&#xa;☐ DataDog BAA (if logs contain PHI)&#xa;☐ Review Anthropic Claude terms" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="850" y="210" width="300" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-1-4-box" value="1.4 Domain &amp; SSL Certificates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="180" width="300" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-1-4-items" value="☐ Register domain (biomate.ai)&#xa;☐ Configure DNS (Route 53)&#xa;☐ Request SSL certificates (ACM)&#xa;☐ Enable auto-renewal&#xa;☐ Set up www redirect&#xa;☐ Configure DNSSEC&#xa;☐ Set up SPF/DKIM for email" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="210" width="280" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="phase2-title" value="PHASE 2: Database &amp; Storage Setup (Week 1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0066cc;strokeColor=#003d7a;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="1400" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-2-1-box" value="2.1 PostgreSQL (RDS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="460" width="420" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-2-1-items" value="☐ Launch RDS PostgreSQL 15&#xa;☐ Instance: db.r5.xlarge (Multi-AZ)&#xa;☐ Enable encryption at rest (KMS)&#xa;☐ Enable automated backups (7 days)&#xa;☐ Enable point-in-time recovery&#xa;☐ Configure parameter group:&#xa;  • log_connections = ON&#xa;  • log_disconnections = ON&#xa;  • log_min_duration_statement = 1000ms&#xa;☐ Create read replicas (2)&#xa;☐ Install pgvector extension&#xa;☐ Create database schema&#xa;☐ Run migrations&#xa;☐ Set up database monitoring" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="490" width="400" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-2-2-box" value="2.2 Redis (ElastiCache)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="580" y="460" width="360" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-2-2-items" value="☐ Launch ElastiCache Redis 7.x&#xa;☐ Instance: cache.r5.large (Multi-AZ)&#xa;☐ Enable encryption at rest&#xa;☐ Enable encryption in transit (TLS)&#xa;☐ Enable automatic backups&#xa;☐ Configure cluster mode (3 shards)&#xa;☐ Set eviction policy (LRU)&#xa;☐ Configure parameter group:&#xa;  • maxmemory-policy = allkeys-lru&#xa;  • timeout = 300&#xa;☐ Set up monitoring" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="590" y="490" width="340" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-2-3-box" value="2.3 S3 Storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="980" y="460" width="520" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-2-3-items" value="☐ Create S3 buckets:&#xa;  • biomate-production (user data)&#xa;  • biomate-logs (access logs)&#xa;  • biomate-backups (DB backups)&#xa;☐ Enable versioning&#xa;☐ Enable server-side encryption (SSE-S3)&#xa;☐ Configure bucket policies (deny unencrypted)&#xa;☐ Enable access logging&#xa;☐ Configure lifecycle policies:&#xa;  • Standard → Intelligent-Tiering (30d)&#xa;  • Intelligent-Tiering → Glacier (90d)&#xa;☐ Enable S3 Object Lock (compliance mode)&#xa;☐ Configure CORS policies&#xa;☐ Set up CloudFront distribution" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="990" y="490" width="500" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="phase3-title" value="PHASE 3: Application Deployment (Week 1-2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0066cc;strokeColor=#003d7a;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="740" width="1400" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-3-1-box" value="3.1 Container Registry (ECR)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="800" width="320" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-3-1-items" value="☐ Create ECR repositories:&#xa;  • biomate-frontend&#xa;  • biomate-backend&#xa;  • biomate-galaxy-assistant&#xa;  • biomate-tooluniverse&#xa;☐ Enable image scanning&#xa;☐ Configure lifecycle policies&#xa;☐ Set up CI/CD pipeline:&#xa;  • GitHub Actions&#xa;  • Build &amp; push on commit&#xa;  • Tag images (sha + version)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="830" width="300" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-3-2-box" value="3.2 Compute (ECS Fargate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="480" y="800" width="420" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-3-2-items" value="☐ Create ECS cluster&#xa;☐ Create task definitions:&#xa;  • Frontend (2 CPU, 4GB RAM)&#xa;  • Backend (4 CPU, 8GB RAM)&#xa;  • Galaxy Assistant (2 CPU, 4GB RAM)&#xa;  • ToolUniverse (2 CPU, 4GB RAM)&#xa;☐ Configure auto-scaling (2-20 tasks)&#xa;☐ Set up Application Load Balancer&#xa;☐ Configure health checks&#xa;☐ Set up service discovery&#xa;☐ Configure logging (CloudWatch)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="830" width="400" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-3-3-box" value="3.3 Galaxy Backend (EC2 + K8s)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="940" y="800" width="560" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-3-3-items" value="☐ Deploy Kubernetes cluster (EKS)&#xa;☐ Install Galaxy Helm chart&#xa;☐ Configure Galaxy settings:&#xa;  • Enable OIDC/OAuth&#xa;  • Set up S3 object store&#xa;  • Configure job runners (Kubernetes)&#xa;  • Enable quota management&#xa;☐ Deploy tool containers&#xa;☐ Set up autoscaling (5-100 nodes)&#xa;☐ Configure node pools:&#xa;  • General (m5.2xlarge)&#xa;  • Compute (c5.9xlarge)&#xa;  • GPU (p3.2xlarge)&#xa;☐ Set up monitoring (Prometheus + Grafana)&#xa;☐ Configure backup jobs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="950" y="830" width="540" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="phase4-title" value="PHASE 4: Security Configuration (Week 1-2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cc0000;strokeColor=#660000;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1020" width="1400" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-4-1-box" value="4.1 Authentication &amp; Authorization" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1080" width="460" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-4-1-items" value="☐ Set up Auth0 tenant (or AWS Cognito)&#xa;☐ Configure OAuth 2.0 flows&#xa;☐ Enable MFA (TOTP)&#xa;☐ Configure social logins (Google, GitHub)&#xa;☐ Set up SAML for SSO (enterprise)&#xa;☐ Implement JWT validation&#xa;☐ Set session timeout (30 min)&#xa;☐ Configure password policies:&#xa;  • Min length: 12 chars&#xa;  • Require uppercase, lowercase, numbers, symbols&#xa;  • Password history: 10&#xa;☐ Enable rate limiting (10 login attempts/hour)&#xa;☐ Configure break-glass accounts&#xa;☐ Set up RBAC roles:&#xa;  • Admin, User, Researcher, Clinician&#xa;☐ Test authentication flows" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="1110" width="440" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-4-2-box" value="4.2 Encryption Configuration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="620" y="1080" width="420" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-4-2-items" value="☐ Create KMS keys:&#xa;  • Database encryption key&#xa;  • S3 encryption key (customer-managed)&#xa;  • Secrets encryption key&#xa;☐ Enable automatic key rotation (365 days)&#xa;☐ Configure S3 bucket encryption:&#xa;  • Default: SSE-S3&#xa;  • PHI data: SSE-KMS (customer key)&#xa;☐ Enable RDS encryption (KMS)&#xa;☐ Enable EBS encryption (all volumes)&#xa;☐ Configure TLS 1.2+ for all services&#xa;☐ Generate TLS certificates (ACM)&#xa;☐ Configure HSTS headers&#xa;☐ Enable encryption in transit (Redis, RDS)&#xa;☐ Set up Secrets Manager:&#xa;  • Database credentials&#xa;  • API keys (Claude, Stripe)&#xa;  • JWT secrets" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="1110" width="400" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-4-3-box" value="4.3 Audit Logging &amp; Monitoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="1080" width="420" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-4-3-items" value="☐ Enable CloudTrail (all events)&#xa;☐ Configure log retention:&#xa;  • Application logs: 90 days (CloudWatch)&#xa;  • Audit logs: 6 years (S3 Glacier)&#xa;  • Access logs: 1 year (S3)&#xa;☐ Set up centralized logging:&#xa;  • Application → CloudWatch Logs&#xa;  • CloudWatch → S3 (daily export)&#xa;  • S3 → Athena (queryable)&#xa;☐ Implement audit event schema&#xa;☐ Log security events:&#xa;  • Authentication (success/failure)&#xa;  • Authorization (access denied)&#xa;  • Data access (PHI)&#xa;  • Admin actions&#xa;☐ Set up DataDog APM&#xa;☐ Configure alerts:&#xa;  • Failed login (&gt;10/hour)&#xa;  • Unauthorized access&#xa;  • High error rate (&gt;5%)&#xa;☐ Create CloudWatch dashboards" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="1110" width="400" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="phase5-title" value="PHASE 5: Security Hardening (Week 2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cc0000;strokeColor=#660000;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1360" width="1400" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-5-1-box" value="5.1 Network Security" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1420" width="380" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-5-1-items" value="☐ Configure Security Groups:&#xa;  • ALB: Allow 443 from 0.0.0.0/0&#xa;  • Backend: Allow 8080 from ALB only&#xa;  • RDS: Allow 5432 from backend only&#xa;  • Redis: Allow 6379 from backend only&#xa;☐ Enable VPC Flow Logs&#xa;☐ Configure NACLs (deny list)&#xa;☐ Set up AWS WAF:&#xa;  • Rate limiting (1000 req/5min)&#xa;  • SQL injection protection&#xa;  • XSS protection&#xa;☐ Enable DDoS protection (Shield)&#xa;☐ Implement IP whitelisting (admin)&#xa;☐ Set up VPN for internal access" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="1450" width="360" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-5-2-box" value="5.2 Application Security" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="540" y="1420" width="400" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-5-2-items" value="☐ Implement input validation (all APIs)&#xa;☐ Set up CORS policies (whitelist origins)&#xa;☐ Configure CSP headers&#xa;☐ Enable CSRF protection&#xa;☐ Implement rate limiting (per user):&#xa;  • API calls: 1000/hour&#xa;  • File uploads: 10/hour&#xa;  • Workflow executions: 100/day&#xa;☐ Sanitize user inputs (XSS prevention)&#xa;☐ Validate file uploads (type, size, virus scan)&#xa;☐ Implement SQL injection prevention (parameterized queries)&#xa;☐ Set up API versioning&#xa;☐ Enable API documentation (Swagger)&#xa;☐ Configure error handling (no sensitive data in errors)&#xa;☐ Implement security headers:&#xa;  • X-Frame-Options: DENY&#xa;  • X-Content-Type-Options: nosniff&#xa;  • Strict-Transport-Security" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="550" y="1450" width="380" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-5-3-box" value="5.3 Dependency &amp; Container Security" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="980" y="1420" width="520" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-5-3-items" value="☐ Enable Dependabot (GitHub)&#xa;☐ Run npm audit (fix vulnerabilities)&#xa;☐ Run pip check (Python deps)&#xa;☐ Scan container images (Trivy, Snyk)&#xa;☐ Set up automated security scanning (CI/CD)&#xa;☐ Configure image signing (Docker Content Trust)&#xa;☐ Use minimal base images (Alpine, distroless)&#xa;☐ Run containers as non-root user&#xa;☐ Implement least privilege (IAM roles):&#xa;  • Backend: Read RDS, S3, Redis only&#xa;  • Workers: Read/Write S3 (specific buckets)&#xa;  • Galaxy: Read/Write S3, start ECS tasks&#xa;☐ Rotate secrets regularly (90 days)&#xa;☐ Remove unused dependencies&#xa;☐ Pin dependency versions (package-lock.json)&#xa;☐ Enable SBOM generation (software bill of materials)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="990" y="1450" width="500" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="phase6-title" value="PHASE 6: Compliance Documentation (Week 2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#009900;strokeColor=#005500;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1660" width="1400" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-6-1-box" value="6.1 Security Policies &amp; Procedures" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1720" width="460" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-6-1-items" value="☐ Information Security Policy&#xa;☐ Acceptable Use Policy&#xa;☐ Password Policy&#xa;☐ Access Control Policy&#xa;☐ Data Classification Policy:&#xa;  • PHI (Protected Health Information)&#xa;  • PII (Personally Identifiable Information)&#xa;  • Internal Use Only&#xa;  • Public&#xa;☐ Data Retention &amp; Disposal Policy&#xa;☐ Incident Response Plan:&#xa;  • Detection (0-4 hours)&#xa;  • Assessment (4-8 hours)&#xa;  • Containment (8-24 hours)&#xa;  • Notification (60 days for HIPAA)&#xa;☐ Business Continuity Plan (RTO: 4h, RPO: 1h)&#xa;☐ Disaster Recovery Plan&#xa;☐ Vendor Management Policy&#xa;☐ Change Management Policy" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="1750" width="440" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-6-2-box" value="6.2 Security Training" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="620" y="1720" width="360" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-6-2-items" value="☐ HIPAA training (all employees)&#xa;☐ Security awareness training&#xa;☐ Phishing simulation&#xa;☐ Incident response drill&#xa;☐ Developer security training:&#xa;  • OWASP Top 10&#xa;  • Secure coding practices&#xa;  • Threat modeling&#xa;☐ Background checks (new hires)&#xa;☐ Security onboarding checklist&#xa;☐ Document training completion:&#xa;  • Training date&#xa;  • Trainer name&#xa;  • Test score (if applicable)&#xa;☐ Schedule annual refresher training" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="1750" width="340" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-6-3-box" value="6.3 SOC 2 / HIPAA Compliance Checklist" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="1720" width="480" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-6-3-items" value="SOC 2 Common Criteria:&#xa;☐ CC1: Control Environment (RBAC, separation of duties)&#xa;☐ CC2: Communication (policies documented)&#xa;☐ CC3: Risk Assessment (threat modeling)&#xa;☐ CC4: Monitoring (CloudWatch, DataDog)&#xa;☐ CC5: Control Activities (input validation, rate limiting)&#xa;☐ CC6: Logical Access (MFA, SSO, session mgmt)&#xa;☐ CC7: System Operations (audit logging, change mgmt)&#xa;☐ CC8: Change Management (CI/CD, version control)&#xa;☐ CC9: Risk Mitigation (incident response plan)&#xa;&#xa;HIPAA Technical Safeguards (§ 164.312):&#xa;☐ Access Control (RBAC, JWT, MFA)&#xa;☐ Audit Controls (CloudTrail, app logs)&#xa;☐ Integrity Controls (checksums, data validation)&#xa;☐ Transmission Security (TLS 1.2+)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="1750" width="460" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="phase7-title" value="PHASE 7: Security Testing &amp; Validation (Week 2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cc6600;strokeColor=#663300;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1980" width="1400" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-7-1-box" value="7.1 Vulnerability Scanning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="2040" width="420" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-7-1-items" value="☐ Set up vulnerability scanner (Nessus, Qualys)&#xa;☐ Scan all public endpoints&#xa;☐ Scan internal network&#xa;☐ Review scan results&#xa;☐ Remediate critical/high vulnerabilities&#xa;☐ Schedule weekly scans (automated)&#xa;☐ Run OWASP ZAP (web app scanner)&#xa;☐ Scan containers (Trivy)&#xa;☐ Check for misconfigurations (AWS Config)&#xa;☐ Validate TLS configuration (ssllabs.com)&#xa;☐ Test for common vulnerabilities:&#xa;  • SQL injection&#xa;  • XSS&#xa;  • CSRF" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="2070" width="400" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-7-2-box" value="7.2 Penetration Testing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="580" y="2040" width="420" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-7-2-items" value="☐ Hire external pen testing firm&#xa;☐ Define scope:&#xa;  • Web application&#xa;  • API endpoints&#xa;  • Network infrastructure&#xa;  • Social engineering (optional)&#xa;☐ Schedule test (before SOC 2 audit)&#xa;☐ Review pen test report&#xa;☐ Remediate findings (30 days)&#xa;☐ Re-test critical findings&#xa;☐ Document remediation&#xa;☐ Schedule annual pen tests&#xa;☐ Internal pen testing:&#xa;  • Privilege escalation&#xa;  • Lateral movement" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="590" y="2070" width="400" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-7-3-box" value="7.3 Pre-Audit Validation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="2040" width="460" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-7-3-items" value="☐ Self-assessment (SOC 2 checklist)&#xa;☐ Gap analysis (identify missing controls)&#xa;☐ Review evidence:&#xa;  • Access logs (90 days)&#xa;  • Change logs (CI/CD)&#xa;  • Incident response logs&#xa;  • Training records&#xa;  • Vendor contracts (BAAs)&#xa;☐ Internal audit (mock audit)&#xa;☐ Collect documentation:&#xa;  • System architecture diagrams&#xa;  • Network diagrams&#xa;  • Data flow diagrams&#xa;  • Security policies&#xa;  • Runbooks&#xa;☐ Select SOC 2 auditor&#xa;☐ Schedule readiness assessment" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="2070" width="440" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="phase8-title" value="PHASE 8: Production Deployment (Day 14)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#009900;strokeColor=#005500;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="2260" width="1400" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-8-1-box" value="8.1 Pre-Deployment Checklist" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="2320" width="420" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-8-1-items" value="☐ All tests passing (unit, integration, E2E)&#xa;☐ Security scan clean (no high/critical)&#xa;☐ Database migrations tested&#xa;☐ Environment variables set&#xa;☐ Secrets stored in Secrets Manager&#xa;☐ Monitoring dashboards configured&#xa;☐ Alerts configured (PagerDuty)&#xa;☐ Runbooks documented&#xa;☐ On-call rotation scheduled&#xa;☐ Rollback plan documented&#xa;☐ Communication plan (status page)&#xa;☐ Customer notifications prepared" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="2350" width="400" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-8-2-box" value="8.2 Deployment Steps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="580" y="2320" width="420" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-8-2-items" value="☐ Deploy database migrations&#xa;☐ Deploy backend services (blue/green)&#xa;☐ Deploy frontend (CloudFront invalidation)&#xa;☐ Deploy Galaxy backend&#xa;☐ Run smoke tests&#xa;☐ Verify health checks (all green)&#xa;☐ Gradual traffic shift (10% → 50% → 100%)&#xa;☐ Monitor error rates&#xa;☐ Monitor latency (p95, p99)&#xa;☐ Check logs for errors&#xa;☐ Verify key user flows:&#xa;  • Login&#xa;  • Upload file&#xa;  • Generate workflow&#xa;  • Execute workflow" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="590" y="2350" width="400" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-8-3-box" value="8.3 Post-Deployment Validation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="2320" width="460" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="task-8-3-items" value="☐ Run full E2E test suite (production)&#xa;☐ Verify SSL certificates&#xa;☐ Test authentication flows&#xa;☐ Test file upload/download&#xa;☐ Test workflow execution&#xa;☐ Verify monitoring data flowing&#xa;☐ Test alerting (trigger test alert)&#xa;☐ Verify backup jobs running&#xa;☐ Check cost dashboard (within budget)&#xa;☐ Update status page (operational)&#xa;☐ Send launch announcement&#xa;☐ Monitor for 24 hours (on-call)&#xa;☐ Conduct post-mortem (lessons learned)&#xa;☐ Document issues and resolutions" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="2350" width="440" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="success-box" value="✅ Success Criteria for Production Launch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00cc00;strokeColor=#006600;fontColor=#FFFFFF;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="100" y="2520" width="1400" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="success-criteria" value="✓ All infrastructure deployed (VPC, RDS, Redis, S3, ECS, EKS)&#xa;✓ AWS BAA signed&#xa;✓ All data encrypted at rest and in transit&#xa;✓ Audit logging enabled (CloudTrail, application logs)&#xa;✓ Authentication working (OAuth 2.0, JWT, MFA)&#xa;✓ All security policies documented&#xa;✓ All employees trained (HIPAA, security awareness)&#xa;✓ Vulnerability scan clean (no high/critical)&#xa;✓ E2E tests passing (100%)&#xa;✓ Monitoring and alerting configured&#xa;✓ Incident response plan documented&#xa;✓ Runbooks created for common operations&#xa;✓ 5-10 pilot customers onboarded&#xa;✓ First workflow executed successfully&#xa;✓ No security incidents in first 24 hours" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="2580" width="1360" height="240" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

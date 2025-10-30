@@ -80,6 +80,34 @@ def page(context: BrowserContext) -> Page:
     page.close()
 
 
+# E2E workflow fixtures with class scope to maintain state across tests
+@pytest.fixture(scope="class")
+def e2e_context(browser: Browser, browser_context_args) -> BrowserContext:
+    """
+    Create a browser context that persists for the entire test class.
+
+    This allows E2E tests to maintain state (uploaded files, sessions, etc.)
+    across multiple test methods in the same class.
+    """
+    context = browser.new_context(**browser_context_args)
+    yield context
+    context.close()
+
+
+@pytest.fixture(scope="class")
+def e2e_page(e2e_context: BrowserContext) -> Page:
+    """
+    Create a page that persists for the entire test class.
+
+    This is the key to true E2E testing - the page maintains its state
+    (uploaded datasets, chat history, workflow state) across all tests in the class.
+    """
+    page = e2e_context.new_page()
+    page.goto(TEST_BASE_URL)
+    yield page
+    page.close()
+
+
 @pytest.fixture(scope="function")
 def screenshot_manager(request):
     """

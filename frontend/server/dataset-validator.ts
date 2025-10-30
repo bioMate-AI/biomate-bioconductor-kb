@@ -1,8 +1,9 @@
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
+// Make OpenAI optional for development
+const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+}) : null;
 
 export interface Dataset {
   dataset_id: string;
@@ -65,6 +66,10 @@ export class DatasetValidator {
     const prompt = this.buildValidationPrompt(datasets, firstStep, workflowName);
 
     try {
+      if (!openai) {
+        throw new Error('OpenAI API key not configured');
+      }
+
       const response = await openai.chat.completions.create({
         model: 'gpt-4',
         messages: [

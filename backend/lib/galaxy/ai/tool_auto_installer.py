@@ -411,20 +411,53 @@ class ToolAutoInstaller:
         Returns:
             True if installed, False otherwise
         """
-        # TODO: Check via Galaxy API or toolbox
-        # For now, assume Toolshed tools need to be checked via Galaxy
-        # In production, this would query Galaxy's installed_repository_manager
+        # If no API access, assume not installed
+        if not self.galaxy_api_url or not self.galaxy_api_key:
+            log.warning(f"No Galaxy API credentials available for tool check: {tool_id}")
+            return False
+
         try:
+            import requests
+
             # Parse tool_id: toolshed.g2.bx.psu.edu/repos/{owner}/{name}/{tool}/{version}
             parts = tool_id.split("/")
-            if len(parts) >= 5:
-                owner = parts[3]
-                name = parts[4]
-                # Check if repository is installed
-                # This would use Galaxy's API in production
-                return False  # Conservative: assume not installed, let Galaxy handle it
+            if len(parts) < 5:
+                log.warning(f"Invalid ToolShed tool ID format: {tool_id}")
+                return False
+
+            owner = parts[3]
+            name = parts[4]
+
+            # Check installed repositories via Galaxy API
+            headers = {"x-api-key": self.galaxy_api_key}
+            url = f"{self.galaxy_api_url}/api/tool_shed_repositories"
+
+            log.debug(f"Checking if {owner}/{name} is installed via {url}")
+
+            response = requests.get(url, headers=headers, timeout=5)
+
+            if response.status_code != 200:
+                log.warning(f"Galaxy API returned status {response.status_code} for repository check")
+                return False
+
+            installed_repos = response.json()
+
+            # Check if this repo is installed
+            for repo in installed_repos:
+                if repo.get("owner") == owner and repo.get("name") == name:
+                    status = repo.get("status", "")
+                    if status == "Installed":
+                        log.info(f"Tool {owner}/{name} is installed (status: {status})")
+                        return True
+                    else:
+                        log.info(f"Tool {owner}/{name} found but not fully installed (status: {status})")
+                        return False
+
+            log.info(f"Tool {owner}/{name} not found in installed repositories")
+            return False
+
         except Exception as e:
-            log.warning(f"Could not parse Toolshed tool ID {tool_id}: {e}")
+            log.warning(f"Could not check ToolShed tool installation for {tool_id}: {e}")
             return False
 
     def _install_toolshed_tools(self, tool_ids: List[str]) -> Dict[str, Tuple[bool, str]]:

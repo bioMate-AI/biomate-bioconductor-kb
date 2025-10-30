@@ -103,6 +103,43 @@ class FastAPIToolSearch:
             )
 
     @router.get(
+        "/api/tool_search/schema",
+        summary="Get tool parameter schema for configuration UI",
+    )
+    def get_tool_schema(
+        self,
+        trans: ProvidesUserContext = DependsOnTrans,
+        tool_id: constr(min_length=1, max_length=500) = Query(..., description="Tool ID"),
+    ):
+        """
+        Get structured parameter schema for a tool (for frontend parameter editor)
+
+        Returns:
+            ToolSchema with structured inputs/outputs for dynamic form generation
+
+        Raises:
+            404: Tool not found or schema not available
+            500: Database error
+        """
+        try:
+            schema = self.search_index.get_tool_schema(tool_id)
+            if schema:
+                return schema
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Tool schema not found: {tool_id}"
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            log.error(f"Error fetching tool schema {tool_id}: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to fetch tool schema: {str(e)}"
+            )
+
+    @router.get(
         "/api/tool_search/{tool_id:path}",
         summary="Get tool details by ID",
     )

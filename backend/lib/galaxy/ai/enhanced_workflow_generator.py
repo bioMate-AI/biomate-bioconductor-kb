@@ -37,8 +37,29 @@ class EnhancedWorkflowGenerator:
         self.tool_installer = None
         if galaxy_root:
             try:
-                self.tool_installer = ToolAutoInstaller(galaxy_root)
-                log.info("Tool auto-installer initialized")
+                # Get API credentials from galaxy_app config
+                galaxy_api_url = None
+                galaxy_api_key = None
+
+                if galaxy_app and hasattr(galaxy_app, 'config'):
+                    # Get API URL from config
+                    http_port = getattr(galaxy_app.config, 'http_port', 8080)
+                    galaxy_api_url = f"http://localhost:{http_port}"
+
+                    # Try to get API key from config (bootstrap or admin key)
+                    galaxy_api_key = getattr(galaxy_app.config, 'bootstrap_admin_api_key', None)
+                    if not galaxy_api_key:
+                        # Fallback to known key from galaxy.yml
+                        galaxy_api_key = "a7e9f73a7c25300e222d27c84efb10f6"
+
+                log.info(f"Initializing ToolAutoInstaller with API URL: {galaxy_api_url}")
+
+                self.tool_installer = ToolAutoInstaller(
+                    galaxy_root=galaxy_root,
+                    galaxy_api_url=galaxy_api_url,
+                    galaxy_api_key=galaxy_api_key
+                )
+                log.info("Tool auto-installer initialized with API credentials")
             except Exception as e:
                 log.warning(f"Could not initialize tool auto-installer: {e}")
 

@@ -260,6 +260,66 @@ class AIAssistant:
         # For now, return empty list
         return []
 
+    def _validate_and_install_tools(self, workflow_ga: Dict) -> Dict[str, Any]:
+        """
+        Validate and install missing tools for a workflow.
+
+        Args:
+            workflow_ga: Galaxy workflow .ga JSON
+
+        Returns:
+            Dict with installation results:
+            - success: bool
+            - message: str
+            - failed_tools: List[str]
+        """
+        if not hasattr(self, 'tool_installer') or self.tool_installer is None:
+            try:
+                from .tool_auto_installer import ToolAutoInstaller
+
+                # Get Galaxy root from app config
+                if self.galaxy_app and hasattr(self.galaxy_app, 'config'):
+                    galaxy_root = str(getattr(self.galaxy_app.config, 'root', '/home/yzhang/biomate/backend'))
+                    http_port = getattr(self.galaxy_app.config, 'http_port', 8081)
+                    galaxy_api_url = f"http://localhost:{http_port}"
+
+                    # Try to get API key from config
+                    galaxy_api_key = getattr(self.galaxy_app.config, 'bootstrap_admin_api_key', None)
+                    if not galaxy_api_key:
+                        # Fallback to known key
+                        galaxy_api_key = "a7e9f73a7c25300e222d27c84efb10f6"
+
+                    log.info(f"Initializing ToolAutoInstaller for workflow validation (URL: {galaxy_api_url})")
+
+                    self.tool_installer = ToolAutoInstaller(
+                        galaxy_root=galaxy_root,
+                        galaxy_api_url=galaxy_api_url,
+                        galaxy_api_key=galaxy_api_key
+                    )
+                    log.info("Tool auto-installer initialized for workflow validation")
+                else:
+                    log.warning("Could not initialize tool installer: galaxy_app not available")
+                    return {'success': False, 'message': 'Galaxy app not available', 'failed_tools': []}
+
+            except Exception as e:
+                log.error(f"Failed to initialize tool installer: {e}")
+                return {'success': False, 'message': f'Installer init failed: {str(e)}', 'failed_tools': []}
+
+        try:
+            log.info("[ToolValidation] Validating and installing workflow tools...")
+            success, msg, failed = self.tool_installer.auto_install_workflow_tools(workflow_ga)
+
+            log.info(f"[ToolValidation] Result: success={success}, message={msg}, failed={len(failed)}")
+
+            return {
+                'success': success,
+                'message': msg,
+                'failed_tools': failed
+            }
+        except Exception as e:
+            log.error(f"Tool installation error: {e}", exc_info=True)
+            return {'success': False, 'message': f'Installation error: {str(e)}', 'failed_tools': []}
+
     def generate_workflow_unified(self, user_intent: str, uploaded_datasets: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Unified workflow generation with search-first approach.
@@ -376,6 +436,15 @@ class AIAssistant:
                 else:
                     raise Exception(f"Constrained generator failed: {result['error']}")
 
+            # Step 3: Validate and install tools for ALL paths
+            log.info("[UnifiedWorkflowGeneration] Step 3: Validating and installing tools...")
+            tool_install_result = self._validate_and_install_tools(workflow_ga)
+
+            if not tool_install_result['success']:
+                log.warning(f"[UnifiedWorkflowGeneration] Tool installation had issues: {tool_install_result['message']}")
+            else:
+                log.info(f"[UnifiedWorkflowGeneration] Tool installation successful: {tool_install_result['message']}")
+
             # Return success response
             return {
                 'success': True,
@@ -385,7 +454,8 @@ class AIAssistant:
                 'message': message,
                 'datasets_assigned': datasets_assigned,
                 'template_match_score': score,
-                'generated_parameters': generated_parameters  # NEW: Include LLM-generated parameters with confidence scores
+                'generated_parameters': generated_parameters,  # NEW: Include LLM-generated parameters with confidence scores
+                'tool_installation': tool_install_result  # NEW: Include tool installation results
             }
 
         except Exception as e:

@@ -128,8 +128,19 @@ class ToolSearchIndex:
             return None
 
         with self._get_cursor() as cursor:
+            # Try exact match first
             cursor.execute('SELECT * FROM tools WHERE tool_id = ?', (tool_id,))
             row = cursor.fetchone()
+
+            if row:
+                return dict(row)
+
+            # If no exact match, try prefix match (handles tool_ids with newlines and trailing content)
+            # This is needed because some tool_ids in the database have format:
+            # "toolshed.g2.bx.psu.edu/repos/owner/repo/tool_name\nActual_Tool_Name"
+            cursor.execute("SELECT * FROM tools WHERE tool_id LIKE ? || '%'", (tool_id,))
+            row = cursor.fetchone()
+
             return dict(row) if row else None
 
     def get_by_repo(self, owner: str, name: str) -> List[Dict[str, Any]]:
@@ -251,6 +262,120 @@ class ToolSearchIndex:
     def __enter__(self):
         """Context manager entry"""
         return self
+
+    def get_tool_schema(self, tool_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get tool parameter schema formatted for frontend consumption
+
+        Args:
+            tool_id: Tool identifier
+
+        Returns:
+            Structured tool schema with parsed parameters or None if not found
+        """
+        import json
+
+        tool = self.get_by_id(tool_id)
+        if not tool:
+            return None
+
+        # Parse JSON fields
+        try:
+            parameters_raw = tool.get('parameters', '[]')
+            parameters = json.loads(parameters_raw) if isinstance(parameters_raw, str) else (parameters_raw or [])
+
+            inputs_raw = tool.get('inputs', '[]')
+            inputs = json.loads(inputs_raw) if isinstance(inputs_raw, str) else (inputs_raw or [])
+
+            outputs_raw = tool.get('outputs', '[]')
+            outputs = json.loads(outputs_raw) if isinstance(outputs_raw, str) else (outputs_raw or [])
+
+            help_text_raw = tool.get('help_text', '{}')
+            help_text = json.loads(help_text_raw) if isinstance(help_text_raw, str) else (help_text_raw or {})
+        except (json.JSONDecodeError, TypeError) as e:
+            log.warning(f"Failed to parse JSON fields for tool {tool_id}: {e}")
+            parameters = []
+            inputs = []
+            outputs = []
+            help_text = {}
+
+        # Convert database parameters to frontend ToolParameter format
+        frontend_inputs = []
+
+        # Use parameters from database first
+        for param in parameters:
+            # Map database parameter format to frontend ToolParameter format
+            frontend_param = {
+                'name': param.get('name', ''),
+                'label': param.get('label', param.get('name', '')),
+                'type': self._map_parameter_type(param.get('type', 'text')),
+                'help': param.get('help', ''),
+                'optional': param.get('optional', True),
+            }
+
+            # Add type-specific fields
+            if frontend_param['type'] in ['integer', 'float']:
+                if 'min' in param:
+                    frontend_param['min'] = param['min']
+                if 'max' in param:
+                    frontend_param['max'] = param['max']
+
+            if frontend_param['type'] == 'select' and 'options' in param:
+                frontend_param['options'] = param['options']
+
+            # Set default value if available
+            if 'value' in param or 'default' in param:
+                frontend_param['value'] = param.get('value', param.get('default'))
+
+            frontend_inputs.append(frontend_param)
+
+        # If no parameters in database, try to use inputs
+        if not frontend_inputs and inputs:
+            for input_spec in inputs:
+                frontend_param = {
+                    'name': input_spec.get('name', ''),
+                    'label': input_spec.get('label', input_spec.get('name', '')),
+                    'type': self._map_parameter_type(input_spec.get('type', 'text')),
+                    'help': input_spec.get('help', ''),
+                    'optional': input_spec.get('optional', True),
+                }
+                frontend_inputs.append(frontend_param)
+
+        # Format outputs
+        frontend_outputs = []
+        for output in outputs:
+            frontend_outputs.append({
+                'name': output.get('name', ''),
+                'format': output.get('format', 'data'),
+                'label': output.get('label', output.get('name', '')),
+            })
+
+        # Return formatted schema
+        return {
+            'id': tool.get('tool_id') or tool.get('id'),
+            'name': tool.get('name', ''),
+            'version': tool.get('version', ''),
+            'description': tool.get('description', '') or help_text.get('what_it_does', ''),
+            'inputs': frontend_inputs,
+            'outputs': frontend_outputs,
+        }
+
+    def _map_parameter_type(self, db_type: str) -> str:
+        """Map database parameter type to frontend ToolParameter type"""
+        type_mapping = {
+            'data': 'data',
+            'text': 'text',
+            'integer': 'integer',
+            'int': 'integer',
+            'float': 'float',
+            'number': 'float',
+            'boolean': 'boolean',
+            'bool': 'boolean',
+            'select': 'select',
+            'color': 'color',
+            'genomebuild': 'genomebuild',
+        }
+        return type_mapping.get(db_type.lower(), 'text')
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit - cleanup connection"""

@@ -29,6 +29,7 @@ def extract_parameters_from_text(raw_text: str, html_content: str = "") -> List[
     - Form field descriptions
     """
     parameters = []
+    seen_params = set()  # Track parameters we've already added
 
     # Common parameter patterns
     patterns = [
@@ -51,7 +52,8 @@ def extract_parameters_from_text(raw_text: str, html_content: str = "") -> List[
                     label = parts[0].strip()
                     # Skip common non-parameter labels
                     skip_labels = ['Repository Actions', 'What it does', 'How to use', 'Input', 'Output',
-                                   'Example', 'Note', 'Warning', 'Reference', 'Citation']
+                                   'Example', 'Note', 'Warning', 'Reference', 'Citation', 'Version', 'License',
+                                   'Author', 'Contact', 'URL', 'Description']
                     if label and label not in skip_labels and len(label) < 50:
                         # Get next few lines as help text
                         help_text = parts[1].strip()
@@ -60,16 +62,57 @@ def extract_parameters_from_text(raw_text: str, html_content: str = "") -> List[
                             if next_line and not ':' in next_line[:20]:
                                 help_text += ' ' + next_line
 
-                        param = {
-                            'name': label.lower().replace(' ', '_').replace('-', '_'),
-                            'label': label,
-                            'type': infer_parameter_type(label, help_text),
-                            'help': help_text[:200] if help_text else '',
-                            'source': 'rawText'
-                        }
-                        parameters.append(param)
+                        param_name = label.lower().replace(' ', '_').replace('-', '_').replace('(', '').replace(')', '')
+
+                        # Avoid duplicates
+                        if param_name not in seen_params:
+                            param_type = infer_parameter_type(label, help_text)
+                            param = {
+                                'name': param_name,
+                                'label': label,
+                                'type': param_type,
+                                'help': help_text[:200] if help_text else '',
+                                'optional': 'optional' in help_text.lower(),
+                                'source': 'rawText'
+                            }
+
+                            # Add type-specific attributes
+                            if param_type == 'select':
+                                # Try to extract options from help text
+                                options = extract_select_options(help_text)
+                                if options:
+                                    param['options'] = options
+
+                            parameters.append(param)
+                            seen_params.add(param_name)
 
     return parameters
+
+
+def extract_select_options(help_text: str) -> List[Dict[str, str]]:
+    """Extract select options from help text if present"""
+    options = []
+
+    # Look for patterns like "Choose from: A, B, C" or "Options: A | B | C"
+    import re
+    patterns = [
+        r'(?:choose|select|options?|values?)[\s:]+([A-Za-z0-9,\s\|]+)',
+        r'\(([A-Za-z0-9,\s\|]+)\)',
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, help_text, re.IGNORECASE)
+        if match:
+            options_text = match.group(1)
+            # Split by comma or pipe
+            option_values = [opt.strip() for opt in re.split(r'[,\|]', options_text) if opt.strip()]
+
+            # Limit to reasonable number of options (max 10)
+            if 2 <= len(option_values) <= 10:
+                options = [{'value': opt, 'label': opt} for opt in option_values]
+                break
+
+    return options
 
 
 def infer_parameter_type(label: str, help_text: str) -> str:

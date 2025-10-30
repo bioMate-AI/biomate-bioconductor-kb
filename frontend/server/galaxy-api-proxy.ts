@@ -31,6 +31,12 @@ export class GalaxyAPIProxy {
     this.galaxyUrl = galaxyUrl || process.env.GALAXY_URL || 'http://localhost:8080';
     this.apiKey = apiKey || process.env.GALAXY_API_KEY;
 
+    console.log('[GalaxyAPIProxy] Initializing with:', {
+      url: this.galaxyUrl,
+      hasApiKey: !!this.apiKey,
+      apiKeyLength: this.apiKey?.length || 0
+    });
+
     this.client = axios.create({
       baseURL: this.galaxyUrl,
       timeout: 30000, // 30 seconds
@@ -94,12 +100,29 @@ export class GalaxyAPIProxy {
 
   /**
    * Get tool parameter schema (for parameter configuration UI)
-   * Maps to Galaxy's GET /api/tools/{tool_id}/build
-   * Returns tool inputs schema for dynamic form generation
+   * Maps to GET /api/tool_search/schema?tool_id=...
+   * Returns tool inputs schema for dynamic form generation from AI tools database
    */
   async getToolSchema(toolId: string): Promise<ToolSchema> {
-    const response = await this.client.get<ToolSchema>(`/api/tools/${encodeURIComponent(toolId)}/build`);
-    return response.data;
+    try {
+      // Try the new tool_search schema endpoint first (from AI tools database)
+      // Using query parameter to avoid path routing issues with slashes in tool_id
+      const response = await this.client.get<ToolSchema>(`/api/tool_search/schema?tool_id=${encodeURIComponent(toolId)}`);
+      return response.data;
+    } catch (error: any) {
+      // Fallback to Galaxy's native build endpoint if tool not in AI database
+      if (error.status_code === 404 || error.response?.status === 404) {
+        console.log(`[GalaxyAPIProxy] Tool ${toolId} not in AI database, trying Galaxy build endpoint`);
+        try {
+          const response = await this.client.get<ToolSchema>(`/api/tools/${encodeURIComponent(toolId)}/build`);
+          return response.data;
+        } catch (buildError: any) {
+          console.warn(`[GalaxyAPIProxy] Tool schema not available from either endpoint for ${toolId}`);
+          throw buildError;
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -210,7 +233,9 @@ export class GalaxyAPIProxy {
    * Maps to Galaxy's native POST /api/workflows
    */
   async createWorkflow(workflow: Partial<GalaxyWorkflow>): Promise<GalaxyWorkflow> {
-    const response = await this.client.post<GalaxyWorkflow>('/api/workflows', workflow);
+    const response = await this.client.post<GalaxyWorkflow>('/api/workflows', {
+      workflow: workflow
+    });
     return response.data;
   }
 

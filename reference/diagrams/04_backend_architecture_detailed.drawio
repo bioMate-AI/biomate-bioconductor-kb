@@ -1,0 +1,370 @@
+<mxfile host="app.diagrams.net" modified="2025-10-28T00:00:00.000Z" agent="BioMate Architecture" version="21.0.0">
+  <diagram name="Backend Architecture (Detailed)" id="backend-arch">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Backend Architecture (Detailed)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="900" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Public Internet Zone -->
+        <mxCell id="zone-internet" value="Public Internet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=3;fontSize=16;fontStyle=1;verticalAlign=top;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="50" y="100" width="1700" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-1" value="User Browser&#xa;(HTTPS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="100" y="150" width="120" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-2" value="Mobile App&#xa;(HTTPS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="150" width="120" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user-3" value="API Client&#xa;(Python SDK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="150" width="120" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- DMZ Zone -->
+        <mxCell id="zone-dmz" value="DMZ / Edge Layer (AWS CloudFront + ALB)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=3;fontSize=16;fontStyle=1;verticalAlign=top;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="50" y="280" width="1700" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cloudfront" value="CloudFront CDN&#xa;&#xa;• Static assets&#xa;• Global edge locations&#xa;• DDoS protection&#xa;• TLS 1.2+" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;" vertex="1" parent="1">
+          <mxGeometry x="100" y="320" width="180" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="waf" value="AWS WAF&#xa;&#xa;• Rate limiting&#xa;• SQL injection filter&#xa;• XSS protection&#xa;• Geo-blocking" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;" vertex="1" parent="1">
+          <mxGeometry x="320" y="320" width="180" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="alb" value="Application Load Balancer&#xa;&#xa;• HTTPS termination&#xa;• Health checks&#xa;• Sticky sessions&#xa;• Request routing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;" vertex="1" parent="1">
+          <mxGeometry x="540" y="320" width="200" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="route53" value="Route 53 DNS&#xa;&#xa;• Domain routing&#xa;• Health checks&#xa;• Failover" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;" vertex="1" parent="1">
+          <mxGeometry x="780" y="320" width="160" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Application Zone -->
+        <mxCell id="zone-app" value="Application Layer (Private Subnet)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=3;fontSize=16;fontStyle=1;verticalAlign=top;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="50" y="480" width="1700" height="300" as="geometry"/>
+        </mxCell>
+
+        <!-- Frontend Servers -->
+        <mxCell id="frontend-cluster" value="Frontend Servers (ECS Fargate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="100" y="520" width="240" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-1" value="Frontend #1&#xa;Node.js + React&#xa;&#xa;2 vCPU / 4GB RAM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="120" y="560" width="100" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-2" value="Frontend #2&#xa;Node.js + React&#xa;&#xa;2 vCPU / 4GB RAM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="220" y="560" width="100" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-scaling" value="Auto-scaling: 2-10 tasks" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="110" y="650" width="220" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="fe-note" value="Serves:&#xa;• Static files&#xa;• SSR (optional)&#xa;• Health checks" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="110" y="680" width="220" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Backend API Servers -->
+        <mxCell id="backend-cluster" value="Backend API Servers (ECS Fargate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="380" y="520" width="340" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-1" value="Backend #1&#xa;Node.js + TS&#xa;&#xa;4 vCPU / 8GB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="400" y="560" width="100" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-2" value="Backend #2&#xa;Node.js + TS&#xa;&#xa;4 vCPU / 8GB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="510" y="560" width="100" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-3" value="Backend #3&#xa;Node.js + TS&#xa;&#xa;4 vCPU / 8GB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="400" y="650" width="100" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-scaling" value="Auto-scaling: 4-20 tasks" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="510" y="650" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="be-note" value="Provides:&#xa;• REST API&#xa;• GraphQL&#xa;• WebSocket&#xa;• Auth middleware&#xa;• Rate limiting" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="510" y="680" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- AI Services -->
+        <mxCell id="ai-cluster" value="AI Services (ECS Fargate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="760" y="520" width="240" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="galaxy-assistant" value="Galaxy Assistant&#xa;Python + FastAPI&#xa;&#xa;2 vCPU / 4GB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="780" y="560" width="100" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="tooluniverse" value="ToolUniverse&#xa;Python + FastAPI&#xa;&#xa;2 vCPU / 4GB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="880" y="560" width="100" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ai-note" value="Handles:&#xa;• Claude AI API&#xa;• Workflow generation&#xa;• Tool search&#xa;• Embeddings" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="770" y="650" width="220" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Job Queue Workers -->
+        <mxCell id="worker-cluster" value="Background Workers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2e8c0;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="520" width="200" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="worker-1" value="Worker #1&#xa;Bull Queue&#xa;&#xa;1 vCPU / 2GB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="560" width="80" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="worker-2" value="Worker #2&#xa;Bull Queue&#xa;&#xa;1 vCPU / 2GB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="560" width="80" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="worker-note" value="Jobs:&#xa;• Email sending&#xa;• Report gen&#xa;• Data processing&#xa;• Cleanup tasks" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="640" width="180" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Data Layer Zone -->
+        <mxCell id="zone-data" value="Data &amp; Storage Layer (Private Subnet)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=3;fontSize=16;fontStyle=1;verticalAlign=top;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="50" y="820" width="1700" height="280" as="geometry"/>
+        </mxCell>
+
+        <!-- PostgreSQL -->
+        <mxCell id="postgres-cluster" value="PostgreSQL (RDS Multi-AZ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5c7c7;strokeColor=#b85450;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="100" y="860" width="280" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pg-primary" value="Primary Instance&#xa;db.r5.xlarge&#xa;&#xa;Writes + Reads" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="120" y="900" width="120" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pg-replica1" value="Read Replica #1&#xa;db.r5.xlarge&#xa;&#xa;Reads only" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="120" y="980" width="120" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pg-replica2" value="Read Replica #2&#xa;db.r5.xlarge&#xa;&#xa;Reads only" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="250" y="980" width="120" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pg-note" value="Features:&#xa;• Encryption at rest (KMS)&#xa;• Automated backups (7d)&#xa;• Point-in-time recovery&#xa;• pgvector extension" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="250" y="900" width="120" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Redis -->
+        <mxCell id="redis-cluster" value="Redis (ElastiCache Cluster)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5c7c7;strokeColor=#b85450;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="420" y="860" width="260" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="redis-shard1" value="Shard #1&#xa;cache.r5.large&#xa;&#xa;Sessions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="440" y="900" width="100" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="redis-shard2" value="Shard #2&#xa;cache.r5.large&#xa;&#xa;Cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="550" y="900" width="100" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="redis-shard3" value="Shard #3&#xa;cache.r5.large&#xa;&#xa;Job Queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="440" y="970" width="100" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="redis-note" value="Features:&#xa;• Encryption (TLS)&#xa;• Multi-AZ&#xa;• Auto failover&#xa;• LRU eviction" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="550" y="970" width="100" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- S3 Storage -->
+        <mxCell id="s3-cluster" value="S3 Object Storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5c7c7;strokeColor=#b85450;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="720" y="860" width="300" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3-prod" value="biomate-production&#xa;&#xa;User data, workflows,&#xa;results" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;" vertex="1" parent="1">
+          <mxGeometry x="740" y="900" width="130" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3-logs" value="biomate-logs&#xa;&#xa;Access logs,&#xa;CloudTrail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;" vertex="1" parent="1">
+          <mxGeometry x="870" y="900" width="130" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3-backups" value="biomate-backups&#xa;&#xa;DB backups,&#xa;snapshots" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;" vertex="1" parent="1">
+          <mxGeometry x="740" y="970" width="130" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s3-note" value="Features:&#xa;• SSE-S3 encryption&#xa;• Versioning&#xa;• Lifecycle policies&#xa;• Access logging" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="870" y="970" width="130" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- DynamoDB -->
+        <mxCell id="dynamo-cluster" value="DynamoDB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5c7c7;strokeColor=#b85450;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="860" width="220" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="dynamo-usage" value="usage_events&#xa;&#xa;Workflow execution,&#xa;billing data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="900" width="180" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="dynamo-uploads" value="upload_tracking&#xa;&#xa;File upload&#xa;progress" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="970" width="180" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Workflow Execution Zone -->
+        <mxCell id="zone-workflow" value="Workflow Execution Layer (EKS Kubernetes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;strokeWidth=3;fontSize=16;fontStyle=1;verticalAlign=top;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1140" width="1700" height="280" as="geometry"/>
+        </mxCell>
+
+        <!-- Galaxy Backend -->
+        <mxCell id="galaxy-backend" value="Galaxy Backend (EKS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1180" width="380" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="galaxy-web" value="Galaxy Web&#xa;Python + WSGI&#xa;&#xa;2 pods" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1220" width="100" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="galaxy-job-handler" value="Job Handler&#xa;Python&#xa;&#xa;3 pods" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;" vertex="1" parent="1">
+          <mxGeometry x="230" y="1220" width="100" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="galaxy-db" value="Galaxy DB&#xa;PostgreSQL&#xa;(RDS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;" vertex="1" parent="1">
+          <mxGeometry x="340" y="1220" width="120" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="galaxy-note" value="Features:&#xa;• OAuth integration&#xa;• S3 object store&#xa;• Job queueing (K8s)&#xa;• Auto-scaling (5-100 nodes)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="110" y="1290" width="360" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Kubernetes Cluster -->
+        <mxCell id="k8s-cluster" value="Kubernetes Node Pools" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="520" y="1180" width="700" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="k8s-general" value="General Purpose&#xa;m5.2xlarge&#xa;&#xa;5-20 nodes&#xa;&#xa;Tool execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;align=left;" vertex="1" parent="1">
+          <mxGeometry x="540" y="1220" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="k8s-compute" value="Compute Intensive&#xa;c5.9xlarge&#xa;&#xa;0-30 nodes&#xa;&#xa;Alignment, assembly" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;align=left;" vertex="1" parent="1">
+          <mxGeometry x="690" y="1220" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="k8s-memory" value="Memory Intensive&#xa;r5.4xlarge&#xa;&#xa;0-10 nodes&#xa;&#xa;De novo assembly" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;align=left;" vertex="1" parent="1">
+          <mxGeometry x="840" y="1220" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="k8s-gpu" value="GPU Nodes&#xa;p3.2xlarge&#xa;&#xa;0-5 nodes&#xa;&#xa;Deep learning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;align=left;" vertex="1" parent="1">
+          <mxGeometry x="990" y="1220" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="k8s-spot" value="Spot Instances:&#xa;70% compute capacity" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="540" y="1330" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="k8s-autoscale" value="Auto-scaling based on:&#xa;• Job queue depth&#xa;• CPU/Memory utilization" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="750" y="1330" width="200" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Security Overlay -->
+        <mxCell id="security-boundary" value="Security Boundary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#CC0000;strokeWidth=4;dashed=1;dashPattern=8 8;fontSize=14;fontStyle=1;verticalAlign=top;opacity=50;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="100" width="440" height="1320" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-title" value="🔒 Security Controls" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#CC0000;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="120" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Security Controls List -->
+        <mxCell id="sec-layer1" value="Layer 1: Edge Security" style="text;html=1;strokeColor=none;fillColor=#ffe6cc;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1320" y="160" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer1-items" value="✓ TLS 1.2+ enforced (CloudFront + ALB)&#xa;✓ DDoS protection (AWS Shield)&#xa;✓ WAF rules (SQL injection, XSS, rate limiting)&#xa;✓ Geographic restrictions (optional)&#xa;✓ HSTS headers (Strict-Transport-Security)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="200" width="380" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer2" value="Layer 2: Application Security" style="text;html=1;strokeColor=none;fillColor=#ffe6cc;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1320" y="290" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer2-items" value="✓ JWT authentication (RS256 signatures)&#xa;✓ RBAC authorization (Admin, User, Researcher, Clinician)&#xa;✓ Session timeout (30 minutes)&#xa;✓ MFA enforcement (TOTP)&#xa;✓ Rate limiting (per user, per IP)&#xa;✓ Input validation (all API endpoints)&#xa;✓ CORS whitelisting&#xa;✓ CSRF protection&#xa;✓ CSP headers" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="330" width="380" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer3" value="Layer 3: Data Security" style="text;html=1;strokeColor=none;fillColor=#ffe6cc;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1320" y="480" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer3-items" value="✓ Encryption at rest:&#xa;  • S3: SSE-S3 (default), SSE-KMS (PHI)&#xa;  • RDS: KMS encryption&#xa;  • EBS: KMS encryption&#xa;  • Redis: Encryption enabled&#xa;✓ Encryption in transit:&#xa;  • TLS 1.2+ (all services)&#xa;  • Redis: TLS enabled&#xa;  • RDS: SSL enforced&#xa;✓ Key rotation (KMS: 365 days)&#xa;✓ Presigned URLs (1-hour TTL)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="520" width="380" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer4" value="Layer 4: Network Security" style="text;html=1;strokeColor=none;fillColor=#ffe6cc;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1320" y="710" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer4-items" value="✓ VPC isolation (10.0.0.0/16)&#xa;✓ Private subnets (backend, data layer)&#xa;✓ Public subnets (ALB only)&#xa;✓ Security groups (least privilege)&#xa;  • ALB: 443 from 0.0.0.0/0&#xa;  • Backend: 8080 from ALB only&#xa;  • RDS: 5432 from backend only&#xa;  • Redis: 6379 from backend only&#xa;✓ NACLs (deny list)&#xa;✓ VPC Flow Logs&#xa;✓ NAT gateways (private subnet egress)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="750" width="380" height="170" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer5" value="Layer 5: Audit &amp; Compliance" style="text;html=1;strokeColor=none;fillColor=#ffe6cc;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1320" y="930" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer5-items" value="✓ CloudTrail (all API calls)&#xa;✓ Application audit logs:&#xa;  • Authentication events&#xa;  • Authorization failures&#xa;  • Data access (PHI)&#xa;  • Admin actions&#xa;✓ Log retention:&#xa;  • Application: 90 days (CloudWatch)&#xa;  • Audit: 6 years (S3 Glacier)&#xa;  • Access: 1 year (S3)&#xa;✓ CloudWatch alarms:&#xa;  • Failed login >10/hour&#xa;  • Error rate >5%&#xa;  • Unauthorized access&#xa;✓ DataDog APM (performance + errors)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="970" width="380" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer6" value="Layer 6: Backup &amp; DR" style="text;html=1;strokeColor=none;fillColor=#ffe6cc;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1320" y="1180" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-layer6-items" value="✓ RDS automated backups (7 days)&#xa;✓ Point-in-time recovery&#xa;✓ S3 versioning (all buckets)&#xa;✓ Multi-AZ deployment (RDS, Redis)&#xa;✓ Cross-region backup (S3 replication)&#xa;✓ Backup testing (quarterly)&#xa;✓ RTO: 4 hours&#xa;✓ RPO: 1 hour" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="1220" width="380" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sec-compliance" value="Compliance: SOC 2 Type II + HIPAA" style="text;html=1;strokeColor=none;fillColor=#00cc00;strokeColor=#006600;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=12;fontStyle=1;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="1360" width="400" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Data Flow Arrows -->
+        <mxCell id="arrow-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#0066CC;" edge="1" parent="1" source="user-1" target="cloudfront">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#0066CC;" edge="1" parent="1" source="cloudfront" target="alb">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#0066CC;" edge="1" parent="1" source="alb" target="be-1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF6600;" edge="1" parent="1" source="be-1" target="pg-primary">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF6600;" edge="1" parent="1" source="be-2" target="redis-shard1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9933FF;dashed=1;" edge="1" parent="1" source="be-1" target="s3-prod">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#009900;dashed=1;" edge="1" parent="1" source="be-2" target="galaxy-assistant">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#CC0000;dashed=1;" edge="1" parent="1" source="galaxy-assistant" target="galaxy-web">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

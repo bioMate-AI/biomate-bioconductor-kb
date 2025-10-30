@@ -44,7 +44,7 @@ export function WorkflowHistoryPanel({ className }: WorkflowHistoryPanelProps) {
     },
     refetchInterval: (data) => {
       // Refresh every 5s if there are running workflows
-      const hasRunning = data?.some(inv => inv.status === 'running' || inv.status === 'queued')
+      const hasRunning = Array.isArray(data) && data.some(inv => inv.status === 'running' || inv.status === 'queued')
       return hasRunning ? 5000 : false
     },
   })

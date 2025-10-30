@@ -7,7 +7,7 @@
  * - Advanced: All other parameters (collapsed by default)
  */
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -59,6 +59,101 @@ interface Parameter {
   max?: number
 }
 
+// Helper function to determine parameter tier based on Galaxy input metadata
+function determineTier(input: any): ParameterTier {
+  // Check for explicit tier marking in input metadata
+  if (input.tier) {
+    return input.tier as ParameterTier
+  }
+
+  // Essential tier: required parameters, common dataset inputs, critical configuration
+  if (input.optional === false || input.required === true) {
+    return 'essential'
+  }
+
+  const name = (input.name || input.label || '').toLowerCase()
+  const description = (input.help || input.description || '').toLowerCase()
+
+  // Essential: Reference genomes, input files, main tool settings
+  if (name.includes('reference') || name.includes('genome') ||
+      name.includes('input') || name.includes('annotation') ||
+      name.includes('format') || name.includes('mode')) {
+    return 'essential'
+  }
+
+  // Common: Quality thresholds, alignment settings, frequently used options
+  if (name.includes('quality') || name.includes('threshold') ||
+      name.includes('min') || name.includes('max') ||
+      name.includes('sensitivity') || name.includes('strand') ||
+      description.includes('commonly') || description.includes('frequently')) {
+    return 'common'
+  }
+
+  // Advanced: Thread counts, advanced options, rarely changed settings
+  if (name.includes('thread') || name.includes('cpu') ||
+      name.includes('advanced') || name.includes('debug') ||
+      description.includes('advanced') || description.includes('expert')) {
+    return 'advanced'
+  }
+
+  // Default to common tier
+  return 'common'
+}
+
+// Helper function to map Galaxy input types to parameter dialog types
+function mapInputType(galaxyType: string): 'text' | 'number' | 'boolean' | 'select' {
+  if (!galaxyType) {
+    return 'text'
+  }
+
+  const type = galaxyType.toLowerCase()
+
+  // Boolean types
+  if (type === 'boolean' || type === 'bool' || type === 'checkbox') {
+    return 'boolean'
+  }
+
+  // Number types
+  if (type === 'integer' || type === 'int' || type === 'float' ||
+      type === 'number' || type === 'decimal') {
+    return 'number'
+  }
+
+  // Select types
+  if (type === 'select' || type === 'enum' || type === 'choice' ||
+      type === 'dropdown' || type === 'radio') {
+    return 'select'
+  }
+
+  // Default to text for data, text, string, file, etc.
+  return 'text'
+}
+
+// Helper function to get default value based on input type
+function getDefaultValue(galaxyType: string): any {
+  if (!galaxyType) {
+    return ''
+  }
+
+  const type = galaxyType.toLowerCase()
+
+  if (type === 'boolean' || type === 'bool' || type === 'checkbox') {
+    return false
+  }
+
+  if (type === 'integer' || type === 'int' || type === 'float' ||
+      type === 'number' || type === 'decimal') {
+    return 0
+  }
+
+  if (type === 'select' || type === 'enum' || type === 'choice') {
+    return ''
+  }
+
+  // Default to empty string for text types
+  return ''
+}
+
 // Mock parameter schemas for different tools
 // In production, these would come from Galaxy tool definitions
 const toolParameterSchemas: Record<string, Parameter[]> = {
@@ -103,9 +198,76 @@ export function ParameterDialog({
 }: ParameterDialogProps) {
   const [commonExpanded, setCommonExpanded] = useState(false)
   const [advancedExpanded, setAdvancedExpanded] = useState(false)
+  const [parameterSchema, setParameterSchema] = useState<Parameter[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Get parameter schema for the step's tool
-  const parameterSchema = step ? (toolParameterSchemas[step.tool] || []) : []
+  // Fetch parameter schema from API when step changes
+  useEffect(() => {
+    if (!step || !step.tool) {
+      setParameterSchema([])
+      return
+    }
+
+    // Check if we have hardcoded schema first (fallback)
+    const hardcodedSchema = toolParameterSchemas[step.tool]
+    if (hardcodedSchema) {
+      console.log(`[ParameterDialog] Using hardcoded schema for ${step.tool}`)
+      setParameterSchema(hardcodedSchema)
+      setError(null)
+      return
+    }
+
+    // Fetch schema from API
+    const fetchSchema = async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        console.log(`[ParameterDialog] Fetching schema for tool: ${step.tool}`)
+        const response = await fetch(`/api/galaxy/tools/${encodeURIComponent(step.tool)}/schema`)
+
+        if (!response.ok) {
+          console.warn(`[ParameterDialog] API returned ${response.status} for ${step.tool}`)
+          setParameterSchema([])
+          setError(`Schema not available (API returned ${response.status})`)
+          return
+        }
+
+        const data = await response.json()
+        console.log(`[ParameterDialog] Received schema for ${step.tool}:`, data)
+
+        // Transform API response to Parameter[] format
+        if (data.inputs && Array.isArray(data.inputs)) {
+          const transformedParams: Parameter[] = data.inputs.map((input: any) => ({
+            name: input.name || input.label || 'unknown',
+            tier: determineTier(input),
+            type: mapInputType(input.type),
+            value: input.value || input.default || getDefaultValue(input.type),
+            description: input.help || input.description || '',
+            options: input.options || [],
+            required: input.optional === false,
+            min: input.min,
+            max: input.max
+          }))
+
+          setParameterSchema(transformedParams)
+          setError(null)
+        } else {
+          setParameterSchema([])
+          setError('Invalid schema format received from API')
+        }
+      } catch (err) {
+        console.error(`[ParameterDialog] Error fetching schema for ${step.tool}:`, err)
+        setParameterSchema([])
+        setError(`Failed to load parameters: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSchema()
+  }, [step?.tool])
 
   // Initialize parameter values from step or schema defaults
   const [parameters, setParameters] = useState<Record<string, any>>(() => {
@@ -115,6 +277,15 @@ export function ParameterDialog({
     })
     return initial
   })
+
+  // Update parameters when schema changes
+  useEffect(() => {
+    const updated: Record<string, any> = {}
+    parameterSchema.forEach(param => {
+      updated[param.name] = step?.parameters?.[param.name] ?? param.value
+    })
+    setParameters(updated)
+  }, [parameterSchema, step?.parameters])
 
   // Group parameters by tier
   const essentialParams = parameterSchema.filter(p => p.tier === 'essential')
@@ -287,7 +458,26 @@ export function ParameterDialog({
             </Collapsible>
           )}
 
-          {parameterSchema.length === 0 && (
+          {loading && (
+            <div className="text-center text-muted-foreground py-8">
+              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+              Loading parameters...
+            </div>
+          )}
+
+          {!loading && error && (
+            <div className="text-center py-8">
+              <div className="text-yellow-600 mb-2">⚠️ {error}</div>
+              <div className="text-sm text-muted-foreground">
+                Schema may not be available for this tool yet.
+                {step && step.tool && (
+                  <div className="mt-2 text-xs">Tool ID: {step.tool}</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && parameterSchema.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
               No parameters available for this tool
             </div>
