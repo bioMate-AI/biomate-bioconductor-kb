@@ -1,0 +1,190 @@
+version: '3.8'
+
+# Instrument Connection Services for bioMate
+# Includes SENAITE (GPL-2.0 isolated) and OpenELIS (MPL-2.0)
+
+services:
+  # ============================================================================
+  # SENAITE Microservice (GPL-2.0 - NETWORK ISOLATED)
+  # ============================================================================
+  senaite:
+    image: senaite/senaite:2.5.0
+    container_name: biomate-senaite
+    restart: unless-stopped
+    ports:
+      - "8082:8080"  # Expose on different port from Galaxy
+    environment:
+      - SITE_ID=senaite
+      - ADMIN_USER=admin
+      - ADMIN_PASSWORD=admin
+      - CORS_ALLOW_ORIGIN=*  # For API access
+    volumes:
+      - senaite_data:/data
+      - senaite_blobs:/data/blobstorage
+      - ./senaite/config:/config  # Custom configuration
+    networks:
+      - instruments_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/senaite"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ============================================================================
+  # SENAITE API Wrapper (OUR CODE - GPL-SAFE)
+  # ============================================================================
+  senaite-api:
+    build:
+      context: ../backend
+      dockerfile: ../docker/senaite-api/Dockerfile
+    container_name: biomate-senaite-api
+    restart: unless-stopped
+    ports:
+      - "8083:8000"
+    environment:
+      - SENAITE_URL=http://senaite:8080
+      - SENAITE_USERNAME=admin
+      - SENAITE_PASSWORD=admin
+      - LOG_LEVEL=INFO
+    depends_on:
+      senaite:
+        condition: service_healthy
+    networks:
+      - instruments_network
+      - biomate_network
+    volumes:
+      - instrument_uploads:/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================================
+  # OpenELIS Global 2 (MPL-2.0 - COMMERCIAL FRIENDLY)
+  # ============================================================================
+  openelis-db:
+    image: postgres:14
+    container_name: biomate-openelis-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=openelis
+      - POSTGRES_PASSWORD=openelis
+      - POSTGRES_DB=openelis
+    volumes:
+      - openelis_db:/var/lib/postgresql/data
+    networks:
+      - instruments_network
+
+  openelis:
+    image: openelisglobal/openelis-global:latest
+    container_name: biomate-openelis
+    restart: unless-stopped
+    ports:
+      - "8084:8080"
+    environment:
+      - DB_HOST=openelis-db
+      - DB_PORT=5432
+      - DB_NAME=openelis
+      - DB_USER=openelis
+      - DB_PASSWORD=openelis
+      - DEFAULT_PW=adminADMIN!
+    depends_on:
+      - openelis-db
+    networks:
+      - instruments_network
+    volumes:
+      - openelis_data:/var/lib/openelis-global
+      - instrument_uploads:/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/OpenELIS-Global"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ============================================================================
+  # OpenELIS API Wrapper (OUR CODE)
+  # ============================================================================
+  openelis-api:
+    build:
+      context: ../backend
+      dockerfile: ../docker/openelis-api/Dockerfile
+    container_name: biomate-openelis-api
+    restart: unless-stopped
+    ports:
+      - "8085:8000"
+    environment:
+      - OPENELIS_URL=http://openelis:8080
+      - OPENELIS_USERNAME=admin
+      - OPENELIS_PASSWORD=adminADMIN!
+      - LOG_LEVEL=INFO
+    depends_on:
+      openelis:
+        condition: service_healthy
+    networks:
+      - instruments_network
+      - biomate_network
+    volumes:
+      - instrument_uploads:/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================================
+  # Unified Instrument Service (OUR CODE - ORCHESTRATOR)
+  # ============================================================================
+  instrument-service:
+    build:
+      context: ../backend
+      dockerfile: ../docker/instrument-service/Dockerfile
+    container_name: biomate-instrument-service
+    restart: unless-stopped
+    ports:
+      - "8086:8000"
+    environment:
+      - SENAITE_API_URL=http://senaite-api:8000
+      - OPENELIS_API_URL=http://openelis-api:8000
+      - GALAXY_URL=http://galaxy:8080
+      - GALAXY_API_KEY=${GALAXY_API_KEY}
+      - S3_BUCKET=${AWS_S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - LOG_LEVEL=INFO
+    depends_on:
+      - senaite-api
+      - openelis-api
+    networks:
+      - biomate_network
+      - instruments_network
+    volumes:
+      - instrument_uploads:/uploads
+      - ./instrument-service/config:/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  senaite_data:
+    driver: local
+  senaite_blobs:
+    driver: local
+  openelis_db:
+    driver: local
+  openelis_data:
+    driver: local
+  instrument_uploads:
+    driver: local
+
+networks:
+  instruments_network:
+    driver: bridge
+    name: biomate-instruments
+  biomate_network:
+    external: true
+    name: biomate-network
