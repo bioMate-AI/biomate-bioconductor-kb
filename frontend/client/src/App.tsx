@@ -129,7 +129,7 @@ function PlatformLayout({
   }
 
   return (
-    <div className="h-screen w-full bg-background">
+    <div className="h-screen w-full bg-background bio-grid-bg">
       <ResizablePanelGroup direction="horizontal" className="h-full">
         {/* Resizable Left Sidebar */}
         {!sidebarCollapsed && (

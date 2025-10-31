@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE */
+/* LIGHT MODE - Bioinformatics Theme */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
@@ -14,67 +14,81 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: 220 15% 98%;
+  /* Clean lab aesthetic with cool tones */
+  --background: 195 20% 97%;
 
-  --foreground: 220 15% 15%;
+  --foreground: 195 15% 15%;
 
-  --border: 220 10% 88%;
+  --border: 195 12% 85%;
 
-  --card: 220 10% 95%;
+  --card: 195 15% 96%;
 
-  --card-foreground: 220 15% 20%;
+  --card-foreground: 195 15% 18%;
 
-  --card-border: 220 8% 92%;
+  --card-border: 195 10% 88%;
 
-  --sidebar: 220 8% 93%;
+  --sidebar: 195 18% 94%;
 
-  --sidebar-foreground: 220 15% 25%;
+  --sidebar-foreground: 195 15% 20%;
 
-  --sidebar-border: 220 6% 90%;
+  --sidebar-border: 195 10% 87%;
 
-  --sidebar-primary: 220 85% 45%;
+  /* Primary: Scientific Teal (DNA sequencing, lab equipment) */
+  --sidebar-primary: 180 65% 42%;
 
-  --sidebar-primary-foreground: 220 20% 96%;
+  --sidebar-primary-foreground: 180 20% 98%;
 
-  --sidebar-accent: 220 12% 88%;
+  --sidebar-accent: 195 15% 90%;
 
-  --sidebar-accent-foreground: 220 15% 30%;
+  --sidebar-accent-foreground: 195 15% 25%;
 
-  --sidebar-ring: 220 85% 45%;
+  --sidebar-ring: 180 65% 42%;
 
-  --popover: 220 8% 92%;
+  --popover: 195 15% 94%;
 
-  --popover-foreground: 220 15% 25%;
+  --popover-foreground: 195 15% 20%;
 
-  --popover-border: 220 6% 89%;
+  --popover-border: 195 10% 88%;
 
-  --primary: 220 85% 45%;
+  /* Primary: Scientific Teal */
+  --primary: 180 65% 42%;
 
-  --primary-foreground: 220 20% 96%;
+  --primary-foreground: 180 20% 98%;
 
-  --secondary: 220 10% 89%;
+  /* Secondary: Deep Purple (proteins, molecular biology) */
+  --secondary: 270 35% 85%;
 
-  --secondary-foreground: 220 15% 30%;
+  --secondary-foreground: 270 40% 25%;
 
-  --muted: 220 8% 91%;
+  --muted: 195 12% 90%;
 
-  --muted-foreground: 220 10% 45%;
+  --muted-foreground: 195 10% 45%;
 
-  --accent: 220 12% 90%;
+  /* Accent: Biology Green */
+  --accent: 150 35% 88%;
 
-  --accent-foreground: 220 15% 28%;
+  --accent-foreground: 150 40% 25%;
 
   --destructive: 355 75% 50%;
 
   --destructive-foreground: 355 20% 96%;
 
-  --input: 220 8% 85%;
-  --ring: 220 85% 45%;
-  --chart-1: 220 85% 35%;
-  --chart-2: 145 65% 35%;
-  --chart-3: 35 85% 45%;
-  --chart-4: 280 75% 40%;
-  --chart-5: 15 80% 50%;
+  --input: 195 10% 88%;
+  --ring: 180 65% 42%;
+
+  /* Chart colors inspired by DNA bases (Adenine, Thymine, Guanine, Cytosine) */
+  --chart-1: 180 65% 42%; /* Teal - Guanine */
+  --chart-2: 150 55% 45%; /* Green - Adenine */
+  --chart-3: 270 55% 50%; /* Purple - Cytosine */
+  --chart-4: 30 75% 55%; /* Orange - Thymine */
+  --chart-5: 200 70% 45%; /* Blue - RNA Uracil */
+
+  /* Scientific accent colors */
+  --bio-teal: 180 65% 42%;
+  --bio-green: 150 55% 45%;
+  --bio-purple: 270 55% 50%;
+  --bio-orange: 30 75% 55%;
+  --bio-blue: 200 70% 45%;
 
   --font-sans: Inter, sans-serif;
   --font-serif: Georgia, serif;
@@ -132,67 +146,81 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 220 15% 8%;
+  /* Dark lab aesthetic - like microscope view */
+  --background: 195 20% 8%;
 
-  --foreground: 220 15% 95%;
+  --foreground: 195 15% 95%;
 
-  --border: 220 10% 18%;
+  --border: 195 10% 18%;
 
-  --card: 220 10% 12%;
+  --card: 195 12% 12%;
 
-  --card-foreground: 220 15% 92%;
+  --card-foreground: 195 15% 92%;
 
-  --card-border: 220 8% 15%;
+  --card-border: 195 8% 15%;
 
-  --sidebar: 220 8% 10%;
+  --sidebar: 195 15% 10%;
 
-  --sidebar-foreground: 220 15% 90%;
+  --sidebar-foreground: 195 15% 90%;
 
-  --sidebar-border: 220 6% 13%;
+  --sidebar-border: 195 8% 13%;
 
-  --sidebar-primary: 220 85% 60%;
+  /* Primary: Brighter Scientific Teal for dark mode */
+  --sidebar-primary: 180 70% 55%;
 
-  --sidebar-primary-foreground: 220 20% 95%;
+  --sidebar-primary-foreground: 180 20% 98%;
 
-  --sidebar-accent: 220 12% 18%;
+  --sidebar-accent: 195 12% 18%;
 
-  --sidebar-accent-foreground: 220 15% 85%;
+  --sidebar-accent-foreground: 195 15% 85%;
 
-  --sidebar-ring: 220 85% 60%;
+  --sidebar-ring: 180 70% 55%;
 
-  --popover: 220 8% 15%;
+  --popover: 195 12% 15%;
 
-  --popover-foreground: 220 15% 88%;
+  --popover-foreground: 195 15% 88%;
 
-  --popover-border: 220 6% 18%;
+  --popover-border: 195 8% 18%;
 
-  --primary: 220 85% 60%;
+  /* Primary: Brighter Scientific Teal */
+  --primary: 180 70% 55%;
 
-  --primary-foreground: 220 20% 95%;
+  --primary-foreground: 180 20% 98%;
 
-  --secondary: 220 10% 20%;
+  /* Secondary: Lighter Purple for dark mode */
+  --secondary: 270 30% 22%;
 
-  --secondary-foreground: 220 15% 85%;
+  --secondary-foreground: 270 35% 85%;
 
-  --muted: 220 8% 16%;
+  --muted: 195 10% 16%;
 
-  --muted-foreground: 220 10% 65%;
+  --muted-foreground: 195 10% 65%;
 
-  --accent: 220 12% 14%;
+  /* Accent: Brighter Biology Green for dark mode */
+  --accent: 150 30% 20%;
 
-  --accent-foreground: 220 15% 82%;
+  --accent-foreground: 150 35% 82%;
 
   --destructive: 355 75% 55%;
 
   --destructive-foreground: 355 20% 95%;
 
-  --input: 220 8% 22%;
-  --ring: 220 85% 60%;
-  --chart-1: 220 85% 65%;
-  --chart-2: 145 65% 60%;
-  --chart-3: 35 85% 60%;
-  --chart-4: 280 75% 65%;
-  --chart-5: 15 80% 65%;
+  --input: 195 10% 20%;
+  --ring: 180 70% 55%;
+
+  /* Chart colors - brighter versions for dark mode */
+  --chart-1: 180 70% 55%; /* Teal - Guanine */
+  --chart-2: 150 60% 55%; /* Green - Adenine */
+  --chart-3: 270 60% 60%; /* Purple - Cytosine */
+  --chart-4: 30 80% 60%; /* Orange - Thymine */
+  --chart-5: 200 75% 55%; /* Blue - RNA Uracil */
+
+  /* Scientific accent colors - dark mode versions */
+  --bio-teal: 180 70% 55%;
+  --bio-green: 150 60% 55%;
+  --bio-purple: 270 60% 60%;
+  --bio-orange: 30 80% 60%;
+  --bio-blue: 200 75% 55%;
 
   --shadow-2xs: 0px 2px 0px 0px hsl(220 10% 5% / 0.15);
   --shadow-xs: 0px 2px 0px 0px hsl(220 10% 5% / 0.20);
@@ -325,6 +353,58 @@
     inset: -1px;
   }
 }
+/* ============================================
+   BIOINFORMATICS THEME ENHANCEMENTS
+   ============================================ */
+
+/* Scientific Background Patterns */
+.bio-grid-bg {
+  background-image:
+    linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bio-dna-pattern {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(20, 184, 166, 0.02) 10px,
+    rgba(20, 184, 166, 0.02) 20px
+  ),
+  repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 10px,
+    rgba(16, 185, 129, 0.02) 10px,
+    rgba(16, 185, 129, 0.02) 20px
+  );
+}
+
+.bio-molecule-dots {
+  background-image: radial-gradient(circle, rgba(20, 184, 166, 0.1) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* DNA Helix animated background */
+@keyframes dna-helix {
+  0% {
+    background-position: 0 0, 10px 10px;
+  }
+  100% {
+    background-position: 40px 40px, 50px 50px;
+  }
+}
+
+.bio-helix-bg {
+  background:
+    linear-gradient(135deg, transparent 48%, rgba(20, 184, 166, 0.03) 48%, rgba(20, 184, 166, 0.03) 52%, transparent 52%),
+    linear-gradient(45deg, transparent 48%, rgba(16, 185, 129, 0.03) 48%, rgba(16, 185, 129, 0.03) 52%, transparent 52%);
+  background-size: 40px 40px;
+  animation: dna-helix 3s linear infinite;
+}
+
 /* Custom animations for workflow execution states */
 @keyframes pulse-subtle {
   0%, 100% {
@@ -337,4 +417,107 @@
 
 .animate-pulse-subtle {
   animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* DNA sequencing animation */
+@keyframes sequence-flow {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-sequence-flow {
+  animation: sequence-flow 3s ease-in-out infinite;
+}
+
+/* Molecular structure glow */
+@keyframes molecule-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(20, 184, 166, 0.2), 0 0 20px rgba(20, 184, 166, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.4), 0 0 30px rgba(20, 184, 166, 0.2);
+  }
+}
+
+.animate-molecule-glow {
+  animation: molecule-glow 2s ease-in-out infinite;
+}
+
+/* Lab equipment shimmer */
+@keyframes lab-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-lab-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(20, 184, 166, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: lab-shimmer 3s ease-in-out infinite;
+}
+
+/* Petri dish ripple effect */
+@keyframes petri-ripple {
+  0% {
+    transform: scale(0.95);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+}
+
+.animate-petri-ripple {
+  animation: petri-ripple 2s ease-out infinite;
+}
+
+/* Data processing indicator */
+@keyframes data-processing {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-data-processing {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--bio-teal)) 0%,
+    hsl(var(--bio-green)) 25%,
+    hsl(var(--bio-purple)) 50%,
+    hsl(var(--bio-green)) 75%,
+    hsl(var(--bio-teal)) 100%
+  );
+  background-size: 200% 100%;
+  animation: data-processing 3s ease infinite;
 }

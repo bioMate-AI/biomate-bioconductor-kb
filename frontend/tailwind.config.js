@@ -63,11 +63,28 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Bioinformatics theme colors
+        bio: {
+          teal: "hsl(var(--bio-teal))",
+          green: "hsl(var(--bio-green))",
+          purple: "hsl(var(--bio-purple))",
+          orange: "hsl(var(--bio-orange))",
+          blue: "hsl(var(--bio-blue))",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
+      },
+      animation: {
+        "pulse-subtle": "pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "sequence-flow": "sequence-flow 3s ease-in-out infinite",
+        "molecule-glow": "molecule-glow 2s ease-in-out infinite",
+        "lab-shimmer": "lab-shimmer 3s ease-in-out infinite",
+        "petri-ripple": "petri-ripple 2s ease-out infinite",
+        "data-processing": "data-processing 3s ease infinite",
+        "dna-helix": "dna-helix 3s linear infinite",
       },
     },
   },

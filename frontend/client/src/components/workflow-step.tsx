@@ -45,15 +45,15 @@ export function WorkflowStep({
 
   const statusColors = {
     pending: "text-muted-foreground",
-    running: "text-blue-500",
-    completed: "text-green-500", 
+    running: "text-bio-teal animate-pulse-subtle",
+    completed: "text-bio-green",
     error: "text-red-500"
   }
 
   const complexityColors = {
-    simple: "bg-green-500",
-    intermediate: "bg-yellow-500",
-    complex: "bg-red-500"
+    simple: "bg-bio-green/20 text-bio-green border border-bio-green/30",
+    intermediate: "bg-bio-orange/20 text-bio-orange border border-bio-orange/30",
+    complex: "bg-bio-purple/20 text-bio-purple border border-bio-purple/30"
   }
 
   const StatusIcon = statusIcons[step.status]
@@ -78,7 +78,11 @@ export function WorkflowStep({
 
   return (
     <Card
-      className="w-full transition-all hover:shadow-lg cursor-pointer"
+      className={cn(
+        "w-full transition-all hover:shadow-lg cursor-pointer relative",
+        step.status === "running" && "border-bio-teal/50 animate-molecule-glow",
+        step.status === "completed" && "border-bio-green/30"
+      )}
       data-testid={`card-workflow-step-${step.id}`}
       onClick={(e) => {
         // Don't trigger card click if clicking on a button

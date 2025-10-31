@@ -68,7 +68,7 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
               onClick={() => handleNavigation(isAuthenticated ? '/dashboard' : '/home')}
               className="flex items-center space-x-2"
             >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-sm">B</span>
               </div>
               <span className="font-bold text-xl">BioMate</span>
