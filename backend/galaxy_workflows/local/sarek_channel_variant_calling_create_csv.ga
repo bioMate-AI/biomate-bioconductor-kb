@@ -1,0 +1,78 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "CHANNEL_VARIANT_CALLING_CREATE_CSV",
+  "annotation": "Converted from nf-core subworkflow: Creates CSV file from variant calling results for workflow restart capability",
+  "steps": {
+    "0": {
+      "annotation": "VCF files to annotate with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vcf_to_annotate",
+          "description": "Channel containing VCF files with metadata (meta, vcf)"
+        }
+      ],
+      "name": "Input VCF Channel",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Output directory path for CSV storage",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "outdir",
+          "description": "Output directory path"
+        }
+      ],
+      "name": "Input Output Directory",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Collects VCF metadata and creates CSV file for variant calling restart. Extracts patient, sample, variantcaller from metadata and constructs VCF paths. Output: variantcalled.csv with columns (patient,sample,variantcaller,vcf)",
+      "id": 2,
+      "input_connections": {
+        "vcf_input": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "outdir_input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Create Variant Calling CSV",
+      "tool_id": "galaxy_collectfile_csv",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 70
+      },
+      "tool_state": {
+        "keepHeader": "true",
+        "skip": "1",
+        "sort": "true",
+        "storeDir": "${outdir}/csv",
+        "filename": "variantcalled.csv",
+        "header": "patient,sample,variantcaller,vcf"
+      }
+    }
+  },
+  "outputs": {
+    "variantcalled_csv": {
+      "id": 2,
+      "output_name": "variantcalled.csv",
+      "description": "CSV file containing variant calling metadata for workflow restart"
+    }
+  }
+}

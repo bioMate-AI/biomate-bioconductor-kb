@@ -1,0 +1,94 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_DOCOUNTS_CONTAMINATION_ANGSD",
+  "annotation": "ANGSD doCounts and contamination estimation on the X-chromosome. Converted from nf-core subworkflow BAM_DOCOUNTS_CONTAMINATION_ANGSD",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM files with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bam",
+          "description": "BAM files with metadata and index"
+        }
+      ],
+      "name": "Input BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input HapMap file for contamination estimation",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_hapmap_file",
+          "description": "HapMap file for contamination analysis"
+        }
+      ],
+      "name": "Input HapMap",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "ANGSD doCounts - Generate allele count files from BAM",
+      "id": 2,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "ANGSD doCounts",
+      "tool_id": "angsd_docounts",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "ANGSD Contamination - Estimate contamination from allele counts and HapMap",
+      "id": 3,
+      "input_connections": {
+        "icounts": {
+          "id": 2,
+          "output_name": "icounts"
+        },
+        "hapmap_file": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "ANGSD Contamination",
+      "tool_id": "angsd_contamination",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "txt": {
+      "annotation": "Contamination estimation results",
+      "id": 3,
+      "output_name": "txt",
+      "type": "data"
+    },
+    "versions": {
+      "annotation": "Version information from tools",
+      "id": 3,
+      "output_name": "versions",
+      "type": "data"
+    }
+  }
+}

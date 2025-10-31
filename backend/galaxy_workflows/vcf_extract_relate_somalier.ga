@@ -1,0 +1,222 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "VCF_EXTRACT_RELATE_SOMALIER",
+  "annotation": "Converted from nf-core subworkflow for VCF extraction and somalier relationship analysis",
+  "steps": {
+    "0": {
+      "annotation": "Input VCF files with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_vcfs"
+        }
+      ],
+      "name": "Input VCFs",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta_fai"
+        }
+      ],
+      "name": "Input FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input somalier sites VCF",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_somalier_sites"
+        }
+      ],
+      "name": "Input Somalier Sites",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input pedigree files",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_peds"
+        }
+      ],
+      "name": "Input Pedigree",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Optional sample groups file",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_sample_groups"
+        }
+      ],
+      "name": "Input Sample Groups",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Optional common identifier for samples",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_common_id"
+        }
+      ],
+      "name": "Input Common ID",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Tabix indexes VCF files without existing index. Branches VCFs: those with index pass through, those without are indexed here.",
+      "id": 7,
+      "input_connections": {
+        "input_vcf": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Tabix Tabix",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Somalier extract extracts genotypes from VCF files at somalier sites. Takes indexed VCFs, reference FASTA, and somalier sites as input.",
+      "id": 8,
+      "input_connections": {
+        "input_vcf": {
+          "id": 7,
+          "output_name": "indexed_vcf"
+        },
+        "input_tbi": {
+          "id": 7,
+          "output_name": "tbi"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "somalier_sites": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Somalier Extract",
+      "tool_id": "somalier_extract",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Somalier relate performs relationship inference on extracted genotypes. Groups samples by count and joins with pedigree information.",
+      "id": 9,
+      "input_connections": {
+        "extract": {
+          "id": 8,
+          "output_name": "extract"
+        },
+        "pedigree": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "sample_groups": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Somalier Relate",
+      "tool_id": "somalier_relate",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "extract": {
+      "annotation": "Extracted genotypes from somalier",
+      "id": 8,
+      "output_name": "extract"
+    },
+    "html": {
+      "annotation": "HTML report of relationships",
+      "id": 9,
+      "output_name": "html"
+    },
+    "pairs_tsv": {
+      "annotation": "Pairwise relationship statistics",
+      "id": 9,
+      "output_name": "pairs_tsv"
+    },
+    "samples_tsv": {
+      "annotation": "Sample-level relationship statistics",
+      "id": 9,
+      "output_name": "samples_tsv"
+    },
+    "versions": {
+      "annotation": "Version information from tools",
+      "id": 9,
+      "output_name": "versions"
+    }
+  }
+}

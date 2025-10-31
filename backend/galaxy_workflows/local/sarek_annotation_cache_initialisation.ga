@@ -1,0 +1,270 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "ANNOTATION_CACHE_INITIALISATION",
+  "annotation": "This workflow initializes annotation caches for variant effect prediction tools. It validates SnpEff and VEP cache directories based on input parameters. If SnpEff is enabled, it checks the cache path and creates a channel with database metadata. If VEP is enabled, it validates the cache path considering cache version, genome build, and custom arguments (merged/refseq variants). Both paths include error handling for invalid or unavailable cache locations.",
+  "steps": {
+    "0": {
+      "annotation": "SnpEff enabled flag",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "snpeff_enabled"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "SnpEff cache path",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "snpeff_cache"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "SnpEff database name",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "snpeff_db"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "VEP enabled flag",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_enabled"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "VEP cache path",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_cache"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "VEP species name",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_species"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "VEP cache version",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_cache_version"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "VEP genome build",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_genome"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "VEP custom arguments",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_custom_args"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Help message for error reporting",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "help_message"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "Validate and initialize SnpEff cache - checks if cache path exists and is valid directory",
+      "id": 10,
+      "input_connections": {
+        "snpeff_enabled": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "snpeff_cache": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "snpeff_db": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "help_message": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "SnpEff Cache Initialization",
+      "tool_id": "snpeff_cache_init",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "Validate and initialize VEP cache - checks if cache path exists and is valid directory, handles merged/refseq variants",
+      "id": 11,
+      "input_connections": {
+        "vep_enabled": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "vep_cache": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "vep_species": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "vep_cache_version": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "vep_genome": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "vep_custom_args": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "help_message": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "VEP Cache Initialization",
+      "tool_id": "vep_cache_init",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "12": {
+      "annotation": "Output SnpEff cache channel with metadata",
+      "id": 12,
+      "input_connections": {
+        "snpeff_cache": {
+          "id": 10,
+          "output_name": "snpeff_cache"
+        }
+      },
+      "name": "Output SnpEff Cache",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "13": {
+      "annotation": "Output VEP cache channel",
+      "id": 13,
+      "input_connections": {
+        "ensemblvep_cache": {
+          "id": 11,
+          "output_name": "ensemblvep_cache"
+        }
+      },
+      "name": "Output VEP Cache",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    }
+  }
+}

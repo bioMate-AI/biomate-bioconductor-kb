@@ -1,0 +1,250 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SOMATIC_TNSCOPE",
+  "annotation": "Converted from nf-core subworkflow: SENTIEON TNSCOPE tumor-normal mode variant calling with optional VCF merging for multi-interval processing",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM files with indices",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference FASTA sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference FASTA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Reference sequence dictionary",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Germline resource VCF",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "germline_resource"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Germline resource index",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "germline_resource_tbi"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Panel of normals VCF",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "panel_of_normals"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Panel of normals index",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "panel_of_normals_tbi"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Genomic intervals for variant calling",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "SENTIEON TNSCOPE: Tumor-normal somatic variant calling",
+      "id": 9,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "germline_resource": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "germline_resource_tbi": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "panel_of_normals": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "panel_of_normals_tbi": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON TNSCOPE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core/sentieon_tnscope/sentieon_tnscope",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 400
+      }
+    },
+    "10": {
+      "annotation": "Merge VCFs from multiple intervals - conditional step executed only when num_intervals > 1",
+      "id": 10,
+      "input_connections": {
+        "vcf": {
+          "id": 9,
+          "output_name": "vcf"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 MergeVcfs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/gatk4_mergevcfs/gatk4_mergevcfs",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 400
+      }
+    },
+    "11": {
+      "annotation": "Output VCF with variant caller metadata",
+      "id": 11,
+      "input_connections": {
+        "vcf": {
+          "id": 10,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output VCF",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 350
+      }
+    },
+    "12": {
+      "annotation": "Output VCF index with variant caller metadata",
+      "id": 12,
+      "input_connections": {
+        "index": {
+          "id": 10,
+          "output_name": "tbi"
+        }
+      },
+      "name": "Output Index",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 470
+      }
+    }
+  }
+}

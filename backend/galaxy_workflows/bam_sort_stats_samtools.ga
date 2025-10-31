@@ -1,0 +1,140 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_SORT_STATS_SAMTOOLS",
+  "annotation": "Sort, index BAM file and run samtools stats, flagstat and idxstats. Converted from nf-core subworkflow.",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM file channel",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bam",
+          "description": "BAM file with metadata"
+        }
+      ],
+      "name": "Input BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA file channel",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta",
+          "description": "Reference FASTA file with metadata"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "id": 2,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "SAMTOOLS_SORT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "tool_version": "0.0.5",
+      "type": "tool",
+      "annotation": "Sort BAM file by coordinate",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "id": 3,
+      "input_connections": {
+        "bam": {
+          "id": 2,
+          "output_name": "bam"
+        }
+      },
+      "name": "SAMTOOLS_INDEX",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "tool_version": "0.0.5",
+      "type": "tool",
+      "annotation": "Index sorted BAM file (creates .bai or .csi index)",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "4": {
+      "id": 4,
+      "input_connections": {
+        "bam": {
+          "id": 2,
+          "output_name": "bam"
+        },
+        "bai_or_csi": {
+          "id": 3,
+          "output_name": "bai"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_STATS_SAMTOOLS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "tool_version": "0.1.0",
+      "type": "tool",
+      "annotation": "Generate BAM statistics: stats, flagstat, and idxstats",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "bam": {
+      "id": 2,
+      "output_name": "bam",
+      "description": "Sorted BAM file"
+    },
+    "bai": {
+      "id": 3,
+      "output_name": "bai",
+      "description": "BAI index file"
+    },
+    "csi": {
+      "id": 3,
+      "output_name": "csi",
+      "description": "CSI index file (alternative to BAI)"
+    },
+    "stats": {
+      "id": 4,
+      "output_name": "stats",
+      "description": "Samtools stats output"
+    },
+    "flagstat": {
+      "id": 4,
+      "output_name": "flagstat",
+      "description": "Samtools flagstat output"
+    },
+    "idxstats": {
+      "id": 4,
+      "output_name": "idxstats",
+      "description": "Samtools idxstats output"
+    }
+  }
+}

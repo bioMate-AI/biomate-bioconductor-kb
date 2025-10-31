@@ -1,0 +1,906 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_TUMOR_ONLY_ALL",
+  "annotation": "Tumor-only variant calling workflow converted from nf-core subworkflow. Performs variant calling using multiple tools (MPILEUP, CONTROLFREEC, CNVKIT, FREEBAYES, MSISENSOR2, MUTECT2, LOFREQ, MANTA, TIDDIT, TNSCOPE) with conditional execution based on tool selection.",
+  "steps": {
+    "0": {
+      "annotation": "Tools to apply (comma-separated list)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "tools"
+        }
+      ],
+      "name": "Input: tools",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input BAM files",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam"
+        }
+      ],
+      "name": "Input: bam",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input CRAM files",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input: cram",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Reference FASTA file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input: fasta",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "FASTA index file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input: fasta_fai",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Dictionary file",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input: dict",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "dbSNP VCF file",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp"
+        }
+      ],
+      "name": "Input: dbsnp",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "dbSNP VCF index file",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp_tbi"
+        }
+      ],
+      "name": "Input: dbsnp_tbi",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Genomic intervals",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input: intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Intervals BED file (gzipped with index)",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed_gz_tbi"
+        }
+      ],
+      "name": "Input: intervals_bed_gz_tbi",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "Combined intervals BED file (unzipped)",
+      "id": 10,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed_combined"
+        }
+      ],
+      "name": "Input: intervals_bed_combined",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1210
+      }
+    },
+    "11": {
+      "annotation": "Combined intervals BED file (gzipped with index)",
+      "id": 11,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed_gz_tbi_combined"
+        }
+      ],
+      "name": "Input: intervals_bed_gz_tbi_combined",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1330
+      }
+    },
+    "12": {
+      "annotation": "Germline resource VCF (optional)",
+      "id": 12,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "germline_resource"
+        }
+      ],
+      "name": "Input: germline_resource",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1450
+      }
+    },
+    "13": {
+      "annotation": "Germline resource VCF index (optional)",
+      "id": 13,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "germline_resource_tbi"
+        }
+      ],
+      "name": "Input: germline_resource_tbi",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1570
+      }
+    },
+    "14": {
+      "annotation": "Panel of normals VCF (optional)",
+      "id": 14,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "panel_of_normals"
+        }
+      ],
+      "name": "Input: panel_of_normals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1690
+      }
+    },
+    "15": {
+      "annotation": "Panel of normals VCF index (optional)",
+      "id": 15,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "panel_of_normals_tbi"
+        }
+      ],
+      "name": "Input: panel_of_normals_tbi",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1810
+      }
+    },
+    "16": {
+      "annotation": "ControlFreeC chromosome length file (optional)",
+      "id": 16,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cf_chrom_len"
+        }
+      ],
+      "name": "Input: cf_chrom_len",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1930
+      }
+    },
+    "17": {
+      "annotation": "ControlFreeC chromosome files (optional)",
+      "id": 17,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "chr_files"
+        }
+      ],
+      "name": "Input: chr_files",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 2050
+      }
+    },
+    "18": {
+      "annotation": "CNVKit reference file (optional)",
+      "id": 18,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cnvkit_reference"
+        }
+      ],
+      "name": "Input: cnvkit_reference",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 2170
+      }
+    },
+    "19": {
+      "annotation": "Mappability file (optional)",
+      "id": 19,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "mappability"
+        }
+      ],
+      "name": "Input: mappability",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 2290
+      }
+    },
+    "20": {
+      "annotation": "MSISensor2 models (optional)",
+      "id": 20,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "msisensor2_models"
+        }
+      ],
+      "name": "Input: msisensor2_models",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 2410
+      }
+    },
+    "21": {
+      "annotation": "BWA index (optional)",
+      "id": 21,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bwa"
+        }
+      ],
+      "name": "Input: bwa",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 2530
+      }
+    },
+    "22": {
+      "annotation": "Run Mutect2 in joint mode (boolean)",
+      "id": 22,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "joint_mutect2"
+        }
+      ],
+      "name": "Input: joint_mutect2",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 2650
+      }
+    },
+    "23": {
+      "annotation": "Whether targeted data is processed (boolean)",
+      "id": 23,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "wes"
+        }
+      ],
+      "name": "Input: wes",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 2770
+      }
+    },
+    "24": {
+      "annotation": "BAM coverage statistics - MPILEUP variant calling. Conditional: runs if 'mpileup' or 'controlfreec' in tools",
+      "id": 24,
+      "input_connections": {
+        "bam_input": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict_input": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "fasta_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals_input": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_MPILEUP",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "25": {
+      "annotation": "BAM coverage statistics - CONTROLFREEC variant calling. Conditional: runs if 'controlfreec' in tools. Depends on MPILEUP output.",
+      "id": 25,
+      "input_connections": {
+        "mpileup_input": {
+          "id": 24,
+          "output_name": "output"
+        },
+        "fasta_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "cf_chrom_len_input": {
+          "id": 16,
+          "output_name": "output"
+        },
+        "dbsnp_input": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "dbsnp_tbi_input": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "chr_files_input": {
+          "id": 17,
+          "output_name": "output"
+        },
+        "mappability_input": {
+          "id": 19,
+          "output_name": "output"
+        },
+        "intervals_bed_combined_input": {
+          "id": 10,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_TUMOR_ONLY_CONTROLFREEC",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "26": {
+      "annotation": "BAM coverage statistics - CNVKIT variant calling. Conditional: runs if 'cnvkit' in tools.",
+      "id": 26,
+      "input_connections": {
+        "bam_input": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta_fai_input": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "cnvkit_reference_input": {
+          "id": 18,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_CNVKIT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "27": {
+      "annotation": "BAM coverage statistics - FREEBAYES variant calling. Conditional: runs if 'freebayes' in tools.",
+      "id": 27,
+      "input_connections": {
+        "cram_input": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict_input": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "fasta_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta_fai_input": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "intervals_input": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_FREEBAYES",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "28": {
+      "annotation": "BAM coverage statistics - MSISENSOR2 MSI detection. Conditional: runs if 'msisensor2' in tools.",
+      "id": 28,
+      "input_connections": {
+        "bam_input": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "msisensor2_models_input": {
+          "id": 20,
+          "output_name": "output"
+        }
+      },
+      "name": "MSISENSOR2_MSI",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "29": {
+      "annotation": "BAM coverage statistics - MUTECT2 variant calling. Conditional: runs if 'mutect2' in tools. Supports joint mode if joint_mutect2 is true.",
+      "id": 29,
+      "input_connections": {
+        "cram_input": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta_fai_input": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dict_input": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "germline_resource_input": {
+          "id": 12,
+          "output_name": "output"
+        },
+        "germline_resource_tbi_input": {
+          "id": 13,
+          "output_name": "output"
+        },
+        "panel_of_normals_input": {
+          "id": 14,
+          "output_name": "output"
+        },
+        "panel_of_normals_tbi_input": {
+          "id": 15,
+          "output_name": "output"
+        },
+        "intervals_input": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "joint_mutect2_input": {
+          "id": 22,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_TUMOR_ONLY_MUTECT2",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 250
+      }
+    },
+    "30": {
+      "annotation": "BAM coverage statistics - LOFREQ variant calling. Conditional: runs if 'lofreq' in tools.",
+      "id": 30,
+      "input_connections": {
+        "cram_input": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta_fai_input": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "intervals_input": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "dict_input": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_TUMOR_ONLY_LOFREQ",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 250
+      }
+    },
+    "31": {
+      "annotation": "BAM coverage statistics - MANTA structural variant calling. Conditional: runs if 'manta' in tools.",
+      "id": 31,
+      "input_connections": {
+        "cram_input": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta_fai_input": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "intervals_bed_gz_tbi_combined_input": {
+          "id": 11,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_TUMOR_ONLY_MANTA",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1770,
+        "top": 250
+      }
+    },
+    "32": {
+      "annotation": "BAM coverage statistics - TIDDIT structural variant calling. Conditional: runs if 'tiddit' in tools.",
+      "id": 32,
+      "input_connections": {
+        "cram_input": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "bwa_input": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_SINGLE_TIDDIT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1990,
+        "top": 250
+      }
+    },
+    "33": {
+      "annotation": "BAM coverage statistics - TNSCOPE variant calling. Conditional: runs if 'sentieon_tnscope' in tools.",
+      "id": 33,
+      "input_connections": {
+        "cram_input": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta_fai_input": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dict_input": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "germline_resource_input": {
+          "id": 12,
+          "output_name": "output"
+        },
+        "germline_resource_tbi_input": {
+          "id": 13,
+          "output_name": "output"
+        },
+        "panel_of_normals_input": {
+          "id": 14,
+          "output_name": "output"
+        },
+        "panel_of_normals_tbi_input": {
+          "id": 15,
+          "output_name": "output"
+        },
+        "intervals_input": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_TUMOR_ONLY_TNSCOPE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 2210,
+        "top": 250
+      }
+    },
+    "34": {
+      "annotation": "Output: All VCF files from variant calling tools",
+      "id": 34,
+      "input_connections": {
+        "vcf_freebayes": {
+          "id": 27,
+          "output_name": "output"
+        },
+        "vcf_lofreq": {
+          "id": 30,
+          "output_name": "output"
+        },
+        "vcf_manta": {
+          "id": 31,
+          "output_name": "output"
+        },
+        "vcf_mutect2": {
+          "id": 29,
+          "output_name": "output"
+        },
+        "vcf_mpileup": {
+          "id": 24,
+          "output_name": "output"
+        },
+        "vcf_tiddit": {
+          "id": 32,
+          "output_name": "output"
+        },
+        "vcf_tnscope": {
+          "id": 33,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: vcf_all",
+      "type": "data_output",
+      "position": {
+        "left": 2430,
+        "top": 250
+      }
+    },
+    "35": {
+      "annotation": "Output: MPILEUP VCF",
+      "id": 35,
+      "input_connections": {
+        "vcf_mpileup": {
+          "id": 24,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: vcf_mpileup",
+      "type": "data_output",
+      "position": {
+        "left": 2430,
+        "top": 370
+      }
+    },
+    "36": {
+      "annotation": "Output: FREEBAYES VCF",
+      "id": 36,
+      "input_connections": {
+        "vcf_freebayes": {
+          "id": 27,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: vcf_freebayes",
+      "type": "data_output",
+      "position": {
+        "left": 2430,
+        "top": 490
+      }
+    },
+    "37": {
+      "annotation": "Output: MUTECT2 VCF",
+      "id": 37,
+      "input_connections": {
+        "vcf_mutect2": {
+          "id": 29,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: vcf_mutect2",
+      "type": "data_output",
+      "position": {
+        "left": 2430,
+        "top": 610
+      }
+    },
+    "38": {
+      "annotation": "Output: LOFREQ VCF",
+      "id": 38,
+      "input_connections": {
+        "vcf_lofreq": {
+          "id": 30,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: vcf_lofreq",
+      "type": "data_output",
+      "position": {
+        "left": 2430,
+        "top": 730
+      }
+    },
+    "39": {
+      "annotation": "Output: MANTA VCF",
+      "id": 39,
+      "input_connections": {
+        "vcf_manta": {
+          "id": 31,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: vcf_manta",
+      "type": "data_output",
+      "position": {
+        "left": 2430,
+        "top": 850
+      }
+    },
+    "40": {
+      "annotation": "Output: TIDDIT VCF",
+      "id": 40,
+      "input_connections": {
+        "vcf_tiddit": {
+          "id": 32,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: vcf_tiddit",
+      "type": "data_output",
+      "position": {
+        "left": 2430,
+        "top": 970
+      }
+    },
+    "41": {
+      "annotation": "Output: TNSCOPE VCF",
+      "id": 41,
+      "input_connections": {
+        "vcf_tnscope": {
+          "id": 33,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: vcf_tnscope",
+      "type": "data_output",
+      "position": {
+        "left": 2430,
+        "top": 1090
+      }
+    },
+    "42": {
+      "annotation": "Output: MSISensor2 results (distribution and somatic)",
+      "id": 42,
+      "input_connections": {
+        "msisensor2_output": {
+          "id": 28,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: out_msisensor2",
+      "type": "data_output",
+      "position": {
+        "left": 2430,
+        "top": 1210
+      }
+    }
+  }
+}

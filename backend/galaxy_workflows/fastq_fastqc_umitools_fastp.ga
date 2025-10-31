@@ -1,0 +1,286 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_FASTQC_UMITOOLS_FASTP",
+  "annotation": "Workflow for FASTQ quality control, UMI extraction, and adapter trimming. Conditionally executes FastQC on raw and trimmed reads, UMI extraction with optional read discarding, and fastp-based trimming with read count filtering.",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads with metadata and optional adapter FASTA",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reads",
+          "description": "Input FASTQ files"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input parameter: skip_fastqc (boolean)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "skip_fastqc",
+          "description": "Skip FastQC on raw reads"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input parameter: with_umi (boolean)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "with_umi",
+          "description": "Process UMI reads"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input parameter: skip_umi_extract (boolean)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "skip_umi_extract",
+          "description": "Skip UMI extraction"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input parameter: umi_discard_read (integer: 0, 1, or 2)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "umi_discard_read",
+          "description": "Discard read 1 or 2 after UMI extraction"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input parameter: skip_trimming (boolean)",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "skip_trimming",
+          "description": "Skip adapter trimming"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input parameter: save_trimmed_fail (boolean)",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "save_trimmed_fail",
+          "description": "Save reads that fail trimming"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Input parameter: save_merged (boolean)",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "save_merged",
+          "description": "Save merged reads"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Input parameter: min_trimmed_reads (integer > 0)",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "min_trimmed_reads",
+          "description": "Minimum number of reads after trimming"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "FastQC on raw reads (conditional: skip_fastqc=false)",
+      "id": 9,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "FastQC",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/Repository_Actions_FastQC",
+      "tool_version": "0.74+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "UMI-tools extract (conditional: with_umi=true AND skip_umi_extract=false)",
+      "id": 10,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "UMI-tools extract",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/umitools_extract/Repository_Actions_umitools_extract",
+      "tool_version": "1.1.2+galaxy2",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "11": {
+      "annotation": "fastp adapter trimming and quality filtering (conditional: skip_trimming=false)",
+      "id": 11,
+      "input_connections": {
+        "input_file": {
+          "id": 10,
+          "output_name": "reads"
+        }
+      },
+      "name": "fastp",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/fastp/Repository_Actions_fastp",
+      "tool_version": "1.0.1+galaxy2",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "12": {
+      "annotation": "FastQC on trimmed reads (conditional: skip_trimming=false AND skip_fastqc=false)",
+      "id": 12,
+      "input_connections": {
+        "input_file": {
+          "id": 11,
+          "output_name": "reads"
+        }
+      },
+      "name": "FastQC",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/Repository_Actions_FastQC",
+      "tool_version": "0.74+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "13": {
+      "annotation": "Filter reads by minimum count threshold",
+      "id": 13,
+      "input_connections": {
+        "input_file": {
+          "id": 11,
+          "output_name": "json"
+        }
+      },
+      "name": "Filter",
+      "tool_id": "Filter1",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    }
+  },
+  "steps_meta": {
+    "conditional_logic": [
+      {
+        "step": 9,
+        "condition": "skip_fastqc == false",
+        "description": "Run FastQC on raw reads"
+      },
+      {
+        "step": 10,
+        "condition": "with_umi == true AND skip_umi_extract == false",
+        "description": "Extract UMI barcodes from reads"
+      },
+      {
+        "step": 11,
+        "condition": "skip_trimming == false",
+        "description": "Trim adapters and filter low quality reads"
+      },
+      {
+        "step": 12,
+        "condition": "skip_trimming == false AND skip_fastqc == false",
+        "description": "Run FastQC on trimmed reads"
+      },
+      {
+        "step": 13,
+        "condition": "skip_trimming == false",
+        "description": "Filter reads by minimum count threshold from fastp JSON"
+      }
+    ],
+    "data_flow": [
+      "Input reads \u2192 FastQC_RAW (if skip_fastqc=false)",
+      "Input reads \u2192 UMI_EXTRACT (if with_umi=true AND skip_umi_extract=false)",
+      "UMI_EXTRACT output \u2192 FASTP (if skip_trimming=false)",
+      "FASTP output \u2192 FastQC_TRIM (if skip_trimming=false AND skip_fastqc=false)",
+      "FASTP JSON \u2192 Filter by min_trimmed_reads threshold"
+    ]
+  }
+}

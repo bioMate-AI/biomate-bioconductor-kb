@@ -1,0 +1,154 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_TUMOR_ONLY_MANTA",
+  "annotation": "Converted from nf-core subworkflow: MANTA single sample variant calling for tumor-only samples",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram",
+          "description": "CRAM file with metadata and index"
+        }
+      ],
+      "name": "Input dataset collection: CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta",
+          "description": "Reference FASTA file with metadata"
+        }
+      ],
+      "name": "Input dataset: FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input reference FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai",
+          "description": "FASTA index file with metadata"
+        }
+      ],
+      "name": "Input dataset: FASTA index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input interval BED file (optional)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals",
+          "description": "Interval BED file compressed and indexed (optional)"
+        }
+      ],
+      "name": "Input dataset collection: Intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Manta tumor-only structural variant calling",
+      "id": 4,
+      "input_connections": {
+        "input_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "input_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "input_fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "input_intervals": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Manta",
+      "tool_id": "artbio_manta_Manta_1.6+galaxy9",
+      "tool_version": "1.6+galaxy9",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "5": {
+      "annotation": "Output tumor SV VCF with variantcaller metadata",
+      "id": 5,
+      "input_connections": {
+        "input_vcf": {
+          "id": 4,
+          "output_name": "tumor_sv_vcf"
+        }
+      },
+      "name": "Output dataset: Tumor SV VCF",
+      "type": "data_output",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Output candidate small indels VCF",
+      "id": 6,
+      "input_connections": {
+        "input_vcf": {
+          "id": 4,
+          "output_name": "candidate_small_indels_vcf"
+        }
+      },
+      "name": "Output dataset: Candidate small indels VCF",
+      "type": "data_output",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "7": {
+      "annotation": "Output candidate SV VCF",
+      "id": 7,
+      "input_connections": {
+        "input_vcf": {
+          "id": 4,
+          "output_name": "candidate_sv_vcf"
+        }
+      },
+      "name": "Output dataset: Candidate SV VCF",
+      "type": "data_output",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    }
+  }
+}

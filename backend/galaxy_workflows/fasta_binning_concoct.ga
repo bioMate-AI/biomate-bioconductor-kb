@@ -1,0 +1,181 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTA_BINNING_CONCOCT",
+  "annotation": "Converted from nf-core subworkflow FASTA_BINNING_CONCOCT. Performs unsupervised binning of metagenomic contigs using CONCOCT with nucleotide composition and coverage data.",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTA channel: raw contigs from assembly",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta",
+          "description": "FASTA files with raw contigs"
+        }
+      ],
+      "name": "Input dataset ch_fasta",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input BAM channel: BAM files of original FASTQ files mapped back to contigs",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bam",
+          "description": "BAM files with BAI indices"
+        }
+      ],
+      "name": "Input dataset ch_bam",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Cut up FASTA sequences into chunks and produce BED file for coverage calculation",
+      "id": 2,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "CONCOCT_CUTUPFASTA",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/concoct/Repository_Actions_CONCOCT",
+      "tool_version": "1.1.0+galaxy2",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Generate coverage table from BAM files using BED file from cut-up FASTA",
+      "id": 3,
+      "input_connections": {
+        "bed": {
+          "id": 2,
+          "output_name": "bed"
+        },
+        "bam": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "CONCOCT_CONCOCTCOVERAGETABLE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/concoct/Repository_Actions_CONCOCT",
+      "tool_version": "1.1.0+galaxy2",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "Run CONCOCT clustering algorithm using coverage table and cut-up FASTA sequences",
+      "id": 4,
+      "input_connections": {
+        "coverage_table": {
+          "id": 3,
+          "output_name": "tsv"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "fasta"
+        }
+      },
+      "name": "CONCOCT_CONCOCT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/concoct/Repository_Actions_CONCOCT",
+      "tool_version": "1.1.0+galaxy2",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Merge cut-up clustering results back to original contig identifiers",
+      "id": 5,
+      "input_connections": {
+        "clustering_csv": {
+          "id": 4,
+          "output_name": "clustering_csv"
+        }
+      },
+      "name": "CONCOCT_MERGECUTUPCLUSTERING",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/concoct/Repository_Actions_CONCOCT",
+      "tool_version": "1.1.0+galaxy2",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Extract FASTA sequences for each bin based on merged clustering results",
+      "id": 6,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "clustering_csv": {
+          "id": 5,
+          "output_name": "csv"
+        }
+      },
+      "name": "CONCOCT_EXTRACTFASTABINS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/concoct/Repository_Actions_CONCOCT",
+      "tool_version": "1.1.0+galaxy2",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "coverage_table": {
+      "id": 3,
+      "output_name": "tsv",
+      "annotation": "Coverage table from CONCOCT coverage calculation"
+    },
+    "original_csv": {
+      "id": 4,
+      "output_name": "original_data_csv",
+      "annotation": "Original data CSV from CONCOCT clustering"
+    },
+    "raw_clustering_csv": {
+      "id": 4,
+      "output_name": "clustering_csv",
+      "annotation": "Raw clustering CSV from CONCOCT (cut-up contigs)"
+    },
+    "pca_original": {
+      "id": 4,
+      "output_name": "pca_components_csv",
+      "annotation": "PCA components CSV from CONCOCT"
+    },
+    "pca_transformed": {
+      "id": 4,
+      "output_name": "pca_transformed_csv",
+      "annotation": "PCA transformed CSV from CONCOCT"
+    },
+    "cluster_table": {
+      "id": 5,
+      "output_name": "csv",
+      "annotation": "Merged clustering table with original contig identifiers"
+    },
+    "bins": {
+      "id": 6,
+      "output_name": "fasta",
+      "annotation": "FASTA files for each bin"
+    }
+  }
+}

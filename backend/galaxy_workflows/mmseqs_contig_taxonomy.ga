@@ -1,0 +1,161 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "MMSEQS_CONTIG_TAXONOMY",
+  "annotation": "Converted from nf-core subworkflow for MMseqs2 contig taxonomy assignment",
+  "steps": {
+    "0": {
+      "annotation": "Input contigs in FASTA format",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "contigs",
+          "description": "Contig sequences in FASTA format"
+        }
+      ],
+      "name": "Input dataset - contigs",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input MMseqs2 databases (optional - if not provided, will be downloaded)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "mmseqs_databases",
+          "description": "Pre-downloaded MMseqs2 database (optional)"
+        }
+      ],
+      "name": "Input dataset - mmseqs_databases",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input MMseqs2 database identifier for download",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "databases_id",
+          "description": "MMseqs2 database identifier"
+        }
+      ],
+      "name": "Input dataset - databases_id",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Download MMseqs2 reference database if not provided by user",
+      "id": 3,
+      "input_connections": {
+        "databases_id": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Download MMseqs2 databases",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mmseqs2_database/Repository_Actions_Download_MMseqs2_databases",
+      "tool_version": "17-b804f+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "4": {
+      "annotation": "Create MMseqs2 database from input contigs",
+      "id": 4,
+      "input_connections": {
+        "contigs": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "MMseqs2 createdb",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mmseqs2_database/Repository_Actions_Download_MMseqs2_databases",
+      "tool_version": "17-b804f+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Assign taxonomy to contigs using MMseqs2 taxonomy module",
+      "id": 5,
+      "input_connections": {
+        "query_db": {
+          "id": 4,
+          "output_name": "db"
+        },
+        "ref_db": {
+          "id": 3,
+          "output_name": "database"
+        }
+      },
+      "name": "MMseqs2 taxonomy",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mmseqs2_database/Repository_Actions_Download_MMseqs2_databases",
+      "tool_version": "17-b804f+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Convert taxonomy results to TSV format",
+      "id": 6,
+      "input_connections": {
+        "taxonomy_db": {
+          "id": 5,
+          "output_name": "db_taxonomy"
+        },
+        "query_db": {
+          "id": 4,
+          "output_name": "db"
+        }
+      },
+      "name": "MMseqs2 createtsv",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mmseqs2_database/Repository_Actions_Download_MMseqs2_databases",
+      "tool_version": "17-b804f+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "taxonomy": {
+      "id": 6,
+      "output_name": "tsv",
+      "description": "Taxonomy assignments in TSV format"
+    },
+    "db_mmseqs": {
+      "id": 3,
+      "output_name": "database",
+      "description": "MMseqs2 reference database"
+    },
+    "db_taxonomy": {
+      "id": 5,
+      "output_name": "db_taxonomy",
+      "description": "Taxonomy database with assignments"
+    },
+    "db_contig": {
+      "id": 4,
+      "output_name": "db",
+      "description": "MMseqs2 database created from contigs"
+    }
+  }
+}

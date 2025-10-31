@@ -1,0 +1,156 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "UTILS_NEXTFLOW_PIPELINE",
+  "annotation": "This workflow implements utility functions for Nextflow pipeline initialization including: version printing, parameter dumping to JSON, and conda channel validation. All operations are conditional based on input flags.",
+  "steps": {
+    "0": {
+      "annotation": "Print version flag - boolean to trigger version output",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "print_version",
+          "description": "Boolean flag to print workflow version"
+        }
+      ],
+      "name": "Input: print_version",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Dump parameters flag - boolean to trigger parameter dumping",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dump_parameters",
+          "description": "Boolean flag to dump pipeline parameters to JSON"
+        }
+      ],
+      "name": "Input: dump_parameters",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Output directory path for pipeline results",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "outdir",
+          "description": "Base directory for publishing pipeline results"
+        }
+      ],
+      "name": "Input: outdir",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Check conda channels flag - boolean to trigger conda channel validation",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "check_conda_channels",
+          "description": "Boolean flag to check conda channel configuration"
+        }
+      ],
+      "name": "Input: check_conda_channels",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Conditional step: Print workflow version if print_version is true. Executes getWorkflowVersion() function and exits.",
+      "id": 4,
+      "input_connections": {
+        "print_version": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Print Version (Conditional)",
+      "tool_id": "galaxy_conditional_print_version",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Conditional step: Dump pipeline parameters to JSON file if dump_parameters is true and outdir is provided. Creates timestamped params JSON file.",
+      "id": 5,
+      "input_connections": {
+        "dump_parameters": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "outdir": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Dump Parameters to JSON (Conditional)",
+      "tool_id": "galaxy_conditional_dump_parameters",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Conditional step: Check conda channel configuration if check_conda_channels is true. Validates that conda-forge and bioconda channels are properly configured and in correct priority order.",
+      "id": 6,
+      "input_connections": {
+        "check_conda_channels": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Check Conda Channels (Conditional)",
+      "tool_id": "galaxy_conditional_check_conda",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "7": {
+      "annotation": "Workflow completion - emits dummy output to indicate successful execution of all conditional steps",
+      "id": 7,
+      "input_connections": {
+        "version_check": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "params_dump": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "conda_check": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "Workflow Output",
+      "tool_id": "galaxy_workflow_output",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 200
+      }
+    }
+  }
+}

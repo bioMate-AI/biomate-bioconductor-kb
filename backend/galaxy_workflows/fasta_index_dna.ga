@@ -1,0 +1,222 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTA_INDEX_DNA",
+  "annotation": "Build aligner-specific index for FASTA files. Converted from nf-core subworkflow. Supports multiple aligners: bowtie2, bwamem, bwamem2, dragmap, snap",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTA file",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta",
+          "description": "FASTA file with metadata"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input altliftover file (required for bwamem, bwamem2, snap aligners)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_altliftover",
+          "description": "Alternative liftover file"
+        }
+      ],
+      "name": "Input altliftover",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Aligner selection parameter",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_aligner",
+          "description": "Aligner choice: bowtie2, bwamem, bwamem2, dragmap, snap"
+        }
+      ],
+      "name": "Input aligner parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Build Bowtie2 index from FASTA (alternative path for bowtie2 aligner)",
+      "id": 3,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Bowtie2 Build",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/Repository_Actions_Bowtie2",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "Build BWA-MEM index from FASTA (alternative path for bwamem aligner)",
+      "id": 4,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA Index (bwamem)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bwa/bwa_index",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "5": {
+      "annotation": "Combine BWA-MEM index with altliftover file",
+      "id": 5,
+      "input_connections": {
+        "bwa_index": {
+          "id": 4,
+          "output_name": "index"
+        },
+        "altliftover": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge BWA-MEM index with altliftover",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Build BWA-MEM2 index from FASTA (alternative path for bwamem2 aligner)",
+      "id": 6,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA-MEM2 Index",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bwamem2/bwamem2_index",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "7": {
+      "annotation": "Combine BWA-MEM2 index with altliftover file",
+      "id": 7,
+      "input_connections": {
+        "bwamem2_index": {
+          "id": 6,
+          "output_name": "index"
+        },
+        "altliftover": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge BWA-MEM2 index with altliftover",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "8": {
+      "annotation": "Build DRAGMAP hashtable from FASTA (alternative path for dragmap aligner)",
+      "id": 8,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "DRAGMAP Hashtable",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dragmap/dragmap_hashtable",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "9": {
+      "annotation": "Build SNAP index from FASTA and altliftover (alternative path for snap aligner)",
+      "id": 9,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "altliftover": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "SNAP Index",
+      "tool_id": "iuc_snap_SNAP_2013_11_29",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 490
+      }
+    },
+    "10": {
+      "annotation": "Output aligner-specific index",
+      "id": 10,
+      "input_connections": {
+        "bowtie2_index": {
+          "id": 3,
+          "output_name": "index"
+        },
+        "bwamem_index": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "bwamem2_index": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "dragmap_index": {
+          "id": 8,
+          "output_name": "hashmap"
+        },
+        "snap_index": {
+          "id": 9,
+          "output_name": "index"
+        }
+      },
+      "name": "Output index",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    }
+  }
+}

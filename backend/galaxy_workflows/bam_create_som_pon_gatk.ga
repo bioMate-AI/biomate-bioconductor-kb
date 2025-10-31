@@ -1,0 +1,223 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_CREATE_SOM_PON_GATK",
+  "annotation": "Converted from nf-core subworkflow: Run GATK mutect2, genomicsdbimport and createsomaticpanelofnormals",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM files with metadata, index, and interval files for Mutect2",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_mutect2_in"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference FASTA sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "FASTA dictionary file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_dict"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Panel of normals name identifier",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_pon_norm"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Genomic intervals for GenomicsDB import",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_gendb_intervals"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "id": 6,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 Mutect2",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "annotation": "Perform variant calling for each sample using mutect2 in panel of normals mode",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "7": {
+      "id": 7,
+      "input_connections": {
+        "vcf_input": {
+          "id": 6,
+          "output_name": "vcf"
+        },
+        "vcf_index": {
+          "id": 6,
+          "output_name": "tbi"
+        },
+        "intervals": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 GenomicsDBImport",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "annotation": "Convert all sample VCFs into a GenomicsDB workspace",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "8": {
+      "id": 8,
+      "input_connections": {
+        "genomicsdb": {
+          "id": 7,
+          "output_name": "genomicsdb"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 CreateSomaticPanelOfNormals",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "annotation": "Create panel of normals from GenomicsDB workspace",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "mutect2_vcf": {
+      "id": 6,
+      "output_name": "vcf",
+      "annotation": "Mutect2 VCF output"
+    },
+    "mutect2_index": {
+      "id": 6,
+      "output_name": "tbi",
+      "annotation": "Mutect2 VCF index"
+    },
+    "mutect2_stats": {
+      "id": 6,
+      "output_name": "stats",
+      "annotation": "Mutect2 statistics"
+    },
+    "genomicsdb": {
+      "id": 7,
+      "output_name": "genomicsdb",
+      "annotation": "GenomicsDB workspace"
+    },
+    "pon_vcf": {
+      "id": 8,
+      "output_name": "vcf",
+      "annotation": "Panel of normals VCF"
+    },
+    "pon_index": {
+      "id": 8,
+      "output_name": "tbi",
+      "annotation": "Panel of normals VCF index"
+    }
+  }
+}

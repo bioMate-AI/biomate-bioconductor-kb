@@ -1,0 +1,336 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_TRIM_FASTP_FASTQC",
+  "annotation": "Converted from nf-core subworkflow: Read QC and trimming with optional fastp trimming and fastqc quality control",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads with metadata and optional adapter FASTA",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads",
+          "description": "channel: [ val(meta), path(reads), path(adapter_fasta) ]"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input parameter: skip FastQC on raw reads",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_skip_fastqc",
+          "description": "boolean"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input parameter: skip fastp trimming",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_skip_fastp",
+          "description": "boolean"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input parameter: discard trimmed pass reads",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_discard_trimmed_pass",
+          "description": "boolean"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input parameter: save trimmed fail reads",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_save_trimmed_fail",
+          "description": "boolean"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input parameter: save merged reads",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_save_merged",
+          "description": "boolean"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "FastQC on raw reads - conditional step (skipped if val_skip_fastqc is true)",
+      "id": 6,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "FastQC",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/Repository_Actions_FastQC",
+      "tool_version": "0.74+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "fastp - adapter trimming and quality filtering - conditional step (skipped if val_skip_fastp is true)",
+      "id": 7,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "discard_trimmed_pass": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "save_trimmed_fail": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "save_merged": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "fastp",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/fastp/Repository_Actions_fastp",
+      "tool_version": "1.0.1+galaxy2",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "FastQC on trimmed reads - conditional step (skipped if val_skip_fastqc or val_skip_fastp is true). Filters empty FastQ files after adapter trimming using fastp JSON output.",
+      "id": 8,
+      "input_connections": {
+        "input_file": {
+          "id": 7,
+          "output_name": "reads"
+        }
+      },
+      "name": "FastQC",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/Repository_Actions_FastQC",
+      "tool_version": "0.74+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output: Trimmed reads (or original reads if fastp skipped)",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "reads"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Output: fastp JSON report",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "json"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "11": {
+      "annotation": "Output: fastp HTML report",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "html"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "12": {
+      "annotation": "Output: fastp log file",
+      "id": 12,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "log"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    },
+    "13": {
+      "annotation": "Output: Trimmed fail reads (if val_save_trimmed_fail is true)",
+      "id": 13,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "reads_fail"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 490
+      }
+    },
+    "14": {
+      "annotation": "Output: Merged reads (if val_save_merged is true)",
+      "id": 14,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "reads_merged"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 610
+      }
+    },
+    "15": {
+      "annotation": "Output: FastQC HTML report on raw reads",
+      "id": 15,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "html"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "16": {
+      "annotation": "Output: FastQC ZIP archive on raw reads",
+      "id": 16,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "zip"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "17": {
+      "annotation": "Output: FastQC HTML report on trimmed reads",
+      "id": 17,
+      "input_connections": {
+        "input": {
+          "id": 8,
+          "output_name": "html"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "18": {
+      "annotation": "Output: FastQC ZIP archive on trimmed reads",
+      "id": 18,
+      "input_connections": {
+        "input": {
+          "id": 8,
+          "output_name": "zip"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    }
+  }
+}

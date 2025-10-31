@@ -1,0 +1,159 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_EXTRACT_KRAKEN_KRAKENTOOLS",
+  "annotation": "Converted from nf-core subworkflow: Extract reads from FASTQ using Kraken2 classification and KrakenTools",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads",
+          "description": "FASTQ reads with metadata"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input Kraken2 database",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_db",
+          "description": "Kraken2 database"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input taxonomic IDs to extract",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_taxid",
+          "description": "Taxonomic IDs separated by spaces"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Classify reads using Kraken2",
+      "id": 3,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "db": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Kraken2",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/dfornika/data_manager_build_kraken2_database/Repository_Actions_Kraken2",
+      "tool_version": "2.0.8_beta_galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 70
+      }
+    },
+    "4": {
+      "annotation": "Extract reads classified to specified taxonomy IDs",
+      "id": 4,
+      "input_connections": {
+        "taxid": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "kraken_assignment": {
+          "id": 3,
+          "output_name": "classified_reads_assignment"
+        },
+        "kraken_fastq": {
+          "id": 3,
+          "output_name": "classified_reads_fastq"
+        },
+        "kraken_report": {
+          "id": 3,
+          "output_name": "report"
+        }
+      },
+      "name": "Extract Kraken Reads By ID",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jvolkening/krakentools/Repository_Actions_Extract_Kraken_Reads_By_ID",
+      "tool_version": "1.2+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 70
+      }
+    },
+    "5": {
+      "annotation": "Kraken2 report output",
+      "id": 5,
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "report"
+        }
+      },
+      "name": "Output: kraken2_report",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Extracted reads classified to specified taxonomy IDs",
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "extracted_kraken2_reads"
+        }
+      },
+      "name": "Output: extracted_kraken2_reads",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "MultiQC compatible report files",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "report"
+        }
+      },
+      "name": "Output: multiqc_files",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    }
+  }
+}

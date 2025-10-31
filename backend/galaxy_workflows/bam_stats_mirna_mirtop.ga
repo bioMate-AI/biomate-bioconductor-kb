@@ -1,0 +1,212 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_STATS_MIRNA_MIRTOP",
+  "annotation": "Converted from nf-core subworkflow BAM_STATS_MIRNA_MIRTOP - Performs miRNA analysis using mirtop tools",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM files with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bam"
+        }
+      ],
+      "name": "Input BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input hairpin reference sequences",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_hairpin"
+        }
+      ],
+      "name": "Input Hairpin",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input GTF file with species information",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_gtf_species"
+        }
+      ],
+      "name": "Input GTF Species",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Generate GFF format from BAM using mirtop",
+      "id": 3,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "hairpin": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "gtf_species": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "MIRTOP_GFF",
+      "tool_id": "mirtop_gff",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "Generate counts from GFF output",
+      "id": 4,
+      "input_connections": {
+        "gff": {
+          "id": 3,
+          "output_name": "gff"
+        },
+        "hairpin": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "gtf_species": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "MIRTOP_COUNTS",
+      "tool_id": "mirtop_counts",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Export isomirs from GFF output",
+      "id": 5,
+      "input_connections": {
+        "gff": {
+          "id": 3,
+          "output_name": "gff"
+        },
+        "hairpin": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "gtf_species": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "MIRTOP_EXPORT",
+      "tool_id": "mirtop_export",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Generate statistics from GFF output",
+      "id": 6,
+      "input_connections": {
+        "gff": {
+          "id": 3,
+          "output_name": "gff"
+        }
+      },
+      "name": "MIRTOP_STATS",
+      "tool_id": "mirtop_stats",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "7": {
+      "annotation": "Output isomirs TSV",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "tsv"
+        }
+      },
+      "name": "Output Isomirs",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output counts TSV",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "tsv"
+        }
+      },
+      "name": "Output Counts",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output statistics TXT",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "txt"
+        }
+      },
+      "name": "Output Stats TXT",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "Output statistics LOG",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "log"
+        }
+      },
+      "name": "Output Stats LOG",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    }
+  }
+}

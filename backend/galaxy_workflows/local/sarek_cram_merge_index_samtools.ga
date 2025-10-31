@@ -1,0 +1,118 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "CRAM_MERGE_INDEX_SAMTOOLS",
+  "annotation": "This workflow implements the nf-core CRAM_MERGE_INDEX_SAMTOOLS subworkflow. It handles merging of multiple CRAM files from the same sample (when applicable) and indexes all CRAM files. The workflow branches based on whether there is a single or multiple CRAM files per sample: single CRAMs bypass the merge step, while multiple CRAMs are merged first before indexing. All CRAM files are then indexed to produce CRAI index files.",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM files (channel with meta and cram)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input FASTA reference sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index file (.fai)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Merge multiple CRAM files from the same sample (conditional: only when cram.size() > 1)",
+      "id": 3,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "MERGE_CRAM",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "4": {
+      "annotation": "Index CRAM files using samtools index. Processes both merged CRAMs and single CRAMs",
+      "id": 4,
+      "input_connections": {
+        "input_cram": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "INDEX_CRAM",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/metasbt_index/Repository_Actions_index",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "5": {
+      "annotation": "Output: CRAM files with corresponding CRAI index files",
+      "id": 5,
+      "input_connections": {
+        "input_cram": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "input_crai": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    }
+  }
+}

@@ -1,0 +1,258 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "VCF_ANNOTATE_ENSEMBLVEP",
+  "annotation": "Converted from nf-core subworkflow: Run VEP to annotate VCF files",
+  "steps": {
+    "0": {
+      "annotation": "Input VCF file with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_vcf"
+        }
+      ],
+      "name": "Input VCF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA file (optional)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input genome parameter",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_genome"
+        }
+      ],
+      "name": "Input Genome",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input species parameter",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_species"
+        }
+      ],
+      "name": "Input Species",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input cache version parameter",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_cache_version"
+        }
+      ],
+      "name": "Input Cache Version",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input VEP cache directory (optional)",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_cache"
+        }
+      ],
+      "name": "Input Cache",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input extra files for VEP (optional)",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_extra_files"
+        }
+      ],
+      "name": "Input Extra Files",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Ensembl VEP annotation tool",
+      "id": 7,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "genome": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "species": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "cache_version": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "cache": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "extra_files": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "ENSEMBLVEP_VEP",
+      "tool_id": "ensemblvep_vep",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Index VCF file with Tabix",
+      "id": 8,
+      "input_connections": {
+        "vcf": {
+          "id": 7,
+          "output_name": "vcf"
+        }
+      },
+      "name": "TABIX_TABIX",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Output: VCF with TBI index",
+      "id": 9,
+      "input_connections": {
+        "vcf_tbi": {
+          "id": 8,
+          "output_name": "tbi"
+        }
+      },
+      "name": "Output VCF+TBI",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Output: JSON annotation report",
+      "id": 10,
+      "input_connections": {
+        "json": {
+          "id": 7,
+          "output_name": "json"
+        }
+      },
+      "name": "Output JSON",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "11": {
+      "annotation": "Output: TAB-delimited annotation file",
+      "id": 11,
+      "input_connections": {
+        "tab": {
+          "id": 7,
+          "output_name": "tab"
+        }
+      },
+      "name": "Output TAB",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "12": {
+      "annotation": "Output: HTML report",
+      "id": 12,
+      "input_connections": {
+        "report": {
+          "id": 7,
+          "output_name": "report"
+        }
+      },
+      "name": "Output Report",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "13": {
+      "annotation": "Output: Tool versions",
+      "id": 13,
+      "input_connections": {
+        "versions": {
+          "id": 7,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output Versions",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    }
+  }
+}

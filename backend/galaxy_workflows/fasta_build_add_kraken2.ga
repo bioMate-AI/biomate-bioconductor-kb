@@ -1,0 +1,205 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTA_BUILD_ADD_KRAKEN2",
+  "annotation": "This workflow implements the nf-core FASTA_BUILD_ADD_KRAKEN2 subworkflow. It takes FASTA sequences and taxonomy data, adds them to a Kraken2 library using KRAKEN2_ADD, then builds the final Kraken2 database using KRAKEN2_BUILD.",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTA sequences",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input taxonomy names file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_taxonomy_names"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input taxonomy nodes file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_taxonomy_nodes"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input accession to taxid mapping file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_accession2taxid"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input custom sequence ID to taxid mapping file (optional)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_custom_seqid2taxid"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input parameter: clean intermediate files (true/false)",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_cleanintermediate"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Add sequences to Kraken2 library",
+      "id": 6,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "taxonomy_names": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "taxonomy_nodes": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "accession2taxid": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "custom_seqid2taxid": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Kraken2 Add",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/dfornika/data_manager_build_kraken2_database/Repository_Actions_Kraken2",
+      "tool_version": "2.0.8_beta_galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Build Kraken2 database from added library",
+      "id": 7,
+      "input_connections": {
+        "library_added_files": {
+          "id": 6,
+          "output_name": "library_added_files"
+        },
+        "seqid2taxid_map": {
+          "id": 6,
+          "output_name": "seqid2taxid_map"
+        },
+        "taxonomy_files": {
+          "id": 6,
+          "output_name": "taxonomy_files"
+        },
+        "clean_intermediate": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Kraken2 Build",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/dfornika/data_manager_build_kraken2_database/Repository_Actions_Kraken2",
+      "tool_version": "2.0.8_beta_galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "Output Kraken2 database",
+      "id": 8,
+      "input_connections": {
+        "db": {
+          "id": 7,
+          "output_name": "db"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output versions",
+      "id": 9,
+      "input_connections": {
+        "versions": {
+          "id": 7,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    }
+  },
+  "tags": [
+    "kraken2",
+    "taxonomy",
+    "database-building"
+  ]
+}

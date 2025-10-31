@@ -134,9 +134,37 @@ export function GalaxyRecommendations({
                         <Badge variant={badge.variant} className="text-xs">
                           {badge.label}
                         </Badge>
+                        {/* NEW: Show operation type badge for non-primary functions */}
+                        {toolRec.tool.help_text?.function_info?.operation_type &&
+                         !toolRec.tool.help_text?.function_info?.is_primary_function && (
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${
+                              toolRec.tool.help_text.function_info.operation_type === 'post_processing'
+                                ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700'
+                                : toolRec.tool.help_text.function_info.operation_type === 'visualization'
+                                ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700'
+                                : toolRec.tool.help_text.function_info.operation_type === 'format_conversion'
+                                ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700'
+                                : 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700'
+                            }`}
+                          >
+                            {toolRec.tool.help_text.function_info.operation_type === 'post_processing' ? 'Post-processing' :
+                             toolRec.tool.help_text.function_info.operation_type === 'visualization' ? 'Visualization' :
+                             toolRec.tool.help_text.function_info.operation_type === 'format_conversion' ? 'Conversion' :
+                             toolRec.tool.help_text.function_info.operation_type === 'batch_processing' ? 'Batch' :
+                             toolRec.tool.help_text.function_info.operation_type === 'data_manipulation' ? 'Filter/Edit' :
+                             toolRec.tool.help_text.function_info.operation_type}
+                          </Badge>
+                        )}
                       </div>
 
-                      {toolRec.tool.category && (
+                      {/* NEW: Show wrapper function description instead of just category */}
+                      {toolRec.tool.help_text?.function_info?.wrapper_function ? (
+                        <p className="text-xs text-muted-foreground italic">
+                          {toolRec.tool.help_text.function_info.wrapper_function}
+                        </p>
+                      ) : toolRec.tool.category && (
                         <p className="text-xs text-muted-foreground">
                           Category: {toolRec.tool.category}
                         </p>

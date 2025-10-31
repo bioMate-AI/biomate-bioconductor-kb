@@ -1,0 +1,263 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "QUANTIFY_RSEM",
+  "annotation": "Gene/transcript quantification with RSEM - Converted from nf-core subworkflow",
+  "steps": {
+    "0": {
+      "annotation": "Input reads (FASTQ or BAM files)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reads"
+        }
+      ],
+      "name": "Input reads",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "RSEM index directory",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "index"
+        }
+      ],
+      "name": "Input RSEM index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Boolean flag to use Sentieon accelerated STAR",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "use_sentieon_star"
+        }
+      ],
+      "name": "Input use_sentieon_star",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "RSEM Calculate Expression - Standard path",
+      "id": 3,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "RSEM Calculate Expression",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_rsem_align_and_estimate_abundance/Repository_Actions_ctat_rsem_align_and_estimate_abundance",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "Sentieon RSEM Calculate Expression - Accelerated path (alternative to step 3)",
+      "id": 4,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Sentieon RSEM Calculate Expression",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_rsem_align_and_estimate_abundance/Repository_Actions_ctat_rsem_align_and_estimate_abundance",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "5": {
+      "annotation": "RSEM Merge Counts - Aggregates gene and transcript counts across all samples",
+      "id": 5,
+      "input_connections": {
+        "counts_gene": {
+          "id": 3,
+          "output_name": "counts_gene"
+        },
+        "counts_transcript": {
+          "id": 3,
+          "output_name": "counts_transcript"
+        }
+      },
+      "name": "RSEM Merge Counts",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_rsem_align_and_estimate_abundance/Repository_Actions_ctat_rsem_align_and_estimate_abundance",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 70
+      }
+    },
+    "6": {
+      "annotation": "Output: Gene counts per sample",
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "counts_gene"
+        }
+      },
+      "name": "Output counts_gene",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Output: Transcript counts per sample",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "counts_transcript"
+        }
+      },
+      "name": "Output counts_transcript",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "Output: RSEM statistics per sample",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "stat"
+        }
+      },
+      "name": "Output stat",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "9": {
+      "annotation": "Output: RSEM logs per sample",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "logs"
+        }
+      },
+      "name": "Output logs",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "10": {
+      "annotation": "Output: Merged gene counts across all samples",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "counts_gene"
+        }
+      },
+      "name": "Output merged_counts_gene",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "Output: Merged gene TPM across all samples",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "tpm_gene"
+        }
+      },
+      "name": "Output merged_tpm_gene",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "12": {
+      "annotation": "Output: Merged transcript counts across all samples",
+      "id": 12,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "counts_transcript"
+        }
+      },
+      "name": "Output merged_counts_transcript",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "13": {
+      "annotation": "Output: Merged transcript TPM across all samples",
+      "id": 13,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "tpm_transcript"
+        }
+      },
+      "name": "Output merged_tpm_transcript",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    },
+    "14": {
+      "annotation": "Output: Tool versions",
+      "id": 14,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output versions",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 490
+      }
+    }
+  }
+}

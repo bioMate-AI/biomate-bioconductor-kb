@@ -736,7 +736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/galaxy/tools/:toolId/schema", async (req, res) => {
+  app.get("/api/galaxy/tools/:toolId(*)/schema", async (req, res) => {
     try {
       const schema = await galaxyAPIProxy.getToolSchema(req.params.toolId);
       res.json(schema);

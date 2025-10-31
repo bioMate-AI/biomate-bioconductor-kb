@@ -1,0 +1,79 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "UTILS_NFCORE_PIPELINE",
+  "annotation": "This subworkflow performs utility validation functions for nf-core pipelines including: (1) Checking that a custom configuration or profile has been provided, (2) Validating the -profile option format, (3) Detecting and warning about positional arguments. It also provides utility functions for version management, software version tracking, workflow summary generation, and completion reporting via email or webhooks.",
+  "steps": {
+    "0": {
+      "annotation": "Nextflow CLI arguments input",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "nextflow_cli_args",
+          "description": "Command line arguments passed to Nextflow"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Validates that a custom configuration or profile has been provided. Warns if running with default 'standard' profile and no custom config files.",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [],
+      "name": "Check Config Provided",
+      "tool_id": "nfcore_check_config",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      },
+      "outputs": [
+        {
+          "name": "valid_config",
+          "type": "boolean"
+        }
+      ]
+    },
+    "2": {
+      "annotation": "Validates that the -profile option is correctly formatted (no trailing commas) and checks for positional arguments which are not accepted by nf-core pipelines.",
+      "id": 2,
+      "input_connections": {
+        "nextflow_cli_args": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "name": "Check Profile Provided",
+      "tool_id": "nfcore_check_profile",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Workflow output - valid_config flag indicating whether pipeline configuration is valid",
+      "id": 3,
+      "input_connections": {
+        "valid_config": {
+          "id": 1,
+          "output_name": "valid_config"
+        }
+      },
+      "inputs": [],
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    }
+  }
+}

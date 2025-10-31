@@ -1,0 +1,754 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_PREPROCESS_GATK",
+  "annotation": "FASTQ_PREPROCESS_GATK: Complete preprocessing pipeline for GATK variant calling\n\nWorkflow Steps:\n1. Optional UMI consensus calling from UMI-tagged reads\n2. Quality control and trimming with fastp\n3. Optional contamination removal with BBSplit\n4. Read alignment to reference genome\n5. Optional UMI tag copying from read names\n6. BAM merging and indexing\n7. BAM to CRAM conversion\n8. Mark duplicates (choice of standard GATK, Spark, or Sentieon)\n9. Base quality score recalibration (BQSR) table generation\n10. Apply BQSR recalibration\n11. Final CRAM/BAM output for variant calling\n\nConditional Paths:\n- UMI processing: Only when umi_read_structure is specified\n- BBSplit: Only when tools contains 'bbsplit'\n- Mark Duplicates variants: Standard GATK (default), Spark (faster), or Sentieon (commercial)\n- BQSR: Can be skipped with skip_tools parameter\n- Output format: CRAM (default) or BAM (when save_output_as_bam is true)\n\nRestart Points:\n- From alignment (CHANNEL_ALIGN_CREATE_CSV)\n- From mark duplicates (CHANNEL_MARKDUPLICATES_CREATE_CSV)\n- From base recalibration (CHANNEL_BASERECALIBRATOR_CREATE_CSV)\n- From recalibration (CHANNEL_APPLYBQSR_CREATE_CSV)",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ files",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input_fastq"
+        }
+      ],
+      "name": "Input FASTQ",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input sample metadata",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input_sample"
+        }
+      ],
+      "name": "Input Sample",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference genome FASTA",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input Reference FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Reference genome index",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Alignment index",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "index_alignment"
+        }
+      ],
+      "name": "Input Alignment Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Dictionary file",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input Dictionary",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Known sites for indels",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "known_sites_indels"
+        }
+      ],
+      "name": "Input Known Sites Indels",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Known sites indels index",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "known_sites_indels_tbi"
+        }
+      ],
+      "name": "Input Known Sites Indels Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "BBSplit index for contamination removal",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bbsplit_index"
+        }
+      ],
+      "name": "Input BBSplit Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Intervals for preprocessing",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_for_preprocessing"
+        }
+      ],
+      "name": "Input Intervals Preprocessing",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "Intervals and number of intervals",
+      "id": 10,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_and_num_intervals"
+        }
+      ],
+      "name": "Input Intervals and Num",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1210
+      }
+    },
+    "11": {
+      "annotation": "Optional: Create UMI consensus BAMs when umi_read_structure is specified",
+      "id": 11,
+      "input_connections": {
+        "input_fastq": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "index_alignment": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "FASTQ_CREATE_UMI_CONSENSUS_FGBIO",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/lijing/bubio/Repository_Actions_interleave_fastqs",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "12": {
+      "annotation": "Convert BAM to FASTQ after UMI consensus calling",
+      "id": 12,
+      "input_connections": {
+        "input_bam": {
+          "id": 11,
+          "output_name": "output"
+        }
+      },
+      "name": "CONVERT_FASTQ_UMI",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/biom_convert/Repository_Actions_Convert",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "13": {
+      "annotation": "Trim and QC FASTQ files, optional splitting",
+      "id": 13,
+      "input_connections": {
+        "reads": {
+          "id": 12,
+          "output_name": "output"
+        }
+      },
+      "name": "FASTP",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/fastp/Repository_Actions_fastp",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "14": {
+      "annotation": "Optional: Remove contaminant reads when tools contains bbsplit",
+      "id": 14,
+      "input_connections": {
+        "reads": {
+          "id": 13,
+          "output_name": "output"
+        },
+        "bbsplit_index": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "BBMAP_BBSPLIT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bbtools_clumpify/Repository_Actions_BBMap_Clumpify:_Deduplication",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "15": {
+      "annotation": "Align reads to reference genome",
+      "id": 15,
+      "input_connections": {
+        "reads": {
+          "id": 14,
+          "output_name": "output"
+        },
+        "index_alignment": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "FASTQ_ALIGN",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/lijing/bubio/Repository_Actions_interleave_fastqs",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "16": {
+      "annotation": "Optional: Copy UMI from read header to RX tag when umi_in_read_header or umi_location specified",
+      "id": 16,
+      "input_connections": {
+        "bam": {
+          "id": 15,
+          "output_name": "output"
+        }
+      },
+      "name": "FGBIO_COPYUMIFROMREADNAME",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_call_molecular_consensus_reads/Repository_Actions_fgbio_CallMolecularConsensusReads",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "17": {
+      "annotation": "Merge multiple BAM files from same sample and create index",
+      "id": 17,
+      "input_connections": {
+        "bam": {
+          "id": 16,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_MERGE_INDEX_SAMTOOLS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "18": {
+      "annotation": "Convert aligned BAM to CRAM format",
+      "id": 18,
+      "input_connections": {
+        "bam": {
+          "id": 17,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_TO_CRAM_MAPPING",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1770,
+        "top": 10
+      }
+    },
+    "19": {
+      "annotation": "Create samplesheet CSV for restarting from alignment step",
+      "id": 19,
+      "input_connections": {
+        "cram": {
+          "id": 18,
+          "output_name": "output"
+        }
+      },
+      "name": "CHANNEL_ALIGN_CREATE_CSV",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/azomics/edit_fcs_markers/Repository_Actions_Edit_markers_or_channels",
+      "type": "tool",
+      "position": {
+        "left": 1990,
+        "top": 10
+      }
+    },
+    "20": {
+      "annotation": "Mark duplicate reads using GATK MarkDuplicates",
+      "id": 20,
+      "input_connections": {
+        "bam": {
+          "id": 16,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_MARKDUPLICATES",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "21": {
+      "annotation": "Mark duplicates using GATK MarkDuplicatesSpark (faster, optional)",
+      "id": 21,
+      "input_connections": {
+        "bam": {
+          "id": 16,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_MARKDUPLICATES_SPARK",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "22": {
+      "annotation": "Mark duplicates using Sentieon dedup (optional, commercial tool)",
+      "id": 22,
+      "input_connections": {
+        "bam": {
+          "id": 16,
+          "output_name": "output"
+        },
+        "bai": {
+          "id": 15,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_SENTIEON_DEDUP",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "23": {
+      "annotation": "QC analysis when mark duplicates is skipped",
+      "id": 23,
+      "input_connections": {
+        "cram": {
+          "id": 18,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "CRAM_QC_NO_MD",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cramino/Repository_Actions_Cramino",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "24": {
+      "annotation": "Convert CRAM to BAM format when save_output_as_bam is true",
+      "id": 24,
+      "input_connections": {
+        "cram": {
+          "id": 20,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "CRAM_TO_BAM",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cramino/Repository_Actions_Cramino",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "25": {
+      "annotation": "Create samplesheet CSV for restarting from mark duplicates step",
+      "id": 25,
+      "input_connections": {
+        "cram": {
+          "id": 20,
+          "output_name": "output"
+        }
+      },
+      "name": "CHANNEL_MARKDUPLICATES_CREATE_CSV",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/azomics/edit_fcs_markers/Repository_Actions_Edit_markers_or_channels",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 130
+      }
+    },
+    "26": {
+      "annotation": "Generate BQSR recalibration table using GATK BaseRecalibrator",
+      "id": 26,
+      "input_connections": {
+        "cram": {
+          "id": 20,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 10,
+          "output_name": "output"
+        },
+        "known_sites": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "known_sites_tbi": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_BASERECALIBRATOR",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 130
+      }
+    },
+    "27": {
+      "annotation": "Generate BQSR table using GATK BaseRecalibratorSpark (faster, optional)",
+      "id": 27,
+      "input_connections": {
+        "cram": {
+          "id": 21,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 10,
+          "output_name": "output"
+        },
+        "known_sites": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "known_sites_tbi": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_BASERECALIBRATOR_SPARK",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1770,
+        "top": 130
+      }
+    },
+    "28": {
+      "annotation": "Create samplesheet CSV for restarting from base recalibration step",
+      "id": 28,
+      "input_connections": {
+        "cram": {
+          "id": 20,
+          "output_name": "output"
+        },
+        "table": {
+          "id": 26,
+          "output_name": "output"
+        }
+      },
+      "name": "CHANNEL_BASERECALIBRATOR_CREATE_CSV",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/azomics/edit_fcs_markers/Repository_Actions_Edit_markers_or_channels",
+      "type": "tool",
+      "position": {
+        "left": 1990,
+        "top": 130
+      }
+    },
+    "29": {
+      "annotation": "Apply BQSR recalibration using GATK ApplyBQSR",
+      "id": 29,
+      "input_connections": {
+        "cram": {
+          "id": 20,
+          "output_name": "output"
+        },
+        "table": {
+          "id": 26,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 10,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_APPLYBQSR",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "30": {
+      "annotation": "Apply BQSR using GATK ApplyBQSRSpark (faster, optional)",
+      "id": 30,
+      "input_connections": {
+        "cram": {
+          "id": 21,
+          "output_name": "output"
+        },
+        "table": {
+          "id": 27,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 10,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_APPLYBQSR_SPARK",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "31": {
+      "annotation": "Convert recalibrated CRAM to BAM when save_output_as_bam is true",
+      "id": 31,
+      "input_connections": {
+        "cram": {
+          "id": 29,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "CRAM_TO_BAM_RECAL",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cramino/Repository_Actions_Cramino",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "32": {
+      "annotation": "Create samplesheet CSV for restarting from recalibration step",
+      "id": 32,
+      "input_connections": {
+        "cram": {
+          "id": 29,
+          "output_name": "output"
+        }
+      },
+      "name": "CHANNEL_APPLYBQSR_CREATE_CSV",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/azomics/edit_fcs_markers/Repository_Actions_Edit_markers_or_channels",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    }
+  }
+}

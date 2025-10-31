@@ -1,0 +1,100 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BEDGRAPH_BEDCLIP_BEDGRAPHTOBIGWIG",
+  "annotation": "Converted from nf-core subworkflow: Run bedClip and bedGraphToBigWig",
+  "steps": {
+    "0": {
+      "annotation": "Input bedGraph file",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bedgraph"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Chromosome sizes file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "sizes"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Clip bedGraph file to chromosome boundaries",
+      "id": 2,
+      "input_connections": {
+        "bedgraph": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "sizes": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "UCSC bedClip",
+      "tool_id": "biomate_ds_api_ucsc",
+      "tool_state": {
+        "operation": "bedclip"
+      },
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Convert clipped bedGraph to bigWig format",
+      "id": 3,
+      "input_connections": {
+        "bedgraph": {
+          "id": 2,
+          "output_name": "bedgraph"
+        },
+        "sizes": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "UCSC bedGraphToBigWig",
+      "tool_id": "biomate_ds_api_ucsc",
+      "tool_state": {
+        "operation": "bedgraphtobigwig"
+      },
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "bigwig": {
+      "id": 3,
+      "output_name": "bigwig",
+      "annotation": "Output bigWig file"
+    },
+    "bedgraph": {
+      "id": 2,
+      "output_name": "bedgraph",
+      "annotation": "Clipped bedGraph file"
+    }
+  }
+}

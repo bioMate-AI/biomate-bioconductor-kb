@@ -1,0 +1,226 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SINGLE_STRELKA",
+  "annotation": "Workflow implements STRELKA2 single-sample germline variant calling with optional interval-based parallelization and gather strategy. Outputs VCF files with variantcaller metadata tag set to 'strelka'.",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input intervals (optional)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input dictionary file (optional)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "id": 5,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fasta_index": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Strelka",
+      "tool_id": "mini_strelka_Strelka_1.0.1",
+      "tool_version": "1.0.1",
+      "type": "tool",
+      "annotation": "STRELKA_GERMLINE: Germline variant calling on single sample with optional interval-based parallelization",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "6": {
+      "id": 6,
+      "input_connections": {
+        "input_vcf": {
+          "id": 5,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Filter VCF - Intervals Branch",
+      "tool_id": "Filter1",
+      "type": "tool",
+      "annotation": "Branch: Select VCF outputs when num_intervals > 1 (multiple interval files)",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "id": 7,
+      "input_connections": {
+        "input_vcf": {
+          "id": 5,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Filter VCF - No Intervals Branch",
+      "tool_id": "Filter1",
+      "type": "tool",
+      "annotation": "Branch: Select VCF outputs when num_intervals <= 1 (no intervals)",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "8": {
+      "id": 8,
+      "input_connections": {
+        "input_vcf": {
+          "id": 5,
+          "output_name": "genome_vcf"
+        }
+      },
+      "name": "Filter Genome VCF - Intervals Branch",
+      "tool_id": "Filter1",
+      "type": "tool",
+      "annotation": "Branch: Select genome VCF outputs when num_intervals > 1",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "9": {
+      "id": 9,
+      "input_connections": {
+        "input_vcf": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "tool_version": "1.0.0",
+      "type": "tool",
+      "annotation": "MERGE_STRELKA: Merge multiple VCF files from interval-based parallelization",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "10": {
+      "id": 10,
+      "input_connections": {
+        "input_vcf": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "tool_version": "1.0.0",
+      "type": "tool",
+      "annotation": "MERGE_STRELKA_GENOME: Merge multiple genome VCF files from interval-based parallelization",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "11": {
+      "id": 11,
+      "input_connections": {
+        "merged_vcf": {
+          "id": 9,
+          "output_name": "output"
+        },
+        "no_interval_vcf": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Combine VCF Results",
+      "tool_id": "cat1",
+      "type": "tool",
+      "annotation": "Mix merged VCF (from intervals) with no_intervals VCF branch. Add variantcaller='strelka' to metadata",
+      "position": {
+        "left": 890,
+        "top": 70
+      }
+    }
+  }
+}

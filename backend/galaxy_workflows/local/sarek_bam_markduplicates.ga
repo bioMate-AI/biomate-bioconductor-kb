@@ -1,0 +1,144 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_MARKDUPLICATES",
+  "annotation": "Converted from nf-core subworkflow: MARKDUPLICATES AND QC after mapping",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM file with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam"
+        }
+      ],
+      "name": "Input BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Optional input intervals BED file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed_combined"
+        }
+      ],
+      "name": "Input Intervals BED",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "id": 4,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fasta_index": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 MarkDuplicates",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "annotation": "Mark duplicate reads in BAM file",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "id": 5,
+      "input_connections": {
+        "input_cram": {
+          "id": 4,
+          "output_name": "output_cram"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "intervals_bed": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Cramino QC",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cramino/Repository_Actions_Cramino",
+      "type": "tool",
+      "annotation": "Quality assessment of CRAM file using Cramino",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "cram": {
+      "id": 4,
+      "output_name": "output_cram",
+      "annotation": "Marked duplicate CRAM file"
+    },
+    "crai": {
+      "id": 4,
+      "output_name": "output_crai",
+      "annotation": "CRAM index file"
+    },
+    "markduplicates_metrics": {
+      "id": 4,
+      "output_name": "metrics",
+      "annotation": "MarkDuplicates metrics report"
+    },
+    "qc_reports": {
+      "id": 5,
+      "output_name": "reports",
+      "annotation": "QC reports from Cramino"
+    }
+  }
+}

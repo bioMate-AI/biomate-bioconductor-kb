@@ -1,0 +1,1104 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "PREPARE_GENOME",
+  "annotation": "Converted from nf-core subworkflow - Prepares reference genome and associated files for variant calling",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTA reference genome (mandatory)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input optional bcftools annotations file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bcftools_annotations"
+        }
+      ],
+      "name": "Input bcftools annotations",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input optional dbSNP file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp"
+        }
+      ],
+      "name": "Input dbSNP",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input optional germline resource file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "germline_resource"
+        }
+      ],
+      "name": "Input germline resource",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input optional known indels file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "known_indels"
+        }
+      ],
+      "name": "Input known indels",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input optional known SNPs file",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "known_snps"
+        }
+      ],
+      "name": "Input known SNPs",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input optional panel of normals file",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "pon"
+        }
+      ],
+      "name": "Input PON",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Input optional ASCAT alleles file (zip or directory)",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ascat_alleles"
+        }
+      ],
+      "name": "Input ASCAT alleles",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Input optional ASCAT loci file (zip or directory)",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ascat_loci"
+        }
+      ],
+      "name": "Input ASCAT loci",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Input optional ASCAT loci GC file (zip or directory)",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ascat_loci_gc"
+        }
+      ],
+      "name": "Input ASCAT loci GC",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "Input optional ASCAT loci RT file (zip or directory)",
+      "id": 10,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ascat_loci_rt"
+        }
+      ],
+      "name": "Input ASCAT loci RT",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1210
+      }
+    },
+    "11": {
+      "annotation": "Input optional chromosome directory (tar.gz or directory)",
+      "id": 11,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "chr_dir"
+        }
+      ],
+      "name": "Input chromosome directory",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1330
+      }
+    },
+    "12": {
+      "annotation": "Input optional MSIsensor2 models (tar.gz or directory)",
+      "id": 12,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "msisensor2_models"
+        }
+      ],
+      "name": "Input MSIsensor2 models",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1450
+      }
+    },
+    "13": {
+      "annotation": "Input optional MSIsensorPro scan file",
+      "id": 13,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "msisensorpro_scan"
+        }
+      ],
+      "name": "Input MSIsensorPro scan",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1570
+      }
+    },
+    "14": {
+      "annotation": "Input optional BBSplit FASTA list",
+      "id": 14,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bbsplit_fasta_list"
+        }
+      ],
+      "name": "Input BBSplit FASTA list",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1690
+      }
+    },
+    "15": {
+      "annotation": "Input optional BBSplit index (tar.gz or directory)",
+      "id": 15,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bbsplit_index"
+        }
+      ],
+      "name": "Input BBSplit index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1810
+      }
+    },
+    "16": {
+      "annotation": "Input tools parameter (comma-separated list)",
+      "id": 16,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "tools"
+        }
+      ],
+      "name": "Input tools",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1930
+      }
+    },
+    "17": {
+      "id": 17,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA-MEM Index",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bwa/bwa_index",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "18": {
+      "id": 18,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA-MEM2 Index",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwamem2/bwamem2_index",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "19": {
+      "id": 19,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "DRAGMAP Hashtable",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dragmap/dragmap_hashtable",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "20": {
+      "id": 20,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 CreateSequenceDictionary",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "21": {
+      "id": 21,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Samtools FAI Index",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 490
+      }
+    },
+    "22": {
+      "id": 22,
+      "input_connections": {
+        "input_file": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Tabix bcftools annotations",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "23": {
+      "id": 23,
+      "input_connections": {
+        "input_file": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Tabix dbSNP",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "24": {
+      "id": 24,
+      "input_connections": {
+        "input_file": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Tabix germline resource",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "25": {
+      "id": 25,
+      "input_connections": {
+        "input_file": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Tabix known indels",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 490
+      }
+    },
+    "26": {
+      "id": 26,
+      "input_connections": {
+        "input_file": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Tabix known SNPs",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 610
+      }
+    },
+    "27": {
+      "id": 27,
+      "input_connections": {
+        "input_file": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "Tabix PON",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 730
+      }
+    },
+    "28": {
+      "annotation": "Unzip ASCAT alleles - conditional on file format",
+      "id": 28,
+      "input_connections": {
+        "input_file": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Unzip ASCAT alleles",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/unzip/Repository_Actions_Unzip",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 850
+      }
+    },
+    "29": {
+      "annotation": "Unzip ASCAT loci - conditional on file format",
+      "id": 29,
+      "input_connections": {
+        "input_file": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "Unzip ASCAT loci",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/unzip/Repository_Actions_Unzip",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 970
+      }
+    },
+    "30": {
+      "annotation": "Unzip ASCAT loci GC - conditional on file format",
+      "id": 30,
+      "input_connections": {
+        "input_file": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "Unzip ASCAT loci GC",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/unzip/Repository_Actions_Unzip",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 1090
+      }
+    },
+    "31": {
+      "annotation": "Unzip ASCAT loci RT - conditional on file format",
+      "id": 31,
+      "input_connections": {
+        "input_file": {
+          "id": 10,
+          "output_name": "output"
+        }
+      },
+      "name": "Unzip ASCAT loci RT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/unzip/Repository_Actions_Unzip",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 1210
+      }
+    },
+    "32": {
+      "annotation": "Untar chromosome directory - conditional on file format",
+      "id": 32,
+      "input_connections": {
+        "input_file": {
+          "id": 11,
+          "output_name": "output"
+        }
+      },
+      "name": "Untar chromosome directory",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 1330
+      }
+    },
+    "33": {
+      "annotation": "Untar MSIsensor2 models - conditional on file format",
+      "id": 33,
+      "input_connections": {
+        "input_file": {
+          "id": 12,
+          "output_name": "output"
+        }
+      },
+      "name": "Untar MSIsensor2 models",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 1450
+      }
+    },
+    "34": {
+      "annotation": "MSIsensorPro Scan - generates scan file if not provided and msisensorpro tool is selected",
+      "id": 34,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "MSIsensorPro Scan",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/msisensorpro/msisensorpro_scan",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 1570
+      }
+    },
+    "35": {
+      "annotation": "Untar BBSplit index - conditional on file format and bbsplit tool selection",
+      "id": 35,
+      "input_connections": {
+        "input_file": {
+          "id": 15,
+          "output_name": "output"
+        }
+      },
+      "name": "Untar BBSplit index",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 1690
+      }
+    },
+    "36": {
+      "annotation": "BBMap BBSplit - builds BBSplit index from FASTA if not provided and bbsplit tool is selected",
+      "id": 36,
+      "input_connections": {
+        "reference_fasta": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bbsplit_fasta_list": {
+          "id": 14,
+          "output_name": "output"
+        }
+      },
+      "name": "BBMap BBSplit",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bbtools_clumpify/Repository_Actions_BBMap_Clumpify:_Deduplication",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 1810
+      }
+    },
+    "37": {
+      "annotation": "Collect all outputs - BWA index",
+      "id": 37,
+      "input_connections": {
+        "input": {
+          "id": 17,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect BWA index",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "38": {
+      "annotation": "Collect all outputs - BWA-MEM2 index",
+      "id": 38,
+      "input_connections": {
+        "input": {
+          "id": 18,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect BWA-MEM2 index",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "39": {
+      "annotation": "Collect all outputs - DRAGMAP hashtable",
+      "id": 39,
+      "input_connections": {
+        "input": {
+          "id": 19,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect DRAGMAP hashtable",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "40": {
+      "annotation": "Collect all outputs - Sequence dictionary",
+      "id": 40,
+      "input_connections": {
+        "input": {
+          "id": 20,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect sequence dictionary",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "41": {
+      "annotation": "Collect all outputs - FASTA FAI index",
+      "id": 41,
+      "input_connections": {
+        "input": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect FASTA FAI index",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "42": {
+      "annotation": "Collect all outputs - bcftools annotations TBI",
+      "id": 42,
+      "input_connections": {
+        "input": {
+          "id": 22,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect bcftools annotations TBI",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "43": {
+      "annotation": "Collect all outputs - dbSNP TBI",
+      "id": 43,
+      "input_connections": {
+        "input": {
+          "id": 23,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect dbSNP TBI",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "44": {
+      "annotation": "Collect all outputs - germline resource TBI",
+      "id": 44,
+      "input_connections": {
+        "input": {
+          "id": 24,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect germline resource TBI",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "45": {
+      "annotation": "Collect all outputs - known indels TBI",
+      "id": 45,
+      "input_connections": {
+        "input": {
+          "id": 25,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect known indels TBI",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "46": {
+      "annotation": "Collect all outputs - known SNPs TBI",
+      "id": 46,
+      "input_connections": {
+        "input": {
+          "id": 26,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect known SNPs TBI",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 610
+      }
+    },
+    "47": {
+      "annotation": "Collect all outputs - PON TBI",
+      "id": 47,
+      "input_connections": {
+        "input": {
+          "id": 27,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect PON TBI",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+      "position": {
+        "left": 670,
+        "top": 730
+      }
+    },
+    "48": {
+      "annotation": "Output: bcftools annotations TBI files",
+      "id": 48,
+      "input_connections": {
+        "input": {
+          "id": 42,
+          "output_name": "output"
+        }
+      },
+      "name": "Output bcftools annotations TBI",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "49": {
+      "annotation": "Output: BWA index files",
+      "id": 49,
+      "input_connections": {
+        "input": {
+          "id": 37,
+          "output_name": "output"
+        }
+      },
+      "name": "Output BWA index",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "50": {
+      "annotation": "Output: BWA-MEM2 index files",
+      "id": 50,
+      "input_connections": {
+        "input": {
+          "id": 38,
+          "output_name": "output"
+        }
+      },
+      "name": "Output BWA-MEM2 index",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "51": {
+      "annotation": "Output: DRAGMAP hashtable files",
+      "id": 51,
+      "input_connections": {
+        "input": {
+          "id": 39,
+          "output_name": "output"
+        }
+      },
+      "name": "Output DRAGMAP hashtable",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "52": {
+      "annotation": "Output: Sequence dictionary",
+      "id": 52,
+      "input_connections": {
+        "input": {
+          "id": 40,
+          "output_name": "output"
+        }
+      },
+      "name": "Output sequence dictionary",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    },
+    "53": {
+      "annotation": "Output: FASTA FAI index",
+      "id": 53,
+      "input_connections": {
+        "input": {
+          "id": 41,
+          "output_name": "output"
+        }
+      },
+      "name": "Output FASTA FAI index",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 490
+      }
+    },
+    "54": {
+      "annotation": "Output: dbSNP TBI files",
+      "id": 54,
+      "input_connections": {
+        "input": {
+          "id": 43,
+          "output_name": "output"
+        }
+      },
+      "name": "Output dbSNP TBI",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "55": {
+      "annotation": "Output: germline resource TBI files",
+      "id": 55,
+      "input_connections": {
+        "input": {
+          "id": 44,
+          "output_name": "output"
+        }
+      },
+      "name": "Output germline resource TBI",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    },
+    "56": {
+      "annotation": "Output: known indels TBI files",
+      "id": 56,
+      "input_connections": {
+        "input": {
+          "id": 45,
+          "output_name": "output"
+        }
+      },
+      "name": "Output known indels TBI",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 490
+      }
+    },
+    "57": {
+      "annotation": "Output: known SNPs TBI files",
+      "id": 57,
+      "input_connections": {
+        "input": {
+          "id": 46,
+          "output_name": "output"
+        }
+      },
+      "name": "Output known SNPs TBI",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 610
+      }
+    },
+    "58": {
+      "annotation": "Output: PON TBI files",
+      "id": 58,
+      "input_connections": {
+        "input": {
+          "id": 47,
+          "output_name": "output"
+        }
+      },
+      "name": "Output PON TBI",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 730
+      }
+    },
+    "59": {
+      "annotation": "Output: ASCAT allele files",
+      "id": 59,
+      "input_connections": {
+        "input": {
+          "id": 28,
+          "output_name": "output"
+        }
+      },
+      "name": "Output ASCAT alleles",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 850
+      }
+    },
+    "60": {
+      "annotation": "Output: ASCAT loci files",
+      "id": 60,
+      "input_connections": {
+        "input": {
+          "id": 29,
+          "output_name": "output"
+        }
+      },
+      "name": "Output ASCAT loci",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 970
+      }
+    },
+    "61": {
+      "annotation": "Output: ASCAT loci GC files",
+      "id": 61,
+      "input_connections": {
+        "input": {
+          "id": 30,
+          "output_name": "output"
+        }
+      },
+      "name": "Output ASCAT loci GC",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 1090
+      }
+    },
+    "62": {
+      "annotation": "Output: ASCAT loci RT files",
+      "id": 62,
+      "input_connections": {
+        "input": {
+          "id": 31,
+          "output_name": "output"
+        }
+      },
+      "name": "Output ASCAT loci RT",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 1210
+      }
+    },
+    "63": {
+      "annotation": "Output: chromosome directory files",
+      "id": 63,
+      "input_connections": {
+        "input": {
+          "id": 32,
+          "output_name": "output"
+        }
+      },
+      "name": "Output chromosome directory",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 1330
+      }
+    },
+    "64": {
+      "annotation": "Output: MSIsensor2 models",
+      "id": 64,
+      "input_connections": {
+        "input": {
+          "id": 33,
+          "output_name": "output"
+        }
+      },
+      "name": "Output MSIsensor2 models",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 1450
+      }
+    },
+    "65": {
+      "annotation": "Output: MSIsensorPro scan file",
+      "id": 65,
+      "input_connections": {
+        "input": {
+          "id": 34,
+          "output_name": "output"
+        }
+      },
+      "name": "Output MSIsensorPro scan",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 1570
+      }
+    },
+    "66": {
+      "annotation": "Output: BBSplit index",
+      "id": 66,
+      "input_connections": {
+        "input": {
+          "id": 36,
+          "output_name": "output"
+        }
+      },
+      "name": "Output BBSplit index",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 1810
+      }
+    }
+  }
+}

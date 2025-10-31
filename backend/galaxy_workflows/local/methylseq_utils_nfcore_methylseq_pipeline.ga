@@ -1,0 +1,196 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "PIPELINE_INITIALISATION",
+  "annotation": "nf-core pipeline initialization subworkflow - validates parameters, generates samplesheet from input, and initializes pipeline execution",
+  "steps": {
+    "0": {
+      "annotation": "Pipeline version flag",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "version"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Parameter validation flag",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "validate_params"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Monochrome logs flag",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "monochrome_logs"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Nextflow CLI arguments",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "nextflow_cli_args"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Output directory path",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "outdir"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input samplesheet file",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input_samplesheet"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "id": 6,
+      "input_connections": {
+        "version": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "outdir": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "UTILS_NEXTFLOW_PIPELINE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/flexynesis_utils/Repository_Actions_Flexynesis_utils",
+      "tool_version": "0.2.20+galaxy3",
+      "type": "tool",
+      "annotation": "Print version and exit if required; dump pipeline parameters to JSON file",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "7": {
+      "id": 7,
+      "input_connections": {
+        "validate_params": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "UTILS_NFSCHEMA_PLUGIN",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/flexynesis_utils/Repository_Actions_Flexynesis_utils",
+      "tool_version": "0.2.20+galaxy3",
+      "type": "tool",
+      "annotation": "Validate parameters and generate parameter summary to stdout",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "8": {
+      "id": 8,
+      "input_connections": {
+        "nextflow_cli_args": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "UTILS_NFCORE_PIPELINE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/flexynesis_utils/Repository_Actions_Flexynesis_utils",
+      "tool_version": "0.2.20+galaxy3",
+      "type": "tool",
+      "annotation": "Check config provided to the pipeline",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "9": {
+      "id": 9,
+      "input_connections": {
+        "input_samplesheet": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "monochrome_logs": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Samplesheet Processing",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/flexynesis_utils/Repository_Actions_Flexynesis_utils",
+      "tool_version": "0.2.20+galaxy3",
+      "type": "tool",
+      "annotation": "Parse samplesheet and create channel from input file; validate input parameters and samplesheet structure; handle single-end and paired-end reads",
+      "position": {
+        "left": 890,
+        "top": 610
+      }
+    }
+  },
+  "outputs": {
+    "samplesheet": {
+      "annotation": "Validated samplesheet with metadata and FASTQ file paths",
+      "id": 9,
+      "output_name": "samplesheet"
+    },
+    "versions": {
+      "annotation": "Version information from pipeline initialization",
+      "id": 6,
+      "output_name": "versions"
+    }
+  }
+}

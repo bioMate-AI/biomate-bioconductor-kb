@@ -1,0 +1,252 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "POST_VARIANTCALLING",
+  "annotation": "POST_VARIANTCALLING subworkflow - Processes variant-called VCFs with optional concatenation, normalization, and varlociraptor variant calling. Supports germline, somatic, and tumor-only analysis modes.",
+  "steps": {
+    "0": {
+      "annotation": "Germline VCF files",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "germline_vcfs"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Tumor-only VCF files",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "tumor_only_vcfs"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Somatic VCF files",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "somatic_vcfs"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Reference FASTA file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Reference FAI index file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Varlociraptor chunk size parameter",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "varlociraptor_chunk_size"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Concatenate germline VCFs - conditional step",
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Concatenate",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/concat/Repository_Actions_Concatenate",
+      "tool_version": "1.0.1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Normalize VCFs - conditional step",
+      "id": 7,
+      "input_connections": {
+        "germline_vcfs": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "tumor_only_vcfs": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "somatic_vcfs": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Normalize",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/biom_normalize_table/Repository_Actions_Normalize",
+      "tool_version": "2.1.15+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "VCF Varlociraptor Germline - conditional step when varlociraptor tool is selected",
+      "id": 8,
+      "input_connections": {
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "germline_vcfs": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "varlociraptor_chunk_size": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Convert Affymetrix",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/greg/affy2vcf2/Repository_Actions_Convert_Affymetrix",
+      "tool_version": "1.19",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "VCF Varlociraptor Somatic - conditional step when varlociraptor tool is selected",
+      "id": 9,
+      "input_connections": {
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "somatic_vcfs": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "germline_vcfs": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "varlociraptor_chunk_size": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Convert Affymetrix",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/greg/affy2vcf2/Repository_Actions_Convert_Affymetrix",
+      "tool_version": "1.19",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "10": {
+      "annotation": "VCF Varlociraptor Tumor-only - conditional step when varlociraptor tool is selected",
+      "id": 10,
+      "input_connections": {
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "tumor_only_vcfs": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "varlociraptor_chunk_size": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Convert Affymetrix",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/greg/affy2vcf2/Repository_Actions_Convert_Affymetrix",
+      "tool_version": "1.19",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    }
+  },
+  "tags": [
+    "variant-calling",
+    "vcf-processing",
+    "varlociraptor"
+  ],
+  "uuid": "post-variantcalling-workflow"
+}

@@ -1,0 +1,342 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "DIFFERENTIAL_FUNCTIONAL_ENRICHMENT",
+  "annotation": "This workflow performs differential functional enrichment analysis using multiple methods: gprofiler2 for gene ontology enrichment, GSEA for gene set enrichment analysis, DECOUPLER for pathway activity inference, and GREA for proportionality-based enrichment. Input data is routed to appropriate methods based on the specified method parameter.",
+  "steps": {
+    "0": {
+      "annotation": "Input data for functional analysis containing input file, genesets, background, and method specification",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_input"
+        }
+      ],
+      "name": "Input: ch_input",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Contrast information for differential analysis",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_contrasts"
+        }
+      ],
+      "name": "Input: ch_contrasts",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Sample sheet metadata",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_samplesheet"
+        }
+      ],
+      "name": "Input: ch_samplesheet",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Feature sheet with feature IDs and symbols",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_featuresheet"
+        }
+      ],
+      "name": "Input: ch_featuresheet",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Filter input data for gprofiler2 method",
+      "id": 4,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Filter: gprofiler2 inputs",
+      "tool_id": "Filter1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Filter input data for DECOUPLER method",
+      "id": 5,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Filter: DECOUPLER inputs",
+      "tool_id": "Filter1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Filter input data for GREA method",
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Filter: GREA inputs",
+      "tool_id": "Filter1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "7": {
+      "annotation": "Filter input data for GSEA method",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Filter: GSEA inputs",
+      "tool_id": "Filter1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "8": {
+      "annotation": "Perform enrichment analysis with gprofiler2",
+      "id": 8,
+      "input_connections": {
+        "input_file": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "genesets": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "background": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "gprofiler2 GOST",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/gprofiler2_gost/gprofiler2_gost",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Convert tabular data to GSEA GCT format",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "CUSTOM: Tabular to GSEA GCT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/matteoc/agame_custom_tools/Repository_Actions_PFAM_output_annotator",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "10": {
+      "annotation": "Convert sample sheet to GSEA CLS format",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "CUSTOM: Tabular to GSEA CLS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/matteoc/agame_custom_tools/Repository_Actions_PFAM_output_annotator",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "11": {
+      "annotation": "Convert feature sheet to GSEA CHIP format",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "CUSTOM: Tabular to GSEA CHIP",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/matteoc/agame_custom_tools/Repository_Actions_PFAM_output_annotator",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "12": {
+      "annotation": "Perform Gene Set Enrichment Analysis (GSEA)",
+      "id": 12,
+      "input_connections": {
+        "gct_file": {
+          "id": 9,
+          "output_name": "output"
+        },
+        "cls_file": {
+          "id": 10,
+          "output_name": "output"
+        },
+        "chip_file": {
+          "id": 11,
+          "output_name": "output"
+        },
+        "genesets": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "GSEA GSEA",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/mageck_gsea/Repository_Actions_MAGeCK_GSEA",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "13": {
+      "annotation": "Perform pathway inference with DECOUPLER",
+      "id": 13,
+      "input_connections": {
+        "input_file": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "genesets": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "features": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "DECOUPLER: Pathway Inference",
+      "tool_id": "ebi-gxa_decoupler_pathway_inference_Decoupler_Pathway_Inference_1.4.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "14": {
+      "annotation": "Perform enrichment analysis with GREA (proportionality-based)",
+      "id": 14,
+      "input_connections": {
+        "input_file": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "genesets": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "PROPR GREA",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/propr_grea/propr_grea",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "15": {
+      "annotation": "Collect all enrichment results",
+      "id": 15,
+      "input_connections": {
+        "gprofiler2_all": {
+          "id": 8,
+          "output_name": "all_enrich"
+        },
+        "gprofiler2_sub": {
+          "id": 8,
+          "output_name": "sub_enrich"
+        },
+        "gprofiler2_html": {
+          "id": 8,
+          "output_name": "plot_html"
+        },
+        "gsea_report": {
+          "id": 12,
+          "output_name": "report_tsvs"
+        },
+        "decoupler_estimate": {
+          "id": 13,
+          "output_name": "dc_estimate"
+        },
+        "decoupler_pvals": {
+          "id": 13,
+          "output_name": "dc_pvals"
+        },
+        "decoupler_png": {
+          "id": 13,
+          "output_name": "png"
+        },
+        "grea_results": {
+          "id": 14,
+          "output_name": "results"
+        }
+      },
+      "name": "Output: Enrichment Results",
+      "tool_id": "ToolOutput",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 200
+      }
+    }
+  },
+  "tags": [
+    "enrichment",
+    "functional-analysis",
+    "differential-abundance",
+    "nf-core"
+  ]
+}

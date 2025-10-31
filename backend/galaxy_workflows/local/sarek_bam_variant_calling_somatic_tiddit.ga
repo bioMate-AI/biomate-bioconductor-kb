@@ -1,0 +1,150 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SOMATIC_TIDDIT",
+  "annotation": "Converted from nf-core subworkflow: TIDDIT single sample variant calling for somatic samples",
+  "steps": {
+    "0": {
+      "annotation": "Normal sample CRAM file",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram_normal"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Tumor sample CRAM file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram_tumor"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference FASTA file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "BWA index files",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bwa"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "TIDDIT variant calling on normal sample",
+      "id": 4,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "bwa": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_SINGLE_TIDDIT",
+      "tool_id": "bam_variant_calling_single_tiddit",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "TIDDIT variant calling on tumor sample",
+      "id": 5,
+      "input_connections": {
+        "cram": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "bwa": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_SINGLE_TIDDIT",
+      "tool_id": "bam_variant_calling_single_tiddit",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Merge VCF files from normal and tumor samples using SVDB",
+      "id": 6,
+      "input_connections": {
+        "vcf_normal": {
+          "id": 4,
+          "output_name": "vcf"
+        },
+        "vcf_tumor": {
+          "id": 5,
+          "output_name": "vcf"
+        }
+      },
+      "name": "SVDB_MERGE",
+      "tool_id": "svdb_merge",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 70
+      }
+    }
+  },
+  "outputs": {
+    "vcf": {
+      "annotation": "Merged somatic variant calls",
+      "id": 6,
+      "output_name": "vcf"
+    }
+  }
+}

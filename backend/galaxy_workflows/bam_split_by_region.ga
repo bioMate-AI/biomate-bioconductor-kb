@@ -1,0 +1,114 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_SPLIT_BY_REGION",
+  "annotation": "Converted from nf-core subworkflow: Split BAM file by genomic regions from a regions file, then index the output BAMs",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM file with index and regions file",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam_file",
+          "description": "BAM file to split"
+        },
+        {
+          "name": "bam_index",
+          "description": "BAM index file (.bai)"
+        },
+        {
+          "name": "regions_file",
+          "description": "Tab-separated regions file with columns: seq_name, start, stop"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Parse regions file and extract region definitions. Creates a channel with region names/coordinates from the TSV file",
+      "id": 1,
+      "input_connections": {
+        "regions_input": {
+          "id": 0,
+          "output_name": "regions_file"
+        }
+      },
+      "name": "Parse regions file",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/tabular_to_csv/tabular_to_csv/1.1.0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "2": {
+      "annotation": "Split BAM file by genomic region using samtools view. For each region, extracts reads mapping to that region",
+      "id": 2,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "bam_file"
+        },
+        "input_bai": {
+          "id": 0,
+          "output_name": "bam_index"
+        },
+        "regions": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "SAMTOOLS_VIEW - Split by region",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "tool_version": "0.0.5",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Index the split BAM files using samtools index to create .bai index files",
+      "id": 3,
+      "input_connections": {
+        "input_bam": {
+          "id": 2,
+          "output_name": "output_bam"
+        }
+      },
+      "name": "SAMTOOLS_INDEX - Index split BAMs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "tool_version": "0.0.5",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "Output: Split and indexed BAM files with their corresponding index files",
+      "id": 4,
+      "input_connections": {
+        "bam_input": {
+          "id": 2,
+          "output_name": "output_bam"
+        },
+        "bai_input": {
+          "id": 3,
+          "output_name": "output_bai"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    }
+  }
+}

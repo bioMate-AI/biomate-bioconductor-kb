@@ -1,0 +1,184 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SOMATIC_ASCAT",
+  "annotation": "Converted from nf-core subworkflow BAM_VARIANT_CALLING_SOMATIC_ASCAT. ASCAT variant calling for somatic samples with copy number profiling.",
+  "steps": {
+    "0": {
+      "annotation": "CRAM pair input: [meta, normal_cram, normal_crai, tumor_cram, tumor_crai]",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram_pair"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Allele files (zip format) - mandatory input",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "allele_files"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Loci files (zip format) - mandatory input",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "loci_files"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Intervals BED file - optional, for WES",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Reference FASTA - optional, needed for CRAM",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "GC correction file (txt) - optional",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gc_file"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Replication timing file (txt) - optional",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "rt_file"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "ASCAT: Allele-Specific Copy Number Analysis of Tumors. Derives copy number profiles accounting for normal cell admixture and tumor aneuploidy.",
+      "id": 7,
+      "input_connections": {
+        "cram_pair": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "allele_files": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "loci_files": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals_bed": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "gc_file": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "rt_file": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "ASCAT",
+      "tool_id": "nfcore_ascat",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "8": {
+      "annotation": "Workflow versions output",
+      "id": 8,
+      "input_connections": {
+        "versions": {
+          "id": 7,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    }
+  },
+  "outputs": {
+    "versions": {
+      "label": "versions",
+      "output_name": "versions",
+      "uuid": "ascat-versions"
+    }
+  }
+}

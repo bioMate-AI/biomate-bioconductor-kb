@@ -1,0 +1,207 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_QC_PICARD",
+  "annotation": "Converted from nf-core subworkflow BAM_QC_PICARD. Runs QC steps on BAM/CRAM files using Picard tools with conditional branching for HS metrics vs WGS metrics.",
+  "steps": {
+    "0": {
+      "annotation": "BAM file with index and optional bait/target intervals",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bam_bai_bait_target"
+        }
+      ],
+      "name": "Input: BAM/BAI/Bait/Target",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference FASTA sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input: FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta_fai"
+        }
+      ],
+      "name": "Input: FASTA FAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "FASTA dictionary file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta_dict"
+        }
+      ],
+      "name": "Input: FASTA Dict",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "FASTA GZI file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta_gzi"
+        }
+      ],
+      "name": "Input: FASTA GZI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Collect multiple QC metrics from BAM file",
+      "id": 5,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "PICARD CollectMultipleMetrics",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/avowinkel/picard/Repository_Actions_BedToIntervalList",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Collect HS metrics - conditional branch when bait and target intervals are provided",
+      "id": 6,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta_gzi": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "PICARD CollectHsMetrics",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/avowinkel/picard/Repository_Actions_BedToIntervalList",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Collect WGS metrics - conditional branch when bait/target intervals are not provided",
+      "id": 7,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "PICARD CollectWgsMetrics",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/avowinkel/picard/Repository_Actions_BedToIntervalList",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "8": {
+      "annotation": "Output: Coverage metrics from HS or WGS metrics",
+      "id": 8,
+      "input_connections": {
+        "coverage_metrics_hs": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "coverage_metrics_wgs": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: Coverage Metrics",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "9": {
+      "annotation": "Output: Multiple metrics from CollectMultipleMetrics",
+      "id": 9,
+      "input_connections": {
+        "multiple_metrics": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: Multiple Metrics",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    }
+  }
+}

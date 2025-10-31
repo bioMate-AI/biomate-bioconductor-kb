@@ -1,0 +1,293 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "ALIGN_STAR",
+  "annotation": "Converted from nf-core subworkflow - Alignment with STAR. Supports conditional execution paths: Sentieon STAR, AWS iGenomes STAR, or standard STAR alignment, followed by BAM sorting and statistics.",
+  "steps": {
+    "0": {
+      "annotation": "Input reads (fastq files)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reads"
+        }
+      ],
+      "name": "Input reads",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input STAR index",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "index"
+        }
+      ],
+      "name": "Input STAR index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input GTF annotation file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gtf"
+        }
+      ],
+      "name": "Input GTF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input reference FASTA",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Alternative path 1: Sentieon-accelerated STAR alignment",
+      "id": 4,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON_STAR_ALIGN",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_star_fusion/Repository_Actions_ctat_star_fusion",
+      "tool_version": "1.0.1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Alternative path 2: STAR alignment with AWS iGenomes",
+      "id": 5,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "STAR_ALIGN_IGENOMES",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_star_fusion/Repository_Actions_ctat_star_fusion",
+      "tool_version": "1.0.1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Alternative path 3: Standard STAR alignment",
+      "id": 6,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "STAR_ALIGN",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_star_fusion/Repository_Actions_ctat_star_fusion",
+      "tool_version": "1.0.1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "7": {
+      "annotation": "Process output from SENTIEON_STAR_ALIGN path",
+      "id": 7,
+      "input_connections": {
+        "bam": {
+          "id": 4,
+          "output_name": "bam"
+        },
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_SORT_STATS_SAMTOOLS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "tool_version": "0.1.0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Process output from STAR_ALIGN_IGENOMES path",
+      "id": 8,
+      "input_connections": {
+        "bam": {
+          "id": 5,
+          "output_name": "bam"
+        },
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_SORT_STATS_SAMTOOLS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "tool_version": "0.1.0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Process output from STAR_ALIGN path",
+      "id": 9,
+      "input_connections": {
+        "bam": {
+          "id": 6,
+          "output_name": "bam"
+        },
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_SORT_STATS_SAMTOOLS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "tool_version": "0.1.0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    }
+  },
+  "outputs": {
+    "orig_bam": {
+      "annotation": "Original BAM from STAR alignment",
+      "output_name": "bam",
+      "type": "bam"
+    },
+    "log_final": {
+      "annotation": "STAR final log file",
+      "output_name": "log_final",
+      "type": "txt"
+    },
+    "log_out": {
+      "annotation": "STAR log output",
+      "output_name": "log_out",
+      "type": "txt"
+    },
+    "log_progress": {
+      "annotation": "STAR progress log",
+      "output_name": "log_progress",
+      "type": "txt"
+    },
+    "bam_sorted": {
+      "annotation": "Sorted BAM file",
+      "output_name": "bam",
+      "type": "bam"
+    },
+    "bam_transcript": {
+      "annotation": "Transcript BAM file",
+      "output_name": "bam_transcript",
+      "type": "bam"
+    },
+    "fastq": {
+      "annotation": "Unmapped fastq files",
+      "output_name": "fastq",
+      "type": "fastq"
+    },
+    "tab": {
+      "annotation": "Tab-delimited output",
+      "output_name": "tab",
+      "type": "tabular"
+    },
+    "bam": {
+      "annotation": "Final sorted BAM from samtools",
+      "output_name": "bam",
+      "type": "bam"
+    },
+    "bai": {
+      "annotation": "BAM index file (.bai)",
+      "output_name": "bai",
+      "type": "bai"
+    },
+    "csi": {
+      "annotation": "BAM index file (.csi)",
+      "output_name": "csi",
+      "type": "csi"
+    },
+    "stats": {
+      "annotation": "Samtools stats output",
+      "output_name": "stats",
+      "type": "txt"
+    },
+    "flagstat": {
+      "annotation": "Samtools flagstat output",
+      "output_name": "flagstat",
+      "type": "txt"
+    },
+    "idxstats": {
+      "annotation": "Samtools idxstats output",
+      "output_name": "idxstats",
+      "type": "txt"
+    },
+    "percent_mapped": {
+      "annotation": "Percentage of uniquely mapped reads extracted from STAR log",
+      "output_name": "percent_mapped",
+      "type": "float"
+    }
+  }
+}

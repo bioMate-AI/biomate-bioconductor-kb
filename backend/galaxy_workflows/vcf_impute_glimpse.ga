@@ -1,0 +1,214 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "VCF_IMPUTE_GLIMPSE",
+  "annotation": "Converted from nf-core subworkflow for VCF imputation using GLIMPSE",
+  "steps": {
+    "0": {
+      "annotation": "Input channel containing VCF, CSI index, sample info, region, reference, reference index, and genetic map",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_input"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "GLIMPSE_CHUNK: Divide genome into chunks for parallel phasing",
+      "id": 1,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "ch_input"
+        },
+        "csi": {
+          "id": 0,
+          "output_name": "ch_input"
+        },
+        "region": {
+          "id": 0,
+          "output_name": "ch_input"
+        }
+      },
+      "name": "GLIMPSE_CHUNK",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/glimpse_chunk/glimpse_chunk",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "2": {
+      "annotation": "Parse chunk output TSV and extract region information",
+      "id": 2,
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "chunk_chr"
+        }
+      },
+      "name": "Parse chunk regions",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "GLIMPSE_PHASE: Phase genotypes in each chunk using reference panel",
+      "id": 3,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "ch_input"
+        },
+        "csi": {
+          "id": 0,
+          "output_name": "ch_input"
+        },
+        "sample": {
+          "id": 0,
+          "output_name": "ch_input"
+        },
+        "ref": {
+          "id": 0,
+          "output_name": "ch_input"
+        },
+        "ref_index": {
+          "id": 0,
+          "output_name": "ch_input"
+        },
+        "map": {
+          "id": 0,
+          "output_name": "ch_input"
+        },
+        "regionin": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "regionout": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "GLIMPSE_PHASE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/glimpse_phase/glimpse_phase",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "INDEX_PHASE: Index phased VCF files using bcftools",
+      "id": 4,
+      "input_connections": {
+        "vcf": {
+          "id": 3,
+          "output_name": "phased_variants"
+        }
+      },
+      "name": "INDEX_PHASE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bcftools_index/bcftools_index",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "GLIMPSE_LIGATE: Merge all phased chunks into single VCF",
+      "id": 5,
+      "input_connections": {
+        "phased_variants": {
+          "id": 3,
+          "output_name": "phased_variants"
+        },
+        "csi_index": {
+          "id": 4,
+          "output_name": "csi"
+        }
+      },
+      "name": "GLIMPSE_LIGATE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/glimpse_ligate/glimpse_ligate",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "INDEX_LIGATE: Index final merged VCF file using bcftools",
+      "id": 6,
+      "input_connections": {
+        "vcf": {
+          "id": 5,
+          "output_name": "merged_variants"
+        }
+      },
+      "name": "INDEX_LIGATE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bcftools_index/bcftools_index",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Output: Chunk regions file",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "chunk_chr"
+        }
+      },
+      "name": "Output chunk_chr",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output: Merged imputed variants VCF",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "merged_variants"
+        }
+      },
+      "name": "Output merged_variants",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output: Index for merged variants",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "csi"
+        }
+      },
+      "name": "Output merged_variants_index",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 250
+      }
+    }
+  }
+}

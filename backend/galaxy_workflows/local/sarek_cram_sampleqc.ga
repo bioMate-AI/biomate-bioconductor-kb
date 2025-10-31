@@ -1,0 +1,234 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "CRAM_SAMPLEQC",
+  "annotation": "Converted from nf-core subworkflow for CRAM sample quality control",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input dataset - CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input NGSCheckmate BED file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ngscheckmate_bed"
+        }
+      ],
+      "name": "Input dataset - NGSCheckmate BED",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input reference FASTA file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset - FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input intervals for preprocessing",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_for_preprocessing"
+        }
+      ],
+      "name": "Input dataset - Intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Skip base recalibration flag (boolean)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "skip_baserecalibration"
+        }
+      ],
+      "name": "Input parameter - Skip BaseRecalibration",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Conditional: CRAM QC with Mosdepth and Samtools - only executed if skip_baserecalibration is false",
+      "id": 5,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals_for_preprocessing": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Cramino - CRAM QC Recalibration",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cramino/Repository_Actions_Cramino",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "BAM NGSCheckmate - sample identity verification",
+      "id": 6,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "ngscheckmate_bed": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM coverage statistics - NGSCheckmate",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Output correlation matrix from NGSCheckmate",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "corr_matrix"
+        }
+      },
+      "name": "Output - Correlation Matrix",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output matched samples from NGSCheckmate",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "matched"
+        }
+      },
+      "name": "Output - Matched Samples",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output all samples from NGSCheckmate",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "all"
+        }
+      },
+      "name": "Output - All Samples",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "Output VCF from NGSCheckmate",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output - VCF",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "11": {
+      "annotation": "Output PDF report from NGSCheckmate",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "pdf"
+        }
+      },
+      "name": "Output - PDF Report",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "12": {
+      "annotation": "Output QC reports from CRAM QC (conditional)",
+      "id": 12,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "reports"
+        }
+      },
+      "name": "Output - QC Reports",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 610
+      }
+    }
+  }
+}

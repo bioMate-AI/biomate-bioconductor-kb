@@ -1,0 +1,134 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTA_HMMSEARCH_RANK_FASTAS",
+  "annotation": "Converted from nf-core subworkflow: HMMSEARCH on FASTA sequences, rank results, and extract top-ranked sequences",
+  "steps": {
+    "0": {
+      "annotation": "Input HMM profiles channel",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_hmms",
+          "description": "HMM profile files with metadata"
+        }
+      ],
+      "name": "Input HMM Profiles",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input FASTA sequence file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta",
+          "description": "Single FASTA file to search"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Search FASTA sequences against HMM profiles",
+      "id": 2,
+      "input_connections": {
+        "hmm": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "HMMER HMMSEARCH",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+      "tool_version": "1.0.0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Rank HMMSEARCH results by score",
+      "id": 3,
+      "input_connections": {
+        "target_summary": {
+          "id": 2,
+          "output_name": "target_summary"
+        }
+      },
+      "name": "HMMER HMMRANK",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+      "tool_version": "1.0.0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "Filter ranked results for rank=1 entries and extract accession numbers",
+      "id": 4,
+      "input_connections": {
+        "hmmrank": {
+          "id": 3,
+          "output_name": "hmmrank"
+        }
+      },
+      "name": "Filter Rank 1 Results",
+      "tool_id": "Filter1",
+      "tool_version": "1.1.1",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Extract subsequences from FASTA using filtered accession numbers",
+      "id": 5,
+      "input_connections": {
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "subseq_filter": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "SEQTK SUBSEQ",
+      "tool_id": "iuc_seqtk_seqtk_comp_1.5+galaxy0",
+      "tool_version": "1.5+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "hmmrank": {
+      "id": 3,
+      "output_name": "hmmrank",
+      "annotation": "Ranked HMMSEARCH results in TSV format"
+    },
+    "seqfastas": {
+      "id": 5,
+      "output_name": "sequences",
+      "annotation": "FASTA sequences of top-ranked hits"
+    }
+  }
+}

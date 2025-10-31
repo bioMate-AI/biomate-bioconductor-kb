@@ -1,0 +1,287 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "VCF_ANNOTATE_ENSEMBLVEP_SNPEFF",
+  "annotation": "Converted from nf-core subworkflow - Annotate VCF files with EnsemblVEP and/or SnpEff",
+  "steps": {
+    "0": {
+      "annotation": "Input VCF file with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_vcf"
+        }
+      ],
+      "name": "Input VCF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA (optional)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input VEP cache (optional)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_vep_cache"
+        }
+      ],
+      "name": "Input VEP Cache",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input SnpEff cache (optional)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_snpeff_cache"
+        }
+      ],
+      "name": "Input SnpEff Cache",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Scatter VCF into chunks if val_sites_per_chunk is set",
+      "id": 4,
+      "input_connections": {
+        "input_vcf": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "bcftools pluginscatter",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions_bcftools_view",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "EnsemblVEP annotation (conditional - if ensemblvep in tools_to_use)",
+      "id": 5,
+      "input_connections": {
+        "input_vcf": {
+          "id": 4,
+          "output_name": "scatter"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "vep_cache": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "ENSEMBLVEP_VEP",
+      "tool_id": "ensemblvep_vep",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "SnpEff annotation (conditional - if snpeff in tools_to_use)",
+      "id": 6,
+      "input_connections": {
+        "input_vcf": {
+          "id": 5,
+          "output_name": "vcf"
+        },
+        "snpeff_cache": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "SNPEFF_SNPEFF",
+      "tool_id": "pcingola_snpeff_SnpEff_1.0",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Compress SnpEff output with bgzip",
+      "id": 7,
+      "input_connections": {
+        "input_vcf": {
+          "id": 6,
+          "output_name": "vcf"
+        }
+      },
+      "name": "tabix bgzip",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Concatenate scattered VCFs back together",
+      "id": 8,
+      "input_connections": {
+        "input_vcf": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "bcftools concat",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions_bcftools_view",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Sort concatenated VCF",
+      "id": 9,
+      "input_connections": {
+        "input_vcf": {
+          "id": 8,
+          "output_name": "vcf"
+        }
+      },
+      "name": "bcftools sort",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions_bcftools_view",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Index bgzipped VCF with tabix",
+      "id": 10,
+      "input_connections": {
+        "input_vcf": {
+          "id": 9,
+          "output_name": "vcf"
+        }
+      },
+      "name": "tabix tabix",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "Output: VCF with TBI index",
+      "id": 11,
+      "input_connections": {
+        "vcf": {
+          "id": 10,
+          "output_name": "vcf"
+        },
+        "tbi": {
+          "id": 10,
+          "output_name": "tbi"
+        }
+      },
+      "name": "Output VCF TBI",
+      "type": "data_output",
+      "position": {
+        "left": 1770,
+        "top": 10
+      }
+    },
+    "12": {
+      "annotation": "Output: VEP reports",
+      "id": 12,
+      "input_connections": {
+        "report": {
+          "id": 5,
+          "output_name": "report"
+        }
+      },
+      "name": "Output VEP Reports",
+      "type": "data_output",
+      "position": {
+        "left": 1770,
+        "top": 130
+      }
+    },
+    "13": {
+      "annotation": "Output: SnpEff CSV reports",
+      "id": 13,
+      "input_connections": {
+        "report": {
+          "id": 6,
+          "output_name": "report"
+        }
+      },
+      "name": "Output SnpEff Reports",
+      "type": "data_output",
+      "position": {
+        "left": 1770,
+        "top": 250
+      }
+    },
+    "14": {
+      "annotation": "Output: SnpEff HTML summary",
+      "id": 14,
+      "input_connections": {
+        "html": {
+          "id": 6,
+          "output_name": "summary_html"
+        }
+      },
+      "name": "Output SnpEff HTML",
+      "type": "data_output",
+      "position": {
+        "left": 1770,
+        "top": 370
+      }
+    },
+    "15": {
+      "annotation": "Output: SnpEff genes file",
+      "id": 15,
+      "input_connections": {
+        "genes": {
+          "id": 6,
+          "output_name": "genes_txt"
+        }
+      },
+      "name": "Output SnpEff Genes",
+      "type": "data_output",
+      "position": {
+        "left": 1770,
+        "top": 490
+      }
+    }
+  }
+}

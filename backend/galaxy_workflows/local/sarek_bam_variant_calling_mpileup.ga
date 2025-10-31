@@ -1,0 +1,192 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_MPILEUP",
+  "annotation": "Converted from nf-core subworkflow: MPILEUP variant calling using BCFTOOLS and SAMTools",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference dictionary",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input reference FASTA",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input intervals for spread and gather strategy",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "BCFTOOLS MPILEUP: Variant calling from CRAM files. Runs when --tools mpileup is specified.",
+      "id": 4,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta_ref": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "bcftools mpileup",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions_bcftools_view",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "SAMTOOLS MPILEUP: Generate pileup format for ControlFreec input. Runs when --tools ControlFreec is specified.",
+      "id": 5,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta_ref": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "samtools mpileup",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "CAT MPILEUP: Concatenate multiple mpileup files from interval-based scatter. Merges and sorts mpileup outputs when num_intervals > 1.",
+      "id": 6,
+      "input_connections": {
+        "input_file": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "ctat_concatenate",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_concatenate/Repository_Actions_ctat_concatenate",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "MERGE BCFTOOLS MPILEUP: Merge multiple VCF files from interval-based scatter using GATK4 MergeVcfs. Runs when num_intervals > 1.",
+      "id": 7,
+      "input_connections": {
+        "vcf_input": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 MergeVcfs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output: Merged or single mpileup file with variantcaller=samtools metadata",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "Output mpileup",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output: Merged or single VCF file with variantcaller=bcftools metadata",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Output VCF",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    }
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "PIPELINE_INITIALISATION",
+  "annotation": "PIPELINE_INITIALISATION subworkflow\n\nThis workflow performs initial pipeline setup including:\n1. Version display and parameter dumping (UTILS_NEXTFLOW_PIPELINE)\n2. Parameter validation and help text generation (UTILS_NFVALIDATION_PLUGIN)\n3. Pipeline configuration validation (UTILS_NFCORE_PIPELINE)\n4. Custom input parameter validation\n\nInputs:\n- version: Display version and exit flag\n- help: Display help text flag\n- validate_params: Validate parameters against schema\n- monochrome_logs: Disable colored log output\n- nextflow_cli_args: Nextflow CLI arguments\n- outdir: Output directory path\n- input: Input samplesheet path\n\nOutputs:\n- versions: Channel containing version information",
+  "steps": {
+    "0": {
+      "annotation": "Pipeline version flag",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "version"
+        }
+      ],
+      "name": "Input dataset - version",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Pipeline help flag",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "help"
+        }
+      ],
+      "name": "Input dataset - help",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Parameter validation flag",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "validate_params"
+        }
+      ],
+      "name": "Input dataset - validate_params",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Monochrome logs flag",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "monochrome_logs"
+        }
+      ],
+      "name": "Input dataset - monochrome_logs",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Nextflow CLI arguments",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "nextflow_cli_args"
+        }
+      ],
+      "name": "Input dataset - nextflow_cli_args",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Output directory path",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "outdir"
+        }
+      ],
+      "name": "Input dataset - outdir",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input samplesheet path",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input"
+        }
+      ],
+      "name": "Input dataset - input",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Print version and dump pipeline parameters to JSON file",
+      "id": 7,
+      "input_connections": {
+        "version": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "outdir": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Flexynesis utils - UTILS_NEXTFLOW_PIPELINE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/flexynesis_utils/Repository_Actions_Flexynesis_utils",
+      "tool_version": "0.2.20+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Validate parameters and generate parameter summary to stdout",
+      "id": 8,
+      "input_connections": {
+        "help": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "validate_params": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "monochrome_logs": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Flexynesis utils - UTILS_NFVALIDATION_PLUGIN",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/flexynesis_utils/Repository_Actions_Flexynesis_utils",
+      "tool_version": "0.2.20+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Check config provided to the pipeline",
+      "id": 9,
+      "input_connections": {
+        "nextflow_cli_args": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Flexynesis utils - UTILS_NFCORE_PIPELINE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/flexynesis_utils/Repository_Actions_Flexynesis_utils",
+      "tool_version": "0.2.20+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    }
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "CHANNEL_MARKDUPLICATES_CREATE_CSV",
+  "annotation": "Converted from nf-core subworkflow - Creates CSV files for restarting from markduplicates step",
+  "steps": {
+    "0": {
+      "annotation": "Input channel containing metadata and CRAM/BAM files with indices",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram_markduplicates",
+          "description": "Channel with meta, cram/bam file, and index"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input parameter: CSV subfolder name",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "csv_subfolder",
+          "description": "Subfolder name for CSV organization"
+        }
+      ],
+      "name": "Input parameter csv_subfolder",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input parameter: Output directory path",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "outdir",
+          "description": "Output directory path"
+        }
+      ],
+      "name": "Input parameter outdir",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input parameter: Save output as BAM instead of CRAM",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "save_output_as_bam",
+          "description": "Boolean flag to save as BAM (true) or CRAM (false)"
+        }
+      ],
+      "name": "Input parameter save_output_as_bam",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Collect and aggregate CRAM/BAM metadata into CSV file. Conditionally formats file extensions based on save_output_as_bam parameter. Creates markduplicates_no_table.csv with columns: patient, sex, status, sample, [cram/bam], [crai/bai]",
+      "id": 4,
+      "input_connections": {
+        "input_collection": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "csv_subfolder": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "outdir": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "save_output_as_bam": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Create markduplicates CSV",
+      "tool_id": "galaxy_collectfile_aggregate",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      },
+      "tool_state": {
+        "keepHeader": "true",
+        "skip": "1",
+        "sort": "true",
+        "storeDir": "${outdir}/csv",
+        "filename": "markduplicates_no_table.csv",
+        "conditional_format": {
+          "use_conditional": "true",
+          "condition_param": "save_output_as_bam",
+          "true_suffix_aligned": "bam",
+          "true_suffix_index": "bam.bai",
+          "false_suffix_aligned": "cram",
+          "false_suffix_index": "cram.crai"
+        }
+      }
+    }
+  },
+  "outputs": {
+    "markduplicates_csv": {
+      "id": 4,
+      "output_name": "output",
+      "description": "CSV file containing markduplicates metadata for workflow restart"
+    }
+  }
+}

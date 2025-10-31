@@ -1,0 +1,72 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BED_SCATTER_BEDTOOLS",
+  "annotation": "Converted from nf-core subworkflow BED_SCATTER_BEDTOOLS. Scatters BED files using bedtools split and validates scatter count matches output file count.",
+  "steps": {
+    "0": {
+      "annotation": "Input BED file with metadata and scatter count",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input_bed",
+          "description": "BED file with metadata and scatter count"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Split BED file into scattered intervals",
+      "id": 1,
+      "input_connections": {
+        "input_bed": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "BEDTOOLS_SPLIT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/aaronquinlan/bedtools/Repository_Actions_Intersect_BAM_alignments_with_intervals_in_another_files",
+      "tool_version": "0.1.0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "2": {
+      "annotation": "Validate and transpose scattered BED files with metadata",
+      "id": 2,
+      "input_connections": {
+        "beds": {
+          "id": 1,
+          "output_name": "beds"
+        }
+      },
+      "name": "Scatter validation and transpose",
+      "type": "tool",
+      "tool_id": "galaxy_tool_id_placeholder_for_transpose",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "scattered_beds": {
+      "id": 2,
+      "output_name": "output",
+      "description": "Scattered BED files with metadata and scatter count"
+    },
+    "versions": {
+      "id": 1,
+      "output_name": "versions",
+      "description": "Version information from BEDTOOLS_SPLIT"
+    }
+  }
+}

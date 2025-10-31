@@ -1,0 +1,91 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "DOWNLOAD_CACHE_SNPEFF_VEP",
+  "annotation": "Converted from nf-core subworkflow: Download cache files for SnpEff and Ensembl VEP annotation tools",
+  "steps": {
+    "0": {
+      "annotation": "Ensembl VEP download information (species, cache version, etc.)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ensemblvep_info"
+        }
+      ],
+      "name": "Input: ensemblvep_info",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "SnpEff download information (database version, etc.)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "snpeff_info"
+        }
+      ],
+      "name": "Input: snpeff_info",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Download Ensembl VEP cache files",
+      "id": 2,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Ensembl VEP Download",
+      "tool_id": "ensemblvep_download",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Download SnpEff cache files",
+      "id": 3,
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "SnpEff Download",
+      "tool_id": "pcingola_snpeff_SnpEff_1.0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    }
+  },
+  "outputs": {
+    "ensemblvep_cache": {
+      "annotation": "Ensembl VEP cache directory",
+      "id": 2,
+      "output_name": "cache"
+    },
+    "snpeff_cache": {
+      "annotation": "SnpEff cache directory",
+      "id": 3,
+      "output_name": "cache"
+    },
+    "versions": {
+      "annotation": "Tool versions",
+      "id": 2,
+      "output_name": "versions"
+    }
+  }
+}

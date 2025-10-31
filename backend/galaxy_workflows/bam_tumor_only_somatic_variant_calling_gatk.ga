@@ -1,0 +1,484 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_TUMOR_ONLY_SOMATIC_VARIANT_CALLING_GATK",
+  "annotation": "Converted from nf-core subworkflow: BAM_TUMOR_ONLY_SOMATIC_VARIANT_CALLING_GATK. Performs tumor-only somatic variant calling using GATK4 Mutect2, with contamination estimation and variant filtering.",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM file with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_input"
+        }
+      ],
+      "name": "Input BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference FASTA sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fai"
+        }
+      ],
+      "name": "Input FAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "FASTA dictionary file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_dict"
+        }
+      ],
+      "name": "Input DICT",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Alleles VCF file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_alleles"
+        }
+      ],
+      "name": "Input Alleles",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Alleles VCF index file",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_alleles_tbi"
+        }
+      ],
+      "name": "Input Alleles TBI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Germline resource VCF file",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_germline_resource"
+        }
+      ],
+      "name": "Input Germline Resource",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Germline resource VCF index file",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_germline_resource_tbi"
+        }
+      ],
+      "name": "Input Germline Resource TBI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Panel of normals VCF file",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_panel_of_normals"
+        }
+      ],
+      "name": "Input Panel of Normals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Panel of normals VCF index file",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_panel_of_normals_tbi"
+        }
+      ],
+      "name": "Input Panel of Normals TBI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "Interval file for variant calling",
+      "id": 10,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_interval_file"
+        }
+      ],
+      "name": "Input Interval File",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1210
+      }
+    },
+    "11": {
+      "annotation": "GATK4 Mutect2: Perform variant calling in tumor-only mode",
+      "id": 11,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "alleles": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "alleles_tbi": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "germline_resource": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "germline_resource_tbi": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "panel_of_normals": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "panel_of_normals_tbi": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 Mutect2",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "12": {
+      "annotation": "GATK4 GetPileupSummaries: Generate pileup summary table for contamination estimation",
+      "id": 12,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "interval_file": {
+          "id": 10,
+          "output_name": "output"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "germline_resource": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "germline_resource_tbi": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 GetPileupSummaries",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "13": {
+      "annotation": "GATK4 CalculateContamination: Estimate contamination and generate segmentation table from pileup summary",
+      "id": 13,
+      "input_connections": {
+        "pileup_table": {
+          "id": 12,
+          "output_name": "table"
+        }
+      },
+      "name": "GATK4 CalculateContamination",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "14": {
+      "annotation": "GATK4 FilterMutectCalls: Filter Mutect2 VCF using contamination and segmentation tables",
+      "id": 14,
+      "input_connections": {
+        "mutect2_vcf": {
+          "id": 11,
+          "output_name": "vcf"
+        },
+        "mutect2_tbi": {
+          "id": 11,
+          "output_name": "tbi"
+        },
+        "mutect2_stats": {
+          "id": 11,
+          "output_name": "stats"
+        },
+        "segmentation_table": {
+          "id": 13,
+          "output_name": "segmentation"
+        },
+        "contamination_table": {
+          "id": 13,
+          "output_name": "contamination"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 FilterMutectCalls",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "15": {
+      "annotation": "Output: Contamination table from CalculateContamination",
+      "id": 15,
+      "input_connections": {
+        "input": {
+          "id": 13,
+          "output_name": "contamination"
+        }
+      },
+      "name": "Output Contamination Table",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "16": {
+      "annotation": "Output: Filtered VCF stats from FilterMutectCalls",
+      "id": 16,
+      "input_connections": {
+        "input": {
+          "id": 14,
+          "output_name": "stats"
+        }
+      },
+      "name": "Output Filtered Stats",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "17": {
+      "annotation": "Output: Filtered VCF index from FilterMutectCalls",
+      "id": 17,
+      "input_connections": {
+        "input": {
+          "id": 14,
+          "output_name": "tbi"
+        }
+      },
+      "name": "Output Filtered TBI",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "18": {
+      "annotation": "Output: Filtered VCF from FilterMutectCalls",
+      "id": 18,
+      "input_connections": {
+        "input": {
+          "id": 14,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output Filtered VCF",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    },
+    "19": {
+      "annotation": "Output: Mutect2 VCF index",
+      "id": 19,
+      "input_connections": {
+        "input": {
+          "id": 11,
+          "output_name": "tbi"
+        }
+      },
+      "name": "Output Mutect2 TBI",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 490
+      }
+    },
+    "20": {
+      "annotation": "Output: Mutect2 VCF stats",
+      "id": 20,
+      "input_connections": {
+        "input": {
+          "id": 11,
+          "output_name": "stats"
+        }
+      },
+      "name": "Output Mutect2 Stats",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 610
+      }
+    },
+    "21": {
+      "annotation": "Output: Mutect2 VCF",
+      "id": 21,
+      "input_connections": {
+        "input": {
+          "id": 11,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output Mutect2 VCF",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 730
+      }
+    },
+    "22": {
+      "annotation": "Output: Pileup summary table from GetPileupSummaries",
+      "id": 22,
+      "input_connections": {
+        "input": {
+          "id": 12,
+          "output_name": "table"
+        }
+      },
+      "name": "Output Pileup Table",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 850
+      }
+    },
+    "23": {
+      "annotation": "Output: Segmentation table from CalculateContamination",
+      "id": 23,
+      "input_connections": {
+        "input": {
+          "id": 13,
+          "output_name": "segmentation"
+        }
+      },
+      "name": "Output Segmentation Table",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 970
+      }
+    }
+  }
+}

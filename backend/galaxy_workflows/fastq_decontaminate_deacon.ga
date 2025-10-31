@@ -1,0 +1,95 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_DECONTAMINATE_DEACON",
+  "annotation": "Converted from nf-core subworkflow FASTQ_DECONTAMINATE_DEACON. Decontaminates FASTQ reads using DEACON by indexing reference sequences and filtering reads against the index.",
+  "steps": {
+    "0": {
+      "annotation": "Input: Reference FASTA sequences",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reference_fasta"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input: FASTQ reads (single-end or paired-end)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input_reads"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Create DEACON index from reference FASTA sequences",
+      "id": 2,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "DEACON index",
+      "tool_id": "deacon_index",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Filter FASTQ reads against DEACON index to remove contaminants. Handles both single-end and paired-end reads.",
+      "id": 3,
+      "input_connections": {
+        "index": {
+          "id": 2,
+          "output_name": "index"
+        },
+        "reads": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "DEACON filter",
+      "tool_id": "deacon_filter",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 70
+      }
+    }
+  },
+  "outputs": {
+    "index": {
+      "annotation": "DEACON index files",
+      "id": 2,
+      "output_name": "index"
+    },
+    "fastq_filtered": {
+      "annotation": "Filtered FASTQ reads with contaminants removed",
+      "id": 3,
+      "output_name": "fastq_filtered"
+    },
+    "summary": {
+      "annotation": "DEACON filter summary log",
+      "id": 3,
+      "output_name": "log"
+    }
+  }
+}

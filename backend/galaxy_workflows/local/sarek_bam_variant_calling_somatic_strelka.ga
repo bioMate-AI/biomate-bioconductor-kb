@@ -1,0 +1,242 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SOMATIC_STRELKA",
+  "annotation": "Converted from nf-core subworkflow: STRELKA2 tumor-normal variant calling with spread-and-gather strategy for interval-based parallelization",
+  "steps": {
+    "0": {
+      "annotation": "Input: CRAM files with metadata (normal_cram, normal_crai, tumor_cram, tumor_crai, optional manta_vcf, manta_tbi)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input: Reference genome FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input: Reference genome FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input: Interval BED file (gzipped) and index for spread-and-gather strategy",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input: Optional dictionary file for GATK",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "STRELKA_SOMATIC: Runs Strelka2 somatic variant calling on tumor-normal pairs across intervals",
+      "id": 5,
+      "input_connections": {
+        "normal_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "tumor_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Strelka",
+      "tool_id": "mini_strelka_Strelka_1.0.1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 200
+      }
+    },
+    "6": {
+      "annotation": "Filter Strelka indel VCFs: Branch to separate single-interval (no merge needed) from multi-interval results",
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "vcf_indels"
+        }
+      },
+      "name": "Filter",
+      "tool_id": "Filter1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 100
+      }
+    },
+    "7": {
+      "annotation": "Filter Strelka SNV VCFs: Branch to separate single-interval (no merge needed) from multi-interval results",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "vcf_snvs"
+        }
+      },
+      "name": "Filter",
+      "tool_id": "Filter1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "8": {
+      "annotation": "MERGE_STRELKA_INDELS: Merge multiple indel VCF files from interval-based parallelization using GATK MergeVcfs",
+      "id": 8,
+      "input_connections": {
+        "vcf": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 100
+      }
+    },
+    "9": {
+      "annotation": "MERGE_STRELKA_SNVS: Merge multiple SNV VCF files from interval-based parallelization using GATK MergeVcfs",
+      "id": 9,
+      "input_connections": {
+        "vcf": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "Combine merged indel and SNV VCFs with single-interval results. Add variantcaller='strelka' to metadata.",
+      "id": 10,
+      "input_connections": {
+        "indels_merged": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "snvs_merged": {
+          "id": 9,
+          "output_name": "output"
+        },
+        "indels_single": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "snvs_single": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge Collections",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 175
+      }
+    },
+    "11": {
+      "annotation": "Output: Final VCF files with variant calls (indels and SNVs combined, annotated with variantcaller='strelka')",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 10,
+          "output_name": "output"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 175
+      }
+    }
+  }
+}

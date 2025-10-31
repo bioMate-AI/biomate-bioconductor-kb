@@ -1,0 +1,155 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SOMATIC_MUSE",
+  "annotation": "Somatic variant calling workflow using MuSE. Combines tumor and normal BAM files to identify somatic mutations. dbSNP is indexed with tabix before use in variant annotation.",
+  "steps": {
+    "0": {
+      "annotation": "Normal BAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam_normal"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Tumor BAM file with index",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam_tumor"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference FASTA file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "dbSNP VCF file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Index dbSNP VCF file with tabix",
+      "id": 4,
+      "input_connections": {
+        "input_file": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "tabix",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "5": {
+      "annotation": "MuSE call - detect somatic variants",
+      "id": 5,
+      "input_connections": {
+        "normal_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "tumor_bam": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "MUSE_CALL",
+      "tool_id": "muse_call",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "MuSE sump - filter and annotate variants with dbSNP",
+      "id": 6,
+      "input_connections": {
+        "muse_txt": {
+          "id": 5,
+          "output_name": "txt"
+        },
+        "dbsnp_vcf": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 4,
+          "output_name": "tbi"
+        }
+      },
+      "name": "MUSE_SUMP",
+      "tool_id": "muse_sump",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Output VCF with variant caller metadata",
+      "id": 7,
+      "input_connections": {
+        "vcf": {
+          "id": 6,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    }
+  }
+}

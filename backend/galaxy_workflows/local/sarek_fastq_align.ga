@@ -1,0 +1,272 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_ALIGN",
+  "annotation": "Converted from nf-core subworkflow - FASTQ alignment with multiple aligner options (BWA-MEM, BWA-MEM2, DRAGMAP, or Sentieon-BWAMEM)",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reads"
+        }
+      ],
+      "name": "Input reads",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input aligner index",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "index"
+        }
+      ],
+      "name": "Input index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input reference FASTA",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input FASTA index",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input FASTA index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Sort parameter (true/false)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "sort"
+        }
+      ],
+      "name": "Input sort parameter",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "BWA-MEM alignment - Alternative aligner option 1",
+      "id": 5,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "sort": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA-MEM (bwa mem)",
+      "tool_id": "bwa_mem",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "BWA-MEM2 alignment - Alternative aligner option 2",
+      "id": 6,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "sort": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA-MEM2 (bwamem2 mem)",
+      "tool_id": "bwamem2_mem",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "DRAGMAP alignment - Alternative aligner option 3",
+      "id": 7,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "sort": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "DRAGMAP align",
+      "tool_id": "dragmap_align",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "8": {
+      "annotation": "Sentieon BWA-MEM alignment - Alternative aligner option 4. Performs sorting as part of SAM to BAM conversion",
+      "id": 8,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Sentieon BWAMEM",
+      "tool_id": "sentieon_bwamem",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "9": {
+      "annotation": "Collect BAM outputs from all aligners (only one will be active)",
+      "id": 9,
+      "input_connections": {
+        "bam_bwamem1": {
+          "id": 5,
+          "output_name": "bam"
+        },
+        "bam_bwamem2": {
+          "id": 6,
+          "output_name": "bam"
+        },
+        "bam_dragmap": {
+          "id": 7,
+          "output_name": "bam"
+        },
+        "bam_sentieon": {
+          "id": 8,
+          "output_name": "bam"
+        }
+      },
+      "name": "Collect BAM files",
+      "tool_id": "cat",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "10": {
+      "annotation": "Collect BAI index from Sentieon output",
+      "id": 10,
+      "input_connections": {
+        "bai_sentieon": {
+          "id": 8,
+          "output_name": "bai"
+        }
+      },
+      "name": "Collect BAI files",
+      "tool_id": "cat",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "11": {
+      "annotation": "Collect alignment reports from DRAGMAP",
+      "id": 11,
+      "input_connections": {
+        "log_dragmap": {
+          "id": 7,
+          "output_name": "log"
+        }
+      },
+      "name": "Collect reports",
+      "tool_id": "cat",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    }
+  },
+  "outputs": {
+    "bam": {
+      "id": 9,
+      "output_name": "output",
+      "type": "data"
+    },
+    "bai": {
+      "id": 10,
+      "output_name": "output",
+      "type": "data"
+    },
+    "reports": {
+      "id": 11,
+      "output_name": "output",
+      "type": "data"
+    }
+  }
+}

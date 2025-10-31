@@ -1,0 +1,186 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SOMATIC_MANTA",
+  "annotation": "Converted from nf-core subworkflow: BAM_VARIANT_CALLING_SOMATIC_MANTA. Performs somatic variant calling using Manta to detect structural variants and small indels from tumor/normal sample pairs.",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM files with indices for tumor and normal samples",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram",
+          "description": "CRAM files with indices [meta, cram1, crai1, cram2, crai2]"
+        }
+      ],
+      "name": "Input dataset collection: CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference genome FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta",
+          "description": "Reference genome FASTA"
+        }
+      ],
+      "name": "Input dataset: FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input reference genome FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai",
+          "description": "Reference genome FASTA index"
+        }
+      ],
+      "name": "Input dataset: FASTA index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input interval BED file (optional, can be empty)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals",
+          "description": "Interval BED file with index [interval.bed.gz, interval.bed.gz.tbi] or empty"
+        }
+      ],
+      "name": "Input dataset collection: Intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Manta somatic variant calling - detects structural variants and small indels from tumor/normal sample pairs",
+      "id": 4,
+      "input_connections": {
+        "input_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "input_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "input_fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "input_intervals": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Manta",
+      "tool_id": "artbio_manta_Manta_1.6+galaxy9",
+      "tool_version": "1.6+galaxy9",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "5": {
+      "annotation": "Output: Candidate small indels VCF file",
+      "id": 5,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "candidate_small_indels_vcf"
+        }
+      },
+      "name": "Output: Candidate small indels VCF",
+      "type": "data_output",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Output: Candidate small indels VCF index file",
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "candidate_small_indels_vcf_tbi"
+        }
+      },
+      "name": "Output: Candidate small indels VCF index",
+      "type": "data_output",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Output: Candidate SV VCF file",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "candidate_sv_vcf"
+        }
+      },
+      "name": "Output: Candidate SV VCF",
+      "type": "data_output",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "8": {
+      "annotation": "Output: Diploid SV VCF file (annotated with variantcaller=manta)",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "diploid_sv_vcf"
+        }
+      },
+      "name": "Output: Diploid SV VCF",
+      "type": "data_output",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "9": {
+      "annotation": "Output: Somatic SV VCF file (annotated with variantcaller=manta)",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "somatic_sv_vcf"
+        }
+      },
+      "name": "Output: Somatic SV VCF",
+      "type": "data_output",
+      "position": {
+        "left": 450,
+        "top": 490
+      }
+    }
+  }
+}

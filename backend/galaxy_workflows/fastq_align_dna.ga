@@ -1,0 +1,396 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_ALIGN_DNA",
+  "annotation": "Align fastq files to a reference genome using selectable aligner (bowtie2, bwamem, bwamem2, dragmap, snap, or strobealign). Converted from nf-core subworkflow.",
+  "steps": {
+    "0": {
+      "annotation": "Input fastq reads",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Aligner index files",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_aligner_index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference fasta file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Aligner selection parameter",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "aligner"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Sort BAM files parameter",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "sort"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Bowtie2 alignment - alternative path when aligner == 'bowtie2'",
+      "id": 5,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "sort": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Bowtie2",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/Repository_Actions_Bowtie2",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "BWA-MEM alignment - alternative path when aligner == 'bwamem'",
+      "id": 6,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "sort": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA-MEM",
+      "tool_id": "bwa_mem",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "BWA-MEM2 alignment - alternative path when aligner == 'bwamem2'",
+      "id": 7,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "sort": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA-MEM2",
+      "tool_id": "bwamem2_mem",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "DRAGMAP alignment - alternative path when aligner == 'dragmap'",
+      "id": 8,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "sort": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "DRAGMAP",
+      "tool_id": "dragmap_align",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "SNAP alignment - alternative path when aligner == 'snap'",
+      "id": 9,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "SNAP",
+      "tool_id": "iuc_snap_SNAP_2013_11_29",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Strobealign alignment - alternative path when aligner == 'strobealign'",
+      "id": 10,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "sort": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "strobealign",
+      "tool_id": "nfcore_strobealign",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "Collect BAM outputs from all aligner paths",
+      "id": 11,
+      "input_connections": {
+        "input1": {
+          "id": 5,
+          "output_name": "bam"
+        },
+        "input2": {
+          "id": 6,
+          "output_name": "bam"
+        },
+        "input3": {
+          "id": 7,
+          "output_name": "bam"
+        },
+        "input4": {
+          "id": 8,
+          "output_name": "bam"
+        },
+        "input5": {
+          "id": 9,
+          "output_name": "bam"
+        },
+        "input6": {
+          "id": 10,
+          "output_name": "bam"
+        }
+      },
+      "name": "Merge collections",
+      "tool_id": "galaxy_merge_collections",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "12": {
+      "annotation": "Collect BAM index outputs from applicable aligner paths",
+      "id": 12,
+      "input_connections": {
+        "input1": {
+          "id": 6,
+          "output_name": "csi"
+        },
+        "input2": {
+          "id": 9,
+          "output_name": "bai"
+        },
+        "input3": {
+          "id": 10,
+          "output_name": "csi"
+        }
+      },
+      "name": "Merge collections",
+      "tool_id": "galaxy_merge_collections",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 130
+      }
+    },
+    "13": {
+      "annotation": "Collect report outputs from DRAGMAP path",
+      "id": 13,
+      "input_connections": {
+        "input": {
+          "id": 8,
+          "output_name": "log"
+        }
+      },
+      "name": "Merge collections",
+      "tool_id": "galaxy_merge_collections",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 250
+      }
+    },
+    "14": {
+      "annotation": "Collect version outputs from all aligner paths",
+      "id": 14,
+      "input_connections": {
+        "input1": {
+          "id": 5,
+          "output_name": "versions"
+        },
+        "input2": {
+          "id": 6,
+          "output_name": "versions"
+        },
+        "input3": {
+          "id": 7,
+          "output_name": "versions"
+        },
+        "input4": {
+          "id": 8,
+          "output_name": "versions"
+        },
+        "input5": {
+          "id": 9,
+          "output_name": "versions"
+        },
+        "input6": {
+          "id": 10,
+          "output_name": "versions"
+        }
+      },
+      "name": "Merge collections",
+      "tool_id": "galaxy_merge_collections",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 370
+      }
+    }
+  },
+  "outputs": {
+    "bam": {
+      "id": 11,
+      "output_name": "output",
+      "type": "collection",
+      "annotation": "Aligned BAM files"
+    },
+    "bam_index": {
+      "id": 12,
+      "output_name": "output",
+      "type": "collection",
+      "annotation": "BAM index files (CSI or BAI format)"
+    },
+    "reports": {
+      "id": 13,
+      "output_name": "output",
+      "type": "collection",
+      "annotation": "Alignment reports (from DRAGMAP if selected)"
+    },
+    "versions": {
+      "id": 14,
+      "output_name": "output",
+      "type": "collection",
+      "annotation": "Version information from selected aligner"
+    }
+  }
+}

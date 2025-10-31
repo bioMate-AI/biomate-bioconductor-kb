@@ -1,0 +1,280 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_RSEQC",
+  "annotation": "BAM_RSEQC: Comprehensive RSeQC quality control workflow. Runs multiple RSeQC modules conditionally based on input parameters. Modules include: bam_stat, inner_distance, infer_experiment, junction_annotation, junction_saturation, read_distribution, read_duplication, and tin. Each module produces specific output files for quality assessment.",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM and BAI files",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam_bai"
+        }
+      ],
+      "name": "Input BAM/BAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input BED annotation file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bed"
+        }
+      ],
+      "name": "Input BED",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input list of RSeQC modules to run",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "rseqc_modules"
+        }
+      ],
+      "name": "Input RSeQC Modules",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "RSeQC bam_stat module - generates BAM statistics",
+      "id": 3,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "RSEQC_BAMSTAT",
+      "tool_id": "nilesh_rseqc__5.0.3+galaxy0",
+      "tool_state": "{\"rseqc_module\": \"bam_stat\"}",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "RSeQC inner_distance module - calculates inner distance between paired reads",
+      "id": 4,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bed": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "RSEQC_INNERDISTANCE",
+      "tool_id": "nilesh_rseqc__5.0.3+galaxy0",
+      "tool_state": "{\"rseqc_module\": \"inner_distance\"}",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "RSeQC infer_experiment module - infers strandedness and read orientation",
+      "id": 5,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bed": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "RSEQC_INFEREXPERIMENT",
+      "tool_id": "nilesh_rseqc__5.0.3+galaxy0",
+      "tool_state": "{\"rseqc_module\": \"infer_experiment\"}",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "RSeQC junction_annotation module - annotates splice junctions",
+      "id": 6,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bed": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "RSEQC_JUNCTIONANNOTATION",
+      "tool_id": "nilesh_rseqc__5.0.3+galaxy0",
+      "tool_state": "{\"rseqc_module\": \"junction_annotation\"}",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "RSeQC junction_saturation module - evaluates junction saturation",
+      "id": 7,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bed": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "RSEQC_JUNCTIONSATURATION",
+      "tool_id": "nilesh_rseqc__5.0.3+galaxy0",
+      "tool_state": "{\"rseqc_module\": \"junction_saturation\"}",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "RSeQC read_distribution module - calculates read distribution across genomic features",
+      "id": 8,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bed": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "RSEQC_READDISTRIBUTION",
+      "tool_id": "nilesh_rseqc__5.0.3+galaxy0",
+      "tool_state": "{\"rseqc_module\": \"read_distribution\"}",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "RSeQC read_duplication module - evaluates read duplication levels",
+      "id": 9,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "RSEQC_READDUPLICATION",
+      "tool_id": "nilesh_rseqc__5.0.3+galaxy0",
+      "tool_state": "{\"rseqc_module\": \"read_duplication\"}",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "RSeQC tin module - calculates transcript integrity number",
+      "id": 10,
+      "input_connections": {
+        "bam_bai": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bed": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "RSEQC_TIN",
+      "tool_id": "nilesh_rseqc__5.0.3+galaxy0",
+      "tool_state": "{\"rseqc_module\": \"tin\"}",
+      "type": "tool",
+      "position": {
+        "left": 1770,
+        "top": 10
+      }
+    }
+  },
+  "steps_meta": {
+    "3": {
+      "outputs": [
+        "bamstat_txt"
+      ]
+    },
+    "4": {
+      "outputs": [
+        "innerdistance_distance",
+        "innerdistance_freq",
+        "innerdistance_mean",
+        "innerdistance_pdf",
+        "innerdistance_rscript"
+      ]
+    },
+    "5": {
+      "outputs": [
+        "inferexperiment_txt"
+      ]
+    },
+    "6": {
+      "outputs": [
+        "junctionannotation_bed",
+        "junctionannotation_interact_bed",
+        "junctionannotation_xls",
+        "junctionannotation_pdf",
+        "junctionannotation_events_pdf",
+        "junctionannotation_rscript",
+        "junctionannotation_log"
+      ]
+    },
+    "7": {
+      "outputs": [
+        "junctionsaturation_pdf",
+        "junctionsaturation_rscript"
+      ]
+    },
+    "8": {
+      "outputs": [
+        "readdistribution_txt"
+      ]
+    },
+    "9": {
+      "outputs": [
+        "readduplication_seq_xls",
+        "readduplication_pos_xls",
+        "readduplication_pdf",
+        "readduplication_rscript"
+      ]
+    },
+    "10": {
+      "outputs": [
+        "tin_txt"
+      ]
+    }
+  }
+}

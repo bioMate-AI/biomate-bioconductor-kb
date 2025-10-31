@@ -22,7 +22,21 @@ class ToolSearchIndex:
 
     def __init__(self, db_path: str = None):
         if db_path is None:
-            db_path = str(Path(__file__).parent.parent.parent.parent / "galaxy_ai_tools.db")
+            # Try database/ subdirectory first, then root
+            db_path_1 = Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_tools.db"
+            db_path_2 = Path(__file__).parent.parent.parent.parent / "galaxy_ai_tools.db"
+
+            if db_path_1.exists():
+                db_path = str(db_path_1)
+                log.info(f"Using database at {db_path_1}")
+            elif db_path_2.exists():
+                db_path = str(db_path_2)
+                log.info(f"Using database at {db_path_2}")
+            else:
+                raise FileNotFoundError(
+                    f"Galaxy AI tools database not found at {db_path_1} or {db_path_2}"
+                )
+
         self.db_path = db_path
         self._local = threading.local()
         self._lock = threading.RLock()
@@ -168,8 +182,13 @@ class ToolSearchIndex:
     def get_installed_tools(self) -> List[Dict[str, Any]]:
         """Get list of installed tools (thread-safe)"""
         with self._get_cursor() as cursor:
-            cursor.execute('SELECT * FROM tools WHERE is_installed = 1 ORDER BY install_date DESC')
-            return [dict(row) for row in cursor.fetchall()]
+            try:
+                cursor.execute('SELECT * FROM tools WHERE is_installed = 1 ORDER BY install_date DESC')
+                return [dict(row) for row in cursor.fetchall()]
+            except sqlite3.OperationalError as e:
+                # Column doesn't exist yet
+                log.warning(f"is_installed column not found: {e}, returning empty list")
+                return []
 
     def mark_installed(self, tool_id: str, status: str = 'installed'):
         """
@@ -186,15 +205,22 @@ class ToolSearchIndex:
             conn = self._get_connection()
             cursor = conn.cursor()
             try:
-                cursor.execute('''
-                    UPDATE tools
-                    SET is_installed = 1,
-                        install_status = ?,
-                        install_date = CURRENT_TIMESTAMP
-                    WHERE tool_id = ?
-                ''', (status, tool_id))
-                conn.commit()
-                log.info(f"Marked tool {tool_id} as {status}")
+                # Check if columns exist
+                cursor.execute("PRAGMA table_info(tools)")
+                columns = [row[1] for row in cursor.fetchall()]
+
+                if 'is_installed' in columns:
+                    cursor.execute('''
+                        UPDATE tools
+                        SET is_installed = 1,
+                            install_status = ?,
+                            install_date = CURRENT_TIMESTAMP
+                        WHERE tool_id = ?
+                    ''', (status, tool_id))
+                    conn.commit()
+                    log.info(f"Marked tool {tool_id} as {status}")
+                else:
+                    log.warning("is_installed column not found, skipping mark_installed")
             except Exception as e:
                 conn.rollback()
                 log.error(f"Failed to mark tool {tool_id} as installed: {e}")
@@ -292,12 +318,33 @@ class ToolSearchIndex:
 
             help_text_raw = tool.get('help_text', '{}')
             help_text = json.loads(help_text_raw) if isinstance(help_text_raw, str) else (help_text_raw or {})
+
+            # NEW: Parse additional metadata fields
+            examples_raw = tool.get('examples', '[]')
+            examples = json.loads(examples_raw) if isinstance(examples_raw, str) else (examples_raw or [])
+
+            citations_raw = tool.get('citations', '[]')
+            citations = json.loads(citations_raw) if isinstance(citations_raw, str) else (citations_raw or [])
+
+            edam_operations_raw = tool.get('edam_operations', '[]')
+            edam_operations = json.loads(edam_operations_raw) if isinstance(edam_operations_raw, str) else (edam_operations_raw or [])
+
+            requirements_raw = tool.get('requirements', '[]')
+            requirements = json.loads(requirements_raw) if isinstance(requirements_raw, str) else (requirements_raw or [])
+
+            tags_raw = tool.get('tags', '[]')
+            tags = json.loads(tags_raw) if isinstance(tags_raw, str) else (tags_raw or [])
         except (json.JSONDecodeError, TypeError) as e:
             log.warning(f"Failed to parse JSON fields for tool {tool_id}: {e}")
             parameters = []
             inputs = []
             outputs = []
             help_text = {}
+            examples = []
+            citations = []
+            edam_operations = []
+            requirements = []
+            tags = []
 
         # Convert database parameters to frontend ToolParameter format
         frontend_inputs = []
@@ -344,20 +391,78 @@ class ToolSearchIndex:
         # Format outputs
         frontend_outputs = []
         for output in outputs:
-            frontend_outputs.append({
-                'name': output.get('name', ''),
-                'format': output.get('format', 'data'),
-                'label': output.get('label', output.get('name', '')),
-            })
+            if isinstance(output, dict):
+                frontend_outputs.append({
+                    'name': output.get('name', ''),
+                    'format': output.get('format', output.get('type', 'data')),
+                    'label': output.get('label', output.get('description', output.get('name', ''))),
+                    'description': output.get('description', ''),
+                    'pattern': output.get('pattern', ''),
+                })
+            else:
+                # Simple format list
+                frontend_outputs.append({
+                    'name': output,
+                    'format': output,
+                    'label': output,
+                })
 
-        # Return formatted schema
+        # Extract function info
+        function_info = help_text.get('function_info', {})
+
+        # Get software version from requirements (not wrapper version)
+        software_version = None
+        underlying_software = function_info.get('underlying_software')
+        if underlying_software:
+            for req in requirements:
+                if isinstance(req, dict):
+                    req_name = req.get('name', '').split('::')[-1].lower()
+                    if req_name == underlying_software.lower() or req.get('type') in ['package', 'conda']:
+                        software_version = req.get('version')
+                        if software_version:
+                            break
+
+        # Return comprehensive formatted schema
         return {
+            # Basic info
             'id': tool.get('tool_id') or tool.get('id'),
             'name': tool.get('name', ''),
-            'version': tool.get('version', ''),
+            'version': tool.get('version', ''),  # Wrapper version
             'description': tool.get('description', '') or help_text.get('what_it_does', ''),
+            'category': tool.get('category', ''),
+
+            # Parameters and I/O
             'inputs': frontend_inputs,
             'outputs': frontend_outputs,
+
+            # NEW: Comprehensive metadata
+            'function_info': {
+                'underlying_software': function_info.get('underlying_software'),
+                'software_version': software_version,  # Actual software version
+                'wrapper_version': tool.get('version'),  # Wrapper version
+                'wrapper_function': function_info.get('wrapper_function'),
+                'operation_type': function_info.get('operation_type'),
+                'is_primary_function': function_info.get('is_primary_function', True),
+            },
+
+            'examples': examples,
+            'usage_guide': tool.get('usage_guide', ''),
+            'citations': citations,
+            'edam_operations': edam_operations,
+            'requirements': requirements,
+            'tags': tags,
+
+            'help': {
+                'what_it_does': help_text.get('what_it_does', ''),
+                'how_to_use': help_text.get('how_to_use', ''),
+                'homepage': help_text.get('homepage', ''),
+                'documentation': help_text.get('documentation', ''),
+                'keywords': help_text.get('keywords', []),
+            },
+
+            'url': tool.get('url', ''),
+            'repo_owner': tool.get('repo_owner', ''),
+            'repo_name': tool.get('repo_name', ''),
         }
 
     def _map_parameter_type(self, db_type: str) -> str:

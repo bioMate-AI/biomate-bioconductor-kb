@@ -1,0 +1,196 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "MMSEQS_FASTA_CLUSTER",
+  "annotation": "Converted from nf-core subworkflow MMSEQS_FASTA_CLUSTER. Clusters sequences using MMseqs2 with conditional clustering method (linclust or cluster).",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTA sequences",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "sequences",
+          "description": "FASTA sequences to cluster"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Clustering tool selection parameter",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "clustering_tool",
+          "description": "Clustering method: 'linclust' or 'cluster'"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Create MMseqs2 database from input sequences",
+      "id": 2,
+      "input_connections": {
+        "sequences": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "MMSEQS_CREATEDB",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mmseqs2_database/Repository_Actions_Download_MMseqs2_databases",
+      "tool_version": "17-b804f+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Cluster sequences using MMseqs2 cluster method (alternative path)",
+      "id": 3,
+      "input_connections": {
+        "db": {
+          "id": 2,
+          "output_name": "db"
+        },
+        "clustering_tool": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "MMSEQS_CLUSTER",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mmseqs2_database/Repository_Actions_Download_MMseqs2_databases",
+      "tool_version": "17-b804f+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "Cluster sequences using MMseqs2 linclust method (alternative path)",
+      "id": 4,
+      "input_connections": {
+        "db": {
+          "id": 2,
+          "output_name": "db"
+        },
+        "clustering_tool": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "MMSEQS_LINCLUST",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mmseqs2_database/Repository_Actions_Download_MMseqs2_databases",
+      "tool_version": "17-b804f+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "5": {
+      "annotation": "Convert clustering results to TSV format using cluster method output",
+      "id": 5,
+      "input_connections": {
+        "db_cluster": {
+          "id": 3,
+          "output_name": "db_cluster"
+        },
+        "db": {
+          "id": 2,
+          "output_name": "db"
+        }
+      },
+      "name": "MMSEQS_CREATETSV (cluster)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mmseqs2_database/Repository_Actions_Download_MMseqs2_databases",
+      "tool_version": "17-b804f+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Convert clustering results to TSV format using linclust method output",
+      "id": 6,
+      "input_connections": {
+        "db_cluster": {
+          "id": 4,
+          "output_name": "db_cluster"
+        },
+        "db": {
+          "id": 2,
+          "output_name": "db"
+        }
+      },
+      "name": "MMSEQS_CREATETSV (linclust)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mmseqs2_database/Repository_Actions_Download_MMseqs2_databases",
+      "tool_version": "17-b804f+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Output: Clustering TSV results from cluster method",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "tsv"
+        }
+      },
+      "name": "Output clusters (cluster)",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output: Clustering TSV results from linclust method",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "tsv"
+        }
+      },
+      "name": "Output clusters (linclust)",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output: Original sequences",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Output sequences",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    }
+  }
+}

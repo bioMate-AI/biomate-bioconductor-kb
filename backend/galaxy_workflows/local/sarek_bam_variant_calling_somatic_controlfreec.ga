@@ -1,0 +1,288 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SOMATIC_CONTROLFREEC",
+  "annotation": "Converted from nf-core subworkflow for somatic variant calling using Control-FREEC",
+  "steps": {
+    "0": {
+      "annotation": "Control-FREEC input channel containing pileup files for normal and tumor samples",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "controlfreec_input"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference genome FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference genome FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "dbSNP VCF file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "dbSNP VCF index file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp_tbi"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Chromosome files for Control-FREEC",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "chr_files"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Mappability file for Control-FREEC",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "mappability"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Optional BED file with intervals for targeted sequencing",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "id": 8,
+      "input_connections": {
+        "input_pileup": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "chr_files": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "mappability": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "intervals_bed": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Control-FREEC",
+      "tool_id": "iuc_control_freec_Control-FREEC_11.6+galaxy2",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 400
+      }
+    },
+    "9": {
+      "id": 9,
+      "input_connections": {
+        "cnv_file": {
+          "id": 8,
+          "output_name": "cnv_output"
+        },
+        "ratio_file": {
+          "id": 8,
+          "output_name": "ratio_output"
+        }
+      },
+      "name": "Assess Significance",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/ufz/dose_response_analysis_tool/Repository_Actions_Dose_Response_Curve_for_Toxicological_Risk_Assessment",
+      "type": "tool",
+      "annotation": "Assess statistical significance of CNV calls",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "10": {
+      "id": 10,
+      "input_connections": {
+        "ratio_file": {
+          "id": 8,
+          "output_name": "ratio_output"
+        }
+      },
+      "name": "FREEC2BED",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core-modules/controlfreec_freec2bed/controlfreec_freec2bed",
+      "type": "tool",
+      "annotation": "Convert FREEC ratio output to BED format",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "11": {
+      "id": 11,
+      "input_connections": {
+        "ratio_file": {
+          "id": 8,
+          "output_name": "ratio_output"
+        }
+      },
+      "name": "FREEC2CIRCOS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core-modules/controlfreec_freec2circos/controlfreec_freec2circos",
+      "type": "tool",
+      "annotation": "Convert FREEC ratio output to CIRCOS format",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "12": {
+      "id": 12,
+      "input_connections": {
+        "ratio_file": {
+          "id": 8,
+          "output_name": "ratio_output"
+        },
+        "baf_file": {
+          "id": 8,
+          "output_name": "baf_output"
+        }
+      },
+      "name": "MAKEGRAPH2",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core-modules/controlfreec_makegraph2/controlfreec_makegraph2",
+      "type": "tool",
+      "annotation": "Generate visualization graphs from FREEC ratio and BAF files",
+      "position": {
+        "left": 450,
+        "top": 490
+      }
+    },
+    "13": {
+      "annotation": "Collect all version information from tools",
+      "id": 13,
+      "input_connections": {
+        "freec_versions": {
+          "id": 8,
+          "output_name": "versions"
+        },
+        "assess_versions": {
+          "id": 9,
+          "output_name": "versions"
+        },
+        "freec2bed_versions": {
+          "id": 10,
+          "output_name": "versions"
+        },
+        "freec2circos_versions": {
+          "id": 11,
+          "output_name": "versions"
+        },
+        "makegraph2_versions": {
+          "id": 12,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 400
+      }
+    }
+  }
+}

@@ -1,0 +1,398 @@
+{
+  "workflows": {},
+  "subworkflows": {
+    "quantify_pseudo_alignment": {
+      "subworkflow_overview": {
+        "name": "quantify_pseudo_alignment",
+        "purpose": "Perform quantification with Salmon or Kallisto to produce count tables and SummarizedExperiment objects",
+        "typical_position": "middle",
+        "prerequisites": "Requires input files like sample sheet, reads, indexes, transcript FASTA, and GTF"
+      },
+      "component_tools": [
+        {
+          "tool": "SALMON_QUANT",
+          "role": "Performs quantification using the Salmon pseudoalignment tool",
+          "alternatives": [
+            "KALLISTO_QUANT"
+          ],
+          "why_chosen": "Salmon is a popular and accurate pseudoalignment tool for RNA-seq quantification"
+        },
+        {
+          "tool": "KALLISTO_QUANT",
+          "role": "Performs quantification using the Kallisto pseudoalignment tool",
+          "alternatives": [
+            "SALMON_QUANT"
+          ],
+          "why_chosen": "Kallisto is another popular and fast pseudoalignment tool for RNA-seq quantification"
+        },
+        {
+          "tool": "CUSTOM_TX2GENE",
+          "role": "Generates a tx2gene mapping file required by downstream tools",
+          "alternatives": [],
+          "why_chosen": "Needed to map transcript IDs to gene IDs for downstream analysis"
+        },
+        {
+          "tool": "TXIMETA_TXIMPORT",
+          "role": "Imports the quantification results into R/Bioconductor SummarizedExperiment objects",
+          "alternatives": [],
+          "why_chosen": "SummarizedExperiment is a common data structure for RNA-seq analysis in R"
+        },
+        {
+          "tool": "SE_GENE_UNIFIED",
+          "role": "Generates a unified SummarizedExperiment object at the gene level",
+          "alternatives": [
+            "SE_TRANSCRIPT_UNIFIED"
+          ],
+          "why_chosen": "Gene-level quantification is often the starting point for many RNA-seq analyses"
+        },
+        {
+          "tool": "SE_TRANSCRIPT_UNIFIED",
+          "role": "Generates a unified SummarizedExperiment object at the transcript level",
+          "alternatives": [
+            "SE_GENE_UNIFIED"
+          ],
+          "why_chosen": "Transcript-level quantification can provide additional insights in some analyses"
+        }
+      ],
+      "data_flow": {
+        "input": "sample sheet, reads, indexes, transcript FASTA, GTF",
+        "transformations": [
+          "Quantify reads using Salmon or Kallisto",
+          "Generate tx2gene mapping",
+          "Import quantification results into SummarizedExperiment objects"
+        ],
+        "output": "Unified SummarizedExperiment objects at gene and transcript levels",
+        "format_conversions": "Converts quantification results into R/Bioconductor data structures"
+      },
+      "use_patterns": [
+        {
+          "scenario": "Typical RNA-seq quantification workflow",
+          "upstream": "Preprocessing of raw reads (e.g., trimming, QC)",
+          "downstream": "Downstream RNA-seq analysis (e.g., differential expression, pathway analysis)",
+          "variations": "Can use either Salmon or Kallisto for quantification"
+        }
+      ],
+      "parameter_interactions": [
+        {
+          "parameter": "pseudo_aligner",
+          "affects_which_tools": [
+            "SALMON_QUANT",
+            "KALLISTO_QUANT"
+          ],
+          "interaction": "Determines which pseudoalignment tool is used for quantification"
+        },
+        {
+          "parameter": "alignment_mode",
+          "affects_which_tools": [
+            "SALMON_QUANT"
+          ],
+          "interaction": "Specifies whether Salmon should run in alignment mode or not"
+        },
+        {
+          "parameter": "lib_type",
+          "affects_which_tools": [
+            "SALMON_QUANT"
+          ],
+          "interaction": "Overrides the automatically detected Salmon library type"
+        },
+        {
+          "parameter": "kallisto_quant_fraglen",
+          "affects_which_tools": [
+            "KALLISTO_QUANT"
+          ],
+          "interaction": "Specifies the estimated fragment length required by Kallisto in single-end mode"
+        },
+        {
+          "parameter": "kallisto_quant_fraglen_sd",
+          "affects_which_tools": [
+            "KALLISTO_QUANT"
+          ],
+          "interaction": "Specifies the estimated standard error for fragment length required by Kallisto in single-end mode"
+        }
+      ],
+      "quality_gates": {
+        "checks_performed": [
+          "Verify that quantification results are generated for all samples",
+          "Ensure that SummarizedExperiment objects are properly constructed"
+        ],
+        "failure_modes": [
+          "Quantification fails for one or more samples",
+          "Issues with generating SummarizedExperiment objects"
+        ],
+        "recovery_actions": [
+          "Investigate the cause of quantification failures and retry",
+          "Debug the SummarizedExperiment generation process"
+        ]
+      }
+    },
+    "vcf_annotate_ensemblvep_snpeff": {
+      "subworkflow_overview": {
+        "name": "vcf_annotate_ensemblvep_snpeff",
+        "purpose": "Perform annotation with ensemblvep and/or snpeff and bgzip + tabix index the resulting VCF file. This subworkflow uses the scatter-gather method to run VEP/snpEff in parallel to increase throughput.",
+        "typical_position": "middle",
+        "prerequisites": "Input VCF file"
+      },
+      "component_tools": [
+        {
+          "tool": "ensemblvep/download",
+          "role": "Download the required Ensembl VEP cache files",
+          "alternatives": [
+            "manual download and provision of cache files"
+          ],
+          "why_chosen": "Automated download of required files"
+        },
+        {
+          "tool": "ensemblvep/vep",
+          "role": "Annotate the VCF file using Ensembl VEP",
+          "alternatives": [
+            "other VEP tools"
+          ],
+          "why_chosen": "Ensembl VEP is a widely used and comprehensive variant annotation tool"
+        },
+        {
+          "tool": "snpeff/download",
+          "role": "Download the required SnpEff database files",
+          "alternatives": [
+            "manual download and provision of database files"
+          ],
+          "why_chosen": "Automated download of required files"
+        },
+        {
+          "tool": "snpeff/snpeff",
+          "role": "Annotate the VCF file using SnpEff",
+          "alternatives": [
+            "other variant annotation tools"
+          ],
+          "why_chosen": "SnpEff is a popular and widely used variant annotation tool"
+        },
+        {
+          "tool": "tabix/tabix",
+          "role": "Index the annotated VCF file using tabix",
+          "alternatives": [
+            "other VCF indexing tools"
+          ],
+          "why_chosen": "Tabix is a widely used and efficient VCF indexing tool"
+        },
+        {
+          "tool": "tabix/bgzip",
+          "role": "Compress the annotated VCF file using bgzip",
+          "alternatives": [
+            "other VCF compression tools"
+          ],
+          "why_chosen": "Bgzip is commonly used to compress VCF files"
+        },
+        {
+          "tool": "bcftools/pluginscatter",
+          "role": "Split the input VCF file into smaller chunks for parallel processing",
+          "alternatives": [
+            "other VCF splitting tools"
+          ],
+          "why_chosen": "BCFtools plugin for efficient VCF splitting"
+        },
+        {
+          "tool": "bcftools/concat",
+          "role": "Concatenate the annotated VCF chunks back into a single file",
+          "alternatives": [
+            "other VCF concatenation tools"
+          ],
+          "why_chosen": "BCFtools concat is a reliable tool for merging VCF files"
+        },
+        {
+          "tool": "bcftools/sort",
+          "role": "Sort the final annotated VCF file",
+          "alternatives": [
+            "other VCF sorting tools"
+          ],
+          "why_chosen": "BCFtools sort is a commonly used tool for sorting VCF files"
+        }
+      ],
+      "data_flow": {
+        "input": "VCF file, optional FASTA file, and various configuration parameters",
+        "transformations": [
+          "Split the input VCF file into smaller chunks",
+          "Annotate each VCF chunk using Ensembl VEP and/or SnpEff",
+          "Concatenate the annotated VCF chunks back into a single file",
+          "Sort the final annotated VCF file",
+          "Compress and index the final annotated VCF file"
+        ],
+        "output": "Annotated and indexed VCF file",
+        "format_conversions": "VCF to compressed and indexed VCF"
+      },
+      "use_patterns": [
+        {
+          "scenario": "Annotate VCF files with Ensembl VEP and/or SnpEff",
+          "upstream": "VCF file generation",
+          "downstream": "Downstream analysis of annotated VCF file",
+          "variations": "Use only Ensembl VEP, only SnpEff, or both"
+        }
+      ],
+      "parameter_interactions": [
+        {
+          "parameter": "val_sites_per_chunk",
+          "affects_which_tools": [
+            "bcftools/pluginscatter"
+          ],
+          "interaction": "Determines the number of VCF chunks to create for parallel processing"
+        },
+        {
+          "parameter": "val_tools_to_use",
+          "affects_which_tools": [
+            "ensemblvep/vep",
+            "snpeff/snpeff"
+          ],
+          "interaction": "Specifies which annotation tools to use (Ensembl VEP, SnpEff, or both)"
+        }
+      ],
+      "quality_gates": {
+        "checks_performed": [
+          "Ensure input VCF file is valid",
+          "Verify successful download and availability of Ensembl VEP cache and SnpEff database files",
+          "Check for successful annotation of each VCF chunk",
+          "Validate the final annotated VCF file"
+        ],
+        "failure_modes": [
+          "Input VCF file is missing or corrupted",
+          "Failure to download required cache or database files",
+          "Annotation failure for one or more VCF chunks",
+          "Issues with concatenation or sorting of the final VCF file"
+        ],
+        "recovery_actions": [
+          "Provide a valid input VCF file",
+          "Manually download and provide the required cache or database files",
+          "Investigate and fix issues with individual VCF chunk annotation",
+          "Troubleshoot and resolve issues with the final VCF file processing"
+        ]
+      }
+    },
+    "fastq_align_chromap": {
+      "subworkflow_overview": {
+        "name": "fastq_align_chromap",
+        "purpose": "Align high throughput chromatin profiles using Chromap then sort with samtools",
+        "typical_position": "middle",
+        "prerequisites": "Requires FASTQ reads, genome index, and reference FASTA"
+      },
+      "component_tools": [
+        {
+          "tool": "chromap/chromap",
+          "role": "Aligns the input FASTQ reads to the reference genome",
+          "alternatives": [
+            "bowtie2",
+            "bwa",
+            "minimap2"
+          ],
+          "why_chosen": "Chromap is a fast and accurate aligner for chromatin profiling data"
+        },
+        {
+          "tool": "samtools/sort",
+          "role": "Sorts the aligned BAM file",
+          "alternatives": [
+            "picard SortSam"
+          ],
+          "why_chosen": "Samtools is a widely used and efficient tool for BAM file manipulation"
+        },
+        {
+          "tool": "samtools/index",
+          "role": "Indexes the sorted BAM file",
+          "alternatives": [
+            "picard BuildBamIndex"
+          ],
+          "why_chosen": "Samtools is a widely used and efficient tool for BAM file manipulation"
+        },
+        {
+          "tool": "samtools/stats",
+          "role": "Generates statistics for the aligned BAM file",
+          "alternatives": [
+            "picard CollectMultipleMetrics"
+          ],
+          "why_chosen": "Samtools is a widely used and efficient tool for BAM file manipulation"
+        },
+        {
+          "tool": "samtools/idxstats",
+          "role": "Generates index statistics for the aligned BAM file",
+          "alternatives": [
+            "picard CollectMultipleMetrics"
+          ],
+          "why_chosen": "Samtools is a widely used and efficient tool for BAM file manipulation"
+        },
+        {
+          "tool": "samtools/flagstat",
+          "role": "Generates flag statistics for the aligned BAM file",
+          "alternatives": [
+            "picard CollectMultipleMetrics"
+          ],
+          "why_chosen": "Samtools is a widely used and efficient tool for BAM file manipulation"
+        },
+        {
+          "tool": "bam_sort_stats_samtools",
+          "role": "Wraps the Samtools tools for sorting, indexing, and generating statistics",
+          "alternatives": [
+            "picard CollectMultipleMetrics"
+          ],
+          "why_chosen": "Provides a convenient way to run multiple Samtools commands"
+        }
+      ],
+      "data_flow": {
+        "input": "FASTQ reads, genome index, reference FASTA",
+        "transformations": [
+          "Align reads using Chromap",
+          "Sort and index the BAM file using Samtools",
+          "Generate BAM file statistics using Samtools"
+        ],
+        "output": "Sorted and indexed BAM file, BAM file statistics",
+        "format_conversions": "FASTQ to BAM"
+      },
+      "use_patterns": [
+        {
+          "scenario": "Aligning chromatin profiling data (ChIP-seq, ATAC-seq, Hi-C)",
+          "upstream": "FASTQ read generation",
+          "downstream": "Downstream analysis (peak calling, differential analysis, etc.)",
+          "variations": "Can be used with different aligners, different parameter settings for Chromap"
+        }
+      ],
+      "parameter_interactions": [
+        {
+          "parameter": "Chromap parameters",
+          "affects_which_tools": [
+            "chromap/chromap"
+          ],
+          "interaction": "Chromap parameters can affect the alignment quality and performance"
+        },
+        {
+          "parameter": "Samtools parameters",
+          "affects_which_tools": [
+            "samtools/sort",
+            "samtools/index",
+            "samtools/stats",
+            "samtools/idxstats",
+            "samtools/flagstat"
+          ],
+          "interaction": "Samtools parameters can affect the sorting, indexing, and statistics generation"
+        }
+      ],
+      "quality_gates": {
+        "checks_performed": [
+          "Check for successful Chromap alignment",
+          "Check for successful Samtools sorting and indexing",
+          "Check for successful Samtools statistics generation"
+        ],
+        "failure_modes": [
+          "Chromap alignment failure",
+          "Samtools sorting or indexing failure",
+          "Samtools statistics generation failure"
+        ],
+        "recovery_actions": [
+          "Investigate the cause of the failure (e.g., check input data quality, resource availability)",
+          "Retry the failed step with adjusted parameters or resources",
+          "Provide informative error messages and logs to aid in troubleshooting"
+        ]
+      }
+    }
+  },
+  "extraction_date": "2025-10-30",
+  "statistics": {
+    "workflows_processed": 0,
+    "workflows_failed": 7,
+    "subworkflows_processed": 3,
+    "subworkflows_failed": 0
+  }
+}

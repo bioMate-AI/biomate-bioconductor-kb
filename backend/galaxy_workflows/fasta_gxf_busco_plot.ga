@@ -1,0 +1,299 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTA_GXF_BUSCO_PLOT",
+  "annotation": "Converted from nf-core subworkflow FASTA_GXF_BUSCO_PLOT. Evaluates BUSCO completeness for genome assemblies and their annotations, generating comparative plots.",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTA sequence file (genome assembly or transcriptome)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input GXF annotation file (GFF/GFF3/GTF format)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_gxf"
+        }
+      ],
+      "name": "Input GXF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "BUSCO mode parameter (genome, transcriptome, or proteins)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_mode"
+        }
+      ],
+      "name": "Input BUSCO Mode",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "BUSCO lineages to evaluate",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_lineages"
+        }
+      ],
+      "name": "Input BUSCO Lineages",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Optional path to BUSCO lineages database",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_busco_lineages_path"
+        }
+      ],
+      "name": "Input BUSCO DB Path",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Optional BUSCO configuration file",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_busco_config"
+        }
+      ],
+      "name": "Input BUSCO Config",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Boolean flag to cleanup BUSCO intermediate files",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_busco_cleanup"
+        }
+      ],
+      "name": "Input BUSCO Cleanup",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "BUSCO evaluation of genome assembly",
+      "id": 7,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "mode": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "lineage": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "db_path": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "config_path": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "cleanup": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "BUSCO Assembly",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/busco/busco/5.8.0+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Generate plot from assembly BUSCO results",
+      "id": 8,
+      "input_connections": {
+        "short_summaries": {
+          "id": 7,
+          "output_name": "short_summaries_txt"
+        }
+      },
+      "name": "BUSCO Generate Plot Assembly",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/busco/generateplot/5.8.0+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Extract protein sequences from GXF annotation (conditional: only if mode is genome)",
+      "id": 9,
+      "input_connections": {
+        "gxf": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "GFFREAD Extract Proteins",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/crs4/gffread/gffread/2.2.1+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "10": {
+      "annotation": "BUSCO evaluation of extracted protein sequences from annotations",
+      "id": 10,
+      "input_connections": {
+        "fasta": {
+          "id": 9,
+          "output_name": "gffread_fasta"
+        },
+        "mode": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "lineage": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "db_path": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "config_path": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "cleanup": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "BUSCO Annotation",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/busco/busco/5.8.0+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "11": {
+      "annotation": "Generate plot from annotation BUSCO results",
+      "id": 11,
+      "input_connections": {
+        "short_summaries": {
+          "id": 10,
+          "output_name": "short_summaries_txt"
+        }
+      },
+      "name": "BUSCO Generate Plot Annotation",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/busco/generateplot/5.8.0+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    }
+  },
+  "outputs": {
+    "assembly_batch_summary": {
+      "id": 7,
+      "output_name": "batch_summary"
+    },
+    "assembly_short_summaries_txt": {
+      "id": 7,
+      "output_name": "short_summaries_txt"
+    },
+    "assembly_short_summaries_json": {
+      "id": 7,
+      "output_name": "short_summaries_json"
+    },
+    "assembly_full_table": {
+      "id": 7,
+      "output_name": "full_table"
+    },
+    "assembly_plot_summary_txt": {
+      "id": 8,
+      "output_name": "plot_summary"
+    },
+    "assembly_png": {
+      "id": 8,
+      "output_name": "png"
+    },
+    "annotation_batch_summary": {
+      "id": 10,
+      "output_name": "batch_summary"
+    },
+    "annotation_short_summaries_txt": {
+      "id": 10,
+      "output_name": "short_summaries_txt"
+    },
+    "annotation_short_summaries_json": {
+      "id": 10,
+      "output_name": "short_summaries_json"
+    },
+    "annotation_full_table": {
+      "id": 10,
+      "output_name": "full_table"
+    },
+    "annotation_plot_summary_txt": {
+      "id": 11,
+      "output_name": "plot_summary"
+    },
+    "annotation_png": {
+      "id": 11,
+      "output_name": "png"
+    }
+  }
+}

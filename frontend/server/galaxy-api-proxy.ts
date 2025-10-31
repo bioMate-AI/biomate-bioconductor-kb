@@ -105,22 +105,14 @@ export class GalaxyAPIProxy {
    */
   async getToolSchema(toolId: string): Promise<ToolSchema> {
     try {
-      // Try the new tool_search schema endpoint first (from AI tools database)
+      // Get tool schema from AI tools database
       // Using query parameter to avoid path routing issues with slashes in tool_id
       const response = await this.client.get<ToolSchema>(`/api/tool_search/schema?tool_id=${encodeURIComponent(toolId)}`);
       return response.data;
     } catch (error: any) {
-      // Fallback to Galaxy's native build endpoint if tool not in AI database
-      if (error.status_code === 404 || error.response?.status === 404) {
-        console.log(`[GalaxyAPIProxy] Tool ${toolId} not in AI database, trying Galaxy build endpoint`);
-        try {
-          const response = await this.client.get<ToolSchema>(`/api/tools/${encodeURIComponent(toolId)}/build`);
-          return response.data;
-        } catch (buildError: any) {
-          console.warn(`[GalaxyAPIProxy] Tool schema not available from either endpoint for ${toolId}`);
-          throw buildError;
-        }
-      }
+      // If tool not in AI database, just throw the error
+      // Frontend will use hardcoded schemas as fallback for common tools
+      console.log(`[GalaxyAPIProxy] Tool schema not found in AI database for ${toolId}`);
       throw error;
     }
   }

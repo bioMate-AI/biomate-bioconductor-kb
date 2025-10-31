@@ -1,0 +1,248 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_ALIGN_BAMCMP_BWA",
+  "annotation": "Alignment with BWA to primary and contaminant genomes, then use BAMCMP to remove reads mapping to contaminant genome. Converted from nf-core subworkflow.",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Primary genome BWA index",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_primary_index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Contaminant genome BWA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_contaminant_index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Reference FASTA (optional)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Map reads to primary genome with BWA-MEM",
+      "id": 4,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA-MEM (Primary)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwa_mem/bwa_mem",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Map reads to contaminant genome with BWA-MEM",
+      "id": 5,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA-MEM (Contaminant)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwa_mem/bwa_mem",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Filter reads using BAMCMP - retain only reads mapping better to primary genome",
+      "id": 6,
+      "input_connections": {
+        "primary_bam": {
+          "id": 4,
+          "output_name": "bam"
+        },
+        "contamination_bam": {
+          "id": 5,
+          "output_name": "bam"
+        }
+      },
+      "name": "BAMCMP",
+      "tool_id": "nfcore_bamcmp",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 70
+      }
+    },
+    "7": {
+      "annotation": "Sort, index and generate statistics for unfiltered primary BAM",
+      "id": 7,
+      "input_connections": {
+        "bam": {
+          "id": 4,
+          "output_name": "bam"
+        },
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Sort Stats Samtools (Unfiltered)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "8": {
+      "annotation": "Sort, index and generate statistics for filtered BAM",
+      "id": 8,
+      "input_connections": {
+        "bam": {
+          "id": 6,
+          "output_name": "primary_filtered_bam"
+        },
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Sort Stats Samtools (Filtered)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 70
+      }
+    }
+  },
+  "outputs": {
+    "bam": {
+      "id": 8,
+      "output_name": "bam",
+      "annotation": "Filtered BAM file"
+    },
+    "bai": {
+      "id": 8,
+      "output_name": "bai",
+      "annotation": "Filtered BAM index"
+    },
+    "csi": {
+      "id": 8,
+      "output_name": "csi",
+      "annotation": "Filtered BAM CSI index"
+    },
+    "stats": {
+      "id": 8,
+      "output_name": "stats",
+      "annotation": "Filtered BAM statistics"
+    },
+    "flagstat": {
+      "id": 8,
+      "output_name": "flagstat",
+      "annotation": "Filtered BAM flagstat"
+    },
+    "idxstats": {
+      "id": 8,
+      "output_name": "idxstats",
+      "annotation": "Filtered BAM idxstats"
+    },
+    "contaminant_bam": {
+      "id": 6,
+      "output_name": "contamination_bam",
+      "annotation": "Contamination BAM file"
+    },
+    "unfiltered_bam": {
+      "id": 7,
+      "output_name": "bam",
+      "annotation": "Unfiltered primary BAM file"
+    },
+    "unfiltered_bai": {
+      "id": 7,
+      "output_name": "bai",
+      "annotation": "Unfiltered primary BAM index"
+    },
+    "unfiltered_csi": {
+      "id": 7,
+      "output_name": "csi",
+      "annotation": "Unfiltered primary BAM CSI index"
+    },
+    "unfiltered_stats": {
+      "id": 7,
+      "output_name": "stats",
+      "annotation": "Unfiltered primary BAM statistics"
+    },
+    "unfiltered_flagstat": {
+      "id": 7,
+      "output_name": "flagstat",
+      "annotation": "Unfiltered primary BAM flagstat"
+    },
+    "unfiltered_idxstats": {
+      "id": 7,
+      "output_name": "idxstats",
+      "annotation": "Unfiltered primary BAM idxstats"
+    }
+  }
+}

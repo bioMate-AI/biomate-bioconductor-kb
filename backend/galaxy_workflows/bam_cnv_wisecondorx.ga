@@ -1,0 +1,239 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_CNV_WISECONDORX",
+  "annotation": "Converted from nf-core subworkflow: BAM_CNV_WISECONDORX. Detects Copy Number Variation from BAM files using WisecondorX with within-sample normalization technique.",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bam",
+          "description": "BAM file with metadata"
+        }
+      ],
+      "name": "Input BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input FASTA reference sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta",
+          "description": "FASTA reference file"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fai",
+          "description": "FASTA index file"
+        }
+      ],
+      "name": "Input FAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input reference file for WisecondorX prediction",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_ref",
+          "description": "Reference file for prediction"
+        }
+      ],
+      "name": "Input Reference",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input blacklist file for filtering regions",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_blacklist",
+          "description": "Blacklist file with regions to exclude"
+        }
+      ],
+      "name": "Input Blacklist",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "WisecondorX Convert: Converts BAM file to NPZ format for CNV analysis",
+      "id": 5,
+      "input_connections": {
+        "bam_input": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta_input": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai_input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "WisecondorX Convert",
+      "tool_id": "artbio_wisecondorx_WisecondorX_convert_1.2.9+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "WisecondorX Predict: Predicts CNV aberrations from converted NPZ file using reference and blacklist",
+      "id": 6,
+      "input_connections": {
+        "npz_input": {
+          "id": 5,
+          "output_name": "npz"
+        },
+        "reference_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "blacklist_input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "WisecondorX Predict",
+      "tool_id": "artbio_wisecondorx_WisecondorX_convert_1.2.9+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Output: Aberrations BED file",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "aberrations_bed"
+        }
+      },
+      "name": "Output Aberrations BED",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output: Bins BED file",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "bins_bed"
+        }
+      },
+      "name": "Output Bins BED",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output: Segments BED file",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "segments_bed"
+        }
+      },
+      "name": "Output Segments BED",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "Output: Chromosome statistics file",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "chr_statistics"
+        }
+      },
+      "name": "Output Chr Statistics",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "11": {
+      "annotation": "Output: Chromosome plots (PNG files)",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "chr_plots"
+        }
+      },
+      "name": "Output Chr Plots",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "12": {
+      "annotation": "Output: Genome plot (PNG file)",
+      "id": 12,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "genome_plot"
+        }
+      },
+      "name": "Output Genome Plot",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 610
+      }
+    }
+  }
+}

@@ -1,0 +1,248 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "DEEPVARIANT",
+  "annotation": "Converted from nf-core subworkflow - DeepVariant variant calling workflow",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM/CRAM file with metadata, index, and intervals",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_input",
+          "description": "Aligned reads file with index and intervals"
+        }
+      ],
+      "name": "Input: Aligned Reads",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference genome FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta",
+          "description": "Reference genome in FASTA format"
+        }
+      ],
+      "name": "Input: Reference FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference genome index file (.fai)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fai",
+          "description": "FASTA index file"
+        }
+      ],
+      "name": "Input: FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Gzip index file (.gzi)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_gzi",
+          "description": "Gzip index file"
+        }
+      ],
+      "name": "Input: GZI Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "PAR (Pseudo-Autosomal Region) BED file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_par_bed",
+          "description": "PAR BED file for sex chromosomes"
+        }
+      ],
+      "name": "Input: PAR BED",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "DeepVariant Make Examples - Converts aligned reads to pileup image tensors",
+      "id": 5,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "gzi": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "par_bed": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "DeepVariant Make Examples",
+      "tool_id": "iuc_deepvariant_DeepVariant_1.5.0+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "DeepVariant Call Variants - Classifies tensors using CNN to call variants",
+      "id": 6,
+      "input_connections": {
+        "examples": {
+          "id": 5,
+          "output_name": "examples"
+        }
+      },
+      "name": "DeepVariant Call Variants",
+      "tool_id": "iuc_deepvariant_DeepVariant_1.5.0+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "DeepVariant Post Process Variants - Generates final VCF and gVCF outputs",
+      "id": 7,
+      "input_connections": {
+        "call_variants_tfrecords": {
+          "id": 6,
+          "output_name": "call_variants_tfrecords"
+        },
+        "gvcf": {
+          "id": 5,
+          "output_name": "gvcf"
+        },
+        "small_model_calls": {
+          "id": 5,
+          "output_name": "small_model_calls"
+        },
+        "intervals": {
+          "id": 0,
+          "output_name": "intervals"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "gzi": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "DeepVariant Post Process Variants",
+      "tool_id": "iuc_deepvariant_DeepVariant_1.5.0+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output: Final VCF file with variant calls",
+      "id": 8,
+      "input_connections": {
+        "vcf": {
+          "id": 7,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output: VCF",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Output: VCF index file",
+      "id": 9,
+      "input_connections": {
+        "vcf_index": {
+          "id": 7,
+          "output_name": "vcf_index"
+        }
+      },
+      "name": "Output: VCF Index",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "10": {
+      "annotation": "Output: gVCF file with genotype likelihoods",
+      "id": 10,
+      "input_connections": {
+        "gvcf": {
+          "id": 7,
+          "output_name": "gvcf"
+        }
+      },
+      "name": "Output: gVCF",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "11": {
+      "annotation": "Output: gVCF index file",
+      "id": 11,
+      "input_connections": {
+        "gvcf_index": {
+          "id": 7,
+          "output_name": "gvcf_index"
+        }
+      },
+      "name": "Output: gVCF Index",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    }
+  }
+}

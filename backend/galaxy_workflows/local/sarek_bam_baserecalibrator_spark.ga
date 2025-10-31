@@ -1,0 +1,194 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_BASERECALIBRATOR_SPARK",
+  "annotation": "Converted from nf-core subworkflow - Prepare recalibration using GATK4 Spark BaseRecalibrator with optional interval-based scatter-gather strategy",
+  "steps": {
+    "0": {
+      "annotation": "Input: BAM/CRAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input dataset - CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input: Reference FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset - FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input: FASTA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input dataset - FASTA FAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input: Reference dictionary",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input dataset - Dictionary",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input: Intervals file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input dataset - Intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input: Known sites VCF",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "known_sites"
+        }
+      ],
+      "name": "Input dataset - Known Sites",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input: Known sites VCF index",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "known_sites_tbi"
+        }
+      ],
+      "name": "Input dataset - Known Sites TBI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "GATK4 Spark BaseRecalibrator - Generate base quality score recalibration table using Spark parallelization",
+      "id": 7,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "known_sites": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "known_sites_tbi": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 Spark BaseRecalibrator",
+      "tool_id": "gatk4spark_baserecalibrator",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "8": {
+      "annotation": "GATK4 GatherBQSRReports - Merge multiple BQSR tables when intervals are used (conditional step for multiple intervals)",
+      "id": 8,
+      "input_connections": {
+        "bqsr_table": {
+          "id": 7,
+          "output_name": "table"
+        }
+      },
+      "name": "GATK4 GatherBQSRReports",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "9": {
+      "annotation": "Output: Final BQSR recalibration table",
+      "id": 9,
+      "input_connections": {
+        "table_bqsr": {
+          "id": 8,
+          "output_name": "table"
+        }
+      },
+      "name": "Output - BQSR Table",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    }
+  }
+}

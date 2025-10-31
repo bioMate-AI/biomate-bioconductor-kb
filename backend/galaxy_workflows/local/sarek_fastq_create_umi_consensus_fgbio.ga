@@ -1,0 +1,240 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_CREATE_UMI_CONSENSUS_FGBIO",
+  "annotation": "Converted from nf-core subworkflow: Runs FGBIO tools to remove UMI tags from FASTQ reads, convert them to unmapped BAM file, map them to the reference genome, use the mapped information to group UMIs and generate consensus reads",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads with UMI tags",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reads"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference FASTA index file (optional, needed for Sentieon)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Pre-computed mapping index",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "map_index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "id": 4,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "fgbio FastqToBam",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_fastq_to_bam/Repository_Actions_fgbio_FastqToBam",
+      "tool_version": "1.3.0+galaxy1",
+      "type": "tool",
+      "annotation": "Convert FASTQ reads to unmapped BAM file with UMI tags",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "id": 5,
+      "input_connections": {
+        "bam": {
+          "id": 4,
+          "output_name": "bam"
+        }
+      },
+      "name": "samtools bam2fq",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_bam2fq/Repository_Actions_samtools_bam2fq",
+      "tool_version": "1.3.0+galaxy1",
+      "type": "tool",
+      "annotation": "Convert unmapped BAM back to interleaved FASTQ while preserving UMI tags in comment field",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "6": {
+      "id": 6,
+      "input_connections": {
+        "reads": {
+          "id": 5,
+          "output_name": "reads"
+        },
+        "map_index": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "FASTQ Align (BWA MEM)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/xuebing/sharplab_interval_analysis/Repository_Actions_align",
+      "tool_version": "1.0.0",
+      "type": "tool",
+      "annotation": "Map UMI-tagged FASTQ reads to reference genome",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "7": {
+      "id": 7,
+      "input_connections": {
+        "bam": {
+          "id": 6,
+          "output_name": "bam"
+        }
+      },
+      "name": "Merge BAMs (single lane)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "tool_version": "1.0.0",
+      "type": "tool",
+      "annotation": "Merge BAM files across lanes/runs for same sample (multiple lanes path)",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "8": {
+      "id": 8,
+      "input_connections": {
+        "bam": {
+          "id": 7,
+          "output_name": "bam"
+        }
+      },
+      "name": "fgbio GroupReadsByUmi",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_group_reads_by_umi/Repository_Actions_fgbio_GroupReadsByUmi",
+      "tool_version": "1.3.0+galaxy1",
+      "type": "tool",
+      "annotation": "Group reads by UMI information to identify reads from same original molecule",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "9": {
+      "id": 9,
+      "input_connections": {
+        "bam": {
+          "id": 8,
+          "output_name": "bam"
+        }
+      },
+      "name": "fgbio CallMolecularConsensusReads",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_callmolecularconsensusreads/Repository_Actions_fgbio_CallMolecularConsensusReads",
+      "tool_version": "1.3.0+galaxy1",
+      "type": "tool",
+      "annotation": "Call consensus sequences from grouped UMI reads with min_reads=1 and min_baseq=10",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Output: UMI-tagged unmapped BAM from FASTQTOBAM",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "bam"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "Output: BAM file with reads grouped by UMI",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 8,
+          "output_name": "bam"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 130
+      }
+    },
+    "12": {
+      "annotation": "Output: Consensus BAM file from UMI groups",
+      "id": 12,
+      "input_connections": {
+        "input": {
+          "id": 9,
+          "output_name": "bam"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 250
+      }
+    }
+  }
+}

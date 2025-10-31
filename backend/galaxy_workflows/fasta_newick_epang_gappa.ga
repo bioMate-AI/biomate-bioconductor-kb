@@ -1,0 +1,523 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTA_NEWICK_EPANG_GAPPA",
+  "annotation": "Converted from nf-core subworkflow for phylogenetic placement and taxonomic assignment using EPA-ng and GAPPA",
+  "steps": {
+    "0": {
+      "annotation": "Input channel with alignment method, query sequences, reference sequences, reference phylogeny, HMM file, and model",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_pp_data",
+          "description": "Channel containing meta, alignmethod, queryseqfile, refseqfile, refphylogeny, hmmfile, model, taxonomy"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Filter input data for HMMER alignment method",
+      "id": 1,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Filter HMMER data",
+      "type": "tool",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Filter input data for Clustalo alignment method",
+      "id": 2,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Filter Clustalo data",
+      "type": "tool",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Filter input data for MAFFT alignment method",
+      "id": 3,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Filter MAFFT data",
+      "type": "tool",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Build HMM profile from reference sequences for samples without pre-built HMM",
+      "id": 4,
+      "input_connections": {
+        "refseqfile": {
+          "id": 1,
+          "output_name": "filtered_hmmer"
+        }
+      },
+      "name": "HMMER_HMMBUILD",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "5": {
+      "annotation": "Unalign reference sequences for HMMER alignment",
+      "id": 5,
+      "input_connections": {
+        "refseqfile": {
+          "id": 1,
+          "output_name": "filtered_hmmer"
+        }
+      },
+      "name": "HMMER_UNALIGNREF",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Align reference sequences to HMM profile",
+      "id": 6,
+      "input_connections": {
+        "hmmfile": {
+          "id": 4,
+          "output_name": "hmm"
+        },
+        "refseqfile": {
+          "id": 5,
+          "output_name": "seqreformated"
+        }
+      },
+      "name": "HMMER_HMMALIGNREF",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Align query sequences to HMM profile",
+      "id": 7,
+      "input_connections": {
+        "hmmfile": {
+          "id": 4,
+          "output_name": "hmm"
+        },
+        "queryseqfile": {
+          "id": 1,
+          "output_name": "filtered_hmmer"
+        }
+      },
+      "name": "HMMER_HMMALIGNQUERY",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "8": {
+      "annotation": "Mask reference alignment using reference annotation",
+      "id": 8,
+      "input_connections": {
+        "alignment": {
+          "id": 6,
+          "output_name": "sto"
+        }
+      },
+      "name": "HMMER_MASKREF",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Mask query alignment using reference annotation",
+      "id": 9,
+      "input_connections": {
+        "alignment": {
+          "id": 7,
+          "output_name": "sto"
+        }
+      },
+      "name": "HMMER_MASKQUERY",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "Reformat masked reference alignment to aligned FASTA",
+      "id": 10,
+      "input_connections": {
+        "alignment": {
+          "id": 8,
+          "output_name": "maskedaln"
+        }
+      },
+      "name": "HMMER_AFAFORMATREF",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "11": {
+      "annotation": "Reformat masked query alignment to aligned FASTA",
+      "id": 11,
+      "input_connections": {
+        "alignment": {
+          "id": 9,
+          "output_name": "maskedaln"
+        }
+      },
+      "name": "HMMER_AFAFORMATQUERY",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "12": {
+      "annotation": "Clustal Omega profile alignment of query to reference",
+      "id": 12,
+      "input_connections": {
+        "queryseqfile": {
+          "id": 2,
+          "output_name": "filtered_clustalo"
+        },
+        "refseqfile": {
+          "id": 2,
+          "output_name": "filtered_clustalo"
+        }
+      },
+      "name": "CLUSTALO_ALIGN",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/clustalomega/clustalomega/Repository_Actions_Clustal_Omega",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "13": {
+      "annotation": "Split Clustalo alignment into reference and query parts",
+      "id": 13,
+      "input_connections": {
+        "refseqfile": {
+          "id": 2,
+          "output_name": "filtered_clustalo"
+        },
+        "alignment": {
+          "id": 12,
+          "output_name": "alignment"
+        }
+      },
+      "name": "EPANG_SPLIT_CLUSTALO",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "14": {
+      "annotation": "MAFFT profile alignment of query to reference",
+      "id": 14,
+      "input_connections": {
+        "refseqfile": {
+          "id": 3,
+          "output_name": "filtered_mafft"
+        },
+        "queryseqfile": {
+          "id": 3,
+          "output_name": "filtered_mafft"
+        }
+      },
+      "name": "MAFFT_ALIGN",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/mafft/Repository_Actions_MAFFT",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 490
+      }
+    },
+    "15": {
+      "annotation": "Split MAFFT alignment into reference and query parts",
+      "id": 15,
+      "input_connections": {
+        "refseqfile": {
+          "id": 3,
+          "output_name": "filtered_mafft"
+        },
+        "alignment": {
+          "id": 14,
+          "output_name": "fas"
+        }
+      },
+      "name": "EPANG_SPLIT_MAFFT",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 490
+      }
+    },
+    "16": {
+      "annotation": "Merge query alignments from all three methods (HMMER, Clustalo, MAFFT)",
+      "id": 16,
+      "input_connections": {
+        "hmmer_query": {
+          "id": 11,
+          "output_name": "seqreformated"
+        },
+        "clustalo_query": {
+          "id": 13,
+          "output_name": "query"
+        },
+        "mafft_query": {
+          "id": 15,
+          "output_name": "query"
+        }
+      },
+      "name": "Merge query alignments",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "17": {
+      "annotation": "Merge reference alignments from all three methods (HMMER, Clustalo, MAFFT)",
+      "id": 17,
+      "input_connections": {
+        "hmmer_ref": {
+          "id": 10,
+          "output_name": "seqreformated"
+        },
+        "clustalo_ref": {
+          "id": 13,
+          "output_name": "reference"
+        },
+        "mafft_ref": {
+          "id": 15,
+          "output_name": "reference"
+        }
+      },
+      "name": "Merge reference alignments",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "18": {
+      "annotation": "Phylogenetic placement of query sequences using EPA-ng",
+      "id": 18,
+      "input_connections": {
+        "model": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "refphylogeny": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "query_alignment": {
+          "id": 16,
+          "output_name": "merged_query"
+        },
+        "reference_alignment": {
+          "id": 17,
+          "output_name": "merged_ref"
+        }
+      },
+      "name": "EPANG_PLACE",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    },
+    "19": {
+      "annotation": "Calculate grafted tree with placed sequences",
+      "id": 19,
+      "input_connections": {
+        "jplace": {
+          "id": 18,
+          "output_name": "jplace"
+        }
+      },
+      "name": "GAPPA_GRAFT",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    },
+    "20": {
+      "annotation": "Taxonomic assignment of placed sequences",
+      "id": 20,
+      "input_connections": {
+        "jplace": {
+          "id": 18,
+          "output_name": "jplace"
+        },
+        "taxonomy": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "GAPPA_ASSIGN",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 490
+      }
+    },
+    "21": {
+      "annotation": "Generate heat tree visualization from placement results",
+      "id": 21,
+      "input_connections": {
+        "jplace": {
+          "id": 18,
+          "output_name": "jplace"
+        }
+      },
+      "name": "GAPPA_HEATTREE",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 610
+      }
+    },
+    "22": {
+      "annotation": "Output: EPA-ng placement results",
+      "id": 22,
+      "input_connections": {
+        "input": {
+          "id": 18,
+          "output_name": "epang"
+        }
+      },
+      "name": "Output epang",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 370
+      }
+    },
+    "23": {
+      "annotation": "Output: jplace format placement file",
+      "id": 23,
+      "input_connections": {
+        "input": {
+          "id": 18,
+          "output_name": "jplace"
+        }
+      },
+      "name": "Output jplace",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 430
+      }
+    },
+    "24": {
+      "annotation": "Output: Grafted phylogeny in Newick format",
+      "id": 24,
+      "input_connections": {
+        "input": {
+          "id": 19,
+          "output_name": "newick"
+        }
+      },
+      "name": "Output grafted_phylogeny",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 490
+      }
+    },
+    "25": {
+      "annotation": "Output: Taxonomic profile from GAPPA assignment",
+      "id": 25,
+      "input_connections": {
+        "input": {
+          "id": 20,
+          "output_name": "profile"
+        }
+      },
+      "name": "Output taxonomy_profile",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 550
+      }
+    },
+    "26": {
+      "annotation": "Output: Per-query taxonomic assignments",
+      "id": 26,
+      "input_connections": {
+        "input": {
+          "id": 20,
+          "output_name": "per_query"
+        }
+      },
+      "name": "Output taxonomy_per_query",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 610
+      }
+    },
+    "27": {
+      "annotation": "Output: Heat tree SVG visualization",
+      "id": 27,
+      "input_connections": {
+        "input": {
+          "id": 21,
+          "output_name": "svg"
+        }
+      },
+      "name": "Output heattree",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 670
+      }
+    }
+  }
+}

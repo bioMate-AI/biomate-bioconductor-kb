@@ -1,0 +1,337 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "DIA_PROTEOMICS_ANALYSIS",
+  "annotation": "DIA Proteomics Analysis Workflow\n\nThis workflow performs comprehensive data-independent acquisition (DIA) proteomics analysis using DIA-NN:\n\n1. Configuration Generation: Creates DIA-NN config for unique enzyme/modification combinations\n2. Library Generation: Generates in-silico spectral library from FASTA (or uses provided library)\n3. Preliminary Analysis: Runs DIA-NN on subset of files to extract mass accuracy recommendations\n4. Empirical Library Assembly: Combines preliminary results to create empirical library\n5. Individual Analysis: Analyzes all MS files with optimized parameters\n6. Final Quantification: Produces final quantification matrices\n7. Statistics & Conversion: Generates mzML statistics and converts results to mzTab format\n\nConditional execution:\n- In-silico library generation skipped if pre-generated library provided\n- Preliminary analysis and empirical library assembly skipped if pre-generated empirical library provided\n- Mass accuracy settings derived from preliminary analysis log or user parameters",
+  "steps": {
+    "0": {
+      "annotation": "Input MS files with metadata (enzyme, modifications, tolerances)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_input"
+        }
+      ],
+      "name": "Input MS Files",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Search database (FASTA file)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_searchdb"
+        }
+      ],
+      "name": "Input Search Database",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Experimental design file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_expdesign"
+        }
+      ],
+      "name": "Input Experimental Design",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Optional pre-generated spectral library",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_speclib_in"
+        }
+      ],
+      "name": "Input Spectral Library (Optional)",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Optional pre-generated empirical library",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_empirical_library_in"
+        }
+      ],
+      "name": "Input Empirical Library (Optional)",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Optional empirical library assembly log",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_empirical_log_in"
+        }
+      ],
+      "name": "Input Empirical Log (Optional)",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Generate DIA-NN configuration file for unique enzyme/modification combinations",
+      "id": 6,
+      "input_connections": {
+        "enzyme": {
+          "id": 0,
+          "output_name": "enzyme"
+        },
+        "fixed_mods": {
+          "id": 0,
+          "output_name": "fixed_mods"
+        },
+        "variable_mods": {
+          "id": 0,
+          "output_name": "variable_mods"
+        }
+      },
+      "name": "QUANTMSUTILS_DIANNCFG",
+      "tool_id": "quantmsutils_dianncfg",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Generate in-silico spectral library from FASTA using DIA-NN configuration. Only runs if no pre-generated library provided.",
+      "id": 7,
+      "input_connections": {
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "config": {
+          "id": 6,
+          "output_name": "diann_cfg"
+        }
+      },
+      "name": "DIANN_INSILICOLIBRARYGENERATION",
+      "tool_id": "nfcore_diann",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Preliminary DIA-NN analysis on subset of MS files to extract mass accuracy recommendations. Conditional: only runs if no empirical library provided.",
+      "id": 8,
+      "input_connections": {
+        "ms_file": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "library": {
+          "id": 7,
+          "output_name": "predict_speclib"
+        }
+      },
+      "name": "DIANN_PRELIMINARYANALYSIS",
+      "tool_id": "nfcore_diann",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Assemble empirical library from preliminary analysis results grouped by experiment and search database",
+      "id": 9,
+      "input_connections": {
+        "ms_file": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "library": {
+          "id": 7,
+          "output_name": "predict_speclib"
+        },
+        "quant": {
+          "id": 8,
+          "output_name": "diann_quant"
+        }
+      },
+      "name": "DIANN_ASSEMBLEEMPIRICALLIBRARY",
+      "tool_id": "nfcore_diann",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Extract mass accuracy settings from DIA-NN preliminary analysis log. Combines automatic recommendations with user-provided parameters.",
+      "id": 10,
+      "input_connections": {
+        "diann_log": {
+          "id": 9,
+          "output_name": "log"
+        },
+        "empirical_library": {
+          "id": 9,
+          "output_name": "final_speclib"
+        }
+      },
+      "name": "Extract Mass Accuracy Settings",
+      "type": "tool",
+      "tool_id": "expression_tools",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "Individual DIA-NN analysis on all MS files using empirical library and optimized mass accuracy settings",
+      "id": 11,
+      "input_connections": {
+        "ms_file": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "library": {
+          "id": 10,
+          "output_name": "empirical_library"
+        },
+        "mass_acc_ms1": {
+          "id": 10,
+          "output_name": "mass_acc_ms1"
+        },
+        "mass_acc_ms2": {
+          "id": 10,
+          "output_name": "mass_acc_ms2"
+        },
+        "scan_window": {
+          "id": 10,
+          "output_name": "scan_window"
+        }
+      },
+      "name": "DIANN_INDIVIDUALANALYSIS",
+      "tool_id": "nfcore_diann",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "12": {
+      "annotation": "Final DIA-NN quantification combining results from all individual analyses grouped by experiment and search database",
+      "id": 12,
+      "input_connections": {
+        "ms_file": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "library": {
+          "id": 10,
+          "output_name": "empirical_library"
+        },
+        "quant": {
+          "id": 11,
+          "output_name": "diann_quant"
+        }
+      },
+      "name": "DIANN_FINALQUANTIFICATION",
+      "tool_id": "nfcore_diann",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "13": {
+      "annotation": "Generate mzML statistics for all unique MS files",
+      "id": 13,
+      "input_connections": {
+        "ms_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "QUANTMSUTILS_MZMLSTATISTICS",
+      "tool_id": "quantmsutils_mzmlstatistics",
+      "type": "tool",
+      "position": {
+        "left": 1770,
+        "top": 10
+      }
+    },
+    "14": {
+      "annotation": "Convert DIA-NN results to mzTab format with mzML statistics and experimental design information",
+      "id": 14,
+      "input_connections": {
+        "diann_report": {
+          "id": 12,
+          "output_name": "main_report"
+        },
+        "pg_matrix": {
+          "id": 12,
+          "output_name": "pg_matrix"
+        },
+        "pr_matrix": {
+          "id": 12,
+          "output_name": "pr_matrix"
+        },
+        "expdesign": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "ms_statistics": {
+          "id": 13,
+          "output_name": "ms_statistics"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "QUANTMSUTILS_DIANN2MZTAB",
+      "tool_id": "quantmsutils_diann2mztab",
+      "type": "tool",
+      "position": {
+        "left": 1990,
+        "top": 10
+      }
+    }
+  }
+}

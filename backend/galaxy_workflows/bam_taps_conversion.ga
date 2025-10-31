@@ -1,0 +1,185 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_TAPS_CONVERSION",
+  "annotation": "TAPS methylation conversion subworkflow - Uses Rastair to assess C->T conversion as a readout for methylation in a genome-wide basis",
+  "steps": {
+    "0": {
+      "annotation": "BAM file from alignment",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bam"
+        }
+      ],
+      "name": "Input BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "BAI index file from alignment",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bai"
+        }
+      ],
+      "name": "Input BAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference FASTA sequence",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "FASTA index file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta_index"
+        }
+      ],
+      "name": "Input FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "id": 4,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bai": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_index": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "RASTAIR_MBIAS",
+      "tool_id": "rastair_mbias",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "id": 5,
+      "input_connections": {
+        "mbias_txt": {
+          "id": 4,
+          "output_name": "txt"
+        }
+      },
+      "name": "RASTAIR_MBIASPARSER",
+      "tool_id": "rastair_mbiasparser",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "6": {
+      "id": 6,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bai": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_index": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "nOT_clip": {
+          "id": 5,
+          "output_name": "nOT_clip"
+        },
+        "nOB_clip": {
+          "id": 5,
+          "output_name": "nOB_clip"
+        }
+      },
+      "name": "RASTAIR_CALL",
+      "tool_id": "rastair_call",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "7": {
+      "id": 7,
+      "input_connections": {
+        "call_txt": {
+          "id": 6,
+          "output_name": "txt"
+        }
+      },
+      "name": "RASTAIR_METHYLKIT",
+      "tool_id": "rastair_methylkit",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "mbias": {
+      "id": 4,
+      "output_name": "txt",
+      "annotation": "MBIAS output file"
+    },
+    "call": {
+      "id": 6,
+      "output_name": "txt",
+      "annotation": "RASTAIR CALL output file"
+    },
+    "methylkit": {
+      "id": 7,
+      "output_name": "methylkit",
+      "annotation": "Methylkit formatted output"
+    }
+  }
+}

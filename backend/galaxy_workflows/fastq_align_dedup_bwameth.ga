@@ -1,0 +1,394 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_ALIGN_DEDUP_BWAMETH",
+  "annotation": "Converted from nf-core subworkflow: Align bisulfite-sequencing reads with bwameth, deduplicate, and generate QC metrics",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta_index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input bwameth index files",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bwameth_index"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Skip deduplication flag",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "skip_deduplication"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Use GPU flag for alignment",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "use_gpu"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "CPU-based bwameth alignment (alternative path when use_gpu=false)",
+      "id": 6,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "bwameth_index": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "bwameth",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwameth/Repository_Actions_bwameth",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "GPU-based bwameth alignment via Parabricks (alternative path when use_gpu=true)",
+      "id": 7,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "bwameth_index": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Parabricks fq2bammeth",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nvidia/parabricks/parabricks_fq2bammeth",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "Sort aligned BAM file",
+      "id": 8,
+      "input_connections": {
+        "input_bam": [
+          {
+            "id": 6,
+            "output_name": "bam"
+          },
+          {
+            "id": 7,
+            "output_name": "bam"
+          }
+        ]
+      },
+      "name": "Samtools sort",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 70
+      }
+    },
+    "9": {
+      "annotation": "Index sorted BAM file",
+      "id": 9,
+      "input_connections": {
+        "input_bam": {
+          "id": 8,
+          "output_name": "bam"
+        }
+      },
+      "name": "Samtools index",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 70
+      }
+    },
+    "10": {
+      "annotation": "Generate flagstat QC metrics",
+      "id": 10,
+      "input_connections": {
+        "input_bam": {
+          "id": 8,
+          "output_name": "bam"
+        },
+        "input_bai": {
+          "id": 9,
+          "output_name": "bai"
+        }
+      },
+      "name": "Samtools flagstat",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "Generate stats QC metrics",
+      "id": 11,
+      "input_connections": {
+        "input_bam": {
+          "id": 8,
+          "output_name": "bam"
+        },
+        "input_bai": {
+          "id": 9,
+          "output_name": "bai"
+        }
+      },
+      "name": "Samtools stats",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "12": {
+      "annotation": "Mark duplicates with Picard (conditional: only if skip_deduplication=false)",
+      "id": 12,
+      "input_connections": {
+        "input_bam": {
+          "id": 8,
+          "output_name": "bam"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fasta_index": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Picard MarkDuplicates",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/avowinkel/picard/Repository_Actions_BedToIntervalList",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "13": {
+      "annotation": "Index deduplicated BAM file (conditional: only if skip_deduplication=false)",
+      "id": 13,
+      "input_connections": {
+        "input_bam": {
+          "id": 12,
+          "output_name": "bam"
+        }
+      },
+      "name": "Samtools index deduplicated",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "14": {
+      "annotation": "Collect MultiQC input files",
+      "id": 14,
+      "input_connections": {
+        "picard_metrics": {
+          "id": 12,
+          "output_name": "metrics"
+        },
+        "flagstat": {
+          "id": 10,
+          "output_name": "flagstat"
+        },
+        "stats": {
+          "id": 11,
+          "output_name": "stats"
+        }
+      },
+      "name": "Collect outputs",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "15": {
+      "annotation": "Final BAM output (deduplicated if skip_deduplication=false, otherwise sorted)",
+      "id": 15,
+      "input_connections": {
+        "bam": [
+          {
+            "id": 8,
+            "output_name": "bam"
+          },
+          {
+            "id": 12,
+            "output_name": "bam"
+          }
+        ]
+      },
+      "name": "Output BAM",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "16": {
+      "annotation": "Final BAI index output",
+      "id": 16,
+      "input_connections": {
+        "bai": [
+          {
+            "id": 9,
+            "output_name": "bai"
+          },
+          {
+            "id": 13,
+            "output_name": "bai"
+          }
+        ]
+      },
+      "name": "Output BAI",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 70
+      }
+    },
+    "17": {
+      "annotation": "Flagstat output for MultiQC",
+      "id": 17,
+      "input_connections": {
+        "flagstat": {
+          "id": 10,
+          "output_name": "flagstat"
+        }
+      },
+      "name": "Output flagstat",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 190
+      }
+    },
+    "18": {
+      "annotation": "Stats output for MultiQC",
+      "id": 18,
+      "input_connections": {
+        "stats": {
+          "id": 11,
+          "output_name": "stats"
+        }
+      },
+      "name": "Output stats",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "19": {
+      "annotation": "Picard metrics output (conditional)",
+      "id": 19,
+      "input_connections": {
+        "metrics": {
+          "id": 12,
+          "output_name": "metrics"
+        }
+      },
+      "name": "Output picard metrics",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 310
+      }
+    }
+  }
+}

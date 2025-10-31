@@ -1,0 +1,570 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "QUANTIFY_PSEUDO_ALIGNMENT",
+  "annotation": "Pseudoalignment and quantification with Salmon or Kallisto - Converted from nf-core subworkflow",
+  "steps": {
+    "0": {
+      "annotation": "Input samplesheet",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "samplesheet"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reads (fastq files)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reads"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input pseudoalignment index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input transcript fasta",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "transcript_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input GTF annotation file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gtf"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "GTF gene ID attribute parameter",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gtf_id_attribute"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "GTF extra attribute parameter",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gtf_extra_attribute"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Pseudoaligner selection (salmon or kallisto)",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "pseudo_aligner"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Salmon alignment mode parameter",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "alignment_mode"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Salmon library type parameter",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "lib_type"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "Kallisto fragment length parameter",
+      "id": 10,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "kallisto_quant_fraglen"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 1210
+      }
+    },
+    "11": {
+      "annotation": "Kallisto fragment length SD parameter",
+      "id": 11,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "kallisto_quant_fraglen_sd"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 1330
+      }
+    },
+    "12": {
+      "annotation": "Salmon quantification - Alternative path when pseudo_aligner == 'salmon'",
+      "id": 12,
+      "input_connections": {
+        "reads": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "transcript_fasta": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "alignment_mode": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "lib_type": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "Salmon Quant",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_salmon_index_builder/Repository_Actions_Salmon",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "13": {
+      "annotation": "Kallisto quantification - Alternative path when pseudo_aligner == 'kallisto'",
+      "id": 13,
+      "input_connections": {
+        "reads": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "kallisto_quant_fraglen": {
+          "id": 10,
+          "output_name": "output"
+        },
+        "kallisto_quant_fraglen_sd": {
+          "id": 11,
+          "output_name": "output"
+        }
+      },
+      "name": "Kallisto Quant",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_kallisto_index_builder/Repository_Actions_Kallisto",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "14": {
+      "annotation": "Create tx2gene mapping from GTF - Conditional merge of Salmon/Kallisto results",
+      "id": 14,
+      "input_connections": {
+        "gtf": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "pseudo_aligner": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "gtf_id_attribute": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "gtf_extra_attribute": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "Custom TX2GENE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/matteoc/agame_custom_tools/Repository_Actions_PFAM_output_annotator",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "15": {
+      "annotation": "Import and merge quantification results with tximeta",
+      "id": 15,
+      "input_connections": {
+        "tx2gene": {
+          "id": 14,
+          "output_name": "tx2gene"
+        },
+        "pseudo_aligner": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Tximeta Tximport",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_salmon_index_builder/Repository_Actions_Salmon",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "16": {
+      "annotation": "Create SummarizedExperiment object for gene-level unified results",
+      "id": 16,
+      "input_connections": {
+        "counts_gene": {
+          "id": 15,
+          "output_name": "counts_gene"
+        },
+        "counts_gene_length_scaled": {
+          "id": 15,
+          "output_name": "counts_gene_length_scaled"
+        },
+        "counts_gene_scaled": {
+          "id": 15,
+          "output_name": "counts_gene_scaled"
+        },
+        "lengths_gene": {
+          "id": 15,
+          "output_name": "lengths_gene"
+        },
+        "tpm_gene": {
+          "id": 15,
+          "output_name": "tpm_gene"
+        },
+        "tx2gene": {
+          "id": 14,
+          "output_name": "tx2gene"
+        },
+        "samplesheet": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "SE Gene Unified",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/cole_easson/assembly/Repository_Actions_velveth",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "17": {
+      "annotation": "Create SummarizedExperiment object for transcript-level unified results",
+      "id": 17,
+      "input_connections": {
+        "counts_transcript": {
+          "id": 15,
+          "output_name": "counts_transcript"
+        },
+        "lengths_transcript": {
+          "id": 15,
+          "output_name": "lengths_transcript"
+        },
+        "tpm_transcript": {
+          "id": 15,
+          "output_name": "tpm_transcript"
+        },
+        "tx2gene": {
+          "id": 14,
+          "output_name": "tx2gene"
+        },
+        "samplesheet": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "SE Transcript Unified",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/cole_easson/assembly/Repository_Actions_velveth",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    },
+    "18": {
+      "annotation": "Output: Pseudoalignment results directory",
+      "id": 18,
+      "input_connections": {
+        "input": {
+          "id": 12,
+          "output_name": "results"
+        }
+      },
+      "name": "Output results",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "19": {
+      "annotation": "Output: Gene-level TPM values",
+      "id": 19,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "tpm_gene"
+        }
+      },
+      "name": "Output tpm_gene",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "20": {
+      "annotation": "Output: Gene-level counts",
+      "id": 20,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "counts_gene"
+        }
+      },
+      "name": "Output counts_gene",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    },
+    "21": {
+      "annotation": "Output: Gene-level lengths",
+      "id": 21,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "lengths_gene"
+        }
+      },
+      "name": "Output lengths_gene",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 490
+      }
+    },
+    "22": {
+      "annotation": "Output: Gene-level length-scaled counts",
+      "id": 22,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "counts_gene_length_scaled"
+        }
+      },
+      "name": "Output counts_gene_length_scaled",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 610
+      }
+    },
+    "23": {
+      "annotation": "Output: Gene-level scaled counts",
+      "id": 23,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "counts_gene_scaled"
+        }
+      },
+      "name": "Output counts_gene_scaled",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 730
+      }
+    },
+    "24": {
+      "annotation": "Output: Transcript-level TPM values",
+      "id": 24,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "tpm_transcript"
+        }
+      },
+      "name": "Output tpm_transcript",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 850
+      }
+    },
+    "25": {
+      "annotation": "Output: Transcript-level counts",
+      "id": 25,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "counts_transcript"
+        }
+      },
+      "name": "Output counts_transcript",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 970
+      }
+    },
+    "26": {
+      "annotation": "Output: Transcript-level lengths",
+      "id": 26,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "lengths_transcript"
+        }
+      },
+      "name": "Output lengths_transcript",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 1090
+      }
+    },
+    "27": {
+      "annotation": "Output: Merged gene-level RDS object",
+      "id": 27,
+      "input_connections": {
+        "input": {
+          "id": 16,
+          "output_name": "rds"
+        }
+      },
+      "name": "Output merged_gene_rds_unified",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 1210
+      }
+    },
+    "28": {
+      "annotation": "Output: Merged transcript-level RDS object",
+      "id": 28,
+      "input_connections": {
+        "input": {
+          "id": 17,
+          "output_name": "rds"
+        }
+      },
+      "name": "Output merged_transcript_rds_unified",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 1330
+      }
+    }
+  }
+}

@@ -1,0 +1,262 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_ALIGN_CHROMAP",
+  "annotation": "Map reads with CHROMAP, sort, index BAM file and run samtools stats, flagstat and idxstats. Converted from nf-core subworkflow.",
+  "steps": {
+    "0": {
+      "annotation": "Input reads channel",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads"
+        }
+      ],
+      "name": "Input reads",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input CHROMAP index",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_index"
+        }
+      ],
+      "name": "Input CHROMAP index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input reference FASTA",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input reference FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input barcodes (optional)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_barcodes"
+        }
+      ],
+      "name": "Input barcodes",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input whitelist (optional)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_whitelist"
+        }
+      ],
+      "name": "Input whitelist",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input chromosome order (optional)",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_chr_order"
+        }
+      ],
+      "name": "Input chromosome order",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input pairs chromosome order (optional)",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_pairs_chr_order"
+        }
+      ],
+      "name": "Input pairs chromosome order",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Map reads with CHROMAP",
+      "id": 7,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "barcodes": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "whitelist": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "chr_order": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "pairs_chr_order": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "CHROMAP_CHROMAP",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core/chromap/chromap",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Sort, index BAM file and run samtools stats, flagstat and idxstats",
+      "id": 8,
+      "input_connections": {
+        "bam": {
+          "id": 7,
+          "output_name": "bam"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_SORT_STATS_SAMTOOLS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Output sorted BAM file",
+      "id": 9,
+      "input_connections": {
+        "bam": {
+          "id": 8,
+          "output_name": "bam"
+        }
+      },
+      "name": "Output BAM",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Output BAM index file",
+      "id": 10,
+      "input_connections": {
+        "bai": {
+          "id": 8,
+          "output_name": "bai"
+        }
+      },
+      "name": "Output BAI",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "11": {
+      "annotation": "Output samtools stats",
+      "id": 11,
+      "input_connections": {
+        "stats": {
+          "id": 8,
+          "output_name": "stats"
+        }
+      },
+      "name": "Output stats",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "12": {
+      "annotation": "Output samtools flagstat",
+      "id": 12,
+      "input_connections": {
+        "flagstat": {
+          "id": 8,
+          "output_name": "flagstat"
+        }
+      },
+      "name": "Output flagstat",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "13": {
+      "annotation": "Output samtools idxstats",
+      "id": 13,
+      "input_connections": {
+        "idxstats": {
+          "id": 8,
+          "output_name": "idxstats"
+        }
+      },
+      "name": "Output idxstats",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    }
+  }
+}

@@ -101,9 +101,40 @@ def e2e_page(e2e_context: BrowserContext) -> Page:
 
     This is the key to true E2E testing - the page maintains its state
     (uploaded datasets, chat history, workflow state) across all tests in the class.
+
+    Automatically logs in as admin@example.com for authenticated E2E testing.
     """
     page = e2e_context.new_page()
     page.goto(TEST_BASE_URL)
+
+    # Auto-login: Check if we're on login page and login automatically
+    try:
+        # Wait a moment for page to fully load
+        page.wait_for_load_state("networkidle", timeout=5000)
+
+        # Check if we see login form (email input field)
+        email_input = page.locator('input[type="email"], input[name="email"], input[placeholder*="email" i]')
+        if email_input.is_visible(timeout=2000):
+            print("\n[E2E Setup] Login page detected - performing auto-login as admin@example.com")
+
+            # Fill in credentials (using test admin account)
+            email_input.fill("admin@example.com")
+
+            password_input = page.locator('input[type="password"], input[name="password"]')
+            password_input.fill("admin123")
+
+            # Click login button
+            login_button = page.locator('button:has-text("Sign In"), button:has-text("Log In"), button[type="submit"]').first
+            login_button.click()
+
+            # Wait for navigation to complete (should redirect to chat page)
+            page.wait_for_url("**/chat**", timeout=10000)
+            print("[E2E Setup] ✓ Auto-login successful - ready for E2E testing")
+        else:
+            print("[E2E Setup] Already logged in or no login required")
+    except Exception as e:
+        print(f"[E2E Setup] Login not required or already authenticated: {e}")
+
     yield page
     page.close()
 

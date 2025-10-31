@@ -1,0 +1,373 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "VCF_ANNOTATE_ALL",
+  "annotation": "VCF annotation workflow with conditional tool selection (bcftools, snpEff, VEP, or merge)",
+  "steps": {
+    "0": {
+      "annotation": "Input VCF file",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vcf"
+        }
+      ],
+      "name": "Input VCF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Annotation tools to apply (bcfann, snpeff, merge, vep)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "tools"
+        }
+      ],
+      "name": "Input Tools Parameter",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "snpEff database",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "snpeff_db"
+        }
+      ],
+      "name": "Input snpEff DB",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "snpEff cache",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "snpeff_cache"
+        }
+      ],
+      "name": "Input snpEff Cache",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "VEP genome",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_genome"
+        }
+      ],
+      "name": "Input VEP Genome",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "VEP species",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_species"
+        }
+      ],
+      "name": "Input VEP Species",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "VEP cache version",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_cache_version"
+        }
+      ],
+      "name": "Input VEP Cache Version",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "VEP cache",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_cache"
+        }
+      ],
+      "name": "Input VEP Cache",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "VEP extra files",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vep_extra_files"
+        }
+      ],
+      "name": "Input VEP Extra Files",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "bcftools annotation files",
+      "id": 10,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bcftools_annotations"
+        }
+      ],
+      "name": "Input bcftools Annotations",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1210
+      }
+    },
+    "11": {
+      "annotation": "bcftools annotation index",
+      "id": 11,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bcftools_annotations_index"
+        }
+      ],
+      "name": "Input bcftools Annotations Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1330
+      }
+    },
+    "12": {
+      "annotation": "bcftools columns",
+      "id": 12,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bcftools_columns"
+        }
+      ],
+      "name": "Input bcftools Columns",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1450
+      }
+    },
+    "13": {
+      "annotation": "bcftools header lines",
+      "id": 13,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bcftools_header_lines"
+        }
+      ],
+      "name": "Input bcftools Header Lines",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1570
+      }
+    },
+    "14": {
+      "annotation": "Conditional: bcftools annotate (if 'bcfann' in tools)",
+      "id": 14,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "annotations": {
+          "id": 10,
+          "output_name": "output"
+        },
+        "annotations_index": {
+          "id": 11,
+          "output_name": "output"
+        },
+        "columns": {
+          "id": 12,
+          "output_name": "output"
+        },
+        "header_lines": {
+          "id": 13,
+          "output_name": "output"
+        }
+      },
+      "name": "bcftools view",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions_bcftools_view",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "15": {
+      "annotation": "Conditional: snpEff annotation (if 'snpeff' or 'merge' in tools)",
+      "id": 15,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "snpeff_db": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "snpeff_cache": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Convert Affymetrix (snpEff)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/greg/affy2vcf2/Repository_Actions_Convert_Affymetrix",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "16": {
+      "annotation": "Conditional: VEP merge annotation (if 'merge' in tools)",
+      "id": 16,
+      "input_connections": {
+        "vcf": {
+          "id": 15,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "vep_genome": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "vep_species": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "vep_cache_version": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "vep_cache": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "vep_extra_files": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "Convert Affymetrix (VEP Merge)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/greg/affy2vcf2/Repository_Actions_Convert_Affymetrix",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "17": {
+      "annotation": "Conditional: Ensembl VEP annotation (if 'vep' in tools)",
+      "id": 17,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "vep_genome": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "vep_species": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "vep_cache_version": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "vep_cache": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "vep_extra_files": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "Convert Affymetrix (Ensembl VEP)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/greg/affy2vcf2/Repository_Actions_Convert_Affymetrix",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    }
+  },
+  "annotation_notes": "This workflow implements conditional branching based on the 'tools' parameter:\n- If 'bcfann' is specified: bcftools annotate is applied\n- If 'snpeff' or 'merge' is specified: snpEff annotation is applied\n- If 'merge' is specified: VEP merge is applied after snpEff\n- If 'vep' is specified: Ensembl VEP annotation is applied\nOutputs include annotated VCF files, reports, and version information."
+}

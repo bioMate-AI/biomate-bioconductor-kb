@@ -1,0 +1,213 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "HOMER_GROSEQ",
+  "annotation": "Identify transcripts with HOMER from GRO-Seq data. Converted from nf-core subworkflow.",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM file from GRO-Seq experiment",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam"
+        }
+      ],
+      "name": "Input BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input FASTA reference genome",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Optional uniqueness map file (can be ZIP or direct file)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "uniqmap"
+        }
+      ],
+      "name": "Input Uniqmap (optional)",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Conditional: only executed if uniqmap is a ZIP file",
+      "id": 3,
+      "input_connections": {
+        "input_file": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Unzip",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/unzip/Repository_Actions_Unzip",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "4": {
+      "annotation": "Create a Tag Directory from the GRO-Seq BAM experiment",
+      "id": 4,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "HOMER Make Tag Directory",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nilshomer/dwgsim/Repository_Actions_Generate_simulated_reads",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Create UCSC visualization files (bedGraph) from tag directory",
+      "id": 5,
+      "input_connections": {
+        "tagdir": {
+          "id": 4,
+          "output_name": "tagdir"
+        }
+      },
+      "name": "HOMER Make UCSC File",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nilshomer/dwgsim/Repository_Actions_Generate_simulated_reads",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Uses uniqmap from UNZIP if available, otherwise uses empty channel",
+      "id": 6,
+      "input_connections": {
+        "tagdir": {
+          "id": 4,
+          "output_name": "tagdir"
+        },
+        "uniqmap": {
+          "id": 3,
+          "output_name": "unzipped_archive"
+        }
+      },
+      "name": "HOMER Find Peaks",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nilshomer/dwgsim/Repository_Actions_Generate_simulated_reads",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Convert HOMER peak file to BED format",
+      "id": 7,
+      "input_connections": {
+        "peaks_txt": {
+          "id": 6,
+          "output_name": "txt"
+        }
+      },
+      "name": "HOMER Pos2Bed",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nilshomer/dwgsim/Repository_Actions_Generate_simulated_reads",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "Output: Tag Directory",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "tagdir"
+        }
+      },
+      "name": "Output Tag Directory",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Output: BedGraph visualization file",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "bedGraph"
+        }
+      },
+      "name": "Output BedGraph",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "10": {
+      "annotation": "Output: HOMER peaks file",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "txt"
+        }
+      },
+      "name": "Output Peaks",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "11": {
+      "annotation": "Output: BED format peaks file",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "bed"
+        }
+      },
+      "name": "Output BED",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    }
+  }
+}

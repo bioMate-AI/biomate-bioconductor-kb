@@ -1,0 +1,470 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_QC_TRIM_FILTER_SETSTRANDEDNESS",
+  "annotation": "Converted from nf-core subworkflow for FASTQ QC, trimming, filtering and strandedness detection",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference genome FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input transcript FASTA",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_transcript_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input GTF annotation",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_gtf"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input Salmon index (optional)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_salmon_index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input SortMeRNA index (optional)",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_sortmerna_index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input BBSplit index (optional)",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bbsplit_index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Input rRNA FASTA sequences",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_rrna_fastas"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Concatenate FASTQ files from same sample",
+      "id": 8,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "ctat_concatenate",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_concatenate/Repository_Actions_ctat_concatenate",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Lint FASTQ files - quality check",
+      "id": 9,
+      "input_connections": {
+        "reads": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "IDBA fq2fa",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/yjarosz/yjrepo/Repository_Actions_IDBA_fq2fa",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Read QC, extract UMI and trim adapters with TrimGalore (alternative path)",
+      "id": 10,
+      "input_connections": {
+        "reads": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "interleave fastqs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/lijing/bubio/Repository_Actions_interleave_fastqs",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "Read QC, extract UMI and trim adapters with fastp (alternative path)",
+      "id": 11,
+      "input_connections": {
+        "reads": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "interleave fastqs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/lijing/bubio/Repository_Actions_interleave_fastqs",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "12": {
+      "annotation": "Lint FASTQ files after trimming",
+      "id": 12,
+      "input_connections": {
+        "reads": {
+          "id": 10,
+          "output_name": "output"
+        }
+      },
+      "name": "IDBA fq2fa",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/yjarosz/yjrepo/Repository_Actions_IDBA_fq2fa",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "13": {
+      "annotation": "Lint FASTQ files after trimming (fastp path)",
+      "id": 13,
+      "input_connections": {
+        "reads": {
+          "id": 11,
+          "output_name": "output"
+        }
+      },
+      "name": "IDBA fq2fa",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/yjarosz/yjrepo/Repository_Actions_IDBA_fq2fa",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "14": {
+      "annotation": "Remove genome contaminant reads with BBSplit",
+      "id": 14,
+      "input_connections": {
+        "reads": {
+          "id": 12,
+          "output_name": "output"
+        }
+      },
+      "name": "BBMap Clumpify: Deduplication",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bbtools_clumpify/Repository_Actions_BBMap_Clumpify:_Deduplication",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "15": {
+      "annotation": "Remove genome contaminant reads with BBSplit (fastp path)",
+      "id": 15,
+      "input_connections": {
+        "reads": {
+          "id": 13,
+          "output_name": "output"
+        }
+      },
+      "name": "BBMap Clumpify: Deduplication",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bbtools_clumpify/Repository_Actions_BBMap_Clumpify:_Deduplication",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "16": {
+      "annotation": "Lint FASTQ files after BBSplit",
+      "id": 16,
+      "input_connections": {
+        "reads": {
+          "id": 14,
+          "output_name": "output"
+        }
+      },
+      "name": "IDBA fq2fa",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/yjarosz/yjrepo/Repository_Actions_IDBA_fq2fa",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "17": {
+      "annotation": "Lint FASTQ files after BBSplit (fastp path)",
+      "id": 17,
+      "input_connections": {
+        "reads": {
+          "id": 15,
+          "output_name": "output"
+        }
+      },
+      "name": "IDBA fq2fa",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/yjarosz/yjrepo/Repository_Actions_IDBA_fq2fa",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 130
+      }
+    },
+    "18": {
+      "annotation": "Create SortMeRNA index from rRNA sequences",
+      "id": 18,
+      "input_connections": {
+        "rrna_fastas": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "sortmerna",
+      "tool_id": "nfcore_sortmerna",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 250
+      }
+    },
+    "19": {
+      "annotation": "Remove ribosomal RNA reads with SortMeRNA",
+      "id": 19,
+      "input_connections": {
+        "reads": {
+          "id": 16,
+          "output_name": "output"
+        },
+        "sortmerna_index": {
+          "id": 18,
+          "output_name": "index"
+        }
+      },
+      "name": "sortmerna",
+      "tool_id": "nfcore_sortmerna",
+      "type": "tool",
+      "position": {
+        "left": 1770,
+        "top": 10
+      }
+    },
+    "20": {
+      "annotation": "Remove ribosomal RNA reads with SortMeRNA (fastp path)",
+      "id": 20,
+      "input_connections": {
+        "reads": {
+          "id": 17,
+          "output_name": "output"
+        },
+        "sortmerna_index": {
+          "id": 18,
+          "output_name": "index"
+        }
+      },
+      "name": "sortmerna",
+      "tool_id": "nfcore_sortmerna",
+      "type": "tool",
+      "position": {
+        "left": 1770,
+        "top": 130
+      }
+    },
+    "21": {
+      "annotation": "Lint FASTQ files after SortMeRNA",
+      "id": 21,
+      "input_connections": {
+        "reads": {
+          "id": 19,
+          "output_name": "output"
+        }
+      },
+      "name": "IDBA fq2fa",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/yjarosz/yjrepo/Repository_Actions_IDBA_fq2fa",
+      "type": "tool",
+      "position": {
+        "left": 1990,
+        "top": 10
+      }
+    },
+    "22": {
+      "annotation": "Lint FASTQ files after SortMeRNA (fastp path)",
+      "id": 22,
+      "input_connections": {
+        "reads": {
+          "id": 20,
+          "output_name": "output"
+        }
+      },
+      "name": "IDBA fq2fa",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/yjarosz/yjrepo/Repository_Actions_IDBA_fq2fa",
+      "type": "tool",
+      "position": {
+        "left": 1990,
+        "top": 130
+      }
+    },
+    "23": {
+      "annotation": "Sub-sample FASTQ and pseudoalign with Salmon to infer strandedness",
+      "id": 23,
+      "input_connections": {
+        "reads": {
+          "id": 21,
+          "output_name": "output"
+        },
+        "genome_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "transcript_fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "salmon_index": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "interleave fastqs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/lijing/bubio/Repository_Actions_interleave_fastqs",
+      "type": "tool",
+      "position": {
+        "left": 2210,
+        "top": 10
+      }
+    },
+    "24": {
+      "annotation": "Sub-sample FASTQ and pseudoalign with Salmon to infer strandedness (fastp path)",
+      "id": 24,
+      "input_connections": {
+        "reads": {
+          "id": 22,
+          "output_name": "output"
+        },
+        "genome_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "transcript_fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "salmon_index": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "interleave fastqs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/lijing/bubio/Repository_Actions_interleave_fastqs",
+      "type": "tool",
+      "position": {
+        "left": 2210,
+        "top": 130
+      }
+    }
+  },
+  "annotation_notes": {
+    "workflow_logic": "This workflow performs FASTQ quality control, trimming, filtering and strandedness detection. Key features: (1) Concatenates FASTQ files from same sample, (2) Performs linting checks at multiple stages, (3) Supports two trimming alternatives: TrimGalore or fastp, (4) Optionally removes genome contaminants with BBSplit, (5) Optionally removes rRNA with SortMeRNA, (6) Infers strandedness using Salmon pseudoalignment",
+    "conditional_paths": "Two main execution paths based on trimmer parameter: TrimGalore path (steps 10,12,14,16,19,21,23) or fastp path (steps 11,13,15,17,20,22,24). BBSplit and SortMeRNA steps are optional based on skip_bbsplit and remove_ribo_rna parameters.",
+    "data_flow": "Reads flow through concatenation \u2192 linting \u2192 trimming (alternative paths) \u2192 post-trim linting \u2192 BBSplit filtering \u2192 post-BBSplit linting \u2192 SortMeRNA filtering \u2192 post-SortMeRNA linting \u2192 Salmon strandedness inference"
+  }
+}

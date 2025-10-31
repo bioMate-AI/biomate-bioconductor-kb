@@ -1,0 +1,128 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "VCF_ANNOTATE_SNPEFF",
+  "annotation": "Converted from nf-core subworkflow: Run SNPEFF to annotate VCF files",
+  "steps": {
+    "0": {
+      "annotation": "Input VCF file with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_vcf",
+          "description": "VCF file to annotate"
+        }
+      ],
+      "name": "Input VCF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "SnpEff database version",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_snpeff_db",
+          "description": "Database version to use for annotation"
+        }
+      ],
+      "name": "Input SnpEff DB",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Optional SnpEff cache directory",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_snpeff_cache",
+          "description": "Optional cache directory for SnpEff"
+        }
+      ],
+      "name": "Input SnpEff Cache",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Annotate VCF with SnpEff",
+      "id": 3,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "db": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "cache": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "SnpEff",
+      "tool_id": "pcingola_snpeff_SnpEff_1.0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "Compress and index annotated VCF with Tabix",
+      "id": 4,
+      "input_connections": {
+        "vcf": {
+          "id": 3,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Tabix",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "vcf_tbi": {
+      "id": 4,
+      "output_name": "gz_tbi",
+      "description": "Compressed and indexed VCF file"
+    },
+    "reports": {
+      "id": 3,
+      "output_name": "report",
+      "description": "SnpEff HTML report"
+    },
+    "summary": {
+      "id": 3,
+      "output_name": "summary_html",
+      "description": "SnpEff summary HTML"
+    },
+    "genes_txt": {
+      "id": 3,
+      "output_name": "genes_txt",
+      "description": "SnpEff genes text file"
+    },
+    "versions": {
+      "id": 4,
+      "output_name": "versions",
+      "description": "Version information from all tools"
+    }
+  }
+}

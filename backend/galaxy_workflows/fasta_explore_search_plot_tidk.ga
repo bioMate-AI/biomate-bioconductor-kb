@@ -1,0 +1,189 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTA_EXPLORE_SEARCH_PLOT_TIDK",
+  "annotation": "Converted from nf-core subworkflow: Explores, searches, and plots telomeric repeat patterns in FASTA sequences using TIDK",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTA sequences",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Optional input: A priori telomeric repeat sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_apriori_sequence"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "id": 2,
+      "input_connections": {
+        "fastx_input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "SEQKIT seq - Filter by length",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqkit_seq/seqkit_seq",
+      "tool_version": "2.3.1+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "id": 3,
+      "input_connections": {
+        "fastx_input": {
+          "id": 2,
+          "output_name": "fastx_output"
+        }
+      },
+      "name": "SEQKIT sort - Sort by length",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqkit_sort/seqkit_sort",
+      "tool_version": "2.3.1+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "4": {
+      "id": 4,
+      "input_connections": {
+        "fasta": {
+          "id": 2,
+          "output_name": "fastx_output"
+        }
+      },
+      "name": "TIDK explore",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxy-australia/tidk/tidk_explore",
+      "tool_version": "0.3.5+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "5": {
+      "id": 5,
+      "input_connections": {
+        "fasta": {
+          "id": 3,
+          "output_name": "fastx_output"
+        },
+        "sequence": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "TIDK search - A priori",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxy-australia/tidk/tidk_search",
+      "tool_version": "0.3.5+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "6": {
+      "id": 6,
+      "input_connections": {
+        "fasta": {
+          "id": 3,
+          "output_name": "fastx_output"
+        },
+        "sequence": {
+          "id": 4,
+          "output_name": "top_sequence"
+        }
+      },
+      "name": "TIDK search - A posteriori",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxy-australia/tidk/tidk_search",
+      "tool_version": "0.3.5+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "7": {
+      "id": 7,
+      "input_connections": {
+        "tsv": {
+          "id": 5,
+          "output_name": "tsv"
+        }
+      },
+      "name": "TIDK plot - A priori",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxy-australia/tidk/tidk_plot",
+      "tool_version": "0.3.5+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "8": {
+      "id": 8,
+      "input_connections": {
+        "tsv": {
+          "id": 6,
+          "output_name": "tsv"
+        }
+      },
+      "name": "TIDK plot - A posteriori",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxy-australia/tidk/tidk_plot",
+      "tool_version": "0.3.5+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    }
+  },
+  "outputs": {
+    "apriori_tsv": {
+      "id": 5,
+      "output_name": "tsv"
+    },
+    "apriori_svg": {
+      "id": 7,
+      "output_name": "svg"
+    },
+    "aposteriori_sequence": {
+      "id": 4,
+      "output_name": "top_sequence"
+    },
+    "aposteriori_tsv": {
+      "id": 6,
+      "output_name": "tsv"
+    },
+    "aposteriori_svg": {
+      "id": 8,
+      "output_name": "svg"
+    }
+  }
+}

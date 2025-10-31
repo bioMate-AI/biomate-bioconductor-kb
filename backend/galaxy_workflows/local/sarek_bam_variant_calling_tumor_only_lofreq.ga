@@ -1,0 +1,158 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_TUMOR_ONLY_LOFREQ",
+  "annotation": "Converted from nf-core subworkflow: BAM_VARIANT_CALLING_TUMOR_ONLY_LOFREQ. Performs tumor-only variant calling using LoFreq with optional interval-based parallelization and VCF merging.",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM/CRAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference FASTA sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Genomic intervals for parallelization (optional)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Reference sequence dictionary",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "LoFreq variant calling in parallel across intervals",
+      "id": 5,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "LOFREQ_CALLPARALLEL",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/lofreq_call/lofreq_call",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 200
+      }
+    },
+    "6": {
+      "annotation": "Merge VCF files from multiple intervals. Only executed when num_intervals > 1",
+      "id": 6,
+      "input_connections": {
+        "vcf_input": {
+          "id": 5,
+          "output_name": "vcf"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "MERGE_LOFREQ",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 200
+      }
+    },
+    "7": {
+      "annotation": "Final VCF output - either merged (if intervals used) or direct from LoFreq (if no intervals). Annotated with variantcaller='lofreq'",
+      "id": 7,
+      "input_connections": {
+        "vcf_merged": {
+          "id": 6,
+          "output_name": "vcf"
+        },
+        "vcf_single": {
+          "id": 5,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output VCF",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 200
+      }
+    }
+  }
+}

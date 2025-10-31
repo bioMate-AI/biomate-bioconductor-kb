@@ -1,0 +1,339 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_ALIGN_DEDUP_BISMARK",
+  "annotation": "Converted from nf-core subworkflow: Bismark alignment, deduplication, and methylation extraction workflow",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input Bismark index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bismark_index"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Skip deduplication flag",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "skip_deduplication"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Cytosine report flag",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cytosine_report"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "id": 5,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "bismark_index": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Bismark Align",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bismark2bedgraph/Repository_Actions_Bismark_to_BedGraph",
+      "tool_version": "0.1.0+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "6": {
+      "id": 6,
+      "input_connections": {
+        "bam": {
+          "id": 5,
+          "output_name": "bam"
+        }
+      },
+      "name": "Bismark Deduplicate",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bismark2bedgraph/Repository_Actions_Bismark_to_BedGraph",
+      "tool_version": "0.1.0+galaxy0",
+      "type": "tool",
+      "annotation": "Conditional: only runs if skip_deduplication is false",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "id": 7,
+      "input_connections": {
+        "bam": {
+          "id": 6,
+          "output_name": "bam"
+        }
+      },
+      "name": "Samtools Sort",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "tool_version": "0.0.5",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "8": {
+      "id": 8,
+      "input_connections": {
+        "bam": {
+          "id": 7,
+          "output_name": "bam"
+        }
+      },
+      "name": "Samtools Index",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "tool_version": "0.0.5",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "9": {
+      "id": 9,
+      "input_connections": {
+        "bam": {
+          "id": 5,
+          "output_name": "bam"
+        },
+        "bismark_index": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Bismark Methylation Extractor",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bismark2bedgraph/Repository_Actions_Bismark_to_BedGraph",
+      "tool_version": "0.1.0+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "10": {
+      "id": 10,
+      "input_connections": {
+        "coverage": {
+          "id": 9,
+          "output_name": "coverage"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "bismark_index": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Bismark Coverage2Cytosine",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bismark2bedgraph/Repository_Actions_Bismark_to_BedGraph",
+      "tool_version": "0.1.0+galaxy0",
+      "type": "tool",
+      "annotation": "Conditional: only runs if cytosine_report is true",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "11": {
+      "id": 11,
+      "input_connections": {
+        "alignment_report": {
+          "id": 5,
+          "output_name": "report"
+        },
+        "dedup_report": {
+          "id": 6,
+          "output_name": "report"
+        },
+        "methylation_report": {
+          "id": 9,
+          "output_name": "report"
+        },
+        "mbias": {
+          "id": 9,
+          "output_name": "mbias"
+        }
+      },
+      "name": "Bismark Report",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bismark2bedgraph/Repository_Actions_Bismark_to_BedGraph",
+      "tool_version": "0.1.0+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "12": {
+      "id": 12,
+      "input_connections": {
+        "bam_files": {
+          "id": 5,
+          "output_name": "bam"
+        },
+        "alignment_reports": {
+          "id": 5,
+          "output_name": "report"
+        },
+        "dedup_reports": {
+          "id": 6,
+          "output_name": "report"
+        },
+        "methylation_reports": {
+          "id": 9,
+          "output_name": "report"
+        },
+        "mbias_files": {
+          "id": 9,
+          "output_name": "mbias"
+        }
+      },
+      "name": "Bismark Summary",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bismark2bedgraph/Repository_Actions_Bismark_to_BedGraph",
+      "tool_version": "0.1.0+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    }
+  },
+  "outputs": {
+    "bam": {
+      "id": 7,
+      "output_name": "bam",
+      "type": "bam"
+    },
+    "bai": {
+      "id": 8,
+      "output_name": "bai",
+      "type": "bai"
+    },
+    "coverage2cytosine_coverage": {
+      "id": 10,
+      "output_name": "coverage",
+      "type": "txt",
+      "annotation": "Conditional output"
+    },
+    "coverage2cytosine_report": {
+      "id": 10,
+      "output_name": "report",
+      "type": "txt",
+      "annotation": "Conditional output"
+    },
+    "coverage2cytosine_summary": {
+      "id": 10,
+      "output_name": "summary",
+      "type": "txt",
+      "annotation": "Conditional output"
+    },
+    "methylation_bedgraph": {
+      "id": 9,
+      "output_name": "bedgraph",
+      "type": "bedgraph"
+    },
+    "methylation_calls": {
+      "id": 9,
+      "output_name": "methylation_calls",
+      "type": "txt"
+    },
+    "methylation_coverage": {
+      "id": 9,
+      "output_name": "coverage",
+      "type": "txt"
+    },
+    "methylation_report": {
+      "id": 9,
+      "output_name": "report",
+      "type": "txt"
+    },
+    "methylation_mbias": {
+      "id": 9,
+      "output_name": "mbias",
+      "type": "txt"
+    },
+    "bismark_report": {
+      "id": 11,
+      "output_name": "report",
+      "type": "html"
+    },
+    "bismark_summary": {
+      "id": 12,
+      "output_name": "summary",
+      "type": "txt"
+    }
+  }
+}

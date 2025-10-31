@@ -1,0 +1,172 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_FIND_MIRNA_MIRDEEP2",
+  "annotation": "Converted from nf-core subworkflow for miRNA discovery using MiRDeep2",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads"
+        }
+      ],
+      "name": "Input dataset - FASTQ reads",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input genome FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_genome_fasta"
+        }
+      ],
+      "name": "Input dataset - Genome FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input Bowtie index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bowtie_index"
+        }
+      ],
+      "name": "Input dataset - Bowtie index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input mature miRNA and hairpin sequences",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_mirna_mature_hairpin"
+        }
+      ],
+      "name": "Input dataset - miRNA mature and hairpin",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Convert FASTQ to FASTA format",
+      "id": 4,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Seqkit FQ2FA",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/alyssa/seqkit_seq/Repository_Actions_Qcat",
+      "tool_version": "0.1.0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Replace sequence identifiers in FASTA",
+      "id": 5,
+      "input_connections": {
+        "input_file": {
+          "id": 4,
+          "output_name": "fasta"
+        }
+      },
+      "name": "Seqkit Replace",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/alyssa/seqkit_seq/Repository_Actions_Qcat",
+      "tool_version": "0.1.0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Map reads to reference using Bowtie via MiRDeep2 mapper",
+      "id": 6,
+      "input_connections": {
+        "input_fasta": {
+          "id": 5,
+          "output_name": "fastx"
+        },
+        "bowtie_index": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "MiRDeep2 Mapper",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/mirdeep2/Repository_Actions_MiRDeep2",
+      "tool_version": "2.0.1.2+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Identify novel and known miRNAs using MiRDeep2",
+      "id": 7,
+      "input_connections": {
+        "mapper_output": {
+          "id": 6,
+          "output_name": "outputs"
+        },
+        "genome_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "mature_mirna": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "MiRDeep2",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/mirdeep2/Repository_Actions_MiRDeep2",
+      "tool_version": "2.0.1.2+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output - miRNA discovery results (BED, CSV, HTML)",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "outputs"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    }
+  }
+}

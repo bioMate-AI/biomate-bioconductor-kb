@@ -1,0 +1,725 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_GERMLINE_ALL",
+  "annotation": "Germline variant calling workflow supporting multiple variant callers (MPILEUP, CNVKIT, DEEPVARIANT, FREEBAYES, HAPLOTYPECALLER, MANTA, INDEXCOV, SENTIEON_DNASCOPE, SENTIEON_HAPLOTYPER, STRELKA, TIDDIT). Includes conditional joint calling and filtering steps based on parameters.",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM/CRAM files",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam_cram"
+        }
+      ],
+      "name": "Input BAM/CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference genome FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Dictionary file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input Dictionary",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "dbSNP VCF file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp"
+        }
+      ],
+      "name": "Input dbSNP",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "dbSNP index file",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp_tbi"
+        }
+      ],
+      "name": "Input dbSNP Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Interval regions BED file",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input Intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Tools to execute (comma-separated)",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "tools"
+        }
+      ],
+      "name": "Input Tools Parameter",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "BCFTOOLS MPILEUP - if mpileup in tools",
+      "id": 8,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_MPILEUP",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "CNVKIT - if cnvkit in tools",
+      "id": 9,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals_bed": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_CNVKIT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "DEEPVARIANT - if deepvariant in tools",
+      "id": 10,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_DEEPVARIANT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "FREEBAYES - if freebayes in tools",
+      "id": 11,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_FREEBAYES",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "12": {
+      "annotation": "HAPLOTYPECALLER - if haplotypecaller in tools",
+      "id": 12,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_HAPLOTYPECALLER",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "13": {
+      "annotation": "BAM_JOINT_CALLING_GERMLINE_GATK - if haplotypecaller and joint_germline",
+      "id": 13,
+      "input_connections": {
+        "gvcf_tbi_intervals": {
+          "id": 12,
+          "output_name": "gvcf_tbi_intervals"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_JOINT_CALLING_GERMLINE_GATK",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "14": {
+      "annotation": "VCF_VARIANT_FILTERING_GATK - if haplotypecaller and not joint_germline and not skip_haplotypecaller_filter",
+      "id": 14,
+      "input_connections": {
+        "vcf": {
+          "id": 12,
+          "output_name": "vcf"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "VCF_VARIANT_FILTERING_GATK",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/greg/affy2vcf2/Repository_Actions_Convert_Affymetrix",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "15": {
+      "annotation": "MANTA - if manta in tools",
+      "id": 15,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_GERMLINE_MANTA",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "16": {
+      "annotation": "INDEXCOV - if not WES and indexcov in tools",
+      "id": 16,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_INDEXCOV",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "17": {
+      "annotation": "SENTIEON DNASCOPE - if sentieon_dnascope in tools",
+      "id": 17,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_SENTIEON_DNASCOPE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "18": {
+      "annotation": "BAM_JOINT_CALLING_GERMLINE_SENTIEON - if sentieon_dnascope and joint_germline",
+      "id": 18,
+      "input_connections": {
+        "genotype_intervals": {
+          "id": 17,
+          "output_name": "genotype_intervals"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_JOINT_CALLING_GERMLINE_SENTIEON_DNASCOPE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "19": {
+      "annotation": "SENTIEON_DNAMODELAPPLY - if sentieon_dnascope and not joint_germline and not dnascope_filter skip",
+      "id": 19,
+      "input_connections": {
+        "vcf": {
+          "id": 17,
+          "output_name": "vcf"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON_DNAMODELAPPLY",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "20": {
+      "annotation": "SENTIEON HAPLOTYPER - if sentieon_haplotyper in tools",
+      "id": 20,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_SENTIEON_HAPLOTYPER",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 130
+      }
+    },
+    "21": {
+      "annotation": "BAM_JOINT_CALLING_GERMLINE_SENTIEON - if sentieon_haplotyper and joint_germline",
+      "id": 21,
+      "input_connections": {
+        "genotype_intervals": {
+          "id": 20,
+          "output_name": "genotype_intervals"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_JOINT_CALLING_GERMLINE_SENTIEON_HAPLOTYPER",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 130
+      }
+    },
+    "22": {
+      "annotation": "SENTIEON_HAPLOTYPER_VCF_VARIANT_FILTERING_GATK - if sentieon_haplotyper and not joint_germline and not haplotyper_filter skip",
+      "id": 22,
+      "input_connections": {
+        "vcf": {
+          "id": 20,
+          "output_name": "vcf"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON_HAPLOTYPER_VCF_VARIANT_FILTERING_GATK",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/greg/affy2vcf2/Repository_Actions_Convert_Affymetrix",
+      "type": "tool",
+      "position": {
+        "left": 1770,
+        "top": 130
+      }
+    },
+    "23": {
+      "annotation": "STRELKA - if strelka in tools",
+      "id": 23,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_SINGLE_STRELKA",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "24": {
+      "annotation": "TIDDIT - if tiddit in tools",
+      "id": 24,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_VARIANT_CALLING_SINGLE_TIDDIT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "25": {
+      "annotation": "Collect all VCF outputs from variant callers",
+      "id": 25,
+      "input_connections": {
+        "vcf_deepvariant": {
+          "id": 10,
+          "output_name": "vcf"
+        },
+        "vcf_freebayes": {
+          "id": 11,
+          "output_name": "vcf"
+        },
+        "vcf_haplotypecaller": {
+          "id": 12,
+          "output_name": "vcf"
+        },
+        "vcf_manta": {
+          "id": 15,
+          "output_name": "vcf"
+        },
+        "vcf_mpileup": {
+          "id": 8,
+          "output_name": "vcf"
+        },
+        "vcf_strelka": {
+          "id": 23,
+          "output_name": "vcf"
+        },
+        "vcf_sentieon_dnascope": {
+          "id": 17,
+          "output_name": "vcf"
+        },
+        "vcf_sentieon_haplotyper": {
+          "id": 20,
+          "output_name": "vcf"
+        },
+        "vcf_tiddit": {
+          "id": 24,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Collect VCF outputs",
+      "type": "data_collection_input",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    }
+  }
+}

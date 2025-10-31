@@ -1,0 +1,459 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_JOINT_CALLING_GERMLINE_SENTIEON",
+  "annotation": "Joint germline variant calling workflow using Sentieon tools with optional VQSR recalibration",
+  "steps": {
+    "0": {
+      "annotation": "Input GVCFs with indices and intervals",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input_gvcfs"
+        }
+      ],
+      "name": "Input GVCFs",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference FASTA sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fai"
+        }
+      ],
+      "name": "Input FAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "FASTA dictionary file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input DICT",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "dbSNP VCF file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp"
+        }
+      ],
+      "name": "Input dbSNP",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "dbSNP index file",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp_tbi"
+        }
+      ],
+      "name": "Input dbSNP TBI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Resource indels VCF",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "resource_indels_vcf"
+        }
+      ],
+      "name": "Input Resource Indels VCF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Resource indels index",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "resource_indels_tbi"
+        }
+      ],
+      "name": "Input Resource Indels TBI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Resource SNPs VCF",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "resource_snps_vcf"
+        }
+      ],
+      "name": "Input Resource SNPs VCF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Resource SNPs index",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "resource_snps_tbi"
+        }
+      ],
+      "name": "Input Resource SNPs TBI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "Variant caller type (sentieon_dnascope or sentieon_haplotyper)",
+      "id": 10,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "variant_caller"
+        }
+      ],
+      "name": "Input Variant Caller",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1210
+      }
+    },
+    "11": {
+      "annotation": "Sentieon GVCF Typer - Joint genotyping of GVCFs",
+      "id": 11,
+      "input_connections": {
+        "input_gvcfs": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON_GVCFTYPER",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core/sentieon_gvcftyper/sentieon_gvcftyper",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "12": {
+      "annotation": "Sort VCF output from GVCF Typer",
+      "id": 12,
+      "input_connections": {
+        "vcf_input": {
+          "id": 11,
+          "output_name": "vcf_gz"
+        }
+      },
+      "name": "BCFTOOLS_SORT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions_bcftools_view",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "13": {
+      "annotation": "Merge genotyped VCFs",
+      "id": 13,
+      "input_connections": {
+        "vcf_input": {
+          "id": 12,
+          "output_name": "vcf"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "MERGE_GENOTYPEGVCFS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "14": {
+      "annotation": "Conditional: Only run if variant_caller != sentieon_dnascope",
+      "id": 14,
+      "input_connections": {
+        "vcf_input": {
+          "id": 13,
+          "output_name": "vcf"
+        },
+        "resource_vcf": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "resource_tbi": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON_VARCAL_INDEL",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core/sentieon_varcal/sentieon_varcal",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "15": {
+      "annotation": "Conditional: Only run if variant_caller != sentieon_dnascope",
+      "id": 15,
+      "input_connections": {
+        "vcf_input": {
+          "id": 13,
+          "output_name": "vcf"
+        },
+        "resource_vcf": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "resource_tbi": {
+          "id": 9,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON_VARCAL_SNP",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core/sentieon_varcal/sentieon_varcal",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "16": {
+      "annotation": "Conditional: Only run if variant_caller != sentieon_dnascope",
+      "id": 16,
+      "input_connections": {
+        "vcf_input": {
+          "id": 13,
+          "output_name": "vcf"
+        },
+        "recal": {
+          "id": 15,
+          "output_name": "recal"
+        },
+        "idx": {
+          "id": 15,
+          "output_name": "idx"
+        },
+        "tranches": {
+          "id": 15,
+          "output_name": "tranches"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON_APPLYVARCAL_SNP",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core/sentieon_applyvarcal/sentieon_applyvarcal",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "17": {
+      "annotation": "Conditional: Only run if variant_caller != sentieon_dnascope",
+      "id": 17,
+      "input_connections": {
+        "vcf_input": {
+          "id": 16,
+          "output_name": "vcf"
+        },
+        "recal": {
+          "id": 14,
+          "output_name": "recal"
+        },
+        "idx": {
+          "id": 14,
+          "output_name": "idx"
+        },
+        "tranches": {
+          "id": 14,
+          "output_name": "tranches"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON_APPLYVARCAL_INDEL",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core/sentieon_applyvarcal/sentieon_applyvarcal",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 250
+      }
+    },
+    "18": {
+      "annotation": "Used when variant_caller == sentieon_dnascope",
+      "id": 18,
+      "input_connections": {
+        "genotype_vcf": {
+          "id": 13,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output Genotype VCF (DnaScope path)",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "19": {
+      "annotation": "Used when variant_caller == sentieon_haplotyper",
+      "id": 19,
+      "input_connections": {
+        "genotype_vcf": {
+          "id": 17,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output Genotype VCF (VQSR path)",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 130
+      }
+    },
+    "20": {
+      "annotation": "Used when variant_caller == sentieon_dnascope",
+      "id": 20,
+      "input_connections": {
+        "genotype_index": {
+          "id": 13,
+          "output_name": "tbi"
+        }
+      },
+      "name": "Output Genotype Index (DnaScope path)",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 250
+      }
+    },
+    "21": {
+      "annotation": "Used when variant_caller == sentieon_haplotyper",
+      "id": 21,
+      "input_connections": {
+        "genotype_index": {
+          "id": 17,
+          "output_name": "tbi"
+        }
+      },
+      "name": "Output Genotype Index (VQSR path)",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 370
+      }
+    }
+  }
+}

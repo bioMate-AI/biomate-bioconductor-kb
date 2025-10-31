@@ -1,0 +1,200 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "CHANNEL_BASERECALIBRATOR_CREATE_CSV",
+  "annotation": "This workflow implements the CHANNEL_BASERECALIBRATOR_CREATE_CSV subworkflow logic. It takes CRAM/CRAI/table metadata and creates CSV files for restarting BQSR analysis. The workflow follows three conditional paths: (1) if sentieon_dedup is in tools, use sentieon_dedup paths; (2) else if markduplicates is not skipped, use markduplicates paths; (3) else use mapped paths. Each path generates appropriately named CSV files with correct directory references based on the save_output_as_bam parameter.",
+  "steps": {
+    "0": {
+      "annotation": "Input channel containing metadata, CRAM file, index, and recalibration table",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram_table_bqsr"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input parameter: comma-separated list of tools to use",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "tools"
+        }
+      ],
+      "name": "Input parameter tools",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input parameter: comma-separated list of tools to skip",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "skip_tools"
+        }
+      ],
+      "name": "Input parameter skip_tools",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input parameter: output directory path",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "outdir"
+        }
+      ],
+      "name": "Input parameter outdir",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input parameter: save output as BAM instead of CRAM",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "save_output_as_bam"
+        }
+      ],
+      "name": "Input parameter save_output_as_bam",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Creates markduplicates.csv with paths pointing to sentieon_dedup preprocessing directory",
+      "id": 5,
+      "input_connections": {
+        "input_collection": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "tools": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "outdir": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "save_output_as_bam": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Create CSV - Sentieon Dedup Path",
+      "tool_id": "galaxy_tool_create_csv_sentieon",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Creates markduplicates.csv with paths pointing to markduplicates preprocessing directory",
+      "id": 6,
+      "input_connections": {
+        "input_collection": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "skip_tools": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "outdir": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "save_output_as_bam": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Create CSV - Markduplicates Path",
+      "tool_id": "galaxy_tool_create_csv_markduplicates",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Creates sorted.csv with paths pointing to mapped preprocessing directory when markduplicates is skipped",
+      "id": 7,
+      "input_connections": {
+        "input_collection": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "skip_tools": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "outdir": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "save_output_as_bam": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Create CSV - Sorted Path",
+      "tool_id": "galaxy_tool_create_csv_sorted",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Consolidates CSV output from conditional branches",
+      "id": 8,
+      "input_connections": {
+        "input1": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "input2": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "input3": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge CSV outputs",
+      "tool_id": "galaxy_tool_merge_csv",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    }
+  }
+}

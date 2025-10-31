@@ -1,0 +1,242 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_SUBSAMPLE_FQ_SALMON",
+  "annotation": "Sub-sample FastQ files and pseudo-align with Salmon. Can be used to infer strandedness of library. Converted from nf-core subworkflow.",
+  "steps": {
+    "0": {
+      "annotation": "Input FastQ reads channel",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input genome FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_genome_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input transcript FASTA file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_transcript_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input GTF annotation file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_gtf"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input Salmon index (optional if make_index is true)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Conditional step: only executed if make_index parameter is true",
+      "id": 5,
+      "input_connections": {
+        "genome_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "transcript_fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Salmon Index",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_salmon_index_builder/Repository_Actions_Salmon",
+      "tool_version": "1.3.0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 190
+      }
+    },
+    "6": {
+      "annotation": "Sub-sample FastQ files",
+      "id": 6,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "FQ Subsample",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/yjarosz/yjrepo/Repository_Actions_IDBA_fq2fa",
+      "tool_version": "1.0.0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Pseudo-alignment and quantification with Salmon. Uses subsampled FastQ files, Salmon index, GTF, and transcript FASTA. Library type set to 'A' (automatic detection) and alignment mode disabled.",
+      "id": 7,
+      "input_connections": {
+        "fastq": {
+          "id": 6,
+          "output_name": "fastq"
+        },
+        "index": {
+          "id": 5,
+          "output_name": "index"
+        },
+        "gtf": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "transcript_fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Salmon Quant",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_salmon_index_builder/Repository_Actions_Salmon",
+      "tool_version": "1.3.0",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      },
+      "tool_state": {
+        "lib_type": "A",
+        "alignment_mode": false
+      }
+    },
+    "8": {
+      "annotation": "Output: Salmon index",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "index"
+        }
+      },
+      "name": "Output index",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 190
+      }
+    },
+    "9": {
+      "annotation": "Output: Subsampled FastQ reads",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "fastq"
+        }
+      },
+      "name": "Output reads",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 310
+      }
+    },
+    "10": {
+      "annotation": "Output: Salmon quantification results directory",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "results"
+        }
+      },
+      "name": "Output results",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 430
+      }
+    },
+    "11": {
+      "annotation": "Output: Salmon JSON info file",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "json_info"
+        }
+      },
+      "name": "Output json_info",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 550
+      }
+    },
+    "12": {
+      "annotation": "Output: Library format counts",
+      "id": 12,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "lib_format_counts"
+        }
+      },
+      "name": "Output lib_format_counts",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 670
+      }
+    }
+  }
+}

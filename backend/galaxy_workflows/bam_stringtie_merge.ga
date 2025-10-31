@@ -1,0 +1,109 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_STRINGTIE_MERGE",
+  "annotation": "Converted from nf-core BAM_STRINGTIE_MERGE subworkflow. Assembles RNA-Seq alignments into transcripts using StringTie, then merges the resulting GTF files.",
+  "steps": {
+    "0": {
+      "annotation": "Sorted BAM files from RNA-Seq alignment",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam_sorted",
+          "description": "Sorted BAM files with metadata"
+        }
+      ],
+      "name": "Input BAM files",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference GTF file for transcript assembly",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_chrgtf",
+          "description": "Reference GTF file with metadata"
+        }
+      ],
+      "name": "Input reference GTF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "id": 2,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "input_gtf": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "StringTie (transcript assembly)",
+      "tool_id": "iuc_stringtie_StringTie_2.2.3+galaxy0",
+      "tool_version": "2.2.3+galaxy0",
+      "type": "tool",
+      "annotation": "Assemble transcripts from BAM alignments using reference GTF",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "id": 3,
+      "input_connections": {
+        "input_gtf_list": {
+          "id": 2,
+          "output_name": "transcript_gtf"
+        },
+        "reference_gtf": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "StringTie (merge transcripts)",
+      "tool_id": "iuc_stringtie_StringTie_2.2.3+galaxy0",
+      "tool_version": "2.2.3+galaxy0",
+      "type": "tool",
+      "annotation": "Merge assembled transcripts from multiple samples into a unified GTF",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "Merged GTF file containing all assembled transcripts",
+      "id": 4,
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "gtf"
+        }
+      },
+      "name": "Output merged GTF",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "stringtie_gtf": {
+      "annotation": "Merged GTF file from StringTie merge step",
+      "output_name": "gtf",
+      "step": 3
+    }
+  }
+}

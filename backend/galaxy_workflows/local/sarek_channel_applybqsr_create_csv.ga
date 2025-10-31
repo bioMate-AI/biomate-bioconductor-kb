@@ -1,0 +1,108 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "CHANNEL_APPLYBQSR_CREATE_CSV",
+  "annotation": "This workflow creates a CSV file from recalibrated CRAM/BAM files containing patient metadata and file paths. The CSV is used to enable workflow restart from the APPLYBQSR step. File format (BAM vs CRAM) is determined by the save_output_as_bam parameter.",
+  "steps": {
+    "0": {
+      "annotation": "Recalibrated CRAM/BAM files with indices",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram_recalibrated_index",
+          "description": "Channel containing meta, cram/bam file, and index"
+        }
+      ],
+      "name": "Input: Recalibrated Files",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Output directory path",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "outdir",
+          "description": "Output directory"
+        }
+      ],
+      "name": "Input: Output Directory",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Boolean flag to save output as BAM instead of CRAM",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "save_output_as_bam",
+          "description": "Save output as BAM format"
+        }
+      ],
+      "name": "Input: Save as BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Collects metadata and file paths from recalibrated files and generates CSV for workflow restart",
+      "id": 3,
+      "input_connections": {
+        "cram_recalibrated_index": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "outdir": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "save_output_as_bam": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Create Recalibrated CSV",
+      "tool_id": "galaxy_collectfile_csv",
+      "type": "tool",
+      "tool_state": {
+        "keepHeader": true,
+        "skip": 1,
+        "sort": true,
+        "storeDir": "${outdir}/csv",
+        "filename": "recalibrated.csv",
+        "header_line": "patient,sex,status,sample,{type},{type_index}",
+        "conditional_type": {
+          "save_output_as_bam": {
+            "type_value": "bam",
+            "type_index_value": "bai"
+          },
+          "else": {
+            "type_value": "cram",
+            "type_index_value": "crai"
+          }
+        }
+      },
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    }
+  },
+  "tags": [
+    "nf-core",
+    "preprocessing",
+    "bqsr",
+    "csv-generation"
+  ]
+}

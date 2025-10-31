@@ -1,0 +1,193 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "UTILS_REFERENCES",
+  "annotation": "Converted from nf-core subworkflow UTILS_REFERENCES - Extracts reference files or values from YAML references and parameters",
+  "steps": {
+    "0": {
+      "annotation": "YAML reference file containing reference metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "yaml_reference",
+          "description": "YAML file with reference definitions"
+        }
+      ],
+      "name": "Input: yaml_reference",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Parameter file path for reference file extraction",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "param_file",
+          "description": "File path parameter"
+        }
+      ],
+      "name": "Input: param_file",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Parameter value for reference value extraction",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "param_value",
+          "description": "Value parameter"
+        }
+      ],
+      "name": "Input: param_value",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Attribute name in metadata for file extraction",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "attribute_file",
+          "description": "Metadata attribute key for files"
+        }
+      ],
+      "name": "Input: attribute_file",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Attribute name in metadata for value extraction",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "attribute_value",
+          "description": "Metadata attribute key for values"
+        }
+      ],
+      "name": "Input: attribute_value",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Base path for resolving ${params.igenomes_base} references",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "basepath",
+          "description": "Base path for reference resolution"
+        }
+      ],
+      "name": "Input: basepath",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Parse YAML reference file and convert to list using nf-schema plugin",
+      "id": 6,
+      "input_connections": {
+        "yaml_input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Parse References YAML",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core/nf_schema/nf_schema_samplesheet_to_list/0.1.0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 70
+      }
+    },
+    "7": {
+      "annotation": "Extract reference files from parsed references using param_file, attribute_file, and basepath. Maps metadata to file paths, replacing ${params.igenomes_base} with basepath.",
+      "id": 7,
+      "input_connections": {
+        "references": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "param_file": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "attribute_file": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "basepath": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Get References Files",
+      "tool_id": "galaxy_get_references_file",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Extract reference values from parsed references using param_value and attribute_value. Maps metadata to string values.",
+      "id": 8,
+      "input_connections": {
+        "references": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "param_value": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "attribute_value": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Get References Values",
+      "tool_id": "galaxy_get_references_value",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    }
+  },
+  "outputs": {
+    "references_file": {
+      "annotation": "Extracted reference files with metadata IDs",
+      "id": 7,
+      "output_name": "output"
+    },
+    "references_value": {
+      "annotation": "Extracted reference values with metadata IDs",
+      "id": 8,
+      "output_name": "output"
+    }
+  }
+}

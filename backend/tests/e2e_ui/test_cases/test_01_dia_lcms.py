@@ -229,12 +229,14 @@ class TestDiaLcmsWorkflow:
             print("  → Tool schema loaded")
 
         # Note: We skip detailed parameter validation since tools may not have schemas
-        # Close parameter dialog
-        close_button = e2e_page.locator('button:has-text("Cancel"), button:has-text("Close")').first
+        # Close parameter dialog using specific test ID
+        close_button = e2e_page.locator('[data-testid="parameter-dialog-cancel"]')
         if close_button.is_visible():
+            print("  → Closing parameter dialog...")
             close_button.click()
-            import time
-            time.sleep(1)
+            # Wait for dialog to fully close before continuing
+            e2e_page.locator('[data-testid="parameter-dialog"]').wait_for(state="hidden", timeout=5000)
+            print("  → Dialog closed successfully")
 
         print("✓ Parameter editor test complete")
 

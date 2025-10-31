@@ -1,0 +1,453 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_DEDUP_UMI",
+  "annotation": "BAM deduplication with UMI processing - Converted from nf-core subworkflow",
+  "steps": {
+    "0": {
+      "annotation": "Genome BAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_genome_bam"
+        }
+      ],
+      "name": "Input: Genome BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference genome FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input: Genome FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Transcriptome BAM file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_transcriptome_bam"
+        }
+      ],
+      "name": "Input: Transcriptome BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Transcriptome reference FASTA",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_transcript_fasta"
+        }
+      ],
+      "name": "Input: Transcript FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "UMI deduplication tool selection: 'umicollapse' or 'umitools'",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "umi_dedup_tool"
+        }
+      ],
+      "name": "Input: UMI Dedup Tool",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Generate UMI-tools dedup statistics",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "umitools_dedup_stats"
+        }
+      ],
+      "name": "Input: UMI-tools Stats Flag",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Use CSI index instead of BAI",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam_csi_index"
+        }
+      ],
+      "name": "Input: CSI Index Flag",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Genome BAM deduplication using UMI-tools",
+      "id": 7,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "umitools_dedup_stats": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS_GENOME",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Genome BAM deduplication using UMI-collapse",
+      "id": 8,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_DEDUP_STATS_SAMTOOLS_UMICOLLAPSE_GENOME",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Coordinate sort transcriptome BAM and generate statistics",
+      "id": 9,
+      "input_connections": {
+        "bam": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_SORT_STATS_SAMTOOLS",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "Transcriptome BAM deduplication using UMI-tools",
+      "id": 10,
+      "input_connections": {
+        "bam": {
+          "id": 9,
+          "output_name": "bam"
+        },
+        "umitools_dedup_stats": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM_DEDUP_STATS_SAMTOOLS_UMITOOLS_TRANSCRIPTOME",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "11": {
+      "annotation": "Transcriptome BAM deduplication using UMI-collapse",
+      "id": 11,
+      "input_connections": {
+        "bam": {
+          "id": 9,
+          "output_name": "bam"
+        }
+      },
+      "name": "BAM_DEDUP_STATS_SAMTOOLS_UMICOLLAPSE_TRANSCRIPTOME",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "12": {
+      "annotation": "Name sort BAM after UMI-tools deduplication",
+      "id": 12,
+      "input_connections": {
+        "bam": {
+          "id": 10,
+          "output_name": "bam"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "SAMTOOLS_SORT (UMI-tools path)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "13": {
+      "annotation": "Name sort BAM after UMI-collapse deduplication",
+      "id": 13,
+      "input_connections": {
+        "bam": {
+          "id": 11,
+          "output_name": "bam"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "SAMTOOLS_SORT (UMI-collapse path)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    },
+    "14": {
+      "annotation": "Fix paired-end reads in name sorted BAM for RSEM/Salmon",
+      "id": 14,
+      "input_connections": {
+        "bam": {
+          "id": 12,
+          "output_name": "bam"
+        }
+      },
+      "name": "UMITOOLS_PREPAREFORRSEM (UMI-tools path)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "15": {
+      "annotation": "Fix paired-end reads in name sorted BAM for RSEM/Salmon",
+      "id": 15,
+      "input_connections": {
+        "bam": {
+          "id": 13,
+          "output_name": "bam"
+        }
+      },
+      "name": "UMITOOLS_PREPAREFORRSEM (UMI-collapse path)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    },
+    "16": {
+      "annotation": "Output: Deduplicated genome BAM",
+      "id": 16,
+      "input_connections": {
+        "bam": {
+          "id": 7,
+          "output_name": "bam"
+        }
+      },
+      "name": "Output: Genome BAM (UMI-tools)",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "17": {
+      "annotation": "Output: Deduplicated genome BAM",
+      "id": 17,
+      "input_connections": {
+        "bam": {
+          "id": 8,
+          "output_name": "bam"
+        }
+      },
+      "name": "Output: Genome BAM (UMI-collapse)",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 130
+      }
+    },
+    "18": {
+      "annotation": "Output: Genome BAM index (BAI or CSI)",
+      "id": 18,
+      "input_connections": {
+        "bai": {
+          "id": 7,
+          "output_name": "bai"
+        }
+      },
+      "name": "Output: Genome BAI/CSI",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 250
+      }
+    },
+    "19": {
+      "annotation": "Output: Deduplication log files",
+      "id": 19,
+      "input_connections": {
+        "dedup_log": {
+          "id": 7,
+          "output_name": "dedup_stats"
+        }
+      },
+      "name": "Output: Dedup Log",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 370
+      }
+    },
+    "20": {
+      "annotation": "Output: Genome BAM statistics",
+      "id": 20,
+      "input_connections": {
+        "stats": {
+          "id": 7,
+          "output_name": "stats"
+        }
+      },
+      "name": "Output: Genome Stats",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 490
+      }
+    },
+    "21": {
+      "annotation": "Output: Genome BAM flagstat",
+      "id": 21,
+      "input_connections": {
+        "flagstat": {
+          "id": 7,
+          "output_name": "flagstat"
+        }
+      },
+      "name": "Output: Genome Flagstat",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 610
+      }
+    },
+    "22": {
+      "annotation": "Output: Genome BAM idxstats",
+      "id": 22,
+      "input_connections": {
+        "idxstats": {
+          "id": 7,
+          "output_name": "idxstats"
+        }
+      },
+      "name": "Output: Genome Idxstats",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 730
+      }
+    },
+    "23": {
+      "annotation": "Output: Deduplicated transcriptome BAM (UMI-tools path)",
+      "id": 23,
+      "input_connections": {
+        "bam": {
+          "id": 14,
+          "output_name": "bam"
+        }
+      },
+      "name": "Output: Transcriptome BAM (UMI-tools)",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 250
+      }
+    },
+    "24": {
+      "annotation": "Output: Deduplicated transcriptome BAM (UMI-collapse path)",
+      "id": 24,
+      "input_connections": {
+        "bam": {
+          "id": 15,
+          "output_name": "bam"
+        }
+      },
+      "name": "Output: Transcriptome BAM (UMI-collapse)",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 370
+      }
+    },
+    "25": {
+      "annotation": "Output: Transcriptome BAM statistics",
+      "id": 25,
+      "input_connections": {
+        "stats": {
+          "id": 10,
+          "output_name": "stats"
+        }
+      },
+      "name": "Output: Transcriptome Stats",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 490
+      }
+    }
+  }
+}

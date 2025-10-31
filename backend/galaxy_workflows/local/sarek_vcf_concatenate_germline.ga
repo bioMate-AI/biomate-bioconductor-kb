@@ -1,0 +1,144 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "CONCATENATE_GERMLINE_VCFS",
+  "annotation": "This workflow concatenates multiple germline VCF files through the following steps: (1) Add INFO fields to VCFs, (2) Index VCFs with Tabix, (3) Group VCFs with their indices, (4) Concatenate all VCFs, (5) Sort the concatenated VCF, and (6) Index the final sorted VCF. The output is a single concatenated and sorted VCF file with tabix index.",
+  "steps": {
+    "0": {
+      "annotation": "Input VCF files for germline concatenation",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vcfs",
+          "description": "Input VCF files"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "id": 1,
+      "input_connections": {
+        "input_vcf": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Add Info to VCF",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/timpalpant/java_genomics_toolkit/Repository_Actions_Add",
+      "tool_version": "1.1.0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "2": {
+      "id": 2,
+      "input_connections": {
+        "input_vcf": {
+          "id": 1,
+          "output_name": "output_vcf"
+        }
+      },
+      "name": "Tabix Index VCF",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "tool_version": "0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "3": {
+      "id": 3,
+      "input_connections": {
+        "input_vcfs": {
+          "id": 2,
+          "output_name": "output_gz_tbi"
+        }
+      },
+      "name": "Group VCFs with Tabix Indices",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/ryanmorin/nextgen_variant_identification/Repository_Actions_Get_somatic_positions_from_germline_SNVMix_output",
+      "tool_version": "0.12.1-rc1",
+      "type": "tool",
+      "annotation": "Grouping step to collect VCFs with their corresponding tabix indices",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "4": {
+      "id": 4,
+      "input_connections": {
+        "input_vcfs": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Concatenate Germline VCFs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/ryanmorin/nextgen_variant_identification/Repository_Actions_Get_somatic_positions_from_germline_SNVMix_output",
+      "tool_version": "0.12.1-rc1",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "5": {
+      "id": 5,
+      "input_connections": {
+        "input_vcf": {
+          "id": 4,
+          "output_name": "output_vcf"
+        }
+      },
+      "name": "Sort Concatenated Germline VCFs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/ryanmorin/nextgen_variant_identification/Repository_Actions_Get_somatic_positions_from_germline_SNVMix_output",
+      "tool_version": "0.12.1-rc1",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "6": {
+      "id": 6,
+      "input_connections": {
+        "input_vcf": {
+          "id": 5,
+          "output_name": "output_vcf"
+        }
+      },
+      "name": "Tabix Index Sorted VCFs",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "tool_version": "0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "7": {
+      "id": 7,
+      "input_connections": {
+        "input_vcf": {
+          "id": 5,
+          "output_name": "output_vcf"
+        }
+      },
+      "name": "Output VCFs",
+      "type": "data_collection_output",
+      "annotation": "Final concatenated and sorted germline VCF files",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    }
+  }
+}

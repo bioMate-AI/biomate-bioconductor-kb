@@ -1,0 +1,256 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTA_VCLUST_PREFILTER_ALIGN_CLUSTER",
+  "annotation": "Converted from nf-core subworkflow: FASTA_VCLUST_PREFILTER_ALIGN_CLUSTER. Performs sequence clustering with prefiltering, alignment, and clustering steps.",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTA sequences with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta",
+          "description": "FASTA file(s) for clustering"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input parameter: save alignment (boolean)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "save_alignment",
+          "description": "Whether to save alignment output"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input parameter: clustering metric (string)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "metric",
+          "description": "Clustering metric to use"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input parameter: TANI threshold (float)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "tani",
+          "description": "TANI threshold value"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input parameter: GANI threshold (float)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gani",
+          "description": "GANI threshold value"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input parameter: ANI threshold (float)",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ani",
+          "description": "ANI threshold value"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "VCLUST_PREFILTER: Prefilter sequences to remove redundancy",
+      "id": 6,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Make inferences",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/hivclustering/Repository_Actions_Make_inferences",
+      "tool_version": "1.3.1.2",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "VCLUST_ALIGN: Align prefiltered sequences",
+      "id": 7,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "filter": {
+          "id": 6,
+          "output_name": "txt"
+        },
+        "save_alignment": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Make inferences",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/hivclustering/Repository_Actions_Make_inferences",
+      "tool_version": "1.3.1.2",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "VCLUST_CLUSTER: Cluster aligned sequences based on thresholds",
+      "id": 8,
+      "input_connections": {
+        "tsv": {
+          "id": 7,
+          "output_name": "tsv"
+        },
+        "ids": {
+          "id": 7,
+          "output_name": "ids"
+        },
+        "metric": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "tani": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "gani": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "ani": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Make inferences",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/hivclustering/Repository_Actions_Make_inferences",
+      "tool_version": "1.3.1.2",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Output: Clustered FASTA sequences",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Output: Cluster assignments (TSV)",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 8,
+          "output_name": "clusters"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "11": {
+      "annotation": "Output: Sequence alignment (ALN)",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "aln"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "12": {
+      "annotation": "Output: Sequence IDs",
+      "id": 12,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "ids"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    }
+  }
+}

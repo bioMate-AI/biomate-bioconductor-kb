@@ -1,0 +1,1126 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "PREPARE_GENOME",
+  "annotation": "Converted from nf-core subworkflow for genome preparation and index generation",
+  "steps": {
+    "0": {
+      "annotation": "Input: Genome FASTA file (optional, gzipped or uncompressed)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input: GTF annotation file (optional, gzipped or uncompressed)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gtf"
+        }
+      ],
+      "name": "Input GTF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input: GFF annotation file (optional, alternative to GTF)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gff"
+        }
+      ],
+      "name": "Input GFF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input: Additional FASTA sequences to concatenate",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "additional_fasta"
+        }
+      ],
+      "name": "Input Additional FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input: Transcript FASTA file (optional)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "transcript_fasta"
+        }
+      ],
+      "name": "Input Transcript FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input: Gene BED file (optional)",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gene_bed"
+        }
+      ],
+      "name": "Input Gene BED",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input: Splice sites file (optional)",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "splicesites"
+        }
+      ],
+      "name": "Input Splice Sites",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Input: BBSplit FASTA list",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bbsplit_fasta_list"
+        }
+      ],
+      "name": "Input BBSplit FASTA List",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Input: SortMeRNA FASTA list",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "sortmerna_fasta_list"
+        }
+      ],
+      "name": "Input SortMeRNA FASTA List",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Input: Pre-built STAR index (optional, tar.gz)",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "star_index"
+        }
+      ],
+      "name": "Input STAR Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "Input: Pre-built RSEM index (optional, tar.gz)",
+      "id": 10,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "rsem_index"
+        }
+      ],
+      "name": "Input RSEM Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1210
+      }
+    },
+    "11": {
+      "annotation": "Input: Pre-built Salmon index (optional, tar.gz)",
+      "id": 11,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "salmon_index"
+        }
+      ],
+      "name": "Input Salmon Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1330
+      }
+    },
+    "12": {
+      "annotation": "Input: Pre-built Kallisto index (optional, tar.gz)",
+      "id": 12,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "kallisto_index"
+        }
+      ],
+      "name": "Input Kallisto Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1450
+      }
+    },
+    "13": {
+      "annotation": "Input: Pre-built HISAT2 index (optional, tar.gz)",
+      "id": 13,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "hisat2_index"
+        }
+      ],
+      "name": "Input HISAT2 Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1570
+      }
+    },
+    "14": {
+      "annotation": "Input: Pre-built BBSplit index (optional, tar.gz)",
+      "id": 14,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bbsplit_index"
+        }
+      ],
+      "name": "Input BBSplit Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1690
+      }
+    },
+    "15": {
+      "annotation": "Input: Pre-built SortMeRNA index (optional, tar.gz)",
+      "id": 15,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "sortmerna_index"
+        }
+      ],
+      "name": "Input SortMeRNA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1810
+      }
+    },
+    "16": {
+      "annotation": "Input: Boolean flags and parameters",
+      "id": 16,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gencode"
+        },
+        {
+          "name": "featurecounts_group_type"
+        },
+        {
+          "name": "aligner"
+        },
+        {
+          "name": "pseudo_aligner"
+        },
+        {
+          "name": "skip_gtf_filter"
+        },
+        {
+          "name": "skip_bbsplit"
+        },
+        {
+          "name": "skip_sortmerna"
+        },
+        {
+          "name": "skip_alignment"
+        },
+        {
+          "name": "skip_pseudo_alignment"
+        },
+        {
+          "name": "use_sentieon_star"
+        }
+      ],
+      "name": "Input Parameters",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1930
+      }
+    },
+    "17": {
+      "annotation": "Uncompress GTF if gzipped",
+      "id": 17,
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "GUNZIP GTF",
+      "tool_id": "nfcore_gunzip",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "18": {
+      "annotation": "Uncompress GFF if gzipped, then convert to GTF",
+      "id": 18,
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "GUNZIP GFF",
+      "tool_id": "nfcore_gunzip",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "19": {
+      "annotation": "Convert GFF to GTF format",
+      "id": 19,
+      "input_connections": {
+        "gff": {
+          "id": 18,
+          "output_name": "output"
+        }
+      },
+      "name": "GFFREAD",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/gffread/Repository_Actions_gffread",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "20": {
+      "annotation": "Uncompress FASTA if gzipped",
+      "id": 20,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "GUNZIP FASTA",
+      "tool_id": "nfcore_gunzip",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "21": {
+      "annotation": "Filter GTF for valid scaffolds and transcript IDs",
+      "id": 21,
+      "input_connections": {
+        "fasta": {
+          "id": 20,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 17,
+          "output_name": "output"
+        }
+      },
+      "name": "GTF_FILTER",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/mvdbeek/r_goseq_1_22_0/Repository_Actions_gene_length_and_gc_content_from_gtf_file",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "22": {
+      "annotation": "Uncompress additional FASTA if gzipped",
+      "id": 22,
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GUNZIP ADDITIONAL FASTA",
+      "tool_id": "nfcore_gunzip",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "23": {
+      "annotation": "Concatenate additional FASTA sequences to genome FASTA",
+      "id": 23,
+      "input_connections": {
+        "fasta": {
+          "id": 20,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 21,
+          "output_name": "output"
+        },
+        "additional_fasta": {
+          "id": 22,
+          "output_name": "output"
+        }
+      },
+      "name": "CUSTOM_CATADDITIONALFASTA",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/matteoc/agame_custom_tools/Repository_Actions_PFAM_output_annotator",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "24": {
+      "annotation": "Uncompress gene BED if gzipped",
+      "id": 24,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "GUNZIP GENE BED",
+      "tool_id": "nfcore_gunzip",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 610
+      }
+    },
+    "25": {
+      "annotation": "Convert GTF to BED format if gene_bed not provided",
+      "id": 25,
+      "input_connections": {
+        "gtf": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "GTF2BED",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/swebb/pycrac/Repository_Actions_pyGTF2bedGraph",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 610
+      }
+    },
+    "26": {
+      "annotation": "Uncompress transcript FASTA if gzipped",
+      "id": 26,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "GUNZIP TRANSCRIPT FASTA",
+      "tool_id": "nfcore_gunzip",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 490
+      }
+    },
+    "27": {
+      "annotation": "Preprocess GENCODE transcript FASTA",
+      "id": 27,
+      "input_connections": {
+        "transcript_fasta": {
+          "id": 26,
+          "output_name": "output"
+        }
+      },
+      "name": "PREPROCESS_TRANSCRIPTS_FASTA_GENCODE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/sklearn_data_preprocess/Repository_Actions_Preprocess",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 490
+      }
+    },
+    "28": {
+      "annotation": "Generate transcript FASTA from genome FASTA and GTF using RSEM",
+      "id": 28,
+      "input_connections": {
+        "fasta": {
+          "id": 23,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "MAKE_TRANSCRIPTS_FASTA",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_rsem_align_and_estimate_abundance/Repository_Actions_ctat_rsem_align_and_estimate_abundance",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 550
+      }
+    },
+    "29": {
+      "annotation": "Generate transcript FASTA using Sentieon RSEM",
+      "id": 29,
+      "input_connections": {
+        "fasta": {
+          "id": 23,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON_MAKE_TRANSCRIPTS_FASTA",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_rsem_align_and_estimate_abundance/Repository_Actions_ctat_rsem_align_and_estimate_abundance",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 610
+      }
+    },
+    "30": {
+      "annotation": "Get chromosome sizes and FAI index from FASTA",
+      "id": 30,
+      "input_connections": {
+        "fasta": {
+          "id": 23,
+          "output_name": "output"
+        }
+      },
+      "name": "CUSTOM_GETCHROMSIZES",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/matteoc/agame_custom_tools/Repository_Actions_PFAM_output_annotator",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 730
+      }
+    },
+    "31": {
+      "annotation": "Extract splice sites from GTF for HISAT2",
+      "id": 31,
+      "input_connections": {
+        "gtf": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "HISAT2_EXTRACTSPLICESITES",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/hisat2/Repository_Actions_HISAT2",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 850
+      }
+    },
+    "32": {
+      "annotation": "Untar pre-built STAR index",
+      "id": 32,
+      "input_connections": {
+        "input": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "UNTAR STAR INDEX",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 1090
+      }
+    },
+    "33": {
+      "annotation": "Generate STAR genome index from FASTA and GTF",
+      "id": 33,
+      "input_connections": {
+        "fasta": {
+          "id": 23,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "STAR_GENOMEGENERATE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_star_fusion/Repository_Actions_ctat_star_fusion",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 970
+      }
+    },
+    "34": {
+      "annotation": "Generate STAR genome index for AWS iGenomes",
+      "id": 34,
+      "input_connections": {
+        "fasta": {
+          "id": 23,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "STAR_GENOMEGENERATE_IGENOMES",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_star_fusion/Repository_Actions_ctat_star_fusion",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 1030
+      }
+    },
+    "35": {
+      "annotation": "Untar pre-built RSEM index",
+      "id": 35,
+      "input_connections": {
+        "input": {
+          "id": 10,
+          "output_name": "output"
+        }
+      },
+      "name": "UNTAR RSEM INDEX",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 1210
+      }
+    },
+    "36": {
+      "annotation": "Generate RSEM reference index from FASTA and GTF",
+      "id": 36,
+      "input_connections": {
+        "fasta": {
+          "id": 23,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "RSEM_PREPAREREFERENCE_GENOME",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_rsem_align_and_estimate_abundance/Repository_Actions_ctat_rsem_align_and_estimate_abundance",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 1150
+      }
+    },
+    "37": {
+      "annotation": "Generate RSEM reference index using Sentieon",
+      "id": 37,
+      "input_connections": {
+        "fasta": {
+          "id": 23,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "SENTIEON_RSEM_PREPAREREFERENCE_GENOME",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_rsem_align_and_estimate_abundance/Repository_Actions_ctat_rsem_align_and_estimate_abundance",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 1270
+      }
+    },
+    "38": {
+      "annotation": "Build HISAT2 index from FASTA, GTF, and splice sites",
+      "id": 38,
+      "input_connections": {
+        "fasta": {
+          "id": 23,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 21,
+          "output_name": "output"
+        },
+        "splicesites": {
+          "id": 31,
+          "output_name": "output"
+        }
+      },
+      "name": "HISAT2_BUILD",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/hisat2/Repository_Actions_HISAT2",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 850
+      }
+    },
+    "39": {
+      "annotation": "Untar pre-built HISAT2 index",
+      "id": 39,
+      "input_connections": {
+        "input": {
+          "id": 13,
+          "output_name": "output"
+        }
+      },
+      "name": "UNTAR HISAT2 INDEX",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 910
+      }
+    },
+    "40": {
+      "annotation": "Build BBSplit index from reference genomes",
+      "id": 40,
+      "input_connections": {
+        "fasta": {
+          "id": 23,
+          "output_name": "output"
+        },
+        "bbsplit_fasta_list": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "BBMAP_BBSPLIT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bbtools_clumpify/Repository_Actions_BBMap_Clumpify:_Deduplication",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 730
+      }
+    },
+    "41": {
+      "annotation": "Untar pre-built BBSplit index",
+      "id": 41,
+      "input_connections": {
+        "input": {
+          "id": 14,
+          "output_name": "output"
+        }
+      },
+      "name": "UNTAR BBSPLIT INDEX",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 790
+      }
+    },
+    "42": {
+      "annotation": "Build SortMeRNA index from rRNA reference sequences",
+      "id": 42,
+      "input_connections": {
+        "sortmerna_fasta_list": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "SORTMERNA_INDEX",
+      "tool_id": "nfcore_sortmerna",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 670
+      }
+    },
+    "43": {
+      "annotation": "Untar pre-built SortMeRNA index",
+      "id": 43,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "output"
+        }
+      },
+      "name": "UNTAR SORTMERNA INDEX",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 610
+      }
+    },
+    "44": {
+      "annotation": "Build Salmon index from transcript FASTA and genome FASTA",
+      "id": 44,
+      "input_connections": {
+        "fasta": {
+          "id": 23,
+          "output_name": "output"
+        },
+        "transcript_fasta": {
+          "id": 28,
+          "output_name": "output"
+        }
+      },
+      "name": "SALMON_INDEX",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_salmon_index_builder/Repository_Actions_Salmon",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 1330
+      }
+    },
+    "45": {
+      "annotation": "Untar pre-built Salmon index",
+      "id": 45,
+      "input_connections": {
+        "input": {
+          "id": 11,
+          "output_name": "output"
+        }
+      },
+      "name": "UNTAR SALMON INDEX",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 1270
+      }
+    },
+    "46": {
+      "annotation": "Build Kallisto index from transcript FASTA",
+      "id": 46,
+      "input_connections": {
+        "transcript_fasta": {
+          "id": 28,
+          "output_name": "output"
+        }
+      },
+      "name": "KALLISTO_INDEX",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_kallisto_index_builder/Repository_Actions_Kallisto",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 1450
+      }
+    },
+    "47": {
+      "annotation": "Untar pre-built Kallisto index",
+      "id": 47,
+      "input_connections": {
+        "input": {
+          "id": 12,
+          "output_name": "output"
+        }
+      },
+      "name": "UNTAR KALLISTO INDEX",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 1390
+      }
+    },
+    "48": {
+      "annotation": "Output: Processed genome FASTA",
+      "id": 48,
+      "input_connections": {
+        "input": {
+          "id": 23,
+          "output_name": "output"
+        }
+      },
+      "name": "Output FASTA",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "49": {
+      "annotation": "Output: Processed GTF annotation",
+      "id": 49,
+      "input_connections": {
+        "input": {
+          "id": 21,
+          "output_name": "output"
+        }
+      },
+      "name": "Output GTF",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "50": {
+      "annotation": "Output: FASTA index file",
+      "id": 50,
+      "input_connections": {
+        "input": {
+          "id": 30,
+          "output_name": "output"
+        }
+      },
+      "name": "Output FAI",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "51": {
+      "annotation": "Output: Gene BED file",
+      "id": 51,
+      "input_connections": {
+        "input": {
+          "id": 25,
+          "output_name": "output"
+        }
+      },
+      "name": "Output Gene BED",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    },
+    "52": {
+      "annotation": "Output: Transcript FASTA",
+      "id": 52,
+      "input_connections": {
+        "input": {
+          "id": 28,
+          "output_name": "output"
+        }
+      },
+      "name": "Output Transcript FASTA",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 490
+      }
+    },
+    "53": {
+      "annotation": "Output: Chromosome sizes file",
+      "id": 53,
+      "input_connections": {
+        "input": {
+          "id": 30,
+          "output_name": "output"
+        }
+      },
+      "name": "Output Chrom Sizes",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 610
+      }
+    },
+    "54": {
+      "annotation": "Output: Splice sites file for HISAT2",
+      "id": 54,
+      "input_connections": {
+        "input": {
+          "id": 31,
+          "output_name": "output"
+        }
+      },
+      "name": "Output Splice Sites",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 730
+      }
+    },
+    "55": {
+      "annotation": "Output: BBSplit index directory",
+      "id": 55,
+      "input_connections": {
+        "input": {
+          "id": 40,
+          "output_name": "output"
+        }
+      },
+      "name": "Output BBSplit Index",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 850
+      }
+    },
+    "56": {
+      "annotation": "Output: rRNA FASTA sequences for SortMeRNA",
+      "id": 56,
+      "input_connections": {
+        "input": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "Output rRNA FASTAs",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 970
+      }
+    },
+    "57": {
+      "annotation": "Output: SortMeRNA index directory",
+      "id": 57,
+      "input_connections": {
+        "input": {
+          "id": 42,
+          "output_name": "output"
+        }
+      },
+      "name": "Output SortMeRNA Index",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 1090
+      }
+    },
+    "58": {
+      "annotation": "Output: STAR genome index directory",
+      "id": 58,
+      "input_connections": {
+        "input": {
+          "id": 33,
+          "output_name": "output"
+        }
+      },
+      "name": "Output STAR Index",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 1210
+      }
+    },
+    "59": {
+      "annotation": "Output: RSEM reference index directory",
+      "id": 59,
+      "input_connections": {
+        "input": {
+          "id": 36,
+          "output_name": "output"
+        }
+      },
+      "name": "Output RSEM Index",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 1330
+      }
+    },
+    "60": {
+      "annotation": "Output: HISAT2 index directory",
+      "id": 60,
+      "input_connections": {
+        "input": {
+          "id": 38,
+          "output_name": "output"
+        }
+      },
+      "name": "Output HISAT2 Index",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 1450
+      }
+    },
+    "61": {
+      "annotation": "Output: Salmon index directory",
+      "id": 61,
+      "input_connections": {
+        "input": {
+          "id": 44,
+          "output_name": "output"
+        }
+      },
+      "name": "Output Salmon Index",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 1570
+      }
+    },
+    "62": {
+      "annotation": "Output: Kallisto index directory",
+      "id": 62,
+      "input_connections": {
+        "input": {
+          "id": 46,
+          "output_name": "output"
+        }
+      },
+      "name": "Output Kallisto Index",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 1690
+      }
+    }
+  }
+}

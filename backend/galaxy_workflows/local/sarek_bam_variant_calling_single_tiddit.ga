@@ -1,0 +1,115 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SINGLE_TIDDIT",
+  "annotation": "Converted from nf-core subworkflow: TIDDIT single sample variant calling",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM file",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input FASTA reference genome",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input BWA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bwa"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "TIDDIT structural variant calling",
+      "id": 3,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "bwa": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "TIDDIT_SV",
+      "tool_id": "tiddit_sv",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "4": {
+      "annotation": "Compress and index VCF output from TIDDIT",
+      "id": 4,
+      "input_connections": {
+        "input_file": {
+          "id": 3,
+          "output_name": "vcf"
+        }
+      },
+      "name": "tabix",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    }
+  },
+  "outputs": {
+    "ploidy": {
+      "id": 3,
+      "output_name": "ploidy",
+      "annotation": "Ploidy estimation from TIDDIT"
+    },
+    "vcf": {
+      "id": 4,
+      "output_name": "gz_tbi",
+      "annotation": "Compressed and indexed VCF file with variantcaller metadata"
+    },
+    "versions": {
+      "id": 4,
+      "output_name": "versions",
+      "annotation": "Version information from tools"
+    }
+  }
+}

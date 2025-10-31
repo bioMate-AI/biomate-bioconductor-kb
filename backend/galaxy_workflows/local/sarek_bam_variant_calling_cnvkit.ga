@@ -1,0 +1,214 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_CNVKIT",
+  "annotation": "BAM_VARIANT_CALLING_CNVKIT: CNVkit-based copy number variation calling workflow. Takes CRAM files and reference data, performs batch CNV analysis, calls segments, exports to VCF, and calculates gene-level metrics.",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM file with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input dataset - CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset - FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index file (optional)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input dataset - FASTA FAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input target regions BED file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "targets"
+        }
+      ],
+      "name": "Input dataset - Targets",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input reference CNN file (optional)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reference"
+        }
+      ],
+      "name": "Input dataset - Reference CNN",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "CNVkit Batch: Performs batch CNV calling on CRAM files using reference genome and target regions",
+      "id": 5,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "targets": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "reference": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "CNVkit Batch",
+      "tool_id": "iuc_cnvkit_access_CNVkit_Access_0.9.12+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "CNVkit Call: Calls copy number segments from the batch output CNS file",
+      "id": 6,
+      "input_connections": {
+        "cns": {
+          "id": 5,
+          "output_name": "cns"
+        }
+      },
+      "name": "CNVkit Call",
+      "tool_id": "iuc_cnvkit_access_CNVkit_Access_0.9.12+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "CNVkit Export: Exports CNV calls to VCF format for compatibility with other tools",
+      "id": 7,
+      "input_connections": {
+        "cns": {
+          "id": 6,
+          "output_name": "cns"
+        }
+      },
+      "name": "CNVkit Export",
+      "tool_id": "iuc_cnvkit_access_CNVkit_Access_0.9.12+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "CNVkit Gene Metrics: Calculates gene-level metrics from CNR and CNS files",
+      "id": 8,
+      "input_connections": {
+        "cnr": {
+          "id": 5,
+          "output_name": "cnr"
+        },
+        "cns": {
+          "id": 5,
+          "output_name": "cns"
+        }
+      },
+      "name": "CNVkit Gene Metrics",
+      "tool_id": "iuc_cnvkit_access_CNVkit_Access_0.9.12+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output: Raw CNV calls from CNVkit Call",
+      "id": 9,
+      "input_connections": {
+        "cnv_calls_raw": {
+          "id": 6,
+          "output_name": "cns"
+        }
+      },
+      "name": "Output - CNV Calls Raw",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Output: Exported CNV calls in VCF format",
+      "id": 10,
+      "input_connections": {
+        "cnv_calls_export": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Output - CNV Calls Export",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    }
+  },
+  "tags": [
+    "cnvkit",
+    "cnv",
+    "variant-calling",
+    "copy-number"
+  ]
+}

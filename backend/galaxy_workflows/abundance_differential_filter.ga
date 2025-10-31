@@ -1,0 +1,477 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "ABUNDANCE_DIFFERENTIAL_FILTER",
+  "annotation": "Converted from nf-core subworkflow for differential abundance analysis with multiple methods (DESeq2, limma, propd, DREAM)",
+  "steps": {
+    "0": {
+      "annotation": "Input abundance matrix",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_input"
+        }
+      ],
+      "name": "Input abundance matrix",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input samplesheet",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_samplesheet"
+        }
+      ],
+      "name": "Input samplesheet",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input transcript lengths (optional)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_transcript_lengths"
+        }
+      ],
+      "name": "Input transcript lengths",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input control features (optional)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_control_features"
+        }
+      ],
+      "name": "Input control features",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input contrasts",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_contrasts"
+        }
+      ],
+      "name": "Input contrasts",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "DESeq2 normalization - generates normalized counts and variance stabilized matrix",
+      "id": 5,
+      "input_connections": {
+        "abundance": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "samplesheet": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "transcript_lengths": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "control_features": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "contrasts": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "DESeq2 Normalization",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/Repository_Actions_DESeq2",
+      "tool_version": "2.11.40.8+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "DESeq2 differential expression analysis",
+      "id": 6,
+      "input_connections": {
+        "abundance": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "samplesheet": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "transcript_lengths": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "control_features": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "contrasts": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "DESeq2 Differential Expression",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/Repository_Actions_DESeq2",
+      "tool_version": "2.11.40.8+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "limma normalization - generates normalized counts",
+      "id": 7,
+      "input_connections": {
+        "abundance": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "samplesheet": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "contrasts": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "limma Normalization",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/limma_voom/Repository_Actions_limma",
+      "tool_version": "3.58.1+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "limma differential expression analysis",
+      "id": 8,
+      "input_connections": {
+        "abundance": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "samplesheet": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "contrasts": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "limma Differential Expression",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/limma_voom/Repository_Actions_limma",
+      "tool_version": "3.58.1+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "propd/propr differential abundance analysis - compositional data analysis",
+      "id": 9,
+      "input_connections": {
+        "abundance": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "samplesheet": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "contrasts": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "propd/propr Differential Analysis",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/propr/Repository_Actions_propr",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "DREAM variance partition analysis - mixed effects model",
+      "id": 10,
+      "input_connections": {
+        "abundance": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "samplesheet": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "contrasts": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "DREAM Variance Partition",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/variancepartition/Repository_Actions_variancepartition",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "11": {
+      "annotation": "Collect differential results from all methods",
+      "id": 11,
+      "input_connections": {
+        "deseq2_results": {
+          "id": 6,
+          "output_name": "results"
+        },
+        "limma_results": {
+          "id": 8,
+          "output_name": "results"
+        },
+        "propd_results": {
+          "id": 9,
+          "output_name": "results_genewise"
+        },
+        "dream_results": {
+          "id": 10,
+          "output_name": "results"
+        }
+      },
+      "name": "Collect Differential Results",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/cat1",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "12": {
+      "annotation": "Filter differential expression results based on fold-change and statistical thresholds",
+      "id": 12,
+      "input_connections": {
+        "results": {
+          "id": 11,
+          "output_name": "output"
+        },
+        "abundance": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Filter Differential Table",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/matteoc/agame_custom_tools/Repository_Actions_PFAM_output_annotator",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "13": {
+      "annotation": "Collect normalized matrices from DESeq2 and limma",
+      "id": 13,
+      "input_connections": {
+        "deseq2_norm": {
+          "id": 5,
+          "output_name": "normalised_counts"
+        },
+        "limma_norm": {
+          "id": 7,
+          "output_name": "normalised_counts"
+        }
+      },
+      "name": "Collect Normalized Matrices",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/cat1",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "14": {
+      "annotation": "Collect variance stabilized matrices from DESeq2",
+      "id": 14,
+      "input_connections": {
+        "vst_counts": {
+          "id": 5,
+          "output_name": "vst_counts"
+        },
+        "rlog_counts": {
+          "id": 5,
+          "output_name": "rlog_counts"
+        }
+      },
+      "name": "Collect Variance Stabilized Matrices",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/cat1",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "15": {
+      "annotation": "Collect statistical models from all methods",
+      "id": 15,
+      "input_connections": {
+        "deseq2_model": {
+          "id": 6,
+          "output_name": "model"
+        },
+        "limma_model": {
+          "id": 8,
+          "output_name": "model"
+        },
+        "dream_model": {
+          "id": 10,
+          "output_name": "model"
+        }
+      },
+      "name": "Collect Models",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/cat1",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "16": {
+      "annotation": "Output: Unfiltered differential expression results",
+      "id": 16,
+      "input_connections": {
+        "input": {
+          "id": 11,
+          "output_name": "output"
+        }
+      },
+      "name": "Output results_genewise",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/cat1",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "17": {
+      "annotation": "Output: Filtered differential expression results",
+      "id": 17,
+      "input_connections": {
+        "input": {
+          "id": 12,
+          "output_name": "output"
+        }
+      },
+      "name": "Output results_genewise_filtered",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/cat1",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "18": {
+      "annotation": "Output: Adjacency matrix from propd analysis",
+      "id": 18,
+      "input_connections": {
+        "input": {
+          "id": 9,
+          "output_name": "adjacency"
+        }
+      },
+      "name": "Output adjacency",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/cat1",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "19": {
+      "annotation": "Output: Normalized count matrices",
+      "id": 19,
+      "input_connections": {
+        "input": {
+          "id": 13,
+          "output_name": "output"
+        }
+      },
+      "name": "Output normalised_matrix",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/cat1",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    },
+    "20": {
+      "annotation": "Output: Variance stabilized matrices",
+      "id": 20,
+      "input_connections": {
+        "input": {
+          "id": 14,
+          "output_name": "output"
+        }
+      },
+      "name": "Output variance_stabilised_matrix",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/cat1",
+      "position": {
+        "left": 1110,
+        "top": 490
+      }
+    },
+    "21": {
+      "annotation": "Output: Statistical models",
+      "id": 21,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "output"
+        }
+      },
+      "name": "Output model",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/cat1",
+      "position": {
+        "left": 1110,
+        "top": 610
+      }
+    }
+  }
+}

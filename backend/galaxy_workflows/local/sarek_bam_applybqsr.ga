@@ -1,0 +1,195 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_APPLYBQSR",
+  "annotation": "Converted from nf-core subworkflow - Apply BQSR recalibration to BAM/CRAM files with optional merging for scattered intervals",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM file with index and recalibration table",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference dictionary",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input Dictionary",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input reference FASTA",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input FASTA index",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input intervals for scatter-gather strategy",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input Intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Apply BQSR recalibration to CRAM files using GATK4",
+      "id": 5,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 ApplyBQSR",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "6": {
+      "annotation": "Merge and index BAM files from multiple intervals (conditional - only if save_output_as_bam is true)",
+      "id": 6,
+      "input_connections": {
+        "bam": {
+          "id": 5,
+          "output_name": "bam"
+        }
+      },
+      "name": "BAM Merge Index Samtools",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Merge and index CRAM files from multiple intervals",
+      "id": 7,
+      "input_connections": {
+        "cram": {
+          "id": 5,
+          "output_name": "cram"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "CRAM Merge Index Samtools",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cramino/Repository_Actions_Cramino",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "8": {
+      "annotation": "Output recalibrated BAM files with indices",
+      "id": 8,
+      "input_connections": {
+        "bam_bai": {
+          "id": 6,
+          "output_name": "bam_bai"
+        }
+      },
+      "name": "Output BAM",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output recalibrated CRAM files with indices",
+      "id": 9,
+      "input_connections": {
+        "cram_crai": {
+          "id": 7,
+          "output_name": "cram_crai"
+        }
+      },
+      "name": "Output CRAM",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    }
+  }
+}

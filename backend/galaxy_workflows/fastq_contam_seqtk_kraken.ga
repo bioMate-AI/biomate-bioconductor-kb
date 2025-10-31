@@ -1,0 +1,160 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_CONTAM_SEQTK_KRAKEN",
+  "annotation": "Workflow for subsampling FASTQ files and screening for contamination using Seqtk and Kraken2. Combines reads with sample sizes, performs subsampling, and runs contamination detection.",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads",
+          "description": "FASTQ reads channel with metadata"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Sample size parameter for subsampling",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "sample_size",
+          "description": "Number of reads to subsample"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Path to Kraken2 database for contamination screening",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "kraken2_db",
+          "description": "Kraken2 database path"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Subsample FASTQ reads to specified number using seqtk",
+      "id": 3,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "sample_size": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "seqtk sample",
+      "tool_id": "iuc_seqtk_seqtk_comp_1.5+galaxy0",
+      "tool_version": "1.5+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 70
+      },
+      "tool_state": {
+        "reads": {
+          "__class__": "ConnectedValue"
+        },
+        "sample_size": {
+          "__class__": "ConnectedValue"
+        }
+      }
+    },
+    "4": {
+      "annotation": "Perform contamination screening on subsampled reads using Kraken2",
+      "id": 4,
+      "input_connections": {
+        "reads": {
+          "id": 3,
+          "output_name": "reads"
+        },
+        "kraken2_db": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Kraken2",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/dfornika/data_manager_build_kraken2_database/Repository_Actions_Kraken2",
+      "tool_version": "2.0.8_beta_galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 70
+      },
+      "tool_state": {
+        "reads": {
+          "__class__": "ConnectedValue"
+        },
+        "kraken2_db": {
+          "__class__": "ConnectedValue"
+        },
+        "confidence": "0",
+        "minimum_base_quality": "0"
+      }
+    },
+    "5": {
+      "annotation": "Kraken2 contamination report output",
+      "id": 5,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "report"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Tool versions output",
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    }
+  },
+  "tags": [
+    "nf-core",
+    "contamination",
+    "kraken2",
+    "seqtk",
+    "subsampling"
+  ]
+}

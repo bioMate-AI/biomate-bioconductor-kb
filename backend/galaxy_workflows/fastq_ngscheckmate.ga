@@ -1,0 +1,214 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_NGSCHECKMATE",
+  "annotation": "Converted from nf-core subworkflow FASTQ_NGSCHECKMATE. Performs NGSCheckMate analysis on FASTQ files to detect sample identity and cross-contamination.",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ files with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fastq",
+          "description": "FASTQ files with metadata"
+        }
+      ],
+      "name": "Input FASTQ",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input SNP panel file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_snp_pt",
+          "description": "SNP panel file with metadata"
+        }
+      ],
+      "name": "Input SNP Panel",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "NGSCheckMate FASTQ: Extract VAF from FASTQ files using SNP panel",
+      "id": 2,
+      "input_connections": {
+        "fastq": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "snp_pt": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "NGSCHECKMATE_FASTQ",
+      "tool_id": "ngscheckmate_fastq",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Collect VAF files from NGSCHECKMATE_FASTQ output",
+      "id": 3,
+      "input_connections": {
+        "vaf_input": {
+          "id": 2,
+          "output_name": "vaf"
+        }
+      },
+      "name": "Collect VAF Files",
+      "tool_id": "galaxy_tool_collect",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "Combine metadata with collected VAF files for VAFNCM analysis",
+      "id": 4,
+      "input_connections": {
+        "metadata": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "vaf_files": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Combine Metadata and VAFs",
+      "tool_id": "galaxy_tool_combine",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "NGSCheckMate VAFNCM: Generate correlation matrix and sample matching from VAF files",
+      "id": 5,
+      "input_connections": {
+        "vaf_input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "NGSCHECKMATE_VAFNCM",
+      "tool_id": "ngscheckmate_vafncm",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Output: Correlation matrix from VAFNCM",
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "corr_matrix"
+        }
+      },
+      "name": "Output Correlation Matrix",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Output: Matched samples from VAFNCM",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "matched"
+        }
+      },
+      "name": "Output Matched Samples",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "Output: All results from VAFNCM",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "all"
+        }
+      },
+      "name": "Output All Results",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "9": {
+      "annotation": "Output: VAF files from FASTQ analysis",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "vaf"
+        }
+      },
+      "name": "Output VAF Files",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    },
+    "10": {
+      "annotation": "Output: PDF report from VAFNCM (optional)",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "pdf"
+        }
+      },
+      "name": "Output PDF Report",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 490
+      }
+    },
+    "11": {
+      "annotation": "Output: Tool versions",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output Versions",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 610
+      }
+    }
+  }
+}

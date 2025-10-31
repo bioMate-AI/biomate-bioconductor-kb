@@ -71,3 +71,13 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Conda dependencies and cache
+backend/dependencies/
+backend/**/pkgs/cache/
+*.solv
+biomni_data_lake/
+backend/nf-core-modules/
+backend/nf-core-workflows/
+backend/instrument_parsers/
+backend/tests/e2e_ui/test_videos/

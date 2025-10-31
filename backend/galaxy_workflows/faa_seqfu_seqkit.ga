@@ -1,0 +1,173 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FAA_SEQFU_SEQKIT",
+  "annotation": "Converted from nf-core subworkflow: FAA_SEQFU_SEQKIT - Sequence preprocessing with quality statistics",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTA file",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input parameter: skip_preprocessing (boolean)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "skip_preprocessing"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "SEQFU_STATS_BEFORE: Generate sequence statistics before preprocessing",
+      "id": 2,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "SEQFU_STATS_BEFORE",
+      "tool_id": "weiwei12456_make_phyloseq_makephyloseqfull_1.0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "SEQKIT_SEQ: Convert and filter sequences (conditional - only if skip_preprocessing is false)",
+      "id": 3,
+      "input_connections": {
+        "fastx": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "SEQKIT_SEQ",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/alyssa/seqkit_seq/Repository_Actions_Qcat",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "SEQKIT_REPLACE: Replace sequence headers (conditional - only if skip_preprocessing is false)",
+      "id": 4,
+      "input_connections": {
+        "fastx": {
+          "id": 3,
+          "output_name": "fastx"
+        }
+      },
+      "name": "SEQKIT_REPLACE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/alyssa/seqkit_seq/Repository_Actions_Qcat",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "SEQKIT_RMDUP: Remove duplicate sequences (conditional - only if skip_preprocessing is false)",
+      "id": 5,
+      "input_connections": {
+        "fastx": {
+          "id": 4,
+          "output_name": "fastx"
+        }
+      },
+      "name": "SEQKIT_RMDUP",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/alyssa/seqkit_seq/Repository_Actions_Qcat",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "SEQFU_STATS_AFTER: Generate sequence statistics after preprocessing (conditional - only if skip_preprocessing is false)",
+      "id": 6,
+      "input_connections": {
+        "fasta": {
+          "id": 5,
+          "output_name": "fastx"
+        }
+      },
+      "name": "SEQFU_STATS_AFTER",
+      "tool_id": "weiwei12456_make_phyloseq_makephyloseqfull_1.0",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Output: Processed FASTA file",
+      "id": 7,
+      "input_connections": {
+        "fasta": {
+          "id": 5,
+          "output_name": "fastx"
+        }
+      },
+      "name": "Output fasta",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output: MultiQC files (quality statistics)",
+      "id": 8,
+      "input_connections": {
+        "multiqc_files": {
+          "id": 2,
+          "output_name": "multiqc"
+        }
+      },
+      "name": "Output multiqc_files",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output: Tool versions",
+      "id": 9,
+      "input_connections": {
+        "versions": {
+          "id": 2,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output versions",
+      "type": "data_output",
+      "position": {
+        "left": 1330,
+        "top": 250
+      }
+    }
+  }
+}

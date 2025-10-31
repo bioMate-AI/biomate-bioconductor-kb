@@ -1,0 +1,144 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "VCF_QC_BCFTOOLS_VCFTOOLS",
+  "annotation": "VCF quality control workflow using BCFtools and VCFtools. Performs variant statistics, Ts/Tv ratio analysis by count and quality, and generates filter summaries.",
+  "steps": {
+    "0": {
+      "annotation": "Input VCF file with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vcf",
+          "description": "VCF file for quality control"
+        }
+      ],
+      "name": "Input VCF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input BED file for target regions (optional)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "target_bed",
+          "description": "BED file with target regions"
+        }
+      ],
+      "name": "Input Target BED",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "id": 2,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "vcf"
+        }
+      },
+      "name": "bcftools stats",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions_bcftools_view",
+      "type": "tool",
+      "tool_state": "{}",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "id": 3,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "vcf"
+        },
+        "target_bed": {
+          "id": 1,
+          "output_name": "target_bed"
+        }
+      },
+      "name": "VCFtools Ts/Tv Count",
+      "tool_id": "nilesh_vcftools_VCFtools_0.0.1",
+      "type": "tool",
+      "tool_state": "{\"analysis_type\": \"tstv_count\"}",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "4": {
+      "id": 4,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "vcf"
+        },
+        "target_bed": {
+          "id": 1,
+          "output_name": "target_bed"
+        }
+      },
+      "name": "VCFtools Ts/Tv Quality",
+      "tool_id": "nilesh_vcftools_VCFtools_0.0.1",
+      "type": "tool",
+      "tool_state": "{\"analysis_type\": \"tstv_qual\"}",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "5": {
+      "id": 5,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "vcf"
+        },
+        "target_bed": {
+          "id": 1,
+          "output_name": "target_bed"
+        }
+      },
+      "name": "VCFtools Filter Summary",
+      "tool_id": "nilesh_vcftools_VCFtools_0.0.1",
+      "type": "tool",
+      "tool_state": "{\"analysis_type\": \"filter_summary\"}",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "bcftools_stats": {
+      "id": 2,
+      "output_name": "stats",
+      "type": "data"
+    },
+    "vcftools_tstv_counts": {
+      "id": 3,
+      "output_name": "tstv_count",
+      "type": "data"
+    },
+    "vcftools_tstv_qual": {
+      "id": 4,
+      "output_name": "tstv_qual",
+      "type": "data"
+    },
+    "vcftools_filter_summary": {
+      "id": 5,
+      "output_name": "filter_summary",
+      "type": "data"
+    }
+  }
+}

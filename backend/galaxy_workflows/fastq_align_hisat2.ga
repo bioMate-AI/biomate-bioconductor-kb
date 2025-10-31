@@ -1,0 +1,171 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_ALIGN_HISAT2",
+  "annotation": "Converted from nf-core subworkflow: Align FASTQ reads to reference genome using HISAT2, then sort, index and generate statistics",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "reads",
+          "description": "FASTQ reads"
+        }
+      ],
+      "name": "Input dataset: reads",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input HISAT2 index files",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "index",
+          "description": "HISAT2 index"
+        }
+      ],
+      "name": "Input dataset: index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input splice sites file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "splicesites",
+          "description": "Genome splice sites"
+        }
+      ],
+      "name": "Input dataset: splicesites",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input reference FASTA sequence",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta",
+          "description": "Reference FASTA"
+        }
+      ],
+      "name": "Input dataset: ch_fasta",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Align reads to reference genome using HISAT2",
+      "id": 4,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "splicesites": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "HISAT2",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/hisat2/Repository_Actions_HISAT2",
+      "tool_version": "2.2.1+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Sort BAM file, generate index and compute statistics (samtools stats, flagstat, idxstats)",
+      "id": 5,
+      "input_connections": {
+        "bam": {
+          "id": 4,
+          "output_name": "bam"
+        },
+        "fasta": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM coverage statistics",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "tool_version": "0.1.0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "orig_bam": {
+      "id": 4,
+      "output_name": "bam",
+      "annotation": "Original unsorted BAM from HISAT2"
+    },
+    "summary": {
+      "id": 4,
+      "output_name": "summary",
+      "annotation": "HISAT2 alignment summary log"
+    },
+    "fastq": {
+      "id": 4,
+      "output_name": "fastq",
+      "annotation": "Unaligned FASTQ reads"
+    },
+    "bam": {
+      "id": 5,
+      "output_name": "bam",
+      "annotation": "Sorted BAM file"
+    },
+    "bai": {
+      "id": 5,
+      "output_name": "bai",
+      "annotation": "BAM index file (.bai)"
+    },
+    "csi": {
+      "id": 5,
+      "output_name": "csi",
+      "annotation": "BAM index file (.csi)"
+    },
+    "stats": {
+      "id": 5,
+      "output_name": "stats",
+      "annotation": "Samtools stats output"
+    },
+    "flagstat": {
+      "id": 5,
+      "output_name": "flagstat",
+      "annotation": "Samtools flagstat output"
+    },
+    "idxstats": {
+      "id": 5,
+      "output_name": "idxstats",
+      "annotation": "Samtools idxstats output"
+    }
+  }
+}

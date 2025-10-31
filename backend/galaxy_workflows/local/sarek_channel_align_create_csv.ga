@@ -1,0 +1,101 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "CHANNEL_ALIGN_CREATE_CSV",
+  "annotation": "Converted from nf-core subworkflow: Creates CSV file from indexed BAM files for workflow restart capability",
+  "steps": {
+    "0": {
+      "annotation": "Indexed BAM files with metadata (meta, bam, bai)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam_indexed",
+          "description": "Channel containing BAM files with index and metadata"
+        }
+      ],
+      "name": "Input: bam_indexed",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Output directory path",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "outdir",
+          "description": "Output directory path"
+        }
+      ],
+      "name": "Input: outdir",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Boolean flag to save output as BAM (true) or CRAM (false)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "save_output_as_bam",
+          "description": "Boolean parameter to determine output format"
+        }
+      ],
+      "name": "Input: save_output_as_bam",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Collects BAM metadata and creates mapped.csv file for workflow restart. Processes metadata fields (patient, sample, sex, status) and constructs file paths. Conditionally sets file type based on save_output_as_bam parameter (bam/bai or cram/crai)",
+      "id": 3,
+      "input_connections": {
+        "bam_indexed": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "outdir": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "save_output_as_bam": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Create Mapped CSV",
+      "tool_id": "galaxy_collectfile_create_csv",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      },
+      "tool_state": {
+        "operation": "collectFile",
+        "keepHeader": true,
+        "skip": 1,
+        "sort": true,
+        "storeDir": "${outdir}/csv",
+        "output_filename": "mapped.csv",
+        "header": "patient,sex,status,sample,${type},${type_index}",
+        "conditional_type": "save_output_as_bam"
+      }
+    }
+  },
+  "outputs": {
+    "mapped_csv": {
+      "id": 3,
+      "output_name": "output",
+      "description": "CSV file containing mapped sample metadata and file paths for workflow restart"
+    }
+  }
+}

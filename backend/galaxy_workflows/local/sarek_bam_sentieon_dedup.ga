@@ -1,0 +1,242 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_SENTIEON_DEDUP",
+  "annotation": "Converted from nf-core subworkflow: BAM_SENTIEON_DEDUP - Performs Sentieon deduplication on BAM files and QC analysis on resulting CRAM files",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM file with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam"
+        }
+      ],
+      "name": "Input dataset - BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input BAM index file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bai"
+        }
+      ],
+      "name": "Input dataset - BAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input reference FASTA file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset - FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input FASTA index file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input dataset - FASTA FAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input combined intervals BED file (optional)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed_combined"
+        }
+      ],
+      "name": "Input dataset - Intervals BED",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Sentieon Dedup - Removes duplicate reads from BAM file and outputs CRAM",
+      "id": 5,
+      "input_connections": {
+        "bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bai": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Sentieon Dedup",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core/sentieon_dedup/sentieon_dedup",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Cramino - BAM/CRAM quality assessment and statistics generation",
+      "id": 6,
+      "input_connections": {
+        "cram": {
+          "id": 5,
+          "output_name": "cram"
+        },
+        "crai": {
+          "id": 5,
+          "output_name": "crai"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals_bed": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Cramino",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cramino/Repository_Actions_Cramino",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Output - Deduplicated CRAM file",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "cram"
+        }
+      },
+      "name": "Output - CRAM",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output - CRAM index file",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "crai"
+        }
+      },
+      "name": "Output - CRAI",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output - Deduplication metrics",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "metrics"
+        }
+      },
+      "name": "Output - Dedup Metrics",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "Output - Deduplication metrics for MultiQC",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "metrics_multiqc_tsv"
+        }
+      },
+      "name": "Output - Dedup Metrics MultiQC",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "11": {
+      "annotation": "Output - Deduplication score",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "score"
+        }
+      },
+      "name": "Output - Dedup Score",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "12": {
+      "annotation": "Output - QC reports from Cramino",
+      "id": 12,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "reports"
+        }
+      },
+      "name": "Output - QC Reports",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 610
+      }
+    }
+  }
+}

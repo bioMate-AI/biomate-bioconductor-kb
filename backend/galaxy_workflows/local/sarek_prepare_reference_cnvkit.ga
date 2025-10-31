@@ -1,0 +1,90 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "PREPARE_REFERENCE_CNVKIT",
+  "annotation": "Converted from nf-core subworkflow PREPARE_REFERENCE_CNVKIT. Prepares reference files for CNVkit tumor-only mode analysis.",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTA reference genome",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input BED file with combined intervals",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed_combined"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "CNVkit Antitarget: Generate antitarget regions for tumor-only mode from target intervals",
+      "id": 2,
+      "input_connections": {
+        "intervals": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "CNVkit Access",
+      "tool_id": "iuc_cnvkit_access_CNVkit_Access_0.9.12+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "3": {
+      "annotation": "CNVkit Reference: Build reference profile from FASTA, target intervals, and antitarget regions",
+      "id": 3,
+      "input_connections": {
+        "fasta": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "antitarget": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "CNVkit Access",
+      "tool_id": "iuc_cnvkit_access_CNVkit_Access_0.9.12+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 70
+      }
+    }
+  },
+  "outputs": {
+    "cnvkit_reference": {
+      "annotation": "CNVkit reference profile (CNN format)",
+      "id": 3,
+      "output_name": "output",
+      "type": "data"
+    }
+  }
+}

@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/collapsible"
 import { Badge } from "@/components/ui/badge"
 import { ChevronDown, ChevronRight, Info } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, getSimpleToolName } from "@/lib/utils"
 import { type WorkflowStep } from "./workflow-step"
 
 interface ParameterDialogProps {
@@ -154,8 +154,17 @@ function getDefaultValue(galaxyType: string): any {
   return ''
 }
 
-// Mock parameter schemas for different tools
-// In production, these would come from Galaxy tool definitions
+// Schema cache to avoid repeated API calls
+const schemaCache = new Map<string, {
+  schema: Parameter[] | null
+  timestamp: number
+  ttl: number // Time to live in milliseconds
+}>()
+
+const SCHEMA_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+// Mock parameter schemas for different tools (fallback only)
+// These are only used if API fails or tool not found
 const toolParameterSchemas: Record<string, Parameter[]> = {
   'FastQC': [
     { name: 'Input format', tier: 'essential', type: 'select', value: 'FASTQ', options: ['FASTQ', 'BAM', 'SAM'], required: true },
@@ -188,6 +197,18 @@ const toolParameterSchemas: Record<string, Parameter[]> = {
     { name: 'Count chimeric', tier: 'advanced', type: 'boolean', value: false },
     { name: 'Thread count', tier: 'advanced', type: 'number', value: 1, min: 1, max: 16 },
   ],
+  'DESeq2': [
+    { name: 'Design formula', tier: 'essential', type: 'text', value: '~ condition', required: true, description: 'Experimental design (e.g., ~ condition or ~ batch + condition)' },
+    { name: 'Reference level', tier: 'essential', type: 'text', value: 'control', required: true, description: 'Control/reference condition name' },
+    { name: 'Test type', tier: 'essential', type: 'select', value: 'Wald', options: ['Wald', 'LRT'], description: 'Statistical test to use' },
+    { name: 'Alpha', tier: 'common', type: 'number', value: 0.05, min: 0.001, max: 0.5, description: 'Adjusted p-value cutoff for significance' },
+    { name: 'Log2 fold change threshold', tier: 'common', type: 'number', value: 0, min: 0, max: 5, description: 'Minimum log2 fold change for significance' },
+    { name: 'Independent filtering', tier: 'common', type: 'boolean', value: true, description: 'Filter genes with low counts automatically' },
+    { name: 'Cook\'s cutoff', tier: 'common', type: 'boolean', value: true, description: 'Remove outliers using Cook\'s distance' },
+    { name: 'Fit type', tier: 'advanced', type: 'select', value: 'parametric', options: ['parametric', 'local', 'mean'], description: 'Method for fitting dispersion' },
+    { name: 'Outlier replacement', tier: 'advanced', type: 'boolean', value: true, description: 'Replace outliers with trimmed mean' },
+    { name: 'Shrinkage method', tier: 'advanced', type: 'select', value: 'apeglm', options: ['apeglm', 'ashr', 'normal', 'none'], description: 'LFC shrinkage estimator' },
+  ],
 }
 
 export function ParameterDialog({
@@ -202,35 +223,69 @@ export function ParameterDialog({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch parameter schema from API when step changes
+  // Fetch parameter schema from API when step changes (with caching)
   useEffect(() => {
     if (!step || !step.tool) {
       setParameterSchema([])
       return
     }
 
-    // Check if we have hardcoded schema first (fallback)
-    const hardcodedSchema = toolParameterSchemas[step.tool]
-    if (hardcodedSchema) {
-      console.log(`[ParameterDialog] Using hardcoded schema for ${step.tool}`)
-      setParameterSchema(hardcodedSchema)
-      setError(null)
-      return
-    }
-
-    // Fetch schema from API
+    // Fetch schema from API (primary method)
     const fetchSchema = async () => {
+      // Check cache first
+      const cached = schemaCache.get(step.tool)
+      if (cached && (Date.now() - cached.timestamp) < cached.ttl) {
+        console.log(`[ParameterDialog] Using cached schema for ${step.tool}`)
+        setParameterSchema(cached.schema || [])
+        setError(null)
+        setLoading(false)
+        return
+      }
+
       setLoading(true)
       setError(null)
 
       try {
         console.log(`[ParameterDialog] Fetching schema for tool: ${step.tool}`)
-        const response = await fetch(`/api/galaxy/tools/${encodeURIComponent(step.tool)}/schema`)
+        // Don't encode the tool ID - the route expects it as path segments
+        // For tool IDs with slashes (e.g., "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.72")
+        const response = await fetch(`/api/galaxy/tools/${step.tool}/schema`)
 
         if (!response.ok) {
           console.warn(`[ParameterDialog] API returned ${response.status} for ${step.tool}`)
-          setParameterSchema([])
-          setError(`Schema not available (API returned ${response.status})`)
+
+          // Fallback to hardcoded schema if API fails
+          const hardcodedSchema = toolParameterSchemas[step.tool]
+          if (hardcodedSchema) {
+            console.log(`[ParameterDialog] Using hardcoded fallback schema for ${step.tool}`)
+
+            // Cache the fallback schema (shorter TTL for fallbacks)
+            schemaCache.set(step.tool, {
+              schema: hardcodedSchema,
+              timestamp: Date.now(),
+              ttl: 60 * 1000 // 1 minute for fallback schemas
+            })
+
+            setParameterSchema(hardcodedSchema)
+            setError(null)
+          } else {
+            // Cache 404 responses to avoid repeated requests
+            if (response.status === 404) {
+              schemaCache.set(step.tool, {
+                schema: null,
+                timestamp: Date.now(),
+                ttl: 2 * 60 * 1000 // 2 minutes for 404s
+              })
+            }
+
+            setParameterSchema([])
+            // Don't show error for 404 - just means schema not available, which is expected
+            if (response.status !== 404) {
+              setError(`Schema not available (API returned ${response.status})`)
+            } else {
+              setError(null)
+            }
+          }
           return
         }
 
@@ -251,6 +306,13 @@ export function ParameterDialog({
             max: input.max
           }))
 
+          // Cache the schema
+          schemaCache.set(step.tool, {
+            schema: transformedParams,
+            timestamp: Date.now(),
+            ttl: SCHEMA_CACHE_TTL
+          })
+
           setParameterSchema(transformedParams)
           setError(null)
         } else {
@@ -259,8 +321,32 @@ export function ParameterDialog({
         }
       } catch (err) {
         console.error(`[ParameterDialog] Error fetching schema for ${step.tool}:`, err)
-        setParameterSchema([])
-        setError(`Failed to load parameters: ${err instanceof Error ? err.message : 'Unknown error'}`)
+
+        // Fallback to hardcoded schema on network error
+        const hardcodedSchema = toolParameterSchemas[step.tool]
+        if (hardcodedSchema) {
+          console.log(`[ParameterDialog] Using hardcoded fallback schema for ${step.tool} after error`)
+
+          // Cache the fallback schema (shorter TTL for fallbacks)
+          schemaCache.set(step.tool, {
+            schema: hardcodedSchema,
+            timestamp: Date.now(),
+            ttl: 60 * 1000 // 1 minute for fallback schemas
+          })
+
+          setParameterSchema(hardcodedSchema)
+          setError(null)
+        } else {
+          // Cache the failure to avoid repeated network errors
+          schemaCache.set(step.tool, {
+            schema: null,
+            timestamp: Date.now(),
+            ttl: 30 * 1000 // 30 seconds for network errors
+          })
+
+          setParameterSchema([])
+          setError(`Failed to load parameters: ${err instanceof Error ? err.message : 'Unknown error'}`)
+        }
       } finally {
         setLoading(false)
       }
@@ -386,7 +472,7 @@ export function ParameterDialog({
         <DialogHeader>
           <DialogTitle>Configure {step.title}</DialogTitle>
           <DialogDescription>
-            Tool: <span className="font-medium">{step.tool}</span>
+            Tool: <span className="font-medium">{getSimpleToolName(step.tool)}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -471,7 +557,7 @@ export function ParameterDialog({
               <div className="text-sm text-muted-foreground">
                 Schema may not be available for this tool yet.
                 {step && step.tool && (
-                  <div className="mt-2 text-xs">Tool ID: {step.tool}</div>
+                  <div className="mt-2 text-xs">Tool: {getSimpleToolName(step.tool)}</div>
                 )}
               </div>
             </div>
@@ -485,10 +571,17 @@ export function ParameterDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            data-testid="parameter-dialog-cancel"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave}>
+          <Button
+            onClick={handleSave}
+            data-testid="parameter-dialog-save"
+          >
             Save Parameters
           </Button>
         </DialogFooter>

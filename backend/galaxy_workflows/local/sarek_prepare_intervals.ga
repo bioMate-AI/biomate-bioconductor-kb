@@ -1,0 +1,262 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "PREPARE_INTERVALS",
+  "annotation": "PREPARE_INTERVALS subworkflow: Generates and prepares genomic intervals for parallel scatter/gather processing. Handles three scenarios: (1) no_intervals flag - creates empty interval files, (2) no intervals provided - generates from FASTA, (3) intervals provided - uses provided file (converts from .interval_list if needed). All intervals are split for parallel processing and indexed with tabix.",
+  "steps": {
+    "0": {
+      "annotation": "FASTA index file (.fai)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input: fasta_fai",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Optional intervals file (.bed or .interval_list)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input: intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Flag to skip interval generation",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "no_intervals"
+        }
+      ],
+      "name": "Input: no_intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Nucleotides per second for interval splitting",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "nucleotides_per_second"
+        }
+      ],
+      "name": "Input: nucleotides_per_second",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Step parameter (annotate, controlfreec, etc.)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "step"
+        }
+      ],
+      "name": "Input: step",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Alternative path: Generate intervals from FASTA when no intervals provided",
+      "id": 5,
+      "input_connections": {
+        "infile": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "BUILD_INTERVALS (gawk)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bioinformatics_lab_ufsc/epibuilder/Repository_Actions_EpiBuilder",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Path 1: When intervals generated from FASTA",
+      "id": 6,
+      "input_connections": {
+        "intervals": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "CREATE_INTERVALS_BED",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/ctb_frankenstein_ligand/Repository_Actions_Create_Frankenstein_ligand",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Path 2: When intervals file provided",
+      "id": 7,
+      "input_connections": {
+        "intervals": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "CREATE_INTERVALS_BED (from file)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/ctb_frankenstein_ligand/Repository_Actions_Create_Frankenstein_ligand",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "Conditional: Only if intervals file ends with .interval_list",
+      "id": 8,
+      "input_connections": {
+        "intervals": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4_INTERVALLISTTOBED",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Compress and index each split interval bed file",
+      "id": 9,
+      "input_connections": {
+        "infile": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "TABIX_BGZIPTABIX_INTERVAL_SPLIT",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Compress and index split interval bed files from provided intervals",
+      "id": 10,
+      "input_connections": {
+        "infile": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "TABIX_BGZIPTABIX_INTERVAL_SPLIT (alt)",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "11": {
+      "annotation": "Compress and index combined intervals from BUILD_INTERVALS",
+      "id": 11,
+      "input_connections": {
+        "infile": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "TABIX_BGZIPTABIX_INTERVAL_COMBINED",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "12": {
+      "annotation": "Compress and index combined intervals from converted interval_list",
+      "id": 12,
+      "input_connections": {
+        "infile": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "TABIX_BGZIPTABIX_INTERVAL_COMBINED (converted)",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "13": {
+      "annotation": "Output: Split intervals with indices",
+      "id": 13,
+      "input_connections": {
+        "input": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: intervals_bed_gz_tbi",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "14": {
+      "annotation": "Output: Combined intervals with indices",
+      "id": 14,
+      "input_connections": {
+        "input": {
+          "id": 11,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: intervals_bed_gz_tbi_combined",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    }
+  },
+  "tags": [
+    "intervals",
+    "gatk",
+    "scatter-gather",
+    "genomics"
+  ]
+}

@@ -1,0 +1,215 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_DEEPVARIANT",
+  "annotation": "Converted from nf-core subworkflow: DeepVariant germline variant calling with interval-based parallelization and VCF/gVCF merging",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input intervals file (optional)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input dictionary file (optional)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "DeepVariant variant calling: processes CRAM files with reference genome to generate VCF and gVCF outputs. Supports interval-based parallelization for spread-and-gather strategy.",
+      "id": 5,
+      "input_connections": {
+        "input_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "input_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "input_fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "input_intervals": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "DeepVariant",
+      "tool_id": "iuc_deepvariant_DeepVariant_1.5.0+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 200
+      }
+    },
+    "6": {
+      "annotation": "Merge gVCF files from multiple intervals. Only executed when num_intervals > 1.",
+      "id": 6,
+      "input_connections": {
+        "input_vcf": {
+          "id": 5,
+          "output_name": "gvcf"
+        },
+        "input_dict": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge gVCF (GATK4 MergeVcfs)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 100
+      }
+    },
+    "7": {
+      "annotation": "Merge VCF files from multiple intervals. Only executed when num_intervals > 1.",
+      "id": 7,
+      "input_connections": {
+        "input_vcf": {
+          "id": 5,
+          "output_name": "vcf"
+        },
+        "input_dict": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge VCF (GATK4 MergeVcfs)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "8": {
+      "annotation": "Collect final gVCF output: merges results from interval-based runs or passes through single-interval results. Adds variantcaller='deepvariant' metadata.",
+      "id": 8,
+      "input_connections": {
+        "merged_gvcf": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "single_gvcf": {
+          "id": 5,
+          "output_name": "gvcf"
+        }
+      },
+      "name": "Collect gVCF Output",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "position": {
+        "left": 670,
+        "top": 100
+      }
+    },
+    "9": {
+      "annotation": "Collect final VCF output: merges results from interval-based runs or passes through single-interval results. Adds variantcaller='deepvariant' metadata.",
+      "id": 9,
+      "input_connections": {
+        "merged_vcf": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "single_vcf": {
+          "id": 5,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Collect VCF Output",
+      "type": "tool",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    }
+  },
+  "outputs": {
+    "gvcf": {
+      "annotation": "Final gVCF output with DeepVariant variant calls",
+      "id": 8,
+      "output_name": "output",
+      "type": "vcf"
+    },
+    "vcf": {
+      "annotation": "Final VCF output with DeepVariant variant calls",
+      "id": 9,
+      "output_name": "output",
+      "type": "vcf"
+    }
+  }
+}

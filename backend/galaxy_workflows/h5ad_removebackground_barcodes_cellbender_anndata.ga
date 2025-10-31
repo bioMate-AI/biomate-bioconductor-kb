@@ -1,0 +1,78 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "H5AD_REMOVEBACKGROUND_BARCODES_CELLBENDER_ANNDATA",
+  "annotation": "Workflow for background and empty droplet removal from h5ad files using CellBender and AnnData barcode filtering",
+  "steps": {
+    "0": {
+      "annotation": "Input h5ad file with unfiltered data",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_unfiltered"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "CellBender: Remove background and empty droplets from h5ad",
+      "id": 1,
+      "input_connections": {
+        "input_h5ad": {
+          "id": 0,
+          "output_name": "ch_unfiltered"
+        }
+      },
+      "name": "CELLBENDER_REMOVEBACKGROUND",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cellbender_removebackground/cellbender_removebackground",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "2": {
+      "annotation": "AnnData: Filter barcodes based on CellBender output",
+      "id": 2,
+      "input_connections": {
+        "input_h5ad": {
+          "id": 0,
+          "output_name": "ch_unfiltered"
+        },
+        "barcodes": {
+          "id": 1,
+          "output_name": "barcodes"
+        }
+      },
+      "name": "ANNDATA_BARCODES",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/anndata2ri/Repository_Actions_anndata2ri",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Output: Filtered h5ad file",
+      "id": 3,
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "h5ad"
+        }
+      },
+      "name": "Output h5ad",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    }
+  }
+}

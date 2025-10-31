@@ -1,0 +1,226 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "TARGETED_SEQUENCING",
+  "annotation": "TARGETED_SEQUENCING Workflow\n\nThis workflow filters bedGraph files with target regions BED file to contain only positions listed in the BED.\nOptionally generates Picard CollectHsMetrics performance metrics for targeted sequencing experiments.\n\nKey Steps:\n1. Intersect bedGraph files with target regions (BEDTOOLS_INTERSECT)\n2. Create sequence dictionary from reference genome (PICARD_CREATESEQUENCEDICTIONARY)\n3. Convert BED target regions to interval list format (PICARD_BEDTOINTERVALLIST)\n4. Collect hybrid selection metrics (PICARD_COLLECTHSMETRICS) - conditional on collecthsmetrics flag\n\nOutputs:\n- bedgraph_filtered: Filtered bedGraph files containing only on-target positions\n- picard_metrics: Performance metrics from CollectHsMetrics (if enabled)\n- versions: Version information from all tools",
+  "steps": {
+    "0": {
+      "annotation": "Input: bedGraph file(s) with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bedgraph"
+        }
+      ],
+      "name": "Input dataset - bedGraph",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input: Target regions BED file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_target_regions"
+        }
+      ],
+      "name": "Input dataset - Target Regions",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input: Reference genome FASTA",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input dataset - Reference FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input: Reference genome FASTA index",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta_index"
+        }
+      ],
+      "name": "Input dataset - FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input: BAM alignment file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bam"
+        }
+      ],
+      "name": "Input dataset - BAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input: BAM index file",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_bai"
+        }
+      ],
+      "name": "Input dataset - BAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input: Boolean flag to run Picard CollectHsMetrics",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "collecthsmetrics"
+        }
+      ],
+      "name": "Input dataset - CollectHsMetrics Flag",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Intersect bedGraph files with target regions to filter for on-target alignments",
+      "id": 7,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "intersect_file": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Bedtools Intersect",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/aaronquinlan/bedtools/Repository_Actions_Intersect_BAM_alignments_with_intervals_in_another_files",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 70
+      }
+    },
+    "8": {
+      "annotation": "Create sequence dictionary from reference genome (required for Picard tools)",
+      "id": 8,
+      "input_connections": {
+        "reference_fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Picard CreateSequenceDictionary",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/avowinkel/picard/Repository_Actions_CreateSequenceDictionary",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "9": {
+      "annotation": "Convert BED target regions to Picard interval list format",
+      "id": 9,
+      "input_connections": {
+        "input_bed": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "sequence_dictionary": {
+          "id": 8,
+          "output_name": "reference_dict"
+        }
+      },
+      "name": "Picard BedToIntervalList",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/avowinkel/picard/Repository_Actions_BedToIntervalList",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "Collect hybrid selection metrics (Fold-80 Base Penalty, HS Library Size, Percent Duplicates, Percent Off Bait)",
+      "id": 10,
+      "input_connections": {
+        "input_bam": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "input_bai": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "target_intervals": {
+          "id": 9,
+          "output_name": "intervallist"
+        },
+        "bait_intervals": {
+          "id": 9,
+          "output_name": "intervallist"
+        },
+        "reference_fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "reference_fasta_index": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "sequence_dictionary": {
+          "id": 8,
+          "output_name": "reference_dict"
+        }
+      },
+      "name": "Picard CollectHsMetrics",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/avowinkel/picard/Repository_Actions_CollectHsMetrics",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    }
+  },
+  "tags": [
+    "targeted-sequencing",
+    "methylation",
+    "picard",
+    "bedtools"
+  ]
+}

@@ -1,0 +1,150 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_GENERATE_STATISTICS",
+  "annotation": "Converted from nf-core subworkflow for short read sequencing data QC using different tools",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads channel",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads",
+          "description": "FASTQ files for quality control analysis"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "FastQC - Quality control checks on raw sequence data (conditional: skip_fastqc)",
+      "id": 1,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "name": "FastQC",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/Repository_Actions_FastQC",
+      "tool_version": "0.74+galaxy1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "2": {
+      "annotation": "SEQFU_CHECK - Check FASTQ file integrity (conditional: skip_seqfu_check)",
+      "id": 2,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "name": "SEQFU Check",
+      "tool_id": "weiwei12456_make_phyloseq_makephyloseqfull_1.0",
+      "tool_version": "1.0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "SEQFU_STATS - Generate sequence statistics (conditional: skip_seqfu_stats)",
+      "id": 3,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "name": "SEQFU Stats",
+      "tool_id": "weiwei12456_make_phyloseq_makephyloseqfull_1.0",
+      "tool_version": "1.0",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "4": {
+      "annotation": "SEQKIT_STATS - Sequence statistics using seqkit (conditional: skip_seqkit_stats)",
+      "id": 4,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "name": "Seqkit Stats",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/alyssa/seqkit_seq/Repository_Actions_Qcat",
+      "tool_version": "0.1.0",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "SEQTK_COMP - Reports composition of fasta/fastq sequences (conditional: skip_seqtk_comp)",
+      "id": 5,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "name": "Seqtk Comp",
+      "tool_id": "iuc_seqtk_seqtk_comp_1.5+galaxy0",
+      "tool_version": "1.5+galaxy0",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    }
+  },
+  "outputs": {
+    "fastqc_html": {
+      "id": 1,
+      "output_name": "html"
+    },
+    "fastqc_zip": {
+      "id": 1,
+      "output_name": "zip"
+    },
+    "seqfu_check": {
+      "id": 2,
+      "output_name": "check"
+    },
+    "seqfu_stats": {
+      "id": 3,
+      "output_name": "stats"
+    },
+    "seqfu_multiqc": {
+      "id": 3,
+      "output_name": "multiqc"
+    },
+    "seqkit_stats": {
+      "id": 4,
+      "output_name": "stats"
+    },
+    "seqtk_stats": {
+      "id": 5,
+      "output_name": "seqtk_stats"
+    }
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BCL_DEMULTIPLEX",
+  "annotation": "Demultiplex Illumina BCL data using bcl-convert or bcl2fastq. Converted from nf-core subworkflow.",
+  "steps": {
+    "0": {
+      "annotation": "Input flowcell data: metadata, samplesheet, and BCL files",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_flowcell",
+          "description": "Flowcell metadata, samplesheet CSV, and path to BCL files"
+        }
+      ],
+      "name": "Input: Flowcell Data",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input parameter: demultiplexer selection (bclconvert or bcl2fastq)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "demultiplexer",
+          "description": "Choice of demultiplexer: bclconvert or bcl2fastq"
+        }
+      ],
+      "name": "Input: Demultiplexer Selection",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Demultiplex BCL files using bcl-convert. Alternative path when demultiplexer=bclconvert",
+      "id": 2,
+      "input_connections": {
+        "flowcell": {
+          "id": 0,
+          "output_name": "ch_flowcell"
+        }
+      },
+      "name": "bclconvert",
+      "tool_id": "nfcore_bclconvert",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "3": {
+      "annotation": "Demultiplex BCL files using bcl2fastq. Alternative path when demultiplexer=bcl2fastq",
+      "id": 3,
+      "input_connections": {
+        "flowcell": {
+          "id": 0,
+          "output_name": "ch_flowcell"
+        }
+      },
+      "name": "bcl2fastq",
+      "tool_id": "nfcore_bcl2fastq",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "4": {
+      "annotation": "Process FASTQ files: extract metadata from headers, generate read groups, identify empty files, and transpose to per-file format",
+      "id": 4,
+      "input_connections": {
+        "fastq_bclconvert": {
+          "id": 2,
+          "output_name": "fastq"
+        },
+        "fastq_bcl2fastq": {
+          "id": 3,
+          "output_name": "fastq"
+        }
+      },
+      "name": "Process FASTQ Metadata",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 70
+      }
+    },
+    "5": {
+      "annotation": "Output: FASTQ files with metadata and read groups",
+      "id": 5,
+      "input_connections": {
+        "fastq": {
+          "id": 4,
+          "output_name": "fastq"
+        }
+      },
+      "name": "Output: FASTQ",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Output: Empty FASTQ files (no reads detected)",
+      "id": 6,
+      "input_connections": {
+        "empty_fastq": {
+          "id": 4,
+          "output_name": "empty_fastq"
+        }
+      },
+      "name": "Output: Empty FASTQ",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "7": {
+      "annotation": "Output: Demultiplexing reports from bclconvert or bcl2fastq",
+      "id": 7,
+      "input_connections": {
+        "reports_bclconvert": {
+          "id": 2,
+          "output_name": "reports"
+        },
+        "reports_bcl2fastq": {
+          "id": 3,
+          "output_name": "reports"
+        }
+      },
+      "name": "Output: Reports",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "8": {
+      "annotation": "Output: Statistics from bcl2fastq (only available from bcl2fastq demultiplexer)",
+      "id": 8,
+      "input_connections": {
+        "stats": {
+          "id": 3,
+          "output_name": "stats"
+        }
+      },
+      "name": "Output: Statistics",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "9": {
+      "annotation": "Output: InterOp files from bclconvert or bcl2fastq",
+      "id": 9,
+      "input_connections": {
+        "interop_bclconvert": {
+          "id": 2,
+          "output_name": "interop"
+        },
+        "interop_bcl2fastq": {
+          "id": 3,
+          "output_name": "interop"
+        }
+      },
+      "name": "Output: InterOp",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "10": {
+      "annotation": "Output: Tool versions from bclconvert or bcl2fastq",
+      "id": 10,
+      "input_connections": {
+        "versions_bclconvert": {
+          "id": 2,
+          "output_name": "versions"
+        },
+        "versions_bcl2fastq": {
+          "id": 3,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output: Versions",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 610
+      }
+    }
+  }
+}

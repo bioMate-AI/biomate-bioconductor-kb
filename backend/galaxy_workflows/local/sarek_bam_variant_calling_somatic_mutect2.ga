@@ -1,0 +1,562 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SOMATIC_MUTECT2",
+  "annotation": "Converted from nf-core subworkflow: Somatic variant calling using GATK4 Mutect2 in tumor-normal mode with contamination estimation and artifact filtering",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM/CRAM files with indices for tumor-normal pairs",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference FASTA sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input reference FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference FASTA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fai"
+        }
+      ],
+      "name": "Input FASTA index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Reference sequence dictionary",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input sequence dictionary",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Germline resource VCF for pileup summaries",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "germline_resource"
+        }
+      ],
+      "name": "Input germline resource",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Germline resource index",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "germline_resource_tbi"
+        }
+      ],
+      "name": "Input germline resource index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Panel of normals VCF",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "panel_of_normals"
+        }
+      ],
+      "name": "Input panel of normals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Panel of normals index",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "panel_of_normals_tbi"
+        }
+      ],
+      "name": "Input panel of normals index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Genomic intervals for scatter-gather",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Run Mutect2 in joint mode across samples",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "joint_mutect2"
+        }
+      ],
+      "name": "Input joint_mutect2 flag",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "GATK4 Mutect2 variant calling in paired tumor-normal mode",
+      "id": 10,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_index": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "germline_resource": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "germline_resource_index": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "panel_of_normals": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "panel_of_normals_index": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 Mutect2",
+      "tool_id": "artbio_gatk4_gatk4_Mutect2_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "Merge VCF files from scattered Mutect2 calls",
+      "id": 11,
+      "input_connections": {
+        "vcf_input": {
+          "id": 10,
+          "output_name": "vcf"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge Mutect2 VCFs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "12": {
+      "annotation": "Merge Mutect2 statistics files from scattered calls",
+      "id": 12,
+      "input_connections": {
+        "stats_input": {
+          "id": 10,
+          "output_name": "stats"
+        }
+      },
+      "name": "GATK4 MergeMutectStats",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "13": {
+      "annotation": "Learn read orientation bias model from F1R2 counts",
+      "id": 13,
+      "input_connections": {
+        "f1r2_input": {
+          "id": 10,
+          "output_name": "f1r2"
+        }
+      },
+      "name": "GATK4 LearnReadOrientationModel",
+      "tool_id": "artbio_gatk4_gatk4_LearnReadOrientationModel_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "14": {
+      "annotation": "Get pileup summaries for normal samples",
+      "id": 14,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_index": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "germline_resource": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "germline_resource_index": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 GetPileupSummaries Normal",
+      "tool_id": "artbio_gatk4_gatk4_GetPileupSummaries_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "15": {
+      "annotation": "Get pileup summaries for tumor samples",
+      "id": 15,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_index": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "germline_resource": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "germline_resource_index": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 GetPileupSummaries Tumor",
+      "tool_id": "artbio_gatk4_gatk4_GetPileupSummaries_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "16": {
+      "annotation": "Gather pileup summaries for normal samples across intervals",
+      "id": 16,
+      "input_connections": {
+        "pileup_table": {
+          "id": 14,
+          "output_name": "table"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 GatherPileupSummaries Normal",
+      "tool_id": "artbio_gatk4_gatk4_GatherPileupSummaries_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "17": {
+      "annotation": "Gather pileup summaries for tumor samples across intervals",
+      "id": 17,
+      "input_connections": {
+        "pileup_table": {
+          "id": 15,
+          "output_name": "table"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 GatherPileupSummaries Tumor",
+      "tool_id": "artbio_gatk4_gatk4_GatherPileupSummaries_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    },
+    "18": {
+      "annotation": "Calculate contamination from pileup summaries",
+      "id": 18,
+      "input_connections": {
+        "tumor_pileup": {
+          "id": 17,
+          "output_name": "table"
+        },
+        "normal_pileup": {
+          "id": 16,
+          "output_name": "table"
+        }
+      },
+      "name": "GATK4 CalculateContamination",
+      "tool_id": "artbio_gatk4_gatk4_CalculateContamination_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "19": {
+      "annotation": "Filter Mutect2 calls using contamination, orientation bias, and segmentation",
+      "id": 19,
+      "input_connections": {
+        "vcf": {
+          "id": 11,
+          "output_name": "output"
+        },
+        "vcf_index": {
+          "id": 11,
+          "output_name": "output_index"
+        },
+        "stats": {
+          "id": 12,
+          "output_name": "stats"
+        },
+        "artifact_priors": {
+          "id": 13,
+          "output_name": "artifactprior"
+        },
+        "segmentation": {
+          "id": 18,
+          "output_name": "segmentation"
+        },
+        "contamination": {
+          "id": 18,
+          "output_name": "contamination"
+        },
+        "reference": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_index": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "reference_dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 FilterMutectCalls",
+      "tool_id": "artbio_gatk4_gatk4_FilterMutectCalls_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "20": {
+      "annotation": "Filtered VCF with variant caller annotation",
+      "id": 20,
+      "input_connections": {
+        "vcf_filtered": {
+          "id": 19,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output filtered VCF",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "21": {
+      "annotation": "Filtered VCF index",
+      "id": 21,
+      "input_connections": {
+        "tbi_filtered": {
+          "id": 19,
+          "output_name": "tbi"
+        }
+      },
+      "name": "Output filtered VCF index",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 130
+      }
+    },
+    "22": {
+      "annotation": "Filtered variant statistics",
+      "id": 22,
+      "input_connections": {
+        "stats_filtered": {
+          "id": 19,
+          "output_name": "stats"
+        }
+      },
+      "name": "Output filtered stats",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 250
+      }
+    },
+    "23": {
+      "annotation": "Artifact priors for read orientation bias",
+      "id": 23,
+      "input_connections": {
+        "artifact_priors": {
+          "id": 13,
+          "output_name": "artifactprior"
+        }
+      },
+      "name": "Output artifact priors",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 370
+      }
+    },
+    "24": {
+      "annotation": "Contamination table",
+      "id": 24,
+      "input_connections": {
+        "contamination_table": {
+          "id": 18,
+          "output_name": "contamination"
+        }
+      },
+      "name": "Output contamination table",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 490
+      }
+    },
+    "25": {
+      "annotation": "Segmentation table",
+      "id": 25,
+      "input_connections": {
+        "segmentation_table": {
+          "id": 18,
+          "output_name": "segmentation"
+        }
+      },
+      "name": "Output segmentation table",
+      "type": "data_output",
+      "position": {
+        "left": 1550,
+        "top": 610
+      }
+    }
+  }
+}

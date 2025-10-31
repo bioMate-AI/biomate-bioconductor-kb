@@ -1,0 +1,220 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING_STRELKA",
+  "annotation": "Converted from nf-core subworkflow: BAM_TUMOR_NORMAL_SOMATIC_VARIANT_CALLING_STRELKA. Performs somatic variant calling using Strelka with optional interval-based parallelization and VCF merging.",
+  "steps": {
+    "0": {
+      "annotation": "Input: CRAM files with indices, optional Manta VCF, and metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_cram",
+          "description": "Channel containing [meta, normal_cram, normal_crai, tumor_cram, tumor_crai, manta_vcf, manta_tbi]"
+        }
+      ],
+      "name": "Input: CRAM and Indices",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input: Reference genome FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta",
+          "description": "Reference genome FASTA"
+        }
+      ],
+      "name": "Input: Reference FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input: Reference genome FASTA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta_fai",
+          "description": "Reference genome FASTA index"
+        }
+      ],
+      "name": "Input: FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input: Interval BED file with index for parallelization (optional)",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_intervals",
+          "description": "Interval BED file (gzipped) with index and count"
+        }
+      ],
+      "name": "Input: Intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input: Dictionary file for VCF merging (optional)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_dict",
+          "description": "Sequence dictionary file"
+        }
+      ],
+      "name": "Input: Dictionary",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Strelka somatic variant calling. Calls SNVs and indels from tumor-normal CRAM pairs. Supports interval-based parallelization.",
+      "id": 5,
+      "input_connections": {
+        "normal_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "tumor_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference_fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Strelka Somatic",
+      "tool_id": "mini_strelka_Strelka_1.0.1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "6": {
+      "annotation": "Merge Strelka indel VCFs when multiple intervals were used. Conditional step: only executes if num_intervals > 1.",
+      "id": 6,
+      "input_connections": {
+        "vcf_indels": {
+          "id": 5,
+          "output_name": "vcf_indels"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge Strelka Indels",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Merge Strelka SNV VCFs when multiple intervals were used. Conditional step: only executes if num_intervals > 1.",
+      "id": 7,
+      "input_connections": {
+        "vcf_snvs": {
+          "id": 5,
+          "output_name": "vcf_snvs"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge Strelka SNVs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "Output: Final VCF files from Strelka (either merged or single). Metadata includes variantcaller='strelka'.",
+      "id": 8,
+      "input_connections": {
+        "merged_indels": {
+          "id": 6,
+          "output_name": "vcf"
+        },
+        "merged_snvs": {
+          "id": 7,
+          "output_name": "vcf"
+        },
+        "single_indels": {
+          "id": 5,
+          "output_name": "vcf_indels"
+        },
+        "single_snvs": {
+          "id": 5,
+          "output_name": "vcf_snvs"
+        }
+      },
+      "name": "Output: VCF",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 70
+      }
+    },
+    "9": {
+      "annotation": "Output: Version information from all tools used in the workflow.",
+      "id": 9,
+      "input_connections": {
+        "strelka_versions": {
+          "id": 5,
+          "output_name": "versions"
+        },
+        "merge_indels_versions": {
+          "id": 6,
+          "output_name": "versions"
+        },
+        "merge_snvs_versions": {
+          "id": 7,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output: Versions",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 190
+      }
+    }
+  }
+}

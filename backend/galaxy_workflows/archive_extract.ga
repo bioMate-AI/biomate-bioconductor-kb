@@ -1,0 +1,101 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "ARCHIVE_EXTRACT",
+  "annotation": "Archive extraction workflow supporting tar.gz, gz, and zip formats. The workflow branches based on file extension and extracts using the appropriate tool (UNTAR for tar.gz, GUNZIP for gz, UNZIP for zip). Outputs are merged into a single collection.",
+  "steps": {
+    "0": {
+      "annotation": "Input archive file to extract",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "archive",
+          "description": "Archive file (tar.gz, gz, or zip)"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Extract tar.gz archives",
+      "id": 1,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "UNTAR",
+      "tool_id": "nfcore_untar",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "2": {
+      "annotation": "Extract gz compressed files",
+      "id": 2,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "GUNZIP",
+      "tool_id": "nfcore_gunzip",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "3": {
+      "annotation": "Extract zip archives",
+      "id": 3,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "UNZIP",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/unzip/Repository_Actions_Unzip",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "4": {
+      "annotation": "Collect extracted outputs from all extraction methods",
+      "id": 4,
+      "input_connections": {
+        "input1": {
+          "id": 1,
+          "output_name": "untar"
+        },
+        "input2": {
+          "id": 2,
+          "output_name": "gunzip"
+        },
+        "input3": {
+          "id": 3,
+          "output_name": "unzipped_archive"
+        }
+      },
+      "name": "Merge Collections",
+      "tool_id": "galaxy_Merge_Collections",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    }
+  }
+}

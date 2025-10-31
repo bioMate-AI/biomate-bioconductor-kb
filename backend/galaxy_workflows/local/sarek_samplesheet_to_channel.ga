@@ -1,0 +1,886 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "SAMPLESHEET_TO_CHANNEL",
+  "annotation": "Converted from nf-core/sarek subworkflow - Processes samplesheet input and validates sample metadata with comprehensive error checking",
+  "steps": {
+    "0": {
+      "annotation": "Input samplesheet channel containing sample metadata and file paths",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_from_samplesheet",
+          "description": "Channel with sample metadata and file information"
+        }
+      ],
+      "name": "Input: Samplesheet Channel",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input parameter: Analysis step (mapping, markduplicates, prepare_recalibration, recalibrate, variant_calling, annotate)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "step",
+          "description": "Pipeline step"
+        }
+      ],
+      "name": "Input: Step Parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input parameter: Aligner tool selection",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "aligner",
+          "description": "Aligner selection"
+        }
+      ],
+      "name": "Input: Aligner Parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input parameter: Tools to run in pipeline",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "tools",
+          "description": "Comma-separated list of tools"
+        }
+      ],
+      "name": "Input: Tools Parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input parameter: Skip tools list",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "skip_tools",
+          "description": "Tools to skip"
+        }
+      ],
+      "name": "Input: Skip Tools Parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input parameter: UMI configuration parameters",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "umi_length",
+          "description": "UMI length"
+        },
+        {
+          "name": "umi_location",
+          "description": "UMI location"
+        },
+        {
+          "name": "umi_in_read_header",
+          "description": "UMI in read header flag"
+        },
+        {
+          "name": "umi_read_structure",
+          "description": "UMI read structure"
+        }
+      ],
+      "name": "Input: UMI Parameters",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input parameter: Reference files and resources",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta",
+          "description": "Reference FASTA"
+        },
+        {
+          "name": "dbsnp",
+          "description": "dbSNP VCF"
+        },
+        {
+          "name": "known_indels",
+          "description": "Known indels"
+        },
+        {
+          "name": "known_snps",
+          "description": "Known SNPs"
+        },
+        {
+          "name": "intervals",
+          "description": "Intervals file"
+        }
+      ],
+      "name": "Input: Reference Resources",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Input parameter: ASCAT-specific resources",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ascat_alleles",
+          "description": "ASCAT alleles"
+        },
+        {
+          "name": "ascat_loci",
+          "description": "ASCAT loci"
+        },
+        {
+          "name": "ascat_loci_gc",
+          "description": "ASCAT loci GC"
+        },
+        {
+          "name": "ascat_loci_rt",
+          "description": "ASCAT loci RT"
+        }
+      ],
+      "name": "Input: ASCAT Resources",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Input parameter: Mutect2 and germline resources",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "pon",
+          "description": "Panel of normals"
+        },
+        {
+          "name": "germline_resource",
+          "description": "Germline resource"
+        }
+      ],
+      "name": "Input: Mutect2 Resources",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Input parameter: Annotation resources",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "snpeff_cache",
+          "description": "SnpEff cache"
+        },
+        {
+          "name": "snpeff_db",
+          "description": "SnpEff database"
+        },
+        {
+          "name": "bcftools_annotations",
+          "description": "BCFtools annotations"
+        },
+        {
+          "name": "bcftools_annotations_tbi",
+          "description": "BCFtools annotations TBI"
+        },
+        {
+          "name": "bcftools_columns",
+          "description": "BCFtools columns"
+        },
+        {
+          "name": "bcftools_header_lines",
+          "description": "BCFtools header lines"
+        }
+      ],
+      "name": "Input: Annotation Resources",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "Input parameter: Sentieon tool emit modes",
+      "id": 10,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "sentieon_dnascope_emit_mode",
+          "description": "Sentieon Dnascope emit mode"
+        },
+        {
+          "name": "sentieon_haplotyper_emit_mode",
+          "description": "Sentieon Haplotyper emit mode"
+        }
+      ],
+      "name": "Input: Sentieon Parameters",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 1210
+      }
+    },
+    "11": {
+      "annotation": "Input parameter: Sample metadata parameters",
+      "id": 11,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "seq_center",
+          "description": "Sequencing center"
+        },
+        {
+          "name": "seq_platform",
+          "description": "Sequencing platform"
+        }
+      ],
+      "name": "Input: Sample Metadata",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 1330
+      }
+    },
+    "12": {
+      "annotation": "Input parameter: Workflow control flags",
+      "id": 12,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "build_only_index",
+          "description": "Build only index flag"
+        },
+        {
+          "name": "joint_germline",
+          "description": "Joint germline flag"
+        },
+        {
+          "name": "joint_mutect2",
+          "description": "Joint Mutect2 flag"
+        },
+        {
+          "name": "no_intervals",
+          "description": "No intervals flag"
+        },
+        {
+          "name": "wes",
+          "description": "Whole exome sequencing flag"
+        }
+      ],
+      "name": "Input: Workflow Flags",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 1450
+      }
+    },
+    "13": {
+      "annotation": "Validation: Check for duplicate patient-sample-status-lane combinations",
+      "id": 13,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: No Duplicate Combinations",
+      "tool_id": "galaxy_tool_validation_duplicates",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "14": {
+      "annotation": "Validation: Check sample status consistency (max 1 tumor per patient with multiple normals)",
+      "id": 14,
+      "input_connections": {
+        "input": {
+          "id": 13,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Sample Status Consistency",
+      "tool_id": "galaxy_tool_validation_status",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "15": {
+      "annotation": "Validation: Check sample IDs are unique to single patient",
+      "id": 15,
+      "input_connections": {
+        "input": {
+          "id": 14,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Sample-Patient Uniqueness",
+      "tool_id": "galaxy_tool_validation_sample_patient",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "16": {
+      "annotation": "Process samplesheet: Extract metadata and group by patient-sample lanes",
+      "id": 16,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "output"
+        },
+        "step": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "seq_center": {
+          "id": 11,
+          "output_name": "output"
+        },
+        "seq_platform": {
+          "id": 11,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "Process: Extract and Group Samples",
+      "tool_id": "galaxy_tool_process_samplesheet",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "17": {
+      "annotation": "Validation: Check intervals file format (BED for WES, BED/LIST for WGS)",
+      "id": 17,
+      "input_connections": {
+        "intervals": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "wes": {
+          "id": 12,
+          "output_name": "output"
+        },
+        "step": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Intervals File Format",
+      "tool_id": "galaxy_tool_validate_intervals",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "18": {
+      "annotation": "Validation: Check aligner compatibility with UMI handling",
+      "id": 18,
+      "input_connections": {
+        "aligner": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "step": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "umi_read_structure": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "umi_in_read_header": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "umi_location": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Aligner UMI Compatibility",
+      "tool_id": "galaxy_tool_validate_aligner_umi",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "19": {
+      "annotation": "Validation: Check UMI parameter combinations are valid",
+      "id": 19,
+      "input_connections": {
+        "step": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "umi_read_structure": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "umi_location": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "umi_in_read_header": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "umi_length": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: UMI Parameters",
+      "tool_id": "galaxy_tool_validate_umi_params",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "20": {
+      "annotation": "Validation: Check UMI read structure format using fgbio",
+      "id": 20,
+      "input_connections": {
+        "umi_read_structure": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: UMI Read Structure Format",
+      "tool_id": "galaxy_tool_validate_read_structure",
+      "type": "tool",
+      "position": {
+        "left": 1770,
+        "top": 10
+      }
+    },
+    "21": {
+      "annotation": "Validation: Check tumor/normal sample requirements for requested tools",
+      "id": 21,
+      "input_connections": {
+        "input_sample": {
+          "id": 16,
+          "output_name": "output"
+        },
+        "step": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "build_only_index": {
+          "id": 12,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Sample Status Requirements",
+      "tool_id": "galaxy_tool_validate_sample_status",
+      "type": "tool",
+      "position": {
+        "left": 1990,
+        "top": 10
+      }
+    },
+    "22": {
+      "annotation": "Validation: Check ASCAT resource files are provided",
+      "id": 22,
+      "input_connections": {
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "ascat_alleles": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "ascat_loci": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "ascat_loci_gc": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "ascat_loci_rt": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "wes": {
+          "id": 12,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: ASCAT Resources",
+      "tool_id": "galaxy_tool_validate_ascat",
+      "type": "tool",
+      "position": {
+        "left": 2210,
+        "top": 10
+      }
+    },
+    "23": {
+      "annotation": "Validation: Check Mutect2 resource files and parameters",
+      "id": 23,
+      "input_connections": {
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "pon": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "germline_resource": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Mutect2 Resources",
+      "tool_id": "galaxy_tool_validate_mutect2",
+      "type": "tool",
+      "position": {
+        "left": 2430,
+        "top": 10
+      }
+    },
+    "24": {
+      "annotation": "Validation: Check base recalibration and variant calling resource requirements",
+      "id": 24,
+      "input_connections": {
+        "step": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "skip_tools": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "known_indels": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "joint_germline": {
+          "id": 12,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Base Recalibration Resources",
+      "tool_id": "galaxy_tool_validate_baserecal",
+      "type": "tool",
+      "position": {
+        "left": 2650,
+        "top": 10
+      }
+    },
+    "25": {
+      "annotation": "Validation: Check joint germline variant calling requirements",
+      "id": 25,
+      "input_connections": {
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "joint_germline": {
+          "id": 12,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "known_indels": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "known_snps": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "no_intervals": {
+          "id": 12,
+          "output_name": "output"
+        },
+        "sentieon_dnascope_emit_mode": {
+          "id": 10,
+          "output_name": "output"
+        },
+        "sentieon_haplotyper_emit_mode": {
+          "id": 10,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Joint Germline Requirements",
+      "tool_id": "galaxy_tool_validate_joint_germline",
+      "type": "tool",
+      "position": {
+        "left": 2870,
+        "top": 10
+      }
+    },
+    "26": {
+      "annotation": "Validation: Check joint Mutect2 variant calling requirements",
+      "id": 26,
+      "input_connections": {
+        "joint_mutect2": {
+          "id": 12,
+          "output_name": "output"
+        },
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Joint Mutect2 Requirements",
+      "tool_id": "galaxy_tool_validate_joint_mutect2",
+      "type": "tool",
+      "position": {
+        "left": 3090,
+        "top": 10
+      }
+    },
+    "27": {
+      "annotation": "Validation: Check tools are specified for variant calling and annotation steps",
+      "id": 27,
+      "input_connections": {
+        "step": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Tools Specification",
+      "tool_id": "galaxy_tool_validate_tools_spec",
+      "type": "tool",
+      "position": {
+        "left": 3310,
+        "top": 10
+      }
+    },
+    "28": {
+      "annotation": "Validation: Check sex information for CNV and varlociraptor tools",
+      "id": 28,
+      "input_connections": {
+        "input_sample": {
+          "id": 16,
+          "output_name": "output"
+        },
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Sex Information",
+      "tool_id": "galaxy_tool_validate_sex",
+      "type": "tool",
+      "position": {
+        "left": 3530,
+        "top": 10
+      }
+    },
+    "29": {
+      "annotation": "Validation: Check contamination information for varlociraptor tumor samples",
+      "id": 29,
+      "input_connections": {
+        "input_sample": {
+          "id": 16,
+          "output_name": "output"
+        },
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: Contamination Information",
+      "tool_id": "galaxy_tool_validate_contamination",
+      "type": "tool",
+      "position": {
+        "left": 3750,
+        "top": 10
+      }
+    },
+    "30": {
+      "annotation": "Validation: Check BCFtools annotation resources",
+      "id": 30,
+      "input_connections": {
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "bcftools_annotations": {
+          "id": 9,
+          "output_name": "output"
+        },
+        "bcftools_annotations_tbi": {
+          "id": 9,
+          "output_name": "output"
+        },
+        "bcftools_header_lines": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: BCFtools Annotations",
+      "tool_id": "galaxy_tool_validate_bcftools",
+      "type": "tool",
+      "position": {
+        "left": 3970,
+        "top": 10
+      }
+    },
+    "31": {
+      "annotation": "Validation: Check SnpEff annotation resources",
+      "id": 31,
+      "input_connections": {
+        "snpeff_cache": {
+          "id": 9,
+          "output_name": "output"
+        },
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "snpeff_db": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: SnpEff Annotations",
+      "tool_id": "galaxy_tool_validate_snpeff",
+      "type": "tool",
+      "position": {
+        "left": 4190,
+        "top": 10
+      }
+    },
+    "32": {
+      "annotation": "Validation: Check DragMap aligner base recalibration recommendation",
+      "id": 32,
+      "input_connections": {
+        "step": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "aligner": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "skip_tools": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: DragMap Configuration",
+      "tool_id": "galaxy_tool_validate_dragmap",
+      "type": "tool",
+      "position": {
+        "left": 4410,
+        "top": 10
+      }
+    },
+    "33": {
+      "annotation": "Validation: Check MarkDuplicatesSpark UMI compatibility",
+      "id": 33,
+      "input_connections": {
+        "tools": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "umi_in_read_header": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "umi_location": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate: MarkDuplicatesSpark UMI",
+      "tool_id": "galaxy_tool_validate_markdup_umi",
+      "type": "tool",
+      "position": {
+        "left": 4630,
+        "top": 10
+      }
+    },
+    "34": {
+      "annotation": "Final output: Processed and validated sample channel ready for downstream analysis",
+      "id": 34,
+      "input_connections": {
+        "input_sample": {
+          "id": 33,
+          "output_name": "output"
+        }
+      },
+      "name": "Output: Validated Sample Channel",
+      "type": "data_output",
+      "position": {
+        "left": 4850,
+        "top": 10
+      }
+    }
+  }
+}

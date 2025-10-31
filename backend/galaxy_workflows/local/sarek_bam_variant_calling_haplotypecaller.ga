@@ -1,0 +1,335 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_HAPLOTYPECALLER",
+  "annotation": "Converted from nf-core subworkflow: GATK4 HaplotypeCaller germline variant calling with interval-based scatter-gather strategy",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM file with index and interval information",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram"
+        }
+      ],
+      "name": "Input CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input sequence dictionary file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input Dictionary",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input dbSNP VCF file (optional)",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp"
+        }
+      ],
+      "name": "Input dbSNP",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input dbSNP index file (optional)",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp_tbi"
+        }
+      ],
+      "name": "Input dbSNP Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input interval BED file for scatter-gather strategy",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals"
+        }
+      ],
+      "name": "Input Intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "GATK4 HaplotypeCaller: Germline variant calling on scattered intervals",
+      "id": 7,
+      "input_connections": {
+        "cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 HaplotypeCaller",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "8": {
+      "annotation": "Branch point: Check if multiple intervals were used. If num_intervals > 1, merge VCFs; otherwise pass through",
+      "id": 8,
+      "input_connections": {
+        "vcf": {
+          "id": 7,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Branch VCF by Interval Count",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "9": {
+      "annotation": "GATK4 MergeVCFs: Merge HaplotypeCaller VCFs from multiple intervals (when num_intervals > 1)",
+      "id": 9,
+      "input_connections": {
+        "vcf": {
+          "id": 8,
+          "output_name": "vcf_intervals"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 MergeVCFs (HaplotypeCaller)",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "Branch point: Check if multiple BAMs were generated. If num_intervals > 1, merge BAMs; otherwise pass through",
+      "id": 10,
+      "input_connections": {
+        "bam": {
+          "id": 7,
+          "output_name": "bam"
+        }
+      },
+      "name": "Branch BAM by Interval Count",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 490
+      }
+    },
+    "11": {
+      "annotation": "BAM Merge and Index: Merge and index realigned BAMs from multiple intervals (when num_intervals > 1)",
+      "id": 11,
+      "input_connections": {
+        "bam": {
+          "id": 10,
+          "output_name": "bam_intervals"
+        }
+      },
+      "name": "BAM Merge Index Samtools",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "12": {
+      "annotation": "Merge VCF outputs: Combine merged VCFs (from intervals) with single VCFs (no intervals)",
+      "id": 12,
+      "input_connections": {
+        "vcf_merged": {
+          "id": 9,
+          "output_name": "vcf"
+        },
+        "vcf_single": {
+          "id": 8,
+          "output_name": "vcf_no_intervals"
+        }
+      },
+      "name": "Merge VCF Results",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "13": {
+      "annotation": "Merge BAM outputs: Combine merged BAMs (from intervals) with single BAMs (no intervals)",
+      "id": 13,
+      "input_connections": {
+        "bam_merged": {
+          "id": 11,
+          "output_name": "bam_bai"
+        },
+        "bam_single": {
+          "id": 10,
+          "output_name": "bam_no_intervals"
+        }
+      },
+      "name": "Merge BAM Results",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 490
+      }
+    },
+    "14": {
+      "annotation": "Output: Final VCF files from HaplotypeCaller",
+      "id": 14,
+      "input_connections": {
+        "vcf": {
+          "id": 12,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output VCF",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "15": {
+      "annotation": "Output: Final TBI index files",
+      "id": 15,
+      "input_connections": {
+        "tbi": {
+          "id": 12,
+          "output_name": "tbi"
+        }
+      },
+      "name": "Output TBI",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    },
+    "16": {
+      "annotation": "Output: Realigned BAM files with indices",
+      "id": 16,
+      "input_connections": {
+        "bam_bai": {
+          "id": 13,
+          "output_name": "bam_bai"
+        }
+      },
+      "name": "Output Realigned BAM",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 490
+      }
+    },
+    "17": {
+      "annotation": "Output: GVCF with TBI and intervals for joint genotyping",
+      "id": 17,
+      "input_connections": {
+        "gvcf_tbi_intervals": {
+          "id": 7,
+          "output_name": "gvcf_tbi_intervals"
+        }
+      },
+      "name": "Output GVCF for Joint Genotyping",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 610
+      }
+    }
+  }
+}

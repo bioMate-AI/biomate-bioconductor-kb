@@ -1,0 +1,211 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_PREPROCESS_PARABRICKS",
+  "annotation": "Converted from nf-core subworkflow for FASTQ preprocessing using Parabricks",
+  "steps": {
+    "0": {
+      "annotation": "Input reads channel containing metadata and FASTQ files",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads"
+        }
+      ],
+      "name": "Input reads",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input FASTA reference",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input BWA index files",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_index"
+        }
+      ],
+      "name": "Input BWA index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Optional interval BED file for variant calling regions",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_interval_file"
+        }
+      ],
+      "name": "Input interval file (optional)",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Optional known sites VCF for indel realignment",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_known_sites"
+        }
+      ],
+      "name": "Input known sites (optional)",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Output format: either 'bam' or 'cram'",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_output_fmt"
+        }
+      ],
+      "name": "Output format parameter",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Process reads with metadata grouping and lane consolidation",
+      "id": 6,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "Process reads metadata",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/azomics/edit_fcs_markers/Repository_Actions_Edit_markers_or_channels",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Parabricks FQ2BAM: Convert FASTQ to BAM/CRAM with alignment and preprocessing",
+      "id": 7,
+      "input_connections": {
+        "reads": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "interval_file": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "known_sites": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "output_fmt": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "PARABRICKS_FQ2BAM",
+      "tool_id": "parabricks_fq2bam",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Create CSV alignment file for variant calling with metadata consolidation",
+      "id": 8,
+      "input_connections": {
+        "cram_files": {
+          "id": 7,
+          "output_name": "cram"
+        },
+        "crai_files": {
+          "id": 7,
+          "output_name": "crai"
+        }
+      },
+      "name": "CHANNEL_ALIGN_CREATE_CSV",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/azomics/edit_fcs_markers/Repository_Actions_Edit_markers_or_channels",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "9": {
+      "annotation": "Output: CRAM files with index for variant calling",
+      "id": 9,
+      "input_connections": {
+        "cram": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "Output CRAM files",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "10": {
+      "annotation": "Output: Tool versions",
+      "id": 10,
+      "input_connections": {
+        "versions": {
+          "id": 7,
+          "output_name": "versions"
+        }
+      },
+      "name": "Output versions",
+      "type": "data_output",
+      "position": {
+        "left": 890,
+        "top": 130
+      }
+    }
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "VCF_VARIANT_FILTERING_GATK",
+  "annotation": "Converted from nf-core subworkflow - GATK variant filtering using CNN scoring and tranches filtering",
+  "steps": {
+    "0": {
+      "annotation": "Input VCF file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "vcf"
+        },
+        {
+          "name": "vcf_index"
+        }
+      ],
+      "name": "Input VCF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input FASTA Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input sequence dictionary",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input Dictionary",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input intervals BED file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed_combined"
+        }
+      ],
+      "name": "Input Intervals BED",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input known sites VCF",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "known_sites"
+        }
+      ],
+      "name": "Input Known Sites",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input known sites index",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "known_sites_tbi"
+        }
+      ],
+      "name": "Input Known Sites Index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "id": 7,
+      "input_connections": {
+        "vcf": {
+          "id": 0,
+          "output_name": "vcf"
+        },
+        "vcf_index": {
+          "id": 0,
+          "output_name": "vcf_index"
+        },
+        "intervals": {
+          "id": 4,
+          "output_name": "intervals_bed_combined"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "fasta"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "fasta_fai"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "dict"
+        }
+      },
+      "name": "GATK4 CNN Score Variants",
+      "tool_id": "gatk4_cnnscorevariants",
+      "type": "tool",
+      "annotation": "Score variants using GATK4 CNN model",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "8": {
+      "id": 8,
+      "input_connections": {
+        "vcf": {
+          "id": 7,
+          "output_name": "vcf"
+        },
+        "vcf_index": {
+          "id": 7,
+          "output_name": "vcf_index"
+        },
+        "intervals": {
+          "id": 4,
+          "output_name": "intervals_bed_combined"
+        },
+        "known_sites": {
+          "id": 5,
+          "output_name": "known_sites"
+        },
+        "known_sites_tbi": {
+          "id": 6,
+          "output_name": "known_sites_tbi"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "fasta"
+        },
+        "fasta_fai": {
+          "id": 2,
+          "output_name": "fasta_fai"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "dict"
+        }
+      },
+      "name": "GATK4 Filter Variant Tranches",
+      "tool_id": "gatk4_filtervarianttranches",
+      "type": "tool",
+      "annotation": "Filter variants using tranches based on CNN scores",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "9": {
+      "id": 9,
+      "input_connections": {
+        "filtered_vcf": {
+          "id": 8,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output Filtered VCF",
+      "type": "data_output",
+      "annotation": "Final filtered VCF output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    }
+  }
+}

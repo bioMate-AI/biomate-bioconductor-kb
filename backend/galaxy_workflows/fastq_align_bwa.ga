@@ -1,0 +1,240 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_ALIGN_BWA",
+  "annotation": "Converted from nf-core subworkflow: Alignment with BWA and BAM sorting/statistics",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads",
+          "description": "FASTQ reads with metadata"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input BWA index files",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_index",
+          "description": "BWA index files"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input reference FASTA (optional)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta",
+          "description": "Reference FASTA sequence"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Sort BAM parameter",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_sort_bam",
+          "description": "Boolean flag to sort BAM (true/false)"
+        }
+      ],
+      "name": "Input parameter",
+      "type": "parameter_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Map reads to reference with BWA-MEM",
+      "id": 4,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "sort_bam": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BWA-MEM2 index builder",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_bwa_mem2_index_builder/Repository_Actions_BWA-MEM2_index_builder",
+      "tool_version": "2.2.1+galaxy2",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "5": {
+      "annotation": "Sort BAM, generate index and compute statistics (samtools stats, flagstat, idxstats)",
+      "id": 5,
+      "input_connections": {
+        "bam": {
+          "id": 4,
+          "output_name": "bam"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM coverage statistics",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "tool_version": "0.1.0",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "Output: Original unsorted BAM from BWA",
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "bam"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Output: Sorted BAM file",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "bam"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "Output: BAM index (.bai)",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "bai"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "9": {
+      "annotation": "Output: BAM index (.csi)",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "csi"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "10": {
+      "annotation": "Output: Samtools stats file",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "stats"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "11": {
+      "annotation": "Output: Samtools flagstat file",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "flagstat"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 610
+      }
+    },
+    "12": {
+      "annotation": "Output: Samtools idxstats file",
+      "id": 12,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "idxstats"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 730
+      }
+    }
+  }
+}

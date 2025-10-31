@@ -1,0 +1,408 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "VCF_VARLOCIRAPTOR_SOMATIC",
+  "annotation": "VCF Varlociraptor Somatic workflow - Processes CRAM files through alignment property estimation, VCF preprocessing, and variant calling with Varlociraptor for somatic variant detection",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM files (normal and tumor)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_cram"
+        }
+      ],
+      "name": "Input CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input FASTA index",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta_fai"
+        }
+      ],
+      "name": "Input FASTA FAI",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input scenario file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_scenario"
+        }
+      ],
+      "name": "Input Scenario",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input somatic VCF",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_somatic_vcf"
+        }
+      ],
+      "name": "Input Somatic VCF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input germline VCF",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_germline_vcf"
+        }
+      ],
+      "name": "Input Germline VCF",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Number of chunks for VCF splitting",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "val_num_chunks"
+        }
+      ],
+      "name": "Input Number of Chunks",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Fill Scenario File",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/jowong/prince_galaxy/Repository_Actions_Filler",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "8": {
+      "id": 8,
+      "input_connections": {
+        "input_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_index": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Estimate Alignment Properties Normal",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/sklearn_data_preprocess/Repository_Actions_Preprocess",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "9": {
+      "id": 9,
+      "input_connections": {
+        "input_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_index": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Estimate Alignment Properties Tumor",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/sklearn_data_preprocess/Repository_Actions_Preprocess",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "10": {
+      "id": 10,
+      "input_connections": {
+        "input_vcf": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "Tabix Somatic",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 490
+      }
+    },
+    "11": {
+      "id": 11,
+      "input_connections": {
+        "input_vcf": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Tabix Germline",
+      "tool_id": "nilesh_tabix_tabix_0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 610
+      }
+    },
+    "12": {
+      "id": 12,
+      "input_connections": {
+        "somatic_vcf": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "somatic_tbi": {
+          "id": 10,
+          "output_name": "output"
+        }
+      },
+      "name": "Concatenate Somatic Strelka",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_concatenate/Repository_Actions_ctat_concatenate",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 490
+      }
+    },
+    "13": {
+      "id": 13,
+      "input_connections": {
+        "somatic_vcf": {
+          "id": 12,
+          "output_name": "output"
+        },
+        "germline_vcf": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "germline_tbi": {
+          "id": 11,
+          "output_name": "output"
+        },
+        "reference": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_index": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge Germline Somatic VCFs",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 550
+      }
+    },
+    "14": {
+      "id": 14,
+      "input_connections": {
+        "input_vcf": {
+          "id": 13,
+          "output_name": "output"
+        },
+        "num_chunks": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "RBT VCF Split",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/scisjnu123/test/Repository_Actions_Sort",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 550
+      }
+    },
+    "15": {
+      "id": 15,
+      "input_connections": {
+        "input_vcf": {
+          "id": 14,
+          "output_name": "output"
+        },
+        "tumor_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_index": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "alignment_properties": {
+          "id": 9,
+          "output_name": "output"
+        }
+      },
+      "name": "Preprocess Tumor",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/sklearn_data_preprocess/Repository_Actions_Preprocess",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 490
+      }
+    },
+    "16": {
+      "id": 16,
+      "input_connections": {
+        "input_vcf": {
+          "id": 14,
+          "output_name": "output"
+        },
+        "normal_cram": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_index": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "alignment_properties": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "Preprocess Normal",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/sklearn_data_preprocess/Repository_Actions_Preprocess",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 610
+      }
+    },
+    "17": {
+      "id": 17,
+      "input_connections": {
+        "normal_bcf": {
+          "id": 16,
+          "output_name": "output"
+        },
+        "tumor_bcf": {
+          "id": 15,
+          "output_name": "output"
+        },
+        "scenario_file": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Varlociraptor Call Variants",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/sklearn_data_preprocess/Repository_Actions_Preprocess",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 550
+      }
+    },
+    "18": {
+      "id": 18,
+      "input_connections": {
+        "input_bcf": {
+          "id": 17,
+          "output_name": "output"
+        }
+      },
+      "name": "Sort Called Chunks",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/scisjnu123/test/Repository_Actions_Sort",
+      "type": "tool",
+      "position": {
+        "left": 1770,
+        "top": 550
+      }
+    },
+    "19": {
+      "id": 19,
+      "input_connections": {
+        "input_vcf": {
+          "id": 18,
+          "output_name": "output"
+        }
+      },
+      "name": "Concatenate Called Chunks",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_concatenate/Repository_Actions_ctat_concatenate",
+      "type": "tool",
+      "position": {
+        "left": 1990,
+        "top": 550
+      }
+    }
+  }
+}

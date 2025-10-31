@@ -1,0 +1,208 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "UTILS_NFVALIDATION_PLUGIN",
+  "annotation": "Converted from nf-core subworkflow - Uses nf-validation plugin to render help text and parameter summary",
+  "steps": {
+    "0": {
+      "annotation": "Print help flag - boolean indicating whether to print help text",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "print_help"
+        }
+      ],
+      "name": "Input: print_help",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Workflow command - default command used to run pipeline",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "workflow_command"
+        }
+      ],
+      "name": "Input: workflow_command",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Pre-help text - string to be printed before help text and summary log",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "pre_help_text"
+        }
+      ],
+      "name": "Input: pre_help_text",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Post-help text - string to be printed after help text and summary log",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "post_help_text"
+        }
+      ],
+      "name": "Input: post_help_text",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Validate parameters flag - boolean indicating whether to validate parameters",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "validate_params"
+        }
+      ],
+      "name": "Input: validate_params",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Schema filename - JSON schema file path, null to use default value",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "schema_filename"
+        }
+      ],
+      "name": "Input: schema_filename",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Conditional: Print help message if print_help is true. Uses paramsHelp from nf-validation plugin",
+      "id": 6,
+      "input_connections": {
+        "print_help": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "workflow_command": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "pre_help_text": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "post_help_text": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "schema_filename": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Conditional: Print Help (paramsHelp)",
+      "tool_id": "nf_validation_params_help",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "Print parameter summary to stdout using paramsSummaryLog from nf-validation plugin",
+      "id": 7,
+      "input_connections": {
+        "pre_help_text": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "post_help_text": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "schema_filename": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Print Parameter Summary (paramsSummaryLog)",
+      "tool_id": "nf_validation_params_summary_log",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "8": {
+      "annotation": "Conditional: Validate parameters relative to the parameter JSON schema if validate_params is true",
+      "id": 8,
+      "input_connections": {
+        "validate_params": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "schema_filename": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "Conditional: Validate Parameters (validateParameters)",
+      "tool_id": "nf_validation_validate_parameters",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "9": {
+      "annotation": "Dummy output - workflow completion signal",
+      "id": 9,
+      "input_connections": {
+        "help_output": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "summary_output": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "validation_output": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "Workflow Output: dummy_emit",
+      "tool_id": "nf_validation_dummy_emit",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    }
+  }
+}

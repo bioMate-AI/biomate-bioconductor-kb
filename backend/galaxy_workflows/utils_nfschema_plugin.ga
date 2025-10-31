@@ -1,0 +1,273 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "UTILS_NFSCHEMA_PLUGIN",
+  "annotation": "This workflow implements the nf-schema plugin subworkflow for parameter validation and help message generation. It conditionally displays help messages and validates parameters based on input flags.",
+  "steps": {
+    "0": {
+      "annotation": "Workflow object for nf-schema metadata extraction",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input_workflow"
+        }
+      ],
+      "name": "Input: Workflow Object",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Boolean flag to validate parameters",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "validate_params"
+        }
+      ],
+      "name": "Input: Validate Parameters Flag",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Path to parameters JSON schema",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "parameters_schema"
+        }
+      ],
+      "name": "Input: Parameters Schema",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Boolean flag to show help message",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "help"
+        }
+      ],
+      "name": "Input: Help Flag",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Boolean flag to show full help message",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "help_full"
+        }
+      ],
+      "name": "Input: Help Full Flag",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Boolean flag to show hidden parameters",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "show_hidden"
+        }
+      ],
+      "name": "Input: Show Hidden Flag",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Text to display before help message and parameter summary",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "before_text"
+        }
+      ],
+      "name": "Input: Before Text",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Text to display after help message and parameter summary",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "after_text"
+        }
+      ],
+      "name": "Input: After Text",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Example command for the pipeline",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "command"
+        }
+      ],
+      "name": "Input: Command Example",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Conditional: If help or help_full is true, generate help message using paramsHelp function",
+      "id": 9,
+      "input_connections": {
+        "help": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "help_full": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "show_hidden": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "before_text": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "after_text": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "command": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "parameters_schema": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Generate Help Message (Conditional)",
+      "tool_id": "nf_schema_params_help",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "10": {
+      "annotation": "Generate parameter summary log using paramsSummaryLog function",
+      "id": 10,
+      "input_connections": {
+        "input_workflow": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "parameters_schema": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "before_text": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "after_text": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "Generate Parameter Summary",
+      "tool_id": "nf_schema_params_summary_log",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "11": {
+      "annotation": "Conditional: If validate_params is true, validate parameters using validateParameters function",
+      "id": 11,
+      "input_connections": {
+        "validate_params": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "parameters_schema": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Validate Parameters (Conditional)",
+      "tool_id": "nf_schema_validate_parameters",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "12": {
+      "annotation": "Emit dummy output to indicate workflow completion",
+      "id": 12,
+      "input_connections": {
+        "help_message": {
+          "id": 9,
+          "output_name": "help_output"
+        },
+        "parameter_summary": {
+          "id": 10,
+          "output_name": "summary_output"
+        },
+        "validation_result": {
+          "id": 11,
+          "output_name": "validation_output"
+        }
+      },
+      "name": "Output: Dummy Emit",
+      "type": "data_output",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    }
+  },
+  "tags": [
+    "nf-core",
+    "utility",
+    "parameter-validation",
+    "nf-schema"
+  ]
+}

@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Copy, RotateCcw, Workflow } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, getSimpleToolName } from "@/lib/utils"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
 import { ChatOutputAttachments } from "./chat-output-attachments"
 import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba2b.png"
@@ -91,7 +91,7 @@ export function ChatMessage({
                     {message.metadata.steps.slice(0, 5).map((step: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-2 text-xs">
                         <span className="font-mono text-muted-foreground">{idx + 1}.</span>
-                        <span>{step.name || step.tool_id || 'Unknown step'}</span>
+                        <span>{step.name || getSimpleToolName(step.tool_id) || 'Unknown step'}</span>
                       </div>
                     ))}
                     {message.metadata.steps.length > 5 && (

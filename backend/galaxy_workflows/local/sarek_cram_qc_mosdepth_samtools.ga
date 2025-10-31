@@ -1,0 +1,131 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "CRAM_QC_MOSDEPTH_SAMTOOLS",
+  "annotation": "Converted from nf-core subworkflow: QC on CRAM files using mosdepth and samtools stats",
+  "steps": {
+    "0": {
+      "annotation": "Input CRAM file with index",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cram",
+          "description": "CRAM file with metadata and index"
+        }
+      ],
+      "name": "Input dataset: CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input reference FASTA file",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta",
+          "description": "Reference FASTA sequence"
+        }
+      ],
+      "name": "Input dataset: FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input intervals BED file (optional)",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals",
+          "description": "Optional BED file with intervals for region-based analysis"
+        }
+      ],
+      "name": "Input dataset: Intervals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "id": 3,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "ref_file": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Samtools Stats",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+      "tool_version": "0.0.5",
+      "type": "tool",
+      "annotation": "Generate alignment statistics from CRAM file",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "4": {
+      "id": 4,
+      "input_connections": {
+        "input_bam": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "ref_file": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "Mosdepth",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/mosdepth/Repository_Actions_mosdepth",
+      "tool_version": "0.3.11+galaxy0",
+      "type": "tool",
+      "annotation": "Compute depth statistics and generate depth histograms. Optionally compute depth by region using provided intervals.",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "5": {
+      "annotation": "Collect all QC reports",
+      "id": 5,
+      "input_connections": {
+        "stats_input": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "mosdepth_global": {
+          "id": 4,
+          "output_name": "global_txt"
+        },
+        "mosdepth_regions": {
+          "id": 4,
+          "output_name": "regions_txt"
+        }
+      },
+      "name": "Output: QC Reports",
+      "type": "data_output",
+      "position": {
+        "left": 450,
+        "top": 70
+      }
+    }
+  }
+}

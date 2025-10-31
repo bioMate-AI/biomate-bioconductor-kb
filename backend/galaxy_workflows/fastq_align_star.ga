@@ -1,0 +1,247 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "FASTQ_ALIGN_STAR",
+  "annotation": "Converted from nf-core FASTQ_ALIGN_STAR subworkflow. Maps reads with STAR aligner and performs BAM sorting, indexing, and statistics for both genome and transcriptome alignments.",
+  "steps": {
+    "0": {
+      "annotation": "Input FASTQ reads",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_reads"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_collection_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "STAR index directory",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_index"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "GTF annotation file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_gtf"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Reference FASTA for genome",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Reference FASTA for transcriptome",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_transcripts_fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "STAR aligner - maps reads to reference genome and generates BAM files for both genome and transcriptome",
+      "id": 5,
+      "input_connections": {
+        "reads": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "index": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "gtf": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "STAR Align",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_star_fusion/Repository_Actions_ctat_star_fusion",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "6": {
+      "annotation": "BAM sort, index and statistics for genome alignment - processes STAR genome BAM output",
+      "id": 6,
+      "input_connections": {
+        "bam_input": {
+          "id": 5,
+          "output_name": "bam"
+        },
+        "reference_fasta": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Sort Stats Samtools Genome",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "7": {
+      "annotation": "BAM sort, index and statistics for transcriptome alignment - processes STAR transcriptome BAM output (only when --quantMode TranscriptomeSAM is set)",
+      "id": 7,
+      "input_connections": {
+        "bam_input": {
+          "id": 5,
+          "output_name": "bam_transcript"
+        },
+        "reference_fasta": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Sort Stats Samtools Transcriptome",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    }
+  },
+  "outputs": {
+    "orig_bam": {
+      "id": 5,
+      "output_name": "bam",
+      "annotation": "Original unsorted BAM from STAR alignment"
+    },
+    "log_final": {
+      "id": 5,
+      "output_name": "log_final",
+      "annotation": "STAR final log file"
+    },
+    "log_out": {
+      "id": 5,
+      "output_name": "log_out",
+      "annotation": "STAR output log file"
+    },
+    "log_progress": {
+      "id": 5,
+      "output_name": "log_progress",
+      "annotation": "STAR progress log file"
+    },
+    "bam_sorted": {
+      "id": 5,
+      "output_name": "bam_sorted",
+      "annotation": "Sorted BAM from STAR"
+    },
+    "fastq": {
+      "id": 5,
+      "output_name": "fastq",
+      "annotation": "Unmapped reads in FASTQ format"
+    },
+    "tab": {
+      "id": 5,
+      "output_name": "tab",
+      "annotation": "STAR junction tab file"
+    },
+    "orig_bam_transcript": {
+      "id": 5,
+      "output_name": "bam_transcript",
+      "annotation": "Original unsorted transcriptome BAM from STAR"
+    },
+    "bam": {
+      "id": 6,
+      "output_name": "bam",
+      "annotation": "Sorted and indexed genome BAM"
+    },
+    "bai": {
+      "id": 6,
+      "output_name": "bai",
+      "annotation": "BAM index for genome alignment"
+    },
+    "stats": {
+      "id": 6,
+      "output_name": "stats",
+      "annotation": "Samtools stats for genome alignment"
+    },
+    "flagstat": {
+      "id": 6,
+      "output_name": "flagstat",
+      "annotation": "Samtools flagstat for genome alignment"
+    },
+    "idxstats": {
+      "id": 6,
+      "output_name": "idxstats",
+      "annotation": "Samtools idxstats for genome alignment"
+    },
+    "bam_transcript": {
+      "id": 7,
+      "output_name": "bam",
+      "annotation": "Sorted and indexed transcriptome BAM"
+    },
+    "bai_transcript": {
+      "id": 7,
+      "output_name": "bai",
+      "annotation": "BAM index for transcriptome alignment"
+    },
+    "stats_transcript": {
+      "id": 7,
+      "output_name": "stats",
+      "annotation": "Samtools stats for transcriptome alignment"
+    },
+    "flagstat_transcript": {
+      "id": 7,
+      "output_name": "flagstat",
+      "annotation": "Samtools flagstat for transcriptome alignment"
+    },
+    "idxstats_transcript": {
+      "id": 7,
+      "output_name": "idxstats",
+      "annotation": "Samtools idxstats for transcriptome alignment"
+    }
+  }
+}

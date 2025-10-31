@@ -1,0 +1,810 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_VARIANT_CALLING_SOMATIC_ALL",
+  "annotation": "Somatic variant calling workflow supporting multiple tools: ASCAT, ControlFreeC, CNVkit, FreeBayes, Manta, Strelka, MuSE, Mutect2, TNscope, TIDDIT, MSIsensorPro, and IndexCov. Tools are conditionally executed based on input parameters. Outputs include individual VCF files from each tool and combined VCF collection.",
+  "steps": {
+    "0": {
+      "annotation": "Input: Tools selection (comma-separated list)",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "tools"
+        }
+      ],
+      "name": "Input tools",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Input: BAM/CRAM files (normal and tumor pairs)",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bam_cram"
+        }
+      ],
+      "name": "Input BAM/CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Input: Reference FASTA",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Input: FASTA index",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta_fai"
+        }
+      ],
+      "name": "Input FASTA index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "Input: Dictionary file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input dictionary",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "Input: dbSNP VCF",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp"
+        }
+      ],
+      "name": "Input dbSNP",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Input: dbSNP index",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp_tbi"
+        }
+      ],
+      "name": "Input dbSNP index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Input: Intervals BED (combined)",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed_combined"
+        }
+      ],
+      "name": "Input intervals BED",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Input: Intervals BED gzipped and indexed",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "intervals_bed_gz_tbi"
+        }
+      ],
+      "name": "Input intervals BED gz tbi",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Input: Germline resource VCF",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "germline_resource"
+        }
+      ],
+      "name": "Input germline resource",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "Input: Germline resource index",
+      "id": 10,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "germline_resource_tbi"
+        }
+      ],
+      "name": "Input germline resource index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1210
+      }
+    },
+    "11": {
+      "annotation": "Input: Panel of normals VCF",
+      "id": 11,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "panel_of_normals"
+        }
+      ],
+      "name": "Input panel of normals",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1330
+      }
+    },
+    "12": {
+      "annotation": "Input: Panel of normals index",
+      "id": 12,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "panel_of_normals_tbi"
+        }
+      ],
+      "name": "Input panel of normals index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1450
+      }
+    },
+    "13": {
+      "annotation": "Input: Allele files for ASCAT",
+      "id": 13,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "allele_files"
+        }
+      ],
+      "name": "Input allele files",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1570
+      }
+    },
+    "14": {
+      "annotation": "Input: Loci files for ASCAT",
+      "id": 14,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "loci_files"
+        }
+      ],
+      "name": "Input loci files",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1690
+      }
+    },
+    "15": {
+      "annotation": "Input: GC content file for ASCAT",
+      "id": 15,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "gc_file"
+        }
+      ],
+      "name": "Input GC file",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1810
+      }
+    },
+    "16": {
+      "annotation": "Input: RT file for ASCAT",
+      "id": 16,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "rt_file"
+        }
+      ],
+      "name": "Input RT file",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1930
+      }
+    },
+    "17": {
+      "annotation": "Input: ControlFreeC chromosome length file",
+      "id": 17,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "cf_chrom_len"
+        }
+      ],
+      "name": "Input ControlFreeC chrom len",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 2050
+      }
+    },
+    "18": {
+      "annotation": "Input: MSIsensorPro scan file",
+      "id": 18,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "msisensorpro_scan"
+        }
+      ],
+      "name": "Input MSIsensorPro scan",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 2170
+      }
+    },
+    "19": {
+      "annotation": "Input: BWA index",
+      "id": 19,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "bwa"
+        }
+      ],
+      "name": "Input BWA index",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 2290
+      }
+    },
+    "20": {
+      "annotation": "MPILEUP on normal sample - conditional on controlfreec tool",
+      "id": 20,
+      "input_connections": {
+        "input_bam": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "MPILEUP Normal",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bcftools_mpileup/Repository_Actions_bcftools_mpileup",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 130
+      }
+    },
+    "21": {
+      "annotation": "MPILEUP on tumor sample - conditional on controlfreec tool",
+      "id": 21,
+      "input_connections": {
+        "input_bam": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "MPILEUP Tumor",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bcftools_mpileup/Repository_Actions_bcftools_mpileup",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 130
+      }
+    },
+    "22": {
+      "annotation": "ControlFreeC somatic variant calling - conditional on controlfreec tool",
+      "id": 22,
+      "input_connections": {
+        "mpileup_normal": {
+          "id": 20,
+          "output_name": "output"
+        },
+        "mpileup_tumor": {
+          "id": 21,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "chrom_len": {
+          "id": 17,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 6,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling Somatic ControlFreeC",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 130
+      }
+    },
+    "23": {
+      "annotation": "ASCAT somatic copy number analysis - conditional on ascat tool",
+      "id": 23,
+      "input_connections": {
+        "input_cram": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "allele_files": {
+          "id": 13,
+          "output_name": "output"
+        },
+        "loci_files": {
+          "id": 14,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "gc_file": {
+          "id": 15,
+          "output_name": "output"
+        },
+        "rt_file": {
+          "id": 16,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling Somatic ASCAT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 250
+      }
+    },
+    "24": {
+      "annotation": "CNVkit copy number variant calling - conditional on cnvkit tool",
+      "id": 24,
+      "input_connections": {
+        "input_bam": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals_bed": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling CNVkit",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 250
+      }
+    },
+    "25": {
+      "annotation": "FreeBayes variant calling - conditional on freebayes tool",
+      "id": 25,
+      "input_connections": {
+        "input_cram": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling FreeBayes",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 250
+      }
+    },
+    "26": {
+      "annotation": "Manta structural variant calling - conditional on manta tool",
+      "id": 26,
+      "input_connections": {
+        "input_cram": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals_bed_gz_tbi": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling Somatic Manta",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 250
+      }
+    },
+    "27": {
+      "annotation": "Strelka somatic variant calling - conditional on strelka tool. Uses Manta indels if available",
+      "id": 27,
+      "input_connections": {
+        "input_cram": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "manta_indels": {
+          "id": 26,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "intervals_bed_gz_tbi": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling Somatic Strelka",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "28": {
+      "annotation": "MuSE somatic SNV calling - conditional on muse tool",
+      "id": 28,
+      "input_connections": {
+        "input_bam": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling Somatic MuSE",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 370
+      }
+    },
+    "29": {
+      "annotation": "Mutect2 somatic SNV and indel calling - conditional on mutect2 tool. Supports joint mode",
+      "id": 29,
+      "input_connections": {
+        "input_cram": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "germline_resource": {
+          "id": 9,
+          "output_name": "output"
+        },
+        "germline_resource_tbi": {
+          "id": 10,
+          "output_name": "output"
+        },
+        "panel_of_normals": {
+          "id": 11,
+          "output_name": "output"
+        },
+        "panel_of_normals_tbi": {
+          "id": 12,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling Somatic Mutect2",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 370
+      }
+    },
+    "30": {
+      "annotation": "TNscope somatic variant calling (Sentieon) - conditional on sentieon_tnscope tool",
+      "id": 30,
+      "input_connections": {
+        "input_cram": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "germline_resource": {
+          "id": 9,
+          "output_name": "output"
+        },
+        "germline_resource_tbi": {
+          "id": 10,
+          "output_name": "output"
+        },
+        "panel_of_normals": {
+          "id": 11,
+          "output_name": "output"
+        },
+        "panel_of_normals_tbi": {
+          "id": 12,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling Somatic TNscope",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 370
+      }
+    },
+    "31": {
+      "annotation": "TIDDIT structural variant calling - conditional on tiddit tool",
+      "id": 31,
+      "input_connections": {
+        "input_cram": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "bwa": {
+          "id": 19,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling Somatic TIDDIT",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 370
+      }
+    },
+    "32": {
+      "annotation": "MSIsensorPro MSI detection - conditional on msisensorpro tool. WGS only",
+      "id": 32,
+      "input_connections": {
+        "input_cram": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "intervals_bed": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "msisensorpro_scan": {
+          "id": 18,
+          "output_name": "output"
+        }
+      },
+      "name": "MSIsensorPro MSI Somatic",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    },
+    "33": {
+      "annotation": "BAM coverage statistics via indexcov - conditional on indexcov tool. WGS only",
+      "id": 33,
+      "input_connections": {
+        "input_cram": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "fasta_fai": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "BAM Variant Calling IndexCov",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 490
+      }
+    },
+    "34": {
+      "annotation": "Collect all VCF outputs from variant callers",
+      "id": 34,
+      "input_connections": {
+        "vcf_freebayes": {
+          "id": 25,
+          "output_name": "output"
+        },
+        "vcf_manta": {
+          "id": 26,
+          "output_name": "output"
+        },
+        "vcf_muse": {
+          "id": 28,
+          "output_name": "output"
+        },
+        "vcf_mutect2": {
+          "id": 29,
+          "output_name": "output"
+        },
+        "vcf_strelka": {
+          "id": 27,
+          "output_name": "output"
+        },
+        "vcf_tiddit": {
+          "id": 31,
+          "output_name": "output"
+        },
+        "vcf_tnscope": {
+          "id": 30,
+          "output_name": "output"
+        }
+      },
+      "name": "Collect VCF outputs",
+      "type": "data_collection_input",
+      "position": {
+        "left": 1330,
+        "top": 370
+      }
+    }
+  }
+}

@@ -1,0 +1,472 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_JOINT_CALLING_GERMLINE_GATK",
+  "annotation": "Joint germline variant calling workflow converted from nf-core subworkflow. Merges samples with GenomicsDBImport, performs joint genotyping with GenotypeGVCFs, and applies VQSR filtering for SNPs and INDELs.",
+  "steps": {
+    "0": {
+      "annotation": "Input GVCFs with indices and intervals",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "input"
+        }
+      ],
+      "name": "Input dataset collection",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "Reference FASTA sequence",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fasta"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "FASTA index file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "fai"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "FASTA dictionary file",
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dict"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 370
+      }
+    },
+    "4": {
+      "annotation": "dbSNP VCF file",
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 490
+      }
+    },
+    "5": {
+      "annotation": "dbSNP VCF index",
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "dbsnp_tbi"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 610
+      }
+    },
+    "6": {
+      "annotation": "Known INDELs VCF for VQSR",
+      "id": 6,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "resource_indels_vcf"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 730
+      }
+    },
+    "7": {
+      "annotation": "Known INDELs VCF index",
+      "id": 7,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "resource_indels_tbi"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 850
+      }
+    },
+    "8": {
+      "annotation": "Known SNPs VCF for VQSR",
+      "id": 8,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "resource_snps_vcf"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 970
+      }
+    },
+    "9": {
+      "annotation": "Known SNPs VCF index",
+      "id": 9,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "resource_snps_tbi"
+        }
+      ],
+      "name": "Input dataset",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 1090
+      }
+    },
+    "10": {
+      "annotation": "GATK4 GenomicsDBImport - Merge GVCFs into GenomicsDB workspace by interval",
+      "id": 10,
+      "input_connections": {
+        "input_gvcf": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "input_tbi": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "intervals": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 GenomicsDBImport",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 10
+      }
+    },
+    "11": {
+      "annotation": "GATK4 GenotypeGVCFs - Joint genotyping from GenomicsDB workspace",
+      "id": 11,
+      "input_connections": {
+        "genomicsdb": {
+          "id": 10,
+          "output_name": "genomicsdb"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "dbsnp": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "dbsnp_tbi": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 GenotypeGVCFs",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 10
+      }
+    },
+    "12": {
+      "annotation": "BCFtools Sort - Sort VCFs by interval",
+      "id": 12,
+      "input_connections": {
+        "vcf": {
+          "id": 11,
+          "output_name": "vcf"
+        }
+      },
+      "name": "bcftools view",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions_bcftools_view",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 10
+      }
+    },
+    "13": {
+      "annotation": "GATK4 MergeVCFs - Merge scatter/gather VCFs from joint genotyping",
+      "id": 13,
+      "input_connections": {
+        "vcf": {
+          "id": 12,
+          "output_name": "vcf"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "Merge",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 10
+      }
+    },
+    "14": {
+      "annotation": "GATK4 VariantRecalibrator SNP - Recalibrate SNP variants",
+      "id": 14,
+      "input_connections": {
+        "vcf": {
+          "id": 13,
+          "output_name": "vcf"
+        },
+        "tbi": {
+          "id": 13,
+          "output_name": "tbi"
+        },
+        "resource_vcf": {
+          "id": 8,
+          "output_name": "output"
+        },
+        "resource_tbi": {
+          "id": 9,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 VariantRecalibrator SNP",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "15": {
+      "annotation": "GATK4 VariantRecalibrator INDEL - Recalibrate INDEL variants",
+      "id": 15,
+      "input_connections": {
+        "vcf": {
+          "id": 13,
+          "output_name": "vcf"
+        },
+        "tbi": {
+          "id": 13,
+          "output_name": "tbi"
+        },
+        "resource_vcf": {
+          "id": 6,
+          "output_name": "output"
+        },
+        "resource_tbi": {
+          "id": 7,
+          "output_name": "output"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 VariantRecalibrator INDEL",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "16": {
+      "annotation": "GATK4 ApplyVQSR SNP - Apply SNP recalibration scores",
+      "id": 16,
+      "input_connections": {
+        "vcf": {
+          "id": 13,
+          "output_name": "vcf"
+        },
+        "tbi": {
+          "id": 13,
+          "output_name": "tbi"
+        },
+        "recal": {
+          "id": 14,
+          "output_name": "recal"
+        },
+        "index": {
+          "id": 14,
+          "output_name": "idx"
+        },
+        "tranches": {
+          "id": 14,
+          "output_name": "tranches"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 ApplyVQSR SNP",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 1330,
+        "top": 10
+      }
+    },
+    "17": {
+      "annotation": "GATK4 ApplyVQSR INDEL - Apply INDEL recalibration scores to SNP-filtered VCF",
+      "id": 17,
+      "input_connections": {
+        "vcf": {
+          "id": 16,
+          "output_name": "vcf"
+        },
+        "tbi": {
+          "id": 16,
+          "output_name": "tbi"
+        },
+        "recal": {
+          "id": 15,
+          "output_name": "recal"
+        },
+        "index": {
+          "id": 15,
+          "output_name": "idx"
+        },
+        "tranches": {
+          "id": 15,
+          "output_name": "tranches"
+        },
+        "fasta": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "fai": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "dict": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "name": "GATK4 ApplyVQSR INDEL",
+      "tool_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+      "type": "tool",
+      "position": {
+        "left": 1550,
+        "top": 10
+      }
+    },
+    "18": {
+      "annotation": "Output final recalibrated VCF",
+      "id": 18,
+      "input_connections": {
+        "genotype_vcf": {
+          "id": 17,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1770,
+        "top": 10
+      }
+    },
+    "19": {
+      "annotation": "Output final recalibrated VCF index",
+      "id": 19,
+      "input_connections": {
+        "genotype_index": {
+          "id": 17,
+          "output_name": "tbi"
+        }
+      },
+      "name": "Output dataset",
+      "type": "data_output",
+      "position": {
+        "left": 1770,
+        "top": 130
+      }
+    }
+  }
+}

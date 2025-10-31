@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, Circle, Clock, AlertCircle, ChevronDown, ChevronRight, Database, HardDrive, Cloud } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, getSimpleToolName } from "@/lib/utils"
 import { useState } from "react"
 import type { DatasetConfig } from "@shared/schema"
 
@@ -97,7 +97,7 @@ export function WorkflowStep({
           <div className="flex-1">
             <CardTitle className="text-base">{step.title}</CardTitle>
             <CardDescription className="text-sm">
-              {step.tool} • {step.estimatedTime || "~5 min"}
+              {getSimpleToolName(step.tool)} • {step.estimatedTime || "~5 min"}
               <Badge variant="outline" className="ml-2 text-xs">
                 Click to edit
               </Badge>

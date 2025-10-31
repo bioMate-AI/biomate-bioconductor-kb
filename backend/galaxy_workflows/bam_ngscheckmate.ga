@@ -1,0 +1,226 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "BAM_NGSCHECKMATE",
+  "annotation": "Converted from nf-core subworkflow for sample matching using NGSCheckMate",
+  "steps": {
+    "0": {
+      "annotation": "Input BAM/CRAM files with metadata",
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_input"
+        }
+      ],
+      "name": "Input BAM/CRAM",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 10
+      }
+    },
+    "1": {
+      "annotation": "SNP BED file for variant calling",
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_snp_bed"
+        }
+      ],
+      "name": "Input SNP BED",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 130
+      }
+    },
+    "2": {
+      "annotation": "Reference FASTA file",
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "name": "ch_fasta"
+        }
+      ],
+      "name": "Input Reference FASTA",
+      "type": "data_input",
+      "position": {
+        "left": 10,
+        "top": 250
+      }
+    },
+    "3": {
+      "annotation": "Combine BAM and BED files for mpileup",
+      "id": 3,
+      "input_connections": {
+        "bam_input": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "bed_input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "name": "Combine BAM and BED",
+      "tool_id": "cat1",
+      "type": "tool",
+      "position": {
+        "left": 230,
+        "top": 70
+      }
+    },
+    "4": {
+      "annotation": "Generate pileup and call variants using bcftools mpileup",
+      "id": 4,
+      "input_connections": {
+        "input_bam": {
+          "id": 3,
+          "output_name": "out_file1"
+        },
+        "snp_bed": {
+          "id": 3,
+          "output_name": "out_file2"
+        },
+        "reference_fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "bcftools mpileup",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions_bcftools_view",
+      "tool_version": "0.0.1",
+      "type": "tool",
+      "position": {
+        "left": 450,
+        "top": 70
+      }
+    },
+    "5": {
+      "annotation": "Collect VCF outputs from bcftools mpileup",
+      "id": 5,
+      "input_connections": {
+        "vcf_input": {
+          "id": 4,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Collect VCFs",
+      "tool_id": "cat1",
+      "type": "tool",
+      "position": {
+        "left": 670,
+        "top": 70
+      }
+    },
+    "6": {
+      "annotation": "Run NGSCheckMate to identify sample matches and generate correlation matrix",
+      "id": 6,
+      "input_connections": {
+        "vcf_files": {
+          "id": 5,
+          "output_name": "out_file1"
+        },
+        "snp_bed": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reference_fasta": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "name": "NGSCheckMate NCM",
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nf-core/ngscheckmate_ncm/ngscheckmate_ncm",
+      "tool_version": "1.0.0",
+      "type": "tool",
+      "position": {
+        "left": 890,
+        "top": 70
+      }
+    },
+    "7": {
+      "annotation": "Output: Correlation matrix from NGSCheckMate",
+      "id": 7,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "corr_matrix"
+        }
+      },
+      "name": "Output Correlation Matrix",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 10
+      }
+    },
+    "8": {
+      "annotation": "Output: Matched samples report",
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "matched"
+        }
+      },
+      "name": "Output Matched Samples",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 130
+      }
+    },
+    "9": {
+      "annotation": "Output: All samples report",
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "all"
+        }
+      },
+      "name": "Output All Samples",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 250
+      }
+    },
+    "10": {
+      "annotation": "Output: VCF files from bcftools mpileup",
+      "id": 10,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "vcf"
+        }
+      },
+      "name": "Output VCF Files",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 370
+      }
+    },
+    "11": {
+      "annotation": "Output: PDF report from NGSCheckMate",
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "pdf"
+        }
+      },
+      "name": "Output PDF Report",
+      "type": "data_output",
+      "position": {
+        "left": 1110,
+        "top": 490
+      }
+    }
+  }
+}
