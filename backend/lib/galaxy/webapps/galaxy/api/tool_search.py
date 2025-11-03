@@ -4,7 +4,7 @@ With proper validation, error handling, and HTTP status codes
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from fastapi import (
     Body,
@@ -17,6 +17,7 @@ from pydantic import Field, constr, conint
 
 from galaxy.managers.context import ProvidesUserContext
 from galaxy.tools.search_index import ToolSearchIndex
+from galaxy.ai.enhanced_tool_search import EnhancedToolSearch
 from galaxy.tools.on_demand_installer import OnDemandToolInstaller
 from galaxy.webapps.galaxy.api import (
     depends,
@@ -32,6 +33,15 @@ router = Router(tags=["tool_search"])
 @router.cbv
 class FastAPIToolSearch:
     search_index: ToolSearchIndex = depends(ToolSearchIndex)
+
+    def __init__(self):
+        # Initialize enhanced search if available
+        try:
+            self.enhanced_search = EnhancedToolSearch(self.search_index)
+            log.info("Enhanced tool search initialized successfully")
+        except Exception as e:
+            log.warning(f"Enhanced tool search not available: {e}")
+            self.enhanced_search = None
 
     @router.get(
         "/api/tool_search",
@@ -362,4 +372,179 @@ class FastAPIToolSearch:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to fetch installed tools: {str(e)}"
+            )
+
+    @router.post(
+        "/api/tool_search/enhanced",
+        summary="Enhanced tool search using scientific context",
+    )
+    def enhanced_search(
+        self,
+        trans: ProvidesUserContext = DependsOnTrans,
+        query: constr(min_length=1, max_length=200) = Body(..., description="Search query"),
+        session_id: Optional[str] = Body(
+            None,
+            description="Session ID to auto-inject user context"
+        ),
+        user_context: Optional[Dict[str, Any]] = Body(
+            None,
+            description="User context: research_domain, expertise_level, data_type, etc. (overrides session context)"
+        ),
+        filters: Optional[Dict[str, Any]] = Body(
+            None,
+            description="Search filters: omics_type, suitable_for, min_samples, data_format"
+        ),
+        limit: conint(ge=1, le=100) = Body(20, description="Maximum results (1-100)"),
+    ):
+        """
+        Enhanced tool search that uses scientific_context JSON for intelligent ranking
+
+        Example request body:
+        {
+            "query": "differential expression proteomics",
+            "user_context": {
+                "research_domain": "proteomics",
+                "expertise_level": "intermediate",
+                "data_type": "DIA-LCMS",
+                "num_samples": 6,
+                "num_replicates": 3
+            },
+            "filters": {
+                "suitable_for": "differential expression",
+                "omics_type": "proteomics"
+            },
+            "limit": 20
+        }
+
+        Returns:
+            {
+                "query": str,
+                "count": int,
+                "tools": [
+                    {
+                        ...tool fields...,
+                        "scientific_relevance_score": float,
+                        "combined_score": float,
+                        "relevance_explanation": str,
+                        "parsed_context": dict
+                    }
+                ]
+            }
+
+        Raises:
+            400: Invalid query parameters
+            500: Search error
+            503: Enhanced search not available
+        """
+        if not self.enhanced_search:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Enhanced search not available - using standard search instead"
+            )
+
+        try:
+            results = self.enhanced_search.search_with_context(
+                query=query,
+                user_context=user_context,
+                filters=filters,
+                limit=limit
+            )
+
+            return {
+                "query": query,
+                "user_context": user_context,
+                "filters": filters,
+                "count": len(results),
+                "tools": results
+            }
+
+        except ValueError as e:
+            log.warning(f"Invalid enhanced search parameters: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+        except Exception as e:
+            log.error(f"Enhanced search error: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Enhanced search failed: {str(e)}"
+            )
+
+    @router.post(
+        "/api/tool_search/validate",
+        summary="Validate if a tool is suitable for given context",
+    )
+    def validate_tool(
+        self,
+        trans: ProvidesUserContext = DependsOnTrans,
+        tool_id: constr(min_length=1, max_length=500) = Body(..., description="Tool ID to validate"),
+        user_context: Dict[str, Any] = Body(..., description="User research context"),
+    ):
+        """
+        Validate if a tool is appropriate for the given research context
+
+        Example request body:
+        {
+            "tool_id": "toolshed.g2.bx.psu.edu/repos/...",
+            "user_context": {
+                "research_domain": "proteomics",
+                "expertise_level": "beginner",
+                "num_samples": 3,
+                "num_replicates": 1
+            }
+        }
+
+        Returns:
+            {
+                "tool_id": str,
+                "suitable": bool,
+                "confidence": float,
+                "warnings": [str],
+                "recommendations": [str],
+                "scientific_context": dict
+            }
+
+        Raises:
+            400: Invalid parameters
+            404: Tool not found
+            500: Validation error
+            503: Enhanced search not available
+        """
+        if not self.enhanced_search:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Tool validation not available - enhanced search required"
+            )
+
+        try:
+            result = self.enhanced_search.validate_tool_for_context(
+                tool_id=tool_id,
+                user_context=user_context
+            )
+
+            if not result.get('suitable') and result.get('confidence', 0) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Tool not found: {tool_id}"
+                )
+
+            return {
+                "tool_id": tool_id,
+                **result
+            }
+
+        except HTTPException:
+            raise
+        except ValueError as e:
+            log.warning(f"Invalid validation parameters: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+        except Exception as e:
+            log.error(f"Tool validation error: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Validation failed: {str(e)}"
             )
