@@ -1,0 +1,74 @@
+================================================================================
+TOOL INSTALLATION - QUICK REFERENCE
+================================================================================
+
+DEFAULT: Automatic installation (no user approval required)
+All security features remain active (validation, logging, backups)
+
+================================================================================
+BASIC USAGE (Automatic Mode)
+================================================================================
+
+from tool_install.fixes.secure_tool_installer import SecureToolInstaller
+
+# Create installer (automatic mode by default)
+installer = SecureToolInstaller(galaxy_root="/path/to/galaxy")
+
+# Install tool (automatic - no approval needed)
+success, msg = installer.install_tool("fastqc")
+
+================================================================================
+ENABLE USER APPROVAL (When Needed)
+================================================================================
+
+# Method 1: Constructor parameter
+installer = SecureToolInstaller(
+    galaxy_root="/path/to/galaxy",
+    require_user_approval=True  # Enable approval
+)
+
+# Method 2: Runtime toggle
+from tool_install.fixes.config import enable_user_approval
+enable_user_approval()
+
+# Method 3: Environment variable
+export BIOMATE_REQUIRE_TOOL_APPROVAL=true
+
+# Method 4: Use production config
+from tool_install.fixes.config import ToolInstallationConfig
+config = ToolInstallationConfig.production()
+installer = SecureToolInstaller(
+    galaxy_root="/path",
+    require_user_approval=config.require_user_approval
+)
+
+================================================================================
+SECURITY FEATURES (ALWAYS ACTIVE)
+================================================================================
+
+✅ XML validation - All tools validated before installation
+✅ Dangerous pattern detection - curl, wget, rm -rf detected
+✅ Audit logging - All installations logged to JSON
+✅ Automatic backups - Files backed up before changes
+✅ File integrity - SHA256 hashing
+✅ Rollback capability - Can undo installations
+
+User approval is OPTIONAL (disabled by default)
+
+================================================================================
+WHEN TO ENABLE APPROVAL
+================================================================================
+
+Enable for:
+  ✅ Production environments
+  ✅ Manual security reviews
+  ✅ Untrusted/new tools
+  ✅ Compliance requirements
+
+Keep automatic for:
+  ✅ Development workflows
+  ✅ Automated testing
+  ✅ CI/CD pipelines
+  ✅ Batch processing
+
+================================================================================
