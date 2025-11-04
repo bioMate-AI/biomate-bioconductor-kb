@@ -1,10 +1,22 @@
 import type { ChatSession, Message, DatasetConfig, WorkflowStepWithDatasets } from '@shared/schema';
 
-// Chat history management service
+// Backend sync configuration
+const BACKEND_SYNC_ENABLED = import.meta.env.VITE_ENABLE_BACKEND_SYNC !== 'false';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8081';
+const API_KEY = import.meta.env.VITE_GALAXY_API_KEY || 'a7e9f73a7c25300e222d27c84efb10f6';
+
+// Sync status type
+type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
+
+// Chat history management service with backend persistence
 class ChatHistoryService {
   private storageKey = 'biomate-chat-history';
-  
-  // Get all chat sessions
+  private syncQueue: Set<string> = new Set();
+  private syncTimer: NodeJS.Timeout | null = null;
+  private syncStatus: SyncStatus = 'idle';
+  private lastSyncError: string | null = null;
+
+  // Get all chat sessions (from localStorage cache)
   getAllSessions(): ChatSession[] {
     try {
       const stored = localStorage.getItem(this.storageKey);
@@ -36,7 +48,7 @@ class ChatHistoryService {
         timestamp: new Date(),
         suggestions: [
           "Analyze RNA-seq data",
-          "Find variant calling tools", 
+          "Find variant calling tools",
           "Build a custom workflow",
           "Explore genomics tools"
         ]
@@ -45,11 +57,16 @@ class ChatHistoryService {
       datasets: [],
       status: "active"
     };
-    
+
     const sessions = this.getAllSessions();
     sessions.unshift(newSession); // Add to beginning
     this.saveSessions(sessions);
-    
+
+    // Sync to backend
+    this.pushToBackend(newSession.id).catch(err => {
+      console.error('[ChatHistory] Failed to sync new session:', err);
+    });
+
     return newSession;
   }
   
@@ -57,15 +74,15 @@ class ChatHistoryService {
   updateSession(sessionId: string, updates: Partial<ChatSession>): ChatSession | null {
     const sessions = this.getAllSessions();
     const sessionIndex = sessions.findIndex(s => s.id === sessionId);
-    
+
     if (sessionIndex === -1) return null;
-    
+
     sessions[sessionIndex] = {
       ...sessions[sessionIndex],
       ...updates,
       lastActivity: new Date()
     };
-    
+
     // Update title if it's still "New Chat" and we have messages
     if (sessions[sessionIndex].title === "New Chat" && sessions[sessionIndex].messages.length > 1) {
       const firstUserMessage = sessions[sessionIndex].messages.find(m => m.role === "user");
@@ -73,8 +90,14 @@ class ChatHistoryService {
         sessions[sessionIndex].title = this.generateTitleFromMessage(firstUserMessage.content);
       }
     }
-    
+
     this.saveSessions(sessions);
+
+    // Sync to backend
+    this.pushToBackend(sessionId).catch(err => {
+      console.error('[ChatHistory] Failed to sync updated session:', err);
+    });
+
     return sessions[sessionIndex];
   }
   
@@ -103,13 +126,33 @@ class ChatHistoryService {
   }
   
   // Delete a session
-  deleteSession(sessionId: string): boolean {
+  async deleteSession(sessionId: string): Promise<boolean> {
     const sessions = this.getAllSessions();
     const filteredSessions = sessions.filter(s => s.id !== sessionId);
-    
+
     if (filteredSessions.length === sessions.length) return false;
-    
+
     this.saveSessions(filteredSessions);
+
+    // Delete from backend
+    if (BACKEND_SYNC_ENABLED) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/sessions/${sessionId}`, {
+          method: 'DELETE',
+          headers: {
+            'x-api-key': API_KEY,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          console.error('[ChatHistory] Failed to delete session from backend:', response.status);
+        }
+      } catch (error) {
+        console.error('[ChatHistory] Failed to delete session from backend:', error);
+      }
+    }
+
     return true;
   }
   
@@ -136,12 +179,260 @@ class ChatHistoryService {
     return title.length > 50 ? title.substring(0, 47) + '...' : title;
   }
   
+  // ============================================================================
+  // BACKEND SYNC METHODS
+  // ============================================================================
+
+  /**
+   * Get sync status
+   */
+  getSyncStatus(): { status: SyncStatus; lastError: string | null } {
+    return {
+      status: this.syncStatus,
+      lastError: this.lastSyncError
+    };
+  }
+
+  /**
+   * Initialize and sync with backend on startup
+   */
+  async initializeBackendSync(): Promise<void> {
+    if (!BACKEND_SYNC_ENABLED) {
+      console.log('[ChatHistory] Backend sync disabled');
+      return;
+    }
+
+    try {
+      console.log('[ChatHistory] Initializing backend sync...');
+      await this.pullFromBackend();
+      console.log('[ChatHistory] Backend sync initialized');
+    } catch (error) {
+      console.error('[ChatHistory] Failed to initialize backend sync:', error);
+      this.syncStatus = 'error';
+      this.lastSyncError = error instanceof Error ? error.message : 'Unknown error';
+    }
+  }
+
+  /**
+   * Pull sessions from backend and merge with localStorage
+   */
+  async pullFromBackend(): Promise<void> {
+    if (!BACKEND_SYNC_ENABLED) return;
+
+    try {
+      this.syncStatus = 'syncing';
+      const response = await fetch(`${BACKEND_URL}/api/sessions`, {
+        headers: {
+          'x-api-key': API_KEY,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}`);
+      }
+
+      const backendSessions = await response.json();
+
+      // Convert backend format to frontend format
+      const convertedSessions: ChatSession[] = backendSessions.map((bs: any) => ({
+        id: bs.session_id,
+        title: bs.title,
+        timestamp: new Date(bs.created_at),
+        lastActivity: new Date(bs.last_activity),
+        status: bs.status as 'active' | 'archived',
+        messages: [],
+        workflows: [],
+        datasets: []
+      }));
+
+      // Merge with local sessions (backend is source of truth)
+      const localSessions = this.getAllSessions();
+      const mergedSessions = this.mergeSessions(localSessions, convertedSessions);
+
+      this.saveSessions(mergedSessions);
+      this.syncStatus = 'synced';
+      this.lastSyncError = null;
+    } catch (error) {
+      console.error('[ChatHistory] Pull from backend failed:', error);
+      this.syncStatus = 'error';
+      this.lastSyncError = error instanceof Error ? error.message : 'Unknown error';
+    }
+  }
+
+  /**
+   * Push a session to backend (debounced)
+   */
+  async pushToBackend(sessionId: string): Promise<void> {
+    if (!BACKEND_SYNC_ENABLED) return;
+
+    // Add to sync queue
+    this.syncQueue.add(sessionId);
+
+    // Debounce: only sync after 2 seconds of inactivity
+    if (this.syncTimer) {
+      clearTimeout(this.syncTimer);
+    }
+
+    this.syncTimer = setTimeout(async () => {
+      await this.flushSyncQueue();
+    }, 2000);
+  }
+
+  /**
+   * Flush the sync queue (sync all pending sessions)
+   */
+  private async flushSyncQueue(): Promise<void> {
+    if (this.syncQueue.size === 0) return;
+
+    const sessionIds = Array.from(this.syncQueue);
+    this.syncQueue.clear();
+
+    for (const sessionId of sessionIds) {
+      try {
+        await this.syncSessionToBackend(sessionId);
+      } catch (error) {
+        console.error(`[ChatHistory] Failed to sync session ${sessionId}:`, error);
+        // Re-add to queue for retry
+        this.syncQueue.add(sessionId);
+      }
+    }
+  }
+
+  /**
+   * Sync a single session to backend
+   */
+  private async syncSessionToBackend(sessionId: string): Promise<void> {
+    const session = this.getSession(sessionId);
+    if (!session) return;
+
+    this.syncStatus = 'syncing';
+
+    try {
+      // Check if session exists on backend
+      const checkResponse = await fetch(`${BACKEND_URL}/api/sessions/${sessionId}`, {
+        headers: {
+          'x-api-key': API_KEY,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const method = checkResponse.ok ? 'PUT' : 'POST';
+      const url = checkResponse.ok
+        ? `${BACKEND_URL}/api/sessions/${sessionId}`
+        : `${BACKEND_URL}/api/sessions`;
+
+      // Convert frontend format to backend format
+      const backendPayload = this.convertToBackendFormat(session);
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'x-api-key': API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(backendPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}`);
+      }
+
+      this.syncStatus = 'synced';
+      this.lastSyncError = null;
+      console.log(`[ChatHistory] Successfully synced session ${sessionId}`);
+    } catch (error) {
+      console.error(`[ChatHistory] Failed to sync session ${sessionId}:`, error);
+      this.syncStatus = 'error';
+      this.lastSyncError = error instanceof Error ? error.message : 'Unknown error';
+      throw error;
+    }
+  }
+
+  /**
+   * Convert frontend ChatSession format to backend API format
+   */
+  private convertToBackendFormat(session: ChatSession): any {
+    return {
+      session_id: session.id,
+      title: session.title,
+      session_type: 'chat',
+      status: session.status,
+      message_count: session.messages.length,
+      token_count: this.estimateTokenCount(session.messages),
+      messages: session.messages.map(msg => ({
+        message_id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp.toISOString(),
+        token_count: this.estimateTokenCount([msg]),
+        suggestions: msg.suggestions || null,
+        workflow_id: msg.workflowId || null,
+        thinking_content: null,
+        thinking_level: null,
+        error_code: null,
+        error_message: null
+      })),
+      workflows: (session.workflows || []).map(wf => ({
+        workflow_id: wf.id,
+        workflow_name: wf.title,
+        workflow_description: wf.description,
+        invocation_id: null,
+        status: wf.status,
+        success: wf.status === 'completed' ? 1 : wf.status === 'error' ? 0 : null,
+        error_message: null
+      })),
+      datasets: (session.datasets || []).map(ds => ({
+        dataset_id: ds.id,
+        dataset_name: ds.name,
+        dataset_type: ds.type,
+        storage_type: ds.storageType,
+        storage_path: ds.localPath || ds.replitStoragePath || null,
+        format: ds.format || null,
+        size_bytes: ds.size || null,
+        description: ds.description || null
+      }))
+    };
+  }
+
+  /**
+   * Estimate token count for messages (rough approximation: 1 token ≈ 4 chars)
+   */
+  private estimateTokenCount(messages: Message[]): number {
+    const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
+    return Math.ceil(totalChars / 4);
+  }
+
+  /**
+   * Merge local and backend sessions (backend takes precedence for conflicts)
+   */
+  private mergeSessions(local: ChatSession[], backend: ChatSession[]): ChatSession[] {
+    const merged = new Map<string, ChatSession>();
+
+    // Add all local sessions
+    local.forEach(session => {
+      merged.set(session.id, session);
+    });
+
+    // Override with backend sessions (backend is source of truth)
+    backend.forEach(session => {
+      merged.set(session.id, session);
+    });
+
+    return Array.from(merged.values())
+      .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
+  }
+
+  // ============================================================================
+  // PRIVATE HELPER METHODS
+  // ============================================================================
+
   private getDefaultSessions(): ChatSession[] {
     // Create some realistic mock chat history
     const now = new Date();
     const hoursAgo = (hours: number) => new Date(now.getTime() - hours * 60 * 60 * 1000);
     const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    
+
     return [
       {
         id: "chat-1",
