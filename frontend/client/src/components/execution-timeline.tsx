@@ -7,6 +7,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   CheckCircle,
@@ -15,6 +16,7 @@ import {
   AlertCircle,
   Loader2,
   Pause,
+  Play,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -31,12 +33,16 @@ interface ExecutionTimelineProps {
   events: TimelineEvent[];
   currentStepId?: string;
   formatElapsedTime: (ms: number) => string;
+  onPauseJob?: (jobId: string) => void;
+  onResumeJob?: (jobId: string) => void;
 }
 
 export function ExecutionTimeline({
   events,
   currentStepId,
   formatElapsedTime,
+  onPauseJob,
+  onResumeJob,
 }: ExecutionTimelineProps) {
   const getStateIcon = (state: TimelineEvent['state']) => {
     switch (state) {
@@ -201,21 +207,54 @@ export function ExecutionTimeline({
                       </Badge>
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{formatTimestamp(event.timestamp)}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>{formatTimestamp(event.timestamp)}</span>
+                        </div>
+
+                        {event.elapsedMs !== undefined && event.elapsedMs > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span>Elapsed: {formatElapsedTime(event.elapsedMs)}</span>
+                          </div>
+                        )}
+
+                        {event.jobId && (
+                          <div className="text-xs">
+                            Job: {event.jobId.substring(0, 8)}...
+                          </div>
+                        )}
                       </div>
 
-                      {event.elapsedMs !== undefined && event.elapsedMs > 0 && (
-                        <div className="flex items-center gap-1">
-                          <span>Elapsed: {formatElapsedTime(event.elapsedMs)}</span>
-                        </div>
-                      )}
-
+                      {/* Pause/Resume Controls */}
                       {event.jobId && (
-                        <div className="text-xs">
-                          Job: {event.jobId.substring(0, 8)}...
+                        <div className="flex items-center gap-2">
+                          {/* Show Pause button for running/queued jobs */}
+                          {(event.state === 'running' || event.state === 'queued') && onPauseJob && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onPauseJob(event.jobId!)}
+                              className="h-7 text-xs"
+                            >
+                              <Pause className="h-3 w-3 mr-1" />
+                              Pause
+                            </Button>
+                          )}
+
+                          {/* Show Resume button for paused jobs */}
+                          {event.state === 'paused' && onResumeJob && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onResumeJob(event.jobId!)}
+                              className="h-7 text-xs"
+                            >
+                              <Play className="h-3 w-3 mr-1" />
+                              Resume
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>

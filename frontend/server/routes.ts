@@ -12,6 +12,7 @@ import { GalaxyAssistant } from "./galaxy-assistant";
 import { parameterRepository } from "./parameter-repository";
 import { workflowRepository } from "./workflow-repository";
 import { datasetValidator } from "./dataset-validator";
+import { getContextCompressor } from "./context-compressor";
 import multer from "multer";
 import { promises as fs } from "fs";
 import path from "path";
@@ -1115,6 +1116,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/galaxy/jobs/:jobId/pause", async (req, res) => {
+    try {
+      const result = await galaxyAPIBackend.pauseJob(req.params.jobId);
+      res.json({
+        success: true,
+        message: 'Job paused successfully',
+        data: result
+      });
+    } catch (error: any) {
+      console.error("Pause job error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'PauseJobFailed',
+        message: error.message || 'Failed to pause job',
+      });
+    }
+  });
+
+  app.put("/api/galaxy/jobs/:jobId/resume", async (req, res) => {
+    try {
+      const result = await galaxyAPIBackend.resumeJob(req.params.jobId);
+      res.json({
+        success: true,
+        message: 'Job resumed successfully',
+        data: result
+      });
+    } catch (error: any) {
+      console.error("Resume job error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'ResumeJobFailed',
+        message: error.message || 'Failed to resume job',
+      });
+    }
+  });
+
   // ============================================================================
   // Server-Sent Events (SSE) for Real-Time Workflow Updates
   // ============================================================================
@@ -1147,6 +1182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         toolSearchUsed: assistantResponse.sources.toolSearchUsed,
         datasetRAGUsed: assistantResponse.sources.datasetRAGUsed,
         workflowGenerated: assistantResponse.sources.workflowGenerated,
+        thinkingUsed: assistantResponse.sources.thinkingUsed,
         toolsFound: assistantResponse.recommendedTools?.length || 0,
         datasetsFound: assistantResponse.recommendedDatasets?.length || 0,
       });
@@ -1156,6 +1192,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         response: assistantResponse.message,
         suggestions: assistantResponse.suggestions,
         workflow: assistantResponse.generatedWorkflow,
+
+        // Thinking mode support
+        thinking_content: assistantResponse.thinking_content,
+        thinking_level: assistantResponse.thinking_level,
 
         // Additional metadata for UI enhancement
         metadata: {
@@ -1185,6 +1225,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: {
           error: error.message,
         },
+      });
+    }
+  });
+
+  // ============================================================================
+  // Context Compression API
+  // ============================================================================
+
+  // Compress session messages
+  app.post("/api/compress-session", async (req, res) => {
+    try {
+      const { sessionId, messages, keepRecentCount } = req.body;
+
+      if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: "messages array is required" });
+      }
+
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return res.status(503).json({
+          error: "Context compression not available. ANTHROPIC_API_KEY is not configured."
+        });
+      }
+
+      console.log('[Compression API] Compressing session:', {
+        sessionId,
+        messageCount: messages.length,
+        keepRecentCount: keepRecentCount || 3
+      });
+
+      // Get compressor instance
+      const compressor = getContextCompressor(process.env.ANTHROPIC_API_KEY);
+
+      // Compress messages
+      const result = await compressor.compressMessages(messages, {
+        keepRecentCount: keepRecentCount || 3
+      });
+
+      console.log('[Compression API] Compression successful:', {
+        messagesReduced: `${result.messagesBeforeCount} → ${result.messagesAfterCount}`,
+        tokensReduced: `${result.tokensBeforeCount} → ${result.tokensAfterCount}`,
+        compressionRatio: `${(result.compressionRatio * 100).toFixed(1)}%`
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('[Compression API] Compression failed:', error);
+      res.status(500).json({
+        error: 'CompressionError',
+        message: error.message || 'Context compression failed',
       });
     }
   });

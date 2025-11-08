@@ -271,41 +271,32 @@ class SessionsAPI:
 
         # Update session metadata
         updates = []
-        params = []
+        params_dict = {
+            "session_id": session_id,
+            "user_id": user.id
+        }
 
         if payload.title is not None:
-            updates.append("title = ?")
-            params.append(payload.title)
+            updates.append("title = :title")
+            params_dict["title"] = payload.title
 
         if payload.status is not None:
-            updates.append("status = ?")
-            params.append(payload.status)
+            updates.append("status = :status")
+            params_dict["status"] = payload.status
 
         if payload.message_count is not None:
-            updates.append("message_count = ?")
-            params.append(payload.message_count)
+            updates.append("message_count = :message_count")
+            params_dict["message_count"] = payload.message_count
 
         if payload.token_count is not None:
-            updates.append("token_count = ?")
-            params.append(payload.token_count)
+            updates.append("token_count = :token_count")
+            params_dict["token_count"] = payload.token_count
 
         # Always update last_activity
         updates.append("last_activity = datetime('now')")
 
         if updates:
-            params_dict = {f"param_{i}": p for i, p in enumerate(params)}
-            params_dict["session_id"] = session_id
-            params_dict["user_id"] = user.id
-
-            # Build parameterized query
-            updates_str = ', '.join([
-                f"{u.split('=')[0].strip()} = :param_{i}"
-                for i, u in enumerate(updates)
-                if '=' in u and not u.startswith('last_activity')
-            ])
-            if 'last_activity' in ' '.join(updates):
-                updates_str = updates_str + (", " if updates_str else "") + "last_activity = datetime('now')"
-
+            updates_str = ', '.join(updates)
             db.execute(
                 text(f"UPDATE chat_sessions SET {updates_str} WHERE session_id = :session_id AND user_id = :user_id"),
                 params_dict

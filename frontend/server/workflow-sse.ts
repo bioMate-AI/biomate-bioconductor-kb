@@ -50,6 +50,11 @@ export class WorkflowSSEManager {
       this.broadcastToClients(update.invocation_id, update);
     });
 
+    // Progress milestones
+    this.poller.on('progress_milestone', (update: WorkflowExecutionUpdate) => {
+      this.broadcastToClients(update.invocation_id, update);
+    });
+
     // Workflow completed
     this.poller.on('workflow_completed', (data: { invocation_id: string; state: string }) => {
       const update: WorkflowExecutionUpdate = {

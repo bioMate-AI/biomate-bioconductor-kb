@@ -220,7 +220,7 @@ export interface GalaxyWorkflowInvocation {
 // ============================================================================
 
 export interface WorkflowExecutionUpdate {
-  type: 'workflow_state' | 'step_state' | 'job_log' | 'error';
+  type: 'workflow_state' | 'step_state' | 'job_log' | 'error' | 'progress_milestone';
   invocation_id: string;
   timestamp: string;
   data: {
@@ -230,6 +230,13 @@ export interface WorkflowExecutionUpdate {
     job_id?: string;
     log_message?: string;
     error?: string;
+    // Progress milestone fields
+    progress?: number; // 0.25, 0.50, 0.75, 1.0
+    completedSteps?: number;
+    totalSteps?: number;
+    eta?: string;
+    message?: string;
+    milestone?: number; // 25, 50, 75, 100
   };
 }
 

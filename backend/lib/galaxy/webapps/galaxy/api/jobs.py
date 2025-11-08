@@ -333,6 +333,35 @@ class FastAPIJobs:
         return JobInputSummary(has_empty_inputs=has_empty_inputs, has_duplicate_inputs=has_duplicate_inputs)
 
     @router.put(
+        "/api/jobs/{job_id}/pause",
+        name="pause_job",
+        summary="Pauses a job.",
+    )
+    def pause(
+        self,
+        job_id: JobIdPathParam,
+        trans: ProvidesUserContext = DependsOnTrans,
+    ) -> list[JobOutputAssociation]:
+        job = self.service.get_job(trans, job_id=job_id)
+        if not job:
+            raise exceptions.ObjectNotFound("Could not access job with the given id")
+        if job.state in (job.states.NEW, job.states.QUEUED, job.states.RUNNING):
+            # Call the pause method from JobWrapper
+            from galaxy.jobs import JobWrapper
+            job_wrapper = JobWrapper(job, trans.app)
+            job_wrapper.pause(job=job, message="Job paused by user")
+        else:
+            raise exceptions.RequestParameterInvalidException(
+                f"Job with id '{job_id}' cannot be paused (current state: {job.state})"
+            )
+        # Return output associations
+        associations = self.service.dictify_associations(trans, job.output_datasets, job.output_library_datasets)
+        output_associations = []
+        for association in associations:
+            output_associations.append(JobOutputAssociation(name=association.name, dataset=association.dataset))
+        return output_associations
+
+    @router.put(
         "/api/jobs/{job_id}/resume",
         name="resume_paused_job",
         summary="Resumes a paused job.",

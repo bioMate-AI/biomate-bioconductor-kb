@@ -642,6 +642,52 @@ export function EnhancedWorkflowBuilder({
     }
   }
 
+  const handlePauseJob = async (jobId: string) => {
+    try {
+      console.log('[EnhancedWorkflowBuilder] Pausing job:', jobId)
+      const response = await fetch(`/api/galaxy/jobs/${jobId}/pause`, {
+        method: 'PUT',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to pause job')
+      }
+
+      const result = await response.json()
+      console.log('[EnhancedWorkflowBuilder] Job paused successfully:', result)
+
+      // Optionally show success message
+      // toast.success('Job paused successfully')
+    } catch (error: any) {
+      console.error('[EnhancedWorkflowBuilder] Failed to pause job:', error)
+      alert(`Failed to pause job: ${error.message}`)
+    }
+  }
+
+  const handleResumeJob = async (jobId: string) => {
+    try {
+      console.log('[EnhancedWorkflowBuilder] Resuming job:', jobId)
+      const response = await fetch(`/api/galaxy/jobs/${jobId}/resume`, {
+        method: 'PUT',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to resume job')
+      }
+
+      const result = await response.json()
+      console.log('[EnhancedWorkflowBuilder] Job resumed successfully:', result)
+
+      // Optionally show success message
+      // toast.success('Job resumed successfully')
+    } catch (error: any) {
+      console.error('[EnhancedWorkflowBuilder] Failed to resume job:', error)
+      alert(`Failed to resume job: ${error.message}`)
+    }
+  }
+
   const canStartWorkflow = workflowStatus === 'idle' && steps.some(s => s.status === 'pending')
   const canPauseWorkflow = workflowStatus === 'running'
   const canResumeWorkflow = workflowStatus === 'paused'
@@ -821,6 +867,8 @@ export function EnhancedWorkflowBuilder({
           events={timelineEvents}
           currentStepId={currentRunningStep?.stepId}
           formatElapsedTime={formatElapsedTime}
+          onPauseJob={handlePauseJob}
+          onResumeJob={handleResumeJob}
         />
       )}
 

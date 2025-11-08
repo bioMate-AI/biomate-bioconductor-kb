@@ -23,6 +23,10 @@ export interface InvocationPoller {
   lastState: GalaxyWorkflowInvocation | null;
   isActive: boolean;
   failureCount: number;
+  // Progress milestone tracking
+  milestonesReported: Set<number>; // Track which milestones (25, 50, 75, 100) have been reported
+  stepStartTimes: Map<string, number>; // Track when each step started (for ETA)
+  stepCompletionTimes: Map<string, number>; // Track how long each step took
 }
 
 /**
@@ -60,6 +64,9 @@ export class GalaxyStatePoller extends EventEmitter {
       lastState: null,
       isActive: true,
       failureCount: 0,
+      milestonesReported: new Set<number>(),
+      stepStartTimes: new Map<string, number>(),
+      stepCompletionTimes: new Map<string, number>(),
     };
 
     this.pollers.set(invocationId, poller);
@@ -223,6 +230,11 @@ export class GalaxyStatePoller extends EventEmitter {
             job_id: newStep.job_id,
           },
         });
+
+        // Track step start time
+        if (newStep.state === 'running') {
+          poller.stepStartTimes.set(newStep.id, Date.now());
+        }
       } else if (oldStep.state !== newStep.state) {
         // Step state changed
         this.emitUpdate({
@@ -236,12 +248,108 @@ export class GalaxyStatePoller extends EventEmitter {
           },
         });
 
+        // Track step start time when it starts running
+        if (newStep.state === 'running' && !poller.stepStartTimes.has(newStep.id)) {
+          poller.stepStartTimes.set(newStep.id, Date.now());
+        }
+
+        // Track completion time when step finishes
+        if ((newStep.state === 'ok' || newStep.state === 'error') && poller.stepStartTimes.has(newStep.id)) {
+          const startTime = poller.stepStartTimes.get(newStep.id)!;
+          const completionTime = Date.now() - startTime;
+          poller.stepCompletionTimes.set(newStep.id, completionTime);
+        }
+
         // Fetch and emit job logs for completed/error steps
         if (newStep.state === 'ok' || newStep.state === 'error') {
           this.fetchJobLogs(newState.id, newStep.id, newStep.job_id);
         }
       }
     });
+
+    // Check for progress milestones after processing all steps
+    this.detectProgressMilestones(poller, newState);
+  }
+
+  /**
+   * Detect and report progress milestones (25%, 50%, 75%, 100%)
+   * Proactively emits milestone notifications with ETA
+   */
+  private detectProgressMilestones(poller: InvocationPoller, invocation: GalaxyWorkflowInvocation): void {
+    const totalSteps = invocation.steps.length;
+    if (totalSteps === 0) return;
+
+    // Count completed steps (ok or error)
+    const completedSteps = invocation.steps.filter(
+      step => step.state === 'ok' || step.state === 'error'
+    ).length;
+
+    // Calculate progress percentage (0-100)
+    const progressPercent = Math.floor((completedSteps / totalSteps) * 100);
+
+    // Define milestone thresholds
+    const milestones = [25, 50, 75, 100];
+
+    // Check each milestone
+    for (const milestone of milestones) {
+      // Only report if we've reached or passed this milestone and haven't reported it yet
+      if (progressPercent >= milestone && !poller.milestonesReported.has(milestone)) {
+        // Mark as reported
+        poller.milestonesReported.add(milestone);
+
+        // Calculate ETA
+        const eta = this.calculateETA(poller, completedSteps, totalSteps);
+
+        // Build milestone message
+        const message = milestone === 100
+          ? `✓ Workflow complete! (${completedSteps}/${totalSteps} steps)`
+          : `✓ ${milestone}% complete (${completedSteps}/${totalSteps} steps)${eta ? ` - ${eta}` : ''}`;
+
+        // Emit milestone event
+        this.emitUpdate({
+          type: 'progress_milestone',
+          invocation_id: invocation.id,
+          timestamp: new Date().toISOString(),
+          data: {
+            progress: milestone / 100,
+            completedSteps,
+            totalSteps,
+            eta: eta || 'Calculating...',
+            message,
+            milestone,
+          },
+        });
+
+        console.log(`[Milestone] Invocation ${invocation.id}: ${message}`);
+      }
+    }
+  }
+
+  /**
+   * Calculate estimated time to completion based on historical step times
+   * Returns formatted ETA string or null if cannot calculate
+   */
+  private calculateETA(poller: InvocationPoller, completedSteps: number, totalSteps: number): string | null {
+    // Need at least 2 completed steps to calculate average
+    if (poller.stepCompletionTimes.size < 2) {
+      return null;
+    }
+
+    // Calculate average step completion time
+    const completionTimes = Array.from(poller.stepCompletionTimes.values());
+    const avgStepTime = completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length;
+
+    // Calculate remaining steps
+    const remainingSteps = totalSteps - completedSteps;
+    if (remainingSteps <= 0) {
+      return 'Complete';
+    }
+
+    // Estimate remaining time
+    const estimatedRemainingMs = avgStepTime * remainingSteps;
+
+    // Format as human-readable ETA
+    return `~${this.formatElapsedTime(estimatedRemainingMs)} remaining`;
   }
 
   /**

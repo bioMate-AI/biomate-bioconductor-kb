@@ -234,6 +234,15 @@ export class GalaxyAPIProxy {
   /**
    * Invoke (run) a workflow
    * Maps to Galaxy's native POST /api/workflows/{id}/invocations
+   *
+   * @param workflowId - Galaxy workflow ID
+   * @param inputs - Input dataset mappings for workflow steps
+   * @param parameters - Workflow parameters (optional)
+   *                     - Include `__priority` to set job priority: "low" | "normal" | "high" | "critical"
+   *
+   * @example
+   * // Invoke workflow with high priority
+   * await invokeWorkflow(workflowId, inputs, { __priority: "high" });
    */
   async invokeWorkflow(
     workflowId: string,
@@ -297,6 +306,24 @@ export class GalaxyAPIProxy {
    */
   async getJobStderr(jobId: string): Promise<string> {
     const response = await this.client.get<string>(`/api/jobs/${jobId}/stderr`);
+    return response.data;
+  }
+
+  /**
+   * Pause a running or queued job
+   * Maps to Galaxy's native PUT /api/jobs/{id}/pause
+   */
+  async pauseJob(jobId: string): Promise<any> {
+    const response = await this.client.put(`/api/jobs/${jobId}/pause`);
+    return response.data;
+  }
+
+  /**
+   * Resume a paused job
+   * Maps to Galaxy's native PUT /api/jobs/{id}/resume
+   */
+  async resumeJob(jobId: string): Promise<any> {
+    const response = await this.client.put(`/api/jobs/${jobId}/resume`);
     return response.data;
   }
 
