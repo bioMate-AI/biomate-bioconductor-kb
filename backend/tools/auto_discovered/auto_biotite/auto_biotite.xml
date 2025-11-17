@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tool id="auto_biotite" name="biotite" version="1.0.0">
+  <description>A comprehensive library for computational molecular biology</description>
+  <requirements>
+    <container type="docker">python:3.9-slim</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Setup environment
+pip install biotite
+
+# Run tool
+Installation
+------------
+]]&gt;</command>
+  <inputs>
+    <param name="__________" type="text" label="          " help="Biotite requires the following packages:" />
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file" />
+  </outputs>
+  <help>file_name = entrez.fetch_single_file(
+
+uids=["CAC34569", "ACL82594"], file_name="sequences.fasta",
+
+db_name="protein", ret_type="fasta"
+
+Repository: https://github.com/biotite-dev/biotite</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

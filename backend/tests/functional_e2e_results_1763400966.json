@@ -1,0 +1,101 @@
+{
+  "summary": {
+    "total": 13,
+    "passed": 7,
+    "failed": 6,
+    "pass_rate": "53.8%"
+  },
+  "tests": [
+    {
+      "name": "User Registration",
+      "status": "PASS",
+      "details": "Registered: functional_test_1763400905@biomate.test",
+      "error": "",
+      "timestamp": "2025-11-17T11:35:05.854473"
+    },
+    {
+      "name": "Authentication Verification",
+      "status": "PASS",
+      "details": "User authenticated, trial until: 2025-11-24T17:35:05.846Z",
+      "error": "",
+      "timestamp": "2025-11-17T11:35:05.859596"
+    },
+    {
+      "name": "AI Query 1",
+      "status": "FAIL",
+      "details": "",
+      "error": "Only 0/6 keywords found",
+      "timestamp": "2025-11-17T11:35:28.404348"
+    },
+    {
+      "name": "AI Query 2",
+      "status": "FAIL",
+      "details": "",
+      "error": "Only 0/4 keywords found",
+      "timestamp": "2025-11-17T11:35:46.363060"
+    },
+    {
+      "name": "AI Query 3",
+      "status": "FAIL",
+      "details": "",
+      "error": "Only 0/5 keywords found",
+      "timestamp": "2025-11-17T11:36:00.804652"
+    },
+    {
+      "name": "Dataset Upload: sample1.fastq",
+      "status": "PASS",
+      "details": "Uploaded 45 bytes, ID: 2d0e58ce-f750-4a6d-8321-5d0e28bec58e",
+      "error": "",
+      "timestamp": "2025-11-17T11:36:00.857992"
+    },
+    {
+      "name": "Dataset Upload: metadata.csv",
+      "status": "PASS",
+      "details": "Uploaded 68 bytes, ID: 69ac39d8-4293-4ff4-9c58-c95a139749d8",
+      "error": "",
+      "timestamp": "2025-11-17T11:36:00.861850"
+    },
+    {
+      "name": "Workflow Generation",
+      "status": "FAIL",
+      "details": "",
+      "error": "Unknown error",
+      "timestamp": "2025-11-17T11:36:00.877329"
+    },
+    {
+      "name": "Tool Search: 'FastQC'",
+      "status": "PASS",
+      "details": "Found 4 tools (expected at least 3)",
+      "error": "",
+      "timestamp": "2025-11-17T11:36:00.930414"
+    },
+    {
+      "name": "Tool Search: 'alignment'",
+      "status": "FAIL",
+      "details": "",
+      "error": "Only found 4 tools, expected 5",
+      "timestamp": "2025-11-17T11:36:01.015515"
+    },
+    {
+      "name": "Tool Search: 'variant calling'",
+      "status": "PASS",
+      "details": "Found 4 tools (expected at least 2)",
+      "error": "",
+      "timestamp": "2025-11-17T11:36:01.094404"
+    },
+    {
+      "name": "SSE Connection",
+      "status": "FAIL",
+      "details": "",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Read timed out.",
+      "timestamp": "2025-11-17T11:36:06.118722"
+    },
+    {
+      "name": "List Workflow Invocations",
+      "status": "PASS",
+      "details": "Retrieved 0 workflow invocations",
+      "error": "",
+      "timestamp": "2025-11-17T11:36:06.120802"
+    }
+  ]
+}

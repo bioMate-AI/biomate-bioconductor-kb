@@ -1513,6 +1513,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // ============================================================================
+  // Workflow Management API
+  // ============================================================================
+
+  // List all workflows (for compatibility with E2E tests)
+  app.get("/api/workflows", optionalAuth, async (req, res) => {
+    try {
+      // Return list of workflow invocations for this user
+      const { limit } = req.query;
+      const invocations = await storage.getInvocations(
+        req.user?.id,
+        limit ? parseInt(limit as string) : 100
+      );
+      res.json(invocations);
+    } catch (error: any) {
+      console.error("Error fetching workflows:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // SSE endpoint for workflow events (generic, works without specific invocation ID)
+  app.get("/api/workflows/events", optionalAuth, (req, res) => {
+    try {
+      // Set SSE headers
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+
+      // Send initial connection message
+      res.write('data: {"type":"connected","message":"SSE connection established"}\n\n');
+
+      // Keep connection alive with periodic heartbeat
+      const heartbeat = setInterval(() => {
+        res.write('data: {"type":"heartbeat"}\n\n');
+      }, 15000);
+
+      // Clean up on close
+      req.on('close', () => {
+        clearInterval(heartbeat);
+      });
+    } catch (error: any) {
+      console.error("SSE connection error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================================
   // Workflow Invocation Management API
   // ============================================================================
 

@@ -122,7 +122,7 @@ Return ONLY valid JSON, no markdown code blocks.
 """
 
 
-def extract_with_tools(tool_data: dict, api_key: str, model: str = "claude-3-5-sonnet-20241022") -> dict:
+def extract_with_tools(tool_data: dict, api_key: str, model: str = "claude-haiku-4-5") -> dict:
     """Extract scientific context with web search and Claude's knowledge."""
 
     client = anthropic.Anthropic(api_key=api_key)
@@ -262,7 +262,7 @@ def main():
     parser.add_argument('--category', help='Process only tools in this category')
     parser.add_argument('--output', help='Output JSON file with results')
     parser.add_argument('--update-db', action='store_true', help='Update database with new context')
-    parser.add_argument('--model', default='claude-3-5-sonnet-20241022',
+    parser.add_argument('--model', default='claude-haiku-4-5',  # Upgraded to Haiku 4.5
                        help='Claude model (use sonnet for tool use capability)')
 
     args = parser.parse_args()

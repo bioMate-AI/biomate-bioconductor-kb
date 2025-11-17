@@ -1,0 +1,101 @@
+{
+  "timestamp": "2025-11-07T22:38:37.628563",
+  "total_tests": 11,
+  "passed": 0,
+  "failed": 11,
+  "skipped": 0,
+  "categories": {
+    "api_health": {
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0
+    },
+    "task_management": {
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0
+    },
+    "workflow_execution": {
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0
+    },
+    "mode_detection": {
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0
+    },
+    "sse_monitoring": {
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0
+    },
+    "security": {
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0
+    },
+    "integration": {
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0
+    }
+  },
+  "failures": [
+    {
+      "test": "API health endpoint",
+      "category": "api_health",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1272dd5c10>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "test": "Galaxy API connection",
+      "category": "api_health",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/galaxy/version (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1272bde480>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "test": "Pause/Resume endpoints exist",
+      "category": "task_management",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/galaxy/jobs/test_job_id/pause (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1272bde780>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "test": "Priority parameter support",
+      "category": "task_management",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/galaxy/workflows/invoke (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1272bdec30>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "test": "List workflows",
+      "category": "workflow_execution",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/galaxy/workflows (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1272bdef60>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "test": "List datasets",
+      "category": "workflow_execution",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/galaxy/datasets (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1272bdf320>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "test": "Beginner mode detection",
+      "category": "mode_detection",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/chat/message (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1272bdf740>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "test": "SSE endpoint exists",
+      "category": "sse_monitoring",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/galaxy/workflows/sse/test_inv_id (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1273bb3cb0>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "test": "SQL injection prevention",
+      "category": "security",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/galaxy/workflows/invoke (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1272bdf710>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "test": "XSS prevention in chat",
+      "category": "security",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/chat/message (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1272bdee70>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    },
+    {
+      "test": "End-to-end basic flow",
+      "category": "integration",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/galaxy/workflows (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xfd1272bde690>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+# BioMate AI Production Configuration
+# Generated: 2025-11-11
+# DO NOT COMMIT THIS FILE TO GIT
+
+# Contact Information
+ADMIN_EMAIL=yaoyun.zhang@biomate.ai
+SECURITY_EMAIL=security@biomate.ai
+PRIVACY_EMAIL=privacy@biomate.ai
+COMPLIANCE_EMAIL=compliance@biomate.ai
+SUPPORT_EMAIL=support@biomate.ai
+
+# Domain Configuration
+PRIMARY_DOMAIN=biomate.ai
+WWW_DOMAIN=www.biomate.ai
+API_DOMAIN=api.biomate.ai
+
+# AWS Configuration
+AWS_REGION=us-east-1
+AWS_ACCOUNT_ID=399683337364
+
+# Database Configuration
+DB_INSTANCE_ID=biomate-production
+DB_NAME=biomate
+DB_USER=biomate_admin
+
+# Redis Configuration
+REDIS_CLUSTER_ID=biomate-production
+
+# Legal Entity Information (for legal templates)
+LEGAL_ENTITY_NAME=  # To be filled (e.g., "BioMate AI, Inc.")
+LEGAL_ENTITY_ADDRESS=  # To be filled
+LEGAL_ENTITY_STATE=  # To be filled
+LEGAL_ENTITY_PHONE=  # To be filled
+
+# Security Officers (for HIPAA)
+SECURITY_OFFICER_NAME=  # To be filled
+SECURITY_OFFICER_EMAIL=yaoyun.zhang@biomate.ai
+PRIVACY_OFFICER_NAME=  # To be filled
+PRIVACY_OFFICER_EMAIL=yaoyun.zhang@biomate.ai
+
+# Deployment Configuration
+ENVIRONMENT=production
+NODE_ENV=production
+
+# Backup Configuration
+BACKUP_RETENTION_DAYS=2555  # 6+ years for HIPAA compliance
+BACKUP_ENCRYPTION=enabled
+
+# Monitoring Configuration
+LOG_RETENTION_DAYS=2555  # 6+ years for HIPAA compliance
+CLOUDWATCH_NAMESPACE=BioMate/Production
+
+# Security Configuration
+SESSION_TIMEOUT_MINUTES=15  # HIPAA requirement for PHI access
+TLS_VERSION=1.3  # Only TLS 1.3, no older versions
+ENCRYPTION_ALGORITHM=AES-256-GCM
+
+# Compliance
+HIPAA_ENABLED=true
+SOC2_ENABLED=true
+GDPR_ENABLED=true
+CCPA_ENABLED=true
+
+# Secret Rotation
+SECRET_ROTATION_DAYS=90
+
+# Launch Information
+LAUNCH_DATE=  # To be set
+LAUNCH_VERSION=1.0.0

@@ -1,0 +1,212 @@
+{
+  "timestamp": "2025-11-11T14:28:44.148102",
+  "categories": {
+    "api_health": {
+      "description": "API Health & Backend Connectivity",
+      "tests": [
+        {
+          "name": "API Health Check",
+          "status": "PASS",
+          "details": "API healthy: {'status': 'ok', 'timestamp': '2025-11-11T20:28:44.149Z'}",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "Galaxy Backend Connection",
+          "status": "WARN",
+          "details": "Galaxy requires authentication (expected)",
+          "error": null,
+          "gap": "Need to test with authentication"
+        }
+      ],
+      "passed": 1,
+      "failed": 0,
+      "warnings": 1
+    },
+    "registration": {
+      "description": "User Registration & Payment",
+      "tests": [
+        {
+          "name": "Registration Page Loads",
+          "status": "WARN",
+          "details": "Missing elements: email=False, password=False, terms=False",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "Registration API Exists",
+          "status": "PASS",
+          "details": "Registration API exists (status: 400)",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "Payment Integration",
+          "status": "FAIL",
+          "details": "",
+          "error": "Unexpected status: 401",
+          "gap": null
+        }
+      ],
+      "passed": 1,
+      "failed": 1,
+      "warnings": 1
+    },
+    "authentication": {
+      "description": "Login & Authentication",
+      "tests": [
+        {
+          "name": "Login Page Loads",
+          "status": "PASS",
+          "details": "Login page accessible",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "Login API Exists",
+          "status": "PASS",
+          "details": "Login API exists (status: 401)",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "OAuth Configured",
+          "status": "PASS",
+          "details": "OAuth configured: Google, GitHub",
+          "error": null,
+          "gap": null
+        }
+      ],
+      "passed": 3,
+      "failed": 0,
+      "warnings": 0
+    },
+    "platform_interface": {
+      "description": "Main Platform Interface",
+      "tests": [
+        {
+          "name": "Homepage/Platform Page",
+          "status": "PASS",
+          "details": "Homepage loads (1437 bytes)",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "Dashboard Page",
+          "status": "PASS",
+          "details": "Dashboard accessible",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "Chat Interface API",
+          "status": "FAIL",
+          "details": "",
+          "error": "HTTPConnectionPool(host='localhost', port=5000): Read timed out. (read timeout=5)",
+          "gap": null
+        }
+      ],
+      "passed": 2,
+      "failed": 1,
+      "warnings": 0
+    },
+    "workflows": {
+      "description": "Workflow Creation & Execution",
+      "tests": [
+        {
+          "name": "Workflow List Endpoint",
+          "status": "WARN",
+          "details": "Workflows require authentication (expected)",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "Workflow Invoke Endpoint",
+          "status": "PASS",
+          "details": "Workflow invoke endpoint exists (status: 400)",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "SSE Real-time Updates",
+          "status": "PASS",
+          "details": "SSE endpoint functional",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "Pause/Resume Job Control",
+          "status": "PASS",
+          "details": "Pause/resume endpoints exist",
+          "error": null,
+          "gap": null
+        }
+      ],
+      "passed": 3,
+      "failed": 0,
+      "warnings": 1
+    },
+    "datasets": {
+      "description": "Dataset Upload & Management",
+      "tests": [
+        {
+          "name": "Dataset List Endpoint",
+          "status": "WARN",
+          "details": "Datasets require authentication (expected)",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "Dataset Upload Endpoint",
+          "status": "PASS",
+          "details": "Dataset upload endpoint exists (status: 200)",
+          "error": null,
+          "gap": null
+        },
+        {
+          "name": "S3 Storage Integration",
+          "status": "WARN",
+          "details": "S3 requires authentication (expected)",
+          "error": null,
+          "gap": null
+        }
+      ],
+      "passed": 1,
+      "failed": 0,
+      "warnings": 2
+    },
+    "infrastructure": {
+      "description": "Infrastructure Services",
+      "tests": [
+        {
+          "name": "Redis Configuration",
+          "status": "WARN",
+          "details": "Session endpoint exists (Redis status unknown)",
+          "error": null,
+          "gap": "Cannot verify Redis without authentication"
+        },
+        {
+          "name": "Email Service Configuration",
+          "status": "WARN",
+          "details": "",
+          "error": "HTTPConnectionPool(host='localhost', port=5000): Read timed out. (read timeout=5)",
+          "gap": null
+        }
+      ],
+      "passed": 0,
+      "failed": 0,
+      "warnings": 2
+    }
+  },
+  "gaps": [],
+  "critical_issues": [
+    {
+      "category": "registration",
+      "test": "Payment Integration",
+      "error": "Unexpected status: 401"
+    }
+  ],
+  "passed": 11,
+  "failed": 2,
+  "warnings": 7
+}

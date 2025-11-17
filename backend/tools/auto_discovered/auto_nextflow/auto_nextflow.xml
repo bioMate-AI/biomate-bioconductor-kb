@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tool id="auto_nextflow" name="nextflow" version="1.0.0">
+  <description>A DSL for data-driven computational pipelines</description>
+  <requirements>
+    <container type="docker">continuumio/miniconda3</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Setup environment
+conda install -c bioconda nextflow
+
+# Run tool
+nextflow
+]]&gt;</command>
+  <inputs />
+  <outputs>
+    <data name="output" format="txt" label="Output file" />
+  </outputs>
+  <help>Install Nextflow with a single command:
+
+```bash
+
+curl -fsSL https://get.nextflow.io | bash
+
+Repository: https://github.com/nextflow-io/nextflow</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

@@ -5,6 +5,7 @@ import { Copy, RotateCcw, Workflow } from "lucide-react"
 import { cn, getSimpleToolName } from "@/lib/utils"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
 import { ChatOutputAttachments } from "./chat-output-attachments"
+import { ThinkingDisplay } from "./thinking-display"
 import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba2b.png"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
 
@@ -58,6 +59,15 @@ export function ChatMessage({
               {message.content}
             </p>
           </Card>
+
+          {/* Thinking Display - Show AI reasoning process */}
+          {!isUser && message.thinking_content && (
+            <ThinkingDisplay
+              thinkingContent={message.thinking_content}
+              thinkingLevel={message.thinking_level}
+              className="mt-3"
+            />
+          )}
 
           {/* Galaxy Assistant Recommendations */}
           {!isUser && hasGalaxyMetadata && (

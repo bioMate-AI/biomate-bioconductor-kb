@@ -1,0 +1,107 @@
+{
+  "timestamp": "2025-11-17T11:05:43.931086",
+  "tests": [
+    {
+      "name": "Biomate Frontend Server",
+      "status": "PASS",
+      "details": "Server running on http://localhost:5000",
+      "error": "",
+      "timestamp": "2025-11-17T11:05:43.933735"
+    },
+    {
+      "name": "Galaxy Backend Connection",
+      "status": "PASS",
+      "details": "Galaxy backend accessible (status: 401)",
+      "error": "",
+      "timestamp": "2025-11-17T11:05:43.939488"
+    },
+    {
+      "name": "Landing Page Loads",
+      "status": "PASS",
+      "details": "Page loaded: 1437 bytes",
+      "error": "",
+      "timestamp": "2025-11-17T11:05:43.956121"
+    },
+    {
+      "name": "User Registration",
+      "status": "PASS",
+      "details": "User registered: test_1763399143@biomate.test",
+      "error": "",
+      "timestamp": "2025-11-17T11:05:44.391561"
+    },
+    {
+      "name": "User Login",
+      "status": "PASS",
+      "details": "Login successful",
+      "error": "",
+      "timestamp": "2025-11-17T11:05:44.734270"
+    },
+    {
+      "name": "Dashboard Access",
+      "status": "PASS",
+      "details": "Dashboard loaded: 1437 bytes",
+      "error": "",
+      "timestamp": "2025-11-17T11:05:45.210722"
+    },
+    {
+      "name": "AI Chat Interface",
+      "status": "PASS",
+      "details": "Chat working, response time: 11.0s",
+      "error": "",
+      "timestamp": "2025-11-17T11:05:56.164291"
+    },
+    {
+      "name": "Workflow List",
+      "status": "PASS",
+      "details": "Workflows endpoint working, found 0 workflows",
+      "error": "",
+      "timestamp": "2025-11-17T11:05:56.181023"
+    },
+    {
+      "name": "Dataset Upload",
+      "status": "PASS",
+      "details": "File upload endpoint working",
+      "error": "",
+      "timestamp": "2025-11-17T11:05:56.241296"
+    },
+    {
+      "name": "OAuth - Google",
+      "status": "FAIL",
+      "details": "",
+      "error": "Unexpected status: 401",
+      "timestamp": "2025-11-17T11:05:56.245834"
+    },
+    {
+      "name": "OAuth - Github",
+      "status": "FAIL",
+      "details": "",
+      "error": "Unexpected status: 401",
+      "timestamp": "2025-11-17T11:05:56.248621"
+    },
+    {
+      "name": "Stripe Payment Integration",
+      "status": "FAIL",
+      "details": "",
+      "error": "Status: 503",
+      "timestamp": "2025-11-17T11:05:56.251929"
+    },
+    {
+      "name": "Email Service",
+      "status": "FAIL",
+      "details": "",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Read timed out. (read timeout=10)",
+      "timestamp": "2025-11-17T11:06:06.261878"
+    },
+    {
+      "name": "SSE Real-Time Updates",
+      "status": "PASS",
+      "details": "SSE endpoint configured correctly",
+      "error": "",
+      "timestamp": "2025-11-17T11:06:06.274573"
+    }
+  ],
+  "passed": 10,
+  "failed": 4,
+  "skipped": 0,
+  "total": 14
+}

@@ -7,8 +7,13 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { oauthService } from "./oauth-service";
 import { createSessionStore } from "./redis-session";
+import { initializeSecurity } from "./security-config";
 
 const app = express();
+
+// Initialize security FIRST (before any other middleware)
+const security = initializeSecurity(app);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

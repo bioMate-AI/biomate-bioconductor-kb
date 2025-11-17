@@ -1,0 +1,71 @@
+{
+  "timestamp": "2025-11-07T22:45:10.784305",
+  "total_tests": 11,
+  "passed": 6,
+  "failed": 5,
+  "skipped": 0,
+  "categories": {
+    "api_health": {
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0
+    },
+    "task_management": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "workflow_execution": {
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0
+    },
+    "mode_detection": {
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0
+    },
+    "sse_monitoring": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    "security": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "integration": {
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0
+    }
+  },
+  "failures": [
+    {
+      "test": "Galaxy API connection",
+      "category": "api_health",
+      "error": "Galaxy connection failed: 401"
+    },
+    {
+      "test": "List workflows",
+      "category": "workflow_execution",
+      "error": "Workflow list failed: 401"
+    },
+    {
+      "test": "List datasets",
+      "category": "workflow_execution",
+      "error": "Dataset list failed: 401"
+    },
+    {
+      "test": "Beginner mode detection",
+      "category": "mode_detection",
+      "error": "Unexpected status: 408"
+    },
+    {
+      "test": "End-to-end basic flow",
+      "category": "integration",
+      "error": "Cannot list workflows"
+    }
+  ]
+}

@@ -368,8 +368,8 @@ class ChatHistoryService {
         token_count: this.estimateTokenCount([msg]),
         suggestions: msg.suggestions || null,
         workflow_id: msg.workflowId || null,
-        thinking_content: null,
-        thinking_level: null,
+        thinking_content: msg.thinking_content || null,
+        thinking_level: msg.thinking_level || null,
         error_code: null,
         error_message: null
       })),
@@ -397,10 +397,28 @@ class ChatHistoryService {
 
   /**
    * Estimate token count for messages (rough approximation: 1 token ≈ 4 chars)
+   * TODO: Use proper token counter from server/token-counter.ts for better accuracy
    */
   private estimateTokenCount(messages: Message[]): number {
-    const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
-    return Math.ceil(totalChars / 4);
+    let totalTokens = 0;
+
+    for (const msg of messages) {
+      const contentChars = msg.content.length;
+
+      // Heuristic token counting
+      let tokensPerChar = 0.25; // Default: 1 token per 4 chars
+
+      // If content looks like code (has lots of special chars)
+      const specialChars = (msg.content.match(/[{}[\]();,<>=]/g) || []).length;
+      if (specialChars / contentChars > 0.1) {
+        tokensPerChar = 0.29; // Code: ~1 token per 3.5 chars
+      }
+
+      // Add tokens for message structure (~4 tokens per message)
+      totalTokens += Math.ceil(contentChars * tokensPerChar) + 4;
+    }
+
+    return totalTokens;
   }
 
   /**

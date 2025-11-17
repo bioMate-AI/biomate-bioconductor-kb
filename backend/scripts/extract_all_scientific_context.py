@@ -121,12 +121,46 @@ Extract now. Return ONLY JSON.
 def extract_scientific_context(tool: dict, client: anthropic.Anthropic, model: str) -> dict:
     """Extract scientific context using Claude with web search capability."""
 
-    prompt = EXTRACTION_PROMPT.format(
-        tool_name=tool['name'],
-        category=tool.get('category', 'Unknown'),
-        description=(tool.get('description') or 'No description')[:500],
-        help_text=(tool.get('help_text') or 'No help text')[:3000]
-    )
+    # Split into system (cacheable) and user parts
+    system_prompt = """You are a bioinformatics expert extracting scientific decision-making information.
+
+DATABASE CONTEXT - These fields already exist (DO NOT duplicate):
+- description, help_text, parameters, inputs, outputs, requirements, citations
+
+YOUR TASK: Extract UNIQUE scientific context for tool selection and usage decisions.
+
+INFORMATION SOURCES:
+1. Tool documentation (below)
+2. **Your bioinformatics knowledge** - use it confidently for established practices
+3. **Web search** (if critically needed) - search for papers, tutorials, community discussions
+
+USE YOUR KNOWLEDGE FOR:
+- Standard omics workflows and data requirements
+- Common bioinformatics assumptions and best practices
+- Typical parameter ranges and their scientific meaning
+- Well-known tool alternatives and comparison criteria
+- Statistical/biological limitations of methods
+
+SEARCH WEB ONLY WHEN:
+- Tool is obscure and documentation insufficient
+- Need recent community best practices or pitfalls
+- Want to verify alternative tool comparisons
+
+OUTPUT SCHEMA - Return ONLY JSON:
+{schema content matches the full template from EXTRACTION_PROMPT}
+
+RULES:
+1. Be specific - no generic "Alignment" terms
+2. Complete sentences only
+3. Use your knowledge confidently
+4. Mark confidence honestly"""
+
+    user_content = f"""TOOL: {tool['name']}
+CATEGORY: {tool.get('category', 'Unknown')}
+DESCRIPTION: {(tool.get('description') or 'No description')[:500]}
+HELP: {(tool.get('help_text') or 'No help text')[:3000]}
+
+Extract now. Return ONLY JSON."""
 
     # Define web search tool
     tools = [{
@@ -141,10 +175,11 @@ def extract_scientific_context(tool: dict, client: anthropic.Anthropic, model: s
                 }
             },
             "required": ["query"]
-        }
+        },
+        "cache_control": {"type": "ephemeral"}  # Cache tool definition
     }]
 
-    messages = [{"role": "user", "content": prompt}]
+    messages = [{"role": "user", "content": user_content}]
     search_queries = []
 
     # Tool use loop (max 3 iterations)
@@ -154,6 +189,13 @@ def extract_scientific_context(tool: dict, client: anthropic.Anthropic, model: s
                 model=model,
                 max_tokens=4000,
                 temperature=0,
+                system=[
+                    {
+                        "type": "text",
+                        "text": system_prompt,
+                        "cache_control": {"type": "ephemeral"}  # Cache system prompt
+                    }
+                ],
                 tools=tools,
                 messages=messages
             )
@@ -241,7 +283,7 @@ def main():
     parser.add_argument('--db', default='/home/yzhang/biomate/backend/database/galaxy_ai_tools.db')
     parser.add_argument('--batch-size', type=int, default=100, help='Process in batches')
     parser.add_argument('--start-offset', type=int, default=0, help='Resume from offset')
-    parser.add_argument('--model', default='claude-3-5-sonnet-20241022')
+    parser.add_argument('--model', default='claude-haiku-4-5')  # Upgraded to Haiku 4.5
     parser.add_argument('--log', default='/tmp/extraction_progress.log')
 
     args = parser.parse_args()

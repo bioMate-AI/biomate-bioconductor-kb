@@ -145,19 +145,60 @@ def extract_with_llm(
     if len(documentation) > 8000:
         documentation = documentation[:8000] + "\n\n[... documentation truncated ...]"
 
-    prompt = EXTRACTION_PROMPT.format(
-        tool_name=tool_name,
-        category=category,
-        version=version,
-        documentation=documentation
-    )
+    # Split prompt into system (cacheable) and user parts
+    system_prompt = """You are a scientific tool metadata expert. Analyze tool documentation and extract comprehensive scientific context in structured JSON format.
+
+Extract the following information in JSON format:
+
+{
+    "data_type_compatibility": {
+        "supported_data_types": [list of explicitly supported data acquisition types, formats, or experimental methods],
+        "not_supported_data_types": [list of explicitly incompatible or not recommended data types],
+        "notes": "any additional compatibility details"
+    },
+    "use_cases": [
+        {
+            "scenario": "specific scientific scenario",
+            "description": "detailed use case",
+            "example": "example if available"
+        }
+    ],
+    "research_context": {
+        "fields": [list of research fields where this tool is used],
+        "methods": [list of methods/techniques this tool supports],
+        "experimental_designs": [types of experiments this tool is suited for]
+    },
+    "limitations": {
+        "technical": [list of technical limitations],
+        "biological": [list of biological/experimental limitations],
+        "computational": [list of computational requirements or constraints]
+    },
+    "best_practices": [list of recommended usage patterns or guidelines],
+    "citations_context": "how the tool should be cited and its academic impact"
+}
+
+Be specific and extract only information explicitly mentioned in the documentation."""
+
+    user_content = f"""Tool Name: {tool_name}
+Category: {category}
+Version: {version}
+
+Documentation:
+{documentation}"""
 
     try:
         message = client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-haiku-4-5",  # Upgraded to Haiku 4.5
             max_tokens=4096,
             temperature=0,
-            messages=[{"role": "user", "content": prompt}]
+            system=[
+                {
+                    "type": "text",
+                    "text": system_prompt,
+                    "cache_control": {"type": "ephemeral"}  # Enable prompt caching
+                }
+            ],
+            messages=[{"role": "user", "content": user_content}]
         )
 
         response_text = message.content[0].text

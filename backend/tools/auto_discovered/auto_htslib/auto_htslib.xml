@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tool id="auto_htslib" name="htslib" version="1.0.0">
+  <description>C library for high-throughput sequencing data formats</description>
+  <requirements>
+    <container type="docker">gcc:latest</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+htslib
+]]&gt;</command>
+  <inputs />
+  <outputs>
+    <data name="output" format="txt" label="Output file" />
+  </outputs>
+  <help>See [INSTALL](INSTALL) for complete details.
+
+[Release tarballs][download] contain generated files that have not been
+
+committed to this repository, so building the code from a Git repository
+
+Repository: https://github.com/samtools/htslib</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

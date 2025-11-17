@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tool id="auto_colabfold" name="ColabFold" version="1.0.0">
+  <description>Making Protein folding accessible to all!</description>
+  <requirements>
+    <container type="docker">quay.io/biocontainers/colabfold:1.5.5--pyh7cba7a3_2</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+colabfoldsearch --mmseqs /path/to/bin/mmseqs inputsequences.fasta /path/to/dbfolder msas
+]]&gt;</command>
+  <inputs>
+    <param name="mmseqs" type="text" label="Mmseqs" help="&lt;path to mmseqs&gt; to your mmseqs in colabfoldsearch:" />
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file" />
+  </outputs>
+  <help>For details of what was changed in v1.5, see [change log](https://github.com/sokrypton/ColabFold/wiki/v1.5.0)!
+
+&lt;p align="center"&gt;&lt;img src="https://github.com/sokrypton/ColabFold/raw/main/.github/ColabFold_Marv_Logo.png" height="250"/&gt;&lt;/p&gt;
+
+&gt; [!NOTE]
+
+Repository: https://github.com/sokrypton/ColabFold</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

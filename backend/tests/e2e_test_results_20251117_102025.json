@@ -1,0 +1,107 @@
+{
+  "timestamp": "2025-11-17T10:20:01.820679",
+  "tests": [
+    {
+      "name": "Biomate Frontend Server",
+      "status": "PASS",
+      "details": "Server running on http://localhost:5000",
+      "error": "",
+      "timestamp": "2025-11-17T10:20:01.822441"
+    },
+    {
+      "name": "Galaxy Backend Connection",
+      "status": "PASS",
+      "details": "Galaxy backend accessible (status: 401)",
+      "error": "",
+      "timestamp": "2025-11-17T10:20:01.825122"
+    },
+    {
+      "name": "Landing Page Loads",
+      "status": "PASS",
+      "details": "Page loaded: 1437 bytes",
+      "error": "",
+      "timestamp": "2025-11-17T10:20:01.828246"
+    },
+    {
+      "name": "User Registration",
+      "status": "FAIL",
+      "details": "",
+      "error": "Status: 201, {\"success\":true,\"user\":{\"id\":\"025ac4f7-e80b-4ea7-980e-a3a039ce243e\",\"email\":\"test_1763396401@biomate.test\",\"fullName\":\"E2E Test User\",\"organization\":\"Test Organization\",\"phone\":null,\"trialStartedAt\":\"2025-11-17T16:20:02.028Z\",\"trialEndsAt\":\"2025-11-24T16:20:02.028Z\",\"trialUsed\":false,\"stripeCustomerId\":null,\"subscriptionStatus\":\"trialing\",\"subscriptionTier\":\"academic\",\"subscriptionId\":null,\"currentPeriodEnd\":null,\"emailVerified\":false,\"verificationToken\":null,\"resetPasswordToken\":null,\"resetPasswordExpires\":null,\"createdAt\":\"2025-11-17T10:20:02.030Z\",\"updatedAt\":\"2025-11-17T10:20:02.030Z\",\"lastLoginAt\":null,\"termsAcceptedAt\":\"2025-11-17T16:20:02.028Z\",\"marketingEmailsOptIn\":false},\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMjVhYzRmNy1lODBiLTRlYTctOTgwZS1hM2EwMzljZTI0M2UiLCJlbWFpbCI6InRlc3RfMTc2MzM5NjQwMUBiaW9tYXRlLnRlc3QiLCJzdWJzY3JpcHRpb25TdGF0dXMiOiJ0cmlhbGluZyIsInN1YnNjcmlwdGlvblRpZXIiOiJhY2FkZW1pYyIsInRyaWFsRW5kc0F0IjoiMjAyNS0xMS0yNFQxNjoyMDowMi4wMjhaIiwiaWF0IjoxNzYzMzk2NDAyLCJleHAiOjE3NjQwMDEyMDIsImlzcyI6ImJpb21hdGUuY29tIiwic3ViIjoiMDI1YWM0ZjctZTgwYi00ZWE3LTk4MGUtYTNhMDM5Y2UyNDNlIn0.FwaSSfP09GTGETaVkRirEPDVvn1mjEvfyBd1eXgmnIk\",\"expiresIn\":604800}",
+      "timestamp": "2025-11-17T10:20:02.035037"
+    },
+    {
+      "name": "User Login",
+      "status": "SKIP",
+      "details": "No user registered, cannot test login",
+      "error": "",
+      "timestamp": "2025-11-17T10:20:02.035056"
+    },
+    {
+      "name": "Dashboard Access",
+      "status": "SKIP",
+      "details": "No auth token, cannot test dashboard",
+      "error": "",
+      "timestamp": "2025-11-17T10:20:02.035059"
+    },
+    {
+      "name": "AI Chat Interface",
+      "status": "PASS",
+      "details": "Chat working, response time: 13.2s",
+      "error": "",
+      "timestamp": "2025-11-17T10:20:15.280648"
+    },
+    {
+      "name": "Workflow List",
+      "status": "SKIP",
+      "details": "No auth token",
+      "error": "",
+      "timestamp": "2025-11-17T10:20:15.280667"
+    },
+    {
+      "name": "Dataset Upload",
+      "status": "SKIP",
+      "details": "No auth token",
+      "error": "",
+      "timestamp": "2025-11-17T10:20:15.280671"
+    },
+    {
+      "name": "OAuth - Google",
+      "status": "FAIL",
+      "details": "",
+      "error": "Unexpected status: 401",
+      "timestamp": "2025-11-17T10:20:15.284655"
+    },
+    {
+      "name": "OAuth - Github",
+      "status": "FAIL",
+      "details": "",
+      "error": "Unexpected status: 401",
+      "timestamp": "2025-11-17T10:20:15.287380"
+    },
+    {
+      "name": "Stripe Payment Integration",
+      "status": "FAIL",
+      "details": "",
+      "error": "Status: 503",
+      "timestamp": "2025-11-17T10:20:15.300689"
+    },
+    {
+      "name": "Email Service",
+      "status": "FAIL",
+      "details": "",
+      "error": "HTTPConnectionPool(host='localhost', port=5000): Read timed out. (read timeout=10)",
+      "timestamp": "2025-11-17T10:20:25.304544"
+    },
+    {
+      "name": "SSE Real-Time Updates",
+      "status": "SKIP",
+      "details": "No auth token",
+      "error": "",
+      "timestamp": "2025-11-17T10:20:25.304562"
+    }
+  ],
+  "passed": 4,
+  "failed": 5,
+  "skipped": 5,
+  "total": 14
+}

@@ -3,6 +3,7 @@ import { ChatMessage, type Message } from "./chat-message"
 import { ChatInput } from "./chat-input"
 import { TypingIndicator } from "./typing-indicator"
 import { FileUpload } from "./file-upload"
+import { CompressionDialog, CompressionStatusBadge } from "./compression-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -50,7 +51,7 @@ interface ChatInterfaceProps {
   onToggleProgress?: () => void
 }
 
-export function ChatInterface({ 
+export function ChatInterface({
   chatSession,
   onSendMessage = (msg) => console.log('Send message:', msg),
   isTyping = false,
@@ -63,6 +64,12 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Compression state
+  const [showCompressionDialog, setShowCompressionDialog] = useState(false)
+  const [isCompressing, setIsCompressing] = useState(false)
+  const [currentTokenCount, setCurrentTokenCount] = useState(0)
+  const [compressionDismissed, setCompressionDismissed] = useState(false)
   
   // Use messages from chat session or empty array if no session
   const displayMessages = chatSession?.messages || []
@@ -79,6 +86,41 @@ export function ChatInterface({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [displayMessages, displayTyping])
+
+  // Monitor token count and trigger compression dialog
+  useEffect(() => {
+    if (!chatSession || !displayMessages.length) {
+      setCurrentTokenCount(0)
+      return
+    }
+
+    // Calculate current token count using chat history service
+    const session = chatHistoryService.getSession(chatSession.id)
+    if (!session) return
+
+    const tokenCount = session.totalTokens || 0
+    setCurrentTokenCount(tokenCount)
+
+    console.log('[ChatInterface] Token monitoring:', {
+      sessionId: chatSession.id,
+      tokenCount,
+      percentage: ((tokenCount / 200000) * 100).toFixed(1) + '%',
+      messageCount: displayMessages.length
+    })
+
+    // Check if compression dialog should be shown
+    const percentage = (tokenCount / 200000) * 100
+
+    if (percentage >= 80 && !showCompressionDialog && !compressionDismissed) {
+      // Critical: Show dialog immediately at 80%
+      console.log('[ChatInterface] Token count critical (80%+), showing compression dialog')
+      setShowCompressionDialog(true)
+    } else if (percentage >= 70 && !showCompressionDialog && !compressionDismissed) {
+      // Warning: Show dialog at 70%
+      console.log('[ChatInterface] Token count warning (70%+), showing compression dialog')
+      setShowCompressionDialog(true)
+    }
+  }, [displayMessages, chatSession, showCompressionDialog, compressionDismissed])
 
   // Galaxy Workflow Generation API integration (via Vite proxy)
   const chatMutation = useMutation({
@@ -507,8 +549,103 @@ export function ChatInterface({
     // Future: Preview dataset or add to workflow inputs
   }
 
+  const handleCompress = async () => {
+    if (!chatSession) {
+      console.error('[ChatInterface] Cannot compress: no active session')
+      return
+    }
+
+    try {
+      setIsCompressing(true)
+      console.log('[ChatInterface] Starting compression for session:', chatSession.id)
+
+      // Call backend compression service
+      const response = await fetch('/api/compress-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: chatSession.id,
+          messages: displayMessages,
+          keepRecentCount: 3
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Compression failed: ${response.statusText}`)
+      }
+
+      const result = await response.json()
+
+      console.log('[ChatInterface] Compression successful:', {
+        messagesReduced: `${result.messagesBeforeCount} → ${result.messagesAfterCount}`,
+        tokensReduced: `${result.tokensBeforeCount} → ${result.tokensAfterCount}`,
+        compressionRatio: `${(result.compressionRatio * 100).toFixed(1)}%`
+      })
+
+      // Update session with compressed messages
+      chatHistoryService.updateSession(chatSession.id, {
+        messages: result.compressedMessages
+      })
+
+      // Update local state
+      const updatedSession = chatHistoryService.getSession(chatSession.id)
+      if (updatedSession && onChatUpdated) {
+        onChatUpdated(updatedSession)
+      }
+
+      // Record compression in backend
+      await fetch(`http://localhost:8081/api/sessions/${chatSession.id}/compress`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': 'a7e9f73a7c25300e222d27c84efb10f6',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          summary: result.summary,
+          messages_before: result.messagesBeforeCount,
+          messages_after: result.messagesAfterCount,
+          tokens_before: result.tokensBeforeCount,
+          tokens_after: result.tokensAfterCount
+        })
+      })
+
+      // Close dialog
+      setShowCompressionDialog(false)
+      setCompressionDismissed(false) // Allow showing again if needed
+
+    } catch (error) {
+      console.error('[ChatInterface] Compression failed:', error)
+      alert('Compression failed. Please try again.')
+    } finally {
+      setIsCompressing(false)
+    }
+  }
+
+  const handleCancelCompression = () => {
+    console.log('[ChatInterface] Compression dismissed by user')
+    setShowCompressionDialog(false)
+    setCompressionDismissed(true)
+
+    // Allow showing again after 10 minutes
+    setTimeout(() => {
+      setCompressionDismissed(false)
+    }, 10 * 60 * 1000)
+  }
+
   return (
     <div className={`flex flex-col h-full ${className}`}>
+      {/* Compression status badge */}
+      {currentTokenCount > 0 && (
+        <div className="flex justify-end p-2 border-b bg-background/95">
+          <CompressionStatusBadge
+            currentTokens={currentTokenCount}
+            tokenLimit={200000}
+          />
+        </div>
+      )}
+
       <ScrollArea className="flex-1 p-4" ref={scrollRef} data-testid="chat-messages">
         <div className="space-y-4">
           {displayMessages.map((message) => (
@@ -656,6 +793,17 @@ export function ChatInterface({
       <ChatInput
         onSend={handleSendMessage}
         disabled={displayTyping}
+      />
+
+      {/* Compression dialog */}
+      <CompressionDialog
+        open={showCompressionDialog}
+        currentTokens={currentTokenCount}
+        tokenLimit={200000}
+        messageCount={displayMessages.length}
+        isCompressing={isCompressing}
+        onCompress={handleCompress}
+        onCancel={handleCancelCompression}
       />
     </div>
   )

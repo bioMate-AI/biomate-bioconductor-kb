@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 
 interface EmailConfig {
@@ -29,7 +29,12 @@ class EmailService {
 
     // Only initialize if email configuration is provided
     if (this.isConfigured()) {
-      this.initializeTransporter();
+      try {
+        this.initializeTransporter();
+      } catch (error) {
+        console.error('[EmailService] Failed to initialize transporter:', error);
+        console.warn('[EmailService] Email service will not be available');
+      }
     } else {
       console.warn('[EmailService] Email not configured. Set EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS in .env');
     }

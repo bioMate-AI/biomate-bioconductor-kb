@@ -1,0 +1,325 @@
+{
+  "metadata": {
+    "created": "2025-11-07",
+    "description": "Expected mode detection decisions for V6 hybrid detector e2e validation",
+    "version": "1.0",
+    "total_scenarios": 30,
+    "expertise_levels": {
+      "beginner": 10,
+      "intermediate": 10,
+      "expert": 10
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "beginner_01",
+      "category": "beginner",
+      "query": "I have some samples and want to find differences between them",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Vague query, needs clarification on sample type, analysis type, organism",
+      "clarification_needed": ["sample_type", "analysis_goal", "organism", "data_format"]
+    },
+    {
+      "scenario_id": "beginner_02",
+      "category": "beginner",
+      "query": "Which tool should I use for RNA sequencing?",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Open-ended tool comparison question, needs context on experiment type",
+      "clarification_needed": ["experiment_type", "organism", "read_type", "quality"]
+    },
+    {
+      "scenario_id": "beginner_03",
+      "category": "beginner",
+      "query": "How do I analyze my data?",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Extremely vague, needs extensive clarification",
+      "clarification_needed": ["data_type", "analysis_goal", "organism", "format"]
+    },
+    {
+      "scenario_id": "beginner_04",
+      "category": "beginner",
+      "query": "I'm confused about which workflow to use",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Explicit confusion statement, needs guidance",
+      "clarification_needed": ["data_type", "research_question", "experience_level"]
+    },
+    {
+      "scenario_id": "beginner_05",
+      "category": "beginner",
+      "query": "I'm new to Galaxy, how do I start with differential expression?",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Beginner self-identifying, needs step-by-step guidance",
+      "clarification_needed": ["organism", "data_source", "sample_info", "comparison_groups"]
+    },
+    {
+      "scenario_id": "beginner_06",
+      "category": "beginner",
+      "query": "What's the best way to analyze gene expression?",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Asking for recommendations, needs context",
+      "clarification_needed": ["experiment_design", "organism", "sample_count", "technology"]
+    },
+    {
+      "scenario_id": "beginner_07",
+      "category": "beginner",
+      "query": "I need help with my sequencing data",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Generic help request, minimal information",
+      "clarification_needed": ["sequencing_type", "data_format", "analysis_goal", "issues"]
+    },
+    {
+      "scenario_id": "beginner_08",
+      "category": "beginner",
+      "query": "Can you explain what normalization means?",
+      "expected_mode": "iterative",
+      "max_latency_ms": 3000,
+      "reasoning": "Educational question, may need context on which normalization method",
+      "clarification_needed": ["analysis_context", "data_type"]
+    },
+    {
+      "scenario_id": "beginner_09",
+      "category": "beginner",
+      "query": "I don't know where to start with my proteomics data",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Explicit uncertainty, needs comprehensive guidance",
+      "clarification_needed": ["experiment_type", "data_format", "research_goal", "organism"]
+    },
+    {
+      "scenario_id": "beginner_10",
+      "category": "beginner",
+      "query": "What tools are available for quality control?",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "General inquiry about tool options, needs context",
+      "clarification_needed": ["data_type", "quality_issues", "workflow_stage"]
+    },
+    {
+      "scenario_id": "intermediate_01",
+      "category": "intermediate",
+      "query": "Generate standard RNA-seq differential expression workflow for mouse",
+      "expected_mode": "legacy",
+      "max_latency_ms": 8000,
+      "reasoning": "Clear intent, organism specified, standard workflow requested",
+      "clarification_needed": []
+    },
+    {
+      "scenario_id": "intermediate_02",
+      "category": "intermediate",
+      "query": "I need DESeq2 analysis but not sure about the design formula",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Specific tool but uncertainty about parameters",
+      "clarification_needed": ["experimental_design", "factors", "covariates"]
+    },
+    {
+      "scenario_id": "intermediate_03",
+      "category": "intermediate",
+      "query": "Create workflow for variant calling from whole genome sequencing",
+      "expected_mode": "legacy",
+      "max_latency_ms": 8000,
+      "reasoning": "Clear workflow type and data type specified",
+      "clarification_needed": []
+    },
+    {
+      "scenario_id": "intermediate_04",
+      "category": "intermediate",
+      "query": "Compare DESeq2 vs edgeR for my time series data",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Comparison question with specific context",
+      "clarification_needed": ["time_points", "replicates", "analysis_goals"]
+    },
+    {
+      "scenario_id": "intermediate_05",
+      "category": "intermediate",
+      "query": "Optimize kallisto parameters for my dataset",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Optimization request needs dataset characteristics",
+      "clarification_needed": ["read_length", "library_type", "organism", "quality_metrics"]
+    },
+    {
+      "scenario_id": "intermediate_06",
+      "category": "intermediate",
+      "query": "Build single-cell RNA-seq analysis workflow with Seurat integration",
+      "expected_mode": "legacy",
+      "max_latency_ms": 8000,
+      "reasoning": "Specific workflow type and tool mentioned",
+      "clarification_needed": []
+    },
+    {
+      "scenario_id": "intermediate_07",
+      "category": "intermediate",
+      "query": "Should I use HISAT2 or STAR for my alignment?",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Tool comparison question, needs context for recommendation",
+      "clarification_needed": ["read_type", "genome_size", "splice_awareness_needed"]
+    },
+    {
+      "scenario_id": "intermediate_08",
+      "category": "intermediate",
+      "query": "Create ChIP-seq peak calling workflow with MACS2",
+      "expected_mode": "legacy",
+      "max_latency_ms": 8000,
+      "reasoning": "Clear workflow and tool specification",
+      "clarification_needed": []
+    },
+    {
+      "scenario_id": "intermediate_09",
+      "category": "intermediate",
+      "query": "I'm getting low mapping rates, what should I check?",
+      "expected_mode": "iterative",
+      "max_latency_ms": 5000,
+      "reasoning": "Troubleshooting question, needs diagnostic information",
+      "clarification_needed": ["aligner_used", "organism", "read_type", "quality_metrics"]
+    },
+    {
+      "scenario_id": "intermediate_10",
+      "category": "intermediate",
+      "query": "Generate metagenomics taxonomy classification workflow",
+      "expected_mode": "legacy",
+      "max_latency_ms": 8000,
+      "reasoning": "Clear workflow request with specific analysis type",
+      "clarification_needed": []
+    },
+    {
+      "scenario_id": "expert_01",
+      "category": "expert",
+      "query": "Run STAR with GRCh38, --twopassMode Basic, --quantMode GeneCounts",
+      "expected_mode": "legacy",
+      "max_latency_ms": 8000,
+      "reasoning": "Explicit parameters and reference specified, expert-level specificity",
+      "clarification_needed": []
+    },
+    {
+      "scenario_id": "expert_02",
+      "category": "expert",
+      "query": "Design benchmarking workflow comparing STAR, HISAT2, and Salmon aligners",
+      "expected_mode": "iterative",
+      "max_latency_ms": 6000,
+      "reasoning": "Complex multi-tool comparison, needs benchmark criteria",
+      "clarification_needed": ["evaluation_metrics", "test_datasets", "resource_constraints"]
+    },
+    {
+      "scenario_id": "expert_03",
+      "category": "expert",
+      "query": "Build custom variant annotation pipeline with VEP, SnpEff, and dbNSFP",
+      "expected_mode": "legacy",
+      "max_latency_ms": 8000,
+      "reasoning": "Multiple specific tools, clear integration intent",
+      "clarification_needed": []
+    },
+    {
+      "scenario_id": "expert_04",
+      "category": "expert",
+      "query": "Implement allele-specific expression analysis for diploid genome",
+      "expected_mode": "iterative",
+      "max_latency_ms": 6000,
+      "reasoning": "Advanced technique, may need methodology clarification",
+      "clarification_needed": ["phasing_method", "variant_source", "reference_strategy"]
+    },
+    {
+      "scenario_id": "expert_05",
+      "category": "expert",
+      "query": "Generate kallisto quant with --single -l 200 -s 30 --bias",
+      "expected_mode": "legacy",
+      "max_latency_ms": 8000,
+      "reasoning": "Exact command with all parameters specified",
+      "clarification_needed": []
+    },
+    {
+      "scenario_id": "expert_06",
+      "category": "expert",
+      "query": "Optimize batch effect correction strategy for multi-site study",
+      "expected_mode": "iterative",
+      "max_latency_ms": 6000,
+      "reasoning": "Complex experimental design question",
+      "clarification_needed": ["batch_structure", "confounding_factors", "sample_size"]
+    },
+    {
+      "scenario_id": "expert_07",
+      "category": "expert",
+      "query": "Create ATAC-seq workflow with peak calling, motif enrichment, and footprinting",
+      "expected_mode": "legacy",
+      "max_latency_ms": 8000,
+      "reasoning": "Complete pipeline with specific analysis steps",
+      "clarification_needed": []
+    },
+    {
+      "scenario_id": "expert_08",
+      "category": "expert",
+      "query": "Quick explanation of TPM vs FPKM normalization",
+      "expected_mode": "legacy",
+      "max_latency_ms": 3000,
+      "reasoning": "Informational question, expert knows what they're asking",
+      "clarification_needed": []
+    },
+    {
+      "scenario_id": "expert_09",
+      "category": "expert",
+      "query": "Implement pseudo-bulk differential expression from single-cell data",
+      "expected_mode": "iterative",
+      "max_latency_ms": 6000,
+      "reasoning": "Advanced technique, aggregation strategy needs clarification",
+      "clarification_needed": ["aggregation_level", "cell_type_definition", "statistical_approach"]
+    },
+    {
+      "scenario_id": "expert_10",
+      "category": "expert",
+      "query": "Build FeatureCounts with -p -B -C --fracOverlap 0.2 for Ensembl GTF",
+      "expected_mode": "legacy",
+      "max_latency_ms": 8000,
+      "reasoning": "Exact tool and parameters specified",
+      "clarification_needed": []
+    }
+  ],
+  "expected_distributions": {
+    "beginner": {
+      "iterative_percent": 90,
+      "legacy_percent": 10,
+      "comment": "Beginners typically need clarification and guidance"
+    },
+    "intermediate": {
+      "iterative_percent": 50,
+      "legacy_percent": 50,
+      "comment": "Mix of clear requests and questions needing clarification"
+    },
+    "expert": {
+      "iterative_percent": 30,
+      "legacy_percent": 70,
+      "comment": "Experts typically provide sufficient detail for direct workflow generation"
+    }
+  },
+  "success_criteria": {
+    "overall_accuracy": {
+      "target": 0.85,
+      "description": "At least 85% of scenarios correctly classified"
+    },
+    "beginner_accuracy": {
+      "target": 0.90,
+      "description": "Beginners should be routed to iterative mode >90% of the time"
+    },
+    "intermediate_accuracy": {
+      "target": 0.85,
+      "description": "Intermediates need balanced detection"
+    },
+    "expert_accuracy": {
+      "target": 0.80,
+      "description": "Experts have more ambiguous cases"
+    },
+    "latency": {
+      "p95_target_ms": 5000,
+      "p99_target_ms": 10000,
+      "description": "95% under 5s, 99% under 10s"
+    }
+  }
+}

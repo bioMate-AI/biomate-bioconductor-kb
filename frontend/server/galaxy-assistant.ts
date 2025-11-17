@@ -13,6 +13,8 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
+import { userPatternsService, type UserContext } from './user-patterns-service';
+import { thinkingDetector, type ThinkingDetectionResult } from './thinking-detector';
 import type {
   GalaxyTool,
   BioMNIDataset,
@@ -29,6 +31,7 @@ export interface ChatContext {
   previousMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
   currentWorkflow?: any;
   selectedDatasets?: string[];
+  userId?: number; // For fetching user patterns
 }
 
 export interface ToolRecommendation {
@@ -69,11 +72,16 @@ export interface GalaxyAssistantResponse {
   // Suggested follow-up questions
   suggestions: string[];
 
+  // Thinking mode support
+  thinking_content?: string;
+  thinking_level?: 'none' | 'brief' | 'detailed';
+
   // Metadata
   sources: {
     toolSearchUsed: boolean;
     datasetRAGUsed: boolean;
     workflowGenerated: boolean;
+    thinkingUsed: boolean;
   };
 }
 
@@ -99,11 +107,11 @@ export class GalaxyAssistant {
     const intent = await this.analyzeIntent(message, context);
     console.log('[GalaxyAssistant] Intent analysis:', intent);
 
-    // Step 2: Search for relevant tools
+    // Step 2: Search for relevant tools (with user patterns)
     let recommendedTools: ToolRecommendation[] = [];
     let toolSearchUsed = false;
     if (intent.needsToolSearch) {
-      recommendedTools = await this.searchRelevantTools(message, intent.keywords);
+      recommendedTools = await this.searchRelevantTools(message, intent.keywords, context.userId);
       toolSearchUsed = true;
       console.log(`[GalaxyAssistant] Found ${recommendedTools.length} relevant tools`);
     }
@@ -160,7 +168,9 @@ export class GalaxyAssistant {
     );
 
     return {
-      message: response,
+      message: response.message,
+      thinking_content: response.thinking?.thinkingContent,
+      thinking_level: response.thinking?.thinkingLevel,
       recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
       recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
       workflowSuggestion,
@@ -170,6 +180,7 @@ export class GalaxyAssistant {
         toolSearchUsed,
         datasetRAGUsed,
         workflowGenerated,
+        thinkingUsed: response.thinking?.hasThinking || false,
       },
     };
   }
@@ -221,8 +232,13 @@ Respond in JSON format:
       const content = completion.content[0];
       let resultText = content.type === 'text' ? content.text : '{}';
 
-      // Strip markdown code blocks if present
-      resultText = resultText.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      // Strip markdown code blocks if present (improved regex to handle more edge cases)
+      resultText = resultText
+        .replace(/^```+\s*json\s*\n?/gi, '')  // Remove opening code fence with any number of backticks
+        .replace(/\n?```+\s*$/gi, '')          // Remove closing code fence
+        .replace(/^\s*`+\s*/g, '')             // Remove leading backticks and whitespace
+        .replace(/\s*`+\s*$/g, '')             // Remove trailing backticks and whitespace
+        .trim();
 
       const result = JSON.parse(resultText);
 
@@ -250,11 +266,22 @@ Respond in JSON format:
    */
   private async searchRelevantTools(
     userMessage: string,
-    keywords: string[]
+    keywords: string[],
+    userId?: number
   ): Promise<ToolRecommendation[]> {
     try {
+      // Fetch user patterns for personalization
+      let userContext: UserContext = {};
+      if (userId) {
+        const insights = await userPatternsService.getUserInsights(userId);
+        userContext = userPatternsService.extractUserContext(insights);
+        console.log('[GalaxyAssistant] User context:', userContext);
+      }
+
       // Build search query from keywords
-      const query = keywords.join(' OR ');
+      // Note: FTS5 doesn't support 'OR' operator in query string
+      // Using space-separated keywords (FTS5 treats as AND, giving more precise results)
+      const query = keywords.join(' ');
       console.log('[GalaxyAssistant] Tool search query:', query);
 
       // Search Galaxy tool index (increased limit to 100 for better coverage)
@@ -276,10 +303,11 @@ Respond in JSON format:
         return [];
       }
 
-      // Use LLM to rank tools by relevance
+      // Use LLM to rank tools by relevance (with user context)
       const rankedTools = await this.rankToolsByRelevance(
         userMessage,
-        toolSearchResponse.tools
+        toolSearchResponse.tools,
+        userContext
       );
 
       console.log('[GalaxyAssistant] After LLM ranking:', {
@@ -305,9 +333,14 @@ Respond in JSON format:
    */
   private async rankToolsByRelevance(
     userMessage: string,
-    tools: GalaxyTool[]
+    tools: GalaxyTool[],
+    userContext?: UserContext
   ): Promise<ToolRecommendation[]> {
+    // Build user context description for prompt
+    const userContextStr = userContext ? userPatternsService.formatContextForPrompt(userContext) : '';
+
     const systemPrompt = `You are a bioinformatics tool expert. Rank the provided tools by relevance to the user's request.
+${userContextStr ? userContextStr + '\n\nConsider the user profile when ranking tools. Give higher scores to tools that match their domain and previous successful tools.' : ''}
 For each tool, provide:
 1. Relevance score (0-1)
 2. Brief reasoning
@@ -317,7 +350,7 @@ Respond in JSON format:
   {
     "tool_id": "tool_123",
     "relevanceScore": 0.95,
-    "reasoning": "Perfect match for RNA-seq alignment"
+    "reasoning": "Perfect match for RNA-seq alignment${userContextStr ? ' and matches user\'s proteomics domain' : ''}"
   }
 ]`;
 
@@ -523,7 +556,7 @@ Respond in JSON format:
     workflowSuggestion: WorkflowSuggestion,
     generatedWorkflow: any,
     context: ChatContext
-  ): Promise<string> {
+  ): Promise<{ message: string; thinking?: ThinkingDetectionResult }> {
     const systemPrompt = `You are BioMate, an expert bioinformatics AI assistant powered by Galaxy.
 
 Your capabilities:
@@ -564,8 +597,12 @@ Provide a helpful response that:
 
       const completion = await this.claude.messages.create({
         model: 'claude-sonnet-4-5',
-        max_tokens: 600,
-        temperature: 0.7,
+        max_tokens: 4096,  // Must be > thinking.budget_tokens (2000)
+        // temperature not set - incompatible with thinking mode
+        thinking: {
+          type: 'enabled',
+          budget_tokens: 2000
+        },
         system: [
           {
             type: 'text',
@@ -577,10 +614,26 @@ Provide a helpful response that:
       });
 
       const content = completion.content[0];
-      return content.type === 'text' ? content.text : 'I can help you with that!';
+      const rawResponse = content.type === 'text' ? content.text : 'I can help you with that!';
+
+      // Detect and parse thinking content
+      const thinkingResult = thinkingDetector.detectThinking(rawResponse);
+
+      console.log('[GalaxyAssistant] Response generated with thinking:', {
+        hasThinking: thinkingResult.hasThinking,
+        thinkingLevel: thinkingResult.thinkingLevel,
+        thinkingWords: thinkingResult.thinkingWordCount
+      });
+
+      return {
+        message: thinkingResult.answerContent,
+        thinking: thinkingResult.hasThinking ? thinkingResult : undefined
+      };
     } catch (error) {
       console.error('[GalaxyAssistant] Response generation failed:', error);
-      return 'I found some relevant tools and datasets for your analysis. How would you like to proceed?';
+      return {
+        message: 'I found some relevant tools and datasets for your analysis. How would you like to proceed?'
+      };
     }
   }
 

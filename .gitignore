@@ -29,6 +29,15 @@ ENV/
 env/
 .env
 
+# Production secrets and sensitive data (DO NOT COMMIT)
+.env.production
+secrets-aws.json
+.secrets-temp/
+.fix-*.sh
+*.pem
+*.key
+*.crt
+
 # Node/TypeScript
 node_modules/
 npm-debug.log*

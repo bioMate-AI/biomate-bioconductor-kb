@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tool id="auto_scanpy" name="scanpy" version="1.0.0">
+  <description>Single-cell analysis in Python. Scales to &gt;100M cells.</description>
+  <requirements>
+    <container type="docker">python:3.9-slim</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Setup environment
+pip install scanpy
+
+# Run tool
+scanpy --help || python -m scanpy --help
+]]&gt;</command>
+  <inputs>
+    <param name="help" type="text" label="Help" help="Parameter for help" />
+    <param name="m" type="text" label="M" help="Parameter for m" />
+    <param name="help" type="text" label="Help" help="Parameter for help" />
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file" />
+  </outputs>
+  <help>Scanpy is a scalable toolkit for analyzing single-cell gene expression data built jointly with [anndata][].
+
+It includes preprocessing, visualization, clustering, trajectory inference and differential expression testing.
+
+The Python-based implementation efficiently deals with datasets of more than one million cells.
+
+Repository: https://github.com/scverse/scanpy</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

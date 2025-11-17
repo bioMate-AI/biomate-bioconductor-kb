@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tool id="auto_dash" name="dash" version="1.0.0">
+  <description>Data Apps &amp; Dashboards for Python. No JavaScript Required.</description>
+  <requirements>
+    <container type="docker">python:3.9-slim</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Setup environment
+pip install dash
+
+# Run tool
+dash --help || python -m dash --help
+]]&gt;</command>
+  <inputs>
+    <param name="help" type="text" label="Help" help="Parameter for help" />
+    <param name="m" type="text" label="M" help="Parameter for m" />
+    <param name="help" type="text" label="Help" help="Parameter for help" />
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file" />
+  </outputs>
+  <help>[![CircleCI](https://img.shields.io/circleci/project/github/plotly/dash/master.svg)](https://circleci.com/gh/plotly/dash)
+
+[![GitHub](https://img.shields.io/github/license/plotly/dash.svg?color=dark-green)](https://github.com/plotly/dash/blob/master/LICENSE)
+
+[![PyPI](https://img.shields.io/pypi/v/dash.svg?color=dark-green)](https://pypi.org/project/dash/)
+
+Repository: https://github.com/plotly/dash</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

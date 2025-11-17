@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tool id="auto_biopython" name="biopython" version="1.0.0">
+  <description>Official git repository for Biopython (originally converted from CVS)</description>
+  <requirements>
+    <container type="docker">quay.io/biocontainers/biopython:1.76--2</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python setup.py test
+]]&gt;</command>
+  <inputs />
+  <outputs>
+    <data name="output" format="txt" label="Output file" />
+  </outputs>
+  <help>
+
+Repository: https://github.com/biopython/biopython</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

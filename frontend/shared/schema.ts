@@ -105,7 +105,11 @@ export const messageSchema = z.object({
   suggestions: z.array(z.string()).optional(),
   workflowId: z.string().optional(),
   invocationId: z.string().optional(), // Reference to workflow invocation for output display
-  datasets: z.array(datasetConfigSchema).optional()
+  datasets: z.array(datasetConfigSchema).optional(),
+  // Thinking mode support
+  thinking_content: z.string().optional(), // AI's reasoning process
+  thinking_level: z.enum(["none", "brief", "detailed"]).optional().default("none"),
+  metadata: z.record(z.any()).optional() // Additional metadata (e.g., workflow data, tools)
 });
 
 export type Message = z.infer<typeof messageSchema>;

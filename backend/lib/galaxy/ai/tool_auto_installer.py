@@ -205,17 +205,27 @@ class ToolAutoInstaller:
             if not tool_dir.is_dir():
                 continue
 
-            # Try exact match
+            # Try exact match in top-level directory
             xml_file = tool_dir / f"{tool_id}.xml"
             if xml_file.exists():
                 return xml_file
 
+            # Try in nested subdirectory (e.g., auto_discovered/tool_name/tool_name.xml)
+            nested_xml = tool_dir / tool_id / f"{tool_id}.xml"
+            if nested_xml.exists():
+                return nested_xml
+
             # Try with/without common prefixes
-            for prefix in ["", "nfcore_", "biomni_"]:
+            for prefix in ["", "nfcore_", "biomni_", "auto_"]:
                 test_id = f"{prefix}{tool_id}" if prefix else tool_id
                 xml_file = tool_dir / f"{test_id}.xml"
                 if xml_file.exists():
                     return xml_file
+
+                # Try nested with prefix
+                nested_xml = tool_dir / test_id / f"{test_id}.xml"
+                if nested_xml.exists():
+                    return nested_xml
 
                 # Also try removing prefix
                 if tool_id.startswith(prefix) and prefix:
@@ -223,6 +233,11 @@ class ToolAutoInstaller:
                     xml_file = tool_dir / f"{unprefixed_id}.xml"
                     if xml_file.exists():
                         return xml_file
+
+                    # Try nested without prefix
+                    nested_xml = tool_dir / unprefixed_id / f"{unprefixed_id}.xml"
+                    if nested_xml.exists():
+                        return nested_xml
 
         return None
 
