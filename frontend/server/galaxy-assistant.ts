@@ -366,7 +366,7 @@ Respond in JSON format:
     try {
       const completion = await this.claude.messages.create({
         model: 'claude-sonnet-4-5',
-        max_tokens: 500,
+        max_tokens: 2000, // Increased to handle ranking many tools
         temperature: 0.3,
         system: [
           {
@@ -386,8 +386,13 @@ Respond in JSON format:
       const content = completion.content[0];
       let resultText = content.type === 'text' ? content.text : '{"rankings":[]}';
 
-      // Strip markdown code blocks if present
-      resultText = resultText.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      // Strip markdown code blocks if present (improved regex to handle more edge cases)
+      resultText = resultText
+        .replace(/^```+\s*json\s*\n?/gi, '')  // Remove opening code fence with any number of backticks
+        .replace(/\n?```+\s*$/gi, '')          // Remove closing code fence
+        .replace(/^\s*`+\s*/g, '')             // Remove leading backticks and whitespace
+        .replace(/\s*`+\s*$/g, '')             // Remove trailing backticks and whitespace
+        .trim();
 
       const rankings = JSON.parse(resultText);
       const rankingArray = rankings.rankings || rankings;
@@ -613,8 +618,9 @@ Provide a helpful response that:
         messages: [...previousMessages, { role: 'user', content: userPrompt }],
       });
 
-      const content = completion.content[0];
-      const rawResponse = content.type === 'text' ? content.text : 'I can help you with that!';
+      // Find the text content block (thinking mode returns [thinking, text])
+      const textContent = completion.content.find(c => c.type === 'text');
+      const rawResponse = textContent && textContent.type === 'text' ? textContent.text : 'I can help you with that!';
 
       // Detect and parse thinking content
       const thinkingResult = thinkingDetector.detectThinking(rawResponse);
