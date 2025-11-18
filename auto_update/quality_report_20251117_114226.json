@@ -1,0 +1,809 @@
+{
+  "generated_at": "2025-11-17T11:42:26.377871",
+  "total_tools": 14,
+  "summary": {
+    "workflow_ready": 0,
+    "needs_improvement": 3,
+    "blocking_issues": 11
+  },
+  "grade_distribution": {
+    "D": 7,
+    "F": 4,
+    "B+": 3
+  },
+  "common_issues": {
+    "parameters:parameters": {
+      "category": "parameters",
+      "field": "parameters",
+      "count": 11,
+      "example": "Contains 3 dummy/placeholder parameters"
+    }
+  },
+  "tools": [
+    {
+      "tool_id": "auto_dash",
+      "tool_name": "dash",
+      "validated_at": "2025-11-17T11:42:26.377235",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.2,
+        "requirements": 0.6,
+        "inputs_outputs": 0.49999999999999994,
+        "usage_documentation": 0.7,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.51,
+      "grade": "D",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "Contains 3 dummy/placeholder parameters",
+          "examples": [
+            "help",
+            "m",
+            "help"
+          ],
+          "impact": "Cannot generate meaningful workflow forms"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "inputs_outputs",
+          "issue": "No input formats defined"
+        },
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "Dummy parameters detected"
+      ]
+    },
+    {
+      "tool_id": "auto_nextflow",
+      "tool_name": "nextflow",
+      "validated_at": "2025-11-17T11:42:26.377313",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.0,
+        "requirements": 0.6,
+        "inputs_outputs": 0.49999999999999994,
+        "usage_documentation": 1.0,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.47,
+      "grade": "F",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "No parameters defined - cannot generate workflow forms",
+          "impact": "Users cannot configure tool through UI"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "inputs_outputs",
+          "issue": "No input formats defined"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "parameters",
+          "action": "extract_from_help",
+          "details": "Run tool with --help and parse parameter definitions"
+        },
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "No parameters defined"
+      ]
+    },
+    {
+      "tool_id": "auto_scanpy",
+      "tool_name": "scanpy",
+      "validated_at": "2025-11-17T11:42:26.377339",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.2,
+        "requirements": 0.6,
+        "inputs_outputs": 0.49999999999999994,
+        "usage_documentation": 0.7999999999999999,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.52,
+      "grade": "D",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "Contains 3 dummy/placeholder parameters",
+          "examples": [
+            "help",
+            "m",
+            "help"
+          ],
+          "impact": "Cannot generate meaningful workflow forms"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "inputs_outputs",
+          "issue": "No input formats defined"
+        },
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "Dummy parameters detected"
+      ]
+    },
+    {
+      "tool_id": "auto_galaxy",
+      "tool_name": "galaxy",
+      "validated_at": "2025-11-17T11:42:26.377361",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.2,
+        "requirements": 0.6,
+        "inputs_outputs": 0.49999999999999994,
+        "usage_documentation": 0.7,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.51,
+      "grade": "D",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "Contains 3 dummy/placeholder parameters",
+          "examples": [
+            "help",
+            "m",
+            "help"
+          ],
+          "impact": "Cannot generate meaningful workflow forms"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "inputs_outputs",
+          "issue": "No input formats defined"
+        },
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "Dummy parameters detected"
+      ]
+    },
+    {
+      "tool_id": "auto_rush",
+      "tool_name": "rush",
+      "validated_at": "2025-11-17T11:42:26.377375",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 1.0,
+        "requirements": 0.6,
+        "inputs_outputs": 0.49999999999999994,
+        "usage_documentation": 1.0,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.82,
+      "grade": "B+",
+      "issues": [],
+      "warnings": [
+        {
+          "category": "inputs_outputs",
+          "issue": "No input formats defined"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": []
+    },
+    {
+      "tool_id": "auto_htslib",
+      "tool_name": "htslib",
+      "validated_at": "2025-11-17T11:42:26.377681",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.0,
+        "requirements": 0.6,
+        "inputs_outputs": 0.6000000000000001,
+        "usage_documentation": 0.7999999999999999,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.465,
+      "grade": "F",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "No parameters defined - cannot generate workflow forms",
+          "impact": "Users cannot configure tool through UI"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "parameters",
+          "action": "extract_from_help",
+          "details": "Run tool with --help and parse parameter definitions"
+        },
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_input_specs",
+          "details": "Provide detailed input specifications with descriptions"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "No parameters defined"
+      ]
+    },
+    {
+      "tool_id": "auto_biotite",
+      "tool_name": "biotite",
+      "validated_at": "2025-11-17T11:42:26.377699",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 1.0,
+        "requirements": 0.6,
+        "inputs_outputs": 0.6000000000000001,
+        "usage_documentation": 0.7999999999999999,
+        "scientific_context": 1.0
+      },
+      "overall_score": 0.84,
+      "grade": "B+",
+      "issues": [],
+      "warnings": [
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_input_specs",
+          "details": "Provide detailed input specifications with descriptions"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": []
+    },
+    {
+      "tool_id": "auto_omicverse",
+      "tool_name": "omicverse",
+      "validated_at": "2025-11-17T11:42:26.377720",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.2,
+        "requirements": 0.6,
+        "inputs_outputs": 0.6000000000000001,
+        "usage_documentation": 0.7999999999999999,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.535,
+      "grade": "D",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "Contains 3 dummy/placeholder parameters",
+          "examples": [
+            "help",
+            "m",
+            "help"
+          ],
+          "impact": "Cannot generate meaningful workflow forms"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_input_specs",
+          "details": "Provide detailed input specifications with descriptions"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "Dummy parameters detected"
+      ]
+    },
+    {
+      "tool_id": "auto_biopython",
+      "tool_name": "biopython",
+      "validated_at": "2025-11-17T11:42:26.377757",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.0,
+        "requirements": 0.6,
+        "inputs_outputs": 0.49999999999999994,
+        "usage_documentation": 0.7999999999999999,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.44999999999999996,
+      "grade": "F",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "No parameters defined - cannot generate workflow forms",
+          "impact": "Users cannot configure tool through UI"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "inputs_outputs",
+          "issue": "No input formats defined"
+        },
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "parameters",
+          "action": "extract_from_help",
+          "details": "Run tool with --help and parse parameter definitions"
+        },
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "No parameters defined"
+      ]
+    },
+    {
+      "tool_id": "auto_colabfold",
+      "tool_name": "ColabFold",
+      "validated_at": "2025-11-17T11:42:26.377769",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 1.0,
+        "requirements": 0.6,
+        "inputs_outputs": 0.6000000000000001,
+        "usage_documentation": 0.7999999999999999,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.815,
+      "grade": "B+",
+      "issues": [],
+      "warnings": [
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_input_specs",
+          "details": "Provide detailed input specifications with descriptions"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": []
+    },
+    {
+      "tool_id": "auto_mmseqs2",
+      "tool_name": "MMseqs2",
+      "validated_at": "2025-11-17T11:42:26.377785",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.0,
+        "requirements": 1.0,
+        "inputs_outputs": 0.6000000000000001,
+        "usage_documentation": 0.9,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.555,
+      "grade": "D",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "No parameters defined - cannot generate workflow forms",
+          "impact": "Users cannot configure tool through UI"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "requirements",
+          "issue": "CPU/GPU requirements exist but unstructured",
+          "recommendation": "Parse usage_guide to extract structured requirements"
+        },
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "parameters",
+          "action": "extract_from_help",
+          "details": "Run tool with --help and parse parameter definitions"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_input_specs",
+          "details": "Provide detailed input specifications with descriptions"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "No parameters defined"
+      ]
+    },
+    {
+      "tool_id": "auto_seqkit",
+      "tool_name": "seqkit",
+      "validated_at": "2025-11-17T11:42:26.377805",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.0,
+        "requirements": 0.6,
+        "inputs_outputs": 0.6000000000000001,
+        "usage_documentation": 0.7999999999999999,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.465,
+      "grade": "F",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "No parameters defined - cannot generate workflow forms",
+          "impact": "Users cannot configure tool through UI"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "parameters",
+          "action": "extract_from_help",
+          "details": "Run tool with --help and parse parameter definitions"
+        },
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_input_specs",
+          "details": "Provide detailed input specifications with descriptions"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "No parameters defined"
+      ]
+    },
+    {
+      "tool_id": "auto_graphein",
+      "tool_name": "graphein",
+      "validated_at": "2025-11-17T11:42:26.377818",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.2,
+        "requirements": 0.6,
+        "inputs_outputs": 0.49999999999999994,
+        "usage_documentation": 0.9,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.53,
+      "grade": "D",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "Contains 3 dummy/placeholder parameters",
+          "examples": [
+            "help",
+            "m",
+            "help"
+          ],
+          "impact": "Cannot generate meaningful workflow forms"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "inputs_outputs",
+          "issue": "No input formats defined"
+        },
+        {
+          "category": "usage_documentation",
+          "issue": "No usage examples provided"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "requirements",
+          "action": "add_resource_requirements",
+          "details": "Add CPU, GPU, and memory requirements for proper scheduling"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "Dummy parameters detected"
+      ]
+    },
+    {
+      "tool_id": "auto_foldseek",
+      "tool_name": "foldseek",
+      "validated_at": "2025-11-17T11:42:26.377834",
+      "category_scores": {
+        "basic_metadata": 1.0,
+        "parameters": 0.0,
+        "requirements": 1.0,
+        "inputs_outputs": 0.6000000000000001,
+        "usage_documentation": 1.0,
+        "scientific_context": 0.5
+      },
+      "overall_score": 0.5650000000000001,
+      "grade": "D",
+      "issues": [
+        {
+          "category": "parameters",
+          "severity": "critical",
+          "field": "parameters",
+          "issue": "No parameters defined - cannot generate workflow forms",
+          "impact": "Users cannot configure tool through UI"
+        }
+      ],
+      "warnings": [
+        {
+          "category": "requirements",
+          "issue": "CPU/GPU requirements exist but unstructured",
+          "recommendation": "Parse usage_guide to extract structured requirements"
+        }
+      ],
+      "recommendations": [
+        {
+          "category": "parameters",
+          "action": "extract_from_help",
+          "details": "Run tool with --help and parse parameter definitions"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_input_specs",
+          "details": "Provide detailed input specifications with descriptions"
+        },
+        {
+          "category": "inputs_outputs",
+          "action": "enhance_output_specs",
+          "details": "Provide detailed output specifications with descriptions"
+        },
+        {
+          "category": "scientific_context",
+          "action": "add_use_cases",
+          "details": "Add typical scientific use cases for better discoverability"
+        }
+      ],
+      "workflow_ready": false,
+      "blocking_issues": [
+        "No parameters defined"
+      ]
+    }
+  ]
+}
