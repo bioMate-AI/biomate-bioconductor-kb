@@ -1,0 +1,116 @@
+
+# Data Source Configurations for Auto-Update System
+
+github:
+  api_url: https://api.github.com
+  topics:
+    # Core bioinformatics
+    - bioinformatics
+    - genomics
+    - proteomics
+    - metabolomics
+    - computational-biology
+    # Sequencing & Analysis
+    - single-cell
+    - rna-seq
+    - variant-calling
+    - transcriptomics
+    - systems-biology
+    - metagenomics
+    - phylogenetics
+    - sequence-analysis
+    - sequence-alignment
+    # Specific technologies
+    - chip-seq
+    - atac-seq
+    - hi-c
+    - long-read-sequencing
+    - nanopore
+    - pacbio
+    # Genome & Assembly
+    - genome-assembly
+    - genome-annotation
+    - genome-editing
+    - crispr
+    # Structural biology
+    - protein-structure
+    - structural-biology
+    - molecular-dynamics
+    - alphafold
+    # Omics
+    - multi-omics
+    - spatial-transcriptomics
+    - epigenetics
+    - methylation
+    # Population & Evolution
+    - population-genetics
+    - gwas
+    - phylogenomics
+    - ancient-dna
+    # Drug discovery
+    - drug-discovery
+    - cheminformatics
+    - molecular-docking
+    # Other domains
+    - flow-cytometry
+    - imaging
+    - mass-spectrometry
+  min_stars: 50
+  lookback_days: 90
+  languages:
+    - Python
+    - R
+    - Nextflow
+    - Snakemake
+    - WDL
+    - Rust
+    - Julia
+  excluded_keywords:
+    - tutorial
+    - course
+    - workshop
+    - homework
+    - assignment
+
+huggingface:
+  api_url: https://huggingface.co/api
+  tags:
+    - biology
+    - genomics
+    - protein-folding
+    - drug-discovery
+    - chemistry
+    - protein
+    - dna
+    - rna
+  min_downloads: 100
+  min_likes: 10
+
+pubmed:
+  api_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils
+  search_terms:
+    - "bioinformatics software[Title/Abstract]"
+    - "genomics tool[Title/Abstract]"
+    - "computational pipeline[Title/Abstract]"
+  lookback_months: 6
+  max_results: 100
+  journals:
+    - "Bioinformatics"
+    - "BMC Bioinformatics"
+    - "Nature Methods"
+    - "Nucleic Acids Research"
+
+quality_thresholds:
+  auto_approve: 0.8
+  review_queue: 0.5
+  min_score: 0.5
+
+rate_limits:
+  github:
+    requests_per_hour: 5000  # With authentication
+    backoff_multiplier: 2
+    max_retries: 3
+  huggingface:
+    requests_per_minute: 60
+  pubmed:
+    requests_per_second: 3

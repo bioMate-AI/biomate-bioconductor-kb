@@ -19,6 +19,7 @@ Usage:
 import argparse
 import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -35,6 +36,11 @@ from test_tool_execution import ToolExecutor
 from integrate_tools import ToolIntegrator
 from quality_enhancement_step import QualityEnhancementStep
 from feasibility_checker import FeasibilityChecker
+try:
+    from llm_feasibility_checker import HybridFeasibilityChecker
+    HAS_LLM_CHECKER = True
+except ImportError:
+    HAS_LLM_CHECKER = False
 
 logging.basicConfig(
     level=logging.INFO,
@@ -242,16 +248,23 @@ class AutoUpdatePipeline:
         logger.info(f"\nProcessing tool: {tool_name}")
 
         # Stage 1.5: Feasibility check (filter unsuitable tools early)
-        checker = FeasibilityChecker()
-        feasible, reason, confidence = checker.check(discovery)
+        # Use LLM-based checker if available for better generalization
+        api_key = os.getenv('ANTHROPIC_API_KEY')
+        if HAS_LLM_CHECKER and api_key:
+            checker = HybridFeasibilityChecker(api_key)
+            feasible, reason, confidence, tool_type = checker.check(discovery)
+        else:
+            checker = FeasibilityChecker()
+            feasible, reason, confidence = checker.check(discovery)
+            tool_type = "unknown"
 
         if not feasible:
-            logger.info(f"  [SKIP] Not feasible: {reason} (confidence: {confidence:.0%})")
+            logger.info(f"  [SKIP] Not feasible ({tool_type}): {reason} (confidence: {confidence:.0%})")
             self.stats.add('feasibility_rejected')
             return
 
         self.stats.add('feasibility_passed')
-        logger.info(f"  [1/6] Feasibility check passed: {reason}")
+        logger.info(f"  [1/6] Feasibility check passed ({tool_type}): {reason}")
 
         # Stage 2: Fetch documentation
         documentation = self._fetch_documentation(repo_full_name)
