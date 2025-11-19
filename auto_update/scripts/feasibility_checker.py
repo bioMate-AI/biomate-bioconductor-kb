@@ -159,16 +159,22 @@ class FeasibilityChecker:
         if language in compiled_languages:
             return True, f"Compiled language ({language}) typically has CLI", 0.70
 
-        # Check 10: Python with entry points check
+        # Check 10: Python with entry points check (STRICT)
         if language == 'python':
             # Look for setup.py console_scripts or pyproject.toml scripts
-            if 'console_scripts' in readme or 'scripts' in readme:
+            if 'console_scripts' in readme or 'entry_points' in readme:
                 return True, "Python with console_scripts entry point", 0.80
             # Look for __main__.py or cli.py patterns
-            if '__main__' in readme or 'cli.py' in readme:
+            if '__main__' in readme or 'cli.py' in readme or 'argparse' in readme:
                 return True, "Python with CLI module", 0.75
-            # Default: uncertain for Python
-            return True, "Python tool - needs CLI verification", 0.50
+            # Look for command-line usage examples
+            if 'python -m' in readme or '$ python' in readme:
+                return True, "Python with command-line usage", 0.70
+            # Check if explicitly described as a library
+            if 'library' in description.lower() or 'package' in description.lower():
+                return False, "Python library without CLI - not suitable for workflows", 0.80
+            # Default: reject Python without CLI indicators (too risky)
+            return False, "Python project without CLI indicators", 0.65
 
         # Default: allow with low confidence
         return True, "No disqualifying factors found", 0.55
