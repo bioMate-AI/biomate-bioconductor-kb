@@ -59,6 +59,7 @@ class PipelineStats:
             'tests_passed': 0,
             'tests_failed': 0,
             'integrated': 0,
+            'skipped_duplicate': 0,
             'errors': []
         }
 
@@ -86,6 +87,7 @@ class PipelineStats:
             f"Tests passed: {self.stats['tests_passed']}",
             f"Tests failed: {self.stats['tests_failed']}",
             f"Tools integrated: {self.stats['integrated']}",
+            f"Skipped (duplicate): {self.stats['skipped_duplicate']}",
             ""
         ]
 
@@ -282,9 +284,11 @@ class AutoUpdatePipeline:
                 test_result = {'success': True}
 
         # Stage 6: Integrate with complete metadata extraction
-        integrated = self._integrate_tool(wrapper_path, discovery, documentation, test_result)
-        if integrated:
+        result = self._integrate_tool(wrapper_path, discovery, documentation, test_result)
+        if result == "success":
             logger.info(f"✓ Successfully integrated {tool_name}")
+        elif result == "duplicate":
+            logger.info(f"⊘ {tool_name} skipped (already exists or duplicate)")
         else:
             self.stats.add_error(f"{tool_name}: Integration failed")
 
@@ -416,20 +420,24 @@ class AutoUpdatePipeline:
             )
 
             # Integrate with complete metadata (38 fields)
-            success = integrator.integrate_tool(
+            result = integrator.integrate_tool(
                 wrapper_path=wrapper_path,
                 metadata=metadata,
                 documentation=documentation,
                 test_result=test_result
             )
 
-            if success:
+            if result == "success" or result == True:
                 self.stats.add('integrated')
                 logger.info(f"    ✓ Integration complete with all metadata fields")
-                return True
+                return "success"
+            elif result == "duplicate":
+                self.stats.add('skipped_duplicate')
+                logger.info(f"    ⊘ Skipped (duplicate)")
+                return "duplicate"
             else:
                 logger.warning(f"    ✗ Integration failed")
-                return False
+                return "error"
 
         except Exception as e:
             logger.error(f"Integration error: {e}")
