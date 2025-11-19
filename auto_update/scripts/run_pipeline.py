@@ -33,9 +33,10 @@ from documentation_fetcher import DocumentationFetcher
 from galaxy_wrapper_generator import GalaxyWrapperGenerator
 from validate_wrapper import WrapperValidator
 from test_tool_execution import ToolExecutor
-from integrate_tools import ToolIntegrator
+from integrate_tools import ToolIntegrator, DatabaseIntegrator
 from quality_enhancement_step import QualityEnhancementStep
 from feasibility_checker import FeasibilityChecker
+from api_detector import APIDetector
 try:
     from llm_feasibility_checker import HybridFeasibilityChecker
     HAS_LLM_CHECKER = True
@@ -59,13 +60,15 @@ class PipelineStats:
             'detected': 0,
             'feasibility_passed': 0,
             'feasibility_rejected': 0,
+            'skipped_duplicate': 0,
+            'skipped_has_api': 0,
+            'skipped_too_large': 0,
             'docs_fetched': 0,
             'wrappers_generated': 0,
             'wrappers_validated': 0,
             'tests_passed': 0,
             'tests_failed': 0,
             'integrated': 0,
-            'skipped_duplicate': 0,
             'errors': []
         }
 
@@ -87,13 +90,15 @@ class PipelineStats:
             f"Tools detected: {self.stats['detected']}",
             f"Feasibility passed: {self.stats['feasibility_passed']}",
             f"Feasibility rejected: {self.stats['feasibility_rejected']}",
+            f"Skipped (duplicate): {self.stats['skipped_duplicate']}",
+            f"Skipped (has API): {self.stats['skipped_has_api']}",
+            f"Skipped (too large): {self.stats['skipped_too_large']}",
             f"Documentation fetched: {self.stats['docs_fetched']}",
             f"Wrappers generated: {self.stats['wrappers_generated']}",
             f"Wrappers validated: {self.stats['wrappers_validated']}",
             f"Tests passed: {self.stats['tests_passed']}",
             f"Tests failed: {self.stats['tests_failed']}",
             f"Tools integrated: {self.stats['integrated']}",
-            f"Skipped (duplicate): {self.stats['skipped_duplicate']}",
             ""
         ]
 
@@ -126,6 +131,10 @@ class AutoUpdatePipeline:
 
         # Load configuration
         self.config = load_config(config_dir)
+
+        # Set paths for database and tools directory
+        self.db_path = Path(__file__).parent.parent.parent / 'backend' / 'database' / 'galaxy_ai_tools.db'
+        self.tools_dir = Path(__file__).parent.parent.parent / 'backend' / 'tools'
 
     def run_full_pipeline(
         self,
@@ -266,6 +275,29 @@ class AutoUpdatePipeline:
         self.stats.add('feasibility_passed')
         logger.info(f"  [1/6] Feasibility check passed ({tool_type}): {reason}")
 
+        # Stage 1.6: Check for duplicates in database
+        tool_id = f"auto_{tool_name.lower().replace('-', '_')}"
+        db_integrator = DatabaseIntegrator(self.db_path)
+        db_integrator.connect()
+        if db_integrator.tool_exists(tool_id):
+            logger.info(f"  [SKIP] Tool {tool_id} already exists in database")
+            self.stats.add('skipped_duplicate')
+            db_integrator.close()
+            return
+        db_integrator.close()
+
+        # Stage 1.7: Check for API availability (prefer API over local installation)
+        api_detector = APIDetector()
+        has_api, api_info = api_detector.check(discovery)
+        if has_api and api_info:
+            confidence = api_info.get('confidence', 0)
+            if confidence > 0.7:
+                indicators = ', '.join(api_info.get('indicators', [])[:2])
+                logger.info(f"  [SKIP] Tool has API (confidence: {confidence:.0%}): {indicators}")
+                logger.info(f"    Suggestion: Use API instead of local installation")
+                self.stats.add('skipped_has_api')
+                return
+
         # Stage 2: Fetch documentation
         documentation = self._fetch_documentation(repo_full_name)
         if not documentation:
@@ -392,6 +424,14 @@ class AutoUpdatePipeline:
                 logger.info(f"    ✓ Test passed ({result.execution_time:.1f}s)")
                 return True
             else:
+                # Check if failure was due to image size
+                if result.errors:
+                    for error in result.errors:
+                        if 'Image too large' in error or 'too large' in error:
+                            self.stats.add('skipped_too_large')
+                            logger.warning(f"    ✗ {error}")
+                            return False
+
                 self.stats.add('tests_failed')
                 logger.warning(f"    ✗ Test failed")
                 if result.errors:
