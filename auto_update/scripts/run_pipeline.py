@@ -34,6 +34,7 @@ from validate_wrapper import WrapperValidator
 from test_tool_execution import ToolExecutor
 from integrate_tools import ToolIntegrator
 from quality_enhancement_step import QualityEnhancementStep
+from feasibility_checker import FeasibilityChecker
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,6 +51,8 @@ class PipelineStats:
     def __init__(self):
         self.stats = {
             'detected': 0,
+            'feasibility_passed': 0,
+            'feasibility_rejected': 0,
             'docs_fetched': 0,
             'wrappers_generated': 0,
             'wrappers_validated': 0,
@@ -75,6 +78,8 @@ class PipelineStats:
             "Pipeline Execution Summary",
             "="*60,
             f"Tools detected: {self.stats['detected']}",
+            f"Feasibility passed: {self.stats['feasibility_passed']}",
+            f"Feasibility rejected: {self.stats['feasibility_rejected']}",
             f"Documentation fetched: {self.stats['docs_fetched']}",
             f"Wrappers generated: {self.stats['wrappers_generated']}",
             f"Wrappers validated: {self.stats['wrappers_validated']}",
@@ -233,6 +238,18 @@ class AutoUpdatePipeline:
         repo_full_name = discovery.get('full_name')
 
         logger.info(f"\nProcessing tool: {tool_name}")
+
+        # Stage 1.5: Feasibility check (filter unsuitable tools early)
+        checker = FeasibilityChecker()
+        feasible, reason, confidence = checker.check(discovery)
+
+        if not feasible:
+            logger.info(f"  [SKIP] Not feasible: {reason} (confidence: {confidence:.0%})")
+            self.stats.add('feasibility_rejected')
+            return
+
+        self.stats.add('feasibility_passed')
+        logger.info(f"  [1/6] Feasibility check passed: {reason}")
 
         # Stage 2: Fetch documentation
         documentation = self._fetch_documentation(repo_full_name)

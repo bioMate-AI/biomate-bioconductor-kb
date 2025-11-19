@@ -124,12 +124,33 @@ class QualityEnhancementStep:
         if enhance and self.extractor and initial_validation['overall_score'] < self.MIN_WORKFLOW_READY_SCORE:
             logger.info(f"  Enhancing metadata (score < {self.MIN_WORKFLOW_READY_SCORE})...")
             try:
-                extraction_result = self.extractor.extract_and_update(tool_id)
-                if extraction_result.get('success'):
-                    result['enhanced'] = True
-                    logger.info(f"  Enhanced: +{extraction_result.get('params_added', 0)} params")
-                    # Re-fetch tool after enhancement
-                    tool = self._get_tool(tool_id)
+                # Get tool with parsed JSON for extractor
+                tool_for_extractor = dict(tool)
+                for json_field in ['parameters', 'inputs', 'outputs', 'use_cases', 'citations']:
+                    if tool_for_extractor.get(json_field):
+                        try:
+                            tool_for_extractor[json_field] = json.loads(tool_for_extractor[json_field])
+                        except (json.JSONDecodeError, TypeError):
+                            tool_for_extractor[json_field] = []
+
+                # Extract metadata using Claude
+                extraction_result = self.extractor.extract_all_metadata(tool_for_extractor)
+
+                # Update database with extracted metadata
+                if extraction_result.get('success') and extraction_result.get('extracted_metadata'):
+                    extracted = extraction_result['extracted_metadata']
+                    # Connect extractor to database for update
+                    self.extractor.connect()
+                    try:
+                        success = self.extractor.update_database(tool_id, extracted)
+                        if success:
+                            result['enhanced'] = True
+                            params_added = len(extracted.get('parameters', []))
+                            logger.info(f"  Enhanced: +{params_added} params")
+                            # Re-fetch tool after enhancement
+                            tool = self._get_tool(tool_id)
+                    finally:
+                        self.extractor.disconnect()
             except Exception as e:
                 logger.warning(f"  Enhancement failed: {e}")
                 result['issues'].append(f"Enhancement failed: {str(e)}")

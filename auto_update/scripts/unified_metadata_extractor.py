@@ -189,7 +189,7 @@ Extract and return a JSON object with these fields:
    For each parameter:
    - name: parameter name (alphanumeric_underscores, e.g., "threads", "gpu", "sensitivity")
    - flag: command-line flag (e.g., "--threads", "--gpu", "-s")
-   - type: one of: "boolean", "integer", "float", "string", "select", "data"
+   - type: one of: "boolean", "integer", "float", "text", "select", "data"
    - label: human-readable label (e.g., "Number of Threads")
    - help: description of what the parameter does
    - default: default value if mentioned (omit if not specified)
