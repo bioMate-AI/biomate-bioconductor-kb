@@ -401,8 +401,8 @@ class AutoUpdatePipeline:
 
         try:
             # Initialize integrator with comprehensive metadata extractor
-            db_path = Path('../backend/database/galaxy_ai_tools.db')
-            tools_dir = Path('../backend/tools')
+            db_path = Path(__file__).parent.parent.parent / 'backend' / 'database' / 'galaxy_ai_tools.db'
+            tools_dir = Path(__file__).parent.parent.parent / 'backend' / 'tools'
 
             # Get GitHub token from config
             github_token = self.config.get('credentials', {}).get('github', {}).get('token')
