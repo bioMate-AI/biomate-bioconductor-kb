@@ -47,13 +47,16 @@ if parallel and len(topics) > 1:
 ```
 All 5 queries started within 4 milliseconds!
 
-### 2. Docker Image Size Checking
-**File**: `scripts/test_tool_execution.py`
+### 2. Docker Image Size Checking + API Wrapper Generation ⭐ ENHANCED
+**Files**: `scripts/test_tool_execution.py`, `scripts/api_wrapper_generator.py`, `scripts/run_pipeline.py`
 
 **Implementation**:
 - Checks Docker image size BEFORE pulling using `docker manifest inspect`
-- Skips images larger than 2GB (configurable via `MAX_IMAGE_SIZE_MB`)
-- Returns detailed error message with actual size
+- If image > 2GB AND API available (confidence >0.6):
+  - **Automatically generates API wrapper** instead of Docker wrapper
+  - Creates lightweight Galaxy data source tool
+  - Generates Python API client script
+- If no API found, skips with warning message
 
 **Code**:
 ```python
@@ -83,9 +86,28 @@ def pull_container(self, container_type: str, image: str,
 ```
 
 **Benefit**:
-- Avoids downloading multi-GB images like AlphaFold (saves bandwidth and disk space)
-- Fails fast with clear error message
-- Size check completes in <1 second vs minutes to download large images
+- **Proactively finds API alternatives** instead of just skipping
+- Saves GB of bandwidth and disk space (e.g., AlphaFold: 10GB+ → <1KB wrapper)
+- Generated wrappers provide same functionality via API calls
+- Always uses latest version (no manual container updates)
+- Faster execution (no container startup overhead)
+- Size check completes in <1 second
+
+**Example Output**:
+```
+[3/6] Generating wrapper...
+  Docker image is large: 8500MB
+  API available (confidence: 85%)
+  → Converting to API wrapper (Docker image too large)
+  Saved to: data/wrappers/alphafold.xml
+```
+
+**Generated API Wrapper Structure**:
+- Galaxy tool XML with `tool_type="data_source"`
+- Python API client script (auto-generated)
+- Input parameters for API configuration
+- JSON output format
+- Documentation explaining why API is used instead of Docker
 
 ### 3. API Availability Detection
 **File**: `scripts/api_detector.py` (NEW)
