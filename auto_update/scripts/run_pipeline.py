@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from detect_github_tools import GitHubDetector, load_config
 from documentation_fetcher import DocumentationFetcher
 from galaxy_wrapper_generator import GalaxyWrapperGenerator
+from api_wrapper_generator import APIWrapperGenerator
 from validate_wrapper import WrapperValidator
 from test_tool_execution import ToolExecutor
 from integrate_tools import ToolIntegrator, DatabaseIntegrator
@@ -65,6 +66,7 @@ class PipelineStats:
             'skipped_too_large': 0,
             'docs_fetched': 0,
             'wrappers_generated': 0,
+            'api_wrappers_generated': 0,
             'wrappers_validated': 0,
             'tests_passed': 0,
             'tests_failed': 0,
@@ -95,6 +97,8 @@ class PipelineStats:
             f"Skipped (too large): {self.stats['skipped_too_large']}",
             f"Documentation fetched: {self.stats['docs_fetched']}",
             f"Wrappers generated: {self.stats['wrappers_generated']}",
+            f"  ├─ API wrappers: {self.stats['api_wrappers_generated']}",
+            f"  └─ Docker wrappers: {self.stats['wrappers_generated'] - self.stats['api_wrappers_generated']}",
             f"Wrappers validated: {self.stats['wrappers_validated']}",
             f"Tests passed: {self.stats['tests_passed']}",
             f"Tests failed: {self.stats['tests_failed']}",
@@ -361,13 +365,47 @@ class AutoUpdatePipeline:
         documentation: Dict
     ) -> Optional[Path]:
         """
-        Stage 3: Generate Galaxy wrapper.
+        Stage 3: Generate Galaxy wrapper (Docker or API-based).
+
+        Smart wrapper selection:
+        - Checks Docker image size first
+        - If > 2GB and API available, generates API wrapper instead
+        - Otherwise generates standard Docker wrapper
         """
         logger.info(f"  [3/6] Generating wrapper...")
 
         try:
+            # First, try standard Docker wrapper generation
             generator = GalaxyWrapperGenerator()
             wrapper_xml = generator.generate_wrapper(metadata, documentation)
+
+            # Extract Docker image from wrapper (if present)
+            docker_image = self._extract_docker_image(wrapper_xml)
+
+            # Check if we should use API instead
+            if docker_image:
+                use_api = self._should_use_api_wrapper(
+                    docker_image,
+                    metadata,
+                    documentation
+                )
+
+                if use_api:
+                    # Generate API wrapper instead
+                    api_detector = APIDetector()
+                    has_api, api_info = api_detector.check(metadata)
+
+                    if has_api and api_info:
+                        logger.info(f"    → Converting to API wrapper (Docker image too large)")
+                        api_generator = APIWrapperGenerator()
+                        wrapper_xml = api_generator.generate_api_wrapper(
+                            metadata,
+                            api_info,
+                            documentation
+                        )
+                        self.stats.add('api_wrappers_generated')
+                    else:
+                        logger.warning(f"    Docker too large but no API found, using Docker anyway")
 
             # Save wrapper
             tool_name = metadata.get('name')
@@ -384,6 +422,52 @@ class AutoUpdatePipeline:
         except Exception as e:
             logger.error(f"Wrapper generation error: {e}")
             return None
+
+    def _extract_docker_image(self, wrapper_xml: str) -> Optional[str]:
+        """Extract Docker image name from wrapper XML."""
+        import re
+        match = re.search(r'<container type="docker">([^<]+)</container>', wrapper_xml)
+        return match.group(1) if match else None
+
+    def _should_use_api_wrapper(
+        self,
+        docker_image: str,
+        metadata: Dict,
+        documentation: Dict
+    ) -> bool:
+        """
+        Determine if we should use API wrapper instead of Docker.
+
+        Returns True if:
+        - Docker image is > 2GB
+        - Tool has a usable API
+        """
+        try:
+            # Import here to avoid circular dependency
+            from test_tool_execution import ContainerManager
+
+            container_mgr = ContainerManager()
+            size_mb = container_mgr.get_image_size(docker_image)
+
+            if size_mb and size_mb > 2000:  # 2GB threshold
+                logger.info(f"    Docker image is large: {size_mb}MB")
+
+                # Check for API
+                api_detector = APIDetector()
+                has_api, api_info = api_detector.check(metadata)
+
+                if has_api and api_info:
+                    confidence = api_info.get('confidence', 0)
+                    logger.info(f"    API available (confidence: {confidence:.0%})")
+
+                    # Use API if confidence is reasonably high
+                    return confidence > 0.6
+
+            return False
+
+        except Exception as e:
+            logger.warning(f"    Error checking Docker size: {e}")
+            return False
 
     def _validate_wrapper(self, wrapper_path: Path) -> bool:
         """
