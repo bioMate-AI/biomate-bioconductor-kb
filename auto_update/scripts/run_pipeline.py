@@ -324,7 +324,7 @@ class AutoUpdatePipeline:
         # Stage 5: Test execution
         test_result = None
         if test:
-            test_passed = self._test_execution(wrapper_path)
+            test_passed = self._test_execution(wrapper_path, discovery)
             if not test_passed:
                 self.stats.add_error(f"{tool_name}: Test failed")
                 # Continue to integration even if test failed (for now)
@@ -493,14 +493,18 @@ class AutoUpdatePipeline:
             logger.error(f"Validation error: {e}")
             return False
 
-    def _test_execution(self, wrapper_path: Path) -> bool:
+    def _test_execution(self, wrapper_path: Path, metadata: Dict) -> bool:
         """
-        Stage 5: Test tool execution.
+        Stage 5: Test tool execution with real test data from repository.
         """
         logger.info(f"  [5/6] Testing execution...")
 
         try:
-            executor = ToolExecutor()
+            # Get GitHub token from config
+            github_token = self.config.get('credentials', {}).get('github', {}).get('token')
+
+            # Create executor with real test data fetcher
+            executor = ToolExecutor(github_token=github_token, tool_metadata=metadata)
             result = executor.execute_tool(wrapper_path)
 
             if result.success:

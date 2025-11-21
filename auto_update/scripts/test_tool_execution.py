@@ -24,6 +24,13 @@ from typing import Dict, List, Optional, Tuple
 import json as json_module
 from xml.etree import ElementTree as ET
 
+try:
+    from real_test_data_fetcher import RealTestDataFetcher
+    HAS_REAL_TEST_DATA = True
+except ImportError:
+    HAS_REAL_TEST_DATA = False
+    logger.warning("RealTestDataFetcher not available, using dummy test data only")
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -339,9 +346,18 @@ class ToolExecutor:
     Executes tools in containers.
     """
 
-    def __init__(self):
+    def __init__(self, github_token: Optional[str] = None, tool_metadata: Optional[Dict] = None):
         self.container_manager = ContainerManager()
         self.test_data_generator = TestDataGenerator()
+        self.tool_metadata = tool_metadata
+        self.real_test_data_fetcher = None
+
+        # Initialize real test data fetcher if available
+        if HAS_REAL_TEST_DATA and github_token:
+            self.real_test_data_fetcher = RealTestDataFetcher(github_token)
+            logger.info("Real test data fetcher enabled")
+        else:
+            logger.warning("Real test data fetcher disabled - will use dummy test data")
 
     def execute_tool(
         self,
@@ -385,7 +401,25 @@ class ToolExecutor:
 
             # Generate test data if not provided
             if not test_data:
-                test_data = self._generate_test_data_for_wrapper(root)
+                # Try to fetch real test data from repository first
+                if self.real_test_data_fetcher and self.tool_metadata:
+                    logger.info("Attempting to fetch real test data from repository...")
+                    real_test_data = self.real_test_data_fetcher.fetch_test_data(
+                        self.tool_metadata,
+                        file_types=['fastq', 'fasta', 'bam', 'vcf', 'sam', 'bed'],
+                        max_files=3
+                    )
+
+                    if real_test_data:
+                        logger.info(f"✓ Found {len(real_test_data)} real test files")
+                        test_data = real_test_data
+                    else:
+                        logger.warning("No real test data found, falling back to dummy data")
+                        test_data = self._generate_test_data_for_wrapper(root)
+                else:
+                    # Fall back to dummy test data
+                    logger.warning("Using dummy test data (no real test data fetcher available)")
+                    test_data = self._generate_test_data_for_wrapper(root)
 
             # Build command
             command = self._build_command(root, test_data, container_type, container_image)
