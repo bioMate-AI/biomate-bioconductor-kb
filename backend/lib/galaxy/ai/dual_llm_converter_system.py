@@ -159,7 +159,7 @@ class DocumentationProvider:
         Put large, common content first.
         """
 
-        prefix = """# GALAXY TO NEXTFLOW CONVERSION REFERENCE DOCUMENTATION
+        prefix = r"""# GALAXY TO NEXTFLOW CONVERSION REFERENCE DOCUMENTATION
 
 You are an expert at converting Galaxy workflows to Nextflow DSL2 format.
 
@@ -477,10 +477,23 @@ class ProcessConverter:
         results = {}
 
         if self.claude_converter:
+            # Import DetailedStep here to avoid circular import
+            from galaxy.ai.workflow_abstraction import DetailedStep
+
             # Use existing UnifiedToNextflowConverter
             for proc in processes:
-                result = self.claude_converter._generate_process_definition(proc)
-                env_yml = self.claude_converter._generate_environment_yml(proc)
+                # Convert Dict to DetailedStep object
+                detailed_step = DetailedStep(
+                    step_id=proc['id'],
+                    tool_id=proc.get('tool_id', ''),
+                    tool_name=proc.get('tool_name', ''),
+                    tool_version=proc.get('tool_version', 'latest'),
+                    description=proc.get('annotation', ''),
+                    annotation=proc.get('annotation', '')
+                )
+
+                result = self.claude_converter._generate_process_definition(detailed_step)
+                env_yml = self.claude_converter._generate_environment_yml(detailed_step)
 
                 results[proc['id']] = ConversionResult(
                     process_id=proc['id'],
