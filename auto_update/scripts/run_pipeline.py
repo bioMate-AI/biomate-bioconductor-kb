@@ -130,17 +130,24 @@ class AutoUpdatePipeline:
     Main pipeline orchestrator.
     """
 
-    def __init__(self, config_dir: Path, data_dir: Path):
+    def __init__(self, config_dir: Path, data_dir: Path, use_test_db: bool = False):
         self.config_dir = config_dir
         self.data_dir = data_dir
+        self.use_test_db = use_test_db
         self.stats = PipelineStats()
 
         # Load configuration
         self.config = load_config(config_dir)
 
         # Set paths for database and tools directory
-        self.db_path = Path(__file__).parent.parent.parent / 'backend' / 'database' / 'galaxy_ai_tools.db'
+        db_filename = 'galaxy_ai_tools_test.db' if use_test_db else 'galaxy_ai_tools.db'
+        self.db_path = Path(__file__).parent.parent.parent / 'backend' / db_filename
         self.tools_dir = Path(__file__).parent.parent.parent / 'backend' / 'tools'
+
+        if use_test_db:
+            logger.info(f"🧪 Using TEST database: {self.db_path}")
+        else:
+            logger.info(f"📊 Using MAIN database: {self.db_path}")
 
     def run_full_pipeline(
         self,
@@ -574,15 +581,12 @@ class AutoUpdatePipeline:
 
         try:
             # Initialize integrator with comprehensive metadata extractor
-            db_path = Path(__file__).parent.parent.parent / 'backend' / 'database' / 'galaxy_ai_tools.db'
-            tools_dir = Path(__file__).parent.parent.parent / 'backend' / 'tools'
-
             # Get GitHub token from config
             github_token = self.config.get('credentials', {}).get('github', {}).get('token')
 
             integrator = ToolIntegrator(
-                db_path=db_path,
-                tools_dir=tools_dir,
+                db_path=self.db_path,
+                tools_dir=self.tools_dir,
                 enable_llm=False,  # Set to True for production with anthropic_api_key
                 anthropic_api_key=None,
                 github_token=github_token
@@ -664,6 +668,11 @@ def main():
         default='data',
         help='Data directory (default: data)'
     )
+    parser.add_argument(
+        '--test-db',
+        action='store_true',
+        help='Use test database (galaxy_ai_tools_test.db) instead of main database'
+    )
 
     args = parser.parse_args()
 
@@ -672,7 +681,7 @@ def main():
     config_dir = script_dir / args.config_dir
     data_dir = script_dir / args.data_dir
 
-    pipeline = AutoUpdatePipeline(config_dir, data_dir)
+    pipeline = AutoUpdatePipeline(config_dir, data_dir, use_test_db=args.test_db)
 
     # Run pipeline
     start_time = datetime.now()
@@ -695,10 +704,9 @@ def main():
 
             try:
                 import os
-                db_path = Path(__file__).parent.parent.parent / 'backend' / 'database' / 'galaxy_ai_tools.db'
                 anthropic_key = os.getenv('ANTHROPIC_API_KEY')
 
-                enhancer = QualityEnhancementStep(db_path, anthropic_key)
+                enhancer = QualityEnhancementStep(pipeline.db_path, anthropic_key)
                 results = enhancer.process_recent_tools(enhance=bool(anthropic_key))
                 report = enhancer.generate_report(results)
                 print(report)
