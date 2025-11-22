@@ -40,6 +40,9 @@ from improved_galaxy_to_nextflow import (
     TypeInference
 )
 
+# Import enhanced converter
+from enhanced_process_converter import EnhancedProcessConverter
+
 
 # ==============================================================================
 # Unified Converter
@@ -100,7 +103,16 @@ class UnifiedGalaxyNextflowConverter:
         self.auditor = AssemblyAuditor()
         self.tester = NextflowTester()
 
-        # Iterative refiner
+        # Enhanced process converter (Phase 1 improvement)
+        self.enhanced_converter = EnhancedProcessConverter(
+            gemini_client=self.gemini,
+            doc_provider=self.docs,
+            claude_converter=claude_converter,
+            prompt_builder=self.prompt_builder,
+            scorer=self.scorer
+        )
+
+        # Iterative refiner (uses enhanced converter)
         self.refiner = IterativeRefiner(
             gemini_client=self.gemini,
             doc_provider=self.docs,
