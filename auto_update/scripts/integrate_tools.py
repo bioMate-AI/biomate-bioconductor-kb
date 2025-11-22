@@ -66,6 +66,77 @@ class DatabaseIntegrator:
         )
         return cursor.fetchone() is not None
 
+    def get_tool_version(self, tool_id: str) -> Optional[str]:
+        """Get version of existing tool in database"""
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "SELECT version FROM tools WHERE tool_id = ?",
+            (tool_id,)
+        )
+        result = cursor.fetchone()
+        return result['version'] if result else None
+
+    def is_newer_version(self, tool_id: str, new_version: str) -> bool:
+        """
+        Check if new version is newer than existing version.
+
+        Returns:
+            True if new version is newer, False if same/older or if tool doesn't exist
+        """
+        existing_version = self.get_tool_version(tool_id)
+
+        if not existing_version:
+            # Tool doesn't exist, consider as "newer"
+            return True
+
+        # Simple version comparison
+        # Handle formats: 1.2.3, v1.2.3, git.20251121, unknown
+        def parse_version(v: str) -> tuple:
+            v = v.lower().lstrip('v')
+
+            # Handle git commits
+            if v.startswith('git.'):
+                date_str = v.replace('git.', '')
+                try:
+                    return (0, int(date_str))  # (type, date_number)
+                except:
+                    return (0, 0)
+
+            # Handle unknown
+            if v == 'unknown':
+                return (-1, 0, 0, 0)
+
+            # Parse semver: 1.2.3
+            parts = v.split('.')
+            version_tuple = []
+            for part in parts[:4]:  # Take up to 4 parts
+                try:
+                    version_tuple.append(int(part))
+                except:
+                    version_tuple.append(0)
+
+            # Pad to 4 elements
+            while len(version_tuple) < 4:
+                version_tuple.append(0)
+
+            return (1, *version_tuple)  # (type, major, minor, patch, build)
+
+        try:
+            new_v = parse_version(new_version)
+            existing_v = parse_version(existing_version)
+
+            is_newer = new_v > existing_v
+
+            if is_newer:
+                logger.info(f"  Newer version detected: {new_version} > {existing_version}")
+            else:
+                logger.info(f"  Same or older version: {new_version} <= {existing_version}")
+
+            return is_newer
+        except Exception as e:
+            logger.warning(f"Version comparison failed: {e}, assuming newer")
+            return True
+
     def add_tool(self, complete_metadata: Dict, source_metadata: Dict = None) -> bool:
         """
         Add tool to database with complete metadata (all 38 fields).
