@@ -639,9 +639,10 @@ class ComprehensiveMetadataExtractor:
         if help_elem is not None and help_elem.text:
             parts.append(f"\n## Help\n{help_elem.text}")
 
-        # Documentation
+        # Documentation - COMPLETE README (not truncated)
         if documentation.get('readme'):
-            parts.append(f"\n## Documentation\n{documentation['readme'][:2000]}")
+            readme_full = documentation['readme']
+            parts.append(f"\n## Documentation\n{readme_full}")
 
         # GitHub metadata
         if metadata.get('description'):
