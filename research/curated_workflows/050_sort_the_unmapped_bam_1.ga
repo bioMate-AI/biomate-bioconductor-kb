@@ -1,0 +1,317 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "",
+  "comments": [],
+  "format-version": "0.1",
+  "name": "Sort the unmapped bam",
+  "report": {
+    "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+  },
+  "steps": {
+    "0": {
+      "annotation": "",
+      "content_id": null,
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "",
+          "name": "bam"
+        }
+      ],
+      "label": "bam",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 0,
+        "top": 175.73044276427476
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"tag\": null}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "85b94a9e-7c3c-4817-85c3-fcfd40aeb9a0",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "1": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.20+galaxy3",
+      "errors": null,
+      "id": 1,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "mapped_unmapped",
+      "name": "Samtools view",
+      "outputs": [
+        {
+          "name": "outputsam",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 233.666748046875,
+        "top": 0
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.20+galaxy3",
+      "tool_shed_repository": {
+        "changeset_revision": "32dc5f781059",
+        "name": "samtools_view",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"addref_cond\": {\"addref_select\": \"no\", \"__current_case__\": 0}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"mode\": {\"outtype\": \"selected_reads\", \"__current_case__\": 1, \"filter_config\": {\"cond_region\": {\"select_region\": \"no\", \"__current_case__\": 0}, \"cond_rg\": {\"select_rg\": \"no\", \"__current_case__\": 0}, \"cond_expr\": {\"select_expr\": \"no\", \"__current_case__\": 0}, \"quality\": null, \"library\": null, \"cigarcons\": null, \"inclusive_filter\": [\"8\"], \"exclusive_filter\": [\"4\", \"256\"], \"exclusive_filter_all\": null, \"tag\": null, \"qname_file\": {\"__class__\": \"RuntimeValue\"}}, \"subsample_config\": {\"subsampling_mode\": {\"select_subsample\": \"fraction\", \"__current_case__\": 0, \"factor\": \"1.0\", \"seed\": null}}, \"output_options\": {\"reads_report_type\": \"retained\", \"__current_case__\": 0, \"complementary_output\": false, \"adv_output\": {\"readtags\": [], \"collapsecigar\": false}, \"output_format\": {\"oformat\": \"bam\", \"__current_case__\": 2}}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.20+galaxy3",
+      "type": "tool",
+      "uuid": "2bf3e462-c851-44bf-ae1f-97085aedb468",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "2": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.20+galaxy3",
+      "errors": null,
+      "id": 2,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "unmapped_mapped",
+      "name": "Samtools view",
+      "outputs": [
+        {
+          "name": "outputsam",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 234.666748046875,
+        "top": 180.31375122070318
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.20+galaxy3",
+      "tool_shed_repository": {
+        "changeset_revision": "32dc5f781059",
+        "name": "samtools_view",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"addref_cond\": {\"addref_select\": \"no\", \"__current_case__\": 0}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"mode\": {\"outtype\": \"selected_reads\", \"__current_case__\": 1, \"filter_config\": {\"cond_region\": {\"select_region\": \"no\", \"__current_case__\": 0}, \"cond_rg\": {\"select_rg\": \"no\", \"__current_case__\": 0}, \"cond_expr\": {\"select_expr\": \"no\", \"__current_case__\": 0}, \"quality\": null, \"library\": null, \"cigarcons\": null, \"inclusive_filter\": [\"4\"], \"exclusive_filter\": [\"256\", \"8\"], \"exclusive_filter_all\": null, \"tag\": null, \"qname_file\": {\"__class__\": \"RuntimeValue\"}}, \"subsample_config\": {\"subsampling_mode\": {\"select_subsample\": \"fraction\", \"__current_case__\": 0, \"factor\": \"1.0\", \"seed\": null}}, \"output_options\": {\"reads_report_type\": \"retained\", \"__current_case__\": 0, \"complementary_output\": false, \"adv_output\": {\"readtags\": [], \"collapsecigar\": false}, \"output_format\": {\"oformat\": \"bam\", \"__current_case__\": 2}}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.20+galaxy3",
+      "type": "tool",
+      "uuid": "c74971e6-74c6-4cc2-88e4-e5f2bd29e5e9",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "3": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.20+galaxy3",
+      "errors": null,
+      "id": 3,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "unmapped_unmapped",
+      "name": "Samtools view",
+      "outputs": [
+        {
+          "name": "outputsam",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 231.00006103515625,
+        "top": 360.6471252441407
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.20+galaxy3",
+      "tool_shed_repository": {
+        "changeset_revision": "32dc5f781059",
+        "name": "samtools_view",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"addref_cond\": {\"addref_select\": \"no\", \"__current_case__\": 0}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"mode\": {\"outtype\": \"selected_reads\", \"__current_case__\": 1, \"filter_config\": {\"cond_region\": {\"select_region\": \"no\", \"__current_case__\": 0}, \"cond_rg\": {\"select_rg\": \"no\", \"__current_case__\": 0}, \"cond_expr\": {\"select_expr\": \"no\", \"__current_case__\": 0}, \"quality\": null, \"library\": null, \"cigarcons\": null, \"inclusive_filter\": [\"4\", \"8\"], \"exclusive_filter\": [\"256\"], \"exclusive_filter_all\": null, \"tag\": null, \"qname_file\": {\"__class__\": \"RuntimeValue\"}}, \"subsample_config\": {\"subsampling_mode\": {\"select_subsample\": \"fraction\", \"__current_case__\": 0, \"factor\": \"1.0\", \"seed\": null}}, \"output_options\": {\"reads_report_type\": \"retained\", \"__current_case__\": 0, \"complementary_output\": false, \"adv_output\": {\"readtags\": [], \"collapsecigar\": false}, \"output_format\": {\"oformat\": \"bam\", \"__current_case__\": 2}}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.20+galaxy3",
+      "type": "tool",
+      "uuid": "5b1c2904-6eb6-4d27-bc55-ff73ddcd67fc",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "4": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_merge/samtools_merge/1.20+galaxy2",
+      "errors": null,
+      "id": 4,
+      "input_connections": {
+        "bamfiles": [
+          {
+            "id": 1,
+            "output_name": "outputsam"
+          },
+          {
+            "id": 2,
+            "output_name": "outputsam"
+          },
+          {
+            "id": 3,
+            "output_name": "outputsam"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Samtools merge",
+          "name": "bed_file"
+        },
+        {
+          "description": "runtime parameter for tool Samtools merge",
+          "name": "headerbam"
+        }
+      ],
+      "label": null,
+      "name": "Samtools merge",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bam"
+        }
+      ],
+      "position": {
+        "left": 507.666748046875,
+        "top": 184.98043823242193
+      },
+      "post_job_actions": {
+        "EmailActionoutput": {
+          "action_arguments": {
+            "host": "usegalaxy.org"
+          },
+          "action_type": "EmailAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_merge/samtools_merge/1.20+galaxy2",
+      "tool_shed_repository": {
+        "changeset_revision": "cae2794d2deb",
+        "name": "samtools_merge",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"bamfiles\": {\"__class__\": \"ConnectedValue\"}, \"bed_file\": {\"__class__\": \"RuntimeValue\"}, \"headerbam\": {\"__class__\": \"RuntimeValue\"}, \"idpg\": false, \"idrg\": false, \"region\": null, \"seed\": \"1\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.20+galaxy2",
+      "type": "tool",
+      "uuid": "c0da9da2-3d17-4613-8b24-c2df01dbf065",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "5": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_sort/samtools_sort/2.0.5",
+      "errors": null,
+      "id": 5,
+      "input_connections": {
+        "input1": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Samtools sort",
+      "outputs": [
+        {
+          "name": "output1",
+          "type": "bam"
+        }
+      ],
+      "position": {
+        "left": 752.666748046875,
+        "top": 228.64706420898443
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_sort/samtools_sort/2.0.5",
+      "tool_shed_repository": {
+        "changeset_revision": "d54a4df48867",
+        "name": "samtools_sort",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"minhash\": false, \"prim_key_cond\": {\"prim_key_select\": \"-n\", \"__current_case__\": 1}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.0.5",
+      "type": "tool",
+      "uuid": "d0e00cbe-03c4-4f92-8576-d75f7cb27edb",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "output1",
+          "output_name": "output1",
+          "uuid": "91d2d7bf-b0f6-4161-bfa3-7eff6d906b56"
+        }
+      ]
+    },
+    "6": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_flagstat/samtools_flagstat/2.0.5",
+      "errors": null,
+      "id": 6,
+      "input_connections": {
+        "input1": {
+          "id": 5,
+          "output_name": "output1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Samtools flagstat",
+      "outputs": [
+        {
+          "name": "output1",
+          "type": "txt"
+        }
+      ],
+      "position": {
+        "left": 1024.0000610351562,
+        "top": 222.31375122070318
+      },
+      "post_job_actions": {
+        "EmailActionoutput1": {
+          "action_arguments": {
+            "host": "usegalaxy.org"
+          },
+          "action_type": "EmailAction",
+          "output_name": "output1"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_flagstat/samtools_flagstat/2.0.5",
+      "tool_shed_repository": {
+        "changeset_revision": "fefd89ab563c",
+        "name": "samtools_flagstat",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"output_fmt\": \"txt\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.0.5",
+      "type": "tool",
+      "uuid": "2b6c424e-6f9e-4174-b8a6-28f8a588e20b",
+      "when": null,
+      "workflow_outputs": []
+    }
+  },
+  "tags": [],
+  "uuid": "5d81b832-1d9f-45ec-8a5f-1c781461fd35",
+  "version": 1
+}

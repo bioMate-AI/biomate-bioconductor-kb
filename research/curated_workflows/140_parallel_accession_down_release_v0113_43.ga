@@ -1,0 +1,273 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "Downloads fastq files for sequencing run accessions provided in a text file using fasterq-dump. Creates one job per listed run accession.",
+  "comments": [],
+  "creator": [
+    {
+      "class": "Person",
+      "identifier": "https://orcid.org/0000-0002-9676-7032",
+      "name": "Marius van den Beek"
+    },
+    {
+      "class": "Organization",
+      "name": "IWC",
+      "url": "https://github.com/galaxyproject/iwc"
+    }
+  ],
+  "format-version": "0.1",
+  "license": "MIT",
+  "name": "Parallel Accession Down (release v0.1.13)",
+  "steps": {
+    "0": {
+      "annotation": "Text file containing run accessions (starting with SRR, ERR or DRR), one per line.",
+      "content_id": null,
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Text file containing run accessions (starting with SRR, ERR or DRR), one per line.",
+          "name": "Run accessions"
+        }
+      ],
+      "label": "Run accessions",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 0,
+        "top": 0
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"txt\"], \"tag\": null}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "df2f6aa0-1884-487f-9b0d-5b02fc13e0aa",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "1": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_to_collection/split_file_to_collection/0.5.1",
+      "errors": null,
+      "id": 1,
+      "input_connections": {
+        "split_parms|input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Split file",
+          "name": "split_parms"
+        }
+      ],
+      "label": "Split accessions to collection",
+      "name": "Split file",
+      "outputs": [
+        {
+          "name": "list_output_txt",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 279.51666259765625,
+        "top": 86.01666259765625
+      },
+      "post_job_actions": {
+        "HideDatasetActionlist_output_txt": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "list_output_txt"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_to_collection/split_file_to_collection/0.5.1",
+      "tool_shed_repository": {
+        "changeset_revision": "baabc30154cd",
+        "name": "split_file_to_collection",
+        "owner": "bgruening",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"split_parms\": {\"select_ftype\": \"txt\", \"__current_case__\": 5, \"input\": {\"__class__\": \"ConnectedValue\"}, \"select_mode\": {\"mode\": \"chunk\", \"__current_case__\": 0, \"chunksize\": \"1\"}, \"newfilenames\": \"split_file\", \"select_allocate\": {\"allocate\": \"byrow\", \"__current_case__\": 2}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.5.1",
+      "type": "tool",
+      "uuid": "a10cb880-b53b-48ab-9607-d57240707507",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "2": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/sra_tools/fasterq_dump/3.1.0+galaxy1",
+      "errors": null,
+      "id": 2,
+      "input_connections": {
+        "input|file_list": {
+          "id": 1,
+          "output_name": "list_output_txt"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Faster Download and Extract Reads in FASTQ",
+          "name": "input"
+        }
+      ],
+      "label": "fasterq-dump",
+      "name": "Faster Download and Extract Reads in FASTQ",
+      "outputs": [
+        {
+          "name": "list_paired",
+          "type": "input"
+        },
+        {
+          "name": "output_collection",
+          "type": "input"
+        },
+        {
+          "name": "output_collection_other",
+          "type": "input"
+        },
+        {
+          "name": "log",
+          "type": "txt"
+        }
+      ],
+      "position": {
+        "left": 570.9250183105469,
+        "top": 62.9749755859375
+      },
+      "post_job_actions": {
+        "HideDatasetActionlist_paired": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "list_paired"
+        },
+        "HideDatasetActionlog": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "log"
+        },
+        "HideDatasetActionoutput_collection": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output_collection"
+        },
+        "HideDatasetActionoutput_collection_other": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output_collection_other"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/sra_tools/fasterq_dump/3.1.0+galaxy1",
+      "tool_shed_repository": {
+        "changeset_revision": "f8054ea1c365",
+        "name": "sra_tools",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"adv\": {\"seq_defline\": \"@$sn/$ri\", \"minlen\": null, \"split\": \"--split-3\", \"skip_technical\": true}, \"input\": {\"input_select\": \"file_list\", \"__current_case__\": 2, \"file_list\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "3.1.0+galaxy1",
+      "type": "tool",
+      "uuid": "57234a05-8da2-4df3-b040-5d0d858a6786",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "3": {
+      "annotation": "",
+      "content_id": "__APPLY_RULES__",
+      "errors": null,
+      "id": 3,
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "list_paired"
+        }
+      },
+      "inputs": [],
+      "label": "flatten paired output",
+      "name": "Apply rules",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 898.0000305175781,
+        "top": 71.9749755859375
+      },
+      "post_job_actions": {
+        "TagDatasetActionoutput": {
+          "action_arguments": {
+            "tags": "name:PE"
+          },
+          "action_type": "TagDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "__APPLY_RULES__",
+      "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"rules\": {\"mapping\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"columns\": [1], \"connectable\": true, \"editing\": false, \"is_workflow\": false, \"type\": \"list_identifiers\"}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"columns\": [2], \"connectable\": true, \"is_workflow\": false, \"type\": \"paired_identifier\"}], \"rules\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier0\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier1\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier2\", \"warn\": null}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.1.0",
+      "type": "tool",
+      "uuid": "515c0634-d1b0-4c3d-be17-448be2661db6",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "Paired End Reads",
+          "output_name": "output",
+          "uuid": "6391f567-9ce5-451f-918d-8b406233eecd"
+        }
+      ]
+    },
+    "4": {
+      "annotation": "",
+      "content_id": "__APPLY_RULES__",
+      "errors": null,
+      "id": 4,
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output_collection"
+        }
+      },
+      "inputs": [],
+      "label": "flatten single end output",
+      "name": "Apply rules",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 905.0499572753906,
+        "top": 215.0250244140625
+      },
+      "post_job_actions": {
+        "TagDatasetActionoutput": {
+          "action_arguments": {
+            "tags": "name:SE"
+          },
+          "action_type": "TagDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "__APPLY_RULES__",
+      "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"rules\": {\"mapping\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"columns\": [1], \"connectable\": true, \"editing\": false, \"is_workflow\": false, \"type\": \"list_identifiers\"}], \"rules\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier0\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier1\", \"warn\": null}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.1.0",
+      "type": "tool",
+      "uuid": "a4c7ef14-7244-4b1f-8e90-264b7e8b6ae0",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "Single End Reads",
+          "output_name": "output",
+          "uuid": "0d3ca3e7-8825-4c4e-af2e-0747cd07a2c6"
+        }
+      ]
+    }
+  },
+  "tags": [],
+  "uuid": "7342b4ae-2ea4-4151-8ecd-e7d7e52bee71",
+  "version": 1
+}

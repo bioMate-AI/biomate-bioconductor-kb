@@ -1,0 +1,180 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "We assume the identifiers of the input list are like:\nsample_name_replicateID.\nThe identifiers of the output list will be:\nsample_name",
+  "comments": [],
+  "creator": [
+    {
+      "class": "Person",
+      "identifier": "https://orcid.org/0000-0002-1964-4960",
+      "name": "Lucille Delisle"
+    }
+  ],
+  "format-version": "0.1",
+  "license": "MIT",
+  "name": "Average Bigwig between replicates (release v0.1)",
+  "steps": {
+    "0": {
+      "annotation": "We assume the identifiers are like:\nsample_name_replicateID",
+      "content_id": null,
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "We assume the identifiers are like:\nsample_name_replicateID",
+          "name": "Bigwig to average"
+        }
+      ],
+      "label": "Bigwig to average",
+      "name": "Input dataset collection",
+      "outputs": [],
+      "position": {
+        "left": 0,
+        "top": 0.0
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list\", \"fields\": null}",
+      "tool_version": null,
+      "type": "data_collection_input",
+      "uuid": "3eefe922-8a1d-4fcc-93f7-e095308aced4",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "1": {
+      "annotation": "Bin size for normalized bigwig (usually 5bp is sufficient for RNA-seq and 50bp for ChIP/CUTandRUN/ATAC)",
+      "content_id": null,
+      "errors": null,
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Bin size for normalized bigwig (usually 5bp is sufficient for RNA-seq and 50bp for ChIP/CUTandRUN/ATAC)",
+          "name": "bin_size"
+        }
+      ],
+      "label": "bin_size",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 16,
+        "top": 125.0
+      },
+      "tool_id": null,
+      "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "a3406d6b-2aa5-490b-8d9c-ccc256b125bb",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "2": {
+      "annotation": "",
+      "content_id": "__APPLY_RULES__",
+      "errors": null,
+      "id": 2,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Apply rules",
+          "name": "input"
+        }
+      ],
+      "label": null,
+      "name": "Apply rules",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 254,
+        "top": 11.5
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutput": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "__APPLY_RULES__",
+      "tool_state": "{\"input\": {\"__class__\": \"RuntimeValue\"}, \"rules\": {\"mapping\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"columns\": [1, 2], \"connectable\": true, \"editing\": false, \"is_workflow\": false, \"type\": \"list_identifiers\"}], \"rules\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier0\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"expression\": \"^(.*)_([^_]*)$\", \"is_workflow\": false, \"replacement\": \"\\\\1\", \"target_column\": 0, \"type\": \"add_column_regex\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"expression\": \"^(.*)_([^_]*)$\", \"is_workflow\": false, \"replacement\": \"\\\\2\", \"target_column\": 0, \"type\": \"add_column_regex\", \"warn\": null}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": null,
+      "type": "tool",
+      "uuid": "01ef27dd-5320-4056-ac2d-3c3b0675c32d",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "3": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/deeptools_bigwig_average/deeptools_bigwig_average/3.5.2+galaxy0",
+      "errors": null,
+      "id": 3,
+      "input_connections": {
+        "advancedOpt|binSize": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "bigwigs": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool bigwigAverage",
+          "name": "advancedOpt"
+        },
+        {
+          "description": "runtime parameter for tool bigwigAverage",
+          "name": "advancedOpt"
+        },
+        {
+          "description": "runtime parameter for tool bigwigAverage",
+          "name": "bigwigs"
+        }
+      ],
+      "label": "average bigwigs from different replicates",
+      "name": "bigwigAverage",
+      "outputs": [
+        {
+          "name": "outFileName",
+          "type": "bigwig"
+        }
+      ],
+      "position": {
+        "left": 474,
+        "top": 11.5
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/deeptools_bigwig_average/deeptools_bigwig_average/3.5.2+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "f6f246438eda",
+        "name": "deeptools_bigwig_average",
+        "owner": "bgruening",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"advancedOpt\": {\"showAdvancedOpt\": \"yes\", \"__current_case__\": 1, \"binSize\": {\"__class__\": \"ConnectedValue\"}, \"skipNAs\": false, \"scaleFactors\": \"1\", \"blackListFileName\": {\"__class__\": \"RuntimeValue\"}}, \"bigwigs\": {\"__class__\": \"RuntimeValue\"}, \"outFileFormat\": \"bigwig\", \"region\": \"\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": null,
+      "type": "tool",
+      "uuid": "6f22c218-95f4-4c51-ba42-1290334c9cf6",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "average_bigwigs",
+          "output_name": "outFileName",
+          "uuid": "c54aaa37-692f-41b2-b57a-0c972e7387b1"
+        }
+      ]
+    }
+  },
+  "tags": [],
+  "uuid": "5ccfde1e-9f05-4476-8a82-2fe58c80ea43",
+  "version": 1
+}

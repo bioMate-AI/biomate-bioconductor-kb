@@ -1,0 +1,586 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "Decontamination (foreign contaminants and mitochondrial sequences) of a genome assembly after the final scaffolding step. Uses Kraken2 to identify foreign contaminants and Blast to identify mitochondrial sequences. Part of the VGP Suite.",
+  "comments": [],
+  "creator": [
+    {
+      "class": "Organization",
+      "name": "Nadolina Brajuka",
+      "url": "https://github.com/Nadolina"
+    }
+  ],
+  "format-version": "0.1",
+  "license": "BSD-3-Clause",
+  "name": "Assembly-decontamination-VGP9 (release v0.7)",
+  "report": {
+    "markdown": "\n# Workflow Execution Report\n\n### Worflow ran on: \n\n```galaxy\ninvocation_time()\n```\n\n# List of contaminants\n\n\r\n```galaxy\nhistory_dataset_as_table(output=\"contaminants_table\")\n```\r\n\n\n# List of Mitochondrial scaffolds\n\r\n```galaxy\nhistory_dataset_as_table(output=\"mito_scaff_names\")\n```\r\n\n\n\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+  },
+  "steps": {
+    "0": {
+      "annotation": "",
+      "content_id": null,
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "",
+          "name": "Scaffolded assembly (fasta)"
+        }
+      ],
+      "label": "Scaffolded assembly (fasta)",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 0.0,
+        "top": 573.2100224386197
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "1c43a5a7-e2d0-4f72-8cc7-d81b75dbdab1",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "1": {
+      "annotation": "Select the database to query to identify non-target contaminants.",
+      "content_id": null,
+      "errors": null,
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Select the database to query to identify non-target contaminants.",
+          "name": "Database for Kraken2"
+        }
+      ],
+      "label": "Database for Kraken2",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 0.5475811709443406,
+        "top": 692.7734375
+      },
+      "tool_id": null,
+      "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "cdf6d71a-5fea-4dc6-9046-9dce5db4f6b2",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": null,
+          "output_name": "output",
+          "uuid": "21b653cd-d88b-40f0-824f-dc4a25106161"
+        }
+      ]
+    },
+    "2": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_dustmasker_wrapper/2.16.0+galaxy0",
+      "errors": null,
+      "id": 2,
+      "input_connections": {
+        "db_opts|subject": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool NCBI BLAST+ dustmasker",
+          "name": "db_opts"
+        }
+      ],
+      "label": "soft-masking ",
+      "name": "NCBI BLAST+ dustmasker",
+      "outputs": [
+        {
+          "name": "outfile",
+          "type": "maskinfo-asn1"
+        }
+      ],
+      "position": {
+        "left": 463.79758117094434,
+        "top": 292.69140625
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutfile": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "outfile"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_dustmasker_wrapper/2.16.0+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "fc35ffc8c548",
+        "name": "ncbi_blast_plus",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"db_opts\": {\"db_opts_selector\": \"file\", \"__current_case__\": 2, \"database\": \"\", \"histdb\": \"\", \"subject\": {\"__class__\": \"ConnectedValue\"}}, \"level\": \"40\", \"linker\": \"1\", \"outformat\": \"fasta\", \"window\": \"64\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.16.0+galaxy0",
+      "type": "tool",
+      "uuid": "b28154c0-79c4-47d4-8691-74ac5bd3bff5",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "3": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/9.5+galaxy2",
+      "errors": null,
+      "id": 3,
+      "input_connections": {
+        "infile": {
+          "id": 2,
+          "output_name": "outfile"
+        }
+      },
+      "inputs": [],
+      "label": "hard-masking",
+      "name": "Text transformation",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 827.4147686709443,
+        "top": 312.24609375
+      },
+      "post_job_actions": {
+        "ChangeDatatypeActionoutput": {
+          "action_arguments": {
+            "newtype": "fasta"
+          },
+          "action_type": "ChangeDatatypeAction",
+          "output_name": "output"
+        },
+        "HideDatasetActionoutput": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/9.5+galaxy2",
+      "tool_shed_repository": {
+        "changeset_revision": "c41d78ae5fee",
+        "name": "text_processing",
+        "owner": "bgruening",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"basic\", \"__current_case__\": 0}, \"code\": \"/^>/!y/atcgn/NNNNN/\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "9.5+galaxy2",
+      "type": "tool",
+      "uuid": "d5cafc99-d9ca-4bab-8579-693c07263db6",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "4": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/kraken2/kraken2/2.1.3+galaxy1",
+      "errors": null,
+      "id": 4,
+      "input_connections": {
+        "kraken2_database": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "single_paired|input_sequences": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Kraken2",
+          "name": "single_paired"
+        }
+      ],
+      "label": "ID non-target contaminants",
+      "name": "Kraken2",
+      "outputs": [
+        {
+          "name": "classified_out_s",
+          "type": "input"
+        },
+        {
+          "name": "unclassified_out_s",
+          "type": "input"
+        },
+        {
+          "name": "output",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 1300.1257061709443,
+        "top": 147.58203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionunclassified_out_s": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "unclassified_out_s"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/kraken2/kraken2/2.1.3+galaxy1",
+      "tool_shed_repository": {
+        "changeset_revision": "241a78eb2935",
+        "name": "kraken2",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"confidence\": \"0.3\", \"kraken2_database\": {\"__class__\": \"ConnectedValue\"}, \"min_base_quality\": \"0\", \"minimum_hit_groups\": \"2\", \"quick\": false, \"report\": {\"create_report\": false, \"use_mpa_style\": false, \"report_zero_counts\": false, \"report_minimizer_data\": false}, \"single_paired\": {\"single_paired_selector\": \"no\", \"__current_case__\": 2, \"input_sequences\": {\"__class__\": \"ConnectedValue\"}}, \"split_reads\": true, \"use_names\": true, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.1.3+galaxy1",
+      "type": "tool",
+      "uuid": "509e4096-90aa-4423-b66d-8ce45906c7d4",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "Kraken2 classification scores",
+          "output_name": "output",
+          "uuid": "befcc958-681e-4ee5-87b2-076e7833f40d"
+        }
+      ]
+    },
+    "5": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastn_wrapper/2.16.0+galaxy0",
+      "errors": null,
+      "id": 5,
+      "input_connections": {
+        "query": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "blast mitochondria DB",
+      "name": "NCBI BLAST+ blastn",
+      "outputs": [
+        {
+          "name": "output1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 1293.4616436709443,
+        "top": 539.6171875
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastn_wrapper/2.16.0+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "fc35ffc8c548",
+        "name": "ncbi_blast_plus",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"basic\", \"__current_case__\": 0}, \"blast_type\": \"blastn\", \"db_opts\": {\"db_opts_selector\": \"db\", \"__current_case__\": 0, \"database\": [\"refseq_mitochondrion\"], \"histdb\": \"\", \"subject\": \"\"}, \"evalue_cutoff\": \"0.001\", \"output\": {\"out_format\": \"cols\", \"__current_case__\": 2, \"std_cols\": [\"qseqid\", \"sseqid\", \"length\", \"qstart\", \"qend\", \"evalue\"], \"ext_cols\": [\"qlen\"], \"ids_cols\": null, \"misc_cols\": [\"qcovs\", \"qcovhsp\"], \"tax_cols\": null}, \"query\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.16.0+galaxy0",
+      "type": "tool",
+      "uuid": "3eb7be01-8424-4208-abc4-b287c54616ff",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "6": {
+      "annotation": "",
+      "content_id": "Cut1",
+      "errors": null,
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Cut",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 1654.7624249209443,
+        "top": 53.078125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Cut1",
+      "tool_state": "{\"columnList\": \"c1,c2,c3\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.2",
+      "type": "tool",
+      "uuid": "2f86d1a3-1017-4054-ace4-3f12447e7924",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "7": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/parse_mito_blast/parse_mito_blast/1.0.2+galaxy0",
+      "errors": null,
+      "id": 7,
+      "input_connections": {
+        "blastout": {
+          "id": 5,
+          "output_name": "output1"
+        }
+      },
+      "inputs": [],
+      "label": "parsing blast output",
+      "name": "Parse mitochondrial blast",
+      "outputs": [
+        {
+          "name": "cov_report",
+          "type": "tabular"
+        },
+        {
+          "name": "mito_scaff_names",
+          "type": "txt"
+        }
+      ],
+      "position": {
+        "left": 1821.3783868183484,
+        "top": 482.19337215633186
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/parse_mito_blast/parse_mito_blast/1.0.2+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "3c9ad4adf8d2",
+        "name": "parse_mito_blast",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"blastout\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.2+galaxy0",
+      "type": "tool",
+      "uuid": "7344c77c-a235-4727-9550-926ddd12693e",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "mito_scaff_names",
+          "output_name": "mito_scaff_names",
+          "uuid": "64831757-d3c4-4dd3-8a44-7aa859256f44"
+        }
+      ]
+    },
+    "8": {
+      "annotation": "",
+      "content_id": "Filter1",
+      "errors": null,
+      "id": 8,
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Filter",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 2001.9694561709443,
+        "top": 0
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        },
+        "RenameDatasetActionout_file1": {
+          "action_arguments": {
+            "newname": "List of contaminants"
+          },
+          "action_type": "RenameDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Filter1",
+      "tool_state": "{\"cond\": \"c1!='U'\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.1.1",
+      "type": "tool",
+      "uuid": "6f137982-3319-4d12-bdc5-5c43d3b172df",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "contaminants_table",
+          "output_name": "out_file1",
+          "uuid": "882ec458-7350-447e-8c47-c8c2d3c9f6e7"
+        }
+      ]
+    },
+    "9": {
+      "annotation": "",
+      "content_id": "Cut1",
+      "errors": null,
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 8,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Cut",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 2237.4640689838916,
+        "top": 241.19478945940944
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Cut1",
+      "tool_state": "{\"columnList\": \"c2\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.2",
+      "type": "tool",
+      "uuid": "5d3b9c7b-2042-4a1c-a002-c78f3a5d7f4c",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "10": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/9.5+galaxy2",
+      "errors": null,
+      "id": 10,
+      "input_connections": {
+        "inputs": [
+          {
+            "id": 7,
+            "output_name": "mito_scaff_names"
+          },
+          {
+            "id": 9,
+            "output_name": "out_file1"
+          }
+        ]
+      },
+      "inputs": [],
+      "label": "concatenate scaffold lists",
+      "name": "Concatenate datasets",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 2538.6178936709443,
+        "top": 423.9453125
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/9.5+galaxy2",
+      "tool_shed_repository": {
+        "changeset_revision": "c41d78ae5fee",
+        "name": "text_processing",
+        "owner": "bgruening",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"inputs\": {\"__class__\": \"ConnectedValue\"}, \"queries\": [], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "9.5+galaxy2",
+      "type": "tool",
+      "uuid": "8104f505-dff7-4e92-a187-ea1a96e829dc",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "full contaminant + mito scaffold list",
+          "output_name": "out_file1",
+          "uuid": "d90f0354-0e36-4971-9ce2-8d6ec2f7986b"
+        }
+      ]
+    },
+    "11": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/gfastats/gfastats/1.3.11+galaxy0",
+      "errors": null,
+      "id": 11,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "target_condition|exclude_bed": {
+          "id": 10,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool gfastats",
+          "name": "mode_condition"
+        },
+        {
+          "description": "runtime parameter for tool gfastats",
+          "name": "target_condition"
+        },
+        {
+          "description": "runtime parameter for tool gfastats",
+          "name": "target_condition"
+        }
+      ],
+      "label": "removing scaffolds ",
+      "name": "gfastats",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "fastq"
+        }
+      ],
+      "position": {
+        "left": 2977.7819561709443,
+        "top": 798.078125
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/gfastats/gfastats/1.3.11+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "59150c883ed5",
+        "name": "gfastats",
+        "owner": "bgruening",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"mode_condition\": {\"selector\": \"manipulation\", \"__current_case__\": 0, \"swiss_army_knife\": {\"__class__\": \"ConnectedValue\"}, \"output_condition\": {\"out_format\": \"fasta.gz\", \"__current_case__\": 1, \"line_length\": null}, \"discover_paths\": false, \"sort\": \"\", \"remove_terminal_gaps\": false, \"homopolymer_compress\": null}, \"target_condition\": {\"target_option\": \"true\", \"__current_case__\": 1, \"target_sequence\": \"\", \"include_bed\": {\"__class__\": \"ConnectedValue\"}, \"exclude_bed\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.3.11+galaxy0",
+      "type": "tool",
+      "uuid": "4db333fb-2d51-43c2-b808-3b3f311e2394",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "final decontaminated assembly",
+          "output_name": "output",
+          "uuid": "98805b1a-b5fa-474a-b1c2-581bc611927d"
+        }
+      ]
+    }
+  },
+  "tags": [
+    "VGP_curated"
+  ],
+  "uuid": "c88329bb-da1c-4087-8817-c9c1352917be",
+  "version": 1
+}

@@ -1,0 +1,1774 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "",
+  "comments": [],
+  "format-version": "0.1",
+  "license": "CC-BY-4.0",
+  "name": "Metagenomic An\u00e1lisys",
+  "report": {
+    "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+  },
+  "steps": {
+    "0": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/richard-burhans/ncbi_egapx/ncbi_egapx/0.3.2-alpha+galaxy8",
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "runtime parameter for tool NCBI EGAPx",
+          "name": "cond_input_style"
+        },
+        {
+          "description": "runtime parameter for tool NCBI EGAPx",
+          "name": "cond_input_style"
+        }
+      ],
+      "label": null,
+      "name": "NCBI EGAPx",
+      "outputs": [
+        {
+          "name": "output_files",
+          "type": "input"
+        },
+        {
+          "name": "nextflow_stats",
+          "type": "input"
+        },
+        {
+          "name": "complete_genomic_gff",
+          "type": "gff"
+        }
+      ],
+      "position": {
+        "left": 1300,
+        "top": 990
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/richard-burhans/ncbi_egapx/ncbi_egapx/0.3.2-alpha+galaxy8",
+      "tool_shed_repository": {
+        "changeset_revision": "ff65a73f5379",
+        "name": "ncbi_egapx",
+        "owner": "richard-burhans",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"cond_input_style\": {\"input_style\": \"fillform\", \"__current_case__\": 0, \"cond_genome_style\": {\"genome_style\": \"indexed\", \"__current_case__\": 1, \"genome\": \"Araly1\"}, \"taxid\": {\"__class__\": \"ConnectedValue\"}, \"cond_rnaseq_style\": {\"rnaseq_style\": \"history\", \"__current_case__\": 0, \"rnaseq\": {\"__class__\": \"ConnectedValue\"}, \"reads_lists\": [], \"reads_paired_lists\": []}, \"proteins\": {\"__class__\": \"ConnectedValue\"}, \"extra\": null}, \"developer\": {\"collect_star_bams\": false}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.3.2-alpha+galaxy8",
+      "type": "tool",
+      "uuid": "49c2c34f-c3a7-4331-bae9-025d3b6c6b29",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "output_files",
+          "output_name": "output_files",
+          "uuid": "95be113a-ec21-4812-b20f-b00d90d5c3be"
+        },
+        {
+          "label": "complete_genomic_gff",
+          "output_name": "complete_genomic_gff",
+          "uuid": "909dfdab-9e47-4e94-8f9c-aadf36e103ab"
+        },
+        {
+          "label": "nextflow_stats",
+          "output_name": "nextflow_stats",
+          "uuid": "b833b452-f93c-427e-9c19-08131b7c0cb1"
+        }
+      ]
+    },
+    "1": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_classifier__find_consensus_annotation/qiime2__feature_classifier__find_consensus_annotation/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 1,
+      "input_connections": {
+        "reference_taxonomy": {
+          "id": 0,
+          "output_name": "nextflow_stats"
+        },
+        "search_results": {
+          "id": 0,
+          "output_name": "output_files"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 feature-classifier find-consensus-annotation",
+      "outputs": [
+        {
+          "name": "consensus_taxonomy",
+          "type": "qza"
+        }
+      ],
+      "position": {
+        "left": 1700,
+        "top": 990
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_classifier__find_consensus_annotation/qiime2__feature_classifier__find_consensus_annotation/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "4f5ee6c1fd33",
+        "name": "qiime2__feature_classifier__find_consensus_annotation",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"min_consensus\": \"0.51\", \"unassignable_label\": \"Unassigned\"}, \"reference_taxonomy\": {\"__class__\": \"ConnectedValue\"}, \"search_results\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "f6f085f0-ab73-4fd4-86a7-6295b7f97fa7",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "consensus_taxonomy",
+          "output_name": "consensus_taxonomy",
+          "uuid": "5fde3c2f-6e9c-4204-8c57-1e148c500986"
+        }
+      ]
+    },
+    "2": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/binette/binette/1.1.1+galaxy0",
+      "errors": null,
+      "id": 2,
+      "input_connections": {
+        "contig2bin_tables": {
+          "id": 30,
+          "output_name": "output_beta_diversity"
+        },
+        "contigs": {
+          "id": 28,
+          "output_name": "out_cn"
+        },
+        "proteins": {
+          "id": 28,
+          "output_name": "out_cn"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Binette",
+      "outputs": [
+        {
+          "name": "bins",
+          "type": "input"
+        },
+        {
+          "name": "quality",
+          "type": "input"
+        },
+        {
+          "name": "final",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 1700,
+        "top": 1270
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/binette/binette/1.1.1+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "1d97ddbc3464",
+        "name": "binette",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"contamination_weight\": \"2\", \"contig2bin_tables\": {\"__class__\": \"ConnectedValue\"}, \"contigs\": {\"__class__\": \"ConnectedValue\"}, \"database_type\": {\"is_select\": \"cached\", \"__current_case__\": 1, \"datamanager\": \"1.0.2\"}, \"min_completeness\": \"40\", \"proteins\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.1.1+galaxy0",
+      "type": "tool",
+      "uuid": "6e68392f-71d8-4b6c-94d8-947cdd7276cb",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "final",
+          "output_name": "final",
+          "uuid": "a1ea9563-cf88-4499-a1f3-ae5e2963330f"
+        },
+        {
+          "label": "bins",
+          "output_name": "bins",
+          "uuid": "0a276fb8-7747-4e05-a162-cbac9432f016"
+        },
+        {
+          "label": "quality",
+          "output_name": "quality",
+          "uuid": "454f922b-156c-4dbf-ad0a-008bf294a3b2"
+        }
+      ]
+    },
+    "3": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/checkm_analyze/checkm_analyze/1.2.3+galaxy0",
+      "errors": null,
+      "id": 3,
+      "input_connections": {
+        "bins|bins_coll": {
+          "id": 2,
+          "output_name": "quality"
+        },
+        "marker_file": {
+          "id": 2,
+          "output_name": "final"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool CheckM analyze",
+          "name": "bins"
+        }
+      ],
+      "label": null,
+      "name": "CheckM analyze",
+      "outputs": [
+        {
+          "name": "hmmer_analyze",
+          "type": "input"
+        },
+        {
+          "name": "bin_stats_analyze",
+          "type": "tabular"
+        },
+        {
+          "name": "checkm_hmm_info",
+          "type": "zip"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 170
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/checkm_analyze/checkm_analyze/1.2.3+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "bcb8dc01f296",
+        "name": "checkm_analyze",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"ali\": false, \"bins\": {\"select\": \"collection\", \"__current_case__\": 0, \"bins_coll\": {\"__class__\": \"ConnectedValue\"}}, \"extra_outputs\": null, \"genes\": false, \"marker_file\": {\"__class__\": \"ConnectedValue\"}, \"nt\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.2.3+galaxy0",
+      "type": "tool",
+      "uuid": "d9ea531a-acba-436c-85fa-048acd307846",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "checkm_hmm_info",
+          "output_name": "checkm_hmm_info",
+          "uuid": "6a2915c8-81cb-4046-81c2-774941cf696d"
+        },
+        {
+          "label": "hmmer_analyze",
+          "output_name": "hmmer_analyze",
+          "uuid": "090cf45b-4d3c-470a-90b6-17b94e8d206d"
+        },
+        {
+          "label": "bin_stats_analyze",
+          "output_name": "bin_stats_analyze",
+          "uuid": "b99d7a87-77bf-40c2-8dab-d4198370a9d6"
+        }
+      ]
+    },
+    "4": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity_lib__shannon_entropy/qiime2__diversity_lib__shannon_entropy/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 4,
+      "input_connections": {
+        "table": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 diversity-lib shannon-entropy",
+      "outputs": [
+        {
+          "name": "vector",
+          "type": "qza"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 530
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity_lib__shannon_entropy/qiime2__diversity_lib__shannon_entropy/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "00420a6149c8",
+        "name": "qiime2__diversity_lib__shannon_entropy",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"drop_undefined_samples\": false}, \"table\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "a96e55b0-537f-403d-b9f3-aae83e5cdf5f",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "vector",
+          "output_name": "vector",
+          "uuid": "3f069f16-8567-4396-ad00-135222b88760"
+        }
+      ]
+    },
+    "5": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha/qiime2__diversity__alpha/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 5,
+      "input_connections": {
+        "table": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 diversity alpha",
+      "outputs": [
+        {
+          "name": "alpha_diversity",
+          "type": "qza"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 740
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha/qiime2__diversity__alpha/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "15114dfce30e",
+        "name": "qiime2__diversity__alpha",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"metric\": \"shannon\", \"table\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "315f9b34-9e38-4fbe-b18b-945c5993fe93",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "alpha_diversity",
+          "output_name": "alpha_diversity",
+          "uuid": "a489af1c-f35e-4bd5-930a-f45522874169"
+        }
+      ]
+    },
+    "6": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha_rarefaction/qiime2__diversity__alpha_rarefaction/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 6,
+      "input_connections": {
+        "__q2galaxy__GUI__section__extra_opts__|phylogeny": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        },
+        "table": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool qiime2 diversity alpha-rarefaction",
+          "name": "__q2galaxy__GUI__section__extra_opts__"
+        }
+      ],
+      "label": null,
+      "name": "qiime2 diversity alpha-rarefaction",
+      "outputs": [
+        {
+          "name": "visualization",
+          "type": "qzv"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 970
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha_rarefaction/qiime2__diversity__alpha_rarefaction/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "1a1ad9b61531",
+        "name": "qiime2__diversity__alpha_rarefaction",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"phylogeny\": {\"__class__\": \"ConnectedValue\"}, \"metrics\": [], \"metadata\": [], \"min_depth\": \"1\", \"steps\": \"10\", \"iterations\": \"10\"}, \"max_depth\": \"5\", \"table\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "703c8f3b-8041-49e1-a927-4f0a2426a3e4",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "7": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_classifier__blast/qiime2__feature_classifier__blast/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 7,
+      "input_connections": {
+        "__q2galaxy__GUI__section__extra_opts__|blastdb": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        },
+        "__q2galaxy__GUI__section__extra_opts__|reference_reads": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        },
+        "query": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool qiime2 feature-classifier blast",
+          "name": "__q2galaxy__GUI__section__extra_opts__"
+        },
+        {
+          "description": "runtime parameter for tool qiime2 feature-classifier blast",
+          "name": "__q2galaxy__GUI__section__extra_opts__"
+        }
+      ],
+      "label": null,
+      "name": "qiime2 feature-classifier blast",
+      "outputs": [
+        {
+          "name": "search_results",
+          "type": "qza"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 1210
+      },
+      "post_job_actions": {
+        "ChangeDatatypeActionsearch_results": {
+          "action_arguments": {
+            "newtype": "Sequences"
+          },
+          "action_type": "ChangeDatatypeAction",
+          "output_name": "search_results"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_classifier__blast/qiime2__feature_classifier__blast/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "07d2b31e5dea",
+        "name": "qiime2__feature_classifier__blast",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"reference_reads\": {\"__class__\": \"ConnectedValue\"}, \"blastdb\": {\"__class__\": \"ConnectedValue\"}, \"maxaccepts\": \"10\", \"perc_identity\": \"0.8\", \"query_cov\": \"0.8\", \"strand\": \"both\", \"evalue\": \"0.001\", \"output_no_hits\": true}, \"query\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "5ddc46ac-3c95-4e4f-ab6a-bbfcb15576c9",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "search_results",
+          "output_name": "search_results",
+          "uuid": "df3fd783-56fc-4fc0-846c-9f465754e1e2"
+        }
+      ]
+    },
+    "8": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/checkm_taxonomy_wf/checkm_taxonomy_wf/1.2.3+galaxy0",
+      "errors": null,
+      "id": 8,
+      "input_connections": {
+        "bins|bins_coll": {
+          "id": 3,
+          "output_name": "hmmer_analyze"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool CheckM taxonomy_wf",
+          "name": "bins"
+        },
+        {
+          "description": "runtime parameter for tool CheckM taxonomy_wf",
+          "name": "rank_taxon"
+        }
+      ],
+      "label": null,
+      "name": "CheckM taxonomy_wf",
+      "outputs": [
+        {
+          "name": "results",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 2550,
+        "top": 230
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/checkm_taxonomy_wf/checkm_taxonomy_wf/1.2.3+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "19e4e2d98ebb",
+        "name": "checkm_taxonomy_wf",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"analyze\": {\"ali\": false, \"nt\": false, \"genes\": false}, \"bins\": {\"select\": \"collection\", \"__current_case__\": 0, \"bins_coll\": {\"__class__\": \"ConnectedValue\"}}, \"extra_outputs\": null, \"qa\": {\"individual_markers\": false, \"skip_adj_correction\": false, \"skip_pseudogene_correction\": false, \"aai_strain\": \"0.9\", \"ignore_thresholds\": false, \"e_value\": \"1e-10\", \"length\": \"0.7\"}, \"rank_taxon\": {\"rank\": \"life\", \"__current_case__\": 0, \"taxon\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.2.3+galaxy0",
+      "type": "tool",
+      "uuid": "3bc96a81-7a70-4c30-b8e4-a80c74eeacf9",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "results",
+          "output_name": "results",
+          "uuid": "aecbaabc-1bd5-4684-b663-518772d8e704"
+        }
+      ]
+    },
+    "9": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity_lib__bray_curtis/qiime2__diversity_lib__bray_curtis/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 9,
+      "input_connections": {
+        "table": {
+          "id": 4,
+          "output_name": "vector"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 diversity-lib bray-curtis",
+      "outputs": [
+        {
+          "name": "distance_matrix",
+          "type": "qza"
+        }
+      ],
+      "position": {
+        "left": 2550,
+        "top": 700
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity_lib__bray_curtis/qiime2__diversity_lib__bray_curtis/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "82046a5bb300",
+        "name": "qiime2__diversity_lib__bray_curtis",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"table\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "ae4f4ec6-36c3-44aa-bf38-b8ce56d2c43e",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "10": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha_phylogenetic/qiime2__diversity__alpha_phylogenetic/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 10,
+      "input_connections": {
+        "phylogeny": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        },
+        "table": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 diversity alpha-phylogenetic",
+      "outputs": [
+        {
+          "name": "alpha_diversity",
+          "type": "qza"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 1500
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha_phylogenetic/qiime2__diversity__alpha_phylogenetic/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "ee712ca8cac8",
+        "name": "qiime2__diversity__alpha_phylogenetic",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"metric\": \"faith_pd\", \"phylogeny\": {\"__class__\": \"ConnectedValue\"}, \"table\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "97e1080b-1d6d-4e2b-81fc-a0112946dd78",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "11": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastx_quality_statistics/cshl_fastx_quality_statistics/1.0.1+galaxy2",
+      "errors": null,
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Compute quality statistics",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "txt"
+        }
+      ],
+      "position": {
+        "left": 300,
+        "top": 2660
+      },
+      "post_job_actions": {
+        "EmailActionoutput": {
+          "action_arguments": {
+            "host": "usegalaxy.org"
+          },
+          "action_type": "EmailAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastx_quality_statistics/cshl_fastx_quality_statistics/1.0.1+galaxy2",
+      "tool_shed_repository": {
+        "changeset_revision": "48c943a0290a",
+        "name": "fastx_quality_statistics",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.1+galaxy2",
+      "type": "tool",
+      "uuid": "9c87b3a0-c285-4ebc-aa14-6e3b6e6106fa",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "12": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity_lib__jaccard/qiime2__diversity_lib__jaccard/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 12,
+      "input_connections": {
+        "table": {
+          "id": 4,
+          "output_name": "vector"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 diversity-lib jaccard",
+      "outputs": [
+        {
+          "name": "distance_matrix",
+          "type": "qza"
+        }
+      ],
+      "position": {
+        "left": 2550,
+        "top": 1020
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity_lib__jaccard/qiime2__diversity_lib__jaccard/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "58c46e32cff6",
+        "name": "qiime2__diversity_lib__jaccard",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"table\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "8fbc282e-1e21-4830-bc14-15bafb4ee5eb",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "13": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+      "errors": null,
+      "id": 13,
+      "input_connections": {
+        "adapters": {
+          "id": 16,
+          "output_name": "fastq_out"
+        },
+        "contaminants": {
+          "id": 16,
+          "output_name": "fastq_out"
+        },
+        "input_file": {
+          "id": 15,
+          "output_name": "output"
+        },
+        "limits": {
+          "id": 15,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "FastQC",
+      "outputs": [
+        {
+          "name": "html_file",
+          "type": "html"
+        },
+        {
+          "name": "text_file",
+          "type": "txt"
+        }
+      ],
+      "position": {
+        "left": 650,
+        "top": 2670
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+      "tool_shed_repository": {
+        "changeset_revision": "2c64fded1286",
+        "name": "fastqc",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"adapters\": {\"__class__\": \"ConnectedValue\"}, \"contaminants\": {\"__class__\": \"ConnectedValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"ConnectedValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.74+galaxy1",
+      "type": "tool",
+      "uuid": "41148ed9-2ace-46c7-b8b4-70f8684b2e93",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "text_file",
+          "output_name": "text_file",
+          "uuid": "ecabd0aa-6426-4393-a502-e34dcd0f6484"
+        },
+        {
+          "label": "html_file",
+          "output_name": "html_file",
+          "uuid": "b424f559-f3d9-4b28-9e60-011174d0614d"
+        }
+      ]
+    },
+    "14": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__beta_phylogenetic/qiime2__diversity__beta_phylogenetic/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 14,
+      "input_connections": {
+        "phylogeny": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        },
+        "table": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 diversity beta-phylogenetic",
+      "outputs": [
+        {
+          "name": "distance_matrix",
+          "type": "qza"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 1780
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__beta_phylogenetic/qiime2__diversity__beta_phylogenetic/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "6f129e6127a7",
+        "name": "qiime2__diversity__beta_phylogenetic",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"variance_adjusted\": false, \"alpha\": null, \"bypass_tips\": false}, \"metric\": \"generalized_unifrac\", \"phylogeny\": {\"__class__\": \"ConnectedValue\"}, \"table\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "7399363f-c946-44b8-9a03-12d093b3fb34",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "distance_matrix",
+          "output_name": "distance_matrix",
+          "uuid": "dcbf2d2b-8938-46bf-996a-b476436a5e41"
+        }
+      ]
+    },
+    "15": {
+      "annotation": "",
+      "content_id": null,
+      "errors": null,
+      "id": 15,
+      "input_connections": {},
+      "inputs": [],
+      "label": null,
+      "name": "Input dataset collection",
+      "outputs": [],
+      "position": {
+        "left": 0,
+        "top": 2830
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"fasta\", \"fastq\", \"fastq.bz2\", \"fastq.gz\", \"fastqcssanger\", \"fastqcssanger.bz2\", \"fastqcssanger.gz\", \"fastqillumina\", \"fastqillumina.bz2\", \"fastqillumina.gz\", \"fastqsanger\", \"fastqsanger.bz2\", \"fastqsanger.gz\", \"fastqsolexa\", \"fastqsolexa.bz2\", \"fastqsolexa.gz\", \"fasta.gz\"], \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+      "tool_version": null,
+      "type": "data_collection_input",
+      "uuid": "027870dc-e3a4-4c9c-8121-b195a5f8a755",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "16": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+      "errors": null,
+      "id": 16,
+      "input_connections": {
+        "readtype|fastq_in": {
+          "id": 15,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Trimmomatic",
+          "name": "readtype"
+        }
+      ],
+      "label": null,
+      "name": "Trimmomatic",
+      "outputs": [
+        {
+          "name": "fastq_out",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 300,
+        "top": 2830
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+      "tool_shed_repository": {
+        "changeset_revision": "b9aaed85cbd1",
+        "name": "trimmomatic",
+        "owner": "pjbriggs",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"no\", \"__current_case__\": 1}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"SLIDINGWINDOW\", \"__current_case__\": 0, \"window_size\": \"4\", \"required_quality\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"se\", \"__current_case__\": 0, \"fastq_in\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.39+galaxy2",
+      "type": "tool",
+      "uuid": "95c43dc3-45a4-42e9-82c6-4642a959871f",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "fastq_out",
+          "output_name": "fastq_out",
+          "uuid": "478f20de-1987-434a-a7af-eb0f1d633f69"
+        }
+      ]
+    },
+    "17": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/mothur_metastats/mothur_metastats/1.39.5.0",
+      "errors": null,
+      "id": 17,
+      "input_connections": {
+        "design": {
+          "id": 0,
+          "output_name": "nextflow_stats"
+        },
+        "otu": {
+          "id": 0,
+          "output_name": "nextflow_stats"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Metastats",
+      "outputs": [
+        {
+          "name": "metastats",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 1700,
+        "top": 2450
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/mothur_metastats/mothur_metastats/1.39.5.0",
+      "tool_shed_repository": {
+        "changeset_revision": "feb408da0143",
+        "name": "mothur_metastats",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"design\": {\"__class__\": \"ConnectedValue\"}, \"groups\": null, \"iters\": \"1000\", \"label\": null, \"otu\": {\"__class__\": \"ConnectedValue\"}, \"savelog\": false, \"sets\": null, \"threshold\": \"0.05\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.39.5.0",
+      "type": "tool",
+      "uuid": "09d5ad0c-c94a-456e-8587-970e5b25e9e3",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "metastats",
+          "output_name": "metastats",
+          "uuid": "9ee1975f-f2ec-43e5-81b7-0171fd19b7d4"
+        }
+      ]
+    },
+    "18": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/funannotate_annotate/funannotate_annotate/1.8.15+galaxy5",
+      "errors": null,
+      "id": 18,
+      "input_connections": {
+        "annotations": {
+          "id": 8,
+          "output_name": "results"
+        },
+        "antismash": {
+          "id": 2,
+          "output_name": "quality"
+        },
+        "eggnog": {
+          "id": 2,
+          "output_name": "final"
+        },
+        "fix": {
+          "id": 8,
+          "output_name": "results"
+        },
+        "input|genbank": {
+          "id": 2,
+          "output_name": "quality"
+        },
+        "iprscan": {
+          "id": 2,
+          "output_name": "bins"
+        },
+        "phobius": {
+          "id": 3,
+          "output_name": "bin_stats_analyze"
+        },
+        "remove": {
+          "id": 8,
+          "output_name": "results"
+        },
+        "sbt": {
+          "id": 2,
+          "output_name": "final"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Funannotate functional",
+          "name": "input"
+        }
+      ],
+      "label": null,
+      "name": "Funannotate functional",
+      "outputs": [
+        {
+          "name": "gbk",
+          "type": "genbank"
+        },
+        {
+          "name": "annot",
+          "type": "tabular"
+        },
+        {
+          "name": "contigs_fsa",
+          "type": "fasta"
+        },
+        {
+          "name": "tbl",
+          "type": "txt"
+        },
+        {
+          "name": "stats",
+          "type": "json"
+        }
+      ],
+      "position": {
+        "left": 3000,
+        "top": 0
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/funannotate_annotate/funannotate_annotate/1.8.15+galaxy5",
+      "tool_shed_repository": {
+        "changeset_revision": "9c15ca7e764e",
+        "name": "funannotate_annotate",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"annotations\": {\"__class__\": \"ConnectedValue\"}, \"antismash\": {\"__class__\": \"ConnectedValue\"}, \"busco_db\": \"dikarya\", \"database\": \"2024-11-21-003916\", \"eggnog\": {\"__class__\": \"ConnectedValue\"}, \"fix\": {\"__class__\": \"ConnectedValue\"}, \"header_length\": \"16\", \"input\": {\"input_type\": \"gbk\", \"__current_case__\": 0, \"genbank\": {\"__class__\": \"ConnectedValue\"}}, \"iprscan\": {\"__class__\": \"ConnectedValue\"}, \"isolate\": null, \"outputs\": [\"gbk\", \"annotations\", \"contigs_fsa\", \"tbl\", \"stats\"], \"phobius\": {\"__class__\": \"ConnectedValue\"}, \"remove\": {\"__class__\": \"ConnectedValue\"}, \"rename\": null, \"sbt\": {\"__class__\": \"ConnectedValue\"}, \"strain\": null, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.8.15+galaxy5",
+      "type": "tool",
+      "uuid": "2848b39d-cd24-43e4-b7ae-421e5b44f85e",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "tbl",
+          "output_name": "tbl",
+          "uuid": "1dc4de0e-3059-4b1f-a6fe-e0e831b1313c"
+        },
+        {
+          "label": "stats",
+          "output_name": "stats",
+          "uuid": "36841433-38e4-4118-b6cf-eb41d4807072"
+        },
+        {
+          "label": "annot",
+          "output_name": "annot",
+          "uuid": "55fbfc56-97f1-4a3d-b8d3-1ea272b59855"
+        },
+        {
+          "label": "contigs_fsa",
+          "output_name": "contigs_fsa",
+          "uuid": "bf4730a6-ef58-4eb8-a3b5-c99236c030f6"
+        },
+        {
+          "label": "gbk",
+          "output_name": "gbk",
+          "uuid": "d20f6ce9-8856-4684-b8e4-9a4a4ddb7f94"
+        }
+      ]
+    },
+    "19": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__bioenv/qiime2__diversity__bioenv/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 19,
+      "input_connections": {
+        "distance_matrix": {
+          "id": 17,
+          "output_name": "metastats"
+        },
+        "metadata_0|__q2galaxy__GUI__conditional__metadata__|source": {
+          "id": 17,
+          "output_name": "metastats"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 diversity bioenv",
+      "outputs": [
+        {
+          "name": "visualization",
+          "type": "qzv"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 2110
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__bioenv/qiime2__diversity__bioenv/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "56a0004016a9",
+        "name": "qiime2__diversity__bioenv",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"distance_matrix\": {\"__class__\": \"ConnectedValue\"}, \"metadata\": [{\"__index__\": 0, \"__q2galaxy__GUI__conditional__metadata__\": {\"type\": \"tsv\", \"__current_case__\": 0, \"source\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"__q2galaxy__GUI__conditional__metadata__\": {\"type\": \"qza\", \"__current_case__\": 1, \"source\": {\"__class__\": \"RuntimeValue\"}}}], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "1b23ec5d-3e27-4925-99cd-3845d3512ab5",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "20": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__beta_rarefaction/qiime2__diversity__beta_rarefaction/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 20,
+      "input_connections": {
+        "__q2galaxy__GUI__section__extra_opts__|phylogeny": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        },
+        "metadata_0|__q2galaxy__GUI__conditional__metadata__|source": {
+          "id": 8,
+          "output_name": "results"
+        },
+        "metadata_1|__q2galaxy__GUI__conditional__metadata__|source": {
+          "id": 9,
+          "output_name": "distance_matrix"
+        },
+        "table": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool qiime2 diversity beta-rarefaction",
+          "name": "__q2galaxy__GUI__section__extra_opts__"
+        }
+      ],
+      "label": null,
+      "name": "qiime2 diversity beta-rarefaction",
+      "outputs": [
+        {
+          "name": "visualization",
+          "type": "qzv"
+        }
+      ],
+      "position": {
+        "left": 3000,
+        "top": 660
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__beta_rarefaction/qiime2__diversity__beta_rarefaction/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "ba17431d7703",
+        "name": "qiime2__diversity__beta_rarefaction",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"phylogeny\": {\"__class__\": \"ConnectedValue\"}, \"iterations\": \"10\", \"correlation_method\": \"spearman\", \"color_scheme\": \"BrBG\"}, \"clustering_method\": \"nj\", \"metadata\": [{\"__index__\": 0, \"__q2galaxy__GUI__conditional__metadata__\": {\"type\": \"tsv\", \"__current_case__\": 0, \"source\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"__q2galaxy__GUI__conditional__metadata__\": {\"type\": \"qza\", \"__current_case__\": 1, \"source\": {\"__class__\": \"ConnectedValue\"}}}], \"metric\": \"braycurtis\", \"sampling_depth\": \"5\", \"table\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "b5698a41-4e5e-48a3-889b-f160377950eb",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "21": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/nml/metaspades/metaspades/4.2.0+galaxy0",
+      "errors": null,
+      "id": 21,
+      "input_connections": {
+        "singlePaired|input": {
+          "id": 16,
+          "output_name": "fastq_out"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool metaSPAdes",
+          "name": "arf"
+        },
+        {
+          "description": "runtime parameter for tool metaSPAdes",
+          "name": "arf"
+        },
+        {
+          "description": "runtime parameter for tool metaSPAdes",
+          "name": "singlePaired"
+        }
+      ],
+      "label": null,
+      "name": "metaSPAdes",
+      "outputs": [
+        {
+          "name": "out_ag",
+          "type": "fastg"
+        },
+        {
+          "name": "out_ags",
+          "type": "txt"
+        },
+        {
+          "name": "out_cn",
+          "type": "fasta"
+        },
+        {
+          "name": "out_sc",
+          "type": "fasta"
+        }
+      ],
+      "position": {
+        "left": 650,
+        "top": 3030
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/metaspades/metaspades/4.2.0+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "f192c2fbe13f",
+        "name": "metaspades",
+        "owner": "nml",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"additional_reads\": {\"selector\": \"false\", \"__current_case__\": 1}, \"arf\": {\"nanopore\": {\"__class__\": \"ConnectedValue\"}, \"pacbio\": {\"__class__\": \"ConnectedValue\"}}, \"kmer_cond\": {\"kmer_sel\": \"auto\", \"__current_case__\": 0}, \"library_number\": \"true\", \"mode_sel\": null, \"optional_output\": [\"ag\", \"ags\", \"cn\", \"sc\"], \"phred_offset\": \"auto\", \"singlePaired\": {\"sPaired\": \"paired_collection\", \"__current_case__\": 1, \"input\": {\"__class__\": \"ConnectedValue\"}, \"type_paired\": \"pe\", \"orientation\": \"fr\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "4.2.0+galaxy0",
+      "type": "tool",
+      "uuid": "aecd3f9c-d260-4f66-ab87-302544d1dc9b",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "22": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha_correlation/qiime2__diversity__alpha_correlation/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 22,
+      "input_connections": {
+        "alpha_diversity": {
+          "id": 1,
+          "output_name": "consensus_taxonomy"
+        },
+        "metadata_0|__q2galaxy__GUI__conditional__metadata__|source": {
+          "id": 12,
+          "output_name": "distance_matrix"
+        },
+        "metadata_1|__q2galaxy__GUI__conditional__metadata__|source": {
+          "id": 30,
+          "output_name": "output_beta_diversity"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 diversity alpha-correlation",
+      "outputs": [
+        {
+          "name": "visualization",
+          "type": "qzv"
+        }
+      ],
+      "position": {
+        "left": 3000,
+        "top": 1000
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha_correlation/qiime2__diversity__alpha_correlation/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "1f40041cf946",
+        "name": "qiime2__diversity__alpha_correlation",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"method\": \"spearman\", \"intersect_ids\": false}, \"alpha_diversity\": {\"__class__\": \"ConnectedValue\"}, \"metadata\": [{\"__index__\": 0, \"__q2galaxy__GUI__conditional__metadata__\": {\"type\": \"qza\", \"__current_case__\": 1, \"source\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"__q2galaxy__GUI__conditional__metadata__\": {\"type\": \"tsv\", \"__current_case__\": 0, \"source\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "747fa34c-09ee-4b4f-bdaa-c01c7b3d9fe3",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "visualization",
+          "output_name": "visualization",
+          "uuid": "9c7b5cb7-2524-4427-ad6f-39d52a4f4528"
+        }
+      ]
+    },
+    "23": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/rnateam/mafft/rbc_mafft/7.526+galaxy1",
+      "errors": null,
+      "id": 23,
+      "input_connections": {
+        "input|batches_0|inputs": {
+          "id": 21,
+          "output_name": "out_cn"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "MAFFT",
+      "outputs": [
+        {
+          "name": "outputAlignment",
+          "type": "fasta"
+        }
+      ],
+      "position": {
+        "left": 1000,
+        "top": 3080
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/mafft/rbc_mafft/7.526+galaxy1",
+      "tool_shed_repository": {
+        "changeset_revision": "1233363389c1",
+        "name": "mafft",
+        "owner": "rnateam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"anysymbol\": false, \"datatype_selection\": {\"datatype\": \"\", \"__current_case__\": 0}, \"flavour\": {\"type\": \"mafft-fftns\", \"__current_case__\": 2}, \"input\": {\"mapping\": \"implicit\", \"__current_case__\": 0, \"batches\": [{\"__index__\": 0, \"inputs\": {\"__class__\": \"ConnectedValue\"}}]}, \"outputFormat\": \"\", \"reorder\": false, \"treeout\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "7.526+galaxy1",
+      "type": "tool",
+      "uuid": "0dd9de07-81cf-4874-bba1-6f7e70c6f5c7",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "outputAlignment",
+          "output_name": "outputAlignment",
+          "uuid": "f6660399-6433-4a6e-834d-37bd0d1cf2b4"
+        }
+      ]
+    },
+    "24": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__adonis/qiime2__diversity__adonis/2025.4.0+q2galaxy.2025.4.0",
+      "errors": null,
+      "id": 24,
+      "input_connections": {
+        "distance_matrix": {
+          "id": 17,
+          "output_name": "metastats"
+        },
+        "metadata_0|__q2galaxy__GUI__conditional__metadata__|source": {
+          "id": 17,
+          "output_name": "metastats"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 diversity adonis",
+      "outputs": [
+        {
+          "name": "visualization",
+          "type": "qzv"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 2450
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__adonis/qiime2__diversity__adonis/2025.4.0+q2galaxy.2025.4.0",
+      "tool_shed_repository": {
+        "changeset_revision": "6579a7b08fd6",
+        "name": "qiime2__diversity__adonis",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"permutations\": \"999\"}, \"distance_matrix\": {\"__class__\": \"ConnectedValue\"}, \"formula\": \"treatment*block\", \"metadata\": [{\"__index__\": 0, \"__q2galaxy__GUI__conditional__metadata__\": {\"type\": \"tsv\", \"__current_case__\": 0, \"source\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"__q2galaxy__GUI__conditional__metadata__\": {\"type\": \"qza\", \"__current_case__\": 1, \"source\": {\"__class__\": \"RuntimeValue\"}}}], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2025.4.0+q2galaxy.2025.4.0",
+      "type": "tool",
+      "uuid": "a2b7f13b-e29a-4649-b6dd-42d719897e5c",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "25": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/megahit/megahit/1.2.9+galaxy2",
+      "errors": null,
+      "id": 25,
+      "input_connections": {
+        "input_option|single_files": {
+          "id": 23,
+          "output_name": "outputAlignment"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool MEGAHIT",
+          "name": "input_option"
+        }
+      ],
+      "label": null,
+      "name": "MEGAHIT",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "fasta"
+        }
+      ],
+      "position": {
+        "left": 1300,
+        "top": 3080
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/megahit/megahit/1.2.9+galaxy2",
+      "tool_shed_repository": {
+        "changeset_revision": "ab208c87d973",
+        "name": "megahit",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"advanced_section\": {\"nomercy\": false, \"bubble_level\": \"2\", \"merge_level\": \"20,0.95\", \"prune_level\": \"2\", \"prune_depth\": \"2\", \"disconnect_ratio\": \"0.1\", \"low_local_ratio\": \"0.2\", \"cleaning_rounds\": \"5\", \"nolocal\": false, \"kmin1pass\": false}, \"basic_section\": {\"min_count\": \"2\", \"k_mer\": {\"k_mer_method\": \"klist_method\", \"__current_case__\": 0, \"k_list\": \"21,29,39,59,79,99,119,141\"}}, \"input_option\": {\"choice\": \"single\", \"__current_case__\": 0, \"single_files\": {\"__class__\": \"ConnectedValue\"}}, \"output_section\": {\"min_contig_len\": \"200\", \"show_intermediate_contigs\": false, \"log_file\": false}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.2.9+galaxy2",
+      "type": "tool",
+      "uuid": "10843fd8-bf5f-445c-9dca-b02b52d4a964",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "26": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__gneiss__correlation_clustering/qiime2__gneiss__correlation_clustering/2023.5.0+q2galaxy.2023.5.0.2",
+      "errors": null,
+      "id": 26,
+      "input_connections": {
+        "table": {
+          "id": 17,
+          "output_name": "metastats"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "qiime2 gneiss correlation-clustering",
+      "outputs": [
+        {
+          "name": "clustering",
+          "type": "qza"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 2740
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__gneiss__correlation_clustering/qiime2__gneiss__correlation_clustering/2023.5.0+q2galaxy.2023.5.0.2",
+      "tool_shed_repository": {
+        "changeset_revision": "ca5a3976d699",
+        "name": "qiime2__gneiss__correlation_clustering",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"pseudocount\": \"0.5\"}, \"table\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2023.5.0+q2galaxy.2023.5.0.2",
+      "type": "tool",
+      "uuid": "6b87cb73-545a-4e1d-968d-83128dcaf7ee",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "clustering",
+          "output_name": "clustering",
+          "uuid": "706a5403-65ed-4276-91eb-6bd48b05c6a1"
+        }
+      ]
+    },
+    "27": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/megahit/megahit/1.2.9+galaxy2",
+      "errors": null,
+      "id": 27,
+      "input_connections": {
+        "input_option|fastq_input1": [
+          {
+            "id": 23,
+            "output_name": "outputAlignment"
+          },
+          {
+            "id": 25,
+            "output_name": "output"
+          }
+        ],
+        "input_option|fastq_input2": [
+          {
+            "id": 23,
+            "output_name": "outputAlignment"
+          },
+          {
+            "id": 25,
+            "output_name": "output"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool MEGAHIT",
+          "name": "input_option"
+        },
+        {
+          "description": "runtime parameter for tool MEGAHIT",
+          "name": "input_option"
+        }
+      ],
+      "label": null,
+      "name": "MEGAHIT",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "fasta"
+        }
+      ],
+      "position": {
+        "left": 1700,
+        "top": 3080
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/megahit/megahit/1.2.9+galaxy2",
+      "tool_shed_repository": {
+        "changeset_revision": "ab208c87d973",
+        "name": "megahit",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"advanced_section\": {\"nomercy\": false, \"bubble_level\": \"2\", \"merge_level\": \"20,0.95\", \"prune_level\": \"2\", \"prune_depth\": \"2\", \"disconnect_ratio\": \"0.1\", \"low_local_ratio\": \"0.2\", \"cleaning_rounds\": \"5\", \"nolocal\": false, \"kmin1pass\": false}, \"basic_section\": {\"min_count\": \"2\", \"k_mer\": {\"k_mer_method\": \"klist_method\", \"__current_case__\": 0, \"k_list\": \"21,29,39,59,79,99,119,141\"}}, \"input_option\": {\"choice\": \"paired\", \"__current_case__\": 2, \"fastq_input1\": {\"__class__\": \"ConnectedValue\"}, \"fastq_input2\": {\"__class__\": \"ConnectedValue\"}}, \"output_section\": {\"min_contig_len\": \"200\", \"show_intermediate_contigs\": false, \"log_file\": false}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.2.9+galaxy2",
+      "type": "tool",
+      "uuid": "e70cf3d2-5b4a-46b5-9922-ac43dce0308a",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "output",
+          "output_name": "output",
+          "uuid": "51eb721b-f756-4aa6-b867-fcceafee9f4d"
+        }
+      ]
+    },
+    "28": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/nml/spades/spades/4.2.0+galaxy0",
+      "errors": null,
+      "id": 28,
+      "input_connections": {
+        "arf|nanopore": {
+          "id": 2,
+          "output_name": "bins"
+        },
+        "arf|pacbio": {
+          "id": 2,
+          "output_name": "quality"
+        },
+        "arf|sanger": {
+          "id": 2,
+          "output_name": "bins"
+        },
+        "arf|trusted_contigs": [
+          {
+            "id": 21,
+            "output_name": "out_sc"
+          },
+          {
+            "id": 25,
+            "output_name": "output"
+          },
+          {
+            "id": 27,
+            "output_name": "output"
+          }
+        ],
+        "arf|untrusted_contigs": [
+          {
+            "id": 21,
+            "output_name": "out_sc"
+          },
+          {
+            "id": 25,
+            "output_name": "output"
+          },
+          {
+            "id": 27,
+            "output_name": "output"
+          }
+        ],
+        "singlePaired|input": {
+          "id": 15,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool SPAdes",
+          "name": "arf"
+        },
+        {
+          "description": "runtime parameter for tool SPAdes",
+          "name": "arf"
+        },
+        {
+          "description": "runtime parameter for tool SPAdes",
+          "name": "arf"
+        },
+        {
+          "description": "runtime parameter for tool SPAdes",
+          "name": "arf"
+        },
+        {
+          "description": "runtime parameter for tool SPAdes",
+          "name": "arf"
+        },
+        {
+          "description": "runtime parameter for tool SPAdes",
+          "name": "singlePaired"
+        }
+      ],
+      "label": "fas",
+      "name": "SPAdes",
+      "outputs": [
+        {
+          "name": "out_ag",
+          "type": "fastg"
+        },
+        {
+          "name": "out_ags",
+          "type": "txt"
+        },
+        {
+          "name": "out_cn",
+          "type": "fasta"
+        },
+        {
+          "name": "out_sc",
+          "type": "fasta"
+        }
+      ],
+      "position": {
+        "left": 2200,
+        "top": 2980
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/spades/spades/4.2.0+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "822954de3f59",
+        "name": "spades",
+        "owner": "nml",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"additional_reads\": {\"selector\": \"false\", \"__current_case__\": 1}, \"arf\": {\"nanopore\": {\"__class__\": \"ConnectedValue\"}, \"pacbio\": {\"__class__\": \"ConnectedValue\"}, \"sanger\": {\"__class__\": \"ConnectedValue\"}, \"trusted_contigs\": {\"__class__\": \"ConnectedValue\"}, \"untrusted_contigs\": {\"__class__\": \"ConnectedValue\"}}, \"cov_cond\": {\"cov_cutoff\": \"off\", \"__current_case__\": 0}, \"kmer_cond\": {\"kmer_sel\": \"auto\", \"__current_case__\": 0}, \"mode_sel\": null, \"operation_mode\": \"--only-assembler\", \"optional_output\": [\"ag\", \"ags\", \"cn\", \"sc\"], \"phred_offset\": \"auto\", \"singlePaired\": {\"sPaired\": \"paired_collection\", \"__current_case__\": 2, \"input\": {\"__class__\": \"ConnectedValue\"}, \"type_paired\": \"pe\", \"orientation\": \"fr\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "4.2.0+galaxy0",
+      "type": "tool",
+      "uuid": "24c3aac7-0a55-42ed-8a6f-95bd66f843ad",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "out_sc",
+          "output_name": "out_sc",
+          "uuid": "668fd517-8302-4f1f-b21d-b9ea11037cb0"
+        }
+      ]
+    },
+    "29": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/raxml/raxml/8.2.12+galaxy1",
+      "errors": null,
+      "id": 29,
+      "input_connections": {
+        "infile": {
+          "id": 28,
+          "output_name": "out_cn"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "RAxML",
+      "outputs": [
+        {
+          "name": "info",
+          "type": "txt"
+        },
+        {
+          "name": "log",
+          "type": "txt"
+        },
+        {
+          "name": "parsimonyTree",
+          "type": "nhx"
+        },
+        {
+          "name": "result",
+          "type": "nhx"
+        },
+        {
+          "name": "bestTree",
+          "type": "nhx"
+        }
+      ],
+      "position": {
+        "left": 2550,
+        "top": 2710
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/raxml/raxml/8.2.12+galaxy1",
+      "tool_shed_repository": {
+        "changeset_revision": "b1e68bbe4cef",
+        "name": "raxml",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"random_seed\": \"1234567890\", \"search_model_selector\": {\"model_type\": \"aminoacid\", \"__current_case__\": 1, \"base_model\": \"PROTCAT\", \"aa_search_matrix\": \"DAYHOFF\", \"aa_model_empirical_base_frequencies\": false}, \"selExtraOpts\": {\"extraOptions\": \"required\", \"__current_case__\": 0}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "8.2.12+galaxy1",
+      "type": "tool",
+      "uuid": "2d918981-7851-4149-8d16-912870ee7cec",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "info",
+          "output_name": "info",
+          "uuid": "29226e43-3b14-47cb-9883-16e7c322b52c"
+        },
+        {
+          "label": "result",
+          "output_name": "result",
+          "uuid": "5e174534-9e05-4c5b-89c6-370394320f74"
+        },
+        {
+          "label": "parsimonyTree",
+          "output_name": "parsimonyTree",
+          "uuid": "32a5d84b-23b3-43df-89a3-43e9c91b9bcc"
+        },
+        {
+          "label": "bestTree",
+          "output_name": "bestTree",
+          "uuid": "470a70c6-7c47-4871-9629-14548c9ae0cc"
+        }
+      ]
+    },
+    "30": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/scikit_bio_diversity_beta_diversity/scikit_bio_diversity_beta_diversity/0.4.2.0",
+      "errors": null,
+      "id": 30,
+      "input_connections": {
+        "distance_metric|input_tree": {
+          "id": 28,
+          "output_name": "out_cn"
+        },
+        "input_abundance": {
+          "id": 2,
+          "output_name": "final"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Beta Diversity",
+          "name": "distance_metric"
+        }
+      ],
+      "label": null,
+      "name": "Beta Diversity",
+      "outputs": [
+        {
+          "name": "output_beta_diversity",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 2550,
+        "top": 3000
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/scikit_bio_diversity_beta_diversity/scikit_bio_diversity_beta_diversity/0.4.2.0",
+      "tool_shed_repository": {
+        "changeset_revision": "024a9b86f853",
+        "name": "scikit_bio_diversity_beta_diversity",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"distance_metric\": {\"beta_diversity_method\": \"weighted_unifrac\", \"__current_case__\": 23, \"input_tree\": {\"__class__\": \"ConnectedValue\"}, \"tree\": \"\"}, \"header\": false, \"input_abundance\": {\"__class__\": \"ConnectedValue\"}, \"otu_column\": \"1\", \"sample_columns\": null, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.4.2.0",
+      "type": "tool",
+      "uuid": "7335f934-b355-45a1-b1d7-17e333f41323",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "output_beta_diversity",
+          "output_name": "output_beta_diversity",
+          "uuid": "4c59040d-330d-4ae8-9d1c-a29c282c8417"
+        }
+      ]
+    }
+  },
+  "tags": [],
+  "uuid": "916d0833-b61d-4513-9578-5e997d2ebd7c",
+  "version": 34
+}

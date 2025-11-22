@@ -1,0 +1,2818 @@
+{
+  "workflows": [
+    {
+      "name": "Repeat masking with RepeatModeler and RepeatMasker",
+      "domain": "repeatmasking",
+      "num_tools": 2,
+      "tool_sequence": [
+        "csbl/Repository_Actions_RepeatModeler",
+        "bgruening_repeat_masker_RepeatMasker_4.1.5+galaxy0"
+      ]
+    },
+    {
+      "name": "Fragment-based virtual screening using rDock for docking and SuCOS for pose scoring",
+      "domain": "computational-chemistry",
+      "num_tools": 11,
+      "tool_sequence": [
+        "bgruening/Repository_Actions_Compound_conversion",
+        "bgruening/Repository_Actions_Create_Frankenstein_ligand",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "bgruening/Repository_Actions_Enumerate_changes",
+        "bgruening/Repository_Actions_rxDock_cavity_definition",
+        "bgruening/Repository_Actions_Compound_conversion",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "bgruening/Repository_Actions_rxDock_docking",
+        "nml/Repository_Actions_Collapse_Collection",
+        "bgruening/Repository_Actions_Score_docked_poses_using_SuCOS",
+        "bgruening/Repository_Actions_rDock_docking"
+      ]
+    },
+    {
+      "name": "MMGBSA calculations with GROMACS",
+      "domain": "computational-chemistry",
+      "num_tools": 17,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "chemteam/Repository_Actions_GROMACS_structure_configuration",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "param_value_from_file",
+        "chemteam/Repository_Actions_GROMACS_solvation_and_adding_ions",
+        "chemteam/Repository_Actions_GROMACS_energy_minimization",
+        "chemteam/Repository_Actions_Convert_Parameters",
+        "chemteam/Repository_Actions_GROMACS_simulation",
+        "chemteam/Repository_Actions_GROMACS_simulation",
+        "chemteam/Repository_Actions_GROMACS_simulation",
+        "chemteam/Repository_Actions_Slice_MD_trajectories",
+        "chemteam/Repository_Actions_MMPBSA",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "nml/Repository_Actions_Collapse_Collection",
+        "Cut1",
+        "vmarcon_summary_statistics_Summary_statistics_1.0.0"
+      ]
+    },
+    {
+      "name": "Create GRO and TOP complex files",
+      "domain": "computational-chemistry",
+      "num_tools": 9,
+      "tool_sequence": [
+        "bgruening/Repository_Actions_Compound_conversion",
+        "bgruening/Repository_Actions_Descriptors",
+        "chemteam/Repository_Actions_GROMACS_initial_setup",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "param_value_from_file",
+        "chemteam/Repository_Actions_AnteChamber",
+        "chemteam/Repository_Actions_Generate_MD_topologies_for_small_molecules",
+        "chemteam/Repository_Actions_Merge_GROMACS_topologies"
+      ]
+    },
+    {
+      "name": "dcTMD calculations with GROMACS",
+      "domain": "computational-chemistry",
+      "num_tools": 21,
+      "tool_sequence": [
+        "bgruening/Repository_Actions_Online_data",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "chemteam/Repository_Actions_GROMACS_solvation_and_adding_ions",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "bgruening/Repository_Actions_Add_line_to_file",
+        "chemteam/Repository_Actions_GROMACS_energy_minimization",
+        "param_value_from_file",
+        "bgruening/Repository_Actions_Add_line_to_file",
+        "chemteam/Repository_Actions_Create_GROMACS_index_files",
+        "chemteam/Repository_Actions_GROMACS_simulation",
+        "bgruening/Repository_Actions_Add_line_to_file",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening/Repository_Actions_Add_line_to_file",
+        "bgruening/Repository_Actions_Add_line_to_file",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "chemteam/Repository_Actions_GROMACS_simulation",
+        "chemteam/Repository_Actions_dcTMD_friction_correction"
+      ]
+    },
+    {
+      "name": "MetaProSIP OpenMS 2.8",
+      "domain": "proteomics",
+      "num_tools": 8,
+      "tool_sequence": [
+        "__SORTLIST__",
+        "galaxyp/Repository_Actions_DecoyDatabase",
+        "galaxyp/Repository_Actions_FeatureFinderMultiplex",
+        "galaxyp/Repository_Actions_MSGFPlusAdapter",
+        "galaxyp/Repository_Actions_PeptideIndexer",
+        "galaxyp/Repository_Actions_FalseDiscoveryRate",
+        "galaxyp/Repository_Actions_IDMapper",
+        "galaxyp/Repository_Actions_MetaProSIP"
+      ]
+    },
+    {
+      "name": "Generate a Clinical Metaproteomics Database",
+      "domain": "proteomics",
+      "num_tools": 3,
+      "tool_sequence": [
+        "galaxyp/Repository_Actions_FASTA_Merge_Files_and_Filter_Unique_Sequences",
+        "galaxyp/Repository_Actions_MetaNovo",
+        "galaxyp/Repository_Actions_FASTA_Merge_Files_and_Filter_Unique_Sequences"
+      ]
+    },
+    {
+      "name": "Clinical Metaproteomics Data Interpretation",
+      "domain": "proteomics",
+      "num_tools": 6,
+      "tool_sequence": [
+        "galaxyp/Repository_Actions_Unipept",
+        "Grep1",
+        "Grep1",
+        "galaxyp/Repository_Actions_MSstatsTMT",
+        "Grep1",
+        "galaxyp/Repository_Actions_MSstatsTMT"
+      ]
+    },
+    {
+      "name": "Clinical Metaproteomics Discovery Workflow",
+      "domain": "proteomics",
+      "num_tools": 24,
+      "tool_sequence": [
+        "galaxyp_peptideshaker_Search_GUI_4.0.41+galaxy1",
+        "galaxyp/Repository_Actions_Protein_Database_Downloader",
+        "galaxyp/Repository_Actions_Protein_Database_Downloader",
+        "galaxyp_peptideshaker_Search_GUI_4.0.41+galaxy1",
+        "galaxyp/Repository_Actions_msconvert",
+        "galaxyp/Repository_Actions_FASTA_Merge_Files_and_Filter_Unique_Sequences",
+        "galaxyp/Repository_Actions_MaxQuant",
+        "galaxyp_peptideshaker_Search_GUI_4.0.41+galaxy1",
+        "swebb/Repository_Actions_pyFasta2Tab",
+        "Grep1",
+        "galaxyp_peptideshaker_Search_GUI_4.0.41+galaxy1",
+        "iuc_filter_tabular_Filter_Tabular_3.3.1",
+        "Cut1",
+        "Grep1",
+        "Grep1",
+        "Remove beginning1",
+        "Filter1",
+        "Filter1",
+        "Grouping1",
+        "iuc_query_tabular_Query_Tabular_3.3.2",
+        "Cut1",
+        "Grouping1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Grouping1"
+      ]
+    },
+    {
+      "name": "Clinical Metaproteomics Quantitation",
+      "domain": "proteomics",
+      "num_tools": 7,
+      "tool_sequence": [
+        "galaxyp/Repository_Actions_MaxQuant",
+        "Grep1",
+        "Grep1",
+        "Cut1",
+        "Cut1",
+        "Grouping1",
+        "Grouping1"
+      ]
+    },
+    {
+      "name": "Clinical Metaproteomics Verification Workflow",
+      "domain": "proteomics",
+      "num_tools": 19,
+      "tool_sequence": [
+        "galaxyp/Repository_Actions_Protein_Database_Downloader",
+        "galaxyp/Repository_Actions_Protein_Database_Downloader",
+        "galaxyp/Repository_Actions_FASTA_Merge_Files_and_Filter_Unique_Sequences",
+        "Cut1",
+        "Cut1",
+        "galaxyp/Repository_Actions_PepQuery2",
+        "Remove beginning1",
+        "Remove beginning1",
+        "nml/Repository_Actions_Collapse_Collection",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Filter1",
+        "Remove beginning1",
+        "Cut1",
+        "iuc_query_tabular_Query_Tabular_3.3.2",
+        "Remove beginning1",
+        "Grouping1",
+        "iuc_query_tabular_Query_Tabular_3.3.2",
+        "galaxyp/Repository_Actions_UniProt",
+        "galaxyp/Repository_Actions_FASTA_Merge_Files_and_Filter_Unique_Sequences"
+      ]
+    },
+    {
+      "name": "Paired end variant calling in haploid system",
+      "domain": "variant-calling",
+      "num_tools": 13,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "iuc/Repository_Actions_SnpEff_eff:",
+        "devteam/Repository_Actions_Map_with_BWA-MEM",
+        "iuc/Repository_Actions_Samtools_view",
+        "devteam/Repository_Actions_Samtools_stats",
+        "devteam/Repository_Actions_RevertSam",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc_lofreq_viterbi_Realign_reads_2.1.5+galaxy0",
+        "iuc_lofreq_call_Call_variants_2.1.5+galaxy3",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_SnpEff_eff:",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "nml/Repository_Actions_Collapse_Collection"
+      ]
+    },
+    {
+      "name": "Generic variation analysis on WGS PE data",
+      "domain": "variant-calling",
+      "num_tools": 12,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "iuc/Repository_Actions_SnpEff_eff:",
+        "devteam/Repository_Actions_Map_with_BWA-MEM",
+        "iuc/Repository_Actions_Samtools_view",
+        "devteam/Repository_Actions_RevertSam",
+        "devteam/Repository_Actions_Samtools_stats",
+        "iuc_lofreq_viterbi_Realign_reads_2.1.5+galaxy0",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc_lofreq_indelqual_Insert_indel_qualities_2.1.5+galaxy1",
+        "iuc_lofreq_call_Call_variants_2.1.5+galaxy3",
+        "iuc_lofreq_filter_Lofreq_filter_2.1.5+galaxy0",
+        "iuc/Repository_Actions_SnpEff_eff:"
+      ]
+    },
+    {
+      "name": "Generic variation analysis reporting",
+      "domain": "variant-calling",
+      "num_tools": 31,
+      "tool_sequence": [
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "devteam/Repository_Actions_Compute",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "nml/Repository_Actions_Collapse_Collection",
+        "devteam/Repository_Actions_Compute",
+        "devteam/Repository_Actions_Compute",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "Filter1",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "Cut1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "RNA-Seq Analysis: Paired-End Read Processing and Quantification",
+      "domain": "transcriptomics",
+      "num_tools": 12,
+      "tool_sequence": [
+        "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0",
+        "iuc/Repository_Actions_fastp",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc/Repository_Actions_RNA_STAR",
+        "iuc/Repository_Actions_featureCounts",
+        "iuc_stringtie_StringTie_2.2.3+galaxy0",
+        "devteam_cufflinks_Cufflinks_2.2.1.4",
+        "iuc/Repository_Actions_MultiQC"
+      ]
+    },
+    {
+      "name": "BREW3R",
+      "domain": "transcriptomics",
+      "num_tools": 5,
+      "tool_sequence": [
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_stringtie_StringTie_2.2.3+galaxy0",
+        "iuc_stringtie_StringTie_2.2.3+galaxy0",
+        "iuc/Repository_Actions_BREW3R.r"
+      ]
+    },
+    {
+      "name": "RNA-Seq Differential Expression Analysis with Visualization",
+      "domain": "transcriptomics",
+      "num_tools": 19,
+      "tool_sequence": [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_DESeq2",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Annotate_DESeq2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "param_value_from_file",
+        "Filter1",
+        "iuc_volcanoplot_Volcano_Plot_4.0.0+galaxy0",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "Filter1",
+        "join1",
+        "Cut1",
+        "iuc_ggplot2_heatmap2_heatmap2_3.2.0+galaxy1",
+        "iuc_ggplot2_heatmap2_heatmap2_3.2.0+galaxy1"
+      ]
+    },
+    {
+      "name": "Gene Ontology and KEGG Pathway Enrichment Analysis",
+      "domain": "transcriptomics",
+      "num_tools": 5,
+      "tool_sequence": [
+        "iuc/Repository_Actions_goseq",
+        "iuc/Repository_Actions_goseq",
+        "iuc/Repository_Actions_goseq",
+        "iuc/Repository_Actions_goseq",
+        "join1"
+      ]
+    },
+    {
+      "name": "RNA-Seq Analysis: Single-End Read Processing and Quantification",
+      "domain": "transcriptomics",
+      "num_tools": 11,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc/Repository_Actions_RNA_STAR",
+        "iuc/Repository_Actions_featureCounts",
+        "iuc_stringtie_StringTie_2.2.3+galaxy0",
+        "devteam_cufflinks_Cufflinks_2.2.1.4",
+        "iuc/Repository_Actions_MultiQC"
+      ]
+    },
+    {
+      "name": "dada2 amplicon analysis pipeline - for paired end data",
+      "domain": "amplicon",
+      "num_tools": 14,
+      "tool_sequence": [
+        "__APPLY_RULES__",
+        "iuc/Repository_Actions_dada2:_plotQualityProfile",
+        "iuc/Repository_Actions_dada2:_filterAndTrim",
+        "iuc/Repository_Actions_dada2:_plotQualityProfile",
+        "__UNZIP_COLLECTION__",
+        "iuc/Repository_Actions_dada2:_learnErrors",
+        "iuc/Repository_Actions_dada2:_learnErrors",
+        "iuc/Repository_Actions_dada2:_dada",
+        "iuc/Repository_Actions_dada2:_dada",
+        "iuc/Repository_Actions_dada2:_mergePairs",
+        "iuc/Repository_Actions_dada2:_makeSequenceTable",
+        "iuc/Repository_Actions_dada2:_removeBimeraDenovo",
+        "iuc/Repository_Actions_dada2:_sequence_counts",
+        "iuc/Repository_Actions_dada2:_assignTaxonomy_and_addSpecies"
+      ]
+    },
+    {
+      "name": "MAPseq to ampvis2",
+      "domain": "amplicon",
+      "num_tools": 9,
+      "tool_sequence": [
+        "iuc_query_tabular_Query_Tabular_3.3.2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "nml/Repository_Actions_Collapse_Collection",
+        "iuc/Repository_Actions_Column_join",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_query_tabular_Query_Tabular_3.3.2",
+        "iuc/Repository_Actions_ampvis2_load"
+      ]
+    },
+    {
+      "name": "MGnify's amplicon pipeline v5.0 - ITS",
+      "domain": "amplicon",
+      "num_tools": 26,
+      "tool_sequence": [
+        "__FILTER_EMPTY_DATASETS__",
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "__FILTER_FROM_FILE__",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_MAPseq",
+        "iuc/Repository_Actions_MAPseq",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "__FILTER_EMPTY_DATASETS__",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "crs4/Repository_Actions_Krona_pie_chart",
+        "crs4/Repository_Actions_Krona_pie_chart",
+        "iuc/Repository_Actions_Convert",
+        "iuc/Repository_Actions_Convert",
+        "iuc/Repository_Actions_Convert",
+        "iuc/Repository_Actions_Convert"
+      ]
+    },
+    {
+      "name": "MGnify's amplicon pipeline v5.0 - Quality control SE",
+      "domain": "amplicon",
+      "num_tools": 14,
+      "tool_sequence": [
+        "devteam/Repository_Actions_FastQC",
+        "pjbriggs/Repository_Actions_Trimmomatic",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_Filter_FASTQ",
+        "devteam/Repository_Actions_FastQC",
+        "iuc/Repository_Actions_PRINSEQ",
+        "devteam/Repository_Actions_FastQC",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_FASTQ_to_FASTA",
+        "devteam/Repository_Actions_FastQC",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_FASTA_Width",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_MultiQC"
+      ]
+    },
+    {
+      "name": "MGnify's amplicon pipeline v5.0 - rRNA prediction",
+      "domain": "amplicon",
+      "num_tools": 43,
+      "tool_sequence": [
+        "bgruening/Repository_Actions_cmalign",
+        "__FILTER_EMPTY_DATASETS__",
+        "rnateam/Repository_Actions_CMsearch_deoverlap",
+        "iuc_query_tabular_Query_Tabular_3.3.2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_Concatenate",
+        "devteam/Repository_Actions_Concatenate",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "devteam/Repository_Actions_Concatenate",
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "__FILTER_FROM_FILE__",
+        "__FILTER_FROM_FILE__",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "devteam/Repository_Actions_FASTA_Width",
+        "devteam/Repository_Actions_FASTA_Width",
+        "iuc/Repository_Actions_MAPseq",
+        "iuc/Repository_Actions_MAPseq",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "__FILTER_EMPTY_DATASETS__",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__",
+        "crs4/Repository_Actions_Krona_pie_chart",
+        "crs4/Repository_Actions_Krona_pie_chart",
+        "iuc/Repository_Actions_Convert",
+        "iuc/Repository_Actions_Convert",
+        "iuc/Repository_Actions_Convert",
+        "iuc/Repository_Actions_Convert"
+      ]
+    },
+    {
+      "name": "MGnify's amplicon pipeline v5.0",
+      "domain": "amplicon",
+      "num_tools": 8,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastq-dl",
+        "CONVERTER_gz_to_uncompressed",
+        "CONVERTER_gz_to_uncompressed",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "CONVERTER_uncompressed_to_gz",
+        "CONVERTER_uncompressed_to_gz",
+        "__MERGE_COLLECTION__"
+      ]
+    },
+    {
+      "name": "MGnify's amplicon pipeline v5.0 - Quality control PE",
+      "domain": "amplicon",
+      "num_tools": 17,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "__UNZIP_COLLECTION__",
+        "bgruening/mgnify_seqprep",
+        "pjbriggs/Repository_Actions_Trimmomatic",
+        "devteam/Repository_Actions_FastQC",
+        "devteam/Repository_Actions_Filter_FASTQ",
+        "devteam/Repository_Actions_FastQC",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_PRINSEQ",
+        "devteam/Repository_Actions_FastQC",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_FASTQ_to_FASTA",
+        "devteam/Repository_Actions_FastQC",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_FASTA_Width",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_MultiQC"
+      ]
+    },
+    {
+      "name": "MGnify amplicon summary tables",
+      "domain": "amplicon",
+      "num_tools": 10,
+      "tool_sequence": [
+        "iuc_query_tabular_Query_Tabular_3.3.2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Grouping1",
+        "iuc/Repository_Actions_Column_join",
+        "iuc_filter_tabular_Filter_Tabular_3.3.1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Column_join",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "Taxonomic abundance summary tables for a specified taxonomic rank",
+      "domain": "amplicon",
+      "num_tools": 8,
+      "tool_sequence": [
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Grouping1",
+        "iuc_filter_tabular_Filter_Tabular_3.3.1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Column_join",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "QIIME2 Ib: multiplexed data (paired-end)",
+      "domain": "amplicon",
+      "num_tools": 4,
+      "tool_sequence": [
+        "q2d2/Repository_Actions_qiime2_tools_import",
+        "q2d2/Repository_Actions_qiime2_tools_import",
+        "q2d2/Repository_Actions_qiime2_demux_emp-paired",
+        "q2d2/Repository_Actions_qiime2_demux_summarize"
+      ]
+    },
+    {
+      "name": "QIIME2 Ia: multiplexed data (single-end)",
+      "domain": "amplicon",
+      "num_tools": 4,
+      "tool_sequence": [
+        "q2d2/Repository_Actions_qiime2_tools_import",
+        "q2d2/Repository_Actions_qiime2_tools_import",
+        "q2d2/Repository_Actions_qiime2_demux_emp-single",
+        "q2d2/Repository_Actions_qiime2_demux_summarize"
+      ]
+    },
+    {
+      "name": "QIIME2 Id: Demultiplexed data (paired-end)",
+      "domain": "amplicon",
+      "num_tools": 5,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "galaxyp_regex_find_replace_Regex_Find_And_Replace_1.0.3",
+        "__RELABEL_FROM_FILE__",
+        "q2d2/Repository_Actions_qiime2_tools_import",
+        "q2d2/Repository_Actions_qiime2_demux_summarize"
+      ]
+    },
+    {
+      "name": "QIIME2 Ic: Demultiplexed data (single-end)",
+      "domain": "amplicon",
+      "num_tools": 5,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "galaxyp_regex_find_replace_Regex_Find_And_Replace_1.0.3",
+        "__RELABEL_FROM_FILE__",
+        "q2d2/Repository_Actions_qiime2_tools_import",
+        "q2d2/Repository_Actions_qiime2_demux_summarize"
+      ]
+    },
+    {
+      "name": "QIIME2-III-V-Phylogeny-Rarefaction-Taxonomic-Analysis",
+      "domain": "amplicon",
+      "num_tools": 0,
+      "tool_sequence": []
+    },
+    {
+      "name": "QIIME2 VI: Diversity metrics and estimations",
+      "domain": "amplicon",
+      "num_tools": 12,
+      "tool_sequence": [
+        "q2d2/Repository_Actions_qiime2_tools_import",
+        "q2d2/Repository_Actions_qiime2_diversity_core-metrics-phylogenetic",
+        "q2d2/Repository_Actions_qiime2_diversity_alpha-group-significance",
+        "q2d2/Repository_Actions_qiime2_diversity_alpha-group-significance",
+        "q2d2/Repository_Actions_qiime2_diversity_alpha-group-significance",
+        "q2d2/Repository_Actions_qiime2_diversity_beta-group-significance",
+        "q2d2/Repository_Actions_qiime2_diversity_beta-group-significance",
+        "__BUILD_LIST__",
+        "q2d2/Repository_Actions_qiime2_diversity_beta-group-significance",
+        "__BUILD_LIST__",
+        "__BUILD_LIST__",
+        "__BUILD_LIST__"
+      ]
+    },
+    {
+      "name": "QIIME2 IIb: Denoising (sequence quality control) and feature table creation (paired-end)",
+      "domain": "amplicon",
+      "num_tools": 4,
+      "tool_sequence": [
+        "q2d2/Repository_Actions_qiime2_dada2_denoise-paired",
+        "q2d2/Repository_Actions_qiime2_feature-table_tabulate-seqs",
+        "q2d2/Repository_Actions_qiime2_metadata_tabulate",
+        "q2d2/Repository_Actions_qiime2_feature-table_summarize"
+      ]
+    },
+    {
+      "name": "QIIME2 IIa: Denoising (sequence quality control) and feature table creation (single-end)",
+      "domain": "amplicon",
+      "num_tools": 4,
+      "tool_sequence": [
+        "q2d2/Repository_Actions_qiime2_dada2_denoise-single",
+        "q2d2/Repository_Actions_qiime2_feature-table_tabulate-seqs",
+        "q2d2/Repository_Actions_qiime2_metadata_tabulate",
+        "q2d2/Repository_Actions_qiime2_feature-table_summarize"
+      ]
+    },
+    {
+      "name": "bacterial_genome_annotation",
+      "domain": "bacterial_genomics",
+      "num_tools": 6,
+      "tool_sequence": [
+        "iuc/Repository_Actions_ISEScan",
+        "iuc/Repository_Actions_Integron_Finder",
+        "iuc/Repository_Actions_",
+        "iuc/Repository_Actions_",
+        "iuc_tooldistillator_ToolDistillator_1.0.1+galaxy0",
+        "iuc_tooldistillator_summarize_ToolDistillator_Summarize_1.0.1+galaxy0"
+      ]
+    },
+    {
+      "name": "amr_gene_detection",
+      "domain": "bacterial_genomics",
+      "num_tools": 5,
+      "tool_sequence": [
+        "iuc_staramr_staramr_0.11.0+galaxy3",
+        "iuc/Repository_Actions_",
+        "iuc/Repository_Actions_ABRicate_List",
+        "iuc_tooldistillator_ToolDistillator_1.0.1+galaxy0",
+        "iuc_tooldistillator_summarize_ToolDistillator_Summarize_1.0.1+galaxy0"
+      ]
+    },
+    {
+      "name": "Post-Assembly Quality Control and Contamination Check for Bacterial Genomes",
+      "domain": "bacterial_genomics",
+      "num_tools": 14,
+      "tool_sequence": [
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Quast",
+        "iuc/Repository_Actions_checkm2",
+        "iuc/Repository_Actions_Kraken2",
+        "iuc/Repository_Actions_Quast",
+        "nml/Repository_Actions_Collapse_Collection",
+        "nml/Repository_Actions_Collapse_Collection",
+        "iuc/Repository_Actions_Bracken",
+        "iuc/Repository_Actions_Recentrifuge",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc_tooldistillator_ToolDistillator_1.0.1+galaxy0",
+        "iuc_tooldistillator_summarize_ToolDistillator_Summarize_1.0.1+galaxy0"
+      ]
+    },
+    {
+      "name": "Raw Read Quality and Contamination Control For Genome Assembly",
+      "domain": "genome-assembly",
+      "num_tools": 8,
+      "tool_sequence": [
+        "__ZIP_COLLECTION__",
+        "iuc/Repository_Actions_fastp",
+        "__UNZIP_COLLECTION__",
+        "iuc/Repository_Actions_Kraken2",
+        "iuc/Repository_Actions_Bracken",
+        "iuc/Repository_Actions_Recentrifuge",
+        "iuc_tooldistillator_ToolDistillator_1.0.1+galaxy0",
+        "iuc_tooldistillator_summarize_ToolDistillator_Summarize_1.0.1+galaxy0"
+      ]
+    },
+    {
+      "name": "Assembly polishing with long reads",
+      "domain": "genome-assembly",
+      "num_tools": 8,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "nfcore_racon",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "nfcore_racon",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "nfcore_racon",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "nfcore_racon"
+      ]
+    },
+    {
+      "name": "Bacterial Genome Assembly using Shovill",
+      "domain": "genome-assembly",
+      "num_tools": 5,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Shovill",
+        "iuc/Repository_Actions_Bandage_Image",
+        "iuc/Repository_Actions_Bandage_Image",
+        "iuc_tooldistillator_ToolDistillator_1.0.1+galaxy0",
+        "iuc_tooldistillator_summarize_ToolDistillator_Summarize_1.0.1+galaxy0"
+      ]
+    },
+    {
+      "name": "Genome assembly with Flye",
+      "domain": "genome-assembly",
+      "num_tools": 4,
+      "tool_sequence": [
+        "bgruening/Repository_Actions_Flye",
+        "iuc/Repository_Actions_Quast",
+        "iuc/Repository_Actions_Fasta_Statistics",
+        "iuc/Repository_Actions_Bandage_Image"
+      ]
+    },
+    {
+      "name": "Metagenome-Assembled Genomes (MAGs) generation",
+      "domain": "microbiome",
+      "num_tools": 36,
+      "tool_sequence": [
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "__UNZIP_COLLECTION__",
+        "iuc/Repository_Actions_MEGAHIT",
+        "nml/Repository_Actions_metaSPAdes",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Quast",
+        "devteam/Repository_Actions_Bowtie2",
+        "iuc/Repository_Actions_CONCOCT:_Cut_up_contigs",
+        "devteam/Repository_Actions_Samtools_sort",
+        "iuc/Repository_Actions_SemiBin",
+        "iuc/Repository_Actions_CONCOCT:_Generate_the_input_coverage_table",
+        "iuc/Repository_Actions_Calculate_contig_depths",
+        "iuc/Repository_Actions_Converts_genome_bins_in_fasta_format",
+        "iuc/Repository_Actions_CONCOCT",
+        "mbernt/Repository_Actions_MaxBin2",
+        "iuc/Repository_Actions_MetaBAT2",
+        "iuc/Repository_Actions_CONCOCT:_Merge_cut_clusters",
+        "iuc/Repository_Actions_Converts_genome_bins_in_fasta_format",
+        "iuc/Repository_Actions_Converts_genome_bins_in_fasta_format",
+        "iuc/Repository_Actions_CONCOCT:_Extract_a_fasta_file",
+        "iuc/Repository_Actions_Converts_genome_bins_in_fasta_format",
+        "__BUILD_LIST__",
+        "iuc/Repository_Actions_Binette",
+        "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0",
+        "iuc/Repository_Actions_checkm2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_dRep_dereplicate",
+        "iuc/Repository_Actions_GTDB-Tk_Classify_genomes",
+        "iuc/Repository_Actions_checkm2",
+        "iuc/Repository_Actions_CheckM_lineage_wf",
+        "iuc/Repository_Actions_CoverM_genome",
+        "iuc/Repository_Actions_Quast",
+        "iuc/Repository_Actions_",
+        "iuc/Repository_Actions_Column_join",
+        "iuc/Repository_Actions_MultiQC"
+      ]
+    },
+    {
+      "name": "Pathogen Detection PathoGFAIR Samples Aggregation and Visualisation",
+      "domain": "microbiome",
+      "num_tools": 60,
+      "tool_sequence": [
+        "__FILTER_FAILED_DATASETS__",
+        "__FILTER_FAILED_DATASETS__",
+        "__FILTER_FAILED_DATASETS__",
+        "__FILTER_FAILED_DATASETS__",
+        "__FILTER_FAILED_DATASETS__",
+        "Remove beginning1",
+        "Remove beginning1",
+        "Remove beginning1",
+        "nml/Repository_Actions_Collapse_Collection",
+        "nml/Repository_Actions_Collapse_Collection",
+        "Remove beginning1",
+        "iuc_umi_tools_count_UMI-tools_count_1.1.6+galaxy0",
+        "iuc_umi_tools_count_UMI-tools_count_1.1.6+galaxy0",
+        "Grouping1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_split_file_on_column_Split_by_group_0.6",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "Cut1",
+        "__FILTER_EMPTY_DATASETS__",
+        "Cut1",
+        "Cut1",
+        "Cut1",
+        "nml/Repository_Actions_Collapse_Collection",
+        "nml/Repository_Actions_Collapse_Collection",
+        "iuc/Repository_Actions_Column_join",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "Remove beginning1",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "galaxyp_regex_find_replace_Regex_Find_And_Replace_1.0.3",
+        "galaxyp_regex_find_replace_Regex_Find_And_Replace_1.0.3",
+        "galaxyp_regex_find_replace_Regex_Find_And_Replace_1.0.3",
+        "galaxyp_regex_find_replace_Regex_Find_And_Replace_1.0.3",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "galaxyp_regex_find_replace_Regex_Find_And_Replace_1.0.3",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_ggplot2_heatmap_Heatmap_w_ggplot_3.5.1+galaxy1",
+        "__FILTER_EMPTY_DATASETS__",
+        "devteam/Repository_Actions_ClustalW",
+        "__FILTER_EMPTY_DATASETS__",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "swebb/Repository_Actions_pyFasta2Tab",
+        "__FILTER_EMPTY_DATASETS__",
+        "swebb/Repository_Actions_pyFasta2Tab",
+        "Cut1",
+        "iuc/Repository_Actions_FASTTREE",
+        "Cut1",
+        "Grouping1",
+        "iuc/Repository_Actions_Newick_Display",
+        "Grouping1",
+        "devteam/tab2fasta",
+        "devteam/tab2fasta",
+        "galaxyp/Repository_Actions_FASTA_Merge_Files_and_Filter_Unique_Sequences",
+        "galaxyp/Repository_Actions_FASTA_Merge_Files_and_Filter_Unique_Sequences",
+        "devteam/Repository_Actions_ClustalW",
+        "devteam/Repository_Actions_ClustalW",
+        "iuc/Repository_Actions_FASTTREE",
+        "iuc/Repository_Actions_FASTTREE",
+        "iuc/Repository_Actions_Newick_Display",
+        "iuc/Repository_Actions_Newick_Display"
+      ]
+    },
+    {
+      "name": "Gene-based Pathogen Identification",
+      "domain": "microbiome",
+      "num_tools": 15,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "__BUILD_LIST__",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "bgruening/Repository_Actions_Flye",
+        "param_value_from_file",
+        "iuc/Repository_Actions_medaka_consensus_pipeline",
+        "iuc/Repository_Actions_Bandage_Image",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "swebb/Repository_Actions_pyFasta2Tab",
+        "iuc/Repository_Actions_ABRicate_List",
+        "iuc/Repository_Actions_ABRicate_List",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/tab2fasta"
+      ]
+    },
+    {
+      "name": "Taxonomy Profiling and Visualization with Krona",
+      "domain": "microbiome",
+      "num_tools": 3,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Kraken2",
+        "iuc/Repository_Actions_Krakentools:_Convert_kraken_report_file",
+        "crs4/Repository_Actions_Krona_pie_chart"
+      ]
+    },
+    {
+      "name": "Allele-based Pathogen Identification",
+      "domain": "microbiome",
+      "num_tools": 23,
+      "tool_sequence": [
+        "CONVERTER_gz_to_uncompressed",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "iuc/Repository_Actions_Clair3",
+        "iuc/Repository_Actions_Samtools_depth",
+        "iuc/Repository_Actions_Samtools_coverage",
+        "iuc/bcftools_norm",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Remove beginning1",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "iuc_table_compute_Table_Compute_1.2.4+galaxy2",
+        "Cut1",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "iuc/bcftools_consensus",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Remove beginning1",
+        "nml/Repository_Actions_Collapse_Collection",
+        "iuc_umi_tools_count_UMI-tools_count_1.1.6+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "Paste1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "nml/Repository_Actions_Collapse_Collection",
+        "galaxyp_regex_find_replace_Regex_Find_And_Replace_1.0.3"
+      ]
+    },
+    {
+      "name": "Nanopore Preprocessing",
+      "domain": "microbiome",
+      "num_tools": 25,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Porechop",
+        "iuc_nanoplot_NanoPlot_1.46.1+galaxy0",
+        "devteam/Repository_Actions_FastQC",
+        "iuc/Repository_Actions_fastp",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "iuc_nanoplot_NanoPlot_1.46.1+galaxy0",
+        "devteam/Repository_Actions_FastQC",
+        "iuc/Repository_Actions_Split_BAM_by_reads_mapping_status",
+        "Grep1",
+        "iuc/Repository_Actions_Samtools_fastx",
+        "iuc/Repository_Actions_Samtools_fastx",
+        "nml/Repository_Actions_Collapse_Collection",
+        "__FILTER_FAILED_DATASETS__",
+        "iuc/Repository_Actions_Kraken2",
+        "Cut1",
+        "devteam/Repository_Actions_FastQC",
+        "iuc/Repository_Actions_Krakentools:_Extract_Kraken_Reads_By_ID",
+        "Grep1",
+        "nml/Repository_Actions_Collapse_Collection",
+        "Cut1",
+        "iuc/Repository_Actions_Column_join",
+        "devteam/Repository_Actions_Compute",
+        "galaxyp_regex_find_replace_Regex_Find_And_Replace_1.0.3",
+        "iuc/Repository_Actions_MultiQC"
+      ]
+    },
+    {
+      "name": "Parallel Accession Download",
+      "domain": "data-fetching",
+      "num_tools": 4,
+      "tool_sequence": [
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "iuc/Repository_Actions_Faster_Download_and_Extract_Reads_in_FASTQ",
+        "__APPLY_RULES__",
+        "__APPLY_RULES__"
+      ]
+    },
+    {
+      "name": "sra_manifest_to_concatenated_fastqs_parallel",
+      "domain": "data-fetching",
+      "num_tools": 13,
+      "tool_sequence": [
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "Cut1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "iuc/Repository_Actions_Faster_Download_and_Extract_Reads_in_FASTQ",
+        "__RELABEL_FROM_FILE__",
+        "__RELABEL_FROM_FILE__",
+        "__APPLY_RULES__",
+        "__APPLY_RULES__",
+        "artbio/Repository_Actions_Concatenate_multiple_datasets",
+        "artbio/Repository_Actions_Concatenate_multiple_datasets"
+      ]
+    },
+    {
+      "name": "Pox Virus Illumina Amplicon Workflow from half-genomes",
+      "domain": "virology",
+      "num_tools": 40,
+      "tool_sequence": [
+        "devteam/fasta_compute_length",
+        "Grep1",
+        "Grep1",
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "iuc/Repository_Actions_fastp",
+        "Cut1",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "__SORTLIST__",
+        "param_value_from_file",
+        "param_value_from_file",
+        "param_value_from_file",
+        "param_value_from_file",
+        "iuc/Repository_Actions_fastp",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "devteam/Repository_Actions_fuzztran",
+        "devteam/Repository_Actions_fuzztran",
+        "devteam/Repository_Actions_Map_with_BWA-MEM",
+        "devteam/Repository_Actions_Map_with_BWA-MEM",
+        "iuc/Repository_Actions_Samtools_view",
+        "devteam/Repository_Actions_Samtools_stats",
+        "iuc/Repository_Actions_Samtools_view",
+        "devteam/Repository_Actions_Samtools_stats",
+        "iuc/Repository_Actions_MultiQC",
+        "__ZIP_COLLECTION__",
+        "iuc/Repository_Actions_MultiQC",
+        "__APPLY_RULES__",
+        "iuc/Repository_Actions_Samtools_merge",
+        "iuc/Repository_Actions_View_repository_View_change_log_Browse_repository_tip_files_Download_as_a_.tar.gz_file_Download_as_a_.tar.bz2_file_Download_as_a_zip_file_QualiMap_BamQC",
+        "iuc/Repository_Actions_ivar_trim",
+        "__FILTER_FAILED_DATASETS__",
+        "iuc/Repository_Actions_ivar_consensus",
+        "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_MultiQC",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "Influenza A isolate subtyping and consensus sequence generation",
+      "domain": "virology",
+      "num_tools": 68,
+      "tool_sequence": [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "iuc/Repository_Actions_fastp",
+        "wc_gnu",
+        "wc_gnu",
+        "__UNZIP_COLLECTION__",
+        "param_value_from_file",
+        "param_value_from_file",
+        "__DUPLICATE_FILE_TO_COLLECTION__",
+        "__DUPLICATE_FILE_TO_COLLECTION__",
+        "__DUPLICATE_FILE_TO_COLLECTION__",
+        "__DUPLICATE_FILE_TO_COLLECTION__",
+        "__RELABEL_FROM_FILE__",
+        "__APPLY_RULES__",
+        "__DUPLICATE_FILE_TO_COLLECTION__",
+        "__RELABEL_FROM_FILE__",
+        "__APPLY_RULES__",
+        "iuc_vapor_VAPOR_1.0.3+galaxy0",
+        "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0",
+        "__RELABEL_FROM_FILE__",
+        "__FILTER_FAILED_DATASETS__",
+        "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0",
+        "__APPLY_RULES__",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Show beginning1",
+        "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0",
+        "nml/Repository_Actions_Collapse_Collection",
+        "__MERGE_COLLECTION__",
+        "Grep1",
+        "Grep1",
+        "__HARMONIZELISTS__",
+        "Paste1",
+        "__APPLY_RULES__",
+        "nml/Repository_Actions_Collapse_Collection",
+        "iuc_seqtk_seqtk_comp_1.5+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "nml/Repository_Actions_Collapse_Collection",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_Map_with_BWA-MEM",
+        "__FILTER_FAILED_DATASETS__",
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc/Repository_Actions_Split_BAM_by_reference",
+        "iuc/Repository_Actions_View_repository_View_change_log_Browse_repository_tip_files_Download_as_a_.tar.gz_file_Download_as_a_.tar.bz2_file_Download_as_a_zip_file_QualiMap_BamQC",
+        "__APPLY_RULES__",
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "__RELABEL_FROM_FILE__",
+        "__APPLY_RULES__",
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "iuc/Repository_Actions_ivar_consensus",
+        "wc_gnu",
+        "__APPLY_RULES__",
+        "nml/Repository_Actions_Collapse_Collection",
+        "nml/Repository_Actions_Collapse_Collection",
+        "Filter1",
+        "Filter1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "Cut1",
+        "__FILTER_FROM_FILE__",
+        "rnateam/Repository_Actions_MAFFT_add",
+        "__FILTER_FROM_FILE__",
+        "iuc_snipit_snipit_1.6+galaxy0",
+        "iuc/Repository_Actions_IQ-TREE"
+      ]
+    },
+    {
+      "name": "Variant calling and consensus construction from paired end short read data of non-segmented viral genomes",
+      "domain": "virology",
+      "num_tools": 23,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "iuc/Repository_Actions_SnpEff_eff:",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Calculate_numeric_parameter_value",
+        "devteam/Repository_Actions_Map_with_BWA-MEM",
+        "devteam/Repository_Actions_Samtools_stats",
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc/Repository_Actions_View_repository_View_change_log_Browse_repository_tip_files_Download_as_a_.tar.gz_file_Download_as_a_.tar.bz2_file_Download_as_a_zip_file_QualiMap_BamQC",
+        "iuc_lofreq_viterbi_Realign_reads_2.1.5+galaxy0",
+        "__FILTER_FAILED_DATASETS__",
+        "iuc/Repository_Actions_ivar_trim",
+        "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc/Repository_Actions_ivar_variants",
+        "iuc/Repository_Actions_ivar_consensus",
+        "iuc/Repository_Actions_SnpEff_eff:",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "nml/Repository_Actions_Collapse_Collection"
+      ]
+    },
+    {
+      "name": "Single-Cell RNA-seq Analysis: Scanpy Preprocessing and Clustering",
+      "domain": "scRNAseq",
+      "num_tools": 55,
+      "tool_sequence": [
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Import_Anndata",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Import_Anndata",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Scanpy_filter",
+        "iuc/Repository_Actions_Inspect_AnnData",
+        "iuc/Repository_Actions_Manipulate_AnnData",
+        "iuc/Repository_Actions_Scanpy_Inspect_and_manipulate",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_filter",
+        "iuc/Repository_Actions_Scanpy_filter",
+        "iuc/Repository_Actions_Manipulate_AnnData",
+        "iuc/Repository_Actions_Scanpy_normalize",
+        "iuc/Repository_Actions_Scanpy_Inspect_and_manipulate",
+        "iuc/Repository_Actions_Manipulate_AnnData",
+        "iuc/Repository_Actions_Scanpy_filter",
+        "iuc/Repository_Actions_Manipulate_AnnData",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_remove_confounders",
+        "iuc/Repository_Actions_Scanpy_Inspect_and_manipulate",
+        "iuc/Repository_Actions_Scanpy_cluster,_embed",
+        "iuc/Repository_Actions_Scanpy_Inspect_and_manipulate",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_cluster,_embed",
+        "iuc/Repository_Actions_Scanpy_cluster,_embed",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_Inspect_and_manipulate",
+        "iuc/Repository_Actions_Inspect_AnnData",
+        "iuc/Repository_Actions_Inspect_AnnData",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Manipulate_AnnData",
+        "iuc/Repository_Actions_Inspect_AnnData",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "param_value_from_file",
+        "param_value_from_file",
+        "param_value_from_file",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_plot"
+      ]
+    },
+    {
+      "name": "Single-Cell Pseudobulk Differential Expression Analysis with edgeR",
+      "domain": "scRNAseq",
+      "num_tools": 13,
+      "tool_sequence": [
+        "ebi-gxa_decoupler_pseudobulk_Decoupler_pseudo-bulk_1.4.0+galaxy10",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Remove_columns",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_edgeR",
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "iuc/Repository_Actions_Remove_columns",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "param_value_from_file",
+        "iuc_volcanoplot_Volcano_Plot_4.0.0+galaxy0"
+      ]
+    },
+    {
+      "name": "Single-Cell RNA-seq Preprocessing: 10X Genomics CellPlex Multiplexed Samples",
+      "domain": "scRNAseq",
+      "num_tools": 4,
+      "tool_sequence": [
+        "iuc_cite_seq_count_CITE-seq-Count_1.4.4+galaxy0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_pick_value_Pick_parameter_value_0.2.0"
+      ]
+    },
+    {
+      "name": "Single-Cell RNA-seq Preprocessing: 10X Genomics v3 to Seurat and Scanpy Compatible Format",
+      "domain": "scRNAseq",
+      "num_tools": 3,
+      "tool_sequence": [
+        "iuc/Repository_Actions_RNA_STARSolo",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc/Repository_Actions_DropletUtils"
+      ]
+    },
+    {
+      "name": "RNA Velocity Analysis: Velocyto for 10X Data with Filtered Barcodes",
+      "domain": "scRNAseq",
+      "num_tools": 1,
+      "tool_sequence": [
+        "iuc/Repository_Actions_velocyto_CLI"
+      ]
+    },
+    {
+      "name": "RNA Velocity Analysis: Velocyto for 10X Data from Bundled Output",
+      "domain": "scRNAseq",
+      "num_tools": 1,
+      "tool_sequence": [
+        "__APPLY_RULES__"
+      ]
+    },
+    {
+      "name": "Single-Cell Mixture Analysis: baredSC 2D Log-Normalized Models",
+      "domain": "scRNAseq",
+      "num_tools": 2,
+      "tool_sequence": [
+        "iuc/Repository_Actions_baredSC_2d",
+        "iuc/Repository_Actions_Combine_multiple_2D_Models"
+      ]
+    },
+    {
+      "name": "Single-Cell Mixture Analysis: baredSC 1D Log-Normalized Models",
+      "domain": "scRNAseq",
+      "num_tools": 2,
+      "tool_sequence": [
+        "iuc/Repository_Actions_baredSC_1d",
+        "iuc/Repository_Actions_Combine_multiple_1D_Models"
+      ]
+    },
+    {
+      "name": "Segmentation and counting of cell nuclei in fluorescence microscopy images",
+      "domain": "imaging",
+      "num_tools": 7,
+      "tool_sequence": [
+        "imgteam/Repository_Actions_Filter_2-D_image",
+        "imgteam/Repository_Actions_Perform_histogram_equalization",
+        "imgteam/Repository_Actions_Threshold_image",
+        "imgteam/Repository_Actions_Convert_image_format",
+        "imgteam/Repository_Actions_Convert_binary_image_to_label_map",
+        "imgteam/Repository_Actions_Overlay_images",
+        "imgteam/Repository_Actions_Count_objects_in_label_map"
+      ]
+    },
+    {
+      "name": "Multiplex Tissue Microarray Analysis",
+      "domain": "imaging",
+      "num_tools": 19,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Extract_element_identifiers",
+        "goeckslab/Repository_Actions_Background_subtraction",
+        "Show beginning1",
+        "goeckslab/Repository_Actions_Perform_segmentation_of_multiplexed_tissue_data",
+        "perssond/Repository_Actions_MCQUANT",
+        "goeckslab/Repository_Actions_Convert_McMicro_Output_to_Anndata",
+        "goeckslab/Repository_Actions_Single_Cell_Phenotyping",
+        "ebi-gxa/Repository_Actions_AnnData_Operations",
+        "__EXTRACT_DATASET__",
+        "__FILTER_FROM_FILE__",
+        "goeckslab/Repository_Actions_Create_spatial_scatterplot",
+        "goeckslab/Repository_Actions_Vitessce",
+        "goeckslab/Repository_Actions_Analyze_and_visualize_spatial_multi-omics_data",
+        "iuc/Repository_Actions_Manipulate_AnnData",
+        "bgruening/Repository_Actions_Image_Montage",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "goeckslab/Repository_Actions_Analyze_and_visualize_spatial_multi-omics_data",
+        "goeckslab/Repository_Actions_Spatial_plotting_functions",
+        "bgruening/Repository_Actions_Image_Montage"
+      ]
+    },
+    {
+      "name": "End-to-End Tissue Microarray Analysis",
+      "domain": "imaging",
+      "num_tools": 10,
+      "tool_sequence": [
+        "perssond/Repository_Actions_BaSiC_Illumination",
+        "perssond/Repository_Actions_ASHLAR",
+        "perssond/Repository_Actions_UNetCoreograph",
+        "goeckslab/Repository_Actions_Perform_segmentation_of_multiplexed_tissue_data",
+        "imgteam/Repository_Actions_Convert_image_format",
+        "perssond/Repository_Actions_MCQUANT",
+        "goeckslab/Repository_Actions_Rename_OME-TIFF_channels",
+        "goeckslab/Repository_Actions_Convert_McMicro_Output_to_Anndata",
+        "goeckslab/Repository_Actions_Single_Cell_Phenotyping",
+        "goeckslab/Repository_Actions_Vitessce"
+      ]
+    },
+    {
+      "name": "Mass spectrometry: GCMS with metaMS",
+      "domain": "metabolomics",
+      "num_tools": 7,
+      "tool_sequence": [
+        "lecorguille/Repository_Actions_MSnbase_readMSData",
+        "lecorguille/abims_xcms_xcmsSet",
+        "lecorguille/Repository_Actions_xcms_plot_chromatogram",
+        "lecorguille/Repository_Actions_xcms_findChromPeaks_Merger",
+        "yguitton/Repository_Actions_metaMS.runGC",
+        "ethevenot/Repository_Actions_Check_Format",
+        "ethevenot/Repository_Actions_Multivariate"
+      ]
+    },
+    {
+      "name": "QCxMS Spectra Prediction from SDF",
+      "domain": "metabolomics",
+      "num_tools": 4,
+      "tool_sequence": [
+        "bgruening/Repository_Actions_Compound_conversion",
+        "recetox/Repository_Actions_QCxMS_neutral_run",
+        "recetox/Repository_Actions_QCxMS_production_run",
+        "recetox/Repository_Actions_QCxMS_get_results"
+      ]
+    },
+    {
+      "name": "Mass spectrometry: LC-MS preprocessing with XCMS",
+      "domain": "metabolomics",
+      "num_tools": 12,
+      "tool_sequence": [
+        "lecorguille/Repository_Actions_MSnbase_readMSData",
+        "lecorguille/Repository_Actions_xcms_plot_chromatogram",
+        "lecorguille/abims_xcms_xcmsSet",
+        "lecorguille/Repository_Actions_xcms_findChromPeaks_Merger",
+        "lecorguille/abims_xcms_group",
+        "lecorguille/abims_xcms_retcor",
+        "ethevenot/Repository_Actions_Check_Format",
+        "lecorguille/Repository_Actions_xcms_plot_chromatogram",
+        "lecorguille/abims_xcms_group",
+        "melpetera/Repository_Actions_Intensity_Check",
+        "lecorguille/abims_xcms_fillPeaks",
+        "lecorguille/Repository_Actions_CAMERA.annotate"
+      ]
+    },
+    {
+      "name": "Molecular formula assignment and recalibration with MFAssignR package.",
+      "domain": "metabolomics",
+      "num_tools": 9,
+      "tool_sequence": [
+        "recetox/Repository_Actions_MFAssignR_KMDNoise",
+        "recetox/Repository_Actions_MFAssignR_HistNoise",
+        "recetox/Repository_Actions_MFAssignR_SNplot",
+        "recetox/Repository_Actions_MFAssignR_IsoFiltR",
+        "recetox/Repository_Actions_MFAssignR_MFAssignCHO",
+        "recetox/Repository_Actions_MFAssignR_RecalList",
+        "recetox/Repository_Actions_MFAssignR_FindRecalSeries",
+        "recetox/Repository_Actions_MFAssignR_Recal",
+        "recetox/Repository_Actions_MFAssignR_MFAssign"
+      ]
+    },
+    {
+      "name": "Capture Hi-C Processing: FASTQ to Balanced Cool Files",
+      "domain": "epigenetics",
+      "num_tools": 5,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "Filter1",
+        "lldelisle/Repository_Actions_cooler_csort_with_tabix",
+        "iuc_pygenometracks_pyGenomeTracks_3.9+galaxy0"
+      ]
+    },
+    {
+      "name": "Hi-C Format Conversion: Juicer Medium to Cooler Files",
+      "domain": "epigenetics",
+      "num_tools": 3,
+      "tool_sequence": [
+        "lldelisle/Repository_Actions_cooler_makebins",
+        "lldelisle/Repository_Actions_cooler_cload_tabix",
+        "lldelisle/Repository_Actions_cooler_balance"
+      ]
+    },
+    {
+      "name": "Hi-C Processing: FASTQ to Balanced Cool Files",
+      "domain": "epigenetics",
+      "num_tools": 2,
+      "tool_sequence": [
+        "lldelisle/Repository_Actions_cooler_csort_with_tabix",
+        "iuc_pygenometracks_pyGenomeTracks_3.9+galaxy0"
+      ]
+    },
+    {
+      "name": "Hi-C Data Processing: FASTQ to Valid Interaction Pairs",
+      "domain": "epigenetics",
+      "num_tools": 4,
+      "tool_sequence": [
+        "bgruening/Repository_Actions_Hicup_Pipeline",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "bgruening/Repository_Actions_Hicup_to_juicer_converter",
+        "Filter1"
+      ]
+    },
+    {
+      "name": "BigWig Replicates Averaging Workflow",
+      "domain": "epigenetics",
+      "num_tools": 2,
+      "tool_sequence": [
+        "__APPLY_RULES__",
+        "bgruening/Repository_Actions_bigwigAverage"
+      ]
+    },
+    {
+      "name": "ATAC-seq Analysis: Chromatin Accessibility Profiling",
+      "domain": "epigenetics",
+      "num_tools": 27,
+      "tool_sequence": [
+        "lparsons/Repository_Actions_Cutadapt",
+        "devteam/Repository_Actions_Bowtie2",
+        "devteam/Repository_Actions_Filter_BAM",
+        "devteam/Repository_Actions_Samtools_idxstats",
+        "devteam/Repository_Actions_RevertSam",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_Paired-end_histogram",
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_Compute",
+        "iuc/Repository_Actions_wigtobigwig",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "param_value_from_file",
+        "__APPLY_RULES__",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "bgruening/Repository_Actions_bigwigAverage",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_Compute",
+        "cat1",
+        "param_value_from_file",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening/Repository_Actions_bigwigAverage",
+        "iuc/Repository_Actions_MultiQC"
+      ]
+    },
+    {
+      "name": "CUT&RUN/CUT&TAG Analysis: Protein-DNA Interaction Mapping",
+      "domain": "epigenetics",
+      "num_tools": 9,
+      "tool_sequence": [
+        "lparsons/Repository_Actions_Cutadapt",
+        "devteam/Repository_Actions_Bowtie2",
+        "devteam/Repository_Actions_Filter_SAM_or_BAM,_output_SAM_or_BAM",
+        "devteam/Repository_Actions_RevertSam",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_wigtobigwig",
+        "iuc/Repository_Actions_MultiQC"
+      ]
+    },
+    {
+      "name": "ChIP-seq Analysis: Paired-End Read Processing",
+      "domain": "epigenetics",
+      "num_tools": 7,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "devteam/Repository_Actions_Bowtie2",
+        "devteam/Repository_Actions_Filter_SAM_or_BAM,_output_SAM_or_BAM",
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_wigtobigwig",
+        "iuc/Repository_Actions_MultiQC"
+      ]
+    },
+    {
+      "name": "ChIP-seq Analysis: Single-End Read Processing",
+      "domain": "epigenetics",
+      "num_tools": 7,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "devteam/Repository_Actions_Bowtie2",
+        "devteam/Repository_Actions_Filter_SAM_or_BAM,_output_SAM_or_BAM",
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_wigtobigwig",
+        "iuc/Repository_Actions_MultiQC"
+      ]
+    },
+    {
+      "name": "Consensus Peak Calling for ChIP-seq Paired-End Replicates",
+      "domain": "epigenetics",
+      "num_tools": 22,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "nml/Repository_Actions_Collapse_Collection",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_wigtobigwig",
+        "iuc_table_compute_Table_Compute_1.2.4+galaxy2",
+        "wc_gnu",
+        "Filter1",
+        "bgruening/Repository_Actions_bigwigAverage",
+        "param_value_from_file",
+        "param_value_from_file",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "param_value_from_file",
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_MultiQC",
+        "Filter1",
+        "Cut1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "Consensus Peak Calling for ATAC-seq and CUT&RUN Replicates",
+      "domain": "epigenetics",
+      "num_tools": 24,
+      "tool_sequence": [
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "nml/Repository_Actions_Collapse_Collection",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_wigtobigwig",
+        "iuc_table_compute_Table_Compute_1.2.4+galaxy2",
+        "wc_gnu",
+        "Filter1",
+        "bgruening/Repository_Actions_bigwigAverage",
+        "param_value_from_file",
+        "param_value_from_file",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "param_value_from_file",
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_MultiQC",
+        "Filter1",
+        "Cut1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "Consensus Peak Calling for ChIP-seq Single-End Replicates",
+      "domain": "epigenetics",
+      "num_tools": 22,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "nml/Repository_Actions_Collapse_Collection",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_wigtobigwig",
+        "iuc_table_compute_Table_Compute_1.2.4+galaxy2",
+        "wc_gnu",
+        "Filter1",
+        "bgruening/Repository_Actions_bigwigAverage",
+        "param_value_from_file",
+        "param_value_from_file",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "param_value_from_file",
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_MultiQC",
+        "Filter1",
+        "Cut1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "lncRNAs annotation workflow",
+      "domain": "genome_annotation",
+      "num_tools": 5,
+      "tool_sequence": [
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "devteam/Repository_Actions_gffread",
+        "iuc_stringtie_StringTie_2.2.3+galaxy0",
+        "iuc/Repository_Actions_FEELnc",
+        "cat1"
+      ]
+    },
+    {
+      "name": "Genome annotation with Maker",
+      "domain": "genome_annotation",
+      "num_tools": 8,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Fasta_Statistics",
+        "iuc/Repository_Actions_Busco",
+        "iuc/Repository_Actions_Maker",
+        "devteam/Repository_Actions_gffread",
+        "iuc/Repository_Actions_Genome_annotation_statistics",
+        "iuc/Repository_Actions_Map_annotation_ids",
+        "iuc/Repository_Actions_Busco",
+        "iuc/Repository_Actions_JBrowse_-_Data_Directory_to_Standalone"
+      ]
+    },
+    {
+      "name": "Genome annotation with Helixer",
+      "domain": "genome_annotation",
+      "num_tools": 7,
+      "tool_sequence": [
+        "genouest/Repository_Actions_Helixer",
+        "iuc/Repository_Actions_Busco",
+        "iuc/Repository_Actions_Genome_annotation_statistics",
+        "iuc/Repository_Actions_JBrowse_-_Data_Directory_to_Standalone",
+        "devteam/Repository_Actions_gffread",
+        "iuc/Repository_Actions_OMArk",
+        "iuc/Repository_Actions_Busco"
+      ]
+    },
+    {
+      "name": "Functional annotation of protein sequences",
+      "domain": "genome_annotation",
+      "num_tools": 2,
+      "tool_sequence": [
+        "bgruening/Repository_Actions_InterProScan",
+        "galaxyp/Repository_Actions_eggNOG_Mapper"
+      ]
+    },
+    {
+      "name": "K-mer profiling and reads statistics VGP1",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 13,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Meryl",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Meryl",
+        "iuc/Repository_Actions_Meryl",
+        "iuc_genomescope_GenomeScope_2.0.1+galaxy0",
+        "bgruening/Repository_Actions_Image_Montage",
+        "param_value_from_file",
+        "param_value_from_file",
+        "param_value_from_file",
+        "richard-burhans/Repository_Actions_rdeval",
+        "richard-burhans/Repository_Actions_rdeval"
+      ]
+    },
+    {
+      "name": "Purge duplicate contigs from a diploid assembly VGP6",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 46,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "devteam/Repository_Actions_Compute",
+        "param_value_from_file",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "Cut1",
+        "Cut1",
+        "param_value_from_file",
+        "param_value_from_file",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "cat1",
+        "iuc/Repository_Actions_Busco",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_compleasm",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_Merqury",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_Busco",
+        "iuc/Repository_Actions_compleasm",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "join1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "Scaffolding with Hi-C data VGP8",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 62,
+      "tool_sequence": [
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "param_value_from_file",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Samtools_merge",
+        "__EXTRACT_DATASET__",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "devteam/Repository_Actions_RevertSam",
+        "devteam/Repository_Actions_Samtools_stats",
+        "iuc/Repository_Actions_PretextMap",
+        "devteam/Repository_Actions_Samtools_stats",
+        "devteam/Repository_Actions_Filter_BAM",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Pretext_Snapshot",
+        "__EXTRACT_DATASET__",
+        "iuc/Repository_Actions_YAHS",
+        "Show tail1",
+        "__EXTRACT_DATASET__",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_BWA-MEM2",
+        "iuc/Repository_Actions_compleasm",
+        "devteam/fasta_compute_length",
+        "Cut1",
+        "Cut1",
+        "iuc/Repository_Actions_BWA-MEM2",
+        "Cut1",
+        "iuc_ggplot2_point_Scatterplot_with_ggplot2_3.5.1+galaxy2",
+        "iuc_ggplot2_point_Scatterplot_with_ggplot2_3.5.1+galaxy2",
+        "iuc/Repository_Actions_Samtools_merge",
+        "__EXTRACT_DATASET__",
+        "bgruening/Repository_Actions_Image_Montage",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "devteam/Repository_Actions_Samtools_sort",
+        "iuc/Repository_Actions_PretextMap",
+        "devteam/Repository_Actions_Samtools_stats",
+        "devteam/Repository_Actions_Samtools_stats",
+        "iuc/Repository_Actions_Pairtools_parse",
+        "iuc/Repository_Actions_Pretext_Snapshot",
+        "iuc/Repository_Actions_MultiQC",
+        "__EXTRACT_DATASET__",
+        "iuc/Repository_Actions_Pairtools_dedup",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_Trim_sequences",
+        "bgruening/Repository_Actions_Image_Montage",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_MultiQC",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "kmer-profiling-hifi-trio-VGP2",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 11,
+      "tool_sequence": [
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Meryl",
+        "iuc/Repository_Actions_Meryl",
+        "iuc/Repository_Actions_Meryl",
+        "iuc/Repository_Actions_Meryl",
+        "iuc/Repository_Actions_Meryl",
+        "iuc_genomescope_GenomeScope_2.0.1+galaxy0",
+        "iuc/Repository_Actions_Meryl",
+        "iuc/Repository_Actions_Meryl",
+        "iuc_genomescope_GenomeScope_2.0.1+galaxy0",
+        "iuc_genomescope_GenomeScope_2.0.1+galaxy0"
+      ]
+    },
+    {
+      "name": "PretextMap Generation from 1 or 2 haplotypes",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 31,
+      "tool_sequence": [
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc_seqtk_seqtk_comp_1.5+galaxy0",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "iuc/Repository_Actions_PretextMap",
+        "iuc/Repository_Actions_PretextMap",
+        "devteam/Repository_Actions_Compute",
+        "Cut1",
+        "bgruening/Repository_Actions_bamCoverage",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "devteam/Repository_Actions_Compute",
+        "iuc/Repository_Actions_Pretextgraph",
+        "iuc/Repository_Actions_Pretextgraph",
+        "Filter1",
+        "param_value_from_file",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Pretextgraph",
+        "iuc/Repository_Actions_Pretextgraph",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Pretextgraph",
+        "iuc/Repository_Actions_Pretextgraph",
+        "iuc/Repository_Actions_Pretextgraph",
+        "iuc/Repository_Actions_Pretextgraph",
+        "iuc/Repository_Actions_Pretext_Snapshot",
+        "iuc/Repository_Actions_Pretext_Snapshot",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__"
+      ]
+    },
+    {
+      "name": "Purging duplicates in one haplotype VGP6b",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 36,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "devteam/Repository_Actions_Compute",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "bgruening/Repository_Actions_gfastats",
+        "param_value_from_file",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "Cut1",
+        "Cut1",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "bgruening/Repository_Actions_gfastats",
+        "param_value_from_file",
+        "param_value_from_file",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Purge_overlaps",
+        "iuc/Repository_Actions_Merqury",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_Busco",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_compleasm",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "join1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "Mitogenome Assembly VGP0",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 5,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "bgruening/Repository_Actions_MitoHiFi",
+        "bgruening/Repository_Actions_MitoHiFi",
+        "iuc_compress_file__0.1.0"
+      ]
+    },
+    {
+      "name": "Genome Assembly from Hifi reads with HiC phasing - VGP4",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 57,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "lparsons/Repository_Actions_Cutadapt",
+        "lparsons/Repository_Actions_Cutadapt",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "devteam/Repository_Actions_Compute",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "__UNZIP_COLLECTION__",
+        "Convert characters1",
+        "param_value_from_file",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "nml/Repository_Actions_Collapse_Collection",
+        "nml/Repository_Actions_Collapse_Collection",
+        "Cut1",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "param_value_from_file",
+        "bgruening/Repository_Actions_Hifiasm",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_Bandage_Image",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "join1",
+        "iuc/Repository_Actions_compleasm",
+        "iuc/Repository_Actions_compleasm",
+        "iuc/Repository_Actions_Merqury",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening/Repository_Actions_Image_Montage",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening/Repository_Actions_Image_Montage",
+        "Show beginning1",
+        "Show beginning1",
+        "bgruening/Repository_Actions_Image_Montage",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "Assembly decontamination VGP9 ",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 11,
+      "tool_sequence": [
+        "richard-burhans/Repository_Actions_NCBI_FCS_Adaptor",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_NCBI_FCS_GX",
+        "devteam/Repository_Actions_BLAST_XML_to_tabular",
+        "devteam/fasta_filter_by_length",
+        "iuc/Repository_Actions_NCBI_FCS_GX",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_NCBI_FCS_GX",
+        "devteam/Repository_Actions_BLAST_XML_to_tabular",
+        "iuc/Repository_Actions_Parse_mitochondrial_blast",
+        "bgruening/Repository_Actions_gfastats"
+      ]
+    },
+    {
+      "name": "Genome Assembly with Pacbio Hifi reads and Trio data for phasing - VGP5",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 44,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "lparsons/Repository_Actions_Cutadapt",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "devteam/Repository_Actions_Compute",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc/Repository_Actions_MultiQC",
+        "Cut1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "param_value_from_file",
+        "Convert characters1",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "Cut1",
+        "bgruening/Repository_Actions_Hifiasm",
+        "param_value_from_file",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_Bandage_Image",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_Busco",
+        "iuc/Repository_Actions_compleasm",
+        "iuc/Repository_Actions_Busco",
+        "iuc/Repository_Actions_compleasm",
+        "iuc/Repository_Actions_Merqury",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "join1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "Scaffolding-BioNano-VGP7",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 12,
+      "tool_sequence": [
+        "param_value_from_file",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_Bionano_Hybrid_Scaffold",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "Cut1",
+        "iuc_ggplot2_point_Scatterplot_with_ggplot2_3.5.1+galaxy2",
+        "iuc_ggplot2_point_Scatterplot_with_ggplot2_3.5.1+galaxy2"
+      ]
+    },
+    {
+      "name": "Genome Assembly from Hifi reads - VGP3",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 42,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "lparsons/Repository_Actions_Cutadapt",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "devteam/Repository_Actions_Compute",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_MultiQC",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "Convert characters1",
+        "param_value_from_file",
+        "Cut1",
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "param_value_from_file",
+        "bgruening/Repository_Actions_Hifiasm",
+        "iuc/Repository_Actions_Bandage_Image",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_Busco",
+        "iuc/Repository_Actions_compleasm",
+        "iuc/Repository_Actions_Merqury",
+        "iuc/Repository_Actions_Busco",
+        "iuc/Repository_Actions_compleasm",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__",
+        "join1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "Generate Nx and Size plots for multiple assemblies",
+      "domain": "VGP-assembly-v2",
+      "num_tools": 14,
+      "tool_sequence": [
+        "bgruening/Repository_Actions_gfastats",
+        "sort1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "devteam/Repository_Actions_Add_column",
+        "param_value_from_file",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "devteam/Repository_Actions_Compute",
+        "mvdbeek/Repository_Actions_Add_input_name_as_column",
+        "nml/Repository_Actions_Collapse_Collection",
+        "Cut1",
+        "Cut1",
+        "iuc_ggplot2_point_Scatterplot_with_ggplot2_3.5.1+galaxy2",
+        "iuc_ggplot2_point_Scatterplot_with_ggplot2_3.5.1+galaxy2"
+      ]
+    },
+    {
+      "name": "COVID-19: variation analysis on WGS PE data",
+      "domain": "sars-cov-2-variant-calling",
+      "num_tools": 11,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "devteam/Repository_Actions_Map_with_BWA-MEM",
+        "iuc/Repository_Actions_Samtools_view",
+        "devteam/Repository_Actions_Samtools_stats",
+        "devteam/Repository_Actions_RevertSam",
+        "iuc_lofreq_viterbi_Realign_reads_2.1.5+galaxy0",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc_lofreq_indelqual_Insert_indel_qualities_2.1.5+galaxy1",
+        "iuc_lofreq_call_Call_variants_2.1.5+galaxy3",
+        "iuc_lofreq_filter_Lofreq_filter_2.1.5+galaxy0",
+        "iuc/Repository_Actions_SnpEff_eff:"
+      ]
+    },
+    {
+      "name": "COVID-19: variation analysis on WGS SE data",
+      "domain": "sars-cov-2-variant-calling",
+      "num_tools": 9,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "devteam/Repository_Actions_Bowtie2",
+        "devteam/Repository_Actions_RevertSam",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc_lofreq_viterbi_Realign_reads_2.1.5+galaxy0",
+        "iuc_lofreq_indelqual_Insert_indel_qualities_2.1.5+galaxy1",
+        "iuc_lofreq_call_Call_variants_2.1.5+galaxy3",
+        "iuc_lofreq_filter_Lofreq_filter_2.1.5+galaxy0",
+        "iuc/Repository_Actions_SnpEff_eff:"
+      ]
+    },
+    {
+      "name": "COVID-19: variation analysis reporting",
+      "domain": "sars-cov-2-variant-calling",
+      "num_tools": 30,
+      "tool_sequence": [
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "bgruening_replace_column_by_key_value_file_Replace_column_0.2",
+        "devteam/Repository_Actions_Compute",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "nml/Repository_Actions_Collapse_Collection",
+        "devteam/Repository_Actions_Compute",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "Filter1",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1",
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_snpfreqplot_Variant_Frequency_Plot_1.0+galaxy3"
+      ]
+    },
+    {
+      "name": "COVID-19: variation analysis on ARTIC PE data",
+      "domain": "sars-cov-2-variant-calling",
+      "num_tools": 25,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "devteam/Repository_Actions_Map_with_BWA-MEM",
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc_lofreq_viterbi_Realign_reads_2.1.5+galaxy0",
+        "devteam/Repository_Actions_Samtools_stats",
+        "iuc_lofreq_indelqual_Insert_indel_qualities_2.1.5+galaxy1",
+        "iuc/Repository_Actions_ivar_trim",
+        "iuc_lofreq_call_Call_variants_2.1.5+galaxy3",
+        "iuc/Repository_Actions_View_repository_View_change_log_Browse_repository_tip_files_Download_as_a_.tar.gz_file_Download_as_a_.tar.bz2_file_Download_as_a_zip_file_QualiMap_BamQC",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "__FILTER_FAILED_DATASETS__",
+        "iuc/Repository_Actions_ivar_removereads",
+        "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0",
+        "iuc_lofreq_call_Call_variants_2.1.5+galaxy3",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc/bcftools_annotate",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "devteam_vcfvcfintersect_VCF-VCFintersect:_1.0.0_rc3+galaxy0",
+        "iuc/bcftools_annotate",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_SnpEff_eff:",
+        "iuc_lofreq_filter_Lofreq_filter_2.1.5+galaxy0"
+      ]
+    },
+    {
+      "name": "COVID-19: variation analysis of ARTIC ONT data",
+      "domain": "sars-cov-2-variant-calling",
+      "num_tools": 22,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "devteam/Repository_Actions_Compute",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "iuc/Repository_Actions_Samtools_view",
+        "param_value_from_file",
+        "devteam/Repository_Actions_Samtools_stats",
+        "devteam_freebayes_FreeBayes_1.3.10+galaxy1",
+        "iuc/Repository_Actions_ivar_trim",
+        "iuc/Repository_Actions_View_repository_View_change_log_Browse_repository_tip_files_Download_as_a_.tar.gz_file_Download_as_a_.tar.bz2_file_Download_as_a_zip_file_QualiMap_BamQC",
+        "iuc/Repository_Actions_View_repository_View_change_log_Browse_repository_tip_files_Download_as_a_.tar.gz_file_Download_as_a_.tar.bz2_file_Download_as_a_zip_file_medaka_consensus_tool",
+        "__FILTER_FAILED_DATASETS__",
+        "iuc/Repository_Actions_medaka_variant_tool",
+        "iuc/Repository_Actions_medaka_variant_tool",
+        "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc/bcftools_annotate",
+        "iuc/Repository_Actions_SnpEff_eff:",
+        "iuc_lofreq_filter_Lofreq_filter_2.1.5+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ]
+    },
+    {
+      "name": "COVID-19: consensus construction",
+      "domain": "sars-cov-2-variant-calling",
+      "num_tools": 17,
+      "tool_sequence": [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "Filter1",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "devteam/Repository_Actions_Compute",
+        "devteam/Repository_Actions_Compute",
+        "devteam/Repository_Actions_Concatenate",
+        "devteam/Repository_Actions_Merge",
+        "devteam/Repository_Actions_Subtract",
+        "devteam/Repository_Actions_Compute",
+        "iuc/bcftools_consensus",
+        "nml/Repository_Actions_Collapse_Collection"
+      ]
+    },
+    {
+      "name": "SARS-CoV-2 Illumina Amplicon pipeline - iVar based",
+      "domain": "sars-cov-2-variant-calling",
+      "num_tools": 16,
+      "tool_sequence": [
+        "iuc/Repository_Actions_fastp",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "devteam/Repository_Actions_Map_with_BWA-MEM",
+        "devteam/Repository_Actions_Samtools_stats",
+        "iuc/Repository_Actions_Samtools_view",
+        "iuc/Repository_Actions_View_repository_View_change_log_Browse_repository_tip_files_Download_as_a_.tar.gz_file_Download_as_a_.tar.bz2_file_Download_as_a_zip_file_QualiMap_BamQC",
+        "iuc/Repository_Actions_ivar_trim",
+        "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0",
+        "iuc/Repository_Actions_ivar_variants",
+        "iuc/Repository_Actions_ivar_consensus",
+        "iuc/Repository_Actions_MultiQC",
+        "iuc/Repository_Actions_SnpEff_eff:",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_Pangolin",
+        "iuc/Repository_Actions_Nextclade"
+      ]
+    }
+  ],
+  "domain_stats": {
+    "repeatmasking": 1,
+    "computational-chemistry": 4,
+    "proteomics": 6,
+    "variant-calling": 3,
+    "transcriptomics": 5,
+    "amplicon": 17,
+    "bacterial_genomics": 3,
+    "genome-assembly": 4,
+    "microbiome": 6,
+    "data-fetching": 2,
+    "virology": 3,
+    "scRNAseq": 8,
+    "imaging": 3,
+    "metabolomics": 4,
+    "epigenetics": 12,
+    "genome_annotation": 4,
+    "VGP-assembly-v2": 13,
+    "sars-cov-2-variant-calling": 7
+  },
+  "top_tools": {
+    "bgruening_text_processing_Text_reformatting_9.5+galaxy2": 170,
+    "iuc/Repository_Actions_Compose_text_parameter_value": 61,
+    "bgruening/Repository_Actions_gfastats": 55,
+    "Cut1": 53,
+    "param_value_from_file": 46,
+    "__EXTRACT_DATASET__": 43,
+    "iuc_pick_value_Pick_parameter_value_0.2.0": 33,
+    "iuc/Repository_Actions_MultiQC": 31,
+    "nml/Repository_Actions_Collapse_Collection": 30,
+    "__FILTER_EMPTY_DATASETS__": 24,
+    "iuc/Repository_Actions_bedtools_AnnotateBed": 22,
+    "iuc_map_param_value_Map_parameter_value_0.2.0": 21,
+    "devteam/Repository_Actions_Compute": 20,
+    "Filter1": 19,
+    "iuc/Repository_Actions_fastp": 18,
+    "iuc/Repository_Actions_Samtools_view": 17,
+    "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0": 17,
+    "iuc_datamash_ops_Datamash_1.9+galaxy0": 17,
+    "__APPLY_RULES__": 16,
+    "iuc/Repository_Actions_Scanpy_plot": 15,
+    "Grep1": 14,
+    "iuc/Repository_Actions_Extract_element_identifiers": 14,
+    "iuc/Repository_Actions_Map_with_minimap2": 14,
+    "bgruening_split_file_to_collection_Split_file_0.5.2": 13,
+    "devteam/Repository_Actions_Samtools_stats": 13,
+    "Remove beginning1": 12,
+    "__FILTER_FAILED_DATASETS__": 12,
+    "iuc/Repository_Actions_Purge_overlaps": 12,
+    "Grouping1": 11,
+    "iuc/Repository_Actions_SnpEff_eff:": 11,
+    "devteam/Repository_Actions_FastQC": 11,
+    "iuc/Repository_Actions_Busco": 11,
+    "devteam_vcfflatten_VCFflatten:_1.0.0_rc3+galaxy0": 10,
+    "iuc/Repository_Actions_MACS2_filterdup": 10,
+    "iuc/Repository_Actions_Meryl": 10,
+    "iuc/Repository_Actions_compleasm": 10,
+    "devteam/Repository_Actions_Map_with_BWA-MEM": 9,
+    "galaxyp_regex_find_replace_Regex_Find_And_Replace_1.0.3": 9,
+    "iuc/Repository_Actions_Convert": 8,
+    "__RELABEL_FROM_FILE__": 8,
+    "bgruening/Repository_Actions_Image_Montage": 8,
+    "iuc/Repository_Actions_Pretextgraph": 8,
+    "galaxyp/Repository_Actions_FASTA_Merge_Files_and_Filter_Unique_Sequences": 7,
+    "iuc_query_tabular_Query_Tabular_3.3.2": 7,
+    "devteam/Repository_Actions_RevertSam": 7,
+    "join1": 7,
+    "iuc/Repository_Actions_Column_join": 7,
+    "q2d2/Repository_Actions_qiime2_tools_import": 7,
+    "iuc/Repository_Actions_Bandage_Image": 7,
+    "iuc/Repository_Actions_wigtobigwig": 7,
+    "iuc_lofreq_viterbi_Realign_reads_2.1.5+galaxy0": 6,
+    "iuc_lofreq_call_Call_variants_2.1.5+galaxy3": 6,
+    "__UNZIP_COLLECTION__": 6,
+    "__FILTER_FROM_FILE__": 6,
+    "__BUILD_LIST__": 6,
+    "devteam/Repository_Actions_Bowtie2": 6,
+    "iuc/Repository_Actions_View_repository_View_change_log_Browse_repository_tip_files_Download_as_a_.tar.gz_file_Download_as_a_.tar.bz2_file_Download_as_a_zip_file_QualiMap_BamQC": 6,
+    "wc_gnu": 6,
+    "iuc/Repository_Actions_Manipulate_AnnData": 6,
+    "bgruening/Repository_Actions_bigwigAverage": 6,
+    "lparsons/Repository_Actions_Cutadapt": 6,
+    "iuc_ggplot2_point_Scatterplot_with_ggplot2_3.5.1+galaxy2": 6,
+    "chemteam/Repository_Actions_GROMACS_simulation": 5,
+    "bgruening/Repository_Actions_Add_line_to_file": 5,
+    "iuc_lofreq_filter_Lofreq_filter_2.1.5+galaxy0": 5,
+    "iuc_stringtie_StringTie_2.2.3+galaxy0": 5,
+    "crs4/Repository_Actions_Krona_pie_chart": 5,
+    "iuc_tooldistillator_ToolDistillator_1.0.1+galaxy0": 5,
+    "iuc_tooldistillator_summarize_ToolDistillator_Summarize_1.0.1+galaxy0": 5,
+    "iuc/Repository_Actions_Quast": 5,
+    "iuc/Repository_Actions_ivar_trim": 5,
+    "__DUPLICATE_FILE_TO_COLLECTION__": 5,
+    "iuc/Repository_Actions_Scanpy_Inspect_and_manipulate": 5,
+    "iuc/Repository_Actions_Merqury": 5,
+    "bgruening/Repository_Actions_Compound_conversion": 4,
+    "galaxyp_peptideshaker_Search_GUI_4.0.41+galaxy1": 4,
+    "galaxyp/Repository_Actions_Protein_Database_Downloader": 4,
+    "swebb/Repository_Actions_pyFasta2Tab": 4,
+    "iuc_lofreq_indelqual_Insert_indel_qualities_2.1.5+galaxy1": 4,
+    "iuc/Repository_Actions_goseq": 4,
+    "iuc/Repository_Actions_MAPseq": 4,
+    "devteam/Repository_Actions_FASTA_Width": 4,
+    "devteam/Repository_Actions_Concatenate": 4,
+    "q2d2/Repository_Actions_qiime2_demux_summarize": 4,
+    "iuc/Repository_Actions_": 4,
+    "iuc/Repository_Actions_Kraken2": 4,
+    "nfcore_racon": 4,
+    "iuc/Repository_Actions_Converts_genome_bins_in_fasta_format": 4,
+    "iuc_table_compute_Table_Compute_1.2.4+galaxy2": 4,
+    "iuc/Repository_Actions_ivar_consensus": 4,
+    "Show beginning1": 4,
+    "iuc/Repository_Actions_Scanpy_filter": 4,
+    "iuc/Repository_Actions_Inspect_AnnData": 4,
+    "iuc_genomescope_GenomeScope_2.0.1+galaxy0": 4,
+    "iuc/Repository_Actions_PretextMap": 4,
+    "iuc/Repository_Actions_Pretext_Snapshot": 4,
+    "iuc_filter_tabular_Filter_Tabular_3.3.1": 3,
+    "CONVERTER_gz_to_uncompressed": 3,
+    "q2d2/Repository_Actions_qiime2_diversity_alpha-group-significance": 3,
+    "q2d2/Repository_Actions_qiime2_diversity_beta-group-significance": 3
+  },
+  "top_pairs": [
+    [
+      [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ],
+      45
+    ],
+    [
+      [
+        "bgruening/Repository_Actions_gfastats",
+        "bgruening/Repository_Actions_gfastats"
+      ],
+      35
+    ],
+    [
+      [
+        "__EXTRACT_DATASET__",
+        "__EXTRACT_DATASET__"
+      ],
+      29
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "iuc/Repository_Actions_Compose_text_parameter_value"
+      ],
+      23
+    ],
+    [
+      [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Cut1"
+      ],
+      13
+    ],
+    [
+      [
+        "__FILTER_EMPTY_DATASETS__",
+        "__FILTER_EMPTY_DATASETS__"
+      ],
+      13
+    ],
+    [
+      [
+        "param_value_from_file",
+        "param_value_from_file"
+      ],
+      13
+    ],
+    [
+      [
+        "Cut1",
+        "Cut1"
+      ],
+      12
+    ],
+    [
+      [
+        "Cut1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ],
+      9
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Scanpy_plot",
+        "iuc/Repository_Actions_Scanpy_plot"
+      ],
+      9
+    ],
+    [
+      [
+        "iuc_pick_value_Pick_parameter_value_0.2.0",
+        "iuc_pick_value_Pick_parameter_value_0.2.0"
+      ],
+      8
+    ],
+    [
+      [
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ],
+      7
+    ],
+    [
+      [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0"
+      ],
+      7
+    ],
+    [
+      [
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc_map_param_value_Map_parameter_value_0.2.0"
+      ],
+      7
+    ],
+    [
+      [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "nml/Repository_Actions_Collapse_Collection"
+      ],
+      6
+    ],
+    [
+      [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc_pick_value_Pick_parameter_value_0.2.0"
+      ],
+      6
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Convert",
+        "iuc/Repository_Actions_Convert"
+      ],
+      6
+    ],
+    [
+      [
+        "param_value_from_file",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ],
+      6
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Meryl",
+        "iuc/Repository_Actions_Meryl"
+      ],
+      6
+    ],
+    [
+      [
+        "bgruening_split_file_to_collection_Split_file_0.5.2",
+        "param_value_from_file"
+      ],
+      5
+    ],
+    [
+      [
+        "Grep1",
+        "Grep1"
+      ],
+      5
+    ],
+    [
+      [
+        "devteam/Repository_Actions_Map_with_BWA-MEM",
+        "iuc/Repository_Actions_Samtools_view"
+      ],
+      5
+    ],
+    [
+      [
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0",
+        "iuc_snpsift_SnpSift_rmInfo_4.3+t.galaxy0"
+      ],
+      5
+    ],
+    [
+      [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "bgruening_split_file_to_collection_Split_file_0.5.2"
+      ],
+      5
+    ],
+    [
+      [
+        "devteam/Repository_Actions_FastQC",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ],
+      5
+    ],
+    [
+      [
+        "iuc_tooldistillator_ToolDistillator_1.0.1+galaxy0",
+        "iuc_tooldistillator_summarize_ToolDistillator_Summarize_1.0.1+galaxy0"
+      ],
+      5
+    ],
+    [
+      [
+        "nml/Repository_Actions_Collapse_Collection",
+        "nml/Repository_Actions_Collapse_Collection"
+      ],
+      5
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Busco",
+        "iuc/Repository_Actions_compleasm"
+      ],
+      5
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Pretextgraph",
+        "iuc/Repository_Actions_Pretextgraph"
+      ],
+      5
+    ],
+    [
+      [
+        "nml/Repository_Actions_Collapse_Collection",
+        "Cut1"
+      ],
+      4
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Samtools_view",
+        "devteam/Repository_Actions_Samtools_stats"
+      ],
+      4
+    ],
+    [
+      [
+        "devteam/Repository_Actions_Compute",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ],
+      4
+    ],
+    [
+      [
+        "iuc_datamash_ops_Datamash_1.9+galaxy0",
+        "iuc_datamash_ops_Datamash_1.9+galaxy0"
+      ],
+      4
+    ],
+    [
+      [
+        "iuc_map_param_value_Map_parameter_value_0.2.0",
+        "iuc/Repository_Actions_Compose_text_parameter_value"
+      ],
+      4
+    ],
+    [
+      [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "__FILTER_EMPTY_DATASETS__"
+      ],
+      4
+    ],
+    [
+      [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "iuc/Repository_Actions_MultiQC"
+      ],
+      4
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "nfcore_racon"
+      ],
+      4
+    ],
+    [
+      [
+        "__FILTER_FAILED_DATASETS__",
+        "__FILTER_FAILED_DATASETS__"
+      ],
+      4
+    ],
+    [
+      [
+        "__RELABEL_FROM_FILE__",
+        "__APPLY_RULES__"
+      ],
+      4
+    ],
+    [
+      [
+        "iuc/Repository_Actions_MACS2_filterdup",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ],
+      4
+    ],
+    [
+      [
+        "iuc/Repository_Actions_bedtools_AnnotateBed",
+        "iuc/Repository_Actions_MultiQC"
+      ],
+      4
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Map_with_minimap2",
+        "iuc/Repository_Actions_Purge_overlaps"
+      ],
+      4
+    ],
+    [
+      [
+        "param_value_from_file",
+        "iuc/Repository_Actions_Compose_text_parameter_value"
+      ],
+      4
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Purge_overlaps",
+        "iuc/Repository_Actions_Purge_overlaps"
+      ],
+      4
+    ],
+    [
+      [
+        "bgruening/Repository_Actions_gfastats",
+        "iuc/Repository_Actions_Busco"
+      ],
+      4
+    ],
+    [
+      [
+        "join1",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ],
+      4
+    ],
+    [
+      [
+        "__EXTRACT_DATASET__",
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2"
+      ],
+      4
+    ],
+    [
+      [
+        "iuc/Repository_Actions_Compose_text_parameter_value",
+        "devteam/Repository_Actions_Compute"
+      ],
+      4
+    ],
+    [
+      [
+        "Cut1",
+        "Grouping1"
+      ],
+      3
+    ],
+    [
+      [
+        "bgruening_text_processing_Text_reformatting_9.5+galaxy2",
+        "Grouping1"
+      ],
+      3
+    ]
+  ],
+  "comparison": {
+    "shared": 17,
+    "iwc_only": 334,
+    "nfcore_only": 153
+  }
+}

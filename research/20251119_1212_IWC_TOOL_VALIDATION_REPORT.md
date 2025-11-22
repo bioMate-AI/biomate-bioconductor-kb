@@ -1,0 +1,172 @@
+# IWC Tool Validation Report
+
+**Date:** 2025-11-19 12:12
+**Total unique tools:** 760
+**Found in database:** 0 (0.0%)
+**Missing:** 760 (100.0%)
+
+---
+
+## Missing Tools Summary
+
+- **Built-in Galaxy tools:** 21
+- **ToolShed tools:** 723
+- **Custom/other:** 16
+
+---
+
+## Missing Built-in Tools
+
+These are Galaxy built-in tools that should already be available:
+
+- `Cut1` (1569x)
+- `Filter1` (636x)
+- `Grep1` (66x)
+- `Paste1` (45x)
+- `__APPLY_RULES__` (666x)
+- `__BUILD_LIST__` (27x)
+- `__DUPLICATE_FILE_TO_COLLECTION__` (24x)
+- `__EXTRACT_DATASET__` (1671x)
+- `__FILTER_EMPTY_DATASETS__` (84x)
+- `__FILTER_FAILED_DATASETS__` (45x)
+- `__FILTER_FROM_FILE__` (12x)
+- `__FLATTEN__` (90x)
+- `__HARMONIZELISTS__` (3x)
+- `__MERGE_COLLECTION__` (9x)
+- `__RELABEL_FROM_FILE__` (132x)
+- `__SORTLIST__` (63x)
+- `__UNZIP_COLLECTION__` (48x)
+- `__ZIP_COLLECTION__` (18x)
+- `cat1` (306x)
+- `join1` (219x)
+- `sort1` (24x)
+
+---
+
+## Missing ToolShed Tools
+
+These need to be added to the AI database or installed on-demand:
+
+- `iuc/macs2` (1560x)
+- `iuc/multiqc` (1359x)
+- `bgruening/gfastats` (1191x)
+- `bgruening/text_processing` (993x)
+- `bgruening/text_processing` (975x)
+- `iuc/compose_text_param` (954x)
+- `bgruening/deeptools_bigwig_average` (789x)
+- `iuc/samtools_view` (753x)
+- `devteam/samtool_filter2` (705x)
+- `bgruening/gfastats` (639x)
+- `devteam/column_maker` (624x)
+- `iuc/purge_dups` (624x)
+- `nml/collapse_collections` (585x)
+- `devteam/bowtie2` (519x)
+- `iuc/pick_value` (495x)
+- `iuc/bedtools` (492x)
+- `devteam/picard` (441x)
+- `iuc/bedtools` (384x)
+- `devteam/bowtie2` (366x)
+- `iuc/table_compute` (351x)
+- `bgruening/text_processing` (315x)
+- `bgruening/gfastats` (306x)
+- `bgruening/gfastats` (297x)
+- `bgruening/text_processing` (279x)
+- `lparsons/cutadapt` (267x)
+- `lparsons/cutadapt` (255x)
+- `iuc/bedtools` (246x)
+- `iuc/pe_histogram` (243x)
+- `iuc/bandage` (237x)
+- `bgruening/text_processing` (234x)
+- `iuc/merqury` (234x)
+- `bgruening/text_processing` (225x)
+- `devteam/bamtools_filter` (219x)
+- `devteam/samtools_idxstats` (219x)
+- `devteam/column_maker` (216x)
+- `lparsons/cutadapt` (210x)
+- `iuc/map_param_value` (207x)
+- `bgruening/split_file_to_collection` (201x)
+- `bgruening/text_processing` (168x)
+- `iuc/ggplot2_point` (168x)
+- `iuc/meryl` (159x)
+- `iuc/bedtools` (159x)
+- `iuc/bedtools` (159x)
+- `iuc/busco` (156x)
+- `bgruening/text_processing` (156x)
+- `iuc/busco` (156x)
+- `bgruening/text_processing` (150x)
+- `iuc/busco` (150x)
+- `iuc/bedtools` (147x)
+- `iuc/minimap2` (147x)
+- `bgruening/gfastats` (144x)
+- `bgruening/text_processing` (141x)
+- `iuc/multiqc` (138x)
+- `bgruening/gfastats` (138x)
+- `bgruening/text_processing` (135x)
+- `lparsons/cutadapt` (132x)
+- `lparsons/cutadapt` (129x)
+- `iuc/snpsift` (129x)
+- `iuc/bwa_mem2` (129x)
+- `iuc/map_param_value` (123x)
+- `devteam/fastqc` (120x)
+- `bgruening/split_file_to_collection` (117x)
+- `iuc/datamash_ops` (114x)
+- `bgruening/text_processing` (108x)
+- `bgruening/text_processing` (105x)
+- `iuc/pretext_map` (102x)
+- `bgruening/text_processing` (102x)
+- `artbio/concatenate_multiple_datasets` (96x)
+- `iuc/lofreq_filter` (93x)
+- `iuc/compleasm` (93x)
+- `bgruening/text_processing` (93x)
+- `devteam/column_maker` (93x)
+- `iuc/bedtools` (90x)
+- `iuc/snpsift` (90x)
+- `iuc/snpeff_sars_cov_2` (87x)
+- `iuc/minimap2` (87x)
+- `iuc/bedtools` (87x)
+- `iuc/bedtools` (84x)
+- `iuc/bedtools` (84x)
+- `bgruening/text_processing` (81x)
+- `lparsons/cutadapt` (75x)
+- `iuc/bedtools` (75x)
+- `bgruening/split_file_to_collection` (75x)
+- `bgruening/text_processing` (72x)
+- `bgruening/text_processing` (72x)
+- `lparsons/cutadapt` (72x)
+- `iuc/seurat_plot` (72x)
+- `iuc/samtools_view` (69x)
+- `iuc/macs2` (69x)
+- `devteam/bowtie2` (69x)
+- `iuc/sra_tools` (69x)
+- `iuc/pretext_snapshot` (66x)
+- `iuc/fastp` (63x)
+- `devteam/samtools_stats` (63x)
+- `iuc/lofreq_viterbi` (63x)
+- `iuc/samtools_view` (63x)
+- `lparsons/cutadapt` (63x)
+- `iuc/stringtie` (63x)
+- `bgruening/text_processing` (63x)
+- `bgruening/text_processing` (63x)
+
+... and 623 more
+
+---
+
+## Missing Custom Tools
+
+- `CONVERTER_fasta_to_fai` (3x)
+- `CONVERTER_gz_to_uncompressed` (24x)
+- `CONVERTER_uncompressed_to_gz` (12x)
+- `Convert characters1` (198x)
+- `Count1` (18x)
+- `Grouping1` (30x)
+- `Remove beginning1` (75x)
+- `Show beginning1` (6x)
+- `Summary_Statistics1` (12x)
+- `csv_to_tabular` (3x)
+- `gene2exon1` (3x)
+- `param_value_from_file` (2040x)
+- `pick_value` (15x)
+- `random_lines1` (45x)
+- `wc_gnu` (201x)
+- `wig_to_bigWig` (1356x)

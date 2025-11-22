@@ -1,0 +1,454 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "This workflow takes a collection of BAM (output of STAR) and a gtf. It extends the input gtf using de novo annotation.",
+  "comments": [],
+  "creator": [
+    {
+      "class": "Person",
+      "identifier": "https://orcid.org/0000-0002-1964-4960",
+      "name": "Lucille Delisle"
+    }
+  ],
+  "format-version": "0.1",
+  "license": "GPL-3.0-or-later",
+  "name": "BREW3R (release v0.1)",
+  "report": {
+    "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+  },
+  "steps": {
+    "0": {
+      "annotation": "",
+      "content_id": null,
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "",
+          "name": "Input gtf"
+        }
+      ],
+      "label": "Input gtf",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 0,
+        "top": 0
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"gtf\"], \"tag\": null}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "ef028379-f871-4d8d-8196-c169e43be2fd",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "1": {
+      "annotation": "BAM collection for example output of STAR",
+      "content_id": null,
+      "errors": null,
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "BAM collection for example output of STAR",
+          "name": "BAM collection"
+        }
+      ],
+      "label": "BAM collection",
+      "name": "Input dataset collection",
+      "outputs": [],
+      "position": {
+        "left": 52,
+        "top": 92.84911999999173
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"bam\"], \"tag\": \"\", \"collection_type\": \"list\", \"fields\": null}",
+      "tool_version": null,
+      "type": "data_collection_input",
+      "uuid": "c7743ca4-2b48-4bd8-97cb-7993aa82b70e",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "2": {
+      "annotation": "",
+      "content_id": null,
+      "errors": null,
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "",
+          "name": "strandedness"
+        }
+      ],
+      "label": "strandedness",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 122,
+        "top": 186.84911999999173
+      },
+      "tool_id": null,
+      "tool_state": "{\"validators\": [], \"restrictions\": [\"stranded - forward\", \"stranded - reverse\", \"unstranded\"], \"parameter_type\": \"text\", \"optional\": false}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "d35b1fef-ade4-479e-9f5b-df368425a3da",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "3": {
+      "annotation": "",
+      "content_id": null,
+      "errors": null,
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "",
+          "name": "minimum coverage"
+        }
+      ],
+      "label": "minimum coverage",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 229,
+        "top": 269.84911999999173
+      },
+      "tool_id": null,
+      "tool_state": "{\"default\": 10, \"validators\": [], \"parameter_type\": \"integer\", \"optional\": true}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "1f536a9d-96d0-49ac-aafe-e7b246816f49",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "4": {
+      "annotation": "",
+      "content_id": null,
+      "errors": null,
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "",
+          "name": "minimum FPKM for merge"
+        }
+      ],
+      "label": "minimum FPKM for merge",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 278,
+        "top": 383.34911999999173
+      },
+      "tool_id": null,
+      "tool_state": "{\"default\": 1.0, \"validators\": [], \"parameter_type\": \"float\", \"optional\": true}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "d83144ad-dc01-422d-abd9-5a6165bcb080",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "5": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/map_param_value/map_param_value/0.2.0",
+      "errors": null,
+      "id": 5,
+      "input_connections": {
+        "input_param_type|input_param": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Map parameter value",
+          "name": "input_param_type"
+        }
+      ],
+      "label": null,
+      "name": "Map parameter value",
+      "outputs": [
+        {
+          "name": "output_param_text",
+          "type": "expression.json"
+        }
+      ],
+      "position": {
+        "left": 437,
+        "top": 150.5
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutput_param_text": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output_param_text"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/map_param_value/map_param_value/0.2.0",
+      "tool_shed_repository": {
+        "changeset_revision": "5ac8a4bf7a8d",
+        "name": "map_param_value",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input_param_type\": {\"type\": \"text\", \"__current_case__\": 0, \"input_param\": {\"__class__\": \"ConnectedValue\"}, \"mappings\": [{\"__index__\": 0, \"from\": \"stranded - forward\", \"to\": \"--fr\"}, {\"__index__\": 1, \"from\": \"stranded - reverse\", \"to\": \"--rf\"}, {\"__index__\": 2, \"from\": \"unstranded\", \"to\": \"\"}]}, \"output_param_type\": \"text\", \"unmapped\": {\"on_unmapped\": \"fail\", \"__current_case__\": 1}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.2.0",
+      "type": "tool",
+      "uuid": "a4c27577-b9c8-4235-b338-7e1c84949e81",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "6": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/map_param_value/map_param_value/0.2.0",
+      "errors": null,
+      "id": 6,
+      "input_connections": {
+        "input_param_type|input_param": {
+          "id": 2,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Map parameter value",
+          "name": "input_param_type"
+        }
+      ],
+      "label": "Unstranded",
+      "name": "Map parameter value",
+      "outputs": [
+        {
+          "name": "output_param_boolean",
+          "type": "expression.json"
+        }
+      ],
+      "position": {
+        "left": 882,
+        "top": 394.3499755859375
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutput_param_boolean": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output_param_boolean"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/map_param_value/map_param_value/0.2.0",
+      "tool_shed_repository": {
+        "changeset_revision": "5ac8a4bf7a8d",
+        "name": "map_param_value",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input_param_type\": {\"type\": \"text\", \"__current_case__\": 0, \"input_param\": {\"__class__\": \"ConnectedValue\"}, \"mappings\": [{\"__index__\": 0, \"from\": \"unstranded\", \"to\": \"true\"}]}, \"output_param_type\": \"boolean\", \"unmapped\": {\"on_unmapped\": \"default\", \"__current_case__\": 2, \"default_value\": \"false\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.2.0",
+      "type": "tool",
+      "uuid": "68d05552-5254-4b63-8aad-1162fc176887",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "7": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/stringtie/stringtie/2.2.3+galaxy0",
+      "errors": null,
+      "id": 7,
+      "input_connections": {
+        "adv|min_anchor_cov": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "adv|min_bundle_cov": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "input_options|input_bam": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "rna_strandness": {
+          "id": 5,
+          "output_name": "output_param_text"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool StringTie",
+          "name": "adv"
+        },
+        {
+          "description": "runtime parameter for tool StringTie",
+          "name": "adv"
+        },
+        {
+          "description": "runtime parameter for tool StringTie",
+          "name": "adv"
+        },
+        {
+          "description": "runtime parameter for tool StringTie",
+          "name": "input_options"
+        }
+      ],
+      "label": "assembl with StringTie",
+      "name": "StringTie",
+      "outputs": [
+        {
+          "name": "output_gtf",
+          "type": "gtf"
+        }
+      ],
+      "position": {
+        "left": 692,
+        "top": 38.850006103515625
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutput_gtf": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output_gtf"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/stringtie/stringtie/2.2.3+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "cbf488da3b2c",
+        "name": "stringtie",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"adv\": {\"abundance_estimation\": false, \"omit_sequences\": \"\", \"name_prefix\": \"\", \"fraction\": \"0.01\", \"min_tlen\": \"200\", \"min_anchor_len\": \"10\", \"min_anchor_cov\": {\"__class__\": \"ConnectedValue\"}, \"min_bundle_cov\": {\"__class__\": \"ConnectedValue\"}, \"bdist\": \"50\", \"bundle_fraction\": \"1.0\", \"disable_trimming\": false, \"multi_mapping\": false, \"point_features\": {\"__class__\": \"RuntimeValue\"}}, \"guide\": {\"use_guide\": \"no\", \"__current_case__\": 0}, \"input_options\": {\"input_mode\": \"short_reads\", \"__current_case__\": 0, \"input_bam\": {\"__class__\": \"ConnectedValue\"}}, \"rna_strandness\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.2.3+galaxy0",
+      "type": "tool",
+      "uuid": "97363af5-8aff-4233-b0cf-8bae812db65d",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "8": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/stringtie/stringtie_merge/2.2.3+galaxy0",
+      "errors": null,
+      "id": 8,
+      "input_connections": {
+        "input_gtf": {
+          "id": 7,
+          "output_name": "output_gtf"
+        },
+        "min_fpkm": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool StringTie merge",
+          "name": "guide_gff"
+        }
+      ],
+      "label": "merge assembled transcripts",
+      "name": "StringTie merge",
+      "outputs": [
+        {
+          "name": "out_gtf",
+          "type": "gtf"
+        }
+      ],
+      "position": {
+        "left": 936,
+        "top": 108.85000610351562
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_gtf": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_gtf"
+        },
+        "RenameDatasetActionout_gtf": {
+          "action_arguments": {
+            "newname": "merged StringTie gtf"
+          },
+          "action_type": "RenameDatasetAction",
+          "output_name": "out_gtf"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/stringtie/stringtie_merge/2.2.3+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "cbf488da3b2c",
+        "name": "stringtie",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"gap_len\": \"0\", \"guide_gff\": {\"__class__\": \"RuntimeValue\"}, \"input_gtf\": {\"__class__\": \"ConnectedValue\"}, \"keep_introns\": false, \"min_cov\": \"0\", \"min_fpkm\": {\"__class__\": \"ConnectedValue\"}, \"min_iso\": \"0.01\", \"min_len\": \"50\", \"min_tpm\": \"1.0\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.2.3+galaxy0",
+      "type": "tool",
+      "uuid": "5fc05d23-6882-482e-a9f2-03439bdc7d1d",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "9": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/brew3r_r/brew3r_r/1.0.2+galaxy0",
+      "errors": null,
+      "id": 9,
+      "input_connections": {
+        "filter_unstranded": {
+          "id": 6,
+          "output_name": "output_param_boolean"
+        },
+        "gtf_to_extend": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "gtf_to_overlap": {
+          "id": 8,
+          "output_name": "out_gtf"
+        }
+      },
+      "inputs": [],
+      "label": "BREW3R.r",
+      "name": "BREW3R.r",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "gtf"
+        }
+      ],
+      "position": {
+        "left": 1243,
+        "top": 115.3499755859375
+      },
+      "post_job_actions": {
+        "RenameDatasetActionoutput": {
+          "action_arguments": {
+            "newname": "#{gtf_to_extend} BREW3R extended"
+          },
+          "action_type": "RenameDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/brew3r_r/brew3r_r/1.0.2+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "05f8e9d1e8b8",
+        "name": "brew3r_r",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"exclude_pattern\": \"\", \"filter_unstranded\": {\"__class__\": \"ConnectedValue\"}, \"gtf_to_extend\": {\"__class__\": \"ConnectedValue\"}, \"gtf_to_overlap\": {\"__class__\": \"ConnectedValue\"}, \"no_add\": false, \"sup_output\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.2+galaxy0",
+      "type": "tool",
+      "uuid": "2ea2ba2c-6d41-4a24-bfd8-0c3bd159e76d",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "extended_gtf",
+          "output_name": "output",
+          "uuid": "903f3bcc-f3cd-4429-b86d-9d9f903c5d54"
+        }
+      ]
+    }
+  },
+  "tags": [],
+  "uuid": "bfcc0e12-59cc-4ecf-9419-7076cd72b613",
+  "version": 1
+}

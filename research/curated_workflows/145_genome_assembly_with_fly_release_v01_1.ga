@@ -1,0 +1,265 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "Assemble long reads with Flye, then view assembly statistics and assembly graph",
+  "comments": [],
+  "creator": [
+    {
+      "class": "Person",
+      "identifier": "https://orcid.org/0000-0002-9906-0673",
+      "name": "Anna Syme"
+    }
+  ],
+  "format-version": "0.1",
+  "license": "MIT",
+  "name": "Genome assembly with Fly (release v0.1)",
+  "report": {
+    "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n\n"
+  },
+  "steps": {
+    "0": {
+      "annotation": "Sequence reads e.g. nanopore",
+      "content_id": null,
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Sequence reads e.g. nanopore",
+          "name": "Input sequence reads"
+        }
+      ],
+      "label": "Input sequence reads",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 0,
+        "top": 263.5110244255367
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"tag\": null}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "6c28275d-ed4b-4cc1-b8e8-cc65096fd01d",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "1": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/flye/flye/2.9.1+galaxy0",
+      "errors": null,
+      "id": 1,
+      "input_connections": {
+        "inputs": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "Flye: assembly",
+      "name": "Flye",
+      "outputs": [
+        {
+          "name": "consensus",
+          "type": "fasta"
+        },
+        {
+          "name": "assembly_graph",
+          "type": "graph_dot"
+        },
+        {
+          "name": "assembly_gfa",
+          "type": "txt"
+        },
+        {
+          "name": "assembly_info",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 264.3488280182951,
+        "top": 139.5081025362239
+      },
+      "post_job_actions": {
+        "RenameDatasetActionassembly_gfa": {
+          "action_arguments": {
+            "newname": "Flye output as GFA for bandage"
+          },
+          "action_type": "RenameDatasetAction",
+          "output_name": "assembly_gfa"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/flye/flye/2.9.1+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "cb8dfd28c16f",
+        "name": "flye",
+        "owner": "bgruening",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"asm\": {\"asm_select\": \"false\", \"__current_case__\": 1}, \"generate_log\": false, \"i\": \"1\", \"inputs\": {\"__class__\": \"ConnectedValue\"}, \"iterations\": \"1\", \"keep_haplotypes\": false, \"m\": null, \"meta\": false, \"min_overlap\": null, \"mode\": \"--nano-raw\", \"mode_conditional\": {\"mode\": \"--nano-raw\", \"__current_case__\": 0}, \"no_alt_contigs\": false, \"no_trestle\": \"false\", \"plasmids\": \"false\", \"scaffold\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.9.1+galaxy0",
+      "type": "tool",
+      "uuid": "6a5191cf-265d-4dec-8d02-f2f8ce333c95",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "Flye assembly (assembly_info)",
+          "output_name": "assembly_info",
+          "uuid": "25d93c85-d6aa-4a48-ac8a-86d74fd0b07e"
+        },
+        {
+          "label": "Flye assembly (Graphical Fragment Assembly)",
+          "output_name": "assembly_gfa",
+          "uuid": "e027d336-688c-4c09-bcb3-c58b0ed8593b"
+        },
+        {
+          "label": "Flye assembly (consensus)",
+          "output_name": "consensus",
+          "uuid": "9226525d-fd91-4b1d-9fc0-5cfaa24ad499"
+        },
+        {
+          "label": "Flye assembly (assembly_graph)",
+          "output_name": "assembly_graph",
+          "uuid": "16104e64-3379-478f-82e7-e5da9de30612"
+        }
+      ]
+    },
+    "2": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/quast/quast/5.2.0+galaxy1",
+      "errors": null,
+      "id": 2,
+      "input_connections": {
+        "mode|in|inputs": {
+          "id": 1,
+          "output_name": "consensus"
+        }
+      },
+      "inputs": [],
+      "label": "Quast genome report",
+      "name": "Quast",
+      "outputs": [
+        {
+          "name": "report_html",
+          "type": "html"
+        }
+      ],
+      "position": {
+        "left": 562.9918212890625,
+        "top": 0
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/quast/quast/5.2.0+galaxy1",
+      "tool_shed_repository": {
+        "changeset_revision": "72472698a2df",
+        "name": "quast",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__job_resource\": {\"__current_case__\": 0, \"__job_resource__select\": \"no\"}, \"advanced\": {\"contig_thresholds\": \"0,1000\", \"strict_NA\": false, \"extensive_mis_size\": \"1000\", \"scaffold_gap_max_size\": \"1000\", \"unaligned_part_size\": \"500\", \"skip_unaligned_mis_contigs\": true, \"fragmented_max_indent\": null, \"report_all_metrics\": false, \"x_for_Nx\": \"90\"}, \"al\": {\"ambiguity_score\": \"0.99\", \"ambiguity_usage\": \"one\", \"fragmented\": false, \"fragmented_max_indent\": \"50\", \"min_alignment\": \"65\", \"min_identity\": \"95.0\", \"upper_bound_assembly\": false, \"upper_bound_min_con\": \"2\", \"use_all_alignments\": false}, \"alignments\": {\"use_all_alignments\": false, \"min_alignment\": \"65\", \"ambiguity_usage\": \"one\", \"ambiguity_score\": \"0.99\", \"fragmented\": false, \"upper_bound_assembly\": false, \"upper_bound_min_con\": null, \"local_mis_size\": \"200\"}, \"assembly\": {\"type\": \"genome\", \"__current_case__\": 0, \"ref\": {\"use_ref\": \"false\", \"__current_case__\": 1, \"est_ref_size\": null}, \"orga_type\": \"\", \"min_identity\": \"95.0\"}, \"circos\": \"false\", \"contig_thresholds\": \"0,1000\", \"extensive_mis_size\": \"1000\", \"genes\": {\"gene_finding\": {\"tool\": \"none\", \"__current_case__\": 0}, \"rna_finding\": false, \"conserved_genes_finding\": false}, \"in\": {\"__current_case__\": 1, \"custom\": \"false\", \"inputs\": {\"__class__\": \"RuntimeValue\"}}, \"k_mer\": {\"__current_case__\": 1, \"k_mer_stats\": \"\"}, \"large\": true, \"min_contig\": \"500\", \"mode\": {\"mode\": \"co\", \"__current_case__\": 1, \"in\": {\"custom\": \"false\", \"__current_case__\": 1, \"inputs\": {\"__class__\": \"ConnectedValue\"}}, \"reads\": {\"reads_option\": \"disabled\", \"__current_case__\": 0}}, \"output_files\": \"html\", \"scaffold_gap_max_size\": \"1000\", \"skip_unaligned_mis_contigs\": \"false\", \"split_scaffolds\": false, \"strict_NA\": \"false\", \"unaligned_part_size\": \"500\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "5.2.0+galaxy1",
+      "type": "tool",
+      "uuid": "9fd8b888-55b5-4af2-9227-000288442dbd",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "Quast: HTML report",
+          "output_name": "report_html",
+          "uuid": "ccb4b057-9498-4c94-8683-15023ac3bdb1"
+        }
+      ]
+    },
+    "3": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/fasta_stats/fasta-stats/2.0",
+      "errors": null,
+      "id": 3,
+      "input_connections": {
+        "fasta": {
+          "id": 1,
+          "output_name": "consensus"
+        }
+      },
+      "inputs": [],
+      "label": "Fasta statistics",
+      "name": "Fasta Statistics",
+      "outputs": [
+        {
+          "name": "stats_output",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 569.7271118164062,
+        "top": 189.37097199902308
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/fasta_stats/fasta-stats/2.0",
+      "tool_shed_repository": {
+        "changeset_revision": "0dbb995c7d35",
+        "name": "fasta_stats",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"dataset\": {\"__class__\": \"ConnectedValue\"}, \"fasta\": {\"__class__\": \"ConnectedValue\"}, \"gaps_option\": false, \"genome_size\": null, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.0",
+      "type": "tool",
+      "uuid": "0e4d3d8c-45f3-4b98-8218-8d5791134fbe",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "Flye assembly statistics",
+          "output_name": "stats_output",
+          "uuid": "a324c227-542b-44c7-a418-60b9ce3c84d6"
+        }
+      ]
+    },
+    "4": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bandage/bandage_image/2022.09+galaxy4",
+      "errors": null,
+      "id": 4,
+      "input_connections": {
+        "input_file": {
+          "id": 1,
+          "output_name": "assembly_gfa"
+        }
+      },
+      "inputs": [],
+      "label": "Bandage image: Flye assembly",
+      "name": "Bandage Image",
+      "outputs": [
+        {
+          "name": "outfile",
+          "type": "jpg"
+        }
+      ],
+      "position": {
+        "left": 571.0624389648438,
+        "top": 311.80291748046875
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bandage/bandage_image/2022.09+galaxy4",
+      "tool_shed_repository": {
+        "changeset_revision": "ddddce450736",
+        "name": "bandage",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"fontsize\": null, \"height\": \"1000\", \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"lengths\": false, \"names\": false, \"nodewidth\": null, \"output_format\": \"jpg\", \"width\": null, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2022.09+galaxy4",
+      "type": "tool",
+      "uuid": "667f00aa-53af-4074-ae30-2234b71f0ae4",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "Bandage Image: Assembly Graph Image",
+          "output_name": "outfile",
+          "uuid": "159656dd-488d-4fbd-ba15-b5032d252c52"
+        }
+      ]
+    }
+  },
+  "tags": [],
+  "uuid": "a6a13ee2-5070-46a3-b94e-c60909d2a718",
+  "version": 1
+}

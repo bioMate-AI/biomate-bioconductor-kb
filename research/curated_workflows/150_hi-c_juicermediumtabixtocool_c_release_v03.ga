@@ -1,0 +1,312 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "This workflow uses as input a collection of juicer medium tabix files and a genome name. It builds balanced cool file to the desired resolution.",
+  "comments": [],
+  "creator": [
+    {
+      "class": "Person",
+      "identifier": "https://orcid.org/0000-0002-1964-4960",
+      "name": "Lucille Delisle"
+    }
+  ],
+  "format-version": "0.1",
+  "license": "MIT",
+  "name": "Hi-C_juicermediumtabixToCool_c (release v0.3)",
+  "steps": {
+    "0": {
+      "annotation": "For example 10000 for 10kb",
+      "content_id": null,
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "For example 10000 for 10kb",
+          "name": "Bin size in bp"
+        }
+      ],
+      "label": "Bin size in bp",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 0,
+        "top": 33.5
+      },
+      "tool_id": null,
+      "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "33d38cf9-3495-4012-943d-700244044e7a",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "1": {
+      "annotation": "This is used to get the chromosome sizes",
+      "content_id": null,
+      "errors": null,
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "This is used to get the chromosome sizes",
+          "name": "genome name"
+        }
+      ],
+      "label": "genome name",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 46,
+        "top": 123.5
+      },
+      "tool_id": null,
+      "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "45cd1050-0f33-464f-a545-4a6a335f6b08",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "2": {
+      "annotation": "",
+      "content_id": null,
+      "errors": null,
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "",
+          "name": "Juicer Medium Tabix with validPairs"
+        }
+      ],
+      "label": "Juicer Medium Tabix with validPairs",
+      "name": "Input dataset collection",
+      "outputs": [],
+      "position": {
+        "left": 129.25,
+        "top": 208.25
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list\", \"fields\": null}",
+      "tool_version": null,
+      "type": "data_collection_input",
+      "uuid": "14e47067-393c-4a5f-8737-2f30388ec5db",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "3": {
+      "annotation": "Recommended value: cis-only",
+      "content_id": null,
+      "errors": null,
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Recommended value: cis-only",
+          "name": "Interactions to consider to calculate weights in normalization step"
+        }
+      ],
+      "label": "Interactions to consider to calculate weights in normalization step",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 221,
+        "top": 309.75
+      },
+      "tool_id": null,
+      "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "3477f69b-f448-49c6-881d-a3d214f07e84",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "4": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_makebins/cooler_makebins/0.9.3+galaxy0",
+      "errors": null,
+      "id": 4,
+      "input_connections": {
+        "binsize": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "size_source|fasta_cached": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool cooler_makebins",
+          "name": "size_source"
+        }
+      ],
+      "label": "make bed with bins",
+      "name": "cooler_makebins",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bed"
+        }
+      ],
+      "position": {
+        "left": 489.25,
+        "top": 0
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutput": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_makebins/cooler_makebins/0.9.3+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "3df254580b06",
+        "name": "cooler_makebins",
+        "owner": "lldelisle",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"binsize\": {\"__class__\": \"ConnectedValue\"}, \"size_source\": {\"size_source_selector\": \"cached\", \"__current_case__\": 0, \"fasta_cached\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.9.3+galaxy0",
+      "type": "tool",
+      "uuid": "276215f0-61f2-43c0-812a-6ffd447095a2",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "5": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_cload_tabix/cooler_cload_tabix/0.9.3+galaxy1",
+      "errors": null,
+      "id": 5,
+      "input_connections": {
+        "assembly": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "format_sel|input_pairs": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "input_bed": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool cooler_cload_tabix",
+          "name": "format_sel"
+        }
+      ],
+      "label": "Load pairs in matrix",
+      "name": "cooler_cload_tabix",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "cool"
+        }
+      ],
+      "position": {
+        "left": 762.25,
+        "top": 58
+      },
+      "post_job_actions": {
+        "RenameDatasetActionoutput": {
+          "action_arguments": {
+            "newname": "matrix with raw values"
+          },
+          "action_type": "RenameDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_cload_tabix/cooler_cload_tabix/0.9.3+galaxy1",
+      "tool_shed_repository": {
+        "changeset_revision": "168e86e96afa",
+        "name": "cooler_cload_tabix",
+        "owner": "lldelisle",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"assembly\": {\"__class__\": \"ConnectedValue\"}, \"format_sel\": {\"format\": \"juicer_medium\", \"__current_case__\": 0, \"input_pairs\": {\"__class__\": \"ConnectedValue\"}}, \"input_bed\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.9.3+galaxy1",
+      "type": "tool",
+      "uuid": "5959c08f-8449-4d7c-ab1c-335843d6ec21",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "matrix with raw values",
+          "output_name": "output",
+          "uuid": "cba25d6b-9d6b-485f-8066-23cb6b96746a"
+        }
+      ]
+    },
+    "6": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_balance/cooler_balance/0.9.3+galaxy0",
+      "errors": null,
+      "id": 6,
+      "input_connections": {
+        "cistrans": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "input": {
+          "id": 5,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool cooler_balance",
+          "name": "blacklist"
+        }
+      ],
+      "label": "ICE normalization",
+      "name": "cooler_balance",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "cool"
+        }
+      ],
+      "position": {
+        "left": 991.25,
+        "top": 254.5
+      },
+      "post_job_actions": {
+        "RenameDatasetActionoutput": {
+          "action_arguments": {
+            "newname": "matrix with iced values"
+          },
+          "action_type": "RenameDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_balance/cooler_balance/0.9.3+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "b387933e4d3d",
+        "name": "cooler_balance",
+        "owner": "lldelisle",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"blacklist\": {\"__class__\": \"RuntimeValue\"}, \"cistrans\": {\"__class__\": \"ConnectedValue\"}, \"convergencepolicy\": \"error\", \"ignorediags\": \"2\", \"ignoredist\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"madmax\": \"5\", \"maxiters\": \"200\", \"mincount\": \"0\", \"minnnz\": \"10\", \"name\": \"weight\", \"tol\": \"1e-05\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.9.3+galaxy0",
+      "type": "tool",
+      "uuid": "dfe5229e-2e3b-4ca9-83b4-1a930119bb29",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "matrix with iced values",
+          "output_name": "output",
+          "uuid": "43a7aad4-56fa-4a24-8707-2c33c97e6b7e"
+        }
+      ]
+    }
+  },
+  "tags": [
+    "Hi-C"
+  ],
+  "uuid": "9248cadc-0f5b-4da9-826c-279d0bdfe647",
+  "version": 1
+}

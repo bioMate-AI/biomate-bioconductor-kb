@@ -1,0 +1,467 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "Use DADA2 for sequence quality control. DADA2 is a pipeline for detecting and correcting (where possible) Illumina amplicon sequence data. As implemented in the q2-dada2 plugin, this quality control process will additionally filter any phiX reads (commonly present in marker gene Illumina sequence data) that are identified in the sequencing data, and will filter chimeric sequences.",
+  "comments": [],
+  "creator": [
+    {
+      "class": "Person",
+      "identifier": "0009-0008-1496-1677",
+      "name": "Debjyoti Ghosh"
+    },
+    {
+      "address": "Permoserstra\u00dfe 15, 04318 Leipzig",
+      "class": "Organization",
+      "name": "Helmholtz-Zentrum f\u00fcr Umweltforschung - UFZ"
+    }
+  ],
+  "format-version": "0.1",
+  "license": "MIT",
+  "name": "QIIME2 IIb: Denoising (sequence quality control) and feature table creation (paired-en (release v0.3)",
+  "steps": {
+    "0": {
+      "annotation": "Tab separated metadata file",
+      "content_id": null,
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Tab separated metadata file",
+          "name": "Metadata"
+        }
+      ],
+      "label": "Metadata",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 1.6647546421401653,
+        "top": 139.9560324460615
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"tabular\"], \"tag\": null}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "117443ff-d99b-4a1f-b588-3ea2d9cebea1",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "1": {
+      "annotation": "Demultiplexed sequences in qza format",
+      "content_id": null,
+      "errors": null,
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Demultiplexed sequences in qza format",
+          "name": "Demultiplexed sequences"
+        }
+      ],
+      "label": "Demultiplexed sequences",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 2.4506271621231845,
+        "top": 238.07957958589887
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"qza\"], \"tag\": null}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "74a29d80-9306-4724-b095-5546ce6cc0b0",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "2": {
+      "annotation": "Length to which the forward read sequence should be truncated. Will remove bases from the 3' end.",
+      "content_id": null,
+      "errors": null,
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Length to which the forward read sequence should be truncated. Will remove bases from the 3' end.",
+          "name": "Truncation length (forward)"
+        }
+      ],
+      "label": "Truncation length (forward)",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 1.5784534434758744,
+        "top": 353.55220274941445
+      },
+      "tool_id": null,
+      "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "42e269a8-91d5-4aee-9a4d-25b9e0369eb6",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": null,
+          "output_name": "output",
+          "uuid": "ce9aae1f-e160-4df3-9f2a-4295e6b2706c"
+        }
+      ]
+    },
+    "3": {
+      "annotation": "Length to which the reverse read sequence should be truncated. Will remove bases from the 3' end.",
+      "content_id": null,
+      "errors": null,
+      "id": 3,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Length to which the reverse read sequence should be truncated. Will remove bases from the 3' end.",
+          "name": "Truncation length (reverse)"
+        }
+      ],
+      "label": "Truncation length (reverse)",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 0.12398288926847933,
+        "top": 478.1294436628793
+      },
+      "tool_id": null,
+      "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "c875c25f-45da-419d-9814-7e716aadbb83",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": null,
+          "output_name": "output",
+          "uuid": "2f33b3a7-f25b-47f9-a404-d4665fd099c2"
+        }
+      ]
+    },
+    "4": {
+      "annotation": "Number of bases at the 5' end of the forward read that should be removed. Default: 0.\n\n\nMention the length up to which you want to trim your sequences from the left.\nIf not needed, put 0.",
+      "content_id": null,
+      "errors": null,
+      "id": 4,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Number of bases at the 5' end of the forward read that should be removed. Default: 0.\n\n\nMention the length up to which you want to trim your sequences from the left.\nIf not needed, put 0.",
+          "name": "Trimming length (forward)"
+        }
+      ],
+      "label": "Trimming length (forward)",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 0,
+        "top": 592.1359047583886
+      },
+      "tool_id": null,
+      "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": true}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "8fbe66b7-cff0-4ae1-8841-30b745965e4b",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": null,
+          "output_name": "output",
+          "uuid": "83691696-25e0-471a-8a72-f389d576bcf6"
+        }
+      ]
+    },
+    "5": {
+      "annotation": "Number of bases at the 5' end of the reverse read that should be removed. Default: 0.\n",
+      "content_id": null,
+      "errors": null,
+      "id": 5,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Number of bases at the 5' end of the reverse read that should be removed. Default: 0.\n",
+          "name": "Trimming length (reverse)"
+        }
+      ],
+      "label": "Trimming length (reverse)",
+      "name": "Input parameter",
+      "outputs": [],
+      "position": {
+        "left": 0.14257701997123728,
+        "top": 708.0834213595151
+      },
+      "tool_id": null,
+      "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": true}",
+      "tool_version": null,
+      "type": "parameter_input",
+      "uuid": "e698d58f-ecd4-4c2d-b137-753bae738935",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": null,
+          "output_name": "output",
+          "uuid": "803596cc-43e2-40bd-97fb-8c6e5d775dab"
+        }
+      ]
+    },
+    "6": {
+      "annotation": "qiime2 dada2 denoise-paired\nDenoise and dereplicate paired-end sequences\nSmall insight: if the denoising percentage is lower or poorer, reduce 'trunc_q: Int' from 2 to 1.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__dada2__denoise_paired/qiime2__dada2__denoise_paired/2024.10.0+q2galaxy.2024.10.0",
+      "errors": null,
+      "id": 6,
+      "input_connections": {
+        "__q2galaxy__GUI__section__extra_opts__|trim_left_f": {
+          "id": 4,
+          "output_name": "output"
+        },
+        "__q2galaxy__GUI__section__extra_opts__|trim_left_r": {
+          "id": 5,
+          "output_name": "output"
+        },
+        "demultiplexed_seqs": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "trunc_len_f": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "trunc_len_r": {
+          "id": 3,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool qiime2 dada2 denoise-paired",
+          "name": "__q2galaxy__GUI__section__extra_opts__"
+        },
+        {
+          "description": "runtime parameter for tool qiime2 dada2 denoise-paired",
+          "name": "__q2galaxy__GUI__section__extra_opts__"
+        }
+      ],
+      "label": "Denoising the datasets",
+      "name": "qiime2 dada2 denoise-paired",
+      "outputs": [
+        {
+          "name": "table",
+          "type": "qza"
+        },
+        {
+          "name": "representative_sequences",
+          "type": "qza"
+        },
+        {
+          "name": "denoising_stats",
+          "type": "qza"
+        }
+      ],
+      "position": {
+        "left": 353.695690215759,
+        "top": 186.09945678710938
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__dada2__denoise_paired/qiime2__dada2__denoise_paired/2024.10.0+q2galaxy.2024.10.0",
+      "tool_shed_repository": {
+        "changeset_revision": "933b92011b91",
+        "name": "qiime2__dada2__denoise_paired",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"trim_left_f\": {\"__class__\": \"ConnectedValue\"}, \"trim_left_r\": {\"__class__\": \"ConnectedValue\"}, \"max_ee_f\": \"2.0\", \"max_ee_r\": \"2.0\", \"trunc_q\": \"2\", \"min_overlap\": \"12\", \"pooling_method\": \"independent\", \"chimera_method\": \"consensus\", \"min_fold_parent_over_abundance\": \"1.0\", \"allow_one_off\": false, \"n_reads_learn\": \"1000000\", \"hashed_feature_ids\": true, \"retain_all_samples\": true}, \"demultiplexed_seqs\": {\"__class__\": \"ConnectedValue\"}, \"trunc_len_f\": {\"__class__\": \"ConnectedValue\"}, \"trunc_len_r\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2024.10.0+q2galaxy.2024.10.0",
+      "type": "tool",
+      "uuid": "345d1975-8a2b-443e-b80d-5adc61f7d66a",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "Denoising statistics",
+          "output_name": "denoising_stats",
+          "uuid": "02c56395-5dde-4ce4-8e60-f6b6c79ee109"
+        },
+        {
+          "label": "Denoising output table",
+          "output_name": "table",
+          "uuid": "0f7473a0-9ca8-4b79-ab53-d7d82045ca64"
+        },
+        {
+          "label": "Representative denoised sequences",
+          "output_name": "representative_sequences",
+          "uuid": "b180468c-eb39-459c-b621-c156a38b416d"
+        }
+      ]
+    },
+    "7": {
+      "annotation": "qiime2 feature-table tabulate-seqs\nView sequence associated with each feature",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_table__tabulate_seqs/qiime2__feature_table__tabulate_seqs/2024.10.0+q2galaxy.2024.10.0",
+      "errors": null,
+      "id": 7,
+      "input_connections": {
+        "data": {
+          "id": 6,
+          "output_name": "representative_sequences"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool qiime2 feature-table tabulate-seqs",
+          "name": "__q2galaxy__GUI__section__extra_opts__"
+        }
+      ],
+      "label": "Tabulate DADA2 denoised representative sequences",
+      "name": "qiime2 feature-table tabulate-seqs",
+      "outputs": [
+        {
+          "name": "visualization",
+          "type": "qzv"
+        }
+      ],
+      "position": {
+        "left": 691.7523737176135,
+        "top": 0
+      },
+      "post_job_actions": {
+        "RenameDatasetActionvisualization": {
+          "action_arguments": {
+            "newname": "dada2_rep_seq_visualization"
+          },
+          "action_type": "RenameDatasetAction",
+          "output_name": "visualization"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_table__tabulate_seqs/qiime2__feature_table__tabulate_seqs/2024.10.0+q2galaxy.2024.10.0",
+      "tool_shed_repository": {
+        "changeset_revision": "c4570ced1d88",
+        "name": "qiime2__feature_table__tabulate_seqs",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"taxonomy\": {\"__class__\": \"RuntimeValue\"}, \"metadata\": [], \"merge_method\": \"strict\"}, \"data\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2024.10.0+q2galaxy.2024.10.0",
+      "type": "tool",
+      "uuid": "e38b21ae-5202-40a6-81af-8ce05418940c",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "DADA2 representative sequences list visualisation",
+          "output_name": "visualization",
+          "uuid": "dd38f5cd-628b-4407-9dac-3d0c7251e414"
+        }
+      ]
+    },
+    "8": {
+      "annotation": "qiime2 metadata tabulate\nInteractively explore Metadata in an HTML table",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__metadata__tabulate/qiime2__metadata__tabulate/2024.10.0+q2galaxy.2024.10.0",
+      "errors": null,
+      "id": 8,
+      "input_connections": {
+        "input_0|__q2galaxy__GUI__conditional__input__|source": {
+          "id": 6,
+          "output_name": "denoising_stats"
+        }
+      },
+      "inputs": [],
+      "label": "Tabulate DADA2 statistical metadata ",
+      "name": "qiime2 metadata tabulate",
+      "outputs": [
+        {
+          "name": "visualization",
+          "type": "qzv"
+        }
+      ],
+      "position": {
+        "left": 691.5803874570937,
+        "top": 249.50780313619012
+      },
+      "post_job_actions": {
+        "RenameDatasetActionvisualization": {
+          "action_arguments": {
+            "newname": "dada2_stats_visualisation"
+          },
+          "action_type": "RenameDatasetAction",
+          "output_name": "visualization"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__metadata__tabulate/qiime2__metadata__tabulate/2024.10.0+q2galaxy.2024.10.0",
+      "tool_shed_repository": {
+        "changeset_revision": "9857be21dcaf",
+        "name": "qiime2__metadata__tabulate",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"page_size\": \"100\"}, \"input\": [{\"__index__\": 0, \"__q2galaxy__GUI__conditional__input__\": {\"type\": \"qza\", \"__current_case__\": 1, \"source\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2024.10.0+q2galaxy.2024.10.0",
+      "type": "tool",
+      "uuid": "f12cc3cb-1f12-42bf-bdb1-8e8928f571d3",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "DADA2 statistics visualisation",
+          "output_name": "visualization",
+          "uuid": "a11d818e-19e9-45f1-9260-bb79ff0b27ce"
+        }
+      ]
+    },
+    "9": {
+      "annotation": "qiime2 feature-table summarize\nSummarize table\n",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_table__summarize/qiime2__feature_table__summarize/2024.10.0+q2galaxy.2024.10.0",
+      "errors": null,
+      "id": 9,
+      "input_connections": {
+        "__q2galaxy__GUI__section__extra_opts__|sample_metadata_0|__q2galaxy__GUI__conditional__sample_metadata__|source": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "table": {
+          "id": 6,
+          "output_name": "table"
+        }
+      },
+      "inputs": [],
+      "label": "Summing up the dada2 output table",
+      "name": "qiime2 feature-table summarize",
+      "outputs": [
+        {
+          "name": "visualization",
+          "type": "qzv"
+        }
+      ],
+      "position": {
+        "left": 693.96337890625,
+        "top": 479.484375
+      },
+      "post_job_actions": {
+        "RenameDatasetActionvisualization": {
+          "action_arguments": {
+            "newname": "dada2_table_visualisation"
+          },
+          "action_type": "RenameDatasetAction",
+          "output_name": "visualization"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_table__summarize/qiime2__feature_table__summarize/2024.10.0+q2galaxy.2024.10.0",
+      "tool_shed_repository": {
+        "changeset_revision": "d0f2249afe30",
+        "name": "qiime2__feature_table__summarize",
+        "owner": "q2d2",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"sample_metadata\": [{\"__index__\": 0, \"__q2galaxy__GUI__conditional__sample_metadata__\": {\"type\": \"tsv\", \"__current_case__\": 0, \"source\": {\"__class__\": \"ConnectedValue\"}}}]}, \"table\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2024.10.0+q2galaxy.2024.10.0",
+      "type": "tool",
+      "uuid": "ed798598-6ca8-4d63-935d-fa46647041b3",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "DADA2 output table visualisation",
+          "output_name": "visualization",
+          "uuid": "2631cba6-7421-49b4-b48d-1b84afbb47cd"
+        }
+      ]
+    }
+  },
+  "tags": [],
+  "uuid": "953503eb-e8e7-4e44-b962-9e988776667e",
+  "version": 1
+}

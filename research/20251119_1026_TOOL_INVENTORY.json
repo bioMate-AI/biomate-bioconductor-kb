@@ -1,0 +1,7349 @@
+{
+  "aaronquinlan/Repository_Actions_Intersect_BAM_alignments_with_intervals_in_another_files": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/aaronquinlan/bedtools/Repository_Actions_Intersect_BAM_alignments_with_intervals_in_another_files",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "aaronquinlan",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Intersect_BAM_alignments_with_intervals_in_another_files",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "alyssa/Repository_Actions_Qcat": {
+    "count": 11,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/alyssa/seqkit_seq/Repository_Actions_Qcat",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "alyssa",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Qcat",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "artbio/cat_multi_datasets": {
+    "count": 102,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/artbio/concatenate_multiple_datasets/cat_multi_datasets/1.4.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "artbio",
+    "source": "toolshed",
+    "tool_name": "cat_multi_datasets",
+    "versions": [
+      "1.4.2",
+      "1.4.3"
+    ]
+  },
+  "artbio/gatk4_gatk4": {
+    "count": 13,
+    "full_id": "artbio_gatk4_gatk4_MergeMutectStats_4.1.7.0+galaxy3",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "artbio",
+    "source": "custom",
+    "tool_name": "artbio_gatk4_gatk4",
+    "versions": [
+      "MergeMutectStats_4.1.7.0+galaxy3"
+    ]
+  },
+  "artbio/wisecondorx": {
+    "count": 2,
+    "full_id": "artbio_wisecondorx_WisecondorX_convert_1.2.9+galaxy0",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "artbio",
+    "source": "custom",
+    "tool_name": "artbio_wisecondorx",
+    "versions": [
+      "WisecondorX_convert_1.2.9+galaxy0"
+    ]
+  },
+  "avowinkel/Repository_Actions_BedToIntervalList": {
+    "count": 7,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/avowinkel/picard/Repository_Actions_BedToIntervalList",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "avowinkel",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_BedToIntervalList",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "bgruening/Repository_Actions_MethylDackel": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/pileometh/Repository_Actions_MethylDackel",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_MethylDackel",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "bgruening/add_line_to_file": {
+    "count": 45,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "add_line_to_file",
+    "versions": [
+      "0.1.0"
+    ]
+  },
+  "bgruening/bg_diamond": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/diamond/bg_diamond/2.0.15+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "bg_diamond",
+    "versions": [
+      "2.0.15+galaxy0"
+    ]
+  },
+  "bgruening/bg_diamond_view": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/diamond/bg_diamond_view/2.0.15+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "bg_diamond_view",
+    "versions": [
+      "2.0.15+galaxy0"
+    ]
+  },
+  "bgruening/bionano_scaffold": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/bionano_scaffold/bionano_scaffold/3.7.0+galaxy3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "bionano_scaffold",
+    "versions": [
+      "3.7.0+galaxy3",
+      "3.7.0+galaxy0"
+    ]
+  },
+  "bgruening/ctb_online_data_fetch": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/get_online_data/ctb_online_data_fetch/0.4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "ctb_online_data_fetch",
+    "versions": [
+      "0.4"
+    ]
+  },
+  "bgruening/ctb_rdkit_descriptors": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/ctb_rdkit_descriptors/ctb_rdkit_descriptors/2020.03.4+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "ctb_rdkit_descriptors",
+    "versions": [
+      "2020.03.4+galaxy1"
+    ]
+  },
+  "bgruening/deeptools_bam_coverage": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/deeptools_bam_coverage/deeptools_bam_coverage/3.5.4+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "deeptools_bam_coverage",
+    "versions": [
+      "3.5.4+galaxy0"
+    ]
+  },
+  "bgruening/deeptools_bigwig_average": {
+    "count": 813,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/deeptools_bigwig_average/deeptools_bigwig_average/3.5.4+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "deeptools_bigwig_average",
+    "versions": [
+      "3.5.2+galaxy0",
+      "3.5.4+galaxy0"
+    ]
+  },
+  "bgruening/flye": {
+    "count": 27,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/flye/flye/2.6",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "flye",
+    "versions": [
+      "2.6",
+      "2.9.1+galaxy0",
+      "2.9.3+galaxy0",
+      "2.9.6+galaxy0"
+    ]
+  },
+  "bgruening/gfastats": {
+    "count": 2763,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/gfastats/gfastats/1.3.11+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "gfastats",
+    "versions": [
+      "1.3.9+galaxy3",
+      "1.3.9+galaxy1",
+      "1.3.6+galaxy0",
+      "1.3.11+galaxy0",
+      "1.3.10+galaxy0",
+      "1.3.9+galaxy2",
+      "1.3.8+galaxy0",
+      "1.3.9+galaxy0"
+    ]
+  },
+  "bgruening/hicup2juicer": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup2juicer/hicup2juicer/0.8.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "hicup2juicer",
+    "versions": [
+      "0.9.2+galaxy0",
+      "0.8.3+galaxy0"
+    ]
+  },
+  "bgruening/hicup_hicup": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup_hicup/hicup_hicup/0.8.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "hicup_hicup",
+    "versions": [
+      "0.9.2+galaxy0",
+      "0.8.3+galaxy0"
+    ]
+  },
+  "bgruening/hifiasm": {
+    "count": 198,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hifiasm/hifiasm/0.24.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "hifiasm",
+    "versions": [
+      "0.24.0+galaxy0",
+      "0.16.1+galaxy4",
+      "0.19.8+galaxy1",
+      "0.20.0+galaxy0",
+      "0.19.9+galaxy0",
+      "0.19.8+galaxy0",
+      "0.25.0+galaxy0"
+    ]
+  },
+  "bgruening/interproscan": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/interproscan/interproscan/5.59-91.0+galaxy3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "interproscan",
+    "versions": [
+      "5.59-91.0+galaxy3"
+    ]
+  },
+  "bgruening/mgnify_seqprep": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/mgnify_seqprep/mgnify_seqprep/1.2+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "mgnify_seqprep",
+    "versions": [
+      "1.2+galaxy0"
+    ]
+  },
+  "bgruening/mitohifi": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/mitohifi/mitohifi/3.2.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "mitohifi",
+    "versions": [
+      "3.2.3+galaxy0",
+      "3+galaxy0"
+    ]
+  },
+  "bgruening/openbabel_compound_convert": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/openbabel_compound_convert/openbabel_compound_convert/3.1.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "openbabel_compound_convert",
+    "versions": [
+      "3.1.1+galaxy0"
+    ]
+  },
+  "bgruening/pileometh": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/pileometh/pileometh/0.5.2+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "pileometh",
+    "versions": [
+      "0.5.2+galaxy0"
+    ]
+  },
+  "bgruening/plotly_regression_performance_plots": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/plotly_regression_performance_plots/plotly_regression_performance_plots/0.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "plotly_regression_performance_plots",
+    "versions": [
+      "0.1"
+    ]
+  },
+  "bgruening/racon": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/racon/racon/1.5.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "racon",
+    "versions": [
+      "1.5.0+galaxy1"
+    ]
+  },
+  "bgruening/repeatmasker_wrapper": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/repeat_masker/repeatmasker_wrapper/4.1.5+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "repeatmasker_wrapper",
+    "versions": [
+      "4.1.5+galaxy0"
+    ]
+  },
+  "bgruening/replace_column_with_key_value_file": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/replace_column_by_key_value_file/replace_column_with_key_value_file/0.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "replace_column_with_key_value_file",
+    "versions": [
+      "0.2"
+    ]
+  },
+  "bgruening/salmon": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/salmon/salmon/1.10.1+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "salmon",
+    "versions": [
+      "1.10.1+galaxy2"
+    ]
+  },
+  "bgruening/sklearn_build_pipeline": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/sklearn_build_pipeline/sklearn_build_pipeline/1.0.11.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "sklearn_build_pipeline",
+    "versions": [
+      "1.0.11.0"
+    ]
+  },
+  "bgruening/sklearn_ensemble": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/sklearn_ensemble/sklearn_ensemble/1.0.11.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "sklearn_ensemble",
+    "versions": [
+      "1.0.11.0"
+    ]
+  },
+  "bgruening/sklearn_generalized_linear": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/sklearn_generalized_linear/sklearn_generalized_linear/1.0.11.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "sklearn_generalized_linear",
+    "versions": [
+      "1.0.11.0"
+    ]
+  },
+  "bgruening/sklearn_searchcv": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/sklearn_searchcv/sklearn_searchcv/1.0.11.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "sklearn_searchcv",
+    "versions": [
+      "1.0.11.0"
+    ]
+  },
+  "bgruening/split_file_to_collection": {
+    "count": 393,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_to_collection/split_file_to_collection/0.5.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "split_file_to_collection",
+    "versions": [
+      "0.5.2",
+      "0.5.0",
+      "0.5.1"
+    ]
+  },
+  "bgruening/tp_awk_tool": {
+    "count": 1562,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/1.1.2",
+    "in_iwc": true,
+    "in_nfcore": true,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_awk_tool",
+    "versions": [
+      "1.1.2",
+      "9.3+galaxy1",
+      "9.5+galaxy2",
+      "9.5+galaxy0",
+      "unknown"
+    ]
+  },
+  "bgruening/tp_cat": {
+    "count": 102,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat",
+    "in_iwc": true,
+    "in_nfcore": true,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_cat",
+    "versions": [
+      "0.1.1",
+      "9.3+galaxy1",
+      "9.5+galaxy2",
+      "9.5+galaxy0",
+      "unknown",
+      "cat1"
+    ]
+  },
+  "bgruening/tp_cut_tool": {
+    "count": 234,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cut_tool/9.5+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_cut_tool",
+    "versions": [
+      "9.3+galaxy1",
+      "9.5+galaxy2",
+      "9.3+galaxy2",
+      "9.5+galaxy0"
+    ]
+  },
+  "bgruening/tp_easyjoin_tool": {
+    "count": 189,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_easyjoin_tool/1.1.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_easyjoin_tool",
+    "versions": [
+      "9.3+galaxy1",
+      "1.1.2",
+      "9.5+galaxy2",
+      "9.5+galaxy0"
+    ]
+  },
+  "bgruening/tp_find_and_replace": {
+    "count": 573,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_find_and_replace/9.5+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_find_and_replace",
+    "versions": [
+      "1.1.4",
+      "9.5+galaxy0",
+      "1.1.3",
+      "9.3+galaxy1",
+      "9.5+galaxy2"
+    ]
+  },
+  "bgruening/tp_grep_tool": {
+    "count": 1227,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_grep_tool/9.3+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_grep_tool",
+    "versions": [
+      "9.3+galaxy1",
+      "1.1.1",
+      "9.5+galaxy2",
+      "9.5+galaxy0"
+    ]
+  },
+  "bgruening/tp_head_tool": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_head_tool/9.3+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_head_tool",
+    "versions": [
+      "9.3+galaxy1",
+      "9.5+galaxy0"
+    ]
+  },
+  "bgruening/tp_multijoin_tool": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_multijoin_tool/9.3+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_multijoin_tool",
+    "versions": [
+      "9.3+galaxy1"
+    ]
+  },
+  "bgruening/tp_replace_in_column": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_column/9.3+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_replace_in_column",
+    "versions": [
+      "9.3+galaxy1",
+      "1.1.3"
+    ]
+  },
+  "bgruening/tp_replace_in_line": {
+    "count": 249,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/9.5+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_replace_in_line",
+    "versions": [
+      "9.3+galaxy1",
+      "1.1.2",
+      "9.5+galaxy2",
+      "9.5+galaxy0"
+    ]
+  },
+  "bgruening/tp_sed_tool": {
+    "count": 306,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/1.1.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_sed_tool",
+    "versions": [
+      "9.3+galaxy1",
+      "1.1.1",
+      "9.5+galaxy2",
+      "9.5+galaxy0"
+    ]
+  },
+  "bgruening/tp_sort_header_tool": {
+    "count": 117,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sort_header_tool/1.1.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_sort_header_tool",
+    "versions": [
+      "9.3+galaxy1",
+      "1.1.1",
+      "9.5+galaxy0"
+    ]
+  },
+  "bgruening/tp_sorted_uniq": {
+    "count": 351,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sorted_uniq/9.3+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_sorted_uniq",
+    "versions": [
+      "9.3+galaxy1",
+      "1.1.0"
+    ]
+  },
+  "bgruening/tp_split_on_column": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_on_column/tp_split_on_column/0.4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_split_on_column",
+    "versions": [
+      "0.4",
+      "0.6"
+    ]
+  },
+  "bgruening/tp_tail_tool": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_tail_tool/9.5+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_tail_tool",
+    "versions": [
+      "9.5+galaxy2",
+      "9.5+galaxy0"
+    ]
+  },
+  "bgruening/tp_text_file_with_recurring_lines": {
+    "count": 180,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/1.1.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_text_file_with_recurring_lines",
+    "versions": [
+      "9.3+galaxy1",
+      "9.5+galaxy1",
+      "1.1.0"
+    ]
+  },
+  "bgruening/tp_uniq_tool": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_uniq_tool/9.5+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "tp_uniq_tool",
+    "versions": [
+      "9.5+galaxy2",
+      "9.5+galaxy0"
+    ]
+  },
+  "bgruening/trim_galore": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.10+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "bgruening",
+    "source": "toolshed",
+    "tool_name": "trim_galore",
+    "versions": [
+      "0.6.7+galaxy1",
+      "0.6.10+galaxy0"
+    ]
+  },
+  "biomate/biomate_ds_api_ucsc": {
+    "count": 2,
+    "full_id": "biomate_ds_api_ucsc",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "biomate",
+    "source": "biomate",
+    "tool_name": "biomate_ds_api_ucsc",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "chemteam/ambertools_acpype": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/ambertools_acpype/ambertools_acpype/21.10+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "ambertools_acpype",
+    "versions": [
+      "21.10+galaxy0"
+    ]
+  },
+  "chemteam/ambertools_antechamber": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/ambertools_antechamber/ambertools_antechamber/21.10+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "ambertools_antechamber",
+    "versions": [
+      "21.10+galaxy0"
+    ]
+  },
+  "chemteam/biomd_neqgamma": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/biomd_neqgamma/biomd_neqgamma/0.1.5.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "biomd_neqgamma",
+    "versions": [
+      "0.1.5.2+galaxy1"
+    ]
+  },
+  "chemteam/gmx_editconf": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_editconf/gmx_editconf/2022+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "gmx_editconf",
+    "versions": [
+      "2022+galaxy0",
+      "2021.3+galaxy0"
+    ]
+  },
+  "chemteam/gmx_em": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_em/gmx_em/2022+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "gmx_em",
+    "versions": [
+      "2021.3+galaxy1",
+      "2022+galaxy0"
+    ]
+  },
+  "chemteam/gmx_makendx": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_makendx/gmx_makendx/2022+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "gmx_makendx",
+    "versions": [
+      "2022+galaxy0",
+      "2021.3+galaxy0"
+    ]
+  },
+  "chemteam/gmx_merge_topology_files": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_merge_topology_files/gmx_merge_topology_files/3.4.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "gmx_merge_topology_files",
+    "versions": [
+      "3.4.3+galaxy0"
+    ]
+  },
+  "chemteam/gmx_setup": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_setup/gmx_setup/2021.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "gmx_setup",
+    "versions": [
+      "2021.3+galaxy0"
+    ]
+  },
+  "chemteam/gmx_sim": {
+    "count": 54,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_sim/gmx_sim/2022+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "gmx_sim",
+    "versions": [
+      "2022+galaxy0",
+      "2021.3+galaxy2"
+    ]
+  },
+  "chemteam/gmx_solvate": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_solvate/gmx_solvate/2022+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "gmx_solvate",
+    "versions": [
+      "2021.3+galaxy1",
+      "2022+galaxy0",
+      "2021.3+galaxy0"
+    ]
+  },
+  "chemteam/md_converter": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/md_converter/md_converter/1.9.6+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "md_converter",
+    "versions": [
+      "1.9.6+galaxy0"
+    ]
+  },
+  "chemteam/mmpbsa_mmgbsa": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/mmpbsa_mmgbsa/mmpbsa_mmgbsa/21.10+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "mmpbsa_mmgbsa",
+    "versions": [
+      "21.10+galaxy0"
+    ]
+  },
+  "chemteam/parmconv": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/chemteam/parmconv/parmconv/21.10+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "chemteam",
+    "source": "toolshed",
+    "tool_name": "parmconv",
+    "versions": [
+      "21.10+galaxy0"
+    ]
+  },
+  "clustalomega/Repository_Actions_Clustal_Omega": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/clustalomega/clustalomega/Repository_Actions_Clustal_Omega",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "clustalomega",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Clustal_Omega",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "cole_easson/Repository_Actions_velveth": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/cole_easson/assembly/Repository_Actions_velveth",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "cole_easson",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_velveth",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "crs4/gffread": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/crs4/gffread/gffread/2.2.1+galaxy0",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "crs4",
+    "source": "toolshed",
+    "tool_name": "gffread",
+    "versions": [
+      "2.2.1+galaxy0"
+    ]
+  },
+  "crs4/prokka": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.5+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "crs4",
+    "source": "toolshed",
+    "tool_name": "prokka",
+    "versions": [
+      "1.14.5+galaxy0",
+      "1.14.6+galaxy1"
+    ]
+  },
+  "crs4/taxonomy_krona_chart": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/crs4/taxonomy_krona_chart/taxonomy_krona_chart/2.7.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "crs4",
+    "source": "toolshed",
+    "tool_name": "taxonomy_krona_chart",
+    "versions": [
+      "2.6.1.1",
+      "2.7.1+galaxy0"
+    ]
+  },
+  "csbl/repeatmodeler": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/csbl/repeatmodeler/repeatmodeler/2.0.4+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "csbl",
+    "source": "toolshed",
+    "tool_name": "repeatmodeler",
+    "versions": [
+      "2.0.4+galaxy1"
+    ]
+  },
+  "custom/ToolOutput": {
+    "count": 1,
+    "full_id": "ToolOutput",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "ToolOutput",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/angsd_contamination": {
+    "count": 1,
+    "full_id": "angsd_contamination",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "angsd_contamination",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/angsd_docounts": {
+    "count": 1,
+    "full_id": "angsd_docounts",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "angsd_docounts",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/bwa_mem": {
+    "count": 1,
+    "full_id": "bwa_mem",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "bwa_mem",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/bwamem2_mem": {
+    "count": 1,
+    "full_id": "bwamem2_mem",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "bwamem2_mem",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/deacon_filter": {
+    "count": 1,
+    "full_id": "deacon_filter",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "deacon_filter",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/deacon_index": {
+    "count": 1,
+    "full_id": "deacon_index",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "deacon_index",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/dragmap_align": {
+    "count": 1,
+    "full_id": "dragmap_align",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "dragmap_align",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/ebi-gxa_decoupler_pathway_inference_Decoupler_Pathway_Inference_1.4.0+galaxy3": {
+    "count": 1,
+    "full_id": "ebi-gxa_decoupler_pathway_inference_Decoupler_Pathway_Inference_1.4.0+galaxy3",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "ebi-gxa_decoupler_pathway_inference_Decoupler_Pathway_Inference_1.4.0+galaxy3",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/ensemblvep_filtervep": {
+    "count": 1,
+    "full_id": "ensemblvep_filtervep",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "ensemblvep_filtervep",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/ensemblvep_vep": {
+    "count": 2,
+    "full_id": "ensemblvep_vep",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "ensemblvep_vep",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/expression_tools": {
+    "count": 4,
+    "full_id": "expression_tools",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "expression_tools",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/mirtop_counts": {
+    "count": 1,
+    "full_id": "mirtop_counts",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "mirtop_counts",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/mirtop_export": {
+    "count": 1,
+    "full_id": "mirtop_export",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "mirtop_export",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/mirtop_gff": {
+    "count": 1,
+    "full_id": "mirtop_gff",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "mirtop_gff",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/mirtop_stats": {
+    "count": 1,
+    "full_id": "mirtop_stats",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "mirtop_stats",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/ngscheckmate_fastq": {
+    "count": 1,
+    "full_id": "ngscheckmate_fastq",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "ngscheckmate_fastq",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/ngscheckmate_vafncm": {
+    "count": 1,
+    "full_id": "ngscheckmate_vafncm",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "ngscheckmate_vafncm",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/quantmsutils_diann2mztab": {
+    "count": 1,
+    "full_id": "quantmsutils_diann2mztab",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "quantmsutils_diann2mztab",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/quantmsutils_dianncfg": {
+    "count": 1,
+    "full_id": "quantmsutils_dianncfg",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "quantmsutils_dianncfg",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/quantmsutils_mzmlstatistics": {
+    "count": 1,
+    "full_id": "quantmsutils_mzmlstatistics",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "quantmsutils_mzmlstatistics",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/rastair_call": {
+    "count": 1,
+    "full_id": "rastair_call",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "rastair_call",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/rastair_mbias": {
+    "count": 1,
+    "full_id": "rastair_mbias",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "rastair_mbias",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/rastair_mbiasparser": {
+    "count": 1,
+    "full_id": "rastair_mbiasparser",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "rastair_mbiasparser",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/rastair_methylkit": {
+    "count": 1,
+    "full_id": "rastair_methylkit",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "rastair_methylkit",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/somalier_extract": {
+    "count": 1,
+    "full_id": "somalier_extract",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "somalier_extract",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/somalier_relate": {
+    "count": 1,
+    "full_id": "somalier_relate",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "somalier_relate",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/umitools_extract": {
+    "count": 1,
+    "full_id": "umitools_extract",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "umitools_extract",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/vizgenpostprocessing_compiletilesegmentation": {
+    "count": 1,
+    "full_id": "vizgenpostprocessing_compiletilesegmentation",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "vizgenpostprocessing_compiletilesegmentation",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/vizgenpostprocessing_preparesegmentation": {
+    "count": 1,
+    "full_id": "vizgenpostprocessing_preparesegmentation",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "vizgenpostprocessing_preparesegmentation",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/vizgenpostprocessing_runsegmentationontile": {
+    "count": 1,
+    "full_id": "vizgenpostprocessing_runsegmentationontile",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "vizgenpostprocessing_runsegmentationontile",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/wc_gnu": {
+    "count": 201,
+    "full_id": "wc_gnu",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "wc_gnu",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "custom/weiwei12456_make_phyloseq_makephyloseqfull_1.0": {
+    "count": 4,
+    "full_id": "weiwei12456_make_phyloseq_makephyloseqfull_1.0",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "unknown",
+    "source": "custom",
+    "tool_name": "weiwei12456_make_phyloseq_makephyloseqfull_1.0",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "devteam/Add_a_column1": {
+    "count": 951,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "Add_a_column1",
+    "versions": [
+      "2.1",
+      "2.0",
+      "1.5",
+      "1.6"
+    ]
+  },
+  "devteam/EMBOSS: maskseq51": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/emboss_5/EMBOSS: maskseq51/5.0.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "EMBOSS: maskseq51",
+    "versions": [
+      "5.0.0"
+    ]
+  },
+  "devteam/EMBOSS: seqret84": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/emboss_5/EMBOSS: seqret84/5.0.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "EMBOSS: seqret84",
+    "versions": [
+      "5.0.0"
+    ]
+  },
+  "devteam/EMBOSS: transeq101": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/emboss_5/EMBOSS: transeq101/5.0.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "EMBOSS: transeq101",
+    "versions": [
+      "5.0.0"
+    ]
+  },
+  "devteam/Repository_Actions_Bowtie2": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/Repository_Actions_Bowtie2",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Bowtie2",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "devteam/Repository_Actions_FastQC": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/Repository_Actions_FastQC",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_FastQC",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "devteam/Repository_Actions_Merge": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/Repository_Actions_Merge",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Merge",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "devteam/addValue": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/add_value/addValue/1.0.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "addValue",
+    "versions": [
+      "1.0.1"
+    ]
+  },
+  "devteam/bamFilter": {
+    "count": 273,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/bamtools_filter/bamFilter/2.5.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "bamFilter",
+    "versions": [
+      "2.5.1+galaxy0",
+      "2.5.2+galaxy1",
+      "2.5.2+galaxy2"
+    ]
+  },
+  "devteam/bamleftalign": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/freebayes/bamleftalign/1.3.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "bamleftalign",
+    "versions": [
+      "1.3.1"
+    ]
+  },
+  "devteam/bowtie2": {
+    "count": 969,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "bowtie2",
+    "versions": [
+      "2.5.3+galaxy1",
+      "2.5.0+galaxy0",
+      "2.5.3+galaxy0",
+      "2.4.5+galaxy1",
+      "2.3.4.2"
+    ]
+  },
+  "devteam/bwa": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/bwa/bwa/0.7.19",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "bwa",
+    "versions": [
+      "0.7.19"
+    ]
+  },
+  "devteam/bwa_index": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/bwa_index/bwa_index",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "bwa_index",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "devteam/bwa_mem": {
+    "count": 89,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/bwa_mem/bwa_mem",
+    "in_iwc": true,
+    "in_nfcore": true,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "bwa_mem",
+    "versions": [
+      "0.7.17.2",
+      "0.7.18",
+      "0.7.19",
+      "0.7.17.1",
+      "unknown"
+    ]
+  },
+  "devteam/bwamem2_index": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/bwamem2/bwamem2_index",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "bwamem2_index",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "devteam/clustalw": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/clustalw/clustalw/2.1+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "clustalw",
+    "versions": [
+      "2.1+galaxy1"
+    ]
+  },
+  "devteam/cshl_fasta_formatter": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_formatter/cshl_fasta_formatter/1.0.1+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "cshl_fasta_formatter",
+    "versions": [
+      "1.0.1+galaxy2"
+    ]
+  },
+  "devteam/cshl_fastx_quality_statistics": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastx_quality_statistics/cshl_fastx_quality_statistics/1.0.1+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "cshl_fastx_quality_statistics",
+    "versions": [
+      "1.0.1+galaxy2"
+    ]
+  },
+  "devteam/cshl_fastx_reverse_complement": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastx_reverse_complement/cshl_fastx_reverse_complement/1.0.2+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "cshl_fastx_reverse_complement",
+    "versions": [
+      "1.0.2+galaxy2"
+    ]
+  },
+  "devteam/cufflinks": {
+    "count": 72,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/cufflinks/cufflinks/2.2.1.3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "cufflinks",
+    "versions": [
+      "2.2.1.4",
+      "2.2.1.3"
+    ]
+  },
+  "devteam/fasta2tab": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_to_tabular/fasta2tab/1.1.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "fasta2tab",
+    "versions": [
+      "1.1.0",
+      "1.1.1"
+    ]
+  },
+  "devteam/fasta_compute_length": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_compute_length/fasta_compute_length/1.0.3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "fasta_compute_length",
+    "versions": [
+      "1.0.4",
+      "1.0.3"
+    ]
+  },
+  "devteam/fastq_filter": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_filter/fastq_filter/1.1.5+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "fastq_filter",
+    "versions": [
+      "1.1.5+galaxy2"
+    ]
+  },
+  "devteam/fastq_paired_end_interlacer": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_paired_end_interlacer/fastq_paired_end_interlacer/1.2.0.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "fastq_paired_end_interlacer",
+    "versions": [
+      "1.2.0.1+galaxy0"
+    ]
+  },
+  "devteam/fastq_to_fasta_python": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqtofasta/fastq_to_fasta_python/1.1.5+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "fastq_to_fasta_python",
+    "versions": [
+      "1.1.5+galaxy2"
+    ]
+  },
+  "devteam/fastqc": {
+    "count": 144,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "fastqc",
+    "versions": [
+      "0.74+galaxy0",
+      "0.74+galaxy1",
+      "0.73+galaxy0"
+    ]
+  },
+  "devteam/freebayes": {
+    "count": 13,
+    "full_id": "devteam_freebayes_FreeBayes_1.3.10+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": true,
+    "owner": "devteam",
+    "source": "custom",
+    "tool_name": "devteam_freebayes",
+    "versions": [
+      "1.3.9+galaxy1",
+      "1.3.9+galaxy0",
+      "FreeBayes_1.3.10+galaxy1"
+    ]
+  },
+  "devteam/gffread": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/gffread/gffread/2.2.1.4+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "gffread",
+    "versions": [
+      "2.2.1.4+galaxy0"
+    ]
+  },
+  "devteam/gops_concat_1": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/concat/gops_concat_1/1.0.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "gops_concat_1",
+    "versions": [
+      "1.0.1"
+    ]
+  },
+  "devteam/gops_intersect_1": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/intersect/gops_intersect_1/1.0.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "gops_intersect_1",
+    "versions": [
+      "1.0.0"
+    ]
+  },
+  "devteam/gops_merge_1": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/merge/gops_merge_1/1.0.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "gops_merge_1",
+    "versions": [
+      "1.0.0"
+    ]
+  },
+  "devteam/gops_subtract_1": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/subtract/gops_subtract_1/1.0.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "gops_subtract_1",
+    "versions": [
+      "1.0.0"
+    ]
+  },
+  "devteam/ncbi_blastn_wrapper": {
+    "count": 39,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastn_wrapper/2.16.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "ncbi_blastn_wrapper",
+    "versions": [
+      "2.14.1+galaxy2",
+      "2.16.0+galaxy0",
+      "2.14.1+galaxy0",
+      "2.10.1+galaxy2",
+      "2.14.1+galaxy1"
+    ]
+  },
+  "devteam/ncbi_blastp_wrapper": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastp_wrapper/2.16.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "ncbi_blastp_wrapper",
+    "versions": [
+      "2.16.0+galaxy0"
+    ]
+  },
+  "devteam/ncbi_dustmasker_wrapper": {
+    "count": 36,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_dustmasker_wrapper/2.10.1+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "ncbi_dustmasker_wrapper",
+    "versions": [
+      "2.14.1+galaxy2",
+      "2.16.0+galaxy0",
+      "2.14.1+galaxy0",
+      "2.10.1+galaxy2",
+      "2.14.1+galaxy1"
+    ]
+  },
+  "devteam/picard_BedToIntervalList": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_BedToIntervalList/3.1.1.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "picard_BedToIntervalList",
+    "versions": [
+      "3.1.1.0"
+    ]
+  },
+  "devteam/picard_CASM": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CASM/2.18.2.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "picard_CASM",
+    "versions": [
+      "2.18.2.1"
+    ]
+  },
+  "devteam/picard_CollectGcBiasMetrics": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CollectGcBiasMetrics/2.18.2.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "picard_CollectGcBiasMetrics",
+    "versions": [
+      "2.18.2.1"
+    ]
+  },
+  "devteam/picard_CollectHsMetrics": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CollectHsMetrics/3.1.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "picard_CollectHsMetrics",
+    "versions": [
+      "3.1.1"
+    ]
+  },
+  "devteam/picard_CollectInsertSizeMetrics": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CollectInsertSizeMetrics/2.18.2.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "picard_CollectInsertSizeMetrics",
+    "versions": [
+      "2.18.2.1"
+    ]
+  },
+  "devteam/picard_MarkDuplicates": {
+    "count": 519,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MarkDuplicates/3.1.1.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "picard_MarkDuplicates",
+    "versions": [
+      "2.18.2.4",
+      "2.18.2.3",
+      "3.1.1.0",
+      "2.18.2.2"
+    ]
+  },
+  "devteam/picard_MarkDuplicatesWithMateCigar": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MarkDuplicatesWithMateCigar/2.18.2.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "picard_MarkDuplicatesWithMateCigar",
+    "versions": [
+      "2.18.2.2"
+    ]
+  },
+  "devteam/picard_MergeSamFiles": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MergeSamFiles/3.1.1.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "picard_MergeSamFiles",
+    "versions": [
+      "3.1.1.0"
+    ]
+  },
+  "devteam/picard_SortSam": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_SortSam/3.1.1.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "picard_SortSam",
+    "versions": [
+      "3.1.1.0"
+    ]
+  },
+  "devteam/samtool_filter2": {
+    "count": 705,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtool_filter2/samtool_filter2/1.8+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "samtool_filter2",
+    "versions": [
+      "1.8+galaxy1"
+    ]
+  },
+  "devteam/samtools_flagstat": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_flagstat/samtools_flagstat/2.0.5",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "samtools_flagstat",
+    "versions": [
+      "2.0.5"
+    ]
+  },
+  "devteam/samtools_idxstats": {
+    "count": 249,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_idxstats/samtools_idxstats/2.0.4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "samtools_idxstats",
+    "versions": [
+      "2.0.4",
+      "2.0.5"
+    ]
+  },
+  "devteam/samtools_index": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_index/samtools_index",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "samtools_index",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "devteam/samtools_sort": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_sort/samtools_sort/2.0.5",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "samtools_sort",
+    "versions": [
+      "2.0.4",
+      "2.0.5"
+    ]
+  },
+  "devteam/samtools_stats": {
+    "count": 117,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_stats/samtools_stats/2.0.4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "samtools_stats",
+    "versions": [
+      "2.0.2+galaxy2",
+      "2.0.4",
+      "2.0.5",
+      "2.0.3"
+    ]
+  },
+  "devteam/tab2fasta": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/tabular_to_fasta/tab2fasta/1.1.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "tab2fasta",
+    "versions": [
+      "1.1.1"
+    ]
+  },
+  "devteam/tabular_to_csv": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/tabular_to_csv/tabular_to_csv/1.1.0",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "tabular_to_csv",
+    "versions": [
+      "1.1.0"
+    ]
+  },
+  "devteam/vcffilter2": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/vcffilter/vcffilter2/1.0.0_rc3+galaxy3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "vcffilter2",
+    "versions": [
+      "1.0.0_rc3+galaxy3"
+    ]
+  },
+  "devteam/vcfvcfintersect": {
+    "count": 45,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/devteam/vcfvcfintersect/vcfvcfintersect/1.0.0_rc3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "devteam",
+    "source": "toolshed",
+    "tool_name": "vcfvcfintersect",
+    "versions": [
+      "1.0.0_rc3+galaxy0"
+    ]
+  },
+  "dfornika/Repository_Actions_Kraken2": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/dfornika/data_manager_build_kraken2_database/Repository_Actions_Kraken2",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "dfornika",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Kraken2",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "ebi-gxa/decoupler_pseudobulk": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/ebi-gxa/decoupler_pseudobulk/decoupler_pseudobulk/1.4.0+galaxy8",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "ebi-gxa",
+    "source": "toolshed",
+    "tool_name": "decoupler_pseudobulk",
+    "versions": [
+      "1.4.0+galaxy8"
+    ]
+  },
+  "edward-kirton/Repository_Actions_hmmpress": {
+    "count": 10,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/edward-kirton/hmmer/Repository_Actions_hmmpress",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "edward-kirton",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_hmmpress",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "ethevenot/Multivariate": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/ethevenot/multivariate/Multivariate/2.3.10",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "ethevenot",
+    "source": "toolshed",
+    "tool_name": "Multivariate",
+    "versions": [
+      "2.3.10"
+    ]
+  },
+  "ethevenot/checkFormat": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/ethevenot/checkformat/checkFormat/3.0.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "ethevenot",
+    "source": "toolshed",
+    "tool_name": "checkFormat",
+    "versions": [
+      "3.0.0"
+    ]
+  },
+  "galaxy-australia/tidk_explore": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxy-australia/tidk/tidk_explore",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy-australia",
+    "source": "toolshed",
+    "tool_name": "tidk_explore",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy-australia/tidk_plot": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxy-australia/tidk/tidk_plot",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy-australia",
+    "source": "toolshed",
+    "tool_name": "tidk_plot",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy-australia/tidk_search": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxy-australia/tidk/tidk_search",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy-australia",
+    "source": "toolshed",
+    "tool_name": "tidk_search",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy-iuc/collection_column_join": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxy-iuc/collection_column_join/collection_column_join",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy-iuc",
+    "source": "toolshed",
+    "tool_name": "collection_column_join",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy-iuc/join1": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxy-iuc/join/join1",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy-iuc",
+    "source": "toolshed",
+    "tool_name": "join1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/CONVERTER_fasta_to_fai": {
+    "count": 3,
+    "full_id": "CONVERTER_fasta_to_fai",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "CONVERTER_fasta_to_fai",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/CONVERTER_gz_to_uncompressed": {
+    "count": 24,
+    "full_id": "CONVERTER_gz_to_uncompressed",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "CONVERTER_gz_to_uncompressed",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/CONVERTER_uncompressed_to_gz": {
+    "count": 12,
+    "full_id": "CONVERTER_uncompressed_to_gz",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "CONVERTER_uncompressed_to_gz",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/Convert characters1": {
+    "count": 198,
+    "full_id": "Convert characters1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "Convert characters1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/Count1": {
+    "count": 18,
+    "full_id": "Count1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "Count1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/Cut1": {
+    "count": 1569,
+    "full_id": "Cut1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "Cut1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/Filter1": {
+    "count": 643,
+    "full_id": "Filter1",
+    "in_iwc": true,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "Filter1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/Grep1": {
+    "count": 66,
+    "full_id": "Grep1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "Grep1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/Grouping1": {
+    "count": 30,
+    "full_id": "Grouping1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "Grouping1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/Paste1": {
+    "count": 45,
+    "full_id": "Paste1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "Paste1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/Remove beginning1": {
+    "count": 75,
+    "full_id": "Remove beginning1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "Remove beginning1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/Show beginning1": {
+    "count": 6,
+    "full_id": "Show beginning1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "Show beginning1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/Summary_Statistics1": {
+    "count": 12,
+    "full_id": "Summary_Statistics1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "Summary_Statistics1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__APPLY_RULES__": {
+    "count": 666,
+    "full_id": "__APPLY_RULES__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__APPLY_RULES__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__BUILD_LIST__": {
+    "count": 27,
+    "full_id": "__BUILD_LIST__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__BUILD_LIST__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__DUPLICATE_FILE_TO_COLLECTION__": {
+    "count": 24,
+    "full_id": "__DUPLICATE_FILE_TO_COLLECTION__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__DUPLICATE_FILE_TO_COLLECTION__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__EXTRACT_DATASET__": {
+    "count": 1671,
+    "full_id": "__EXTRACT_DATASET__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__EXTRACT_DATASET__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__FILTER_EMPTY_DATASETS__": {
+    "count": 84,
+    "full_id": "__FILTER_EMPTY_DATASETS__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__FILTER_EMPTY_DATASETS__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__FILTER_FAILED_DATASETS__": {
+    "count": 45,
+    "full_id": "__FILTER_FAILED_DATASETS__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__FILTER_FAILED_DATASETS__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__FILTER_FROM_FILE__": {
+    "count": 12,
+    "full_id": "__FILTER_FROM_FILE__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__FILTER_FROM_FILE__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__FLATTEN__": {
+    "count": 90,
+    "full_id": "__FLATTEN__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__FLATTEN__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__HARMONIZELISTS__": {
+    "count": 3,
+    "full_id": "__HARMONIZELISTS__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__HARMONIZELISTS__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__MERGE_COLLECTION__": {
+    "count": 9,
+    "full_id": "__MERGE_COLLECTION__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__MERGE_COLLECTION__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__RELABEL_FROM_FILE__": {
+    "count": 132,
+    "full_id": "__RELABEL_FROM_FILE__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__RELABEL_FROM_FILE__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__SORTLIST__": {
+    "count": 63,
+    "full_id": "__SORTLIST__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__SORTLIST__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__UNZIP_COLLECTION__": {
+    "count": 48,
+    "full_id": "__UNZIP_COLLECTION__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__UNZIP_COLLECTION__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/__ZIP_COLLECTION__": {
+    "count": 18,
+    "full_id": "__ZIP_COLLECTION__",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "__ZIP_COLLECTION__",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/cat1": {
+    "count": 308,
+    "full_id": "cat1",
+    "in_iwc": true,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "cat1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/csv_to_tabular": {
+    "count": 3,
+    "full_id": "csv_to_tabular",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "csv_to_tabular",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_Merge_Collections": {
+    "count": 1,
+    "full_id": "galaxy_Merge_Collections",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_Merge_Collections",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_conditional_check_conda": {
+    "count": 1,
+    "full_id": "galaxy_conditional_check_conda",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_conditional_check_conda",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_conditional_dump_parameters": {
+    "count": 1,
+    "full_id": "galaxy_conditional_dump_parameters",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_conditional_dump_parameters",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_conditional_print_version": {
+    "count": 1,
+    "full_id": "galaxy_conditional_print_version",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_conditional_print_version",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_get_references_file": {
+    "count": 1,
+    "full_id": "galaxy_get_references_file",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_get_references_file",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_get_references_value": {
+    "count": 1,
+    "full_id": "galaxy_get_references_value",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_get_references_value",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_merge_collections": {
+    "count": 4,
+    "full_id": "galaxy_merge_collections",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_merge_collections",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_tool_collect": {
+    "count": 1,
+    "full_id": "galaxy_tool_collect",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_tool_collect",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_tool_combine": {
+    "count": 1,
+    "full_id": "galaxy_tool_combine",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_tool_combine",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_tool_id_placeholder_for_transpose": {
+    "count": 1,
+    "full_id": "galaxy_tool_id_placeholder_for_transpose",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_tool_id_placeholder_for_transpose",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/galaxy_workflow_output": {
+    "count": 1,
+    "full_id": "galaxy_workflow_output",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "galaxy",
+    "source": "galaxy",
+    "tool_name": "galaxy_workflow_output",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/gene2exon1": {
+    "count": 3,
+    "full_id": "gene2exon1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "gene2exon1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/join1": {
+    "count": 219,
+    "full_id": "join1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "join1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/param_value_from_file": {
+    "count": 2040,
+    "full_id": "param_value_from_file",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "param_value_from_file",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/pick_value": {
+    "count": 15,
+    "full_id": "pick_value",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "pick_value",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/random_lines1": {
+    "count": 45,
+    "full_id": "random_lines1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "random_lines1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/sort1": {
+    "count": 24,
+    "full_id": "sort1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "sort1",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxy/wig_to_bigWig": {
+    "count": 1356,
+    "full_id": "wig_to_bigWig",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxy",
+    "source": "builtin",
+    "tool_name": "wig_to_bigWig",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "galaxyp/DecoyDatabase": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_decoydatabase/DecoyDatabase/3.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "DecoyDatabase",
+    "versions": [
+      "2.8+galaxy0",
+      "3.1+galaxy0"
+    ]
+  },
+  "galaxyp/FalseDiscoveryRate": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_falsediscoveryrate/FalseDiscoveryRate/3.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "FalseDiscoveryRate",
+    "versions": [
+      "2.8+galaxy0",
+      "3.1+galaxy0"
+    ]
+  },
+  "galaxyp/FeatureFinderMultiplex": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_featurefindermultiplex/FeatureFinderMultiplex/3.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "FeatureFinderMultiplex",
+    "versions": [
+      "2.8+galaxy0",
+      "3.1+galaxy0"
+    ]
+  },
+  "galaxyp/IDMapper": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_idmapper/IDMapper/3.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "IDMapper",
+    "versions": [
+      "2.8+galaxy0",
+      "3.1+galaxy0"
+    ]
+  },
+  "galaxyp/MSGFPlusAdapter": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_msgfplusadapter/MSGFPlusAdapter/3.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "MSGFPlusAdapter",
+    "versions": [
+      "2.8+galaxy0",
+      "3.1+galaxy0"
+    ]
+  },
+  "galaxyp/MetaProSIP": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_metaprosip/MetaProSIP/3.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "MetaProSIP",
+    "versions": [
+      "2.8+galaxy0",
+      "3.1+galaxy0"
+    ]
+  },
+  "galaxyp/PeptideIndexer": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_peptideindexer/PeptideIndexer/3.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "PeptideIndexer",
+    "versions": [
+      "2.8+galaxy0",
+      "3.1+galaxy0"
+    ]
+  },
+  "galaxyp/dbbuilder": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/dbbuilder/dbbuilder/0.3.4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "dbbuilder",
+    "versions": [
+      "0.3.4"
+    ]
+  },
+  "galaxyp/eggnog_mapper": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/eggnog_mapper/eggnog_mapper/2.1.8+galaxy4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "eggnog_mapper",
+    "versions": [
+      "2.1.8+galaxy4"
+    ]
+  },
+  "galaxyp/fasta_cli": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/peptideshaker/fasta_cli/4.0.41+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "fasta_cli",
+    "versions": [
+      "4.0.41+galaxy1"
+    ]
+  },
+  "galaxyp/fasta_merge_files_and_filter_unique_sequences": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/fasta_merge_files_and_filter_unique_sequences/fasta_merge_files_and_filter_unique_sequences/1.2.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "fasta_merge_files_and_filter_unique_sequences",
+    "versions": [
+      "1.2.0"
+    ]
+  },
+  "galaxyp/ident_params": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/peptideshaker/ident_params/4.0.41+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "ident_params",
+    "versions": [
+      "4.0.41+galaxy1"
+    ]
+  },
+  "galaxyp/maxquant": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/maxquant/maxquant/2.0.3.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "maxquant",
+    "versions": [
+      "2.0.3.0+galaxy0"
+    ]
+  },
+  "galaxyp/metanovo": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/metanovo/metanovo/1.9.4+galaxy4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "metanovo",
+    "versions": [
+      "1.9.4+galaxy4"
+    ]
+  },
+  "galaxyp/msconvert": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/msconvert/msconvert/3.0.20287.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "msconvert",
+    "versions": [
+      "3.0.20287.2"
+    ]
+  },
+  "galaxyp/msstatstmt": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/msstatstmt/msstatstmt/2.0.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "msstatstmt",
+    "versions": [
+      "2.0.0+galaxy1"
+    ]
+  },
+  "galaxyp/pepquery2": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/pepquery2/pepquery2/2.0.2+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "pepquery2",
+    "versions": [
+      "2.0.2+galaxy2"
+    ]
+  },
+  "galaxyp/peptide_shaker": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/peptideshaker/peptide_shaker/2.0.33+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "peptide_shaker",
+    "versions": [
+      "2.0.33+galaxy1"
+    ]
+  },
+  "galaxyp/regex1": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/regex_find_replace/regex1/1.0.3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "regex1",
+    "versions": [
+      "1.0.3"
+    ]
+  },
+  "galaxyp/regexColumn1": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/regex_find_replace/regexColumn1/1.0.3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "regexColumn1",
+    "versions": [
+      "1.0.3"
+    ]
+  },
+  "galaxyp/search_gui": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/peptideshaker/search_gui/4.0.41+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "search_gui",
+    "versions": [
+      "4.0.41+galaxy1"
+    ]
+  },
+  "galaxyp/unipept": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/unipept/unipept/4.5.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "unipept",
+    "versions": [
+      "4.5.1"
+    ]
+  },
+  "galaxyp/uniprotxml_downloader": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/uniprotxml_downloader/uniprotxml_downloader/2.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "galaxyp",
+    "source": "toolshed",
+    "tool_name": "uniprotxml_downloader",
+    "versions": [
+      "2.4.0"
+    ]
+  },
+  "genouest/helixer": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/genouest/helixer/helixer/0.3.3+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "genouest",
+    "source": "toolshed",
+    "tool_name": "helixer",
+    "versions": [
+      "0.3.3+galaxy1"
+    ]
+  },
+  "greg/Repository_Actions_Convert_Affymetrix": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/greg/affy2vcf2/Repository_Actions_Convert_Affymetrix",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "greg",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Convert_Affymetrix",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "gregory-minevich/Repository_Actions_bcftools_view": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/gregory-minevich/bcftools_view/Repository_Actions_bcftools_view",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "gregory-minevich",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_bcftools_view",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "imgteam/Repository_Actions_Unzip": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/imgteam/unzip/Repository_Actions_Unzip",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "imgteam",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Unzip",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "imgteam/ip_binary_to_labelimage": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/imgteam/binary2labelimage/ip_binary_to_labelimage/0.5+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "imgteam",
+    "source": "toolshed",
+    "tool_name": "ip_binary_to_labelimage",
+    "versions": [
+      "0.5+galaxy0"
+    ]
+  },
+  "imgteam/ip_convertimage": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/imgteam/bfconvert/ip_convertimage/6.7.0+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "imgteam",
+    "source": "toolshed",
+    "tool_name": "ip_convertimage",
+    "versions": [
+      "6.7.0+galaxy3",
+      "6.7.0+galaxy2"
+    ]
+  },
+  "imgteam/ip_count_objects": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/imgteam/count_objects/ip_count_objects/0.0.5-2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "imgteam",
+    "source": "toolshed",
+    "tool_name": "ip_count_objects",
+    "versions": [
+      "0.0.5-2"
+    ]
+  },
+  "imgteam/ip_filter_standard": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_simple_filter/ip_filter_standard/0.0.3-3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "imgteam",
+    "source": "toolshed",
+    "tool_name": "ip_filter_standard",
+    "versions": [
+      "0.0.3-3",
+      "1.12.0+galaxy1"
+    ]
+  },
+  "imgteam/ip_histogram_equalization": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_histogram_equalization/ip_histogram_equalization/0.0.1-2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "imgteam",
+    "source": "toolshed",
+    "tool_name": "ip_histogram_equalization",
+    "versions": [
+      "0.0.1-2",
+      "0.18.1+galaxy0"
+    ]
+  },
+  "imgteam/ip_overlay_images": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/imgteam/overlay_images/ip_overlay_images/0.0.4+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "imgteam",
+    "source": "toolshed",
+    "tool_name": "ip_overlay_images",
+    "versions": [
+      "0.0.4+galaxy4",
+      "0.0.4+galaxy0"
+    ]
+  },
+  "imgteam/ip_threshold": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_auto_threshold/ip_threshold/0.0.5-2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "imgteam",
+    "source": "toolshed",
+    "tool_name": "ip_threshold",
+    "versions": [
+      "0.0.5-2",
+      "0.18.1+galaxy3"
+    ]
+  },
+  "iuc/Repository_Actions_BWA-MEM2_index_builder": {
+    "count": 5,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_bwa_mem2_index_builder/Repository_Actions_BWA-MEM2_index_builder",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_BWA-MEM2_index_builder",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_Bracken": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bracken/Repository_Actions_Bracken",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Bracken",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_CONCOCT": {
+    "count": 5,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/concoct/Repository_Actions_CONCOCT",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_CONCOCT",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_DESeq2": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/Repository_Actions_DESeq2",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_DESeq2",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_Download_MMseqs2_databases": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_mmseqs2_database/Repository_Actions_Download_MMseqs2_databases",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Download_MMseqs2_databases",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_Freyja:_Aggregate_and_visualize": {
+    "count": 4,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/freyja_aggregate_plot/Repository_Actions_Freyja:_Aggregate_and_visualize",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Freyja:_Aggregate_and_visualize",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_HISAT2": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/hisat2/Repository_Actions_HISAT2",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_HISAT2",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_Kallisto": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_kallisto_index_builder/Repository_Actions_Kallisto",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Kallisto",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_MAGeCK_GSEA": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/mageck_gsea/Repository_Actions_MAGeCK_GSEA",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_MAGeCK_GSEA",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_Make_inferences": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/hivclustering/Repository_Actions_Make_inferences",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Make_inferences",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_MetaPhlAn": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/metaphlan/Repository_Actions_MetaPhlAn",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_MetaPhlAn",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_Salmon": {
+    "count": 4,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_salmon_index_builder/Repository_Actions_Salmon",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Salmon",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_anndata2ri": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/anndata2ri/Repository_Actions_anndata2ri",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_anndata2ri",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_bwameth": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwameth/Repository_Actions_bwameth",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_bwameth",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_fastp": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/fastp/Repository_Actions_fastp",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_fastp",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_limma": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/limma_voom/Repository_Actions_limma",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_limma",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_propr": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/propr/Repository_Actions_propr",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_propr",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_umitools_extract": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/umitools_extract/Repository_Actions_umitools_extract",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_umitools_extract",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/Repository_Actions_variancepartition": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/variancepartition/Repository_Actions_variancepartition",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_variancepartition",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/abricate": {
+    "count": 36,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/abricate/abricate/1.0.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "abricate",
+    "versions": [
+      "1.0.1"
+    ]
+  },
+  "iuc/ampvis2_load": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/ampvis2_load/ampvis2_load/2.8.9+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "ampvis2_load",
+    "versions": [
+      "2.8.9+galaxy0"
+    ]
+  },
+  "iuc/amrfinderplus": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/amrfinderplus/amrfinderplus/3.12.8+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "amrfinderplus",
+    "versions": [
+      "3.12.8+galaxy0"
+    ]
+  },
+  "iuc/anndata_import": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/anndata_import/anndata_import/0.10.9+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "anndata_import",
+    "versions": [
+      "0.10.9+galaxy0"
+    ]
+  },
+  "iuc/anndata_inspect": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/anndata_inspect/anndata_inspect/0.10.9+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "anndata_inspect",
+    "versions": [
+      "0.10.9+galaxy0"
+    ]
+  },
+  "iuc/anndata_manipulate": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/anndata_manipulate/anndata_manipulate/0.10.9+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "anndata_manipulate",
+    "versions": [
+      "0.10.9+galaxy0"
+    ]
+  },
+  "iuc/annotatemyids": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/annotatemyids/annotatemyids/3.18.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "annotatemyids",
+    "versions": [
+      "3.18.0+galaxy0"
+    ]
+  },
+  "iuc/bakta": {
+    "count": 39,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bakta/bakta/1.9.4+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bakta",
+    "versions": [
+      "1.9.4+galaxy1",
+      "1.9.4+galaxy0"
+    ]
+  },
+  "iuc/bamtools_split_mapped": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bamtools_split_mapped/bamtools_split_mapped/2.5.2+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bamtools_split_mapped",
+    "versions": [
+      "2.5.2+galaxy2"
+    ]
+  },
+  "iuc/bamtools_split_ref": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bamtools_split_ref/bamtools_split_ref/2.5.2+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bamtools_split_ref",
+    "versions": [
+      "2.5.2+galaxy2"
+    ]
+  },
+  "iuc/bandage_image": {
+    "count": 243,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bandage/bandage_image/0.8.1+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bandage_image",
+    "versions": [
+      "0.8.1+galaxy2",
+      "0.8.1+galaxy4",
+      "2022.09+galaxy4"
+    ]
+  },
+  "iuc/bandage_info": {
+    "count": 36,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bandage/bandage_info/2022.09+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bandage_info",
+    "versions": [
+      "0.8.1+galaxy2",
+      "2022.09+galaxy2"
+    ]
+  },
+  "iuc/baredsc_1d": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_1d/baredsc_1d/1.1.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "baredsc_1d",
+    "versions": [
+      "1.1.2+galaxy1",
+      "1.1.2+galaxy0",
+      "1.1.3+galaxy0"
+    ]
+  },
+  "iuc/baredsc_2d": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_2d/baredsc_2d/1.1.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "baredsc_2d",
+    "versions": [
+      "1.1.2+galaxy1",
+      "1.1.2+galaxy0",
+      "1.1.3+galaxy0"
+    ]
+  },
+  "iuc/baredsc_combine_1d": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_combine_1d/baredsc_combine_1d/1.1.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "baredsc_combine_1d",
+    "versions": [
+      "1.1.2+galaxy1",
+      "1.1.2+galaxy0",
+      "1.1.3+galaxy0"
+    ]
+  },
+  "iuc/baredsc_combine_2d": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_combine_2d/baredsc_combine_2d/1.1.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "baredsc_combine_2d",
+    "versions": [
+      "1.1.2+galaxy1",
+      "1.1.2+galaxy0",
+      "1.1.3+galaxy0"
+    ]
+  },
+  "iuc/bcftools_annotate": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bcftools_annotate/bcftools_annotate/1.10",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bcftools_annotate",
+    "versions": [
+      "1.15.1+galaxy3",
+      "1.10",
+      "1.15.1+galaxy4"
+    ]
+  },
+  "iuc/bcftools_consensus": {
+    "count": 42,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bcftools_consensus/bcftools_consensus/1.15.1+galaxy4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bcftools_consensus",
+    "versions": [
+      "1.15.1+galaxy3",
+      "1.15.1+galaxy4",
+      "1.15.1+galaxy2",
+      "1.10+galaxy1",
+      "1.10"
+    ]
+  },
+  "iuc/bcftools_index": {
+    "count": 4,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bcftools_index/bcftools_index",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bcftools_index",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/bcftools_norm": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bcftools_norm/bcftools_norm/1.15.1+galaxy4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bcftools_norm",
+    "versions": [
+      "1.15.1+galaxy3",
+      "1.15.1+galaxy4"
+    ]
+  },
+  "iuc/bedtools_bamtobed": {
+    "count": 630,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_bamtobed/2.30.0+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bedtools_bamtobed",
+    "versions": [
+      "2.30.0+galaxy2",
+      "2.31.1+galaxy0"
+    ]
+  },
+  "iuc/bedtools_coveragebed": {
+    "count": 243,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_coveragebed/2.30.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bedtools_coveragebed",
+    "versions": [
+      "2.31.1+galaxy0",
+      "2.30.0+galaxy1",
+      "2.30.0"
+    ]
+  },
+  "iuc/bedtools_flankbed": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_flankbed/2.31.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bedtools_flankbed",
+    "versions": [
+      "2.31.1+galaxy0"
+    ]
+  },
+  "iuc/bedtools_genomecoveragebed": {
+    "count": 96,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_genomecoveragebed/2.30.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bedtools_genomecoveragebed",
+    "versions": [
+      "2.29.2",
+      "2.31.1",
+      "2.30.0"
+    ]
+  },
+  "iuc/bedtools_getfastabed": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_getfastabed/2.30.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bedtools_getfastabed",
+    "versions": [
+      "2.31.1+galaxy0",
+      "2.30.0+galaxy1"
+    ]
+  },
+  "iuc/bedtools_intersectbed": {
+    "count": 552,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_intersectbed/2.30.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bedtools_intersectbed",
+    "versions": [
+      "2.31.1+galaxy0",
+      "2.30.0+galaxy1",
+      "2.30.0"
+    ]
+  },
+  "iuc/bedtools_maskfastabed": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_maskfastabed/2.31.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bedtools_maskfastabed",
+    "versions": [
+      "2.31.1"
+    ]
+  },
+  "iuc/bedtools_mergebed": {
+    "count": 243,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_mergebed/2.30.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bedtools_mergebed",
+    "versions": [
+      "2.31.1",
+      "2.30.0"
+    ]
+  },
+  "iuc/bedtools_multiintersectbed": {
+    "count": 144,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_multiintersectbed/2.30.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bedtools_multiintersectbed",
+    "versions": [
+      "2.31.1",
+      "2.30.0"
+    ]
+  },
+  "iuc/bedtools_slopbed": {
+    "count": 246,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_slopbed/2.30.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bedtools_slopbed",
+    "versions": [
+      "2.31.1+galaxy0",
+      "2.30.0+galaxy1"
+    ]
+  },
+  "iuc/bellerophon": {
+    "count": 72,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bellerophon/bellerophon/1.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bellerophon",
+    "versions": [
+      "1.0+galaxy1",
+      "1.0+galaxy0"
+    ]
+  },
+  "iuc/binette": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/binette/binette/1.1.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "binette",
+    "versions": [
+      "1.1.1+galaxy0"
+    ]
+  },
+  "iuc/biom_convert": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/biom_convert/biom_convert/2.1.15+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "biom_convert",
+    "versions": [
+      "2.1.15+galaxy1"
+    ]
+  },
+  "iuc/brew3r_r": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/brew3r_r/brew3r_r/1.0.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "brew3r_r",
+    "versions": [
+      "1.0.2+galaxy0",
+      "1.0.2+galaxy1"
+    ]
+  },
+  "iuc/busco": {
+    "count": 536,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/busco/busco/5.8.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "busco",
+    "versions": [
+      "5.4.6+galaxy0",
+      "5.5.0+galaxy0",
+      "5.8.0+galaxy0",
+      "5.7.1+galaxy0",
+      "5.8.0+galaxy1",
+      "5.3.2+galaxy0"
+    ]
+  },
+  "iuc/bwa_mem": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwa_mem/bwa_mem",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bwa_mem",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/bwa_mem2": {
+    "count": 177,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwa_mem2/bwa_mem2/2.2.1+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bwa_mem2",
+    "versions": [
+      "2.2.1+galaxy3",
+      "2.2.1+galaxy0",
+      "2.2.1+galaxy1",
+      "2.2.1+galaxy4"
+    ]
+  },
+  "iuc/bwamem2_index": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwamem2_index/bwamem2_index",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bwamem2_index",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/bwamem2_mem": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwamem2_mem/bwamem2_mem",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bwamem2_mem",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/bwameth": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwameth/bwameth/0.2.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "bwameth",
+    "versions": [
+      "0.2.3+galaxy0"
+    ]
+  },
+  "iuc/cellbender_removebackground": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/cellbender_removebackground/cellbender_removebackground",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "cellbender_removebackground",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/checkm2": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/checkm2/checkm2/1.0.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "checkm2",
+    "versions": [
+      "1.0.2+galaxy1"
+    ]
+  },
+  "iuc/checkm_analyze": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/checkm_analyze/checkm_analyze/1.2.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "checkm_analyze",
+    "versions": [
+      "1.2.3+galaxy0"
+    ]
+  },
+  "iuc/checkm_taxonomy_wf": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/checkm_taxonomy_wf/checkm_taxonomy_wf/1.2.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "checkm_taxonomy_wf",
+    "versions": [
+      "1.2.3+galaxy0"
+    ]
+  },
+  "iuc/cite_seq_count": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/cite_seq_count/cite_seq_count/1.4.4+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "cite_seq_count",
+    "versions": [
+      "1.4.4+galaxy0"
+    ]
+  },
+  "iuc/clair3": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/clair3/clair3/1.0.10+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "clair3",
+    "versions": [
+      "1.0.8+galaxy1",
+      "1.0.10+galaxy1",
+      "0.1.12+galaxy0"
+    ]
+  },
+  "iuc/collection_column_join": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/collection_column_join/collection_column_join/0.0.3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "collection_column_join",
+    "versions": [
+      "0.0.3"
+    ]
+  },
+  "iuc/collection_element_identifiers": {
+    "count": 48,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/collection_element_identifiers/collection_element_identifiers/0.0.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "collection_element_identifiers",
+    "versions": [
+      "0.0.2"
+    ]
+  },
+  "iuc/column_order_header_sort": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/column_order_header_sort/column_order_header_sort/0.0.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "column_order_header_sort",
+    "versions": [
+      "0.0.1"
+    ]
+  },
+  "iuc/column_remove_by_header": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/column_remove_by_header/column_remove_by_header/1.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "column_remove_by_header",
+    "versions": [
+      "1.0"
+    ]
+  },
+  "iuc/compleasm": {
+    "count": 93,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/compleasm/compleasm/0.2.6+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "compleasm",
+    "versions": [
+      "0.2.6+galaxy2"
+    ]
+  },
+  "iuc/compose_text_param": {
+    "count": 954,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "compose_text_param",
+    "versions": [
+      "0.1.1"
+    ]
+  },
+  "iuc/compress_file": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/compress_file/compress_file/0.1.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "compress_file",
+    "versions": [
+      "0.1.0"
+    ]
+  },
+  "iuc/dada2_assignTaxonomyAddspecies": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_assigntaxonomyaddspecies/dada2_assignTaxonomyAddspecies/1.28+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dada2_assignTaxonomyAddspecies",
+    "versions": [
+      "1.34.0+galaxy0",
+      "1.28+galaxy0",
+      "1.30.0+galaxy0"
+    ]
+  },
+  "iuc/dada2_dada": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_dada/dada2_dada/1.28+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dada2_dada",
+    "versions": [
+      "1.34.0+galaxy0",
+      "1.28+galaxy0",
+      "1.30.0+galaxy0"
+    ]
+  },
+  "iuc/dada2_filterAndTrim": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_filterandtrim/dada2_filterAndTrim/1.28+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dada2_filterAndTrim",
+    "versions": [
+      "1.34.0+galaxy0",
+      "1.28+galaxy0",
+      "1.30.0+galaxy0"
+    ]
+  },
+  "iuc/dada2_learnErrors": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_learnerrors/dada2_learnErrors/1.28+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dada2_learnErrors",
+    "versions": [
+      "1.34.0+galaxy0",
+      "1.28+galaxy0",
+      "1.30.0+galaxy0"
+    ]
+  },
+  "iuc/dada2_makeSequenceTable": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_makesequencetable/dada2_makeSequenceTable/1.28+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dada2_makeSequenceTable",
+    "versions": [
+      "1.34.0+galaxy0",
+      "1.28+galaxy0",
+      "1.30.0+galaxy0"
+    ]
+  },
+  "iuc/dada2_mergePairs": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_mergepairs/dada2_mergePairs/1.28+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dada2_mergePairs",
+    "versions": [
+      "1.34.0+galaxy0",
+      "1.28+galaxy0",
+      "1.30.0+galaxy0"
+    ]
+  },
+  "iuc/dada2_plotQualityProfile": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_plotqualityprofile/dada2_plotQualityProfile/1.28+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dada2_plotQualityProfile",
+    "versions": [
+      "1.34.0+galaxy0",
+      "1.28+galaxy0",
+      "1.30.0+galaxy0"
+    ]
+  },
+  "iuc/dada2_removeBimeraDenovo": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_removebimeradenovo/dada2_removeBimeraDenovo/1.28+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dada2_removeBimeraDenovo",
+    "versions": [
+      "1.34.0+galaxy0",
+      "1.28+galaxy0",
+      "1.30.0+galaxy0"
+    ]
+  },
+  "iuc/dada2_seqCounts": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_seqcounts/dada2_seqCounts/1.28+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dada2_seqCounts",
+    "versions": [
+      "1.34.0+galaxy0",
+      "1.28+galaxy0",
+      "1.30.0+galaxy0"
+    ]
+  },
+  "iuc/datamash_ops": {
+    "count": 207,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/datamash_ops/datamash_ops/1.8+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "datamash_ops",
+    "versions": [
+      "1.1.0",
+      "1.8+galaxy0",
+      "1.1.0+galaxy2"
+    ]
+  },
+  "iuc/deepvariant": {
+    "count": 3,
+    "full_id": "iuc_deepvariant_DeepVariant_1.5.0+galaxy1",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "custom",
+    "tool_name": "iuc_deepvariant",
+    "versions": [
+      "DeepVariant_1.5.0+galaxy1"
+    ]
+  },
+  "iuc/deg_annotate": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/deg_annotate/deg_annotate/1.1.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "deg_annotate",
+    "versions": [
+      "1.1.0"
+    ]
+  },
+  "iuc/deseq2": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/deseq2/2.11.40.8+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "deseq2",
+    "versions": [
+      "2.11.40.7+galaxy1",
+      "2.11.40.8+galaxy0",
+      "2.11.40.7+galaxy2"
+    ]
+  },
+  "iuc/dragmap_hashtable": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dragmap/dragmap_hashtable",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dragmap_hashtable",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/dropletutils": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/dropletutils/dropletutils/1.10.0+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "dropletutils",
+    "versions": [
+      "1.10.0+galaxy2"
+    ]
+  },
+  "iuc/edger": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/edger/edger/3.36.0+galaxy5",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "edger",
+    "versions": [
+      "3.36.0+galaxy5"
+    ]
+  },
+  "iuc/est_abundance": {
+    "count": 30,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/bracken/est_abundance/2.9+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "est_abundance",
+    "versions": [
+      "2.9+galaxy0",
+      "3.0+galaxy0",
+      "3.1+galaxy0"
+    ]
+  },
+  "iuc/fasta-stats": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/fasta_stats/fasta-stats/2.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "fasta-stats",
+    "versions": [
+      "2.0"
+    ]
+  },
+  "iuc/fasterq_dump": {
+    "count": 192,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/sra_tools/fasterq_dump/3.1.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "fasterq_dump",
+    "versions": [
+      "3.1.0+galaxy1",
+      "2.11.0+galaxy0",
+      "3.0.5+galaxy1",
+      "3.0.5+galaxy0",
+      "3.0.10+galaxy0",
+      "3.1.0+galaxy0",
+      "3.1.1+galaxy1",
+      "2.11.0+galaxy1",
+      "3.0.8+galaxy0",
+      "3.0.5+galaxy3",
+      "3.0.8+galaxy1",
+      "3.1.1+galaxy0"
+    ]
+  },
+  "iuc/fastp": {
+    "count": 195,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/fastp/fastp/0.23.4+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "fastp",
+    "versions": [
+      "0.23.4+galaxy0",
+      "1.0.0+galaxy0",
+      "0.24.1+galaxy0",
+      "0.23.4+galaxy1",
+      "0.23.4+galaxy2",
+      "0.24.0+galaxy4",
+      "0.23.2+galaxy0",
+      "0.24.0+galaxy3",
+      "0.26.0+galaxy0",
+      "0.20.1+galaxy0"
+    ]
+  },
+  "iuc/fastq_dl": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/fastq_dl/fastq_dl/3.0.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "fastq_dl",
+    "versions": [
+      "3.0.0+galaxy0"
+    ]
+  },
+  "iuc/fasttree": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/fasttree/fasttree/2.1.10+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "fasttree",
+    "versions": [
+      "2.1.10+galaxy1"
+    ]
+  },
+  "iuc/featurecounts": {
+    "count": 32,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/featurecounts/featurecounts/2.0.8+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "featurecounts",
+    "versions": [
+      "2.0.8+galaxy0",
+      "2.0.3+galaxy2",
+      "2.0.6+galaxy0"
+    ]
+  },
+  "iuc/filter_tabular": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/filter_tabular/filter_tabular/3.3.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "filter_tabular",
+    "versions": [
+      "3.3.0"
+    ]
+  },
+  "iuc/filtlong": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/filtlong/filtlong/0.2.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "filtlong",
+    "versions": [
+      "0.2.0",
+      "0.2.1+galaxy0"
+    ]
+  },
+  "iuc/funannotate_annotate": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/funannotate_annotate/funannotate_annotate/1.8.15+galaxy5",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "funannotate_annotate",
+    "versions": [
+      "1.8.15+galaxy5"
+    ]
+  },
+  "iuc/gatk4_mutect2": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/gatk4_mutect2/gatk4_mutect2/4.1.7.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "gatk4_mutect2",
+    "versions": [
+      "4.1.7.0+galaxy1"
+    ]
+  },
+  "iuc/generateplot": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/busco/generateplot/5.8.0+galaxy1",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "generateplot",
+    "versions": [
+      "5.8.0+galaxy1"
+    ]
+  },
+  "iuc/genomescope": {
+    "count": 87,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/genomescope/genomescope/2.0+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "genomescope",
+    "versions": [
+      "2.0+galaxy2",
+      "2.0+galaxy1",
+      "2.0.1+galaxy0"
+    ]
+  },
+  "iuc/gffcompare": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/gffcompare/gffcompare/0.12.6+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "gffcompare",
+    "versions": [
+      "0.12.6+galaxy0"
+    ]
+  },
+  "iuc/ggplot2_heatmap": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_heatmap/ggplot2_heatmap/3.4.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "ggplot2_heatmap",
+    "versions": [
+      "3.4.0+galaxy0"
+    ]
+  },
+  "iuc/ggplot2_heatmap2": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_heatmap2/ggplot2_heatmap2/3.2.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "ggplot2_heatmap2",
+    "versions": [
+      "3.2.0+galaxy1",
+      "3.1.3.1+galaxy0"
+    ]
+  },
+  "iuc/ggplot2_point": {
+    "count": 210,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_point/ggplot2_point/3.4.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "ggplot2_point",
+    "versions": [
+      "3.5.1+galaxy2",
+      "3.4.0+galaxy1",
+      "3.4.0+galaxy0"
+    ]
+  },
+  "iuc/glimpse2_chunk": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/glimpse2_chunk/glimpse2_chunk",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "glimpse2_chunk",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/glimpse2_ligate": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/glimpse2_ligate/glimpse2_ligate",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "glimpse2_ligate",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/glimpse2_phase": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/glimpse2_phase/glimpse2_phase",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "glimpse2_phase",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/glimpse2_splitreference": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/glimpse2_splitreference/glimpse2_splitreference",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "glimpse2_splitreference",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/glimpse_chunk": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/glimpse_chunk/glimpse_chunk",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "glimpse_chunk",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/glimpse_ligate": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/glimpse_ligate/glimpse_ligate",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "glimpse_ligate",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/glimpse_phase": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/glimpse_phase/glimpse_phase",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "glimpse_phase",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/goseq": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/goseq/goseq/1.50.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "goseq",
+    "versions": [
+      "1.50.0+galaxy0"
+    ]
+  },
+  "iuc/gprofiler2_gost": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/gprofiler2_gost/gprofiler2_gost",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "gprofiler2_gost",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/gprofiler_gost": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/gprofiler_gost/gprofiler_gost/0.1.7+galaxy11",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "gprofiler_gost",
+    "versions": [
+      "0.1.7+galaxy11"
+    ]
+  },
+  "iuc/gtdbtk_classify_wf": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/gtdbtk_classify_wf/gtdbtk_classify_wf/2.4.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "gtdbtk_classify_wf",
+    "versions": [
+      "2.4.0+galaxy1"
+    ]
+  },
+  "iuc/gtftobed12": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/gtftobed12/gtftobed12/357",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "gtftobed12",
+    "versions": [
+      "357"
+    ]
+  },
+  "iuc/hisat2": {
+    "count": 39,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.2.1+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "hisat2",
+    "versions": [
+      "2.2.1+galaxy0",
+      "2.2.1+galaxy1"
+    ]
+  },
+  "iuc/integron_finder": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/integron_finder/integron_finder/2.0.5+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "integron_finder",
+    "versions": [
+      "2.0.5+galaxy0"
+    ]
+  },
+  "iuc/iqtree": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/iqtree/iqtree/2.4.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "iqtree",
+    "versions": [
+      "2.3.3+galaxy0",
+      "2.4.0+galaxy0"
+    ]
+  },
+  "iuc/isescan": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/isescan/isescan/1.7.2.3+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "isescan",
+    "versions": [
+      "1.7.3+galaxy0",
+      "1.7.2.3+galaxy1"
+    ]
+  },
+  "iuc/ivar_consensus": {
+    "count": 27,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/ivar_consensus/ivar_consensus/1.4.2+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "ivar_consensus",
+    "versions": [
+      "1.4.4+galaxy0",
+      "1.3.1+galaxy0",
+      "1.4.3+galaxy0",
+      "1.4.2+galaxy0"
+    ]
+  },
+  "iuc/ivar_removereads": {
+    "count": 27,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/ivar_removereads/ivar_removereads/1.2.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "ivar_removereads",
+    "versions": [
+      "1.4.4+galaxy0",
+      "1.4.2+galaxy0",
+      "1.3.1+galaxy2",
+      "1.3.1+galaxy0",
+      "1.2.2+galaxy1"
+    ]
+  },
+  "iuc/ivar_trim": {
+    "count": 63,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/ivar_trim/ivar_trim/1.4.2+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "ivar_trim",
+    "versions": [
+      "1.4.4+galaxy0",
+      "1.4.2+galaxy0",
+      "1.3.1+galaxy2",
+      "1.3.1+galaxy0",
+      "1.2.2+galaxy1"
+    ]
+  },
+  "iuc/ivar_variants": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/ivar_variants/ivar_variants/1.4.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "ivar_variants",
+    "versions": [
+      "1.4.2+galaxy1",
+      "1.3.1+galaxy2"
+    ]
+  },
+  "iuc/jbrowse": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/jbrowse/jbrowse/1.16.9+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "jbrowse",
+    "versions": [
+      "1.16.9+galaxy0",
+      "1.16.11+galaxy1"
+    ]
+  },
+  "iuc/jcvi_gff_stats": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/jcvi_gff_stats/jcvi_gff_stats/0.8.4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "jcvi_gff_stats",
+    "versions": [
+      "0.8.4"
+    ]
+  },
+  "iuc/kraken2": {
+    "count": 78,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/kraken2/kraken2/2.1.1+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "kraken2",
+    "versions": [
+      "2.1.1+galaxy1",
+      "2.1.3+galaxy1"
+    ]
+  },
+  "iuc/krakentools_extract_kraken_reads": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/krakentools_extract_kraken_reads/krakentools_extract_kraken_reads/1.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "krakentools_extract_kraken_reads",
+    "versions": [
+      "1.2+galaxy1"
+    ]
+  },
+  "iuc/krakentools_kreport2krona": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/krakentools_kreport2krona/krakentools_kreport2krona/1.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "krakentools_kreport2krona",
+    "versions": [
+      "1.2+galaxy1"
+    ]
+  },
+  "iuc/limma_voom": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/limma_voom/limma_voom/3.58.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "limma_voom",
+    "versions": [
+      "3.58.1+galaxy0"
+    ]
+  },
+  "iuc/lofreq_call": {
+    "count": 90,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/lofreq_call/lofreq_call/2.1.5+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "lofreq_call",
+    "versions": [
+      "2.1.5+galaxy2",
+      "2.1.5+galaxy3",
+      "2.1.5+galaxy0",
+      "2.1.5+galaxy1"
+    ]
+  },
+  "iuc/lofreq_filter": {
+    "count": 93,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/lofreq_filter/lofreq_filter/2.1.5+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "lofreq_filter",
+    "versions": [
+      "2.1.5+galaxy0"
+    ]
+  },
+  "iuc/lofreq_indelqual": {
+    "count": 60,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/lofreq_indelqual/lofreq_indelqual/2.1.5+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "lofreq_indelqual",
+    "versions": [
+      "2.1.5+galaxy0",
+      "2.1.5+galaxy1"
+    ]
+  },
+  "iuc/lofreq_viterbi": {
+    "count": 63,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/lofreq_viterbi/lofreq_viterbi/2.1.5+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "lofreq_viterbi",
+    "versions": [
+      "2.1.5+galaxy0"
+    ]
+  },
+  "iuc/macs2_callpeak": {
+    "count": 1629,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/macs2/macs2_callpeak/2.2.9.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "macs2_callpeak",
+    "versions": [
+      "2.2.9.1+galaxy0",
+      "2.2.7.1+galaxy0"
+    ]
+  },
+  "iuc/map_param_value": {
+    "count": 330,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/map_param_value/map_param_value/0.1.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "map_param_value",
+    "versions": [
+      "0.1.1",
+      "0.2.0"
+    ]
+  },
+  "iuc/mapseq": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/mapseq/mapseq/2.1.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "mapseq",
+    "versions": [
+      "2.1.1+galaxy0"
+    ]
+  },
+  "iuc/medaka_consensus": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/medaka_consensus/medaka_consensus/1.0.3+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "medaka_consensus",
+    "versions": [
+      "1.0.3+galaxy2"
+    ]
+  },
+  "iuc/medaka_consensus_pipeline": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/medaka_consensus_pipeline/medaka_consensus_pipeline/1.7.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "medaka_consensus_pipeline",
+    "versions": [
+      "1.7.2+galaxy1",
+      "1.7.2+galaxy0"
+    ]
+  },
+  "iuc/medaka_variant": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/medaka_variant/medaka_variant/1.3.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "medaka_variant",
+    "versions": [
+      "1.0.3+galaxy3",
+      "1.3.2+galaxy1"
+    ]
+  },
+  "iuc/megahit": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/megahit/megahit/1.2.9+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "megahit",
+    "versions": [
+      "1.2.9+galaxy2"
+    ]
+  },
+  "iuc/melt": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/reshape2_melt/melt/1.4.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "melt",
+    "versions": [
+      "1.4.2"
+    ]
+  },
+  "iuc/meme_fimo": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/meme_fimo/meme_fimo/5.5.6+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "meme_fimo",
+    "versions": [
+      "5.5.6+galaxy0"
+    ]
+  },
+  "iuc/merqury": {
+    "count": 297,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/merqury/merqury/1.3+galaxy4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "merqury",
+    "versions": [
+      "1.3+galaxy3",
+      "1.3+galaxy4",
+      "1.3+galaxy2"
+    ]
+  },
+  "iuc/meryl": {
+    "count": 168,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/meryl/meryl/1.3+galaxy6",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "meryl",
+    "versions": [
+      "1.3+galaxy5",
+      "1.3+galaxy6"
+    ]
+  },
+  "iuc/meryl_count_kmers": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/meryl_count_kmers/meryl_count_kmers/1.3+galaxy7",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "meryl_count_kmers",
+    "versions": [
+      "1.3+galaxy7"
+    ]
+  },
+  "iuc/meryl_groups_kmers": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/meryl_groups_kmers/meryl_groups_kmers/1.3+galaxy7",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "meryl_groups_kmers",
+    "versions": [
+      "1.3+galaxy7"
+    ]
+  },
+  "iuc/meryl_histogram_kmers": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/meryl_histogram_kmers/meryl_histogram_kmers/1.3+galaxy7",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "meryl_histogram_kmers",
+    "versions": [
+      "1.3+galaxy7"
+    ]
+  },
+  "iuc/minimap2": {
+    "count": 363,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/minimap2/minimap2/2.28+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "minimap2",
+    "versions": [
+      "2.26+galaxy0",
+      "2.17+galaxy2",
+      "2.24+galaxy0",
+      "2.28+galaxy0",
+      "2.28+galaxy1"
+    ]
+  },
+  "iuc/mothur_metastats": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/mothur_metastats/mothur_metastats/1.39.5.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "mothur_metastats",
+    "versions": [
+      "1.39.5.0"
+    ]
+  },
+  "iuc/multiqc": {
+    "count": 1719,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.11+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "multiqc",
+    "versions": [
+      "1.11+galaxy1",
+      "1.24.1+galaxy0",
+      "1.11+galaxy0",
+      "1.8+galaxy1",
+      "1.27+galaxy1",
+      "1.27+galaxy0",
+      "1.27+galaxy3",
+      "1.9+galaxy1"
+    ]
+  },
+  "iuc/nanoplot": {
+    "count": 42,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/nanoplot/nanoplot/1.28.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "nanoplot",
+    "versions": [
+      "1.28.2+galaxy1",
+      "1.42.0+galaxy1",
+      "1.44.1+galaxy0"
+    ]
+  },
+  "iuc/newick_display": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/newick_utils/newick_display/1.6+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "newick_display",
+    "versions": [
+      "1.6+galaxy1"
+    ]
+  },
+  "iuc/nextclade": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/nextclade/nextclade/2.7.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "nextclade",
+    "versions": [
+      "1.4.1+galaxy0",
+      "2.7.0+galaxy0"
+    ]
+  },
+  "iuc/omark": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/omark/omark/0.3.0+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "omark",
+    "versions": [
+      "0.3.0+galaxy2",
+      "0.3.1+galaxy1"
+    ]
+  },
+  "iuc/pangolin": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/pangolin/pangolin/4.3+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "pangolin",
+    "versions": [
+      "4.3+galaxy1",
+      "3.1.14+galaxy0"
+    ]
+  },
+  "iuc/parse_mito_blast": {
+    "count": 36,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/parse_mito_blast/parse_mito_blast/1.0.2+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "parse_mito_blast",
+    "versions": [
+      "1.0.2+galaxy0"
+    ]
+  },
+  "iuc/pe_histogram": {
+    "count": 243,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/pe_histogram/pe_histogram/1.0.1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "pe_histogram",
+    "versions": [
+      "1.0.1"
+    ]
+  },
+  "iuc/pick_value": {
+    "count": 495,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/pick_value/pick_value/0.2.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "pick_value",
+    "versions": [
+      "0.2.0"
+    ]
+  },
+  "iuc/plasmidfinder": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/plasmidfinder/plasmidfinder/2.1.6+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "plasmidfinder",
+    "versions": [
+      "2.1.6+galaxy1"
+    ]
+  },
+  "iuc/porechop": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/porechop/porechop/0.2.4+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "porechop",
+    "versions": [
+      "0.2.4+galaxy1",
+      "0.2.4+galaxy0"
+    ]
+  },
+  "iuc/pretext_map": {
+    "count": 132,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/pretext_map/pretext_map/0.1.9+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "pretext_map",
+    "versions": [
+      "0.1.9+galaxy1",
+      "0.1.9+galaxy0"
+    ]
+  },
+  "iuc/pretext_snapshot": {
+    "count": 132,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/pretext_snapshot/pretext_snapshot/0.0.3+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "pretext_snapshot",
+    "versions": [
+      "0.0.3+galaxy2",
+      "0.0.3+galaxy1",
+      "0.0.4+galaxy0"
+    ]
+  },
+  "iuc/prinseq": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/prinseq/prinseq/0.20.4+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "prinseq",
+    "versions": [
+      "0.20.4+galaxy2"
+    ]
+  },
+  "iuc/propr_grea": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/propr_grea/propr_grea",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "propr_grea",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/purge_dups": {
+    "count": 624,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/purge_dups/purge_dups/1.2.6+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "purge_dups",
+    "versions": [
+      "1.2.6+galaxy0"
+    ]
+  },
+  "iuc/pygenomeTracks": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/pygenometracks/pygenomeTracks/3.8+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "pygenomeTracks",
+    "versions": [
+      "3.7+galaxy0",
+      "3.8+galaxy2"
+    ]
+  },
+  "iuc/qualimap_bamqc": {
+    "count": 84,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/qualimap_bamqc/qualimap_bamqc/2.2.2d+galaxy3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "qualimap_bamqc",
+    "versions": [
+      "2.3+galaxy0",
+      "2.2.2d+galaxy3"
+    ]
+  },
+  "iuc/quast": {
+    "count": 54,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/quast/quast/5.0.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "quast",
+    "versions": [
+      "5.0.2+galaxy1",
+      "5.2.0+galaxy1",
+      "5.3.0+galaxy0"
+    ]
+  },
+  "iuc/query_tabular": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/query_tabular/query_tabular/3.3.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "query_tabular",
+    "versions": [
+      "3.3.0",
+      "3.3.2"
+    ]
+  },
+  "iuc/rapidnj": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/rapidnj/rapidnj/2.3.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "rapidnj",
+    "versions": [
+      "2.3.2"
+    ]
+  },
+  "iuc/raxml": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/raxml/raxml/8.2.12+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "raxml",
+    "versions": [
+      "8.2.12+galaxy1"
+    ]
+  },
+  "iuc/recentrifuge": {
+    "count": 30,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/recentrifuge/recentrifuge/1.14.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "recentrifuge",
+    "versions": [
+      "1.14.0+galaxy0",
+      "1.15.0+galaxy0",
+      "1.14.1+galaxy0",
+      "1.16.1+galaxy0",
+      "1.16.0+galaxy0"
+    ]
+  },
+  "iuc/rna_star": {
+    "count": 78,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/rgrnastar/rna_star/2.7.8a+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "rna_star",
+    "versions": [
+      "2.7.11a+galaxy0",
+      "2.7.10b+galaxy4",
+      "2.7.8a+galaxy1",
+      "2.7.8a+galaxy0",
+      "2.7.11a+galaxy1"
+    ]
+  },
+  "iuc/rna_starsolo": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/rna_starsolo/rna_starsolo/2.7.11a+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "rna_starsolo",
+    "versions": [
+      "2.7.10b+galaxy4",
+      "2.7.11a+galaxy0",
+      "2.7.11a+galaxy1",
+      "2.7.10b+galaxy3"
+    ]
+  },
+  "iuc/samtools_coverage": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_coverage/samtools_coverage/1.15.1+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "samtools_coverage",
+    "versions": [
+      "1.15.1+galaxy2"
+    ]
+  },
+  "iuc/samtools_depth": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_depth/samtools_depth/1.15.1+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "samtools_depth",
+    "versions": [
+      "1.15.1+galaxy2"
+    ]
+  },
+  "iuc/samtools_fastq": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_fastq/samtools_fastq",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "samtools_fastq",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/samtools_fastx": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_fastx/samtools_fastx/1.20+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "samtools_fastx",
+    "versions": [
+      "1.15.1+galaxy2",
+      "1.20+galaxy2"
+    ]
+  },
+  "iuc/samtools_merge": {
+    "count": 39,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_merge/samtools_merge/1.20+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "samtools_merge",
+    "versions": [
+      "1.15.1+galaxy2",
+      "1.20+galaxy2"
+    ]
+  },
+  "iuc/samtools_sort": {
+    "count": 4,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_sort/samtools_sort",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "samtools_sort",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/samtools_view": {
+    "count": 951,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.15.1+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "samtools_view",
+    "versions": [
+      "1.13+galaxy1",
+      "1.13+galaxy2",
+      "1.9+galaxy3",
+      "1.20+galaxy3",
+      "1.15.1+galaxy0",
+      "1.9+galaxy2",
+      "1.15.1+galaxy2"
+    ]
+  },
+  "iuc/scanpy_cluster_reduce_dimension": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/scanpy_cluster_reduce_dimension/scanpy_cluster_reduce_dimension/1.10.2+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "scanpy_cluster_reduce_dimension",
+    "versions": [
+      "1.10.2+galaxy0"
+    ]
+  },
+  "iuc/scanpy_filter": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/scanpy_filter/scanpy_filter/1.10.2+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "scanpy_filter",
+    "versions": [
+      "1.10.2+galaxy0"
+    ]
+  },
+  "iuc/scanpy_inspect": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/scanpy_inspect/scanpy_inspect/1.10.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "scanpy_inspect",
+    "versions": [
+      "1.10.2+galaxy1"
+    ]
+  },
+  "iuc/scanpy_normalize": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/scanpy_normalize/scanpy_normalize/1.10.2+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "scanpy_normalize",
+    "versions": [
+      "1.10.2+galaxy0"
+    ]
+  },
+  "iuc/scanpy_plot": {
+    "count": 45,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/scanpy_plot/scanpy_plot/1.10.2+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "scanpy_plot",
+    "versions": [
+      "1.10.2+galaxy0"
+    ]
+  },
+  "iuc/scanpy_remove_confounders": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/scanpy_remove_confounders/scanpy_remove_confounders/1.10.2+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "scanpy_remove_confounders",
+    "versions": [
+      "1.10.2+galaxy0"
+    ]
+  },
+  "iuc/scikit_bio_diversity_beta_diversity": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/scikit_bio_diversity_beta_diversity/scikit_bio_diversity_beta_diversity/0.4.2.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "scikit_bio_diversity_beta_diversity",
+    "versions": [
+      "0.4.2.0"
+    ]
+  },
+  "iuc/seqkit_seq": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqkit_seq/seqkit_seq",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "seqkit_seq",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/seqkit_sort": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqkit_sort/seqkit_sort",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "seqkit_sort",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/seqtk_sample": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_sample/1.4+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "seqtk_sample",
+    "versions": [
+      "1.4+galaxy0"
+    ]
+  },
+  "iuc/seqtk_seqtk_comp": {
+    "count": 3,
+    "full_id": "iuc_seqtk_seqtk_comp_1.5+galaxy0",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "custom",
+    "tool_name": "iuc_seqtk_seqtk_comp",
+    "versions": [
+      "1.5+galaxy0"
+    ]
+  },
+  "iuc/seqtk_subseq": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_subseq/1.5+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "seqtk_subseq",
+    "versions": [
+      "1.5+galaxy0",
+      "1.4+galaxy0"
+    ]
+  },
+  "iuc/seurat_clustering": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/seurat_clustering/seurat_clustering/5.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "seurat_clustering",
+    "versions": [
+      "5.0+galaxy0"
+    ]
+  },
+  "iuc/seurat_create": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/seurat_create/seurat_create/5.0+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "seurat_create",
+    "versions": [
+      "5.0+galaxy1"
+    ]
+  },
+  "iuc/seurat_data": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/seurat_data/seurat_data/5.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "seurat_data",
+    "versions": [
+      "5.0+galaxy0"
+    ]
+  },
+  "iuc/seurat_plot": {
+    "count": 72,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/seurat_plot/seurat_plot/5.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "seurat_plot",
+    "versions": [
+      "5.0+galaxy0"
+    ]
+  },
+  "iuc/seurat_preprocessing": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/seurat_preprocessing/seurat_preprocessing/5.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "seurat_preprocessing",
+    "versions": [
+      "5.0+galaxy0"
+    ]
+  },
+  "iuc/seurat_reduce_dimension": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/seurat_reduce_dimension/seurat_reduce_dimension/5.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "seurat_reduce_dimension",
+    "versions": [
+      "5.0+galaxy0"
+    ]
+  },
+  "iuc/shovill": {
+    "count": 36,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/shovill/shovill/1.1.0+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "shovill",
+    "versions": [
+      "1.1.0+galaxy2",
+      "1.1.0+galaxy1"
+    ]
+  },
+  "iuc/snap": {
+    "count": 2,
+    "full_id": "iuc_snap_SNAP_2013_11_29",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "custom",
+    "tool_name": "iuc_snap",
+    "versions": [
+      "SNAP_2013_11_29"
+    ]
+  },
+  "iuc/snipit": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/snipit/snipit/1.6+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "snipit",
+    "versions": [
+      "1.6+galaxy0",
+      "1.2+galaxy0"
+    ]
+  },
+  "iuc/snippy": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/snippy/snippy/4.6.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "snippy",
+    "versions": [
+      "4.6.0+galaxy0"
+    ]
+  },
+  "iuc/snpEff": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/snpeff/snpEff/4.3+T.galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "snpEff",
+    "versions": [
+      "4.3+T.galaxy2",
+      "4.3+T.galaxy1"
+    ]
+  },
+  "iuc/snpEff_build_gb": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/snpeff/snpEff_build_gb/4.3+T.galaxy6",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "snpEff_build_gb",
+    "versions": [
+      "4.3+T.galaxy6",
+      "4.3+T.galaxy4"
+    ]
+  },
+  "iuc/snpSift_extractFields": {
+    "count": 90,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/snpsift/snpSift_extractFields/4.3+t.galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "snpSift_extractFields",
+    "versions": [
+      "4.3+t.galaxy0"
+    ]
+  },
+  "iuc/snpSift_filter": {
+    "count": 129,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/snpsift/snpSift_filter/4.3+t.galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "snpSift_filter",
+    "versions": [
+      "4.3+t.galaxy1"
+    ]
+  },
+  "iuc/snpeff_sars_cov_2": {
+    "count": 87,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/snpeff_sars_cov_2/snpeff_sars_cov_2/4.5covid19",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "snpeff_sars_cov_2",
+    "versions": [
+      "4.5covid19"
+    ]
+  },
+  "iuc/snpfreqplot": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/snpfreqplot/snpfreqplot/1.0+galaxy3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "snpfreqplot",
+    "versions": [
+      "1.0+galaxy3"
+    ]
+  },
+  "iuc/sratools_fasterqdump": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/sratools_fasterqdump/sratools_fasterqdump",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "sratools_fasterqdump",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/sratools_prefetch": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/sratools_prefetch/sratools_prefetch",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "sratools_prefetch",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/stringtie": {
+    "count": 71,
+    "full_id": "iuc_stringtie_StringTie_2.2.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "custom",
+    "tool_name": "iuc_stringtie",
+    "versions": [
+      "2.2.3+galaxy0",
+      "StringTie_2.2.3+galaxy0",
+      "2.2.1+galaxy1"
+    ]
+  },
+  "iuc/stringtie_merge": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/stringtie/stringtie_merge/2.2.3+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "stringtie_merge",
+    "versions": [
+      "2.2.3+galaxy0"
+    ]
+  },
+  "iuc/table_compute": {
+    "count": 357,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/table_compute/table_compute/1.2.4+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "table_compute",
+    "versions": [
+      "1.2.4+galaxy1",
+      "1.2.4+galaxy0"
+    ]
+  },
+  "iuc/tbl2gff3": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/tbl2gff3/tbl2gff3/1.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "tbl2gff3",
+    "versions": [
+      "1.2"
+    ]
+  },
+  "iuc/tooldistillator": {
+    "count": 105,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator/tooldistillator/0.9+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "tooldistillator",
+    "versions": [
+      "0.9+galaxy0",
+      "0.9.1+galaxy1",
+      "0.9.3+galaxy0",
+      "0.8.5.0+galaxy0",
+      "0.9.2+galaxy0",
+      "1.0.0+galaxy1",
+      "0.9.1+galaxy0"
+    ]
+  },
+  "iuc/tooldistillator_summarize": {
+    "count": 105,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator_summarize/tooldistillator_summarize/0.9+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "tooldistillator_summarize",
+    "versions": [
+      "0.9+galaxy0",
+      "0.9.1+galaxy1",
+      "0.9.3+galaxy0",
+      "0.8.5.0+galaxy0",
+      "0.9.2+galaxy0",
+      "1.0.0+galaxy1",
+      "0.9.1+galaxy0"
+    ]
+  },
+  "iuc/umitools_dedup": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/umitools_dedup/umitools_dedup",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "umitools_dedup",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "iuc/unicycler": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/unicycler/unicycler/0.5.1+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "unicycler",
+    "versions": [
+      "0.5.1+galaxy0"
+    ]
+  },
+  "iuc/vapor": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/vapor/vapor/1.0.2+galaxy3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "vapor",
+    "versions": [
+      "1.0.2+galaxy3"
+    ]
+  },
+  "iuc/velocyto_cli": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/velocyto_cli/velocyto_cli/0.17.17+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "velocyto_cli",
+    "versions": [
+      "0.17.17+galaxy2",
+      "0.17.17+galaxy1"
+    ]
+  },
+  "iuc/volcanoplot": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/volcanoplot/volcanoplot/0.0.7",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "volcanoplot",
+    "versions": [
+      "0.0.7",
+      "0.0.5",
+      "0.0.6"
+    ]
+  },
+  "iuc/yahs": {
+    "count": 66,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/iuc/yahs/yahs/1.2a.2+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "iuc",
+    "source": "toolshed",
+    "tool_name": "yahs",
+    "versions": [
+      "1.2a.2+galaxy1",
+      "1.2a.2+galaxy2",
+      "1.2a.2+galaxy0"
+    ]
+  },
+  "jjohnson/Repository_Actions_fgbio_CallDuplexConsensusReads": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_call_duplex_consensus_reads/Repository_Actions_fgbio_CallDuplexConsensusReads",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "jjohnson",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_fgbio_CallDuplexConsensusReads",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "jjohnson/Repository_Actions_fgbio_CallMolecularConsensusReads": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_call_molecular_consensus_reads/Repository_Actions_fgbio_CallMolecularConsensusReads",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "jjohnson",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_fgbio_CallMolecularConsensusReads",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "jjohnson/Repository_Actions_fgbio_FastqToBam": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_fastq_to_bam/Repository_Actions_fgbio_FastqToBam",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "jjohnson",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_fgbio_FastqToBam",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "jjohnson/Repository_Actions_fgbio_FilterConsensusReads": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_filter_consensus_reads/Repository_Actions_fgbio_FilterConsensusReads",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "jjohnson",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_fgbio_FilterConsensusReads",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "jjohnson/Repository_Actions_fgbio_GroupReadsByUmi": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_group_reads_by_umi/Repository_Actions_fgbio_GroupReadsByUmi",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "jjohnson",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_fgbio_GroupReadsByUmi",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "jjohnson/Repository_Actions_fgbio_ZipperBams": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/jjohnson/fgbio_zip_bams/Repository_Actions_fgbio_ZipperBams",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "jjohnson",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_fgbio_ZipperBams",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "jobucher/Repository_Actions_BBMap_Clumpify:_Deduplication": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bbtools_clumpify/Repository_Actions_BBMap_Clumpify:_Deduplication",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "jobucher",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_BBMap_Clumpify:_Deduplication",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "jobucher/Repository_Actions_Bismark_to_BedGraph": {
+    "count": 9,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/jobucher/bismark2bedgraph/Repository_Actions_Bismark_to_BedGraph",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "jobucher",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Bismark_to_BedGraph",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "jvolkening/Repository_Actions_Extract_Kraken_Reads_By_ID": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/jvolkening/krakentools/Repository_Actions_Extract_Kraken_Reads_By_ID",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "jvolkening",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Extract_Kraken_Reads_By_ID",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "lecorguille/abims_CAMERA_annotateDiffreport": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/camera_annotate/abims_CAMERA_annotateDiffreport/2.2.6+camera1.48.0-galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lecorguille",
+    "source": "toolshed",
+    "tool_name": "abims_CAMERA_annotateDiffreport",
+    "versions": [
+      "2.2.6+camera1.48.0-galaxy1",
+      "2.2.7+camera1.48.0-galaxy1"
+    ]
+  },
+  "lecorguille/abims_xcms_fillPeaks": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_fillpeaks/abims_xcms_fillPeaks/3.12.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lecorguille",
+    "source": "toolshed",
+    "tool_name": "abims_xcms_fillPeaks",
+    "versions": [
+      "3.12.0+galaxy0",
+      "3.12.0+galaxy3"
+    ]
+  },
+  "lecorguille/abims_xcms_group": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_group/abims_xcms_group/3.12.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lecorguille",
+    "source": "toolshed",
+    "tool_name": "abims_xcms_group",
+    "versions": [
+      "3.12.0+galaxy0",
+      "3.12.0+galaxy3"
+    ]
+  },
+  "lecorguille/abims_xcms_retcor": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_retcor/abims_xcms_retcor/3.12.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lecorguille",
+    "source": "toolshed",
+    "tool_name": "abims_xcms_retcor",
+    "versions": [
+      "3.12.0+galaxy0",
+      "3.12.0+galaxy3"
+    ]
+  },
+  "lecorguille/abims_xcms_xcmsSet": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_xcmsset/abims_xcms_xcmsSet/3.12.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lecorguille",
+    "source": "toolshed",
+    "tool_name": "abims_xcms_xcmsSet",
+    "versions": [
+      "3.12.0+galaxy0",
+      "3.12.0+galaxy3"
+    ]
+  },
+  "lecorguille/msnbase_readmsdata": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/msnbase_readmsdata/msnbase_readmsdata/2.16.1+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lecorguille",
+    "source": "toolshed",
+    "tool_name": "msnbase_readmsdata",
+    "versions": [
+      "2.16.1+galaxy3",
+      "2.16.1+galaxy2"
+    ]
+  },
+  "lecorguille/xcms_merge": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_merge/xcms_merge/3.12.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lecorguille",
+    "source": "toolshed",
+    "tool_name": "xcms_merge",
+    "versions": [
+      "3.12.0+galaxy0",
+      "3.12.0+galaxy3"
+    ]
+  },
+  "lecorguille/xcms_plot_chromatogram": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_plot_chromatogram/xcms_plot_chromatogram/3.12.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lecorguille",
+    "source": "toolshed",
+    "tool_name": "xcms_plot_chromatogram",
+    "versions": [
+      "3.12.0+galaxy0",
+      "3.12.0+galaxy3"
+    ]
+  },
+  "lijing/Repository_Actions_interleave_fastqs": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lijing/bubio/Repository_Actions_interleave_fastqs",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "lijing",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_interleave_fastqs",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "lldelisle/cooler_balance": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_balance/cooler_balance/0.8.11+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lldelisle",
+    "source": "toolshed",
+    "tool_name": "cooler_balance",
+    "versions": [
+      "0.9.3+galaxy0",
+      "0.8.11+galaxy0"
+    ]
+  },
+  "lldelisle/cooler_cload_tabix": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_cload_tabix/cooler_cload_tabix/0.8.11+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lldelisle",
+    "source": "toolshed",
+    "tool_name": "cooler_cload_tabix",
+    "versions": [
+      "0.9.3+galaxy1",
+      "0.8.11+galaxy1"
+    ]
+  },
+  "lldelisle/cooler_csort_tabix": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_csort_tabix/cooler_csort_tabix/0.8.11+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lldelisle",
+    "source": "toolshed",
+    "tool_name": "cooler_csort_tabix",
+    "versions": [
+      "0.9.3+galaxy1",
+      "0.8.11+galaxy1"
+    ]
+  },
+  "lldelisle/cooler_makebins": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_makebins/cooler_makebins/0.8.11+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lldelisle",
+    "source": "toolshed",
+    "tool_name": "cooler_makebins",
+    "versions": [
+      "0.9.3+galaxy0",
+      "0.8.11+galaxy0"
+    ]
+  },
+  "lldelisle/revertR2orientationInBam": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/revertr2orientationinbam/revertR2orientationInBam/0.0.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lldelisle",
+    "source": "toolshed",
+    "tool_name": "revertR2orientationInBam",
+    "versions": [
+      "0.0.2"
+    ]
+  },
+  "lparsons/cutadapt": {
+    "count": 1233,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/4.9+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lparsons",
+    "source": "toolshed",
+    "tool_name": "cutadapt",
+    "versions": [
+      "4.4+galaxy0",
+      "5.1+galaxy0",
+      "4.9+galaxy1",
+      "4.7+galaxy0",
+      "4.8+galaxy0",
+      "5.0+galaxy0",
+      "4.0+galaxy1",
+      "4.8+galaxy1",
+      "4.9+galaxy0",
+      "4.0+galaxy0"
+    ]
+  },
+  "lparsons/htseq_count": {
+    "count": 15,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/lparsons/htseq_count/htseq_count/0.9.1+galaxy1",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "lparsons",
+    "source": "toolshed",
+    "tool_name": "htseq_count",
+    "versions": [
+      "0.9.1+galaxy1",
+      "0.9.1"
+    ]
+  },
+  "matteoc/Repository_Actions_PFAM_output_annotator": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/matteoc/agame_custom_tools/Repository_Actions_PFAM_output_annotator",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "matteoc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_PFAM_output_annotator",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "melpetera/intens_check": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/melpetera/intensity_checks/intens_check/1.2.8",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "melpetera",
+    "source": "toolshed",
+    "tool_name": "intens_check",
+    "versions": [
+      "1.3.0",
+      "1.2.8"
+    ]
+  },
+  "mini/strelka": {
+    "count": 1,
+    "full_id": "mini_strelka_Strelka_1.0.1",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "mini",
+    "source": "custom",
+    "tool_name": "mini_strelka",
+    "versions": [
+      "Strelka_1.0.1"
+    ]
+  },
+  "mvdbeek/addName": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/mvdbeek/add_input_name_as_column/addName/0.2.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "mvdbeek",
+    "source": "toolshed",
+    "tool_name": "addName",
+    "versions": [
+      "0.2.0"
+    ]
+  },
+  "nf-core/chromap": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nf-core/chromap/chromap",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nf-core",
+    "source": "toolshed",
+    "tool_name": "chromap",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nf-core/combine_and_map_metadata": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nf-core/nf_core_utils/combine_and_map_metadata",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nf-core",
+    "source": "toolshed",
+    "tool_name": "combine_and_map_metadata",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nf-core/fcsadaptor": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nf-core/fcs/fcsadaptor/main",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nf-core",
+    "source": "toolshed",
+    "tool_name": "fcsadaptor",
+    "versions": [
+      "main"
+    ]
+  },
+  "nf-core/map": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nf-core/mapad/map",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nf-core",
+    "source": "toolshed",
+    "tool_name": "map",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nf-core/nf_schema_samplesheet_to_list": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nf-core/nf_schema/nf_schema_samplesheet_to_list/0.1.0",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nf-core",
+    "source": "toolshed",
+    "tool_name": "nf_schema_samplesheet_to_list",
+    "versions": [
+      "0.1.0"
+    ]
+  },
+  "nf-core/ngscheckmate_ncm": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nf-core/ngscheckmate_ncm/ngscheckmate_ncm",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nf-core",
+    "source": "toolshed",
+    "tool_name": "ngscheckmate_ncm",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nf-core/rungx": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nf-core/fcsgx/rungx/main",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nf-core",
+    "source": "toolshed",
+    "tool_name": "rungx",
+    "versions": [
+      "main"
+    ]
+  },
+  "nfcore/nf_schema_params_help": {
+    "count": 1,
+    "full_id": "nf_schema_params_help",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nf_schema_params_help",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nf_schema_params_summary_log": {
+    "count": 1,
+    "full_id": "nf_schema_params_summary_log",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nf_schema_params_summary_log",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nf_schema_validate_parameters": {
+    "count": 1,
+    "full_id": "nf_schema_validate_parameters",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nf_schema_validate_parameters",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nf_validation_dummy_emit": {
+    "count": 1,
+    "full_id": "nf_validation_dummy_emit",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nf_validation_dummy_emit",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nf_validation_params_help": {
+    "count": 1,
+    "full_id": "nf_validation_params_help",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nf_validation_params_help",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nf_validation_params_summary_log": {
+    "count": 1,
+    "full_id": "nf_validation_params_summary_log",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nf_validation_params_summary_log",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nf_validation_validate_parameters": {
+    "count": 1,
+    "full_id": "nf_validation_validate_parameters",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nf_validation_validate_parameters",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_bamcmp": {
+    "count": 1,
+    "full_id": "nfcore_bamcmp",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_bamcmp",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_bcl2fastq": {
+    "count": 1,
+    "full_id": "nfcore_bcl2fastq",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_bcl2fastq",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_bclconvert": {
+    "count": 1,
+    "full_id": "nfcore_bclconvert",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_bclconvert",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_check_config": {
+    "count": 1,
+    "full_id": "nfcore_check_config",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_check_config",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_check_profile": {
+    "count": 1,
+    "full_id": "nfcore_check_profile",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_check_profile",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_diann": {
+    "count": 5,
+    "full_id": "nfcore_diann",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_diann",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_gawk": {
+    "count": 1,
+    "full_id": "nfcore_gawk",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_gawk",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_gunzip": {
+    "count": 3,
+    "full_id": "nfcore_gunzip",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_gunzip",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_sortmerna": {
+    "count": 3,
+    "full_id": "nfcore_sortmerna",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_sortmerna",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_strobealign": {
+    "count": 1,
+    "full_id": "nfcore_strobealign",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_strobealign",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_trimgalore": {
+    "count": 1,
+    "full_id": "nfcore_trimgalore",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_trimgalore",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_umicollapse": {
+    "count": 1,
+    "full_id": "nfcore_umicollapse",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_umicollapse",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nfcore/nfcore_untar": {
+    "count": 5,
+    "full_id": "nfcore_untar",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nfcore",
+    "source": "nfcore",
+    "tool_name": "nfcore_untar",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nilesh/rseqc_": {
+    "count": 8,
+    "full_id": "nilesh_rseqc__5.0.3+galaxy0",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nilesh",
+    "source": "custom",
+    "tool_name": "nilesh_rseqc_",
+    "versions": [
+      "5.0.3+galaxy0"
+    ]
+  },
+  "nilesh/tabix_tabix": {
+    "count": 8,
+    "full_id": "nilesh_tabix_tabix_0.0.1",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nilesh",
+    "source": "custom",
+    "tool_name": "nilesh_tabix_tabix",
+    "versions": [
+      "0.0.1"
+    ]
+  },
+  "nilshomer/Repository_Actions_Generate_simulated_reads": {
+    "count": 4,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nilshomer/dwgsim/Repository_Actions_Generate_simulated_reads",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nilshomer",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Generate_simulated_reads",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "nml/collapse_dataset": {
+    "count": 612,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "nml",
+    "source": "toolshed",
+    "tool_name": "collapse_dataset",
+    "versions": [
+      "4.2",
+      "5.1.0"
+    ]
+  },
+  "nml/metaspades": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nml/metaspades/metaspades/4.2.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "nml",
+    "source": "toolshed",
+    "tool_name": "metaspades",
+    "versions": [
+      "4.2.0+galaxy0"
+    ]
+  },
+  "nml/refseq_masher_matches": {
+    "count": 30,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nml/refseq_masher/refseq_masher_matches/0.1.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "nml",
+    "source": "toolshed",
+    "tool_name": "refseq_masher_matches",
+    "versions": [
+      "0.1.2"
+    ]
+  },
+  "nml/spades": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nml/spades/spades/4.1.0+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "nml",
+    "source": "toolshed",
+    "tool_name": "spades",
+    "versions": [
+      "4.1.0+galaxy0",
+      "4.2.0+galaxy0"
+    ]
+  },
+  "nml/staramr_search": {
+    "count": 21,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nml/staramr/staramr_search/0.7.1+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "nml",
+    "source": "toolshed",
+    "tool_name": "staramr_search",
+    "versions": [
+      "0.10.0+galaxy1",
+      "0.7.1+galaxy2"
+    ]
+  },
+  "nvidia/parabricks_fq2bammeth": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/nvidia/parabricks/parabricks_fq2bammeth",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "nvidia",
+    "source": "toolshed",
+    "tool_name": "parabricks_fq2bammeth",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "pcingola/snpeff": {
+    "count": 2,
+    "full_id": "pcingola_snpeff_SnpEff_1.0",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "pcingola",
+    "source": "custom",
+    "tool_name": "pcingola_snpeff",
+    "versions": [
+      "SnpEff_1.0"
+    ]
+  },
+  "peterjc/Repository_Actions_BAM_coverage_statistics": {
+    "count": 20,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/peterjc/coverage_stats/Repository_Actions_BAM_coverage_statistics",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "peterjc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_BAM_coverage_statistics",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "peterjc/Repository_Actions_Depad_SAM": {
+    "count": 28,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/peterjc/samtools_depad/Repository_Actions_Depad_SAM/BAM_file",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "peterjc",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_Depad_SAM",
+    "versions": [
+      "BAM_file"
+    ]
+  },
+  "pjbriggs/trimmomatic": {
+    "count": 30,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "pjbriggs",
+    "source": "toolshed",
+    "tool_name": "trimmomatic",
+    "versions": [
+      "0.38.1",
+      "0.39+galaxy2"
+    ]
+  },
+  "q2d2/qiime2__dada2__denoise_paired": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__dada2__denoise_paired/qiime2__dada2__denoise_paired/2023.5.0+q2galaxy.2023.5.0.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__dada2__denoise_paired",
+    "versions": [
+      "2023.5.0+q2galaxy.2023.5.0.2",
+      "2024.10.0+q2galaxy.2024.10.0"
+    ]
+  },
+  "q2d2/qiime2__dada2__denoise_single": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__dada2__denoise_single/qiime2__dada2__denoise_single/2024.10.0+q2galaxy.2024.10.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__dada2__denoise_single",
+    "versions": [
+      "2023.5.0+q2galaxy.2023.5.0.2",
+      "2024.10.0+q2galaxy.2024.10.0"
+    ]
+  },
+  "q2d2/qiime2__demux__emp_paired": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__emp_paired/qiime2__demux__emp_paired/2024.10.0+q2galaxy.2024.10.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__demux__emp_paired",
+    "versions": [
+      "2023.5.0+q2galaxy.2023.5.0.2",
+      "2024.10.0+q2galaxy.2024.10.0"
+    ]
+  },
+  "q2d2/qiime2__demux__emp_single": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__emp_single/qiime2__demux__emp_single/2023.5.0+q2galaxy.2023.5.0.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__demux__emp_single",
+    "versions": [
+      "2023.5.0+q2galaxy.2023.5.0.2",
+      "2024.10.0+q2galaxy.2024.10.0"
+    ]
+  },
+  "q2d2/qiime2__demux__summarize": {
+    "count": 24,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__summarize/qiime2__demux__summarize/2023.5.0+q2galaxy.2023.5.0.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__demux__summarize",
+    "versions": [
+      "2023.5.0+q2galaxy.2023.5.0.2",
+      "2024.10.0+q2galaxy.2024.10.0"
+    ]
+  },
+  "q2d2/qiime2__diversity__adonis": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__adonis/qiime2__diversity__adonis/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__adonis",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__diversity__alpha": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha/qiime2__diversity__alpha/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__alpha",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__diversity__alpha_correlation": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha_correlation/qiime2__diversity__alpha_correlation/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__alpha_correlation",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__diversity__alpha_group_significance": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha_group_significance/qiime2__diversity__alpha_group_significance/2024.10.0+q2galaxy.2024.10.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__alpha_group_significance",
+    "versions": [
+      "2024.10.0+q2galaxy.2024.10.0",
+      "2023.5.1+q2galaxy.2023.5.0.2"
+    ]
+  },
+  "q2d2/qiime2__diversity__alpha_phylogenetic": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha_phylogenetic/qiime2__diversity__alpha_phylogenetic/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__alpha_phylogenetic",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__diversity__alpha_rarefaction": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__alpha_rarefaction/qiime2__diversity__alpha_rarefaction/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__alpha_rarefaction",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__diversity__beta_group_significance": {
+    "count": 18,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__beta_group_significance/qiime2__diversity__beta_group_significance/2024.10.0+q2galaxy.2024.10.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__beta_group_significance",
+    "versions": [
+      "2024.10.0+q2galaxy.2024.10.0",
+      "2023.5.1+q2galaxy.2023.5.0.2"
+    ]
+  },
+  "q2d2/qiime2__diversity__beta_phylogenetic": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__beta_phylogenetic/qiime2__diversity__beta_phylogenetic/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__beta_phylogenetic",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__diversity__beta_rarefaction": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__beta_rarefaction/qiime2__diversity__beta_rarefaction/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__beta_rarefaction",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__diversity__bioenv": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__bioenv/qiime2__diversity__bioenv/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__bioenv",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__diversity__core_metrics_phylogenetic": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity__core_metrics_phylogenetic/qiime2__diversity__core_metrics_phylogenetic/2024.10.0+q2galaxy.2024.10.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity__core_metrics_phylogenetic",
+    "versions": [
+      "2024.10.0+q2galaxy.2024.10.0",
+      "2023.5.1+q2galaxy.2023.5.0.2"
+    ]
+  },
+  "q2d2/qiime2__diversity_lib__bray_curtis": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity_lib__bray_curtis/qiime2__diversity_lib__bray_curtis/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity_lib__bray_curtis",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__diversity_lib__jaccard": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity_lib__jaccard/qiime2__diversity_lib__jaccard/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity_lib__jaccard",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__diversity_lib__shannon_entropy": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__diversity_lib__shannon_entropy/qiime2__diversity_lib__shannon_entropy/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__diversity_lib__shannon_entropy",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__feature_classifier__blast": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_classifier__blast/qiime2__feature_classifier__blast/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__feature_classifier__blast",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__feature_classifier__find_consensus_annotation": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_classifier__find_consensus_annotation/qiime2__feature_classifier__find_consensus_annotation/2025.4.0+q2galaxy.2025.4.0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__feature_classifier__find_consensus_annotation",
+    "versions": [
+      "2025.4.0+q2galaxy.2025.4.0"
+    ]
+  },
+  "q2d2/qiime2__feature_table__summarize": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_table__summarize/qiime2__feature_table__summarize/2023.5.0+q2galaxy.2023.5.0.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__feature_table__summarize",
+    "versions": [
+      "2023.5.0+q2galaxy.2023.5.0.2",
+      "2024.10.0+q2galaxy.2024.10.0"
+    ]
+  },
+  "q2d2/qiime2__feature_table__tabulate_seqs": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__feature_table__tabulate_seqs/qiime2__feature_table__tabulate_seqs/2023.5.0+q2galaxy.2023.5.0.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__feature_table__tabulate_seqs",
+    "versions": [
+      "2023.5.0+q2galaxy.2023.5.0.2",
+      "2024.10.0+q2galaxy.2024.10.0"
+    ]
+  },
+  "q2d2/qiime2__gneiss__correlation_clustering": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__gneiss__correlation_clustering/qiime2__gneiss__correlation_clustering/2023.5.0+q2galaxy.2023.5.0.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__gneiss__correlation_clustering",
+    "versions": [
+      "2023.5.0+q2galaxy.2023.5.0.2"
+    ]
+  },
+  "q2d2/qiime2__metadata__tabulate": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__metadata__tabulate/qiime2__metadata__tabulate/2023.5.0+q2galaxy.2023.5.0.2",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2__metadata__tabulate",
+    "versions": [
+      "2023.5.0+q2galaxy.2023.5.0.2",
+      "2024.10.0+q2galaxy.2024.10.0"
+    ]
+  },
+  "q2d2/qiime2_core__tools__import": {
+    "count": 42,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2_core__tools__import/qiime2_core__tools__import/2023.5.0+dist.h193f7cc9.3",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "q2d2",
+    "source": "toolshed",
+    "tool_name": "qiime2_core__tools__import",
+    "versions": [
+      "2024.10.0+dist.h3d8a7e27",
+      "2023.5.0+dist.h193f7cc9.3"
+    ]
+  },
+  "richard-burhans/ncbi_egapx": {
+    "count": 3,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/richard-burhans/ncbi_egapx/ncbi_egapx/0.3.2-alpha+galaxy8",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "richard-burhans",
+    "source": "toolshed",
+    "tool_name": "ncbi_egapx",
+    "versions": [
+      "0.3.2-alpha+galaxy8"
+    ]
+  },
+  "richard-burhans/rdeval": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/richard-burhans/rdeval/rdeval/0.0.7+galaxy4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "richard-burhans",
+    "source": "toolshed",
+    "tool_name": "rdeval",
+    "versions": [
+      "0.0.7+galaxy4"
+    ]
+  },
+  "richard-burhans/rdeval_report": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/richard-burhans/rdeval/rdeval_report/0.0.7+galaxy4",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "richard-burhans",
+    "source": "toolshed",
+    "tool_name": "rdeval_report",
+    "versions": [
+      "0.0.7+galaxy4"
+    ]
+  },
+  "rnateam/Repository_Actions_MAFFT": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/rnateam/mafft/Repository_Actions_MAFFT",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "rnateam",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_MAFFT",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "rnateam/Repository_Actions_MiRDeep2": {
+    "count": 2,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/rnateam/mirdeep2/Repository_Actions_MiRDeep2",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "rnateam",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_MiRDeep2",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "rnateam/rbc_mafft": {
+    "count": 12,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/rnateam/mafft/rbc_mafft/7.489+galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "rnateam",
+    "source": "toolshed",
+    "tool_name": "rbc_mafft",
+    "versions": [
+      "7.489+galaxy0",
+      "7.526+galaxy1",
+      "7.520+galaxy0"
+    ]
+  },
+  "shapeit/shapeit5_ligate": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/shapeit/shapeit5/shapeit5_ligate",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "shapeit",
+    "source": "toolshed",
+    "tool_name": "shapeit5_ligate",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "shapeit/shapeit5_phasecommon": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/shapeit/shapeit5/shapeit5_phasecommon",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "shapeit",
+    "source": "toolshed",
+    "tool_name": "shapeit5_phasecommon",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "trinity_ctat/Repository_Actions_ctat_concatenate": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_concatenate/Repository_Actions_ctat_concatenate",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "trinity_ctat",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_ctat_concatenate",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "trinity_ctat/Repository_Actions_ctat_star_fusion": {
+    "count": 1,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_star_fusion/Repository_Actions_ctat_star_fusion",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "trinity_ctat",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_ctat_star_fusion",
+    "versions": [
+      "unknown"
+    ]
+  },
+  "yguitton/metams_runGC": {
+    "count": 6,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/yguitton/metams_rungc/metams_runGC/3.0.0+metaMS1.24.0-galaxy0",
+    "in_iwc": true,
+    "in_nfcore": false,
+    "owner": "yguitton",
+    "source": "toolshed",
+    "tool_name": "metams_runGC",
+    "versions": [
+      "3.0.0+metaMS1.24.0-galaxy0"
+    ]
+  },
+  "yjarosz/Repository_Actions_IDBA_fq2fa": {
+    "count": 8,
+    "full_id": "toolshed.g2.bx.psu.edu/repos/yjarosz/yjrepo/Repository_Actions_IDBA_fq2fa",
+    "in_iwc": false,
+    "in_nfcore": true,
+    "owner": "yjarosz",
+    "source": "toolshed",
+    "tool_name": "Repository_Actions_IDBA_fq2fa",
+    "versions": [
+      "unknown"
+    ]
+  }
+}

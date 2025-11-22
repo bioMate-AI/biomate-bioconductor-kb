@@ -1,0 +1,1311 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "Workflows for comparison of genes in annotated genomes",
+  "comments": [],
+  "creator": [
+    {
+      "class": "Person",
+      "identifier": "https://orcid.org/0000-0002-5987-8032",
+      "name": "Anton Nekrutenko"
+    }
+  ],
+  "format-version": "0.1",
+  "name": "Comparative Gene Analysis v3",
+  "report": {
+    "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+  },
+  "steps": {
+    "0": {
+      "annotation": "Amino acid sequences of CDS exons from the gene of interest",
+      "content_id": null,
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Amino acid sequences of CDS exons from the gene of interest",
+          "name": "Exons"
+        }
+      ],
+      "label": "Exons",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 1.90625,
+        "top": 125.7540283203125
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": \"\"}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "fee8f2ee-1918-460c-ba26-886eed9215d7",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "1": {
+      "annotation": "Diamond DB created from ORF predicted from genomes used in the analysis",
+      "content_id": null,
+      "errors": null,
+      "id": 1,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "Diamond DB created from ORF predicted from genomes used in the analysis",
+          "name": "Diamond makedb"
+        }
+      ],
+      "label": "Diamond makedb",
+      "name": "Input dataset collection",
+      "outputs": [],
+      "position": {
+        "left": 0,
+        "top": 237.2540283203125
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list\", \"fields\": null}",
+      "tool_version": null,
+      "type": "data_collection_input",
+      "uuid": "ea72a564-1112-4e74-97fb-6d2b60542cb4",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "2": {
+      "annotation": "",
+      "content_id": null,
+      "errors": null,
+      "id": 2,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "",
+          "name": "ORF BEDs"
+        }
+      ],
+      "label": "ORF BEDs",
+      "name": "Input dataset collection",
+      "outputs": [],
+      "position": {
+        "left": 1.5624785156236385,
+        "top": 372.5
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+      "tool_version": null,
+      "type": "data_collection_input",
+      "uuid": "a2c4da8b-428e-4b8e-9406-c02cf01571b3",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "3": {
+      "annotation": "Align query against ORF translations",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/diamond/bg_diamond/2.0.15+galaxy0",
+      "errors": null,
+      "id": 3,
+      "input_connections": {
+        "query": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "ref_db_source|reference_database": {
+          "id": 1,
+          "output_name": "output"
+        }
+      },
+      "inputs": [
+        {
+          "description": "runtime parameter for tool Diamond",
+          "name": "ref_db_source"
+        }
+      ],
+      "label": "Diamond: Find hits in ORFs",
+      "name": "Diamond",
+      "outputs": [
+        {
+          "name": "daa_output",
+          "type": "daa"
+        }
+      ],
+      "position": {
+        "left": 390.0828857421875,
+        "top": 0
+      },
+      "post_job_actions": {
+        "HideDatasetActiondaa_output": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "daa_output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/diamond/bg_diamond/2.0.15+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "e8ac2b53f262",
+        "name": "diamond",
+        "owner": "bgruening",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"advanced_section\": {\"seed_cut\": null, \"freq_masking\": false, \"motif_masking\": \"0\"}, \"algo\": \"0\", \"filter_score\": {\"filter_score_select\": \"evalue\", \"__current_case__\": 0, \"evalue\": \"0.001\"}, \"gapextend\": null, \"gapopen\": null, \"global_ranking\": null, \"hit_filter\": {\"hit_filter_select\": \"max\", \"__current_case__\": 0, \"max_target_seqs\": \"25\"}, \"id\": \"0\", \"iterate\": true, \"masking\": \"1\", \"matrix\": \"BLOSUM62\", \"method_cond\": {\"method_select\": \"blastp\", \"__current_case__\": 1, \"no_self_hits\": true, \"comp_based_stats\": \"1\"}, \"output_section\": {\"max_hsps\": null, \"output\": {\"outfmt\": \"100\", \"__current_case__\": 3, \"salltitles\": false, \"sallseqid\": false}, \"output_unal\": null}, \"query\": {\"__class__\": \"ConnectedValue\"}, \"query_cover\": \"0\", \"ref_db_source\": {\"db_source\": \"history\", \"__current_case__\": 1, \"reference_database\": {\"__class__\": \"ConnectedValue\"}}, \"sens_cond\": {\"sensitivity\": \"--ultra-sensitive\", \"__current_case__\": 6, \"block_size\": \"0.4\"}, \"subject_cover\": \"0\", \"tax_cond\": {\"tax_select\": \"no\", \"__current_case__\": 0}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.0.15+galaxy0",
+      "type": "tool",
+      "uuid": "2a8931c2-2e23-44eb-9b5d-ef851d3578b2",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "4": {
+      "annotation": "Generate tabular view of alignments",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/diamond/bg_diamond_view/2.0.15+galaxy0",
+      "errors": null,
+      "id": 4,
+      "input_connections": {
+        "daa": {
+          "id": 3,
+          "output_name": "daa_output"
+        }
+      },
+      "inputs": [],
+      "label": "Alignments",
+      "name": "Diamond view",
+      "outputs": [
+        {
+          "name": "blast_tabular",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 638.0655517578125,
+        "top": 199.7841796875
+      },
+      "post_job_actions": {
+        "HideDatasetActionblast_tabular": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "blast_tabular"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/diamond/bg_diamond_view/2.0.15+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "e8ac2b53f262",
+        "name": "diamond",
+        "owner": "bgruening",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__job_resource\": {\"__current_case__\": 0, \"__job_resource__select\": \"no\"}, \"daa\": {\"__class__\": \"ConnectedValue\"}, \"forwardonly\": false, \"hit_filter\": {\"hit_filter_select\": \"max\", \"__current_case__\": 0, \"max_target_seqs\": \"25\"}, \"output_section\": {\"output\": {\"outfmt\": \"6\", \"__current_case__\": 2, \"fields\": [\"qseqid\", \"sseqid\", \"qlen\", \"slen\", \"pident\", \"length\", \"gaps\", \"qstart\", \"qend\", \"sstart\", \"send\", \"qseq\", \"sseq\", \"evalue\", \"bitscore\", \"cigar\"], \"unal\": false}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.0.15+galaxy0",
+      "type": "tool",
+      "uuid": "3be8f6d3-afab-44ac-9c4d-e9c36838c1ab",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "5": {
+      "annotation": "Join tabular view of alignments with BED description of individual ORFs. This is necessary because to visualize genes we will need genomic coordinates. ",
+      "content_id": "join1",
+      "errors": null,
+      "id": 5,
+      "input_connections": {
+        "input1": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "input2": {
+          "id": 4,
+          "output_name": "blast_tabular"
+        }
+      },
+      "inputs": [],
+      "label": "Alignments + BED",
+      "name": "Join two Datasets",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 708.640625,
+        "top": 605.3321533203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "join1",
+      "tool_state": "{\"field1\": \"4\", \"field2\": \"2\", \"fill_empty_columns\": {\"fill_empty_columns_switch\": \"no_fill\", \"__current_case__\": 0}, \"header\": \"\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"input2\": {\"__class__\": \"ConnectedValue\"}, \"partial\": \"\", \"unmatched\": \"\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.1.3",
+      "type": "tool",
+      "uuid": "c73398a1-e62e-4eb6-92f0-9d4d1812d823",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "6": {
+      "annotation": "Extract genomic coordinates of matching ORFs ",
+      "content_id": "Cut1",
+      "errors": null,
+      "id": 6,
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Cut",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 667.4375,
+        "top": 939.3009033203125
+      },
+      "post_job_actions": {
+        "ChangeDatatypeActionout_file1": {
+          "action_arguments": {
+            "newtype": "bed"
+          },
+          "action_type": "ChangeDatatypeAction",
+          "output_name": "out_file1"
+        },
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Cut1",
+      "tool_state": "{\"columnList\": \"c1,c2,c3,c4,c5,c6\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.2",
+      "type": "tool",
+      "uuid": "a25cf408-6e50-4d31-a94f-eedd428ab56d",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "7": {
+      "annotation": "Final list of all hits",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
+      "errors": null,
+      "id": 7,
+      "input_connections": {
+        "input_list": {
+          "id": 5,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Collapse Collection",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 1118.15625,
+        "top": 647.8321533203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutput": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
+      "tool_shed_repository": {
+        "changeset_revision": "90981f86000f",
+        "name": "collapse_collections",
+        "owner": "nml",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"filename\": {\"add_name\": true, \"__current_case__\": 0, \"place_name\": \"same_multiple\"}, \"input_list\": {\"__class__\": \"ConnectedValue\"}, \"one_header\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "5.1.0",
+      "type": "tool",
+      "uuid": "96ee8576-188e-471f-90d8-b99a6a46403a",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "8": {
+      "annotation": "Find all ORFs overlapping amino acid matches",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/intersect/gops_intersect_1/1.0.0",
+      "errors": null,
+      "id": 8,
+      "input_connections": {
+        "input1": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "input2": {
+          "id": 6,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Intersect",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 1019.78125,
+        "top": 895.8009033203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutput": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/intersect/gops_intersect_1/1.0.0",
+      "tool_shed_repository": {
+        "changeset_revision": "8ddabc73af92",
+        "name": "intersect",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"input2\": {\"__class__\": \"ConnectedValue\"}, \"min\": \"1\", \"returntype\": \"\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.0",
+      "type": "tool",
+      "uuid": "317afc76-6712-4e75-9552-5cd9007c01db",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "9": {
+      "annotation": "",
+      "content_id": "Filter1",
+      "errors": null,
+      "id": 9,
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Filter",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 998.15576171875,
+        "top": 157.63821411132812
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Filter1",
+      "tool_state": "{\"cond\": \"len(c2)>0\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.1.1",
+      "type": "tool",
+      "uuid": "bbeaab3c-8c19-49f8-887b-d6c6d18efe1f",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "10": {
+      "annotation": "Collapse a collection into a single dataset by adding genome identified as the first column",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
+      "errors": null,
+      "id": 10,
+      "input_connections": {
+        "input_list": {
+          "id": 8,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "Overlapping ORFs",
+      "name": "Collapse Collection",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 1249.28125,
+        "top": 1107.8477783203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutput": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
+      "tool_shed_repository": {
+        "changeset_revision": "90981f86000f",
+        "name": "collapse_collections",
+        "owner": "nml",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"filename\": {\"add_name\": true, \"__current_case__\": 0, \"place_name\": \"same_multiple\"}, \"input_list\": {\"__class__\": \"ConnectedValue\"}, \"one_header\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "5.1.0",
+      "type": "tool",
+      "uuid": "851e7267-29a3-46ed-9d22-78ce2b592b97",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "11": {
+      "annotation": "Remove unnecessary columns",
+      "content_id": "Cut1",
+      "errors": null,
+      "id": 11,
+      "input_connections": {
+        "input": {
+          "id": 9,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Cut",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 1237.96875,
+        "top": 439.6759033203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Cut1",
+      "tool_state": "{\"columnList\": \"c1,c2,c3,c4,c5,c7,c8,c10,c11,c12,c13,c14,c15,c16,c17,c18,c19,c20,c21,c22,c23\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.2",
+      "type": "tool",
+      "uuid": "6d2050d9-ac85-4dc2-a209-611501472473",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "12": {
+      "annotation": "Create unique identified by combining  genome name and the ORF name. ",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.0",
+      "errors": null,
+      "id": 12,
+      "input_connections": {
+        "input": {
+          "id": 10,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Compute",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 1505.8125,
+        "top": 907.5977783203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.0",
+      "tool_shed_repository": {
+        "changeset_revision": "6595517c2dd8",
+        "name": "column_maker",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"avoid_scientific_notation\": false, \"error_handling\": {\"auto_col_types\": true, \"fail_on_non_existent_columns\": true, \"non_computable\": {\"action\": \"--skip-non-computable\", \"__current_case__\": 1}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"ops\": {\"header_lines_select\": \"no\", \"__current_case__\": 0, \"expressions\": [{\"__index__\": 0, \"cond\": \"c1+c5\", \"add_column\": {\"mode\": \"R\", \"__current_case__\": 2, \"pos\": \"5\"}}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.0",
+      "type": "tool",
+      "uuid": "2bde11d6-826a-457d-999d-b1d5f47fe577",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "13": {
+      "annotation": "Create unique ORF id by combining genome identifier with the ORF name",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/1.6",
+      "errors": null,
+      "id": 13,
+      "input_connections": {
+        "input": {
+          "id": 11,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Compute",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 1498.0625,
+        "top": 610.4571533203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/1.6",
+      "tool_shed_repository": {
+        "changeset_revision": "02026300aa45",
+        "name": "column_maker",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"avoid_scientific_notation\": false, \"cond\": \"c1+c5\", \"header_lines_conditional\": {\"header_lines_select\": \"no\", \"__current_case__\": 0}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"round\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.6",
+      "type": "tool",
+      "uuid": "73677503-7e4f-42bb-81ef-1e3676328b20",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "14": {
+      "annotation": "Split dataset by exon. This would create a collection in which ",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_on_column/tp_split_on_column/0.4",
+      "errors": null,
+      "id": 14,
+      "input_connections": {
+        "infile": {
+          "id": 13,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Split file",
+      "outputs": [
+        {
+          "name": "split_output",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 1435.1875,
+        "top": 109.2852783203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionsplit_output": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "split_output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_on_column/tp_split_on_column/0.4",
+      "tool_shed_repository": {
+        "changeset_revision": "37a53100b67e",
+        "name": "split_file_on_column",
+        "owner": "bgruening",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"column\": \"7\", \"include_header\": false, \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "0.4",
+      "type": "tool",
+      "uuid": "19a24c7e-652e-4fd9-bf08-622d260ece30",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "15": {
+      "annotation": "Final textual report showing matches, their coordinates and their alignments",
+      "content_id": "Cut1",
+      "errors": null,
+      "id": 15,
+      "input_connections": {
+        "input": {
+          "id": 13,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": "Report",
+      "name": "Cut",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 1779.21875,
+        "top": 731.8477783203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        },
+        "TagDatasetActionout_file1": {
+          "action_arguments": {
+            "tags": "Report"
+          },
+          "action_type": "TagDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Cut1",
+      "tool_state": "{\"columnList\": \"c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16,c17,c19,c20,c21\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.2",
+      "type": "tool",
+      "uuid": "32cf5f06-6732-4322-b1ad-efc85cc7f9eb",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "16": {
+      "annotation": "Create amino acid FASTA sequence from aligned segments of exons",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/tabular_to_fasta/tab2fasta/1.1.1",
+      "errors": null,
+      "id": 16,
+      "input_connections": {
+        "input": {
+          "id": 14,
+          "output_name": "split_output"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Tabular-to-FASTA",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "fasta"
+        }
+      ],
+      "position": {
+        "left": 1712.140625,
+        "top": 284.4102783203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutput": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "output"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/tabular_to_fasta/tab2fasta/1.1.1",
+      "tool_shed_repository": {
+        "changeset_revision": "0a7799698fe5",
+        "name": "tabular_to_fasta",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"seq_col\": \"18\", \"title_col\": \"22\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.1.1",
+      "type": "tool",
+      "uuid": "6ad4b6fc-9f64-4b3d-a5f0-07d8634bd179",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "17": {
+      "annotation": "Removing unnecessary columns for subsequent processing",
+      "content_id": "Cut1",
+      "errors": null,
+      "id": 17,
+      "input_connections": {
+        "input": {
+          "id": 15,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Cut",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 2068.53125,
+        "top": 738.9884033203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Cut1",
+      "tool_state": "{\"columnList\": \"c1,c2,c3,c4,c5,c6,c7,c9,c10,c15,c16\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.2",
+      "type": "tool",
+      "uuid": "bccc3848-024e-491c-87b9-7075e8b206bd",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "18": {
+      "annotation": "Create multiple alignments of alienable segments of axons",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/rnateam/mafft/rbc_mafft/7.489+galaxy0",
+      "errors": null,
+      "id": 18,
+      "input_connections": {
+        "inputSequences": {
+          "id": 16,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "MAFFT",
+      "outputs": [
+        {
+          "name": "outputAlignment",
+          "type": "fasta"
+        }
+      ],
+      "position": {
+        "left": 1938.453125,
+        "top": 484.1759033203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionoutputAlignment": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "outputAlignment"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/rnateam/mafft/rbc_mafft/7.489+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "f1a5908ea2cb",
+        "name": "mafft",
+        "owner": "rnateam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__job_resource\": {\"__current_case__\": 0, \"__job_resource__select\": \"no\"}, \"cond_flavour\": {\"flavourType\": \"mafft-ginsi\", \"__current_case__\": 6}, \"datatype\": \"--amino\", \"ep\": \"0.0\", \"getTree\": false, \"inputSequences\": {\"__class__\": \"ConnectedValue\"}, \"matrix_condition\": {\"matrix\": \"BLOSUM\", \"__current_case__\": 1, \"BLOSUM\": \"62\"}, \"op\": \"1.53\", \"outputFormat\": \"\", \"reorder\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "7.489+galaxy0",
+      "type": "tool",
+      "uuid": "d24b7fd8-19ea-4ebc-bf35-1015226b6c75",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "19": {
+      "annotation": "Get positive strand matches",
+      "content_id": "Filter1",
+      "errors": null,
+      "id": 19,
+      "input_connections": {
+        "input": {
+          "id": 17,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": "Filter: Plus strand matches",
+      "name": "Filter",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 1880.890625,
+        "top": 1156.3477783203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Filter1",
+      "tool_state": "{\"cond\": \"c6=='+'\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.1.1",
+      "type": "tool",
+      "uuid": "615ca0c9-cc24-4db8-9b9d-f380a2196397",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "20": {
+      "annotation": "Get negative strand matches",
+      "content_id": "Filter1",
+      "errors": null,
+      "id": 20,
+      "input_connections": {
+        "input": {
+          "id": 17,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": "Filter: Minus strand matches",
+      "name": "Filter",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 1824.9375,
+        "top": 1492.4727783203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Filter1",
+      "tool_state": "{\"cond\": \"c6=='-'\", \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.1.1",
+      "type": "tool",
+      "uuid": "fd0572fe-508a-4637-90ea-c506bc1f6bbc",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "21": {
+      "annotation": "Compute NJ phylogenetic trees",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/rapidnj/rapidnj/2.3.2",
+      "errors": null,
+      "id": 21,
+      "input_connections": {
+        "alignments": {
+          "id": 18,
+          "output_name": "outputAlignment"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Join neighbors",
+      "outputs": [
+        {
+          "name": "distances",
+          "type": "nhx"
+        }
+      ],
+      "position": {
+        "left": 2200.03125,
+        "top": 51.5352783203125
+      },
+      "post_job_actions": {
+        "TagDatasetActiondistances": {
+          "action_arguments": {
+            "tags": "Trees"
+          },
+          "action_type": "TagDatasetAction",
+          "output_name": "distances"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/rapidnj/rapidnj/2.3.2",
+      "tool_shed_repository": {
+        "changeset_revision": "9f4a66e22580",
+        "name": "rapidnj",
+        "owner": "iuc",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__job_resource\": {\"__current_case__\": 0, \"__job_resource__select\": \"no\"}, \"alignment_type\": \"p\", \"alignments\": {\"__class__\": \"ConnectedValue\"}, \"bootstrap\": null, \"evolution_model\": \"kim\", \"no_negative_length\": false, \"output_format\": \"t\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.3.2",
+      "type": "tool",
+      "uuid": "e0f4c7f0-7762-482d-99fb-c8aa3278817f",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": "Join neighbors on input dataset(s): Calculated distances",
+          "output_name": "distances",
+          "uuid": "c121df4e-d648-47eb-a582-92f966fff6d7"
+        }
+      ]
+    },
+    "22": {
+      "annotation": "Compute genomic coordinates of matches using global coordinates of ORFs and local coordinates of matches within ORFs",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.0",
+      "errors": null,
+      "id": 22,
+      "input_connections": {
+        "input": {
+          "id": 19,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Compute",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 2194.375,
+        "top": 1178.8009033203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.0",
+      "tool_shed_repository": {
+        "changeset_revision": "6595517c2dd8",
+        "name": "column_maker",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"avoid_scientific_notation\": false, \"error_handling\": {\"auto_col_types\": true, \"fail_on_non_existent_columns\": true, \"non_computable\": {\"action\": \"--skip-non-computable\", \"__current_case__\": 1}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"ops\": {\"header_lines_select\": \"no\", \"__current_case__\": 0, \"expressions\": [{\"__index__\": 0, \"cond\": \"c3+int(c10*3)\", \"add_column\": {\"mode\": \"\", \"__current_case__\": 0, \"pos\": \"\"}}, {\"__index__\": 1, \"cond\": \"c3+int(c11*3)\", \"add_column\": {\"mode\": \"\", \"__current_case__\": 0, \"pos\": \"\"}}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.0",
+      "type": "tool",
+      "uuid": "13ca890e-e893-4e52-99d1-98292a82d55a",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "23": {
+      "annotation": "Compute genomic coordinates of matches using global coordinates of ORFs and local coordinates of matches within ORFs",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.0",
+      "errors": null,
+      "id": 23,
+      "input_connections": {
+        "input": {
+          "id": 20,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Compute",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 2169.28125,
+        "top": 1496.0821533203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.0",
+      "tool_shed_repository": {
+        "changeset_revision": "6595517c2dd8",
+        "name": "column_maker",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"avoid_scientific_notation\": false, \"error_handling\": {\"auto_col_types\": true, \"fail_on_non_existent_columns\": true, \"non_computable\": {\"action\": \"--skip-non-computable\", \"__current_case__\": 1}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"ops\": {\"header_lines_select\": \"no\", \"__current_case__\": 0, \"expressions\": [{\"__index__\": 0, \"cond\": \"c3+((c8-c11)*3)\", \"add_column\": {\"mode\": \"\", \"__current_case__\": 0, \"pos\": \"\"}}, {\"__index__\": 1, \"cond\": \"c3+((c8-c10)*3)\", \"add_column\": {\"mode\": \"\", \"__current_case__\": 0, \"pos\": \"\"}}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.0",
+      "type": "tool",
+      "uuid": "93dcd538-b9e0-476c-b3f1-ed9649b70551",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "24": {
+      "annotation": "",
+      "content_id": "cat1",
+      "errors": null,
+      "id": 24,
+      "input_connections": {
+        "input1": {
+          "id": 22,
+          "output_name": "out_file1"
+        },
+        "queries_0|input2": {
+          "id": 23,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Concatenate datasets",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 2503.125,
+        "top": 509.8634033203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "cat1",
+      "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"queries\": [{\"__index__\": 0, \"input2\": {\"__class__\": \"ConnectedValue\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.0",
+      "type": "tool",
+      "uuid": "4a7e934b-2ea7-42f8-9047-1cb113aa079c",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "25": {
+      "annotation": "Compute match midpoint. It is needed for creating the image.",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.0",
+      "errors": null,
+      "id": 25,
+      "input_connections": {
+        "input": {
+          "id": 24,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Compute",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 2746.140625,
+        "top": 592.2852783203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.0",
+      "tool_shed_repository": {
+        "changeset_revision": "6595517c2dd8",
+        "name": "column_maker",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"avoid_scientific_notation\": false, \"error_handling\": {\"auto_col_types\": true, \"fail_on_non_existent_columns\": true, \"non_computable\": {\"action\": \"--skip-non-computable\", \"__current_case__\": 1}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"ops\": {\"header_lines_select\": \"no\", \"__current_case__\": 0, \"expressions\": [{\"__index__\": 0, \"cond\": \"int(((c13-c12)/2)+c12)\", \"add_column\": {\"mode\": \"\", \"__current_case__\": 0, \"pos\": \"\"}}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.0",
+      "type": "tool",
+      "uuid": "17de06cb-a586-4fea-8834-da4ee69a82a0",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "26": {
+      "annotation": "",
+      "content_id": "Cut1",
+      "errors": null,
+      "id": 26,
+      "input_connections": {
+        "input": {
+          "id": 25,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Cut",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 2901.671875,
+        "top": 807.8634033203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Cut1",
+      "tool_state": "{\"columnList\": \"c1,c5,c6,c14,c12,c13,c7,c9\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.2",
+      "type": "tool",
+      "uuid": "4ca48d19-c406-46fd-9186-2bc7d3e716ad",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "27": {
+      "annotation": "",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.0",
+      "errors": null,
+      "id": 27,
+      "input_connections": {
+        "input": {
+          "id": 26,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Compute",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 3044.9375,
+        "top": 971.1602783203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.0",
+      "tool_shed_repository": {
+        "changeset_revision": "6595517c2dd8",
+        "name": "column_maker",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"avoid_scientific_notation\": false, \"error_handling\": {\"auto_col_types\": true, \"fail_on_non_existent_columns\": true, \"non_computable\": {\"action\": \"--skip-non-computable\", \"__current_case__\": 1}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"ops\": {\"header_lines_select\": \"no\", \"__current_case__\": 0, \"expressions\": [{\"__index__\": 0, \"cond\": \"c1+c2\", \"add_column\": {\"mode\": \"R\", \"__current_case__\": 2, \"pos\": \"2\"}}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.0",
+      "type": "tool",
+      "uuid": "0e47950f-b90c-40e2-9ff4-48895e5febfd",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "28": {
+      "annotation": "Add information about other ORFs in this area. This is done by talking all ORFs in BED format and left joining with coordinates of matched ORFs. As a result we have a sparse table that contains all ORFs surrounding our matches as well as matches themselves. This information is used to generate the final figure.",
+      "content_id": "join1",
+      "errors": null,
+      "id": 28,
+      "input_connections": {
+        "input1": {
+          "id": 12,
+          "output_name": "out_file1"
+        },
+        "input2": {
+          "id": 27,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": null,
+      "name": "Join two Datasets",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 3195.4375,
+        "top": 1151.4415283203125
+      },
+      "post_job_actions": {
+        "HideDatasetActionout_file1": {
+          "action_arguments": {},
+          "action_type": "HideDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "join1",
+      "tool_state": "{\"field1\": \"5\", \"field2\": \"2\", \"fill_empty_columns\": {\"fill_empty_columns_switch\": \"fill_empty\", \"__current_case__\": 1, \"fill_columns_by\": \"fill_unjoined_only\", \"do_fill_empty_columns\": {\"column_fill_type\": \"single_fill_value\", \"__current_case__\": 0, \"fill_value\": \".\"}}, \"header\": \"\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"input2\": {\"__class__\": \"ConnectedValue\"}, \"partial\": \"\", \"unmatched\": \"-u\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "2.1.3",
+      "type": "tool",
+      "uuid": "fd236072-c157-40e5-a1d8-910baa0621c2",
+      "when": null,
+      "workflow_outputs": []
+    },
+    "29": {
+      "annotation": "",
+      "content_id": "Cut1",
+      "errors": null,
+      "id": 29,
+      "input_connections": {
+        "input": {
+          "id": 28,
+          "output_name": "out_file1"
+        }
+      },
+      "inputs": [],
+      "label": "Mapping report",
+      "name": "Cut",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "tabular"
+        }
+      ],
+      "position": {
+        "left": 3450.75,
+        "top": 1361.4415283203125
+      },
+      "post_job_actions": {
+        "RenameDatasetActionout_file1": {
+          "action_arguments": {
+            "newname": "Mapping report"
+          },
+          "action_type": "RenameDatasetAction",
+          "output_name": "out_file1"
+        },
+        "TagDatasetActionout_file1": {
+          "action_arguments": {
+            "tags": "PlottingData"
+          },
+          "action_type": "TagDatasetAction",
+          "output_name": "out_file1"
+        }
+      },
+      "tool_id": "Cut1",
+      "tool_state": "{\"columnList\": \"c1,c2,c3,c4,c5,c6,c7,c11,c12,c13,c14,c15\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+      "tool_version": "1.0.2",
+      "type": "tool",
+      "uuid": "9e8c8454-104d-43ee-bb21-ac8e16b5c990",
+      "when": null,
+      "workflow_outputs": [
+        {
+          "label": null,
+          "output_name": "out_file1",
+          "uuid": "7cedf811-9c50-4758-84a9-8c70a8b55d8f"
+        }
+      ]
+    }
+  },
+  "tags": [
+    "vgp",
+    "genome-annotation"
+  ],
+  "uuid": "7997d599-d62d-4444-a4a0-c1c90ee9faf9",
+  "version": 2
+}
