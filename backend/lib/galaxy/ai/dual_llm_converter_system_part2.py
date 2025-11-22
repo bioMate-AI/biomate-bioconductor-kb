@@ -422,8 +422,20 @@ class NextflowTester:
         error_text = result.stderr
 
         for line in error_text.split('\n'):
+            # Pattern: "Cannot find a component with name 'STEP_1' in module: .../step_1/main.nf"
+            if 'Cannot find a component' in line:
+                match = re.search(r"in module:.*/(step_\d+)/", line)
+                if match:
+                    proc_id = match.group(1)
+                    if proc_id not in errors:
+                        errors[proc_id] = []
+                    errors[proc_id].append({
+                        'type': 'component_not_found',
+                        'message': line.strip()
+                    })
+
             # Pattern: "ERROR ~ Error executing process > 'PROCESS_NAME'"
-            if 'Error executing process' in line:
+            elif 'Error executing process' in line:
                 match = re.search(r"process > '?(\w+)'?", line)
                 if match:
                     current_process = match.group(1)
@@ -629,10 +641,12 @@ class IterativeRefiner:
 
         workflow_name = galaxy_workflow.get('name', 'WORKFLOW').upper().replace(' ', '_')
 
-        # Build includes
+        # Build includes - extract actual process names from code
         includes = []
-        for proc_id in merged['modules'].keys():
-            proc_name = proc_id.upper()
+        for proc_id, code in merged['modules'].items():
+            # Extract actual process name from the generated code
+            match = re.search(r'process\s+(\w+)\s*\{', code)
+            proc_name = match.group(1) if match else proc_id.upper()
             includes.append(f"include {{ {proc_name} }} from './modules/{proc_id}/main'")
 
         # Build workflow body (simplified)
