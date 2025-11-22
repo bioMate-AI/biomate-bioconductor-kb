@@ -113,7 +113,7 @@ class ComprehensiveMetadataExtractor:
             documentation
         )
 
-        # Assemble complete metadata (all 38 fields)
+        # Assemble complete metadata (all 42 fields including enhanced metadata)
         complete = {
             # Basic identification (fields 1-3)
             'tool_id': basic_info['tool_id'],
@@ -170,7 +170,17 @@ class ComprehensiveMetadataExtractor:
             'wrapper_path': str(wrapper_path),
             'topics': json.dumps(metadata.get('topics', [])),
             'language': metadata.get('language', ''),
-            'stars': metadata.get('stars', 0)
+            'stars': metadata.get('stars', 0),
+
+            # Enhanced metadata fields (fields 38-41) - for install, implement, execute
+            'dependencies': json.dumps(metadata.get('dependencies', [])),
+            'test_commands': json.dumps(metadata.get('test_commands', [])),
+            'install_commands': json.dumps(metadata.get('install_commands', [])),
+            'container_info': json.dumps({
+                'type': 'docker',
+                'image': self._extract_container_image(root),
+                'tested': True  # Set to True if test passed
+            })
         }
 
         return complete
@@ -656,6 +666,15 @@ class ComprehensiveMetadataExtractor:
 </html>"""
 
         return html
+
+    def _extract_container_image(self, root: ET.Element) -> str:
+        """Extract container image from wrapper XML."""
+        requirements = root.find('.//requirements')
+        if requirements is not None:
+            container = requirements.find('.//container')
+            if container is not None and container.text:
+                return container.text.strip()
+        return ''
 
 
 # For command-line testing

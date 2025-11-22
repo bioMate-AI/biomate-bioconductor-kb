@@ -193,9 +193,10 @@ class DatabaseIntegrator:
                     parameters, help_text, inputs, outputs, requirements, tool_state_template,
                     citations, edam_operations, edam_topics, tags, examples, usage_guide, scientific_context,
                     nfcore_metadata,
-                    auto_discovered, discovery_date, quality_score, github_url, wrapper_path, topics, language, stars
+                    auto_discovered, discovery_date, quality_score, github_url, wrapper_path, topics, language, stars,
+                    dependencies, test_commands, install_commands, container_info
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 # Basic identification (1-4)
                 complete_metadata['tool_id'],
@@ -248,11 +249,17 @@ class DatabaseIntegrator:
                 complete_metadata['wrapper_path'],
                 complete_metadata['topics'],
                 complete_metadata['language'],
-                complete_metadata['stars']
+                complete_metadata['stars'],
+
+                # Enhanced metadata fields (38-41)
+                complete_metadata.get('dependencies', None),
+                complete_metadata.get('test_commands', None),
+                complete_metadata.get('install_commands', None),
+                complete_metadata.get('container_info', None)
             ))
 
             self.conn.commit()
-            logger.info(f"Added tool {tool_id} to database with complete metadata (38 fields)")
+            logger.info(f"Added tool {tool_id} to database with complete metadata (42 fields)")
             return "success"
 
         except sqlite3.IntegrityError as e:
