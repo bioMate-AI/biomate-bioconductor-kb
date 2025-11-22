@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<tool id="auto_multiqc" name="MultiQC" version="1.0.0">
+  <description>Aggregate results from bioinformatics analyses across many samples into a single report.</description>
+  <requirements>
+    <container type="docker">quay.io/biocontainers/multiqc:1.32--pyhdfd78af_1</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+MultiQC
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>[![PyPI Version](https://img.shields.io/pypi/v/multiqc)](https://pypi.python.org/pypi/multiqc/)
+
+[![Bioconda Version](https://img.shields.io/conda/v/bioconda/multiqc?label=bioconda)](https://bioconda.github.io/recipes/multiqc/README.html)
+
+[![DOI](https://img.shields.io/badge/DOI-10.1093%2Fbioinformatics%2Fbtw354-red.svg)](http://dx.doi.org/10.1093/bioinformatics/btw354)
+
+Repository: https://github.com/MultiQC/MultiQC</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

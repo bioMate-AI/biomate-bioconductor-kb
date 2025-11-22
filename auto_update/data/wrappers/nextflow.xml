@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<tool id="auto_nextflow" name="nextflow" version="1.0.0">
+  <description>A DSL for data-driven computational pipelines</description>
+  <requirements>
+    <container type="docker">quay.io/biocontainers/nextflow:25.10.0--h2a3209d_0</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+nextflow
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>Install Nextflow with a single command:
+
+```bash
+
+curl -fsSL https://get.nextflow.io | bash
+
+Repository: https://github.com/nextflow-io/nextflow</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

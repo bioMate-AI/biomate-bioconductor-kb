@@ -1,0 +1,119 @@
+{
+  "timestamp": "20251111_145100",
+  "total_evaluated": 1,
+  "approved": 1,
+  "skipped": 0,
+  "needs_review": 0,
+  "blogs_generated": 1,
+  "blogs_reviewed": 1,
+  "auto_review_enabled": true,
+  "dry_run": false,
+  "review_file": "blog_posts_versioned_test/review/evaluation_results_20251111_145100.json",
+  "output_dir": "blog_posts_versioned_test",
+  "approved_tools": [
+    {
+      "tool_id": "auto_foldseek",
+      "tool_name": "foldseek",
+      "confidence": 0.95,
+      "suggested_title": "Foldseek: Revolutionizing Protein Structure Comparison and Search"
+    }
+  ],
+  "skipped_tools": [],
+  "review_summaries": [
+    {
+      "tool_id": "auto_foldseek",
+      "tool_name": "foldseek",
+      "iterations": 2,
+      "final_quality_score": 0.92,
+      "ready_for_manual_review": true,
+      "iteration_history": [
+        {
+          "iteration": 1,
+          "quality_score": 0.45,
+          "ready_for_review": false,
+          "issues_found": 5,
+          "critical_issues": 3,
+          "decision_reason": "Blog post lacks technical depth and scientific specificity required for a professional bioinformatics tool description",
+          "review_details": {
+            "ready_for_review": false,
+            "quality_score": 0.45,
+            "issues": [
+              {
+                "section": "Introduction",
+                "severity": "critical",
+                "issue": "Extremely vague and lacks technical depth",
+                "suggestion": "Provide specific details about what makes Foldseek unique in structure comparison, its algorithmic approach, and key scientific advantages"
+              },
+              {
+                "section": "Input and Output",
+                "severity": "critical",
+                "issue": "Ambiguous input/output specifications",
+                "suggestion": "Clarify exact file formats, provide concrete examples of input file structures, specify exact input requirements (e.g., PDB, mmCIF), and detail precise output format specifications"
+              },
+              {
+                "section": "Workflow Integration",
+                "severity": "major",
+                "issue": "Generic workflow description lacking technical specificity",
+                "suggestion": "Include actual command-line examples, specify exact parameters, demonstrate real-world use cases in computational biology or structural bioinformatics"
+              },
+              {
+                "section": "Why This Tool Matters",
+                "severity": "minor",
+                "issue": "Superficial description of scientific impact",
+                "suggestion": "Elaborate on specific research domains benefiting from Foldseek, highlight unique computational advantages (speed, sensitivity)"
+              },
+              {
+                "section": "Overall",
+                "severity": "critical",
+                "issue": "Auto-generated content lacks substantive scientific context",
+                "suggestion": "Rewrite to provide deep technical insights, include specific algorithmic innovations, performance benchmarks, and clear use cases for structural bioinformatics researchers"
+              }
+            ],
+            "strengths": [
+              "GitHub link provided",
+              "Star count indicates community interest",
+              "Mentions peer-reviewed publications"
+            ],
+            "decision_reason": "Blog post lacks technical depth and scientific specificity required for a professional bioinformatics tool description",
+            "iteration_needed": true
+          }
+        },
+        {
+          "iteration": 2,
+          "quality_score": 0.92,
+          "ready_for_review": true,
+          "issues_found": 2,
+          "critical_issues": 0,
+          "decision_reason": "High-quality technical documentation with clear scientific context and practical implementation details",
+          "review_details": {
+            "ready_for_review": true,
+            "quality_score": 0.92,
+            "issues": [
+              {
+                "section": "Performance Benchmarks",
+                "severity": "minor",
+                "issue": "Lacks specific benchmark details",
+                "suggestion": "Include precise computational metrics, hardware specifications, and comparative performance graphs"
+              },
+              {
+                "section": "Workflow Integration",
+                "severity": "minor",
+                "issue": "Command examples could be more comprehensive",
+                "suggestion": "Add more complex workflow examples demonstrating multi-step protein structure analysis"
+              }
+            ],
+            "strengths": [
+              "Technically precise introduction explaining novel algorithmic approach",
+              "Clear scientific value proposition",
+              "Comprehensive input/output documentation",
+              "Realistic command-line examples",
+              "Strong emphasis on computational efficiency"
+            ],
+            "decision_reason": "High-quality technical documentation with clear scientific context and practical implementation details",
+            "iteration_needed": false
+          }
+        }
+      ]
+    }
+  ]
+}

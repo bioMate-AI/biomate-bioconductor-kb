@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<tool id="auto_deepvariant" name="deepvariant" version="1.0.0">
+  <description>DeepVariant is an analysis pipeline that uses a deep neural network to call genetic variants from ne</description>
+  <requirements>
+    <container type="docker">quay.io/biocontainers/deepvariant:1.9.0--pyh697b589_0</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+deepvariant --help || python -m deepvariant --help
+]]&gt;</command>
+  <inputs>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+    <param name="m" type="text" label="M" help="Parameter for m"/>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>DeepTrio is a deep learning-based trio variant caller built on top of
+
+DeepVariant. DeepTrio extends DeepVariant's functionality, allowing it to
+
+utilize the power of neural networks to predict genomic variants in trios or
+
+Repository: https://github.com/google/deepvariant</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

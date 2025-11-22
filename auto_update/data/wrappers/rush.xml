@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<tool id="auto_rush" name="rush" version="1.0.0">
+  <description>A cross-platform command-line tool for executing jobs in parallel</description>
+  <requirements>
+    <container type="docker">golang:1.19</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python unexisted_script.py' -r 1
+]]&gt;</command>
+  <inputs>
+    <param name="r" type="text" label="R" help="-i -p &quot;\.go$&quot; | rush &quot;bin\app.exe {}&quot;"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>[![Built with GoLang](https://img.shields.io/badge/powered_by-go-6362c2.svg?style=flat)](https://golang.org)
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/shenwei356/rush)](https://goreportcard.com/report/github.com/shenwei356/rush)
+
+[![Cross-platform](https://img.shields.io/badge/platform-any-ec2eb4.svg?style=flat)](#download)
+
+Repository: https://github.com/shenwei356/rush</help>
+</tool>

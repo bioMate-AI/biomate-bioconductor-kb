@@ -1,0 +1,13 @@
+{
+  "detected": 3,
+  "docs_fetched": 3,
+  "wrappers_generated": 3,
+  "wrappers_validated": 3,
+  "tests_passed": 0,
+  "tests_failed": 0,
+  "integrated": 1,
+  "errors": [
+    "dash: Integration failed",
+    "deepvariant: Integration failed"
+  ]
+}

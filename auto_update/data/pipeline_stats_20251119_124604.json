@@ -1,0 +1,20 @@
+{
+  "detected": 10,
+  "feasibility_passed": 7,
+  "feasibility_rejected": 3,
+  "docs_fetched": 7,
+  "wrappers_generated": 7,
+  "wrappers_validated": 7,
+  "tests_passed": 0,
+  "tests_failed": 0,
+  "integrated": 0,
+  "errors": [
+    "biopython: Integration failed",
+    "deepvariant: Integration failed",
+    "ColabFold: Integration failed",
+    "scanpy: Integration failed",
+    "scispacy: Integration failed",
+    "MMseqs2: Integration failed",
+    "gatk: Integration failed"
+  ]
+}

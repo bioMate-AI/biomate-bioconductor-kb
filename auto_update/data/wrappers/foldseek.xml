@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<tool id="auto_foldseek" name="foldseek" version="1.0.0">
+  <description>Foldseek enables fast and sensitive comparisons of large structure sets.</description>
+  <requirements>
+    <container type="docker">quay.io/biocontainers/foldseek:10.941cd33--h5021889_1</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+foldseek
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>Foldseek enables fast and sensitive comparisons of large protein structure sets, supporting monomer and multimer searches, as well as clustering. It runs on CPU, supports GPU acceleration for faster searches, and optionally allows ultra-fast and sensitive comparisons directly from protein sequence inputs using a language model, bypassing the need for structures.
+
+&lt;p align=&quot;center&quot;&gt;&lt;img src=&quot;https://github.com/steineggerlab/foldseek/blob/master/.github/foldseek.png&quot; height=&quot;250&quot;/&gt;&lt;/p&gt;
+
+[van Kempen M, Kim S, Tumescheit C, Mirdita M, Lee J, Gilchrist CLM, Söding J, and Steinegger M. Fast and accurate protein structure search with Foldseek. Nature Biotechnology, doi:10.1038/s41587-023-01773-0 (2023)](https://www.nature.com/articles/s41587-023-01773-0)
+
+Repository: https://github.com/steineggerlab/foldseek</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

@@ -1,0 +1,43 @@
+{
+  "ready_for_review": false,
+  "quality_score": 0.45,
+  "issues": [
+    {
+      "section": "Introduction",
+      "severity": "critical",
+      "issue": "Extremely vague and lacks technical depth",
+      "suggestion": "Provide specific details about what makes Foldseek unique in structure comparison, its algorithmic approach, and key scientific advantages"
+    },
+    {
+      "section": "Input and Output",
+      "severity": "critical",
+      "issue": "Ambiguous input/output specifications",
+      "suggestion": "Clarify exact file formats, provide concrete examples of input file structures, specify exact input requirements (e.g., PDB, mmCIF), and detail precise output format specifications"
+    },
+    {
+      "section": "Workflow Integration",
+      "severity": "major",
+      "issue": "Generic workflow description lacking technical specificity",
+      "suggestion": "Include actual command-line examples, specify exact parameters, demonstrate real-world use cases in computational biology or structural bioinformatics"
+    },
+    {
+      "section": "Why This Tool Matters",
+      "severity": "minor",
+      "issue": "Superficial description of scientific impact",
+      "suggestion": "Elaborate on specific research domains benefiting from Foldseek, highlight unique computational advantages (speed, sensitivity)"
+    },
+    {
+      "section": "Overall",
+      "severity": "critical",
+      "issue": "Auto-generated content lacks substantive scientific context",
+      "suggestion": "Rewrite to provide deep technical insights, include specific algorithmic innovations, performance benchmarks, and clear use cases for structural bioinformatics researchers"
+    }
+  ],
+  "strengths": [
+    "GitHub link provided",
+    "Star count indicates community interest",
+    "Mentions peer-reviewed publications"
+  ],
+  "decision_reason": "Blog post lacks technical depth and scientific specificity required for a professional bioinformatics tool description",
+  "iteration_needed": true
+}

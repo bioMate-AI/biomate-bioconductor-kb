@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<tool id="auto_pydeseq2" name="PyDESeq2" version="1.0.0">
+  <description>A Python implementation of the DESeq2 pipeline for bulk RNA-seq DEA.</description>
+  <requirements>
+    <container type="docker">python:3.9-slim</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Setup environment
+pip install pydeseq2
+
+# Run tool
+pydeseq2 --help || python -m pydeseq2 --help
+]]&gt;</command>
+  <inputs>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+    <param name="m" type="text" label="M" help="Parameter for m"/>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>[![pypi version](https://img.shields.io/pypi/v/pydeseq2)](https://pypi.org/project/pydeseq2)
+
+[![pypiDownloads](https://static.pepy.tech/badge/pydeseq2)](https://pepy.tech/project/pydeseq2)
+
+[![condaDownloads](https://img.shields.io/conda/dn/bioconda/pydeseq2?logo=Anaconda)](https://anaconda.org/bioconda/pydeseq2)
+
+Repository: https://github.com/owkin/PyDESeq2</help>
+</tool>

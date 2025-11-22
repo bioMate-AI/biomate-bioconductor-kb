@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<tool id="auto_scispacy" name="scispacy" version="1.0.0">
+  <description>A full spaCy pipeline and models for scientific/biomedical documents.</description>
+  <requirements>
+    <container type="docker">quay.io/biocontainers/scispacy:0.6.2--pyhdfd78af_0</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+scispacy --help || python -m scispacy --help
+]]&gt;</command>
+  <inputs>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+    <param name="m" type="text" label="M" help="Links to the RxNorm ontology. RxNorm contains ~100k concepts focused on normalized names for clinica"/>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>Installing scispacy requires two steps: installing the library and intalling the models. To install the library, run:
+
+```bash
+
+pip install scispacy
+
+Repository: https://github.com/allenai/scispacy</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

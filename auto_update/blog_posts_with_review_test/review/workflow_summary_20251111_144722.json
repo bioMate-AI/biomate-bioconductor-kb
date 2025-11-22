@@ -1,0 +1,119 @@
+{
+  "timestamp": "20251111_144722",
+  "total_evaluated": 1,
+  "approved": 1,
+  "skipped": 0,
+  "needs_review": 0,
+  "blogs_generated": 1,
+  "blogs_reviewed": 1,
+  "auto_review_enabled": true,
+  "dry_run": false,
+  "review_file": "blog_posts_with_review_test/review/evaluation_results_20251111_144722.json",
+  "output_dir": "blog_posts_with_review_test",
+  "approved_tools": [
+    {
+      "tool_id": "auto_foldseek",
+      "tool_name": "foldseek",
+      "confidence": 0.95,
+      "suggested_title": "Foldseek: Revolutionizing Protein Structure Comparison and Search"
+    }
+  ],
+  "skipped_tools": [],
+  "review_summaries": [
+    {
+      "tool_id": "auto_foldseek",
+      "tool_name": "foldseek",
+      "iterations": 2,
+      "final_quality_score": 0.92,
+      "ready_for_manual_review": true,
+      "iteration_history": [
+        {
+          "iteration": 1,
+          "quality_score": 0.45,
+          "ready_for_review": false,
+          "issues_found": 5,
+          "critical_issues": 2,
+          "decision_reason": "Blog post lacks technical depth and specificity required for bioinformatics audience",
+          "review_details": {
+            "ready_for_review": false,
+            "quality_score": 0.45,
+            "issues": [
+              {
+                "section": "Introduction",
+                "severity": "critical",
+                "issue": "Lacks technical depth and specificity about tool's functionality",
+                "suggestion": "Explain Foldseek's unique approach to structural alignment, computational method, and scientific significance"
+              },
+              {
+                "section": "Why This Tool Matters",
+                "severity": "major",
+                "issue": "Superficial description without technical context",
+                "suggestion": "Elaborate on scientific impact, specific alignment challenges Foldseek solves, computational advantages over traditional methods"
+              },
+              {
+                "section": "Input and Output",
+                "severity": "critical",
+                "issue": "Vague input/output descriptions",
+                "suggestion": "Specify exact file formats, provide concrete examples of protein/structure input types, clarify expected output structures"
+              },
+              {
+                "section": "Workflow Integration",
+                "severity": "major",
+                "issue": "Generic workflow description lacking technical specificity",
+                "suggestion": "Include actual command-line examples, demonstrate specific structural alignment use cases, show integration with bioinformatics pipelines"
+              },
+              {
+                "section": "Example Workflow",
+                "severity": "minor",
+                "issue": "Overly abstract workflow diagram",
+                "suggestion": "Replace with concrete computational graph showing actual data transformation steps"
+              }
+            ],
+            "strengths": [
+              "GitHub repository link provided",
+              "Star count indicates community interest",
+              "Basic tool metadata present"
+            ],
+            "decision_reason": "Blog post lacks technical depth and specificity required for bioinformatics audience",
+            "iteration_needed": true
+          }
+        },
+        {
+          "iteration": 2,
+          "quality_score": 0.92,
+          "ready_for_review": true,
+          "issues_found": 2,
+          "critical_issues": 0,
+          "decision_reason": "High-quality technical documentation with minimal refinement needs, covers scientific and computational aspects thoroughly",
+          "review_details": {
+            "ready_for_review": true,
+            "quality_score": 0.92,
+            "issues": [
+              {
+                "section": "Introduction",
+                "severity": "minor",
+                "issue": "Slightly technical language for broad audience",
+                "suggestion": "Slightly simplify k-mer and linear representation explanation"
+              },
+              {
+                "section": "Workflow",
+                "severity": "minor",
+                "issue": "Example commands lack explicit parameter explanations",
+                "suggestion": "Add brief comments explaining key command parameters"
+              }
+            ],
+            "strengths": [
+              "Excellent computational context and scientific significance",
+              "Clear technical explanation of tool's unique advantages",
+              "Realistic use cases demonstrating practical research applications",
+              "Comprehensive input/output documentation",
+              "Concise and compelling narrative structure"
+            ],
+            "decision_reason": "High-quality technical documentation with minimal refinement needs, covers scientific and computational aspects thoroughly",
+            "iteration_needed": false
+          }
+        }
+      ]
+    }
+  ]
+}

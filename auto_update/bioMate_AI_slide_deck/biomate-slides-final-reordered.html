@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bioMate AI - Advisor Meeting Deck</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .presentation {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .slide {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%);
+            border-radius: 15px;
+            padding: 50px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            border: 2px solid rgba(0, 200, 255, 0.2);
+        }
+
+        .slide-number {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            color: #666;
+            font-size: 0.9em;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .logo {
+            position: absolute;
+            top: 20px;
+            left: 25px;
+            font-size: 1.3em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00c8ff 0%, #0080ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #00c8ff 0%, #0080ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-top: 10px;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            margin-bottom: 12px;
+            color: #00c8ff;
+        }
+
+        h3 {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            color: #0080ff;
+        }
+
+        h4 {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #00c8ff;
+        }
+
+        p {
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+
+        .three-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 25px;
+            margin: 20px 0;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+        }
+
+        li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #00c8ff;
+        }
+
+        .highlight {
+            background: linear-gradient(to right, rgba(0, 200, 255, 0.2), transparent);
+            padding: 15px;
+            border-left: 4px solid #00c8ff;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            border-color: #00c8ff;
+            box-shadow: 0 10px 30px rgba(0, 200, 255, 0.2);
+        }
+
+        .metric-value {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #00c8ff;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-table th {
+            background: rgba(0, 200, 255, 0.2);
+            color: #00c8ff;
+            font-weight: 600;
+        }
+
+        .check {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .cross {
+            color: #ff6464;
+            font-weight: bold;
+        }
+
+        .partial {
+            color: #ffaa00;
+            font-weight: bold;
+        }
+
+        .pain-solution {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .pain-box {
+            background: rgba(255, 100, 100, 0.1);
+            border-left: 4px solid #ff6464;
+        }
+
+        .solution-box {
+            background: rgba(100, 255, 100, 0.1);
+            border-left: 4px solid #00ff00;
+        }
+
+        .number-highlight {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #00ff00;
+            margin: 0 8px;
+        }
+
+        .diagram-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .diagram-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        .title-slide {
+            text-align: center;
+            padding: 100px 50px;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .nav-button {
+            background: rgba(0, 200, 255, 0.9);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            box-shadow: 0 5px 20px rgba(0, 200, 255, 0.3);
+        }
+
+        .nav-button:hover {
+            background: #0080ff;
+        }
+
+        @media (max-width: 768px) {
+            .two-column, .three-column {
+                grid-template-columns: 1fr;
+            }
+
+            .slide {
+                padding: 30px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+
+        <!-- Slide 1: Title -->
+        <div class="slide title-slide">
+            <span class="slide-number">1 / 23</span>
+            <h1 style="font-size: 4em; margin-bottom: 30px;">bioMate AI</h1>
+            <p class="subtitle" style="font-size: 1.8em;">The AI-Powered Workflow Platform for Life Science Data Analysis</p>
+
+            <div style="margin-top: 50px;">
+                <p style="font-size: 1.3em; color: #888;">Orchestrating 10,000+ Tools with Domain Intelligence</p>
+                <p style="font-size: 1.3em; color: #888;">From Raw Data to Insights in Hours, Not Weeks</p>
+            </div>
+
+            <div style="margin-top: 70px;">
+                <p style="color: #00c8ff; font-size: 1.2em;">November 2025</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Pain Points vs Solution -->
+        <div class="slide">
+            <span class="slide-number">2 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>The $126B Problem We're Solving</h1>
+            <p class="subtitle">Life science data analysis is broken - we're fixing it with AI</p>
+
+            <div class="two-column">
+                <div>
+                    <h3 style="color: #ff6464;">Current Pain Points</h3>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>Time:</strong> <span style="color: #ff6464;">2-3 weeks</span> per analysis</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>Complexity:</strong> <span style="color: #ff6464;">100+</span> parameters to tune manually</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>Tools:</strong> <span style="color: #ff6464;">10-20</span> disconnected software</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>Cost:</strong> <span style="color: #ff6464;">$100K+</span> per year per lab</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>Expertise:</strong> <span style="color: #ff6464;">PhD required</span> for basic analysis</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>Errors:</strong> <span style="color: #ff6464;">40%</span> redo rate</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>Vendor Lock:</strong> <span style="color: #ff6464;">Single vendor</span> only</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>Updates:</strong> <span style="color: #ff6464;">Manual</span> literature tracking</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="color: #00ff00;">With bioMate AI</h3>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Time:</strong> <span class="number-highlight">2-3 hours</span> (10x faster)</p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Complexity:</strong> <span class="number-highlight">Auto-optimized</span> by AI</p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Tools:</strong> <span class="number-highlight">1 platform</span> orchestrates all</p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Cost:</strong> <span class="number-highlight">$999/month</span> (99% cheaper)</p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Expertise:</strong> <span class="number-highlight">Anyone</span> can use</p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Errors:</strong> <span class="number-highlight">5%</span> with auto-correction</p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Vendor Lock:</strong> <span class="number-highlight">All vendors</span> supported</p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Updates:</strong> <span class="number-highlight">Real-time</span> from literature</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <p style="text-align: center; font-size: 1.3em;">
+                    <strong>ROI:</strong> 10x productivity × 99% cost reduction = <span class="number-highlight">1000x value</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 3: Existing Resources (moved from slide 6) -->
+        <div class="slide">
+            <span class="slide-number">3 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>Existing Resources: Our Foundation</h1>
+            <p class="subtitle">20+ years of open-source development ready to orchestrate</p>
+
+            <div class="two-column">
+                <div>
+                    <h3>🌐 Major Platforms</h3>
+                    <div class="metric-card">
+                        <h4>Galaxy Project</h4>
+                        <p><strong>10,000+</strong> integrated tools</p>
+                        <p><strong>300+</strong> public servers</p>
+                        <p>License: MIT/AFL (commercial-friendly)</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Bioconductor</h4>
+                        <p><strong>2,341+</strong> R packages</p>
+                        <p><strong>500K+</strong> users</p>
+                        <p>License: Artistic 2.0 (commercial-friendly)</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>OpenMS</h4>
+                        <p><strong>200+</strong> algorithms</p>
+                        <p>Python/C++ bindings</p>
+                        <p>License: BSD (commercial-friendly)</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>MZmine 3</h4>
+                        <p>Complete LC-MS pipeline</p>
+                        <p>REST API available</p>
+                        <p>License: MIT (commercial-friendly)</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3>📊 Domain-Specific Tools</h3>
+
+                    <div class="metric-card">
+                        <h4>Mass Spectrometry</h4>
+                        <p>• MS-DIAL, Skyline, ProteoWizard</p>
+                        <p>• xcms, MSnbase, CAMERA</p>
+                        <p>• SIRIUS, MetFrag, CFM-ID</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Genomics</h4>
+                        <p>• BWA, GATK, STAR, SAMtools</p>
+                        <p>• Cell Ranger, Seurat, Scanpy</p>
+                        <p>• DESeq2, edgeR, limma</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Imaging</h4>
+                        <p>• ImageJ/Fiji (500+ plugins)</p>
+                        <p>• CellProfiler, napari</p>
+                        <p>• Cellpose, StarDist</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Databases</h4>
+                        <p>• GNPS (250K+ spectra)</p>
+                        <p>• HMDB (220K metabolites)</p>
+                        <p>• UniProt, PDB, Ensembl</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <p><strong>Our Strategy:</strong> We don't rebuild these tools - we make them intelligent and interoperable through AI orchestration</p>
+            </div>
+        </div>
+
+        <!-- Slide 4: Competitive Landscape (moved from slide 10, PRICING AND LC-MS ROWS REMOVED) -->
+        <div class="slide">
+            <span class="slide-number">9 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>Life Science Analytics Universe</h1>
+            <p class="subtitle">$126B opportunity across research, clinical, and industrial applications</p>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Domain</th>
+                        <th>Market Size</th>
+                        <th>Applications</th>
+                        <th>Current Pain Points</th>
+                        <th>bioMate Solution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Genomics/NGS</strong></td>
+                        <td>$24B<br><span style="font-size: 0.8em; color: #888;">[Grand View Research 2024]</span></td>
+                        <td>Clinical diagnostics, AgBio, Pharma</td>
+                        <td>Complex pipelines, version hell</td>
+                        <td>Intelligent pipeline selection</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Proteomics</strong></td>
+                        <td>$35B<br><span style="font-size: 0.8em; color: #888;">[BCC Research 2024]</span></td>
+                        <td>Drug discovery, Biomarkers, Food safety</td>
+                        <td>No integrated workflows</td>
+                        <td>Cross-platform orchestration</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Flow Cytometry</strong></td>
+                        <td>$4.5B<br><span style="font-size: 0.8em; color: #888;">[Mordor Intelligence 2024]</span></td>
+                        <td>Immunology, Cell therapy, Diagnostics</td>
+                        <td>FlowJo monopoly ($3K/year)</td>
+                        <td>Open alternative with AI</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Microscopy/Imaging</strong></td>
+                        <td>$7B<br><span style="font-size: 0.8em; color: #888;">[Allied Market Research 2024]</span></td>
+                        <td>Pathology, Drug screening, Research</td>
+                        <td>Manual analysis, no standards</td>
+                        <td>Automated image analysis</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cell Culture/Bioprocess</strong></td>
+                        <td>$21B<br><span style="font-size: 0.8em; color: #888;">[Precedence Research 2024]</span></td>
+                        <td>Biologics manufacturing, Cell therapy</td>
+                        <td>Paper records, no integration</td>
+                        <td>Digital transformation</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Molecular Biology</strong></td>
+                        <td>$15B<br><span style="font-size: 0.8em; color: #888;">[Research & Markets 2024]</span></td>
+                        <td>Gene therapy, Synthetic bio, Diagnostics</td>
+                        <td>Fragmented tools</td>
+                        <td>Unified platform</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Clinical Chemistry</strong></td>
+                        <td>$14.5B<br><span style="font-size: 0.8em; color: #888;">[Global Market Insights 2024]</span></td>
+                        <td>Hospital labs, Reference labs</td>
+                        <td>Legacy LIMS, manual review</td>
+                        <td>AI-assisted validation</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="highlight">
+                <p style="text-align: center;">
+                    <strong>Total Market:</strong> $126B (hardware + software + services) | <strong>Software Addressable:</strong> ~$18.6B (15%) | <strong>Our Target:</strong> $5.26B (25% of software)
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 6: bioMate AI Platform (moved from slide 7) -->
+        <div class="slide">
+            <span class="slide-number">4 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>Clinical LIMS: Mature Market, Emerging Gaps</h1>
+            <p class="subtitle">Current LIMS excel at traditional lab operations - our focus targets unmet emerging needs</p>
+
+            <div class="two-column">
+                <div>
+                    <h3 style="color: #00ff00;">✓ Strong Current Coverage</h3>
+
+                    <div class="metric-card">
+                        <h4>Market Landscape (2025)</h4>
+                        <p><strong>Size:</strong> $2.54B → $5.19B by 2030 (12.5% CAGR)</p>
+                        <p><strong>Leaders:</strong></p>
+                        <p>• Epic Beaker: 27.6% market share</p>
+                        <p>• Oracle Cerner: 22.9%</p>
+                        <p>• CliniSys: 24% (4,000+ customers)</p>
+                        <p>• SoftLab: 350+ contracts, 1,000+ sites</p>
+                        <p>• Orchard Software: #1 rated, 2,400 labs</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Well-Served Applications</h4>
+                        <p style="text-align: left;">• <strong>Clinical Chemistry:</strong> Complete workflow automation, 99.5% autoverification (best performers)</p>
+                        <p style="text-align: left;">• <strong>Hematology:</strong> Full integration with analyzers</p>
+                        <p style="text-align: left;">• <strong>Microbiology:</strong> Paperless workflows, culture management</p>
+                        <p style="text-align: left;">• <strong>Blood Bank:</strong> FDA-cleared modules, full compliance</p>
+                        <p style="text-align: left;">• <strong>Instrument Integration:</strong> 1,100+ drivers via middleware (Data Innovations)</p>
+                        <p style="text-align: left;">• <strong>Compliance:</strong> CLIA/CAP/HL7 standards native</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Market Maturity Indicators</h4>
+                        <p>• 14 billion tests/year processed</p>
+                        <p>• 320,000 CLIA-certified labs</p>
+                        <p>• 18-24 month implementations ($30M+)</p>
+                        <p>• Deep hospital system integration</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="color: #ff6464;">✗ Critical Gaps (Our Opportunity)</h3>
+
+                    <div class="metric-card" style="border: 2px solid #ff6464;">
+                        <h4>Multi-Omics Integration</h4>
+                        <p class="metric-value" style="font-size: 1.5em;">$200-350M</p>
+                        <p style="text-align: left;">• No unified platform for genomics + transcriptomics + proteomics</p>
+                        <p style="text-align: left;">• "Data integration is the biggest difficulty" - each omics has unique formats</p>
+                        <p style="text-align: left;">• Current LIMS: siloed modalities</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px; border: 2px solid #ff6464;">
+                        <h4>Advanced Bioinformatics</h4>
+                        <p class="metric-value" style="font-size: 1.5em;">Gap</p>
+                        <p style="text-align: left;">• <strong>NGS:</strong> "Integration with NGS instruments still a challenge"</p>
+                        <p style="text-align: left;">• <strong>Proteomics:</strong> No automated cross-platform workflows</p>
+                        <p style="text-align: left;">• <strong>Spatial Biology:</strong> Not addressed</p>
+                        <p style="text-align: left;">• <strong>Single-cell:</strong> Minimal support</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px; border: 2px solid #ff6464;">
+                        <h4>AI/ML & Cloud Architecture</h4>
+                        <p style="text-align: left;">• "Legacy systems rigid and inflexible"</p>
+                        <p style="text-align: left;">• AI mostly bolt-ons, not native</p>
+                        <p style="text-align: left;">• "Built in different era" - not cloud-native</p>
+                        <p style="text-align: left;">• 40 exabytes/year data by 2025, systems can't scale</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px; border: 2px solid #ff6464;">
+                        <h4>Interoperability & Modern Workflows</h4>
+                        <p class="metric-value" style="font-size: 1.5em;">$250-400M</p>
+                        <p style="text-align: left;">• FHIR adoption limited</p>
+                        <p style="text-align: left;">• Real-time data integration lacking</p>
+                        <p style="text-align: left;">• No research-to-clinical bridge</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <h3 style="margin-bottom: 15px;">Strategic Validation: Our Positioning</h3>
+                <div class="two-column">
+                    <div>
+                        <p><strong>✓ Clinical LIMS Market:</strong> Mature & well-served ($2.54B, dominated by Epic/Oracle/CliniSys)</p>
+                        <p style="margin-top: 10px;"><strong>→ We DON'T compete</strong> with established clinical chemistry/hematology LIMS</p>
+                    </div>
+                    <div>
+                        <p><strong>🎯 Our Focus:</strong> Emerging biology + clinical connection</p>
+                        <p style="margin-top: 10px;"><strong>→ Multi-omics ($200-350M gap)</strong> + Advanced bioinformatics + AI-native platform + Research-to-clinical bridge ($47.3B non-clinical TAM)</p>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 15px; font-size: 1.2em;">
+                    <strong>Use Case Strategy Validated:</strong> We target underserved emerging needs, not entrenched traditional markets
+                </p>
+            </div>
+        </div>
+        <div class="slide">
+            <span class="slide-number">6 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>bioMate AI: The Intelligent Orchestration Platform</h1>
+            <p class="subtitle">Not another tool - the AI layer that makes ALL tools work together</p>
+
+            <div class="two-column">
+                <div>
+                    <h3>🧠 Core Intelligence Engine</h3>
+                    <p><strong>Domain-Specific LLM:</strong> Trained on 30M scientific papers</p>
+                    <p><strong>Workflow Generator:</strong> Natural language → Complete workflows</p>
+                    <p><strong>Parameter Optimizer:</strong> Learns from every run across all users</p>
+                </div>
+                <div>
+                    <h3>🔄 Workflow Orchestration</h3>
+                    <p><strong>Tool Integration:</strong> 10,000+ tools (Galaxy, Bioconductor, OpenMS)</p>
+                    <p><strong>Auto-Chaining:</strong> Intelligently connects incompatible tools</p>
+                    <p><strong>Adaptive Execution:</strong> Adjusts parameters based on data quality</p>
+                </div>
+            </div>
+
+            <div class="two-column">
+                <div>
+                    <h3>📊 Analysis Automation</h3>
+                    <p><strong>Error Recovery:</strong> Auto-diagnose and fix common issues</p>
+                    <p><strong>Quality Control:</strong> Built-in validation at every step</p>
+                    <p><strong>Report Generation:</strong> Publication-ready methods and figures</p>
+                </div>
+                <div>
+                    <h3>🚀 Platform Capabilities</h3>
+                    <p><strong>Multi-Modal:</strong> LC-MS, Genomics, Proteomics, Imaging</p>
+                    <p><strong>Collaborative:</strong> Real-time sharing and team workflows</p>
+                    <p><strong>Compliant:</strong> 21 CFR Part 11, GxP ready</p>
+                </div>
+            </div>
+
+            <div class="three-column">
+                <div class="metric-card">
+                    <div class="metric-value">10,000+</div>
+                    <div class="metric-label">Tools Orchestrated</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">100M+</div>
+                    <div class="metric-label">Parameters Optimized</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">10x</div>
+                    <div class="metric-label">Faster Analysis</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Platform Architecture Overview (moved from slide 5) -->
+        <div class="slide">
+            <span class="slide-number">7 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>Platform Architecture Overview</h1>
+            <p class="subtitle">AI-powered interface connecting researchers to 10,000+ tools and clinical workflows</p>
+
+            <div class="diagram-container">
+                <img src="product-overview-diagram.webp" alt="bioMate Platform Architecture">
+            </div>
+
+            <div class="two-column">
+                <div>
+                    <h3>🧠 AI-Driven Intelligence Layer</h3>
+                    <div class="metric-card">
+                        <p><strong>Natural Language Interface</strong></p>
+                        <p style="text-align: left; margin-top: 10px;">• "Analyze my LC-MS data for cancer biomarkers"</p>
+                        <p style="text-align: left;">• Auto-select optimal tools & parameters</p>
+                        <p style="text-align: left;">• Generate publication-ready workflows</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <p><strong>Workflow Orchestration</strong></p>
+                        <p style="text-align: left; margin-top: 10px;">• Nextflow + Galaxy integration</p>
+                        <p style="text-align: left;">• Docker/Kubernetes for scalability</p>
+                        <p style="text-align: left;">• Automated resource benchmarking</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3>🔗 Integration & Clinical Extension</h3>
+                    <div class="metric-card">
+                        <p><strong>Instrument Data Parsing</strong></p>
+                        <p style="text-align: left; margin-top: 10px;">• SENAITE.core for 60+ clinical instruments</p>
+                        <p style="text-align: left;">• Illumina, ONT, PacBio NGS sequencers</p>
+                        <p style="text-align: left;">• Mass spec (Thermo, Waters, Bruker)</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <p><strong>Clinical Readiness</strong></p>
+                        <p style="text-align: left; margin-top: 10px;">• SOC2, GLP, 21 CFR compliance frameworks</p>
+                        <p style="text-align: left;">• HIPAA/CLIA validation pathways</p>
+                        <p style="text-align: left;">• Clinical data standards (HL7 FHIR)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <h3>Our Unique Contributions:</h3>
+                <div class="three-column">
+                    <div>
+                        <p><strong>✓ AI Interface:</strong> Natural language → Executable workflows</p>
+                    </div>
+                    <div>
+                        <p><strong>✓ Auto-Updates:</strong> Real-time tool benchmarks from literature</p>
+                    </div>
+                    <div>
+                        <p><strong>✓ Clinical Bridge:</strong> Research-to-clinical workflow continuum</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Strategic Use Case Prioritization (was slide 8) -->
+        <div class="slide">
+            <span class="slide-number">8 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>Competitive Landscape</h1>
+            <p class="subtitle">Why existing solutions fail and how we're different</p>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>bioMate AI</th>
+                        <th>Nextflow/Seqera</th>
+                        <th>Galaxy</th>
+                        <th>Latch.bio</th>
+                        <th>Watershed.bio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>AI-Driven Workflows</strong></td>
+                        <td class="check">✓ Core feature</td>
+                        <td class="cross">✗ Manual scripting</td>
+                        <td class="cross">✗ Manual only</td>
+                        <td class="cross">✗ Template-based</td>
+                        <td class="partial">⚠ Limited AI</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Natural Language Interface</strong></td>
+                        <td class="check">✓ "Analyze my LC-MS data"</td>
+                        <td class="cross">✗ Code-based (DSL)</td>
+                        <td class="cross">✗ GUI only</td>
+                        <td class="cross">✗ Traditional UI</td>
+                        <td class="cross">✗ Point-and-click</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Learning & Optimization</strong></td>
+                        <td class="check">✓ Learns from all users</td>
+                        <td class="cross">✗ Static pipelines</td>
+                        <td class="cross">✗ No learning</td>
+                        <td class="cross">✗ Manual tuning</td>
+                        <td class="cross">✗ Fixed workflows</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tool Coverage</strong></td>
+                        <td class="check">✓ 10,000+ tools</td>
+                        <td class="partial">⚠ Bioinformatics only</td>
+                        <td class="check">✓ 10,000+ tools</td>
+                        <td class="partial">⚠ ~100 curated</td>
+                        <td class="partial">⚠ ~100 templates</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Code-Free Interface</strong></td>
+                        <td class="check">✓ Anyone can use</td>
+                        <td class="cross">✗ DevOps required</td>
+                        <td class="partial">⚠ Training needed</td>
+                        <td class="check">✓ No-code</td>
+                        <td class="check">✓ No-code</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Auto Tool Updates</strong></td>
+                        <td class="check">✓ Real-time from literature</td>
+                        <td class="cross">✗ Manual updates</td>
+                        <td class="partial">⚠ Community-driven</td>
+                        <td class="cross">✗ Curated only</td>
+                        <td class="cross">✗ Manual curation</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Clinical Extension Path</strong></td>
+                        <td class="check">✓ Research-to-clinical bridge</td>
+                        <td class="cross">✗ Research only</td>
+                        <td class="partial">⚠ Some clinical use</td>
+                        <td class="cross">✗ Pharma R&D focus</td>
+                        <td class="cross">✗ Academic/biotech only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Infrastructure</strong></td>
+                        <td class="check">✓ Cloud-native SaaS</td>
+                        <td class="partial">⚠ Self-managed or Tower</td>
+                        <td class="partial">⚠ Server setup</td>
+                        <td class="check">✓ SaaS</td>
+                        <td class="check">✓ SaaS</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Target Market</strong></td>
+                        <td class="check">✓ All life sciences</td>
+                        <td>Genomics pipelines</td>
+                        <td>Academia + some pharma</td>
+                        <td>Biopharma R&D</td>
+                        <td>Biotech + Academia</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="three-column">
+                <div class="metric-card">
+                    <h4>vs. Nextflow/Seqera</h4>
+                    <p><strong>They build:</strong> DevOps for pipelines</p>
+                    <p><strong>We build:</strong> AI that writes pipelines</p>
+                    <p style="margin-top: 10px; color: #00ff00;">10x easier, 100x faster setup</p>
+                </div>
+                <div class="metric-card">
+                    <h4>vs. Latch.bio & Watershed.bio</h4>
+                    <p><strong>They offer:</strong> Curated workflow templates</p>
+                    <p><strong>We offer:</strong> AI + 10,000 tools + auto-updates</p>
+                    <p style="margin-top: 10px; color: #00ff00;">More tools, smarter automation</p>
+                </div>
+                <div class="metric-card">
+                    <h4>vs. Galaxy</h4>
+                    <p><strong>They provide:</strong> Tools & infrastructure</p>
+                    <p><strong>We add:</strong> Intelligence layer on top</p>
+                    <p style="margin-top: 10px; color: #00ff00;">We can even use Galaxy as backend!</p>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <p><strong>Key Differentiation:</strong> We're not another workflow engine - we're the AI layer that makes ALL workflow engines intelligent, with continuous auto-updates from cutting-edge research and a clear path to clinical applications.</p>
+            </div>
+        </div>
+
+        <!-- Slide 5: Life Science Domains (moved from slide 3) -->
+        <div class="slide">
+            <span class="slide-number">9 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>Strategic Use Case Prioritization</h1>
+            <p class="subtitle">Why we're launching non-clinical applications first</p>
+
+            <div class="two-column">
+                <div>
+                    <h3 style="color: #ff6464;">Clinical Applications Barriers</h3>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>HIPAA Compliance:</strong> <span style="color: #ff6464;">2-3 months</span> + $50K-100K</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>CLIA/CAP Validation:</strong> <span style="color: #ff6464;">6-12 months</span> + $100K-200K</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>FDA Clearance:</strong> <span style="color: #ff6464;">12-24 months</span> + $500K-2M</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>PHI Data Security:</strong> Encryption, access controls, audit trails</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>Clinical Partnerships:</strong> Hospital IRB approvals, validation studies</p>
+                    </div>
+
+                    <div class="pain-box pain-solution">
+                        <p><strong>Reimbursement:</strong> CPT codes, payer negotiations</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="color: #00ff00;">Non-Clinical Advantages</h3>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>No PHI/HIPAA:</strong> <span class="number-highlight">Launch immediately</span></p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>No CLIA:</strong> <span class="number-highlight">Research use only</span></p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>No FDA:</strong> <span class="number-highlight">Faster deployment</span></p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Open Data:</strong> Public datasets, no privacy restrictions</p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Academic Partnerships:</strong> Immediate collaboration without IRB</p>
+                    </div>
+
+                    <div class="solution-box pain-solution">
+                        <p><strong>Freemium Model:</strong> Viral growth, rapid user base</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <h3>Three-Phase Strategy:</h3>
+                <div class="three-column">
+                    <div>
+                        <p><strong>Phase 1 (Now):</strong> Launch non-clinical applications</p>
+                        <p>• Academic research cloud</p>
+                        <p>• Drug discovery</p>
+                        <p>• Synthetic biology</p>
+                        <p>• No regulatory barriers</p>
+                    </div>
+                    <div>
+                        <p><strong>Phase 2 (6-12 mo):</strong> Build clinical frameworks</p>
+                        <p>• HIPAA compliance</p>
+                        <p>• CLIA validation</p>
+                        <p>• Clinical partnerships</p>
+                        <p>• Revenue funds compliance</p>
+                    </div>
+                    <div>
+                        <p><strong>Phase 3 (12-24 mo):</strong> Clinical deployment</p>
+                        <p>• Hospital integration</p>
+                        <p>• FDA clearance</p>
+                        <p>• Reimbursement</p>
+                        <p>• Full market access</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: HIGH PRIORITY USE CASES (moved from slide 4) -->
+        <div class="slide">
+            <span class="slide-number">10 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>High-Priority Use Cases</h1>
+            <p class="subtitle">Strategic focus on non-clinical applications first, then clinical expansion</p>
+
+            <div class="two-column">
+                <div>
+                    <h3>🔬 Non-Clinical Applications (Immediate Launch)</h3>
+
+                    <div class="metric-card">
+                        <h4>1. Academic Research Cloud</h4>
+                        <p><strong>Market:</strong> $1.6B by 2030</p>
+                        <p><strong>Ready:</strong> 98% (6-8 weeks)</p>
+                        <p>• 50,000+ university research groups</p>
+                        <p>• Freemium model for viral growth</p>
+                        <p>• No PHI/HIPAA requirements</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>2. AI Drug Discovery</h4>
+                        <p><strong>Market:</strong> $15.8B by 2030</p>
+                        <p><strong>Ready:</strong> 95% (8-10 weeks)</p>
+                        <p>• 5,000+ biotech startups</p>
+                        <p>• Multi-omics target validation</p>
+                        <p>• No regulatory barriers</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>3. Synthetic Biology</h4>
+                        <p><strong>Market:</strong> $18.9B by 2030</p>
+                        <p><strong>Ready:</strong> 90% (10-12 weeks)</p>
+                        <p>• Strain engineering</p>
+                        <p>• Biomanufacturing optimization</p>
+                        <p>• No clinical compliance needed</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>4. Agricultural Genomics</h4>
+                        <p><strong>Market:</strong> $7.2B by 2030</p>
+                        <p><strong>Ready:</strong> 92% (10-12 weeks)</p>
+                        <p>• Crop improvement</p>
+                        <p>• Livestock breeding</p>
+                        <p>• Faster regulatory path</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>5. Environmental Metagenomics</h4>
+                        <p><strong>Market:</strong> $3.8B by 2030</p>
+                        <p><strong>Ready:</strong> 88% (12-14 weeks)</p>
+                        <p>• eDNA biodiversity monitoring</p>
+                        <p>• Carbon credit verification</p>
+                        <p>• Conservation genomics</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3>🏥 Clinical Applications (6-12 Month Extension)</h3>
+
+                    <div class="metric-card">
+                        <h4>1. Clinical DIA Proteomics</h4>
+                        <p><strong>Use Case:</strong> Precision medicine biomarkers</p>
+                        <p><strong>Ready:</strong> 99% tools, needs clinical packaging</p>
+                        <p>• Cancer diagnostics</p>
+                        <p>• Drug response prediction</p>
+                        <p>• CLIA/CAP validation required</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>2. Multi-Omics Cancer Diagnostics</h4>
+                        <p><strong>Use Case:</strong> Comprehensive molecular profiling</p>
+                        <p><strong>Ready:</strong> 95% (missing fusion detection)</p>
+                        <p>• Genomics + Transcriptomics + Proteomics</p>
+                        <p>• Actionable mutations + therapy matching</p>
+                        <p>• FDA companion diagnostic path</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>3. CRISPR/Gene Therapy QC</h4>
+                        <p><strong>Use Case:</strong> Clinical-grade editing validation</p>
+                        <p><strong>Ready:</strong> 85% (needs 3 CRISPR tools)</p>
+                        <p>• sgRNA design & off-target analysis</p>
+                        <p>• Manufacturing QC for IND submissions</p>
+                        <p>• 21 CFR Part 11 compliance</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>4. Clinical NGS Workflow</h4>
+                        <p><strong>Use Case:</strong> Automated variant interpretation</p>
+                        <p><strong>Ready:</strong> 99% tools, needs ACMG classifier</p>
+                        <p>• Germline & somatic variant calling</p>
+                        <p>• ACMG pathogenicity classification</p>
+                        <p>• HIPAA + CLIA validation</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>5. Longitudinal Monitoring</h4>
+                        <p><strong>Use Case:</strong> Liquid biopsy MRD tracking</p>
+                        <p><strong>Ready:</strong> 90% (needs timeline data model)</p>
+                        <p>• ctDNA detection</p>
+                        <p>• Treatment response tracking</p>
+                        <p>• Recurrence early warning</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <p style="text-align: center;">
+                    <strong>Strategy:</strong> Launch non-clinical applications immediately ($47.3B TAM) → Build revenue & case studies → Extend to clinical ($126B+ total TAM)
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 10: SENAITE & Instrument Integration (was slide 9) -->
+        <div class="slide">
+            <span class="slide-number">11 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>SENAITE.core & Instrument Data Integration</h1>
+            <p class="subtitle">Comprehensive coverage of clinical and research instruments</p>
+
+            <div class="two-column">
+                <div>
+                    <h3>🔬 SENAITE.core Integration</h3>
+                    <div class="metric-card">
+                        <h4>What is SENAITE?</h4>
+                        <p style="text-align: left; margin-top: 10px;">• Open-source LIMS for labs</p>
+                        <p style="text-align: left;">• 60+ instrument interfaces</p>
+                        <p style="text-align: left;">• Sample tracking & QC</p>
+                        <p style="text-align: left;">• GLP/GMP compliance ready</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Clinical Chemistry Instruments</h4>
+                        <p>• Roche Cobas (c311, c501, c502)</p>
+                        <p>• Abbott Architect (c8000, ci4100)</p>
+                        <p>• Siemens Dimension (Vista, RxL)</p>
+                        <p>• Beckman Coulter (AU680, DxC)</p>
+                        <p>• Ortho Clinical Diagnostics</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Hematology & Immunology</h4>
+                        <p>• Sysmex XN-Series</p>
+                        <p>• Beckman Coulter DxH</p>
+                        <p>• Bio-Rad D-10</p>
+                        <p>• Radiometer ABL</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3>🧬 NGS & Mass Spec Instruments</h3>
+
+                    <div class="metric-card">
+                        <h4>Next-Gen Sequencing</h4>
+                        <p><strong>Illumina:</strong> NovaSeq, MiSeq, NextSeq</p>
+                        <p><strong>ONT:</strong> MinION, PromethION, GridION</p>
+                        <p><strong>PacBio:</strong> Sequel, Revio</p>
+                        <p style="margin-top: 10px;">• Direct FASTQ parsing</p>
+                        <p>• Run metadata extraction</p>
+                        <p>• QC metrics integration</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Mass Spectrometry</h4>
+                        <p><strong>Thermo Fisher:</strong> Orbitrap, Q Exactive</p>
+                        <p><strong>Waters:</strong> Xevo, Synapt</p>
+                        <p><strong>Bruker:</strong> timsTOF, maXis</p>
+                        <p><strong>Agilent:</strong> 6500 Series QTOF</p>
+                        <p style="margin-top: 10px;">• ProteoWizard conversion</p>
+                        <p>• mzML/mzXML standardization</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Other Platforms</h4>
+                        <p>• Flow cytometers (BD, Beckman)</p>
+                        <p>• PCR/qPCR (Bio-Rad, ABI)</p>
+                        <p>• Microarrays (Affymetrix, Agilent)</p>
+                        <p>• Imaging systems (PerkinElmer)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <h3>Comprehensive Data Format Support:</h3>
+                <div class="three-column">
+                    <div>
+                        <p><strong>✓ Clinical:</strong> HL7, ASTM E1394, LIS protocols</p>
+                    </div>
+                    <div>
+                        <p><strong>✓ Genomics:</strong> FASTQ, BAM, VCF, GFF, BED</p>
+                    </div>
+                    <div>
+                        <p><strong>✓ Mass Spec:</strong> mzML, mzXML, .raw, .d, .wiff</p>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 15px;"><strong>Coverage:</strong> 80%+ of common research and clinical instruments</p>
+            </div>
+        </div>
+
+        <!-- Continue with remaining slides 11-22 (Platform Moats, Roadmap, Market, Revenue, Team, Investment, CTA) -->
+        <!-- These stay the same as before, just renumbered -->
+
+        <!-- Slide 11: Platform Moats -->
+        <div class="slide">
+        <!-- NEW SLIDE: Clinical LIMS Landscape Validation -->
+            <span class="slide-number">12 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>Four Defensible Moats</h1>
+            <p class="subtitle">Why our platform becomes more valuable over time</p>
+
+            <div class="two-column">
+                <div>
+                    <h3>1️⃣ Domain Knowledge Intelligence</h3>
+                    <p><strong>The Problem:</strong> 10,000+ tools, which to use? What order? What parameters?</p>
+                    <p><strong>Our Solution:</strong> AI trained on 30M papers knows optimal workflows</p>
+                    <p><strong>Moat Depth:</strong> 2+ years to replicate our training data</p>
+                </div>
+                <div class="metric-card" style="width: 150px;">
+                    <div class="metric-value">$1B</div>
+                    <div class="metric-label">Value</div>
+                </div>
+            </div>
+
+            <div class="two-column" style="margin-top: 20px;">
+                <div>
+                    <h3>2️⃣ Workflow Complexity Management</h3>
+                    <p><strong>The Problem:</strong> 100M+ parameter combinations, infinite workflows</p>
+                    <p><strong>Our Solution:</strong> Auto-generation, adaptive optimization, error recovery</p>
+                    <p><strong>Moat Depth:</strong> Compounds with every user interaction</p>
+                </div>
+                <div class="metric-card" style="width: 150px;">
+                    <div class="metric-value">$2B</div>
+                    <div class="metric-label">Value</div>
+                </div>
+            </div>
+
+            <div class="two-column" style="margin-top: 20px;">
+                <div>
+                    <h3>3️⃣ Network Effects</h3>
+                    <p><strong>The Problem:</strong> Each lab reinvents workflows</p>
+                    <p><strong>Our Solution:</strong> Shared learning across all users</p>
+                    <p><strong>Moat Depth:</strong> 1M+ optimized workflows by 2027</p>
+                </div>
+                <div class="metric-card" style="width: 150px;">
+                    <div class="metric-value">$3B</div>
+                    <div class="metric-label">Value</div>
+                </div>
+            </div>
+
+            <div class="two-column" style="margin-top: 20px;">
+                <div>
+                    <h3>4️⃣ Integration Breadth</h3>
+                    <p><strong>The Problem:</strong> Tools don't talk to each other</p>
+                    <p><strong>Our Solution:</strong> Universal translator for all formats/tools</p>
+                    <p><strong>Moat Depth:</strong> 10,000+ integrations = massive switching cost</p>
+                </div>
+                <div class="metric-card" style="width: 150px;">
+                    <div class="metric-value">$4B</div>
+                    <div class="metric-label">Value</div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <p style="text-align: center; font-size: 1.2em;"><strong>Total Platform Value:</strong> $10B+ as moats compound over time</p>
+            </div>
+        </div>
+
+        <!-- Slide 12: 18-Month Roadmap -->
+        <div class="slide">
+            <span class="slide-number">13 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>18-Month Roadmap to Series A</h1>
+            <p class="subtitle">From prototype to $60M ARR platform</p>
+
+            <div style="background: rgba(0, 200, 255, 0.05); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <h3>📍 Phase 0: Current Status (Aug-Sept 2025)</h3>
+                <div class="two-column">
+                    <div>
+                        <p><strong>Focus: Prototype Development</strong></p>
+                        <p>✓ LC-MS pipeline optimization</p>
+                        <p>✓ 10 pilot users validation</p>
+                        <p>✓ Technical proof points</p>
+                    </div>
+                    <div>
+                        <p><strong>Fundraising Timeline:</strong></p>
+                        <p>→ Next January: Start seed raise</p>
+                        <p>→ Next March - June: Close $3M round</p>
+                        <p>→ No distractions until October</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="three-column">
+                <div>
+                    <h4 style="color: #00c8ff;">Q4 2025 (Oct-Dec)</h4>
+                    <div class="metric-card">
+                        <p><strong>Product:</strong></p>
+                        <p>• Production LC-MS launch</p>
+                        <p>• Galaxy integration</p>
+                        <p>• Natural language interface</p>
+                        <p style="margin-top: 10px;"><strong>Metrics:</strong></p>
+                        <p>• 200 paying users</p>
+                        <p>• $25K MRR</p>
+                        <p>• 95% accuracy</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 style="color: #00c8ff;">Q1 2026 (Jan-Mar)</h4>
+                    <div class="metric-card">
+                        <p><strong>Product:</strong></p>
+                        <p>• Bioconductor integration</p>
+                        <p>• Auto workflow generation</p>
+                        <p>• Team collaboration</p>
+                        <p style="margin-top: 10px;"><strong>Metrics:</strong></p>
+                        <p>• 1,000 users</p>
+                        <p>• $150K MRR</p>
+                        <p>• First pharma customer</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 style="color: #00c8ff;">Q2 2026 (Apr-Jun)</h4>
+                    <div class="metric-card">
+                        <p><strong>Product:</strong></p>
+                        <p>• Genomics tools added</p>
+                        <p>• Workflow marketplace</p>
+                        <p>• API launch</p>
+                        <p style="margin-top: 10px;"><strong>Metrics:</strong></p>
+                        <p>• 5,000 users</p>
+                        <p>• $600K MRR</p>
+                        <p>• 100+ workflows shared</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="three-column" style="margin-top: 20px;">
+                <div>
+                    <h4 style="color: #00ff00;">Q3 2026 (Jul-Sep)</h4>
+                    <div class="metric-card">
+                        <p><strong>Product:</strong></p>
+                        <p>• Proteomics support</p>
+                        <p>• Clinical frameworks beta</p>
+                        <p>• Enterprise features</p>
+                        <p style="margin-top: 10px;"><strong>Metrics:</strong></p>
+                        <p>• 10,000 users</p>
+                        <p>• $2M MRR</p>
+                        <p>• 10 enterprise deals</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 style="color: #00ff00;">Q4 2026 (Oct-Dec)</h4>
+                    <div class="metric-card">
+                        <p><strong>Product:</strong></p>
+                        <p>• Multi-omics platform</p>
+                        <p>• HIPAA compliance</p>
+                        <p>• Clinical pilot programs</p>
+                        <p style="margin-top: 10px;"><strong>Metrics:</strong></p>
+                        <p>• 20,000 users</p>
+                        <p>• $5M MRR</p>
+                        <p>• 50% market awareness</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 style="color: #00ff00;">Q1 2027 (Jan-Feb)</h4>
+                    <div class="metric-card" style="border: 2px solid #00ff00;">
+                        <p><strong>Series A Ready!</strong></p>
+                        <p>• $60M ARR run rate</p>
+                        <p>• 20K+ users</p>
+                        <p>• All domains covered</p>
+                        <p style="margin-top: 10px;"><strong>Raise:</strong></p>
+                        <p>• $20M Series A</p>
+                        <p>• $150M valuation</p>
+                        <p>• Scale globally</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <p style="text-align: center;">
+                    <strong>Key Milestones:</strong> Q4 2025: Product launch | Q2 2026: Platform expansion | Q4 2026: Market leader | Q1 2027: Series A
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 13: Market Opportunity -->
+        <div class="slide">
+            <span class="slide-number">18 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>$126B Market Opportunity</h1>
+            <p class="subtitle">Every lab, every instrument, every analysis needs our platform</p>
+
+            <div class="three-column">
+                <div class="metric-card">
+                    <div class="metric-value">$47.3B</div>
+                    <div class="metric-label">Non-Clinical TAM (Phase 1)</div>
+                    <p>Launch immediately</p>
+                    <p style="font-size: 0.8em; color: #888;">Academic + Biotech + AgBio</p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">$24B</div>
+                    <div class="metric-label">Genomics/NGS</div>
+                    <p>Year 2 expansion</p>
+                    <p style="font-size: 0.8em; color: #888;">[Grand View Research]</p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">$35B</div>
+                    <div class="metric-label">Proteomics</div>
+                    <p>Year 3 expansion</p>
+                    <p style="font-size: 0.8em; color: #888;">[BCC Research]</p>
+                </div>
+            </div>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Market Segment</th>
+                        <th>Size</th>
+                        <th>Current Solution</th>
+                        <th>Our Opportunity</th>
+                        <th>Timeline</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Academic Labs</td>
+                        <td>100K+</td>
+                        <td>Free tools, no support</td>
+                        <td>$99/mo subscription</td>
+                        <td>Q4 2025</td>
+                    </tr>
+                    <tr>
+                        <td>Biotech Startups</td>
+                        <td>5,000+</td>
+                        <td>Can't afford enterprise</td>
+                        <td>$499/mo team plan</td>
+                        <td>Q1 2026</td>
+                    </tr>
+                    <tr>
+                        <td>CROs</td>
+                        <td>1,000+</td>
+                        <td>Manual workflows</td>
+                        <td>$999/mo + usage</td>
+                        <td>Q2 2026</td>
+                    </tr>
+                    <tr>
+                        <td>Big Pharma</td>
+                        <td>500+</td>
+                        <td>Legacy systems</td>
+                        <td>$2,999/mo enterprise</td>
+                        <td>Q3 2026</td>
+                    </tr>
+                    <tr>
+                        <td>Clinical Labs</td>
+                        <td>10K+</td>
+                        <td>Outdated LIMS</td>
+                        <td>Compliance tier</td>
+                        <td>2027</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="highlight">
+                <p style="text-align: center;">
+                    <strong>TAM:</strong> $126B × 10% software spend = $12.6B addressable |
+                    <strong>Target:</strong> 10% market share = $1.26B ARR by 2030
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 14: Revenue Model & Projections -->
+        <div class="slide">
+            <span class="slide-number">18 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>Revenue Model & Projections</h1>
+            <p class="subtitle">Multiple revenue streams, aggressive growth trajectory</p>
+
+            <div class="three-column">
+                <div class="metric-card">
+                    <h4>Free Tier</h4>
+                    <p class="metric-value">$0</p>
+                    <p>10 analyses/month</p>
+                    <p>Community support</p>
+                    <p><em>Viral growth driver</em></p>
+                </div>
+                <div class="metric-card" style="border: 2px solid #00c8ff;">
+                    <h4>Professional</h4>
+                    <p class="metric-value">$99-499</p>
+                    <p>Unlimited analyses</p>
+                    <p>All AI features</p>
+                    <p><em>70% of revenue</em></p>
+                </div>
+                <div class="metric-card">
+                    <h4>Enterprise</h4>
+                    <p class="metric-value">$999-2,999</p>
+                    <p>Teams, compliance</p>
+                    <p>Priority support</p>
+                    <p><em>30% of revenue</em></p>
+                </div>
+            </div>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Quarter</th>
+                        <th>Users</th>
+                        <th>Paying %</th>
+                        <th>MRR</th>
+                        <th>ARR</th>
+                        <th>Growth</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Q4 2025</td>
+                        <td>500</td>
+                        <td>10%</td>
+                        <td>$25K</td>
+                        <td>$300K</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>Q2 2026</td>
+                        <td>5,000</td>
+                        <td>20%</td>
+                        <td>$600K</td>
+                        <td>$7.2M</td>
+                        <td>24x</td>
+                    </tr>
+                    <tr>
+                        <td>Q4 2026</td>
+                        <td>20,000</td>
+                        <td>40%</td>
+                        <td>$5.6M</td>
+                        <td>$67M</td>
+                        <td>9.3x</td>
+                    </tr>
+                    <tr>
+                        <td>Q4 2027</td>
+                        <td>100,000</td>
+                        <td>45%</td>
+                        <td>$36M</td>
+                        <td>$432M</td>
+                        <td>6.4x</td>
+                    </tr>
+                    <tr>
+                        <td>Q4 2028</td>
+                        <td>300,000</td>
+                        <td>60%</td>
+                        <td>$180M</td>
+                        <td>$2.16B</td>
+                        <td>5x</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="two-column">
+                <div class="metric-card">
+                    <h4>Unit Economics</h4>
+                    <p><strong>CAC:</strong> $200 (PLG model)</p>
+                    <p><strong>LTV:</strong> $8,000</p>
+                    <p><strong>LTV/CAC:</strong> 40:1</p>
+                    <p><strong>Payback:</strong> 2 months</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Financial Metrics</h4>
+                    <p><strong>Gross Margin:</strong> 85%</p>
+                    <p><strong>Churn:</strong> 2% monthly</p>
+                    <p><strong>EBITDA Positive:</strong> Q4 2026</p>
+                    <p><strong>Cash Flow Positive:</strong> Q1 2027</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: Team -->
+        <div class="slide">
+            <span class="slide-number">16 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>Team & Advisors</h1>
+            <p class="subtitle">Deep domain expertise + cutting-edge AI capabilities</p>
+
+            <div class="two-column">
+                <div>
+                    <h3>Core Team</h3>
+                    <div class="metric-card">
+                        <h4>CEO/Founder</h4>
+                        <p>[Your background]</p>
+                        <p>PhD + 10 years in life sciences</p>
+                        <p>Previous: [Relevant experience]</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>CTO (Joining Oct)</h4>
+                        <p>Ex-Google DeepMind</p>
+                        <p>Scientific computing expert</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>VP Product (Joining Nov)</h4>
+                        <p>Ex-Benchling PM</p>
+                        <p>Built $100M product lines</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Head of Science</h4>
+                        <p>20+ years LC-MS experience</p>
+                        <p>100+ publications</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3>Advisory Board</h3>
+                    <div class="metric-card">
+                        <h4>Scientific Advisors</h4>
+                        <p>• Galaxy Project contributor</p>
+                        <p>• Bioconductor core developer</p>
+                        <p>• Director, UC Mass Spec Core</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Business Advisors</h4>
+                        <p>• Former TetraScience exec</p>
+                        <p>• VP Sales, Thermo Fisher</p>
+                        <p>• Partner, ARCH Ventures</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Technical Advisors</h4>
+                        <p>• Cloud infrastructure expert</p>
+                        <p>• Compliance specialist</p>
+                        <p>• AI researcher (Stanford)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight">
+                <p style="text-align: center;">
+                    <strong>Why This Team Wins:</strong> Only team with deep life science domain knowledge + AI expertise + platform vision + clinical extension path
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 16: Investment Terms -->
+        <div class="slide">
+            <span class="slide-number">17 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1>Investment Opportunity</h1>
+            <p class="subtitle">$3M seed round to capture $126B market</p>
+
+            <div style="text-align: center; margin-top: 40px;">
+                <div class="metric-card" style="display: inline-block; padding: 40px; max-width: 600px;">
+                    <h2>Seeking $3M Seed</h2>
+                    <div class="metric-value" style="font-size: 3em; margin: 30px 0;">$12M</div>
+                    <div class="metric-label" style="font-size: 1.3em;">Pre-money Valuation</div>
+                </div>
+            </div>
+
+            <div class="two-column" style="margin-top: 40px;">
+                <div>
+                    <h3>Use of Funds</h3>
+                    <div class="metric-card">
+                        <p><strong>50%</strong> Product Development</p>
+                        <p>Core platform, AI optimization</p>
+                    </div>
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <p><strong>25%</strong> Go-to-Market</p>
+                        <p>Sales, marketing, partnerships</p>
+                    </div>
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <p><strong>15%</strong> Infrastructure</p>
+                        <p>Cloud, ML ops, security</p>
+                    </div>
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <p><strong>10%</strong> R&D</p>
+                        <p>Clinical extension preparation</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3>Investment Highlights</h3>
+                    <div class="metric-card">
+                        <p>✓ Working prototype with 10x ROI</p>
+                        <p>✓ 500+ waitlist, 3 enterprise LOIs</p>
+                        <p>✓ $126B TAM, clear market need</p>
+                        <p>✓ Four defensible moats</p>
+                        <p>✓ Path to $2B ARR by 2028</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Next Funding</h4>
+                        <p><strong>Series A:</strong> Q4 2026</p>
+                        <p>Target: $20M at $150M valuation</p>
+                        <p>Metrics: $5M MRR, 5K customers</p>
+                    </div>
+
+                    <div class="metric-card" style="margin-top: 15px;">
+                        <h4>Exit Strategy</h4>
+                        <p>IPO or acquisition 2029-2030</p>
+                        <p>Target: $10B+ valuation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: Call to Action -->
+        <div class="slide" style="text-align: center;">
+            <span class="slide-number">19 / 23</span>
+            <div class="logo">bioMate AI</div>
+            <h1 style="font-size: 3em; margin-top: 50px;">Join Us in Transforming Science</h1>
+
+            <div style="margin-top: 50px;">
+                <div class="metric-card" style="display: inline-block; padding: 40px; max-width: 700px;">
+                    <p style="font-size: 1.5em; margin: 20px 0;">🧠 AI that understands science</p>
+                    <p style="font-size: 1.5em; margin: 20px 0;">🔄 Orchestrating 10,000+ tools</p>
+                    <p style="font-size: 1.5em; margin: 20px 0;">⚡ 10x productivity improvement</p>
+                    <p style="font-size: 1.5em; margin: 20px 0;">💰 99% cost reduction</p>
+                    <p style="font-size: 1.5em; margin: 20px 0;">🚀 Path to $10B valuation</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 50px;">
+                <p style="font-size: 1.8em; color: #00ff00;">First platform to make ALL scientific tools intelligent</p>
+                <p style="font-size: 1.5em; color: #888; margin-top: 20px;">The Figma of life science data analysis</p>
+            </div>
+
+            <div style="margin-top: 50px;">
+                <p style="color: #00c8ff; font-size: 1.2em;">hello@biomate-ai.com</p>
+                <p style="color: #00c8ff; font-size: 1.2em;">Demo available now</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-button" onclick="scrollToTop()">↑ Top</button>
+    </div>
+
+    <script>
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

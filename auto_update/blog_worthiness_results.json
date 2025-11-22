@@ -1,0 +1,122 @@
+[
+  {
+    "worthy": true,
+    "confidence": 0.85,
+    "reason": "Foldseek is a specialized tool for protein structure alignment with high GitHub star count, addressing a critical bioinformatics challenge of comparing protein structures computationally",
+    "tool_type": "specific_tool",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "Foldseek: Accelerating Protein Structure Comparison and Alignment",
+    "tool_id": "auto_foldseek",
+    "tool_name": "foldseek",
+    "evaluated_at": "2025-11-11T14:28:06.561911"
+  },
+  {
+    "worthy": true,
+    "confidence": 0.8,
+    "reason": "Graphein appears to be a specialized protein graph library with significant GitHub engagement, offering a novel approach to protein structural representation through graph-based methods",
+    "tool_type": "specific_tool",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "Graphein: Transforming Protein Structures into Computational Graphs for Advanced Bioinformatics Analysis",
+    "tool_id": "auto_graphein",
+    "tool_name": "graphein",
+    "evaluated_at": "2025-11-11T14:28:13.724653"
+  },
+  {
+    "worthy": false,
+    "confidence": 0.8,
+    "reason": "SeqKit is a generic sequence file manipulation toolkit without a specific biological analysis purpose",
+    "tool_type": "utility",
+    "biological_focus": "unclear",
+    "recommended_action": "skip",
+    "suggested_title": null,
+    "tool_id": "auto_seqkit",
+    "tool_name": "seqkit",
+    "evaluated_at": "2025-11-11T14:28:19.533124"
+  },
+  {
+    "worthy": true,
+    "confidence": 0.85,
+    "reason": "MMseqs2 is a high-performance bioinformatics tool for sequence alignment and clustering, with significant GitHub traction and scientific relevance",
+    "tool_type": "specific_tool",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "MMseqs2: Revolutionizing Sequence Alignment and Clustering in Bioinformatics",
+    "tool_id": "auto_mmseqs2",
+    "tool_name": "MMseqs2",
+    "evaluated_at": "2025-11-11T14:28:25.821338"
+  },
+  {
+    "worthy": true,
+    "confidence": 0.9,
+    "reason": "ColabFold is a significant tool for protein structure prediction, making advanced AI-powered folding techniques more accessible",
+    "tool_type": "model",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "ColabFold: Democratizing Protein Structure Prediction with Machine Learning",
+    "tool_id": "auto_colabfold",
+    "tool_name": "ColabFold",
+    "evaluated_at": "2025-11-11T14:28:33.650867"
+  },
+  {
+    "worthy": false,
+    "confidence": 0.95,
+    "reason": "Biopython is a general-purpose bioinformatics programming library, not a specialized research tool",
+    "tool_type": "general_library",
+    "biological_focus": "unclear",
+    "recommended_action": "skip",
+    "suggested_title": null,
+    "tool_id": "auto_biopython",
+    "tool_name": "biopython",
+    "evaluated_at": "2025-11-11T14:28:38.153338"
+  },
+  {
+    "worthy": true,
+    "confidence": 0.75,
+    "reason": "Comprehensive multi-omics Python library for RNA-seq analysis across different modalities (bulk, single-cell, spatial), with a significant GitHub star count indicating community interest",
+    "tool_type": "specific_tool",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "OmicVerse: A Comprehensive Python Library for Multi-Modal RNA-Seq Analysis",
+    "tool_id": "auto_omicverse",
+    "tool_name": "omicverse",
+    "evaluated_at": "2025-11-11T14:28:44.442975"
+  },
+  {
+    "worthy": false,
+    "confidence": 0.7,
+    "reason": "While Biotite is a comprehensive molecular biology library, it appears to be a general-purpose programming library rather than a specialized bioinformatics tool solving a specific research problem",
+    "tool_type": "general_library",
+    "biological_focus": "unclear",
+    "recommended_action": "skip",
+    "suggested_title": null,
+    "tool_id": "auto_biotite",
+    "tool_name": "biotite",
+    "evaluated_at": "2025-11-11T14:28:55.505998"
+  },
+  {
+    "worthy": false,
+    "confidence": 0.9,
+    "reason": "htslib is a low-level programming library for handling high-throughput sequencing data formats, which is a fundamental utility rather than a specialized bioinformatics tool",
+    "tool_type": "general_library",
+    "biological_focus": "unclear",
+    "recommended_action": "skip",
+    "suggested_title": null,
+    "tool_id": "auto_htslib",
+    "tool_name": "htslib",
+    "evaluated_at": "2025-11-11T14:29:01.845053"
+  },
+  {
+    "worthy": false,
+    "confidence": 0.9,
+    "reason": "Generic parallelization utility without specific bioinformatics focus",
+    "tool_type": "utility",
+    "biological_focus": "none",
+    "recommended_action": "skip",
+    "suggested_title": null,
+    "tool_id": "auto_rush",
+    "tool_name": "rush",
+    "evaluated_at": "2025-11-11T14:29:06.434692"
+  }
+]

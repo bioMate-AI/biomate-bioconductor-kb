@@ -34,6 +34,7 @@ from galaxy_wrapper_generator import GalaxyWrapperGenerator
 from api_wrapper_generator import APIWrapperGenerator
 from validate_wrapper import WrapperValidator
 from test_tool_execution import ToolExecutor
+from enhanced_metadata_extractor import EnhancedMetadataExtractor
 from integrate_tools import ToolIntegrator, DatabaseIntegrator
 from quality_enhancement_step import QualityEnhancementStep
 from feasibility_checker import FeasibilityChecker
@@ -61,6 +62,7 @@ class PipelineStats:
             'detected': 0,
             'feasibility_passed': 0,
             'feasibility_rejected': 0,
+            'skipped_old_version': 0,
             'skipped_duplicate': 0,
             'skipped_has_api': 0,
             'skipped_too_large': 0,
@@ -260,7 +262,38 @@ class AutoUpdatePipeline:
 
         logger.info(f"\nProcessing tool: {tool_name}")
 
-        # Stage 1.5: Feasibility check (filter unsuitable tools early)
+        # Stage 1.4: Enhanced metadata extraction (version, dependencies, test commands)
+        logger.info(f"  [1/8] Extracting enhanced metadata...")
+        github_token = self.config.get('credentials', {}).get('github', {}).get('token')
+        enhanced_extractor = EnhancedMetadataExtractor(github_token)
+        enhanced_metadata = enhanced_extractor.extract(discovery)
+
+        # Merge enhanced metadata into discovery
+        discovery['version'] = enhanced_metadata.get('version', 'unknown')
+        discovery['dependencies'] = enhanced_metadata.get('dependencies', [])
+        discovery['test_commands'] = enhanced_metadata.get('test_commands', [])
+        discovery['usage_examples'] = enhanced_metadata.get('usage_examples', [])
+        discovery['install_commands'] = enhanced_metadata.get('install_commands', [])
+
+        # Stage 1.5: Version check (skip if same or older version exists)
+        tool_id = f"auto_{tool_name.lower().replace('-', '_')}"
+        db_integrator = DatabaseIntegrator(self.db_path)
+        db_integrator.connect()
+
+        if db_integrator.tool_exists(tool_id):
+            new_version = discovery.get('version', 'unknown')
+
+            if not db_integrator.is_newer_version(tool_id, new_version):
+                logger.info(f"  [SKIP] Same or older version exists: {new_version}")
+                self.stats.add('skipped_old_version')
+                db_integrator.close()
+                return
+
+            logger.info(f"  Found newer version: {new_version}")
+
+        db_integrator.close()
+
+        # Stage 1.6: Feasibility check (filter unsuitable tools early)
         # Use LLM-based checker if available for better generalization
         api_key = os.getenv('ANTHROPIC_API_KEY')
         if HAS_LLM_CHECKER and api_key:
@@ -277,18 +310,7 @@ class AutoUpdatePipeline:
             return
 
         self.stats.add('feasibility_passed')
-        logger.info(f"  [1/6] Feasibility check passed ({tool_type}): {reason}")
-
-        # Stage 1.6: Check for duplicates in database
-        tool_id = f"auto_{tool_name.lower().replace('-', '_')}"
-        db_integrator = DatabaseIntegrator(self.db_path)
-        db_integrator.connect()
-        if db_integrator.tool_exists(tool_id):
-            logger.info(f"  [SKIP] Tool {tool_id} already exists in database")
-            self.stats.add('skipped_duplicate')
-            db_integrator.close()
-            return
-        db_integrator.close()
+        logger.info(f"  [2/8] Feasibility check passed ({tool_type}): {reason}")
 
         # Stage 1.7: Check for API availability (prefer API over local installation)
         api_detector = APIDetector()
@@ -303,12 +325,14 @@ class AutoUpdatePipeline:
                 return
 
         # Stage 2: Fetch documentation
+        logger.info(f"  [3/8] Fetching documentation...")
         documentation = self._fetch_documentation(repo_full_name)
         if not documentation:
             self.stats.add_error(f"{tool_name}: Failed to fetch documentation")
             return
 
         # Stage 3: Generate wrapper
+        logger.info(f"  [4/8] Generating wrapper...")
         wrapper_path = self._generate_wrapper(discovery, documentation)
         if not wrapper_path:
             self.stats.add_error(f"{tool_name}: Failed to generate wrapper")
@@ -316,23 +340,27 @@ class AutoUpdatePipeline:
 
         # Stage 4: Validate wrapper
         if validate:
+            logger.info(f"  [5/8] Validating wrapper...")
             is_valid = self._validate_wrapper(wrapper_path)
             if not is_valid:
                 self.stats.add_error(f"{tool_name}: Validation failed")
                 return
 
-        # Stage 5: Test execution
+        # Stage 5: Test execution (with dependencies and test commands)
         test_result = None
         if test:
+            logger.info(f"  [6/8] Testing execution with dependencies and real data...")
             test_passed = self._test_execution(wrapper_path, discovery)
             if not test_passed:
                 self.stats.add_error(f"{tool_name}: Test failed")
-                # Continue to integration even if test failed (for now)
-                test_result = {'success': False}
+                # Don't integrate if tests fail
+                logger.warning(f"  ✗ Tool {tool_name} NOT integrated (test requirement)")
+                return
             else:
                 test_result = {'success': True}
 
         # Stage 6: Integrate with complete metadata extraction
+        logger.info(f"  [7/8] Integrating tool...")
         result = self._integrate_tool(wrapper_path, discovery, documentation, test_result)
         if result == "success":
             logger.info(f"✓ Successfully integrated {tool_name}")

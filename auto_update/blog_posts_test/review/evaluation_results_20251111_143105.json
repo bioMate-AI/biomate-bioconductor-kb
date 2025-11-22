@@ -1,0 +1,62 @@
+[
+  {
+    "worthy": true,
+    "confidence": 0.9,
+    "reason": "Foldseek is a specialized structural alignment tool for protein structures with significant GitHub traction and clear computational biology purpose",
+    "tool_type": "specific_tool",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "Foldseek: Accelerating Protein Structure Comparisons at Scale",
+    "tool_id": "auto_foldseek",
+    "tool_name": "foldseek",
+    "evaluated_at": "2025-11-11T14:30:40.574267"
+  },
+  {
+    "worthy": true,
+    "confidence": 0.8,
+    "reason": "Graphein appears to be a specialized protein graph library with significant GitHub traction (1141 stars), focused on creating graph representations of protein structures",
+    "tool_type": "specific_tool",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "Graphein: Transforming Protein Structures into Computational Graphs",
+    "tool_id": "auto_graphein",
+    "tool_name": "graphein",
+    "evaluated_at": "2025-11-11T14:30:47.143502"
+  },
+  {
+    "worthy": true,
+    "confidence": 0.7,
+    "reason": "SeqKit is a specialized bioinformatics toolkit for handling sequence files, which is valuable for many researchers working with FASTA/Q formats",
+    "tool_type": "specific_tool",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "SeqKit: An Ultrafast Toolkit for Sequence File Manipulation in Bioinformatics",
+    "tool_id": "auto_seqkit",
+    "tool_name": "seqkit",
+    "evaluated_at": "2025-11-11T14:30:52.879759"
+  },
+  {
+    "worthy": true,
+    "confidence": 0.95,
+    "reason": "MMseqs2 is a highly specialized bioinformatics tool for ultra-fast sequence alignment and clustering, addressing a critical computational challenge in genomics and proteomics research",
+    "tool_type": "specific_tool",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "MMseqs2: Accelerating Genomic and Proteomic Sequence Comparisons",
+    "tool_id": "auto_mmseqs2",
+    "tool_name": "MMseqs2",
+    "evaluated_at": "2025-11-11T14:30:59.251455"
+  },
+  {
+    "worthy": true,
+    "confidence": 0.95,
+    "reason": "ColabFold is a significant tool for protein structure prediction, making AlphaFold-like capabilities more accessible to researchers",
+    "tool_type": "model",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "ColabFold: Democratizing Protein Structure Prediction with Accessible Machine Learning",
+    "tool_id": "auto_colabfold",
+    "tool_name": "ColabFold",
+    "evaluated_at": "2025-11-11T14:31:05.683509"
+  }
+]

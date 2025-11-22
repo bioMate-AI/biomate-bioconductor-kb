@@ -1,0 +1,44 @@
+{
+  "timestamp": "20251111_143105",
+  "total_evaluated": 5,
+  "approved": 5,
+  "skipped": 0,
+  "needs_review": 0,
+  "blogs_generated": 0,
+  "dry_run": true,
+  "review_file": "blog_posts_test/review/evaluation_results_20251111_143105.json",
+  "output_dir": "blog_posts_test",
+  "approved_tools": [
+    {
+      "tool_id": "auto_foldseek",
+      "tool_name": "foldseek",
+      "confidence": 0.9,
+      "suggested_title": "Foldseek: Accelerating Protein Structure Comparisons at Scale"
+    },
+    {
+      "tool_id": "auto_graphein",
+      "tool_name": "graphein",
+      "confidence": 0.8,
+      "suggested_title": "Graphein: Transforming Protein Structures into Computational Graphs"
+    },
+    {
+      "tool_id": "auto_seqkit",
+      "tool_name": "seqkit",
+      "confidence": 0.7,
+      "suggested_title": "SeqKit: An Ultrafast Toolkit for Sequence File Manipulation in Bioinformatics"
+    },
+    {
+      "tool_id": "auto_mmseqs2",
+      "tool_name": "MMseqs2",
+      "confidence": 0.95,
+      "suggested_title": "MMseqs2: Accelerating Genomic and Proteomic Sequence Comparisons"
+    },
+    {
+      "tool_id": "auto_colabfold",
+      "tool_name": "ColabFold",
+      "confidence": 0.95,
+      "suggested_title": "ColabFold: Democratizing Protein Structure Prediction with Accessible Machine Learning"
+    }
+  ],
+  "skipped_tools": []
+}

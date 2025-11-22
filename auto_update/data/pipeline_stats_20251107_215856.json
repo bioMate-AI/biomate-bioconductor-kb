@@ -1,0 +1,21 @@
+{
+  "detected": 15,
+  "docs_fetched": 15,
+  "wrappers_generated": 15,
+  "wrappers_validated": 15,
+  "tests_passed": 0,
+  "tests_failed": 0,
+  "integrated": 5,
+  "errors": [
+    "dash: Integration failed",
+    "biopython: Integration failed",
+    "deepvariant: Integration failed",
+    "nextflow: Integration failed",
+    "scanpy: Integration failed",
+    "gatk: Integration failed",
+    "galaxy: Integration failed",
+    "MultiQC: Integration failed",
+    "rush: Integration failed",
+    "htslib: Integration failed"
+  ]
+}

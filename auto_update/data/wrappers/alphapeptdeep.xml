@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<tool id="auto_alphapeptdeep" name="alphapeptdeep" version="1.0.0">
+  <description>Deep learning framework for proteomics</description>
+  <requirements>
+    <container type="docker">python:3.9-slim</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Setup environment
+pip install alphapeptdeep
+
+# Run tool
+alphapeptdeep --help || python -m alphapeptdeep --help
+]]&gt;</command>
+  <inputs>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+    <param name="m" type="text" label="M" help="#     - (Dimethyl-n-0)"/>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>------------------------------------------------------------------------
+
+&lt;!-- PROJECT LOGO --&gt;
+
+&lt;br /&gt;
+
+Repository: https://github.com/MannLabs/alphapeptdeep</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

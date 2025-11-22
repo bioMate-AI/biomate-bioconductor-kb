@@ -1,0 +1,26 @@
+[
+  {
+    "worthy": false,
+    "confidence": 0.95,
+    "reason": "Biopython is a general-purpose Python library for bioinformatics, not a specialized tool solving a specific research problem",
+    "tool_type": "general_library",
+    "biological_focus": "unclear",
+    "recommended_action": "skip",
+    "suggested_title": null,
+    "tool_id": "auto_biopython",
+    "tool_name": "biopython",
+    "evaluated_at": "2025-11-11T14:31:18.845379"
+  },
+  {
+    "worthy": true,
+    "confidence": 0.95,
+    "reason": "Foldseek is a specialized bioinformatics tool for protein structure comparison with multiple high-impact publications in top-tier journals like Nature Biotechnology and Nature",
+    "tool_type": "specific_tool",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "Foldseek: Revolutionizing Protein Structure Alignment and Clustering",
+    "tool_id": "auto_foldseek",
+    "tool_name": "foldseek",
+    "evaluated_at": "2025-11-11T14:31:25.534220"
+  }
+]

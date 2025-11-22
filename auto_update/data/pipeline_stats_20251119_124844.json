@@ -1,0 +1,15 @@
+{
+  "detected": 5,
+  "feasibility_passed": 3,
+  "feasibility_rejected": 2,
+  "docs_fetched": 3,
+  "wrappers_generated": 3,
+  "wrappers_validated": 3,
+  "tests_passed": 0,
+  "tests_failed": 0,
+  "integrated": 1,
+  "errors": [
+    "deepvariant: Integration failed",
+    "ColabFold: Integration failed"
+  ]
+}

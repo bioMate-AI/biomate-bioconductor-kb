@@ -1,0 +1,26 @@
+{
+  "timestamp": "20251111_143125",
+  "total_evaluated": 2,
+  "approved": 1,
+  "skipped": 1,
+  "needs_review": 0,
+  "blogs_generated": 1,
+  "dry_run": false,
+  "review_file": "blog_posts_test/review/evaluation_results_20251111_143125.json",
+  "output_dir": "blog_posts_test",
+  "approved_tools": [
+    {
+      "tool_id": "auto_foldseek",
+      "tool_name": "foldseek",
+      "confidence": 0.95,
+      "suggested_title": "Foldseek: Revolutionizing Protein Structure Alignment and Clustering"
+    }
+  ],
+  "skipped_tools": [
+    {
+      "tool_id": "auto_biopython",
+      "tool_name": "biopython",
+      "reason": "Biopython is a general-purpose Python library for bioinformatics, not a specialized tool solving a specific research problem"
+    }
+  ]
+}

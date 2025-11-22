@@ -1,0 +1,14 @@
+[
+  {
+    "worthy": true,
+    "confidence": 0.95,
+    "reason": "Foldseek is a highly specialized bioinformatics tool for protein structure comparison with multiple high-impact publications in top-tier journals like Nature Biotechnology and Nature",
+    "tool_type": "specific_tool",
+    "biological_focus": "clear",
+    "recommended_action": "write_blog",
+    "suggested_title": "Foldseek: Revolutionizing Protein Structure Comparison and Search",
+    "tool_id": "auto_foldseek",
+    "tool_name": "foldseek",
+    "evaluated_at": "2025-11-11T14:47:22.898253"
+  }
+]

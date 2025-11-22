@@ -1,0 +1,12 @@
+{
+  "detected": 1,
+  "docs_fetched": 1,
+  "wrappers_generated": 1,
+  "wrappers_validated": 1,
+  "tests_passed": 0,
+  "tests_failed": 0,
+  "integrated": 0,
+  "errors": [
+    "dash: Integration failed"
+  ]
+}

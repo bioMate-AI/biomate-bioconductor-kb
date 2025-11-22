@@ -1,0 +1,75 @@
+# Quality Filters Configuration
+
+required_signals:
+  - has_readme
+  - has_license
+  - recent_commit_90_days
+
+bonus_signals:
+  has_documentation: 0.1
+  has_tests: 0.15
+  has_ci_cd: 0.15
+  has_container: 0.1
+  has_paper: 0.2
+  has_examples: 0.05
+  has_release_tags: 0.05
+  has_linter_config: 0.05
+
+scoring_weights:
+  popularity: 0.3
+  code_quality: 0.35
+  documentation: 0.2
+  containerization: 0.1
+  recency: 0.1
+  scientific: 0.35
+  releases: 0.05
+
+# Popularity tiers (stars or downloads)
+popularity_tiers:
+  tier_1: 500   # 1.0 score
+  tier_2: 200   # 0.67 score
+  tier_3: 50    # 0.33 score
+
+# Recency scoring (days since last commit)
+recency_tiers:
+  fresh: 7      # 1.0 score
+  recent: 30    # 0.5 score
+  stale: 90     # 0.0 score
+
+# File patterns for detection
+code_quality_indicators:
+  ci_cd:
+    - .github/workflows/
+    - .gitlab-ci.yml
+    - .travis.yml
+    - .circleci/
+  tests:
+    - tests/
+    - test/
+    - spec/
+    - pytest.ini
+    - testthat/
+  documentation:
+    - docs/
+    - documentation/
+    - readthedocs.yml
+    - mkdocs.yml
+    - Sphinx/
+  container:
+    - Dockerfile
+    - docker-compose.yml
+    - Singularity
+    - singularity.def
+  linting:
+    - .pylintrc
+    - .flake8
+    - .eslintrc
+    - .ruffrc
+
+# Exclusion patterns
+exclude_patterns:
+  - "deprecated"
+  - "archived"
+  - "obsolete"
+  - "abandoned"
+  - "unmaintained"

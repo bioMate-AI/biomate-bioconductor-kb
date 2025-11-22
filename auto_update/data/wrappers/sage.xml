@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<tool id="auto_sage" name="sage" version="1.0.0">
+  <description>Proteomics search &amp; quantification so fast that it feels like magic</description>
+  <requirements>
+    <container type="docker">rust:1.75.0</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+sage
+]]&gt;</command>
+  <inputs/>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>[![Rust](https://github.com/lazear/sage/actions/workflows/rust.yml/badge.svg)](https://github.com/lazear/sage/actions/workflows/rust.yml) [![Anaconda-Server Badge](https://anaconda.org/bioconda/sage-proteomics/badges/version.svg)](https://anaconda.org/bioconda/sage-proteomics)
+
+For more information please read [the online documentation!](https://sage-docs.vercel.app/docs)
+
+Sage is, at it's core, a proteomics database search engine -
+
+Repository: https://github.com/lazear/sage</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

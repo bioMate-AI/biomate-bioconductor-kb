@@ -1,0 +1,23 @@
+{
+  "detected": 5,
+  "feasibility_passed": 3,
+  "feasibility_rejected": 2,
+  "skipped_duplicate": 0,
+  "skipped_has_api": 0,
+  "skipped_too_large": 0,
+  "docs_fetched": 3,
+  "wrappers_generated": 3,
+  "api_wrappers_generated": 0,
+  "wrappers_validated": 3,
+  "tests_passed": 0,
+  "tests_failed": 3,
+  "integrated": 0,
+  "errors": [
+    "gget: Test failed",
+    "gget: Integration failed",
+    "sage: Test failed",
+    "sage: Integration failed",
+    "alphapeptdeep: Test failed",
+    "alphapeptdeep: Integration failed"
+  ]
+}

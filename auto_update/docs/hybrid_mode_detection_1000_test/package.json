@@ -1,0 +1,15 @@
+{
+  "name": "hybrid_mode_detection_1000_test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "detection_logic_v5_expert_validated.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0"
+  }
+}

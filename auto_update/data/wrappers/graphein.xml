@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<tool id="auto_graphein" name="graphein" version="1.0.0">
+  <description>Protein Graph Library</description>
+  <requirements>
+    <container type="docker">python:3.9-slim</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+# Setup environment
+pip install graphein
+
+# Run tool
+graphein --help || python -m graphein --help
+]]&gt;</command>
+  <inputs>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+    <param name="m" type="text" label="M" help="Parameter for m"/>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>|   |   |   |
+
+|---|---|---|
+
+| 1.7.0 | [FoldComp Datasets](http://graphein.ai/notebooks/foldcomp.html)  |  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/a-r-j/graphein/blob/master/notebooks/foldcomp.ipynb)   |
+
+Repository: https://github.com/a-r-j/graphein</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

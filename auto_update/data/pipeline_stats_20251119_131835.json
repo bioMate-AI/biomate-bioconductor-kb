@@ -1,0 +1,13 @@
+{
+  "detected": 5,
+  "feasibility_passed": 1,
+  "feasibility_rejected": 4,
+  "docs_fetched": 1,
+  "wrappers_generated": 1,
+  "wrappers_validated": 1,
+  "tests_passed": 0,
+  "tests_failed": 0,
+  "integrated": 1,
+  "skipped_duplicate": 0,
+  "errors": []
+}

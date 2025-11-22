@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<tool id="auto_plantcv" name="plantcv" version="1.0.0">
+  <description>Plant phenotyping with image analysis</description>
+  <requirements>
+    <container type="docker">plantcv:latest</container>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+plantcv --help || python -m plantcv --help
+]]&gt;</command>
+  <inputs>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+    <param name="m" type="text" label="M" help="Parameter for m"/>
+    <param name="help" type="text" label="Help" help="Parameter for help"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="txt" label="Output file"/>
+  </outputs>
+  <help>Please use, cite, and [contribute to](http://plantcv.readthedocs.io/en/latest/CONTRIBUTING/) PlantCV!
+
+If you have questions, please submit them via the
+
+[GitHub issues page](https://github.com/danforthcenter/plantcv/issues).
+
+Repository: https://github.com/danforthcenter/plantcv</help>
+  <citations>
+    <citation type="doi">TODO: Extract DOI</citation>
+  </citations>
+</tool>

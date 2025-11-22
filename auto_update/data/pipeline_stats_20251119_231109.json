@@ -1,0 +1,18 @@
+{
+  "detected": 5,
+  "feasibility_passed": 2,
+  "feasibility_rejected": 3,
+  "skipped_duplicate": 1,
+  "skipped_has_api": 0,
+  "skipped_too_large": 0,
+  "docs_fetched": 1,
+  "wrappers_generated": 1,
+  "wrappers_validated": 1,
+  "tests_passed": 0,
+  "tests_failed": 1,
+  "integrated": 0,
+  "errors": [
+    "deepvariant: Test failed",
+    "deepvariant: Integration failed"
+  ]
+}

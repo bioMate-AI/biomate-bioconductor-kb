@@ -1,0 +1,82 @@
+{
+  "timestamp": "2025-11-07T21:34:48.451Z",
+  "testSize": 200,
+  "duration": 957.615,
+  "accuracy": {
+    "v5": {
+      "passed": 159,
+      "failed": 41,
+      "accuracy": "79.50%"
+    },
+    "v6": {
+      "passed": 160,
+      "failed": 40,
+      "accuracy": "80.00%",
+      "fastRuleCalls": 65,
+      "llmCalls": 135
+    },
+    "improvement": {
+      "absolute": 1,
+      "percentage": "0.5%"
+    }
+  },
+  "latency": {
+    "v5": {
+      "p50": 0,
+      "p95": 0,
+      "p99": 1,
+      "avg": 0.045,
+      "min": 0,
+      "max": 1
+    },
+    "v6": {
+      "overall": {
+        "p50": 3772,
+        "p95": 4864,
+        "p99": 137807,
+        "avg": 4737.585,
+        "min": 0,
+        "max": 138072
+      },
+      "fastRule": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 1,
+        "avg": 0.015384615384615385,
+        "min": 0,
+        "max": 1
+      },
+      "llm": {
+        "p50": 4000,
+        "p95": 4967,
+        "p99": 137807,
+        "avg": 7018.637037037037,
+        "min": 3115,
+        "max": 138072
+      }
+    }
+  },
+  "cost": {
+    "v5": {
+      "perQuery": 0,
+      "total": 0
+    },
+    "v6": {
+      "perQuery": 0.008673750000000001,
+      "perQueryProjected": 0.0075073499999999994,
+      "total": 1.73475,
+      "totalProjected": 1.5014699999999999,
+      "cacheHitRate": "0.0%"
+    }
+  },
+  "projections": {
+    "1K_queries_day": {
+      "v5": 0,
+      "v6_warm": 7.50735
+    },
+    "1M_queries_month": {
+      "v5": 0,
+      "v6_warm": 7507.349999999999
+    }
+  }
+}
