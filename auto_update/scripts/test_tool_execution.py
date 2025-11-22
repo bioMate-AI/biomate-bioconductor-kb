@@ -31,6 +31,13 @@ except ImportError:
     HAS_REAL_TEST_DATA = False
     logger.warning("RealTestDataFetcher not available, using dummy test data only")
 
+try:
+    from dependency_installer import DependencyInstaller
+    HAS_DEPENDENCY_INSTALLER = True
+except ImportError:
+    HAS_DEPENDENCY_INSTALLER = False
+    logger.warning("DependencyInstaller not available, skipping dependency installation")
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -398,6 +405,27 @@ class ToolExecutor:
             if not result.container_pulled:
                 result.errors.append(f"Failed to pull container: {pull_message}")
                 return result
+
+            # Install dependencies if available
+            if HAS_DEPENDENCY_INSTALLER and self.tool_metadata:
+                dependencies = self.tool_metadata.get('dependencies', [])
+
+                if dependencies:
+                    logger.info(f"Installing {len(dependencies)} dependencies in container...")
+                    installer = DependencyInstaller()
+                    install_success, install_msg = installer.install_in_container(
+                        container_type,
+                        container_image,
+                        dependencies
+                    )
+
+                    if not install_success:
+                        logger.warning(f"Dependency installation had issues: {install_msg}")
+                        # Don't fail the test, just warn - some tools might work without all deps
+                    else:
+                        logger.info(f"✓ Dependencies installed successfully: {install_msg}")
+                else:
+                    logger.info("No dependencies to install")
 
             # Generate test data if not provided
             if not test_data:
