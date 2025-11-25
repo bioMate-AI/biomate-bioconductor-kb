@@ -228,7 +228,7 @@ class EnhancedProcessConverter:
                 )
 
                 # Get nf-core documentation context
-                doc_context = self.docs.get_prefix()
+                doc_context = self.docs.gemini_prefix
 
                 # Combine
                 full_prompt = f"{doc_context}\n\n{enhanced_prompt}"
@@ -333,7 +333,7 @@ class EnhancedProcessConverter:
         )
 
         # Get doc context
-        doc_context = self.docs.get_prefix()
+        doc_context = self.docs.gemini_prefix
         full_prompt = f"{doc_context}\n\n{conditional_prompt}"
 
         # Convert with Gemini (could also do Claude in parallel)
