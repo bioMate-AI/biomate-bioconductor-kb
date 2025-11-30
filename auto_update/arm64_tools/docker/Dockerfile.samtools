@@ -1,0 +1,77 @@
+# ARM64 Samtools Docker Image
+# Built from source for ARM64/aarch64 compatibility
+
+FROM ubuntu:22.04 AS builder
+
+# Avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    autoconf \
+    automake \
+    libtool \
+    pkg-config \
+    zlib1g-dev \
+    libcurl4-openssl-dev \
+    git \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build htslib first
+WORKDIR /build
+RUN git clone --depth 1 --branch 1.21 https://github.com/samtools/htslib.git && \
+    cd htslib && \
+    git submodule update --init --recursive && \
+    autoreconf -i && \
+    ./configure --prefix=/usr/local --disable-bz2 --disable-lzma && \
+    make -j$(nproc) && \
+    make install
+
+# Build samtools
+RUN git clone --depth 1 --branch 1.21 https://github.com/samtools/samtools.git && \
+    cd samtools && \
+    autoheader && \
+    autoconf && \
+    ./configure --prefix=/usr/local --with-htslib=/usr/local --without-curses && \
+    make -j$(nproc) && \
+    make install
+
+# Build bcftools
+RUN git clone --depth 1 --branch 1.21 https://github.com/samtools/bcftools.git && \
+    cd bcftools && \
+    autoheader && \
+    autoconf && \
+    ./configure --prefix=/usr/local --with-htslib=/usr/local && \
+    make -j$(nproc) && \
+    make install
+
+# Runtime image
+FROM ubuntu:22.04
+
+LABEL maintainer="BioMate <biomate@example.com>"
+LABEL description="Samtools, bcftools, and htslib for ARM64"
+LABEL version="1.21"
+LABEL architecture="arm64"
+
+RUN apt-get update && apt-get install -y \
+    zlib1g \
+    libcurl4 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy binaries and libraries
+COPY --from=builder /usr/local/bin/samtools /usr/local/bin/
+COPY --from=builder /usr/local/bin/bcftools /usr/local/bin/
+COPY --from=builder /usr/local/bin/bgzip /usr/local/bin/
+COPY --from=builder /usr/local/bin/tabix /usr/local/bin/
+COPY --from=builder /usr/local/bin/htsfile /usr/local/bin/
+COPY --from=builder /usr/local/lib/libhts* /usr/local/lib/
+COPY --from=builder /usr/local/include/htslib /usr/local/include/htslib
+
+# Update library cache
+RUN ldconfig
+
+# Set entrypoint
+ENTRYPOINT ["samtools"]
+CMD ["--help"]

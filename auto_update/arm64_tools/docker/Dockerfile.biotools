@@ -1,0 +1,120 @@
+# ARM64 Combined Bioinformatics Tools Docker Image
+# All-in-one image with samtools, mmseqs2, foldseek, seqkit, rush
+
+FROM ubuntu:22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install all build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    autoconf \
+    automake \
+    libtool \
+    pkg-config \
+    git \
+    wget \
+    curl \
+    zlib1g-dev \
+    libbz2-dev \
+    libcurl4-openssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust (required for MMseqs2 and foldseek)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+WORKDIR /build
+
+# 1. Build htslib
+RUN git clone --depth 1 --branch 1.21 https://github.com/samtools/htslib.git && \
+    cd htslib && \
+    git submodule update --init --recursive && \
+    autoreconf -i && \
+    ./configure --prefix=/usr/local --disable-bz2 --disable-lzma && \
+    make -j$(nproc) && \
+    make install
+
+# 2. Build samtools
+RUN git clone --depth 1 --branch 1.21 https://github.com/samtools/samtools.git && \
+    cd samtools && \
+    autoheader && autoconf && \
+    ./configure --prefix=/usr/local --with-htslib=/usr/local --without-curses && \
+    make -j$(nproc) && \
+    make install
+
+# 3. Build bcftools
+RUN git clone --depth 1 --branch 1.21 https://github.com/samtools/bcftools.git && \
+    cd bcftools && \
+    autoheader && autoconf && \
+    ./configure --prefix=/usr/local --with-htslib=/usr/local && \
+    make -j$(nproc) && \
+    make install
+
+# 4. Build MMseqs2
+RUN git clone --depth 1 https://github.com/soedinglab/MMseqs2.git && \
+    cd MMseqs2 && \
+    mkdir build && cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DHAVE_ARM8=1 .. && \
+    make -j$(nproc) && \
+    make install
+
+# 5. Build foldseek
+RUN git clone --depth 1 https://github.com/steineggerlab/foldseek.git && \
+    cd foldseek && \
+    git submodule update --init --recursive && \
+    mkdir build && cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr/local \
+          -DCMAKE_C_FLAGS="-mcpu=generic" \
+          -DCMAKE_CXX_FLAGS="-mcpu=generic" \
+          -DGGML_NATIVE=OFF .. && \
+    make -j$(nproc) && \
+    make install
+
+# 6. Download seqkit (pre-built ARM64)
+RUN wget -q https://github.com/shenwei356/seqkit/releases/download/v2.8.2/seqkit_linux_arm64.tar.gz && \
+    tar xzf seqkit_linux_arm64.tar.gz && \
+    mv seqkit /usr/local/bin/ && \
+    chmod +x /usr/local/bin/seqkit
+
+# 7. Download rush (pre-built ARM64)
+RUN wget -q https://github.com/shenwei356/rush/releases/download/v0.5.4/rush_linux_arm64.tar.gz && \
+    tar xzf rush_linux_arm64.tar.gz && \
+    mv rush /usr/local/bin/ && \
+    chmod +x /usr/local/bin/rush
+
+# Runtime image
+FROM ubuntu:22.04
+
+LABEL maintainer="BioMate <biomate@example.com>"
+LABEL description="Combined bioinformatics tools for ARM64: samtools, bcftools, mmseqs2, foldseek, seqkit, rush"
+LABEL version="1.0"
+LABEL architecture="arm64"
+
+RUN apt-get update && apt-get install -y \
+    zlib1g \
+    libbz2-1.0 \
+    libcurl4 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy all binaries
+COPY --from=builder /usr/local/bin/samtools /usr/local/bin/
+COPY --from=builder /usr/local/bin/bcftools /usr/local/bin/
+COPY --from=builder /usr/local/bin/bgzip /usr/local/bin/
+COPY --from=builder /usr/local/bin/tabix /usr/local/bin/
+COPY --from=builder /usr/local/bin/htsfile /usr/local/bin/
+COPY --from=builder /usr/local/bin/mmseqs /usr/local/bin/
+COPY --from=builder /usr/local/bin/foldseek /usr/local/bin/
+COPY --from=builder /usr/local/bin/seqkit /usr/local/bin/
+COPY --from=builder /usr/local/bin/rush /usr/local/bin/
+
+# Copy libraries
+COPY --from=builder /usr/local/lib/libhts* /usr/local/lib/
+
+# Update library cache
+RUN ldconfig
+
+# Default command shows available tools
+CMD ["sh", "-c", "echo 'Available tools:' && echo '  samtools --version' && samtools --version | head -1 && echo '  bcftools --version' && bcftools --version | head -1 && echo '  mmseqs version' && mmseqs version && echo '  foldseek version' && foldseek version && echo '  seqkit version' && seqkit version && echo '  rush --version' && rush --version"]

@@ -1,0 +1,53 @@
+# ARM64 MMseqs2 Docker Image
+# Built from source with Rust for ARM64/aarch64 compatibility
+
+FROM ubuntu:22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    curl \
+    zlib1g-dev \
+    libbz2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust (required for block-aligner)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Clone and build MMseqs2
+WORKDIR /build
+RUN git clone --depth 1 https://github.com/soedinglab/MMseqs2.git && \
+    cd MMseqs2 && \
+    mkdir build && \
+    cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr/local \
+          -DHAVE_ARM8=1 \
+          .. && \
+    make -j$(nproc) && \
+    make install
+
+# Runtime image
+FROM ubuntu:22.04
+
+LABEL maintainer="BioMate <biomate@example.com>"
+LABEL description="MMseqs2 sequence search for ARM64"
+LABEL version="latest"
+LABEL architecture="arm64"
+
+RUN apt-get update && apt-get install -y \
+    zlib1g \
+    libbz2-1.0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy binary
+COPY --from=builder /usr/local/bin/mmseqs /usr/local/bin/
+
+ENTRYPOINT ["mmseqs"]
+CMD ["--help"]

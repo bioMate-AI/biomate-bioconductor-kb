@@ -1,0 +1,27 @@
+# ARM64 SeqKit Docker Image
+# Uses pre-built ARM64 binary (Go-based)
+
+FROM ubuntu:22.04
+
+LABEL maintainer="BioMate <biomate@example.com>"
+LABEL description="SeqKit sequence toolkit for ARM64"
+LABEL version="2.8.2"
+LABEL architecture="arm64"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download pre-built ARM64 binary
+WORKDIR /tmp
+RUN wget -q https://github.com/shenwei356/seqkit/releases/download/v2.8.2/seqkit_linux_arm64.tar.gz && \
+    tar xzf seqkit_linux_arm64.tar.gz && \
+    mv seqkit /usr/local/bin/ && \
+    chmod +x /usr/local/bin/seqkit && \
+    rm seqkit_linux_arm64.tar.gz
+
+ENTRYPOINT ["seqkit"]
+CMD ["--help"]

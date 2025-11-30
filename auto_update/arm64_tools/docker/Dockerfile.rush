@@ -1,0 +1,27 @@
+# ARM64 Rush Docker Image
+# Uses pre-built ARM64 binary (Go-based parallel command runner)
+
+FROM ubuntu:22.04
+
+LABEL maintainer="BioMate <biomate@example.com>"
+LABEL description="Rush parallel command runner for ARM64"
+LABEL version="0.5.4"
+LABEL architecture="arm64"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download pre-built ARM64 binary
+WORKDIR /tmp
+RUN wget -q https://github.com/shenwei356/rush/releases/download/v0.5.4/rush_linux_arm64.tar.gz && \
+    tar xzf rush_linux_arm64.tar.gz && \
+    mv rush /usr/local/bin/ && \
+    chmod +x /usr/local/bin/rush && \
+    rm rush_linux_arm64.tar.gz
+
+ENTRYPOINT ["rush"]
+CMD ["--help"]

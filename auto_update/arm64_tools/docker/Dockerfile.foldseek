@@ -1,0 +1,56 @@
+# ARM64 Foldseek Docker Image
+# Built from source with Rust and ARM-specific flags
+
+FROM ubuntu:22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    curl \
+    zlib1g-dev \
+    libbz2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust (required for block-aligner)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Clone and build foldseek
+WORKDIR /build
+RUN git clone --depth 1 https://github.com/steineggerlab/foldseek.git && \
+    cd foldseek && \
+    git submodule update --init --recursive && \
+    mkdir build && \
+    cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr/local \
+          -DCMAKE_C_FLAGS="-mcpu=generic" \
+          -DCMAKE_CXX_FLAGS="-mcpu=generic" \
+          -DGGML_NATIVE=OFF \
+          .. && \
+    make -j$(nproc) && \
+    make install
+
+# Runtime image
+FROM ubuntu:22.04
+
+LABEL maintainer="BioMate <biomate@example.com>"
+LABEL description="Foldseek structure search for ARM64"
+LABEL version="latest"
+LABEL architecture="arm64"
+
+RUN apt-get update && apt-get install -y \
+    zlib1g \
+    libbz2-1.0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy binary
+COPY --from=builder /usr/local/bin/foldseek /usr/local/bin/
+
+ENTRYPOINT ["foldseek"]
+CMD ["--help"]
