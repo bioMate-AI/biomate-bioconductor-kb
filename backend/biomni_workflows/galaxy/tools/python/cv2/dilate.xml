@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_cv2_dilate" name="OpenCV: dilate" version="1.0.0">
+  <description>Call OpenCV dilate function</description>
+  <requirements>
+    <requirement type="package" version="">cv2</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from cv2 import *
+# Tool implementation
+result = dilate(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**OpenCV: dilate**
+
+Call OpenCV dilate function
+
+**Tool Type**: python
+**Library**: cv2
+**Function**: dilate
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;cv2&quot;,
+  &quot;function&quot;: &quot;dilate&quot;,
+  &quot;call_template&quot;: &quot;from cv2 import ...; result = dilate(...)&quot;
+}
+]]&gt;</help>
+</tool>

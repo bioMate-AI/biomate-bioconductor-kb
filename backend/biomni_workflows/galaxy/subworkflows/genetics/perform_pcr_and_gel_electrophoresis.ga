@@ -1,0 +1,33 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genetics_perform_pcr_and_gel_electrophoresis",
+  "annotation": "Performs PCR amplification of a target transgene and visualizes results using agarose gel electrophoresis.",
+  "tags": [
+    "biomni",
+    "genetics",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "tool",
+      "tool_id": "biomni_genetics_perform_pcr_and_gel_electrophoresis",
+      "label": "perform_pcr_and_gel_electrophoresis",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {}
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

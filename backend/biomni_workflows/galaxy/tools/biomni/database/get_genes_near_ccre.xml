@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<tool id="biomni_database_get_genes_near_ccre" name="Biomni: Get Genes Near Ccre" version="1.0.0">
+    <description>Given a cCRE (Candidate cis-Regulatory Element), this function returns a string containing the</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.database import get_genes_near_ccre
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = get_genes_near_ccre(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --accession '$accession'
+--assembly '$assembly'
+--chromosome '$chromosome'
+#if $k
+    --k '$k'
+#end if
+]]></command>
+    <inputs>
+        <param name="accession" type="text" label="Accession" help=""  />
+        <param name="assembly" type="text" label="Assembly" help=""  />
+        <param name="chromosome" type="text" label="Chromosome" help=""  />
+        <param name="k" type="integer" label="K" help="" value="10" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Get Genes Near Ccre**
+
+Given a cCRE (Candidate cis-Regulatory Element), this function returns a string containing the
+steps it performs and the k nearest genes sorted by distance.
+
+Parameters
+----------
+- accession (str): ENCODE Accession ID of query cCRE, e.g., EH38E1516980.
+- assembly (str): Assembly of the gene, e.g., 'GRCh38'.
+- chromosome (str): Chromosome of the gene, e.g., 'chr12'.
+- k (int): Number of nearby genes to return, sorted by distance. Default is 10.
+
+Returns
+-------
+- str: Steps performed and the result.
+
+**Domain**: database
+**Function**: get_genes_near_ccre
+]]></help>
+</tool>

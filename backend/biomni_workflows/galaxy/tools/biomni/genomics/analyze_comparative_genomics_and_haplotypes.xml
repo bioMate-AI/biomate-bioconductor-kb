@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<tool id="biomni_genomics_analyze_comparative_genomics_and_haplotypes" name="Biomni: Analyze Comparative Genomics And Haplotypes" version="1.0.0">
+    <description>Perform comparative genomics and haplotype analysis on multiple genome samples.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genomics import analyze_comparative_genomics_and_haplotypes
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_comparative_genomics_and_haplotypes(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --sample_fasta_files '$sample_fasta_files'
+--reference_genome_path '$reference_genome_path'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="sample_fasta_files" type="text" label="Sample Fasta Files" help="Paths to FASTA files containing whole-genome sequences to be analyzed"  />
+        <param name="reference_genome_path" type="text" label="Reference Genome Path" help="Path to the reference genome FASTA file"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to store output files (default: "./output")" value="./output" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Comparative Genomics And Haplotypes**
+
+Perform comparative genomics and haplotype analysis on multiple genome samples.
+
+This function aligns multiple genome samples to a reference, identifies variants,
+analyzes shared and unique genomic regions, and determines haplotype structure.
+
+Parameters
+----------
+sample_fasta_files : list of str
+    Paths to FASTA files containing whole-genome sequences to be analyzed
+reference_genome_path : str
+    Path to the reference genome FASTA file
+output_dir : str, optional
+    Directory to store output files (default: "./output")
+
+Returns
+-------
+str
+    A research log summarizing the analysis steps and results
+
+**Domain**: genomics
+**Function**: analyze_comparative_genomics_and_haplotypes
+]]></help>
+</tool>

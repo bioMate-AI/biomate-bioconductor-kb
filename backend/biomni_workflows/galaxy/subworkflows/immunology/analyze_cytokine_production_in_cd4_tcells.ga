@@ -1,0 +1,46 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_immunology_analyze_cytokine_production_in_cd4_tcells",
+  "annotation": "Analyze cytokine production (IFN-\u03b3, IL-17) in CD4+ T cells after antigen stimulation.",
+  "tags": [
+    "biomni",
+    "immunology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "fcs_files_dict",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "biomni_immunology_analyze_cytokine_production_in_cd4_tcells",
+      "label": "analyze_cytokine_production_in_cd4_tcells",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "fcs_files_dict": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

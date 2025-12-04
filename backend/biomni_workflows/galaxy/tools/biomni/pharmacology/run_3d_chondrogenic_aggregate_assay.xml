@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_run_3d_chondrogenic_aggregate_assay" name="Biomni: Run 3D Chondrogenic Aggregate Assay" version="1.0.0">
+    <description>Generates a detailed protocol for performing a 3D chondrogenic aggregate culture assay to evaluate compounds' effects on chondrogenesis.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import run_3d_chondrogenic_aggregate_assay
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = run_3d_chondrogenic_aggregate_assay(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --chondrocyte_cells '$chondrocyte_cells'
+--test_compounds '$test_compounds'
+#if $culture_duration_days
+    --culture_duration_days '$culture_duration_days'
+#end if
+#if $measurement_intervals
+    --measurement_intervals '$measurement_intervals'
+#end if
+]]></command>
+    <inputs>
+        <param name="chondrocyte_cells" type="text" label="Chondrocyte Cells" help="Dictionary with cell information including 'source', 'passage_number', and 'cell_density'"  />
+        <param name="test_compounds" type="text" label="Test Compounds" help="List of compounds to test, each with 'name', 'concentration', and 'vehicle' keys"  />
+        <param name="culture_duration_days" type="text" label="Culture Duration Days" help="Total duration of the culture period in days (default: 21)" value="21" optional="true"/>
+        <param name="measurement_intervals" type="text" label="Measurement Intervals" help="Interval in days between measurements (default: 7)" value="7" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Run 3D Chondrogenic Aggregate Assay**
+
+Generates a detailed protocol for performing a 3D chondrogenic aggregate culture assay to evaluate compounds' effects on chondrogenesis.
+
+Parameters
+----------
+chondrocyte_cells : dict
+    Dictionary with cell information including 'source', 'passage_number', and 'cell_density'
+test_compounds : list of dict
+    List of compounds to test, each with 'name', 'concentration', and 'vehicle' keys
+culture_duration_days : int
+    Total duration of the culture period in days (default: 21)
+measurement_intervals : int
+    Interval in days between measurements (default: 7)
+
+Returns
+-------
+str
+    Detailed protocol document for the 3D chondrogenic aggregate culture assay
+
+**Domain**: pharmacology
+**Function**: run_3d_chondrogenic_aggregate_assay
+]]></help>
+</tool>

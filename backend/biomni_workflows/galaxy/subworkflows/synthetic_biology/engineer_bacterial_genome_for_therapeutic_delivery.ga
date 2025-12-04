@@ -1,0 +1,46 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_synthetic_biology_engineer_bacterial_genome_for_therapeutic_delivery",
+  "annotation": "Engineer a bacterial genome by integrating therapeutic genetic parts for therapeutic delivery.",
+  "tags": [
+    "biomni",
+    "synthetic_biology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "bacterial_genome_file",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "biomni_synthetic_biology_engineer_bacterial_genome_for_therapeutic_delivery",
+      "label": "engineer_bacterial_genome_for_therapeutic_delivery",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "bacterial_genome_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

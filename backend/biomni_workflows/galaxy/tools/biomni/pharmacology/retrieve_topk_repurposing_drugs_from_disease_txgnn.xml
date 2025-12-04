@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_retrieve_topk_repurposing_drugs_from_disease_txgnn" name="Biomni: Retrieve Topk Repurposing Drugs From Disease Txgnn" version="1.0.0">
+    <description>This function computes TxGNN model predictions for drug repurposing. It takes in the paths to the data,</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import retrieve_topk_repurposing_drugs_from_disease_txgnn
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = retrieve_topk_repurposing_drugs_from_disease_txgnn(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --disease_name '$disease_name'
+--data_lake_path '$data_lake_path'
+#if $k
+    --k '$k'
+#end if
+]]></command>
+    <inputs>
+        <param name="disease_name" type="text" label="Disease Name" help=""  />
+        <param name="data_lake_path" type="text" label="Data Lake Path" help=""  />
+        <param name="k" type="text" label="K" help="" value="5" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Retrieve Topk Repurposing Drugs From Disease Txgnn**
+
+This function computes TxGNN model predictions for drug repurposing. It takes in the paths to the data,
+the disease name, and returns a summary of the top K predicted drugs with their sigmoid-transformed scores.
+
+Args:
+- disease_name (str): The name of the disease for which the drug predictions are to be retrieved.
+- data_lake_path (str): The path to the data lake containing the TxGNN predictions.
+- k (int, optional): The number of top drug predictions to return. Defaults to 5.
+
+Returns:
+- str: A summary of the steps and the top K drug predictions with their scores.
+
+**Domain**: pharmacology
+**Function**: retrieve_topk_repurposing_drugs_from_disease_txgnn
+]]></help>
+</tool>

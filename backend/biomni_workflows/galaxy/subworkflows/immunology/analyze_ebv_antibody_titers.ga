@@ -1,0 +1,70 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_immunology_analyze_ebv_antibody_titers",
+  "annotation": "Analyze ELISA data to quantify EBV antibody titers in plasma/serum samples.",
+  "tags": [
+    "biomni",
+    "immunology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "raw_od_data",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "standard_curve_data",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "data_input",
+      "label": "sample_metadata",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "type": "tool",
+      "tool_id": "biomni_immunology_analyze_ebv_antibody_titers",
+      "label": "analyze_ebv_antibody_titers",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "raw_od_data": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "standard_curve_data": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "sample_metadata": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

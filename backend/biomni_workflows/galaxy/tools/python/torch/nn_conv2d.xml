@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_torch_nn_Conv2d" name="PyTorch: nn.Conv2d" version="1.0.0">
+  <description>Call PyTorch nn.Conv2d function</description>
+  <requirements>
+    <requirement type="package" version="">torch</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from torch import *
+# Tool implementation
+result = nn.Conv2d(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**PyTorch: nn.Conv2d**
+
+Call PyTorch nn.Conv2d function
+
+**Tool Type**: python
+**Library**: torch
+**Function**: nn.Conv2d
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;torch&quot;,
+  &quot;function&quot;: &quot;nn.Conv2d&quot;,
+  &quot;call_template&quot;: &quot;from torch import ...; result = nn.Conv2d(...)&quot;
+}
+]]&gt;</help>
+</tool>

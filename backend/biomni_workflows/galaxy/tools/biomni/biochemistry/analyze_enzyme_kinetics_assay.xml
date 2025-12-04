@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<tool id="biomni_biochemistry_analyze_enzyme_kinetics_assay" name="Biomni: Analyze Enzyme Kinetics Assay" version="1.0.0">
+    <description>Performs in vitro enzyme kinetics assay and analyzes the dose-dependent effects of modulators.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.biochemistry import analyze_enzyme_kinetics_assay
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_enzyme_kinetics_assay(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --enzyme_name '$enzyme_name'
+--substrate_concentrations '$substrate_concentrations'
+--enzyme_concentration '$enzyme_concentration'
+#if $modulators
+    --modulators '$modulators'
+#end if
+#if $time_points
+    --time_points '$time_points'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="enzyme_name" type="text" label="Enzyme Name" help="Name of the purified enzyme being tested"  />
+        <param name="substrate_concentrations" type="text" label="Substrate Concentrations" help="List of substrate concentrations in μM for kinetic analysis"  />
+        <param name="enzyme_concentration" type="text" label="Enzyme Concentration" help="Concentration of the enzyme in nM"  />
+        <param name="modulators" type="text" label="Modulators" help="concentrations in μM. Default is None (no modulators)."  optional="true"/>
+        <param name="time_points" type="text" label="Time Points" help="[0, 5, 10, 15, 20, 30, 45, 60]."  optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files. Default is current directory." value="./" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Enzyme Kinetics Assay**
+
+Performs in vitro enzyme kinetics assay and analyzes the dose-dependent effects of modulators.
+
+Parameters
+----------
+enzyme_name : str
+    Name of the purified enzyme being tested
+substrate_concentrations : list or numpy.ndarray
+    List of substrate concentrations in μM for kinetic analysis
+enzyme_concentration : float
+    Concentration of the enzyme in nM
+modulators : dict, optional
+    Dictionary of modulators where keys are modulator names and values are lists of
+    concentrations in μM. Default is None (no modulators).
+time_points : list or numpy.ndarray, optional
+    Time points in minutes for time-course measurements. Default is None, which uses
+    [0, 5, 10, 15, 20, 30, 45, 60].
+output_dir : str, optional
+    Directory to save output files. Default is current directory.
+
+Returns
+-------
+str
+    Research log summarizing the enzyme kinetics assay procedure and results
+
+**Domain**: biochemistry
+**Function**: analyze_enzyme_kinetics_assay
+]]></help>
+</tool>

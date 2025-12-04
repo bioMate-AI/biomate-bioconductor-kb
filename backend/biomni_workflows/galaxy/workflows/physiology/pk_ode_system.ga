@@ -1,0 +1,46 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_physiology_pk_ode_system",
+  "annotation": "",
+  "tags": [
+    "biomni",
+    "physiology",
+    "single-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "tool",
+      "tool_id": "python_numpy_np_zeros_like",
+      "label": "Step 1: np_zeros_like",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {}
+    },
+    "1": {
+      "id": 1,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "pk_ode_system-output"
+    }
+  ]
+}

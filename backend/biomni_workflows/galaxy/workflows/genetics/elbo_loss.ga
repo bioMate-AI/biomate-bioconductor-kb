@@ -1,0 +1,78 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genetics_elbo_loss",
+  "annotation": "",
+  "tags": [
+    "biomni",
+    "genetics",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "tool",
+      "tool_id": "python_torch_torch_matmul",
+      "label": "Step 1: torch_matmul",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {}
+    },
+    "1": {
+      "id": 1,
+      "type": "tool",
+      "tool_id": "python_torch_torch_sum",
+      "label": "Step 2: torch_sum",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "python_torch_torch_bernoulli",
+      "label": "Step 3: torch_bernoulli",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 1200,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "elbo_loss-output"
+    }
+  ]
+}

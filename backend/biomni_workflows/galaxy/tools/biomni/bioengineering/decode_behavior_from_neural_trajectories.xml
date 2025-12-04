@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<tool id="biomni_bioengineering_decode_behavior_from_neural_trajectories" name="Biomni: Decode Behavior From Neural Trajectories" version="1.0.0">
+    <description>Model neural activity trajectories and decode behavioral variables.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.bioengineering import decode_behavior_from_neural_trajectories
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = decode_behavior_from_neural_trajectories(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --neural_data '$neural_data'
+--behavioral_data '$behavioral_data'
+#if $n_components
+    --n_components '$n_components'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="neural_data" type="text" label="Neural Data" help="Neural spiking activity data, shape (n_timepoints, n_neurons)"  />
+        <param name="behavioral_data" type="text" label="Behavioral Data" help="Behavioral data, shape (n_timepoints, n_behavioral_variables)"  />
+        <param name="n_components" type="text" label="N Components" help="Number of principal components to use for dimensionality reduction, default is 10" value="10" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files, default is "./"" value="./" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Decode Behavior From Neural Trajectories**
+
+Model neural activity trajectories and decode behavioral variables.
+
+Parameters
+----------
+neural_data : numpy.ndarray
+    Neural spiking activity data, shape (n_timepoints, n_neurons)
+behavioral_data : numpy.ndarray
+    Behavioral data, shape (n_timepoints, n_behavioral_variables)
+n_components : int, optional
+    Number of principal components to use for dimensionality reduction, default is 10
+output_dir : str, optional
+    Directory to save output files, default is "./"
+
+Returns
+-------
+str
+    Research log summarizing the steps taken and results
+
+**Domain**: bioengineering
+**Function**: decode_behavior_from_neural_trajectories
+]]></help>
+</tool>

@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_muscle_align" name="muscle align" version="1.0.0">
+  <description>Run muscle align command</description>
+  <requirements>
+    <requirement type="package">muscle</requirement>
+  </requirements>
+  <command detect_errors="exit_code">muscle align $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**muscle align**
+
+Run muscle align command
+
+**Tool Type**: cli
+**Library**: muscle
+**Function**: align
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;muscle&quot;,
+  &quot;subcommand&quot;: &quot;align&quot;,
+  &quot;call_template&quot;: &quot;muscle align [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<tool id="biomni_database_query_alphafold" name="Biomni: Query Alphafold" version="1.0.0">
+    <description>Query the AlphaFold Database API for protein structure predictions.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.database import query_alphafold
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = query_alphafold(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --uniprot_id '$uniprot_id'
+#if $endpoint
+    --endpoint '$endpoint'
+#end if
+#if $residue_range
+    --residue_range '$residue_range'
+#end if
+#if $download
+    --download '$download'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $file_format
+    --file_format '$file_format'
+#end if
+#if $model_version
+    --model_version '$model_version'
+#end if
+#if $model_number
+    --model_number '$model_number'
+#end if
+]]></command>
+    <inputs>
+        <param name="uniprot_id" type="text" label="Uniprot Id" help=""  />
+        <param name="endpoint" type="text" label="Endpoint" help=""prediction", "summary", or "annotations"" value="prediction" optional="true"/>
+        <param name="residue_range" type="text" label="Residue Range" help=""  optional="true"/>
+        <param name="download" type="text" label="Download" help="" value="False" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help=""  optional="true"/>
+        <param name="file_format" type="text" label="File Format" help="" value="pdb" optional="true"/>
+        <param name="model_version" type="text" label="Model Version" help="" value="v4" optional="true"/>
+        <param name="model_number" type="text" label="Model Number" help="" value="1" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Query Alphafold**
+
+Query the AlphaFold Database API for protein structure predictions.
+
+Parameters
+----------
+uniprot_id (str): UniProt accession ID (e.g., "P12345")
+endpoint (str, optional): Specific AlphaFold API endpoint to query:
+                        "prediction", "summary", or "annotations"
+residue_range (str, optional): Specific residue range in format "start-end" (e.g., "1-100")
+download (bool): Whether to download structure files
+output_dir (str, optional): Directory to save downloaded files (default: current directory)
+file_format (str): Format of the structure file to download - "pdb" or "cif"
+model_version (str): AlphaFold model version - "v4" (latest) or "v3", "v2", "v1"
+model_number (int): Model number (1-5, with 1 being the highest confidence model)
+
+Returns
+-------
+dict: Dictionary containing both the query information and the AlphaFold results
+
+Examples
+--------
+- Basic query: query_alphafold(uniprot_id="P53_HUMAN")
+- Download structure: query_alphafold(uniprot_id="P53_HUMAN", download=True, output_dir="./structures")
+- Get annotations: query_alphafold(uniprot_id="P53_HUMAN", endpoint="annotations")
+
+**Domain**: database
+**Function**: query_alphafold
+]]></help>
+</tool>

@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<tool id="biomni_microbiology_model_bacterial_growth_dynamics" name="Biomni: Model Bacterial Growth Dynamics" version="1.0.0">
+    <description>Model bacterial population dynamics over time using ordinary differential equations.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.microbiology import model_bacterial_growth_dynamics
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = model_bacterial_growth_dynamics(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --initial_population '$initial_population'
+--growth_rate '$growth_rate'
+--clearance_rate '$clearance_rate'
+--niche_size '$niche_size'
+#if $simulation_time
+    --simulation_time '$simulation_time'
+#end if
+#if $time_step
+    --time_step '$time_step'
+#end if
+]]></command>
+    <inputs>
+        <param name="initial_population" type="text" label="Initial Population" help="Initial bacterial population size (CFU/ml or cells)"  />
+        <param name="growth_rate" type="text" label="Growth Rate" help="Bacterial growth rate (per hour)"  />
+        <param name="clearance_rate" type="text" label="Clearance Rate" help="Rate at which bacteria are cleared from the system (per hour)"  />
+        <param name="niche_size" type="text" label="Niche Size" help="Maximum carrying capacity of the environment (CFU/ml or cells)"  />
+        <param name="simulation_time" type="text" label="Simulation Time" help="Total simulation time in hours (default: 24)" value="24" optional="true"/>
+        <param name="time_step" type="text" label="Time Step" help="Time step for simulation output (default: 0.1)" value="0.1" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Model Bacterial Growth Dynamics**
+
+Model bacterial population dynamics over time using ordinary differential equations.
+
+Parameters
+----------
+initial_population : float
+    Initial bacterial population size (CFU/ml or cells)
+growth_rate : float
+    Bacterial growth rate (per hour)
+clearance_rate : float
+    Rate at which bacteria are cleared from the system (per hour)
+niche_size : float
+    Maximum carrying capacity of the environment (CFU/ml or cells)
+simulation_time : float, optional
+    Total simulation time in hours (default: 24)
+time_step : float, optional
+    Time step for simulation output (default: 0.1)
+
+Returns
+-------
+str
+    Research log summarizing the bacterial growth dynamics simulation
+
+**Domain**: microbiology
+**Function**: model_bacterial_growth_dynamics
+]]></help>
+</tool>

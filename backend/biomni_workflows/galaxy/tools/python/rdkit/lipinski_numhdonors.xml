@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_rdkit_Lipinski_NumHDonors" name="RDKit: Lipinski.NumHDonors" version="1.0.0">
+  <description>Call RDKit Lipinski.NumHDonors function</description>
+  <requirements>
+    <requirement type="package" version="">rdkit</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from rdkit import *
+# Tool implementation
+result = Lipinski.NumHDonors(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**RDKit: Lipinski.NumHDonors**
+
+Call RDKit Lipinski.NumHDonors function
+
+**Tool Type**: python
+**Library**: rdkit
+**Function**: Lipinski.NumHDonors
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;rdkit&quot;,
+  &quot;function&quot;: &quot;Lipinski.NumHDonors&quot;,
+  &quot;call_template&quot;: &quot;from rdkit import ...; result = Lipinski.NumHDonors(...)&quot;
+}
+]]&gt;</help>
+</tool>

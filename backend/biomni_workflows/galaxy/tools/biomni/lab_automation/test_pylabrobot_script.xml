@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<tool id="biomni_lab_automation_test_pylabrobot_script" name="Biomni: Test Pylabrobot Script" version="1.0.0">
+    <description>Test a PyLabRobot script using simulation and validation.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.lab_automation import test_pylabrobot_script
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = test_pylabrobot_script(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --script_input '$script_input'
+#if $enable_tracking
+    --enable_tracking
+#end if
+#if $timeout_seconds
+    --timeout_seconds '$timeout_seconds'
+#end if
+#if $save_test_report
+    --save_test_report
+#end if
+#if $test_report_dir
+    --test_report_dir '$test_report_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="script_input" type="text" label="Script Input" help=""  />
+        <param name="enable_tracking" type="boolean" truevalue="true" falsevalue="false" label="Enable Tracking" help="" />
+        <param name="timeout_seconds" type="integer" label="Timeout Seconds" help="" value="60" optional="true"/>
+        <param name="save_test_report" type="boolean" truevalue="true" falsevalue="false" label="Save Test Report" help="" />
+        <param name="test_report_dir" type="text" label="Test Report Dir" help=""  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Test Pylabrobot Script**
+
+Test a PyLabRobot script using simulation and validation.
+
+Uses PyLabRobot's ChatterboxBackend and tracking systems to
+validate generated scripts without requiring physical hardware.
+
+Args:
+    script_input (str): Either the PyLabRobot script code as a string, or a file path to a .py file
+    enable_tracking (bool): Enable tip and volume tracking for error detection
+    timeout_seconds (int): Maximum execution time before timeout
+    save_test_report (bool): Whether to save detailed test results to file
+    test_report_dir (str, optional): Directory to save test reports
+
+Returns:
+    dict: Dictionary containing:
+        - success (bool): Whether the script passed all tests
+        - test_results (dict): Detailed test results for each validation step
+        - execution_summary (dict): Summary of operations performed
+        - errors (list): List of errors encountered
+        - warnings (list): List of warnings
+        - test_report_path (str): Path to saved report if requested
+
+Example:
+    >>> # Test with script content string
+    >>> script = "async def main(): ..."
+    >>> result = test_pylabrobot_script(script)
+
+    >>> # Test with file path
+    >>> result = test_pylabrobot_script("/path/to/script.py")
+
+    >>> if result["success"]:
+    ...     print("Test passed!")
+    ... else:
+    ...     print(f"Test failed: {result['errors']}")
+
+**Domain**: lab_automation
+**Function**: test_pylabrobot_script
+]]></help>
+</tool>

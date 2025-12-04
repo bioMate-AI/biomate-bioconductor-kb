@@ -1,0 +1,78 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_microbiology_enumerate_bacterial_cfu_by_serial_dilution",
+  "annotation": "Quantify bacterial concentration (CFU/mL) using serial dilutions and spot plating.",
+  "tags": [
+    "biomni",
+    "microbiology",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "tool",
+      "tool_id": "python_numpy_np_random_poisson",
+      "label": "Step 1: np_random_poisson",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {}
+    },
+    "1": {
+      "id": 1,
+      "type": "tool",
+      "tool_id": "python_numpy_np_random_seed",
+      "label": "Step 2: np_random_seed",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "python_pandas_pd_DataFrame",
+      "label": "Step 3: pd_DataFrame",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 1200,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "enumerate_bacterial_cfu_by_serial_dilution-output"
+    }
+  ]
+}

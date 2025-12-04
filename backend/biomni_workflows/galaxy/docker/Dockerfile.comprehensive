@@ -1,0 +1,417 @@
+# BioMate Comprehensive Bioinformatics Docker Image
+# Integrates: Biomni Python tools + Galaxy workflow tools + Nextflow tools
+#
+# Build: docker build -t biomate/biotools:comprehensive -f Dockerfile.comprehensive .
+# Run:   docker run -it biomate/biotools:comprehensive
+#
+# Tool inventory:
+#   - Total unique tools: 1319
+#   - From Galaxy workflows: 144 (301 raw tool IDs)
+#   - From Nextflow processes: 1191 (1683 raw processes)
+#   - From Biomni packages: 66
+#   - Tools in all three: 6 (bwa, bowtie2, samtools, bedtools, fastqc, mafft)
+
+# ==============================================================================
+# STAGE 1: Build CLI Bioinformatics Tools
+# ==============================================================================
+FROM ubuntu:22.04 AS cli-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    autoconf \
+    automake \
+    libtool \
+    pkg-config \
+    git \
+    wget \
+    curl \
+    ca-certificates \
+    zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    libtbb-dev \
+    libhdf5-dev \
+    default-jdk \
+    libsimde-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# -----------------------------------------------------------------------------
+# CORE TOOLS (in ALL THREE: Galaxy, Nextflow, Biomni)
+# -----------------------------------------------------------------------------
+
+# htslib (prerequisite for samtools, bcftools)
+RUN git clone --depth 1 --branch 1.21 https://github.com/samtools/htslib.git && \
+    cd htslib && git submodule update --init --recursive && \
+    autoreconf -i && ./configure --prefix=/usr/local && \
+    make -j$(nproc) && make install
+
+# samtools
+RUN git clone --depth 1 --branch 1.21 https://github.com/samtools/samtools.git && \
+    cd samtools && autoheader && autoconf && \
+    ./configure --prefix=/usr/local --with-htslib=/usr/local && \
+    make -j$(nproc) && make install
+
+# bcftools
+RUN git clone --depth 1 --branch 1.21 https://github.com/samtools/bcftools.git && \
+    cd bcftools && autoheader && autoconf && \
+    ./configure --prefix=/usr/local --with-htslib=/usr/local && \
+    make -j$(nproc) && make install
+
+# BWA
+RUN git clone --depth 1 https://github.com/lh3/bwa.git && \
+    cd bwa && make -j$(nproc) && cp bwa /usr/local/bin/
+
+# Bowtie2 (with simde for ARM64)
+RUN git clone --depth 1 --branch v2.5.3 https://github.com/BenLangmead/bowtie2.git && \
+    cd bowtie2 && \
+    git clone --depth 1 https://github.com/simd-everywhere/simde.git third_party/simde && \
+    make -j$(nproc) POPCNT_CAPABILITY=0 && cp bowtie2* /usr/local/bin/
+
+# bedtools - skip building from source, use apt-get version in runtime stage
+# RUN git clone --depth 1 --branch v2.31.1 https://github.com/arq5x/bedtools2.git && \
+#     cd bedtools2 && make -j$(nproc) && cp bin/* /usr/local/bin/
+
+# MAFFT
+RUN wget -q https://mafft.cbrc.jp/alignment/software/mafft-7.526-linux.tgz && \
+    tar xzf mafft-7.526-linux.tgz && \
+    cp -r mafft-linux64/mafftdir /usr/local/ && \
+    cp mafft-linux64/mafft.bat /usr/local/bin/mafft || true
+
+# -----------------------------------------------------------------------------
+# GALAXY + NEXTFLOW SHARED TOOLS (need to add to Biomni)
+# 63 tools: bcftools, hisat2, star, etc.
+# -----------------------------------------------------------------------------
+
+# BWA-MEM2
+RUN git clone --recursive --depth 1 https://github.com/bwa-mem2/bwa-mem2.git && \
+    cd bwa-mem2 && make -j$(nproc) && cp bwa-mem2* /usr/local/bin/ || true
+
+# HISAT2
+RUN git clone --depth 1 https://github.com/DaehwanKimLab/hisat2.git && \
+    cd hisat2 && make -j$(nproc) && cp hisat2* /usr/local/bin/ || true
+
+# STAR - skip on ARM64 (missing xxd and x86-specific)
+RUN git clone --depth 1 --branch 2.7.11b https://github.com/alexdobin/STAR.git && \
+    cd STAR/source && make -j$(nproc) STAR && cp STAR /usr/local/bin/ || true
+
+# minimap2 - skip on ARM64 (x86 SSE instructions)
+RUN git clone --depth 1 https://github.com/lh3/minimap2.git && \
+    cd minimap2 && make -j$(nproc) && cp minimap2 /usr/local/bin/ || true
+
+# Strobealign
+RUN git clone --depth 1 https://github.com/ksahlin/strobealign.git && \
+    cd strobealign && cmake -B build -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build --target strobealign -j$(nproc) && \
+    cp build/strobealign /usr/local/bin/ || true
+
+# Salmon
+RUN wget -q https://github.com/COMBINE-lab/salmon/releases/download/v1.10.3/salmon-1.10.3_linux_x86_64.tar.gz && \
+    tar xzf salmon-1.10.3_linux_x86_64.tar.gz && \
+    cp -r salmon-1.10.3_linux_x86_64/bin/* /usr/local/bin/ && \
+    cp -r salmon-1.10.3_linux_x86_64/lib/* /usr/local/lib/ || true
+
+# kallisto
+RUN wget -q https://github.com/pachterlab/kallisto/releases/download/v0.50.1/kallisto_linux-v0.50.1.tar.gz && \
+    tar xzf kallisto_linux-v0.50.1.tar.gz && \
+    cp kallisto/kallisto /usr/local/bin/ || true
+
+# featureCounts (subread)
+RUN wget -q https://github.com/ShiLab-Bioinformatics/subread/releases/download/2.0.6/subread-2.0.6-Linux-x86_64.tar.gz && \
+    tar xzf subread-2.0.6-Linux-x86_64.tar.gz && \
+    cp subread-2.0.6-Linux-x86_64/bin/* /usr/local/bin/ || true
+
+# StringTie - x86_64 binary, skip on ARM64
+RUN wget -q https://github.com/gpertea/stringtie/releases/download/v2.2.3/stringtie-2.2.3.Linux_x86_64.tar.gz && \
+    tar xzf stringtie-2.2.3.Linux_x86_64.tar.gz && \
+    cp stringtie-2.2.3.Linux_x86_64/stringtie /usr/local/bin/ || true
+
+# SeqKit - amd64 binary, skip on ARM64
+RUN wget -q https://github.com/shenwei356/seqkit/releases/download/v2.8.2/seqkit_linux_amd64.tar.gz && \
+    tar xzf seqkit_linux_amd64.tar.gz && mv seqkit /usr/local/bin/ || true
+
+# fastp - x86 binary, skip on ARM64
+RUN wget -q https://github.com/OpenGene/fastp/releases/download/v0.23.4/fastp && \
+    chmod +x fastp && mv fastp /usr/local/bin/ || true
+
+# MMseqs2
+RUN wget -q https://github.com/soedinglab/MMseqs2/releases/download/15-6f452/mmseqs-linux-avx2.tar.gz && \
+    tar xzf mmseqs-linux-avx2.tar.gz && cp mmseqs/bin/mmseqs /usr/local/bin/ || true
+
+# foldseek
+RUN wget -q https://github.com/steineggerlab/foldseek/releases/download/9-427df8a/foldseek-linux-avx2.tar.gz && \
+    tar xzf foldseek-linux-avx2.tar.gz && cp foldseek/bin/foldseek /usr/local/bin/ || true
+
+# HMMER - may have x86 optimizations
+RUN wget -q http://eddylab.org/software/hmmer/hmmer-3.4.tar.gz && \
+    tar xzf hmmer-3.4.tar.gz && cd hmmer-3.4 && \
+    ./configure --prefix=/usr/local && make -j$(nproc) && make install || true
+
+# Kraken2
+RUN git clone --depth 1 https://github.com/DerrickWood/kraken2.git && \
+    cd kraken2 && ./install_kraken2.sh /usr/local/kraken2 && \
+    cp /usr/local/kraken2/* /usr/local/bin/ || true
+
+# FastQC - Java-based, should work
+RUN wget -q https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.12.1.zip && \
+    unzip -q fastqc_v0.12.1.zip && chmod +x FastQC/fastqc && cp -r FastQC /opt/ || true
+
+# Picard
+RUN wget -q https://github.com/broadinstitute/picard/releases/download/3.1.1/picard.jar && \
+    mkdir -p /opt/picard && mv picard.jar /opt/picard/
+
+# GATK4
+RUN wget -q https://github.com/broadinstitute/gatk/releases/download/4.5.0.0/gatk-4.5.0.0.zip && \
+    unzip -q gatk-4.5.0.0.zip && mv gatk-4.5.0.0 /opt/gatk || true
+
+# freebayes - amd64 binary, skip on ARM64
+RUN wget -q https://github.com/freebayes/freebayes/releases/download/v1.3.7/freebayes-1.3.7-linux-amd64-static.gz && \
+    gunzip freebayes-1.3.7-linux-amd64-static.gz && \
+    mv freebayes-1.3.7-linux-amd64-static /usr/local/bin/freebayes && chmod +x /usr/local/bin/freebayes || true
+
+# VCFtools
+RUN git clone --depth 1 https://github.com/vcftools/vcftools.git && \
+    cd vcftools && ./autogen.sh && ./configure --prefix=/usr/local && \
+    make -j$(nproc) && make install || true
+
+# mosdepth - may be x86 binary
+RUN wget -q https://github.com/brentp/mosdepth/releases/download/v0.3.8/mosdepth && \
+    chmod +x mosdepth && mv mosdepth /usr/local/bin/ || true
+
+# fgbio
+RUN wget -q https://github.com/fulcrumgenomics/fgbio/releases/download/2.2.1/fgbio-2.2.1.jar && \
+    mkdir -p /opt/fgbio && mv fgbio-2.2.1.jar /opt/fgbio/fgbio.jar
+
+# SortMeRNA
+RUN wget -q https://github.com/biocore/sortmerna/releases/download/v4.3.6/sortmerna-4.3.6-Linux.tar.gz && \
+    tar xzf sortmerna-4.3.6-Linux.tar.gz && \
+    cp sortmerna-4.3.6-Linux/bin/sortmerna /usr/local/bin/ || true
+
+# SPAdes
+RUN wget -q https://github.com/ablab/spades/releases/download/v4.0.0/SPAdes-4.0.0-Linux.tar.gz && \
+    tar xzf SPAdes-4.0.0-Linux.tar.gz && cp -r SPAdes-4.0.0-Linux/bin/* /usr/local/bin/ || true
+
+# BUSCO dependencies are in Python
+
+# Ensure all /opt directories exist (even if tools failed to install)
+RUN mkdir -p /opt/FastQC /opt/picard /opt/gatk /opt/fgbio
+
+
+# ==============================================================================
+# STAGE 2: Runtime Image with Python
+# ==============================================================================
+FROM python:3.11-slim
+
+LABEL maintainer="BioMate Team"
+LABEL description="Comprehensive bioinformatics tools: Biomni + Galaxy workflows + Nextflow"
+LABEL version="2.0.0"
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV BIOMNI_HOME=/opt/biomni
+ENV PATH="${BIOMNI_HOME}/bin:/opt/FastQC:/opt/gatk:/opt/picard:${PATH}"
+ENV PICARD_JAR="/opt/picard/picard.jar"
+ENV GATK_JAR="/opt/gatk/gatk-package-4.5.0.0-local.jar"
+ENV FGBIO_JAR="/opt/fgbio/fgbio.jar"
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Core
+    ca-certificates curl wget gzip bzip2 unzip pigz \
+    # Build essentials (for pip packages)
+    build-essential gcc g++ gfortran cmake make \
+    # Libraries
+    zlib1g libbz2-1.0 liblzma5 libcurl4 libssl3 \
+    libncurses6 libncursesw6 libtbb12 libgomp1 \
+    # Image processing
+    libpng-dev libjpeg-dev libtiff-dev \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    # HDF5
+    libhdf5-dev pkg-config \
+    # Linear algebra
+    libopenblas-dev liblapack-dev \
+    # matplotlib
+    libfreetype6-dev \
+    # Java
+    default-jre-headless \
+    # Perl
+    perl \
+    # ViennaRNA dependencies
+    libgsl-dev \
+    # bedtools
+    bedtools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy CLI tools from builder
+COPY --from=cli-builder /usr/local/bin/* /usr/local/bin/
+COPY --from=cli-builder /usr/local/lib/* /usr/local/lib/
+COPY --from=cli-builder /opt/FastQC /opt/FastQC
+COPY --from=cli-builder /opt/picard /opt/picard
+COPY --from=cli-builder /opt/gatk /opt/gatk
+COPY --from=cli-builder /opt/fgbio /opt/fgbio
+
+RUN ldconfig
+
+# Create directory structure
+RUN mkdir -p ${BIOMNI_HOME}/{bin,src,galaxy_tools}
+
+# -----------------------------------------------------------------------------
+# LAYER 1: Core Python dependencies (from Biomni)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    numpy scipy pandas matplotlib seaborn \
+    biopython requests aiohttp h5py anndata \
+    scikit-learn pydantic python-dotenv tqdm rich \
+    langchain langchain-core
+
+# -----------------------------------------------------------------------------
+# LAYER 2: Image processing (bioimaging, cell_biology)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    scikit-image opencv-python-headless Pillow nibabel SimpleITK
+
+# -----------------------------------------------------------------------------
+# LAYER 3: Genomics & single-cell (from Biomni + Galaxy + Nextflow)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    scanpy gseapy gget pybedtools pybiomart pyliftover \
+    msprime cooler pysam pyfaidx pyvcf3
+
+# -----------------------------------------------------------------------------
+# LAYER 4: Pharmacology & chemistry (from Biomni)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    rdkit pubchempy statsmodels
+
+# -----------------------------------------------------------------------------
+# LAYER 5: Systems biology & metabolic modeling (from Biomni)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    cobra networkx python-libsbml
+
+# -----------------------------------------------------------------------------
+# LAYER 6: Flow cytometry (from Biomni)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    flowio flowkit FlowCytometryTools
+
+# -----------------------------------------------------------------------------
+# LAYER 7: Literature & web (from Biomni)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    arxiv scholarly PyPDF2 beautifulsoup4 pymed \
+    googlesearch-python anthropic
+
+# -----------------------------------------------------------------------------
+# LAYER 8: Bioengineering & tracking (from Biomni)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    trackpy pykalman reportlab
+
+# -----------------------------------------------------------------------------
+# LAYER 9: ML/Deep Learning (from Biomni)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch && \
+    pip install --no-cache-dir transformers accelerate sentencepiece
+
+# -----------------------------------------------------------------------------
+# LAYER 10: QC & trimming tools (from Galaxy + Nextflow)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    cutadapt multiqc umi_tools deeptools
+
+# -----------------------------------------------------------------------------
+# LAYER 11: Additional bioinformatics (Galaxy + Nextflow shared)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    busco HTSeq pybigwig pyBigWig \
+    snakemake click rich || true
+
+# -----------------------------------------------------------------------------
+# LAYER 12: Specialized packages (optional - may fail)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir \
+    ViennaRNA || echo "ViennaRNA not available" && \
+    pip install --no-cache-dir primer3-py || echo "primer3-py not available" && \
+    pip install --no-cache-dir nilearn || echo "nilearn not available" && \
+    pip install --no-cache-dir python-louvain || echo "python-louvain not available" && \
+    pip install --no-cache-dir fair-esm || echo "fair-esm not available"
+
+# -----------------------------------------------------------------------------
+# LAYER 13: Single-cell specialized (from Nextflow)
+# -----------------------------------------------------------------------------
+RUN pip install --no-cache-dir --no-deps \
+    scvi-tools || echo "scvi-tools not available" && \
+    pip install --no-cache-dir --no-deps cellpose || echo "cellpose not available" && \
+    pip install --no-cache-dir --no-deps harmony-pytorch || echo "harmony-pytorch not available" && \
+    pip install --no-cache-dir scrublet || echo "scrublet not available"
+
+# Create wrapper scripts for Java tools
+RUN echo '#!/bin/bash\njava -jar /opt/picard/picard.jar "$@"' > /usr/local/bin/picard && \
+    chmod +x /usr/local/bin/picard && \
+    echo '#!/bin/bash\njava -jar /opt/fgbio/fgbio.jar "$@"' > /usr/local/bin/fgbio && \
+    chmod +x /usr/local/bin/fgbio
+
+# -----------------------------------------------------------------------------
+# Copy Biomni package (if exists)
+# -----------------------------------------------------------------------------
+WORKDIR ${BIOMNI_HOME}
+# COPY biomni/ ${BIOMNI_HOME}/src/biomni/
+# COPY pyproject.toml ${BIOMNI_HOME}/src/
+# RUN cd ${BIOMNI_HOME}/src && pip install -e .
+
+# Verification script
+RUN echo '#!/bin/bash\n\
+echo "=== BioMate Comprehensive Bioinformatics Container ==="\n\
+echo ""\n\
+echo "### CORE TOOLS (in all 3 sources) ###"\n\
+echo "  bwa:      $(bwa 2>&1 | head -3 | tail -1 || echo "not found")"\n\
+echo "  bowtie2:  $(bowtie2 --version 2>&1 | head -1 || echo "not found")"\n\
+echo "  samtools: $(samtools --version 2>&1 | head -1 || echo "not found")"\n\
+echo "  bedtools: $(bedtools --version 2>&1 || echo "not found")"\n\
+echo "  fastqc:   $(/opt/FastQC/fastqc --version 2>&1 || echo "not found")"\n\
+echo "  mafft:    $(mafft --version 2>&1 || echo "not found")"\n\
+echo ""\n\
+echo "### ALIGNERS ###"\n\
+echo "  hisat2:      $(hisat2 --version 2>&1 | head -1 || echo "not found")"\n\
+echo "  STAR:        $(STAR --version 2>&1 || echo "not found")"\n\
+echo "  minimap2:    $(minimap2 --version 2>&1 || echo "not found")"\n\
+echo "  strobealign: $(strobealign --version 2>&1 || echo "not found")"\n\
+echo ""\n\
+echo "### QUANTIFICATION ###"\n\
+echo "  salmon:       $(salmon --version 2>&1 || echo "not found")"\n\
+echo "  kallisto:     $(kallisto version 2>&1 || echo "not found")"\n\
+echo "  featureCounts:$(featureCounts -v 2>&1 | head -1 || echo "not found")"\n\
+echo "  stringtie:    $(stringtie --version 2>&1 || echo "not found")"\n\
+echo ""\n\
+echo "### VARIANT CALLING ###"\n\
+echo "  bcftools:  $(bcftools --version 2>&1 | head -1 || echo "not found")"\n\
+echo "  freebayes: $(freebayes --version 2>&1 | head -1 || echo "not found")"\n\
+echo "  picard:    $(java -jar /opt/picard/picard.jar --version 2>&1 || echo "not found")"\n\
+echo ""\n\
+echo "### SEQUENCE ANALYSIS ###"\n\
+echo "  seqkit:   $(seqkit version 2>&1 || echo "not found")"\n\
+echo "  mmseqs:   $(mmseqs version 2>&1 || echo "not found")"\n\
+echo "  foldseek: $(foldseek version 2>&1 || echo "not found")"\n\
+echo "  hmmer:    $(hmmsearch -h 2>&1 | head -2 || echo "not found")"\n\
+echo ""\n\
+echo "### PYTHON PACKAGES ###"\n\
+python3 -c "import scanpy; print(f\"  scanpy: {scanpy.__version__}\")" 2>/dev/null || echo "  scanpy: not found"\n\
+python3 -c "import pysam; print(f\"  pysam: {pysam.__version__}\")" 2>/dev/null || echo "  pysam: not found"\n\
+python3 -c "import torch; print(f\"  torch: {torch.__version__}\")" 2>/dev/null || echo "  torch: not found"\n\
+python3 -c "import rdkit; print(f\"  rdkit: installed\")" 2>/dev/null || echo "  rdkit: not found"\n\
+echo ""\n\
+echo "Done."\n\
+' > /usr/local/bin/verify-tools.sh && chmod +x /usr/local/bin/verify-tools.sh
+
+WORKDIR /data
+
+CMD ["/usr/local/bin/verify-tools.sh"]

@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_diamond_blastx" name="diamond blastx" version="1.0.0">
+  <description>Run diamond blastx command</description>
+  <requirements>
+    <requirement type="package">diamond</requirement>
+  </requirements>
+  <command detect_errors="exit_code">diamond blastx $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**diamond blastx**
+
+Run diamond blastx command
+
+**Tool Type**: cli
+**Library**: diamond
+**Function**: blastx
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;diamond&quot;,
+  &quot;subcommand&quot;: &quot;blastx&quot;,
+  &quot;call_template&quot;: &quot;diamond blastx [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

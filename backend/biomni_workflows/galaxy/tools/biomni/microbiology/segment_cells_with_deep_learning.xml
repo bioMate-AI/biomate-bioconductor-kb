@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<tool id="biomni_microbiology_segment_cells_with_deep_learning" name="Biomni: Segment Cells With Deep Learning" version="1.0.0">
+    <description>Perform cell segmentation on fluorescence microscopy images using deep learning.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.microbiology import segment_cells_with_deep_learning
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = segment_cells_with_deep_learning(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --image_path '$image_path'
+#if $model_type
+    --model_type '$model_type'
+#end if
+#if $diameter
+    --diameter '$diameter'
+#end if
+#if $save_dir
+    --save_dir '$save_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="image_path" type="text" label="Image Path" help="Path to the fluorescence microscopy image file"  />
+        <param name="model_type" type="text" label="Model Type" help="Options include: 'bact_fluor_omni', 'cyto', 'nuclei', etc." value="bact_fluor_omni" optional="true"/>
+        <param name="diameter" type="text" label="Diameter" help="Expected diameter of cells in pixels. If None, diameter is automatically estimated."  optional="true"/>
+        <param name="save_dir" type="text" label="Save Dir" help="Directory to save segmentation results (default: 'segmentation_results')" value="segmentation_results" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Segment Cells With Deep Learning**
+
+Perform cell segmentation on fluorescence microscopy images using deep learning.
+
+Uses pre-trained models from the Cellpose/Omnipose library to identify and segment
+individual cells in fluorescence microscopy images.
+
+Parameters
+----------
+image_path : str
+    Path to the fluorescence microscopy image file
+model_type : str, optional
+    Name of the pre-trained model to use (default: 'bact_fluor_omni')
+    Options include: 'bact_fluor_omni', 'cyto', 'nuclei', etc.
+diameter : float, optional
+    Expected diameter of cells in pixels. If None, diameter is automatically estimated.
+save_dir : str, optional
+    Directory to save segmentation results (default: 'segmentation_results')
+
+Returns
+-------
+str
+    Research log detailing the segmentation process and results
+
+**Domain**: microbiology
+**Function**: segment_cells_with_deep_learning
+]]></help>
+</tool>

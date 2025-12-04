@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_cobra_flux_analysis_single_gene_deletion" name="COBRApy: flux_analysis.single_gene_deletion" version="1.0.0">
+  <description>Call COBRApy flux_analysis.single_gene_deletion function</description>
+  <requirements>
+    <requirement type="package" version="">cobra</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from cobra import *
+# Tool implementation
+result = flux_analysis.single_gene_deletion(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**COBRApy: flux_analysis.single_gene_deletion**
+
+Call COBRApy flux_analysis.single_gene_deletion function
+
+**Tool Type**: python
+**Library**: cobra
+**Function**: flux_analysis.single_gene_deletion
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;cobra&quot;,
+  &quot;function&quot;: &quot;flux_analysis.single_gene_deletion&quot;,
+  &quot;call_template&quot;: &quot;from cobra import ...; result = flux_analysis.single_gene_deletion(...)&quot;
+}
+]]&gt;</help>
+</tool>

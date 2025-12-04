@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_skimage_filters_gaussian" name="scikit-image: filters.gaussian" version="1.0.0">
+  <description>Call scikit-image filters.gaussian function</description>
+  <requirements>
+    <requirement type="package" version="">skimage</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from skimage import *
+# Tool implementation
+result = filters.gaussian(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**scikit-image: filters.gaussian**
+
+Call scikit-image filters.gaussian function
+
+**Tool Type**: python
+**Library**: skimage
+**Function**: filters.gaussian
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;skimage&quot;,
+  &quot;function&quot;: &quot;filters.gaussian&quot;,
+  &quot;call_template&quot;: &quot;from skimage import ...; result = filters.gaussian(...)&quot;
+}
+]]&gt;</help>
+</tool>

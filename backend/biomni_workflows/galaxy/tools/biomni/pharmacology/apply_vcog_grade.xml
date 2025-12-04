@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_apply_vcog_grade" name="Biomni: Apply Vcog Grade" version="1.0.0">
+    <description>Apply VCOG-CTCAE grading criteria to an adverse event.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import apply_vcog_grade
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = apply_vcog_grade(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --symptom '$symptom'
+--severity '$severity'
+#if $measurement
+    --measurement '$measurement'
+#end if
+]]></command>
+    <inputs>
+        <param name="symptom" type="text" label="Symptom" help="The type of adverse event"  />
+        <param name="severity" type="text" label="Severity" help="The severity description"  />
+        <param name="measurement" type="text" label="Measurement" help="Quantitative measurement related to the symptom, if available"  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Apply Vcog Grade**
+
+Apply VCOG-CTCAE grading criteria to an adverse event.
+
+Parameters
+----------
+symptom : str
+    The type of adverse event
+severity : str
+    The severity description
+measurement : float or None
+    Quantitative measurement related to the symptom, if available
+
+Returns
+-------
+int
+    The VCOG-CTCAE grade (0-5)
+str
+    Description of the grading rationale
+
+**Domain**: pharmacology
+**Function**: apply_vcog_grade
+]]></help>
+</tool>

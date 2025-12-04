@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_analyze_accelerated_stability_of_pharmaceutical_formulations" name="Biomni: Analyze Accelerated Stability Of Pharmaceutical Formulations" version="1.0.0">
+    <description>Analyzes the stability of pharmaceutical formulations under accelerated storage conditions.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import analyze_accelerated_stability_of_pharmaceutical_formulations
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_accelerated_stability_of_pharmaceutical_formulations(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --formulations '$formulations'
+--storage_conditions '$storage_conditions'
+--time_points '$time_points'
+]]></command>
+    <inputs>
+        <param name="formulations" type="text" label="Formulations" help="- 'excipients': list, list of excipients"  />
+        <param name="storage_conditions" type="text" label="Storage Conditions" help="- 'description': str, description of storage condition (e.g., "Room Temperature", "Accelerated")"  />
+        <param name="time_points" type="text" label="Time Points" help="List of time points in days to evaluate stability"  />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Accelerated Stability Of Pharmaceutical Formulations**
+
+Analyzes the stability of pharmaceutical formulations under accelerated storage conditions.
+
+Parameters
+----------
+formulations : list of dict
+    List of formulation dictionaries, each containing:
+    - 'name': str, name of the formulation
+    - 'active_ingredient': str, name of the active pharmaceutical ingredient
+    - 'concentration': float, concentration in mg/mL
+    - 'excipients': list, list of excipients
+
+storage_conditions : list of dict
+    List of storage condition dictionaries, each containing:
+    - 'temperature': float, temperature in °C
+    - 'humidity': float, relative humidity in percentage (optional for solid dosage forms)
+    - 'description': str, description of storage condition (e.g., "Room Temperature", "Accelerated")
+
+time_points : list of int
+    List of time points in days to evaluate stability
+
+Returns
+-------
+str
+    Research log summarizing the stability testing process and results
+
+**Domain**: pharmacology
+**Function**: analyze_accelerated_stability_of_pharmaceutical_formulations
+]]></help>
+</tool>

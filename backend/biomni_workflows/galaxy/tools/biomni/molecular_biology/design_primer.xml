@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<tool id="biomni_molecular_biology_design_primer" name="Biomni: Design Primer" version="1.0.0">
+    <description>Design a single primer within the given sequence window.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.molecular_biology import design_primer
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = design_primer(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --sequence '$sequence'
+--start_pos '$start_pos'
+#if $primer_length
+    --primer_length '$primer_length'
+#end if
+#if $min_gc
+    --min_gc '$min_gc'
+#end if
+#if $max_gc
+    --max_gc '$max_gc'
+#end if
+#if $min_tm
+    --min_tm '$min_tm'
+#end if
+#if $max_tm
+    --max_tm '$max_tm'
+#end if
+#if $search_window
+    --search_window '$search_window'
+#end if
+]]></command>
+    <inputs>
+        <param name="sequence" type="text" label="Sequence" help=""  />
+        <param name="start_pos" type="integer" label="Start Pos" help=""  />
+        <param name="primer_length" type="integer" label="Primer Length" help="" value="20" optional="true"/>
+        <param name="min_gc" type="float" label="Min Gc" help="" value="0.4" optional="true"/>
+        <param name="max_gc" type="float" label="Max Gc" help="" value="0.6" optional="true"/>
+        <param name="min_tm" type="float" label="Min Tm" help="" value="55.0" optional="true"/>
+        <param name="max_tm" type="float" label="Max Tm" help="" value="65.0" optional="true"/>
+        <param name="search_window" type="integer" label="Search Window" help="" value="100" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Design Primer**
+
+Design a single primer within the given sequence window.
+
+Args:
+    sequence (str): Target DNA sequence
+    start_pos (int): Starting position for primer search
+    primer_length (int): Length of the primer to design (default: 20)
+    min_gc (float): Minimum GC content (default: 0.4)
+    max_gc (float): Maximum GC content (default: 0.6)
+    min_tm (float): Minimum melting temperature in °C (default: 55.0)
+    max_tm (float): Maximum melting temperature in °C (default: 65.0)
+    search_window (int): Size of window to search for primers (default: 100)
+
+Returns:
+    Optional[Dict[str, Any]]: Dictionary with primer information or None if no suitable primer found
+
+**Domain**: molecular_biology
+**Function**: design_primer
+]]></help>
+</tool>

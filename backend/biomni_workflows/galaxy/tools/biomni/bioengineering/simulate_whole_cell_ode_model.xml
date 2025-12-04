@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<tool id="biomni_bioengineering_simulate_whole_cell_ode_model" name="Biomni: Simulate Whole Cell Ode Model" version="1.0.0">
+    <description>Simulate a whole-cell model represented as a system of ordinary differential equations (ODEs).</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.bioengineering import simulate_whole_cell_ode_model
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = simulate_whole_cell_ode_model(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --initial_conditions '$initial_conditions'
+--parameters '$parameters'
+#if $ode_function
+    --ode_function '$ode_function'
+#end if
+#if $time_span
+    --time_span '$time_span'
+#end if
+#if $time_points
+    --time_points '$time_points'
+#end if
+#if $method
+    --method '$method'
+#end if
+]]></command>
+    <inputs>
+        <param name="initial_conditions" type="text" label="Initial Conditions" help="order expected by the ODE function."  />
+        <param name="parameters" type="text" label="Parameters" help="values are parameter values."  />
+        <param name="ode_function" type="text" label="Ode Function" help="If None, a simple example whole-cell model will be used."  optional="true"/>
+        <param name="time_span" type="text" label="Time Span" help="Tuple of (start_time, end_time) for the simulation."  optional="true"/>
+        <param name="time_points" type="text" label="Time Points" help="Number of time points to evaluate." value="1000" optional="true"/>
+        <param name="method" type="text" label="Method" help="Numerical integration method to use (e.g., 'RK45', 'LSODA', 'BDF')." value="LSODA" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Simulate Whole Cell Ode Model**
+
+Simulate a whole-cell model represented as a system of ordinary differential equations (ODEs).
+
+Parameters
+----------
+initial_conditions : dict or array-like
+    Initial values for each state variable in the model. If dict, keys are variable names
+    and values are initial concentrations/values. If array-like, order must match the
+    order expected by the ODE function.
+parameters : dict
+    Model parameters required by the ODE function. Keys are parameter names and
+    values are parameter values.
+ode_function : callable, optional
+    Function defining the system of ODEs. Should take arguments ``(t, y, *args)`` where
+    ``t`` is time, ``y`` is the state vector, and ``args`` contains additional parameters.
+    If None, a simple example whole-cell model will be used.
+time_span : tuple, default=(0, 100)
+    Tuple of (start_time, end_time) for the simulation.
+time_points : int, default=1000
+    Number of time points to evaluate.
+method : str, default='LSODA'
+    Numerical integration method to use (e.g., 'RK45', 'LSODA', 'BDF').
+
+Returns
+-------
+str
+    Research log summarizing the simulation steps and results. Results are saved
+    to a CSV file and the filename is included in the log.
+
+**Domain**: bioengineering
+**Function**: simulate_whole_cell_ode_model
+]]></help>
+</tool>

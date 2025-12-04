@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<tool id="biomni_bioimaging_create_segmentation_visualization" name="Biomni: Create Segmentation Visualization" version="1.0.0">
+    <description>Create and save visualization of segmentation results using nilearn</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.bioimaging import create_segmentation_visualization
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = create_segmentation_visualization(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --original_mri '$original_mri'
+--segmentation '$segmentation'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="original_mri" type="text" label="Original Mri" help=""  />
+        <param name="segmentation" type="text" label="Segmentation" help=""  />
+        <param name="output_dir" type="text" label="Output Dir" help="" value="./visualization_output" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Create Segmentation Visualization**
+
+Create and save visualization of segmentation results using nilearn
+Args:
+    original_mri: Path to original MRI file
+    segmentation: Path to segmentation file
+    output_dir: Directory to save visualization images
+Returns:
+    list: List of saved image file paths
+
+**Domain**: bioimaging
+**Function**: create_segmentation_visualization
+]]></help>
+</tool>

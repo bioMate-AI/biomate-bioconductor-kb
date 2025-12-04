@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_torch_tensor" name="PyTorch: tensor" version="1.0.0">
+  <description>Call PyTorch tensor function</description>
+  <requirements>
+    <requirement type="package" version="">torch</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from torch import *
+# Tool implementation
+result = tensor(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**PyTorch: tensor**
+
+Call PyTorch tensor function
+
+**Tool Type**: python
+**Library**: torch
+**Function**: tensor
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;torch&quot;,
+  &quot;function&quot;: &quot;tensor&quot;,
+  &quot;call_template&quot;: &quot;from torch import ...; result = tensor(...)&quot;
+}
+]]&gt;</help>
+</tool>

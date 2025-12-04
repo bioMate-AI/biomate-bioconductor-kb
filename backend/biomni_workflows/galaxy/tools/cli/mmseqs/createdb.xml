@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_mmseqs_createdb" name="mmseqs createdb" version="1.0.0">
+  <description>Run mmseqs createdb command</description>
+  <requirements>
+    <requirement type="package">mmseqs</requirement>
+  </requirements>
+  <command detect_errors="exit_code">mmseqs createdb $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**mmseqs createdb**
+
+Run mmseqs createdb command
+
+**Tool Type**: cli
+**Library**: mmseqs
+**Function**: createdb
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;mmseqs&quot;,
+  &quot;subcommand&quot;: &quot;createdb&quot;,
+  &quot;call_template&quot;: &quot;mmseqs createdb [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

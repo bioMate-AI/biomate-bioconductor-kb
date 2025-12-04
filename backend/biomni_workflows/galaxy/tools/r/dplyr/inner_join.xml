@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_dplyr_inner_join" name="dplyr::inner_join" version="1.0.0">
+  <description>Call R dplyr::inner_join function</description>
+  <requirements>
+    <requirement type="package">r-dplyr</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(dplyr); inner_join()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**dplyr::inner_join**
+
+Call R dplyr::inner_join function
+
+**Tool Type**: r
+**Library**: dplyr
+**Function**: inner_join
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;dplyr&quot;,
+  &quot;function&quot;: &quot;inner_join&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(dplyr); inner_join(...)'&quot;
+}
+]]&gt;</help>
+</tool>

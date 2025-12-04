@@ -1,0 +1,62 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genomics_custom_mode",
+  "annotation": "",
+  "tags": [
+    "biomni",
+    "genomics",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "tool",
+      "tool_id": "python_numpy_np_unique",
+      "label": "Step 1: np_unique",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {}
+    },
+    "1": {
+      "id": 1,
+      "type": "tool",
+      "tool_id": "python_numpy_np_argmax",
+      "label": "Step 2: np_argmax",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "custom_mode-output"
+    }
+  ]
+}

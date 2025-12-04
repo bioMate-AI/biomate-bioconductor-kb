@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<tool id="biomni_genomics_gene_set_enrichment_analysis" name="Biomni: Gene Set Enrichment Analysis" version="1.0.0">
+    <description>Perform enrichment analysis for a list of genes, with optional background gene set and plotting functionality.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genomics import gene_set_enrichment_analysis
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = gene_set_enrichment_analysis(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --genes '$genes'
+#if $top_k
+    --top_k '$top_k'
+#end if
+#if $database
+    --database '$database'
+#end if
+#if $background_list
+    --background_list '$background_list'
+#end if
+#if $plot
+    --plot
+#end if
+]]></command>
+    <inputs>
+        <param name="genes" type="text" label="Genes" help=""  />
+        <param name="top_k" type="integer" label="Top K" help="" value="10" optional="true"/>
+        <param name="database" type="text" label="Database" help="" value="ontology" optional="true"/>
+        <param name="background_list" type="text" label="Background List" help=""  optional="true"/>
+        <param name="plot" type="boolean" truevalue="true" falsevalue="false" label="Plot" help="" />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Gene Set Enrichment Analysis**
+
+Perform enrichment analysis for a list of genes, with optional background gene set and plotting functionality.
+
+Parameters
+----------
+- genes (list): List of gene symbols to analyze.
+- top_k (int): Number of top pathways to return. Default is 10.
+- database (str): User-friendly name of the database to use for enrichment analysis.
+    Popular options include:
+    - 'pathway'      (KEGG_2021_Human)
+    - 'transcription'   (ChEA_2016)
+    - 'ontology'     (GO_Biological_Process_2021)
+    - 'diseases_drugs'  (GWAS_Catalog_2019)
+    - 'celltypes'     (PanglaoDB_Augmented_2021)
+    - 'kinase_interactions' (KEA_2015)
+    You can use get_gene_set_enrichment_analysis_supported_database_list tool to get the list of supported databases.
+
+- background_list (list, optional): List of background genes to use for enrichment analysis.
+- plot (bool, optional): If True, generates a bar plot of the top K enrichment results.
+
+Returns
+-------
+- str: The steps performed and the top K enrichment results.
+
+**Domain**: genomics
+**Function**: gene_set_enrichment_analysis
+]]></help>
+</tool>

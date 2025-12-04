@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<tool id="biomni_biophysics_predict_protein_disorder_regions" name="Biomni: Predict Protein Disorder Regions" version="1.0.0">
+    <description>Predicts intrinsically disordered regions (IDRs) in a protein sequence using IUPred2A.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.biophysics import predict_protein_disorder_regions
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = predict_protein_disorder_regions(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --protein_sequence '$protein_sequence'
+#if $threshold
+    --threshold '$threshold'
+#end if
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="protein_sequence" type="text" label="Protein Sequence" help="The amino acid sequence of the protein to analyze"  />
+        <param name="threshold" type="text" label="Threshold" help="The disorder score threshold above which a residue is considered disordered (default: 0.5)" value="0.5" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Filename to save the per-residue disorder scores (default: "disorder_prediction_results.csv")" value="disorder_prediction_results.csv" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Predict Protein Disorder Regions**
+
+Predicts intrinsically disordered regions (IDRs) in a protein sequence using IUPred2A.
+
+Parameters
+----------
+protein_sequence : str
+    The amino acid sequence of the protein to analyze
+threshold : float, optional
+    The disorder score threshold above which a residue is considered disordered (default: 0.5)
+output_file : str, optional
+    Filename to save the per-residue disorder scores (default: "disorder_prediction_results.csv")
+
+Returns
+-------
+str
+    A research log summarizing the prediction process and results
+
+**Domain**: biophysics
+**Function**: predict_protein_disorder_regions
+]]></help>
+</tool>

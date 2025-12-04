@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<tool id="biomni_microbiology_simulate_microbial_population_dynamics" name="Biomni: Simulate Microbial Population Dynamics" version="1.0.0">
+    <description>Performs stochastic simulation of microbial population dynamics using the Gillespie algorithm.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.microbiology import simulate_microbial_population_dynamics
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = simulate_microbial_population_dynamics(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --initial_populations '$initial_populations'
+--growth_rates '$growth_rates'
+--clearance_rates '$clearance_rates'
+--carrying_capacities '$carrying_capacities'
+#if $max_time
+    --max_time '$max_time'
+#end if
+#if $num_simulations
+    --num_simulations '$num_simulations'
+#end if
+#if $time_points
+    --time_points '$time_points'
+#end if
+]]></command>
+    <inputs>
+        <param name="initial_populations" type="text" label="Initial Populations" help="Initial population sizes for each microbial species"  />
+        <param name="growth_rates" type="text" label="Growth Rates" help="Per capita growth rates for each species"  />
+        <param name="clearance_rates" type="text" label="Clearance Rates" help="Per capita death/clearance rates for each species"  />
+        <param name="carrying_capacities" type="text" label="Carrying Capacities" help="Maximum sustainable population for each species"  />
+        <param name="max_time" type="text" label="Max Time" help="Maximum simulation time (default: 100)" value="100" optional="true"/>
+        <param name="num_simulations" type="text" label="Num Simulations" help="Number of stochastic simulations to run (default: 100)" value="100" optional="true"/>
+        <param name="time_points" type="text" label="Time Points" help="Number of time points to record for trajectories (default: 100)" value="100" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Simulate Microbial Population Dynamics**
+
+Performs stochastic simulation of microbial population dynamics using the Gillespie algorithm.
+
+Parameters
+----------
+initial_populations : list of int
+    Initial population sizes for each microbial species
+growth_rates : list of float
+    Per capita growth rates for each species
+clearance_rates : list of float
+    Per capita death/clearance rates for each species
+carrying_capacities : list of float
+    Maximum sustainable population for each species
+max_time : float, optional
+    Maximum simulation time (default: 100)
+num_simulations : int, optional
+    Number of stochastic simulations to run (default: 100)
+time_points : int, optional
+    Number of time points to record for trajectories (default: 100)
+
+Returns
+-------
+str
+    Research log summarizing the simulation results, including extinction probabilities and timelines
+
+**Domain**: microbiology
+**Function**: simulate_microbial_population_dynamics
+]]></help>
+</tool>

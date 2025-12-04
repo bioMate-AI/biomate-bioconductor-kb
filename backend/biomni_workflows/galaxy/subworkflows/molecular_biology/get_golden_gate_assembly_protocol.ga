@@ -1,0 +1,33 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_molecular_biology_get_golden_gate_assembly_protocol",
+  "annotation": "Return a customized protocol for Golden Gate assembly based on the number of inserts",
+  "tags": [
+    "biomni",
+    "molecular_biology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "tool",
+      "tool_id": "biomni_molecular_biology_get_golden_gate_assembly_protocol",
+      "label": "get_golden_gate_assembly_protocol",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {}
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

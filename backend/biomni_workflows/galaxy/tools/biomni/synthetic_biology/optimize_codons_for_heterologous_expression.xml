@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<tool id="biomni_synthetic_biology_optimize_codons_for_heterologous_expression" name="Biomni: Optimize Codons For Heterologous Expression" version="1.0.0">
+    <description>Analyzes and optimizes a DNA/RNA sequence for improved expression in a heterologous host organism.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.synthetic_biology import optimize_codons_for_heterologous_expression
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = optimize_codons_for_heterologous_expression(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --target_sequence '$target_sequence'
+--host_codon_usage '$host_codon_usage'
+]]></command>
+    <inputs>
+        <param name="target_sequence" type="text" label="Target Sequence" help="Should contain complete codons (length divisible by 3)."  />
+        <param name="host_codon_usage" type="text" label="Host Codon Usage" help="Dictionary mapping codons to their usage frequency in the host organism."  />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Optimize Codons For Heterologous Expression**
+
+Analyzes and optimizes a DNA/RNA sequence for improved expression in a heterologous host organism.
+
+Parameters
+----------
+target_sequence : str
+    The DNA or RNA sequence of the target gene to be optimized.
+    Should contain complete codons (length divisible by 3).
+
+host_codon_usage : dict
+    Dictionary mapping codons to their usage frequency in the host organism.
+    Format: {'AUG': 0.8, 'GCC': 0.6, ...} or {'ATG': 0.8, 'GCC': 0.6, ...}
+
+Returns
+-------
+str
+    A research log summarizing the optimization process and results.
+
+**Domain**: synthetic_biology
+**Function**: optimize_codons_for_heterologous_expression
+]]></help>
+</tool>

@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_fastqc_analyze" name="fastqc analyze" version="1.0.0">
+  <description>Run fastqc analyze command</description>
+  <requirements>
+    <requirement type="package">fastqc</requirement>
+  </requirements>
+  <command detect_errors="exit_code">fastqc analyze $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**fastqc analyze**
+
+Run fastqc analyze command
+
+**Tool Type**: cli
+**Library**: fastqc
+**Function**: analyze
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;fastqc&quot;,
+  &quot;subcommand&quot;: &quot;analyze&quot;,
+  &quot;call_template&quot;: &quot;fastqc analyze [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

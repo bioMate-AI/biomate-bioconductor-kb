@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_samtools_sort" name="samtools sort" version="1.0.0">
+  <description>Run samtools sort command</description>
+  <requirements>
+    <requirement type="package">samtools</requirement>
+  </requirements>
+  <command detect_errors="exit_code">samtools sort $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**samtools sort**
+
+Run samtools sort command
+
+**Tool Type**: cli
+**Library**: samtools
+**Function**: sort
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;samtools&quot;,
+  &quot;subcommand&quot;: &quot;sort&quot;,
+  &quot;call_template&quot;: &quot;samtools sort [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

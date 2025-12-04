@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_gget_search" name="gget: search" version="1.0.0">
+  <description>Call gget search function</description>
+  <requirements>
+    <requirement type="package" version="">gget</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from gget import *
+# Tool implementation
+result = search(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**gget: search**
+
+Call gget search function
+
+**Tool Type**: python
+**Library**: gget
+**Function**: search
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;gget&quot;,
+  &quot;function&quot;: &quot;search&quot;,
+  &quot;call_template&quot;: &quot;from gget import ...; result = search(...)&quot;
+}
+]]&gt;</help>
+</tool>

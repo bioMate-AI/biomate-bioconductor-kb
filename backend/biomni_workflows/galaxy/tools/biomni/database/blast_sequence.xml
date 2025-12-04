@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<tool id="biomni_database_blast_sequence" name="Biomni: Blast Sequence" version="1.0.0">
+    <description>Identifies a DNA sequence using NCBI BLAST with improved error handling, timeout management, and debugging.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.database import blast_sequence
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = blast_sequence(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --sequence '$sequence'
+--database '$database'
+--program '$program'
+]]></command>
+    <inputs>
+        <param name="sequence" type="text" label="Sequence" help="if protein, use database: nr, program: blastp"  />
+        <param name="database" type="text" label="Database" help=""  />
+        <param name="program" type="text" label="Program" help=""  />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Blast Sequence**
+
+Identifies a DNA sequence using NCBI BLAST with improved error handling, timeout management, and debugging.
+
+Args:
+    sequence (str): The sequence to identify. If DNA, use database: core_nt, program: blastn;
+                    if protein, use database: nr, program: blastp
+    database (str): The BLAST database to search against
+    program (str): The BLAST program to use
+
+Returns:
+    dict: A dictionary containing the title, e-value, identity percentage, and coverage percentage of the best alignment
+
+**Domain**: database
+**Function**: blast_sequence
+]]></help>
+</tool>

@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_limma_makecontrasts" name="limma::makeContrasts" version="1.0.0">
+  <description>Call R limma::makeContrasts function</description>
+  <requirements>
+    <requirement type="package">r-limma</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(limma); makeContrasts()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**limma::makeContrasts**
+
+Call R limma::makeContrasts function
+
+**Tool Type**: r
+**Library**: limma
+**Function**: makeContrasts
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;limma&quot;,
+  &quot;function&quot;: &quot;makeContrasts&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(limma); makeContrasts(...)'&quot;
+}
+]]&gt;</help>
+</tool>

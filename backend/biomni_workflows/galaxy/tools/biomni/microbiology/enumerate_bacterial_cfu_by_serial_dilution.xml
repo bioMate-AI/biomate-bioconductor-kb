@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<tool id="biomni_microbiology_enumerate_bacterial_cfu_by_serial_dilution" name="Biomni: Enumerate Bacterial Cfu By Serial Dilution" version="1.0.0">
+    <description>Quantify bacterial concentration (CFU/mL) using serial dilutions and spot plating.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.microbiology import enumerate_bacterial_cfu_by_serial_dilution
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = enumerate_bacterial_cfu_by_serial_dilution(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    #if $initial_sample_volume_ml
+    --initial_sample_volume_ml '$initial_sample_volume_ml'
+#end if
+#if $estimated_concentration
+    --estimated_concentration '$estimated_concentration'
+#end if
+#if $dilution_factor
+    --dilution_factor '$dilution_factor'
+#end if
+#if $num_dilutions
+    --num_dilutions '$num_dilutions'
+#end if
+#if $spots_per_dilution
+    --spots_per_dilution '$spots_per_dilution'
+#end if
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="initial_sample_volume_ml" type="text" label="Initial Sample Volume Ml" help="Volume of the initial bacterial sample in milliliters" value="1.0" optional="true"/>
+        <param name="estimated_concentration" type="text" label="Estimated Concentration" help="Estimated concentration of bacteria in the initial sample (CFU/mL)" value="100000000.0" optional="true"/>
+        <param name="dilution_factor" type="text" label="Dilution Factor" help="Factor by which each dilution reduces the concentration (typically 10)" value="10" optional="true"/>
+        <param name="num_dilutions" type="text" label="Num Dilutions" help="Number of serial dilutions to perform" value="8" optional="true"/>
+        <param name="spots_per_dilution" type="text" label="Spots Per Dilution" help="Number of replicate spots to plate for each dilution" value="3" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Filename to save the CFU enumeration results" value="cfu_enumeration_results.csv" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Enumerate Bacterial Cfu By Serial Dilution**
+
+Quantify bacterial concentration (CFU/mL) using serial dilutions and spot plating.
+
+Parameters
+----------
+initial_sample_volume_ml : float
+    Volume of the initial bacterial sample in milliliters
+estimated_concentration : float
+    Estimated concentration of bacteria in the initial sample (CFU/mL)
+dilution_factor : int
+    Factor by which each dilution reduces the concentration (typically 10)
+num_dilutions : int
+    Number of serial dilutions to perform
+spots_per_dilution : int
+    Number of replicate spots to plate for each dilution
+output_file : str
+    Filename to save the CFU enumeration results
+
+Returns
+-------
+str
+    Research log summarizing the CFU enumeration process
+
+**Domain**: microbiology
+**Function**: enumerate_bacterial_cfu_by_serial_dilution
+]]></help>
+</tool>

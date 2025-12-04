@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_salmon_quant" name="salmon quant" version="1.0.0">
+  <description>Run salmon quant command</description>
+  <requirements>
+    <requirement type="package">salmon</requirement>
+  </requirements>
+  <command detect_errors="exit_code">salmon quant $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**salmon quant**
+
+Run salmon quant command
+
+**Tool Type**: cli
+**Library**: salmon
+**Function**: quant
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;salmon&quot;,
+  &quot;subcommand&quot;: &quot;quant&quot;,
+  &quot;call_template&quot;: &quot;salmon quant [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

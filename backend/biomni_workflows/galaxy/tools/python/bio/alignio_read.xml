@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_bio_AlignIO_read" name="Biopython: AlignIO.read" version="1.0.0">
+  <description>Call Biopython AlignIO.read function</description>
+  <requirements>
+    <requirement type="package" version="">bio</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from Bio import *
+# Tool implementation
+result = AlignIO.read(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**Biopython: AlignIO.read**
+
+Call Biopython AlignIO.read function
+
+**Tool Type**: python
+**Library**: Bio
+**Function**: AlignIO.read
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;Bio&quot;,
+  &quot;function&quot;: &quot;AlignIO.read&quot;,
+  &quot;call_template&quot;: &quot;from Bio import ...; result = AlignIO.read(...)&quot;
+}
+]]&gt;</help>
+</tool>

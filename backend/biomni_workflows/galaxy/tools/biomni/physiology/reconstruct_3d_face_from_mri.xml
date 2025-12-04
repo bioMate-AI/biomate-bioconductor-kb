@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<tool id="biomni_physiology_reconstruct_3d_face_from_mri" name="Biomni: Reconstruct 3D Face From Mri" version="1.0.0">
+    <description>Generate a 3D model of facial anatomy from MRI scans of the head and neck.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.physiology import reconstruct_3d_face_from_mri
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = reconstruct_3d_face_from_mri(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --mri_file_path '$mri_file_path'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $subject_id
+    --subject_id '$subject_id'
+#end if
+#if $threshold_value
+    --threshold_value '$threshold_value'
+#end if
+]]></command>
+    <inputs>
+        <param name="mri_file_path" type="text" label="Mri File Path" help="Path to the MRI scan file (NIfTI format: .nii or .nii.gz)"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory where output files will be saved" value="./output" optional="true"/>
+        <param name="subject_id" type="text" label="Subject Id" help="Identifier for the subject, used in output filenames" value="subject" optional="true"/>
+        <param name="threshold_value" type="text" label="Threshold Value" help="Threshold value for initial segmentation of facial tissues" value="300" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Reconstruct 3D Face From Mri**
+
+Generate a 3D model of facial anatomy from MRI scans of the head and neck.
+
+Parameters
+----------
+mri_file_path : str
+    Path to the MRI scan file (NIfTI format: .nii or .nii.gz)
+output_dir : str
+    Directory where output files will be saved
+subject_id : str
+    Identifier for the subject, used in output filenames
+threshold_value : int
+    Threshold value for initial segmentation of facial tissues
+
+Returns
+-------
+str
+    Research log detailing the reconstruction process and output file locations
+
+**Domain**: physiology
+**Function**: reconstruct_3d_face_from_mri
+]]></help>
+</tool>

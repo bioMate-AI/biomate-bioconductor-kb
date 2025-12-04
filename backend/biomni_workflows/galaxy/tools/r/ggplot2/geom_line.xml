@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_ggplot2_geom_line" name="ggplot2::geom_line" version="1.0.0">
+  <description>Call R ggplot2::geom_line function</description>
+  <requirements>
+    <requirement type="package">r-ggplot2</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(ggplot2); geom_line()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**ggplot2::geom_line**
+
+Call R ggplot2::geom_line function
+
+**Tool Type**: r
+**Library**: ggplot2
+**Function**: geom_line
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;ggplot2&quot;,
+  &quot;function&quot;: &quot;geom_line&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(ggplot2); geom_line(...)'&quot;
+}
+]]&gt;</help>
+</tool>

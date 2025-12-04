@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_skimage_segmentation_find_boundaries" name="scikit-image: segmentation.find_boundaries" version="1.0.0">
+  <description>Call scikit-image segmentation.find_boundaries function</description>
+  <requirements>
+    <requirement type="package" version="">skimage</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from skimage import *
+# Tool implementation
+result = segmentation.find_boundaries(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**scikit-image: segmentation.find_boundaries**
+
+Call scikit-image segmentation.find_boundaries function
+
+**Tool Type**: python
+**Library**: skimage
+**Function**: segmentation.find_boundaries
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;skimage&quot;,
+  &quot;function&quot;: &quot;segmentation.find_boundaries&quot;,
+  &quot;call_template&quot;: &quot;from skimage import ...; result = segmentation.find_boundaries(...)&quot;
+}
+]]&gt;</help>
+</tool>

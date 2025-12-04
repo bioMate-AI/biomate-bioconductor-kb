@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<tool id="biomni_microbiology_count_bacterial_colonies" name="Biomni: Count Bacterial Colonies" version="1.0.0">
+    <description>Count bacterial colonies from an image of agar plate using computer vision techniques.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.microbiology import count_bacterial_colonies
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = count_bacterial_colonies(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --image_path '$image_path'
+#if $dilution_factor
+    --dilution_factor '$dilution_factor'
+#end if
+#if $plate_area_cm2
+    --plate_area_cm2 '$plate_area_cm2'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="image_path" type="text" label="Image Path" help="Path to the image file containing bacterial colonies on agar plate"  />
+        <param name="dilution_factor" type="text" label="Dilution Factor" help="Dilution factor of the plated sample (default=1)" value="1" optional="true"/>
+        <param name="plate_area_cm2" type="text" label="Plate Area Cm2" help="Area of the agar plate in square centimeters (default=65.0, standard Petri dish)" value="65.0" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output images and results (default="./output")" value="./output" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Count Bacterial Colonies**
+
+Count bacterial colonies from an image of agar plate using computer vision techniques.
+
+Parameters
+----------
+image_path : str
+    Path to the image file containing bacterial colonies on agar plate
+dilution_factor : float
+    Dilution factor of the plated sample (default=1)
+plate_area_cm2 : float
+    Area of the agar plate in square centimeters (default=65.0, standard Petri dish)
+output_dir : str
+    Directory to save output images and results (default="./output")
+
+Returns
+-------
+str
+    Research log summarizing the colony counting process and results
+
+**Domain**: microbiology
+**Function**: count_bacterial_colonies
+]]></help>
+</tool>

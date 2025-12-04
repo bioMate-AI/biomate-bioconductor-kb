@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<tool id="biomni_immunology_analyze_cfse_cell_proliferation" name="Biomni: Analyze Cfse Cell Proliferation" version="1.0.0">
+    <description>Analyze CFSE-labeled cell samples to quantify cell division and proliferation.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.immunology import analyze_cfse_cell_proliferation
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_cfse_cell_proliferation(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --fcs_file_path '$fcs_file_path'
+#if $cfse_channel
+    --cfse_channel '$cfse_channel'
+#end if
+#if $lymphocyte_gate
+    --lymphocyte_gate '$lymphocyte_gate'
+#end if
+]]></command>
+    <inputs>
+        <param name="fcs_file_path" type="text" label="Fcs File Path" help="Path to the FCS file containing flow cytometry data from CFSE-labeled cells"  />
+        <param name="cfse_channel" type="text" label="Cfse Channel" help="Name of the channel containing CFSE fluorescence data (default: 'FL1-A')" value="FL1-A" optional="true"/>
+        <param name="lymphocyte_gate" type="text" label="Lymphocyte Gate" help="If None, automatic gating will be attempted (default: None)"  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Cfse Cell Proliferation**
+
+Analyze CFSE-labeled cell samples to quantify cell division and proliferation.
+
+This function processes flow cytometry data from CFSE-labeled cells to calculate
+the cell division index and percentage of proliferating cells. It performs gating,
+identifies cell populations based on CFSE intensity, and quantifies proliferation metrics.
+
+Parameters
+----------
+fcs_file_path : str
+    Path to the FCS file containing flow cytometry data from CFSE-labeled cells
+cfse_channel : str, optional
+    Name of the channel containing CFSE fluorescence data (default: 'FL1-A')
+lymphocyte_gate : tuple or None, optional
+    Tuple of (min_fsc, max_fsc, min_ssc, max_ssc) for lymphocyte gating
+    If None, automatic gating will be attempted (default: None)
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results, including cell division
+    index and percentage of proliferating cells
+
+**Domain**: immunology
+**Function**: analyze_cfse_cell_proliferation
+]]></help>
+</tool>

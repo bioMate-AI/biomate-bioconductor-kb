@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<tool id="biomni_bioengineering_analyze_in_vitro_drug_release_kinetics" name="Biomni: Analyze In Vitro Drug Release Kinetics" version="1.0.0">
+    <description>Analyzes in vitro drug release kinetics from biomaterial formulations.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.bioengineering import analyze_in_vitro_drug_release_kinetics
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_in_vitro_drug_release_kinetics(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --time_points '$time_points'
+--concentration_data '$concentration_data'
+#if $drug_name
+    --drug_name '$drug_name'
+#end if
+#if $total_drug_loaded
+    --total_drug_loaded '$total_drug_loaded'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="time_points" type="text" label="Time Points" help="Time points at which drug concentrations were measured (in hours)"  />
+        <param name="concentration_data" type="text" label="Concentration Data" help="Measured drug concentration at each time point"  />
+        <param name="drug_name" type="text" label="Drug Name" help="Name of the drug being analyzed (default: "Drug")" value="Drug" optional="true"/>
+        <param name="total_drug_loaded" type="text" label="Total Drug Loaded" help="If None, the maximum concentration is used as 100% (default: None)"  optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./")" value="./" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze In Vitro Drug Release Kinetics**
+
+Analyzes in vitro drug release kinetics from biomaterial formulations.
+
+Parameters
+----------
+time_points : list or numpy.ndarray
+    Time points at which drug concentrations were measured (in hours)
+concentration_data : list or numpy.ndarray
+    Measured drug concentration at each time point
+drug_name : str, optional
+    Name of the drug being analyzed (default: "Drug")
+total_drug_loaded : float, optional
+    Total amount of drug initially loaded in the formulation.
+    If None, the maximum concentration is used as 100% (default: None)
+output_dir : str, optional
+    Directory to save output files (default: "./")
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps, results, and saved file locations
+
+**Domain**: bioengineering
+**Function**: analyze_in_vitro_drug_release_kinetics
+]]></help>
+</tool>

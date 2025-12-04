@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<tool id="biomni_bioengineering_analyze_cell_migration_metrics" name="Biomni: Analyze Cell Migration Metrics" version="1.0.0">
+    <description>Analyze cell migration metrics from time-lapse microscopy images.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.bioengineering import analyze_cell_migration_metrics
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_cell_migration_metrics(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --image_sequence_path '$image_sequence_path'
+#if $pixel_size_um
+    --pixel_size_um '$pixel_size_um'
+#end if
+#if $time_interval_min
+    --time_interval_min '$time_interval_min'
+#end if
+#if $min_track_length
+    --min_track_length '$min_track_length'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="image_sequence_path" type="text" label="Image Sequence Path" help="Path to the directory containing time-lapse images or path to a multi-frame TIFF file"  />
+        <param name="pixel_size_um" type="text" label="Pixel Size Um" help="Conversion factor from pixels to micrometers (default: 1.0)" value="1.0" optional="true"/>
+        <param name="time_interval_min" type="text" label="Time Interval Min" help="Time interval between consecutive frames in minutes (default: 1.0)" value="1.0" optional="true"/>
+        <param name="min_track_length" type="text" label="Min Track Length" help="Minimum number of frames a cell must be tracked to be included in analysis (default: 10)" value="10" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./")" value="./" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Cell Migration Metrics**
+
+Analyze cell migration metrics from time-lapse microscopy images.
+
+Parameters
+----------
+image_sequence_path : str
+    Path to the directory containing time-lapse images or path to a multi-frame TIFF file
+pixel_size_um : float
+    Conversion factor from pixels to micrometers (default: 1.0)
+time_interval_min : float
+    Time interval between consecutive frames in minutes (default: 1.0)
+min_track_length : int
+    Minimum number of frames a cell must be tracked to be included in analysis (default: 10)
+output_dir : str
+    Directory to save output files (default: "./")
+
+Returns
+-------
+str
+    Research log summarizing the cell migration analysis process and results
+
+**Domain**: bioengineering
+**Function**: analyze_cell_migration_metrics
+]]></help>
+</tool>

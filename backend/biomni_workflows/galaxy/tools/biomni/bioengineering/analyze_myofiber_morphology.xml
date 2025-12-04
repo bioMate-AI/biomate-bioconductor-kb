@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<tool id="biomni_bioengineering_analyze_myofiber_morphology" name="Biomni: Analyze Myofiber Morphology" version="1.0.0">
+    <description>Quantifies morphological properties of myofibers in microscopy images of tissue sections.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.bioengineering import analyze_myofiber_morphology
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_myofiber_morphology(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --image_path '$image_path'
+#if $nuclei_channel
+    --nuclei_channel '$nuclei_channel'
+#end if
+#if $myofiber_channel
+    --myofiber_channel '$myofiber_channel'
+#end if
+#if $threshold_method
+    --threshold_method '$threshold_method'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="image_path" type="text" label="Image Path" help="Path to the microscopy image file (typically a multichannel image with nuclei and myofiber staining)"  />
+        <param name="nuclei_channel" type="text" label="Nuclei Channel" help="Channel index containing nuclei staining (DAPI, Hoechst, etc.)" value="2" optional="true"/>
+        <param name="myofiber_channel" type="text" label="Myofiber Channel" help="Channel index containing myofiber staining (α-Actinin, etc.)" value="1" optional="true"/>
+        <param name="threshold_method" type="text" label="Threshold Method" help="Method for thresholding ('otsu', 'adaptive', or 'manual')" value="otsu" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files" value="./" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Myofiber Morphology**
+
+Quantifies morphological properties of myofibers in microscopy images of tissue sections.
+
+Parameters
+----------
+image_path : str
+    Path to the microscopy image file (typically a multichannel image with nuclei and myofiber staining)
+nuclei_channel : int, default=2
+    Channel index containing nuclei staining (DAPI, Hoechst, etc.)
+myofiber_channel : int, default=1
+    Channel index containing myofiber staining (α-Actinin, etc.)
+threshold_method : str, default='otsu'
+    Method for thresholding ('otsu', 'adaptive', or 'manual')
+output_dir : str, default='./'
+    Directory to save output files
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results
+
+**Domain**: bioengineering
+**Function**: analyze_myofiber_morphology
+]]></help>
+</tool>

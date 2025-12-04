@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_deseq2_plotpca" name="DESeq2::plotPCA" version="1.0.0">
+  <description>Call R DESeq2::plotPCA function</description>
+  <requirements>
+    <requirement type="package">r-deseq2</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(DESeq2); plotPCA()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**DESeq2::plotPCA**
+
+Call R DESeq2::plotPCA function
+
+**Tool Type**: r
+**Library**: DESeq2
+**Function**: plotPCA
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;DESeq2&quot;,
+  &quot;function&quot;: &quot;plotPCA&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(DESeq2); plotPCA(...)'&quot;
+}
+]]&gt;</help>
+</tool>

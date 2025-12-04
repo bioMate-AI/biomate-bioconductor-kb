@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<tool id="biomni_biochemistry_analyze_circular_dichroism_spectra" name="Biomni: Analyze Circular Dichroism Spectra" version="1.0.0">
+    <description>Analyzes circular dichroism (CD) spectroscopy data to determine secondary structure and thermal stability.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.biochemistry import analyze_circular_dichroism_spectra
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_circular_dichroism_spectra(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --sample_name '$sample_name'
+--sample_type '$sample_type'
+--wavelength_data '$wavelength_data'
+--cd_signal_data '$cd_signal_data'
+#if $temperature_data
+    --temperature_data '$temperature_data'
+#end if
+#if $thermal_cd_data
+    --thermal_cd_data '$thermal_cd_data'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="sample_name" type="text" label="Sample Name" help="Name of the biomolecule sample (e.g., "Znf706", "G-quadruplex")"  />
+        <param name="sample_type" type="text" label="Sample Type" help="Type of biomolecule ("protein" or "nucleic_acid")"  />
+        <param name="wavelength_data" type="text" label="Wavelength Data" help="Wavelength values in nm for CD spectrum"  />
+        <param name="cd_signal_data" type="text" label="Cd Signal Data" help="CD signal intensity values (typically in mdeg or Δε)"  />
+        <param name="temperature_data" type="text" label="Temperature Data" help="Temperature values (°C) for thermal denaturation experiment"  optional="true"/>
+        <param name="thermal_cd_data" type="text" label="Thermal Cd Data" help="CD signal values at specific wavelength across different temperatures"  optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save result files, defaults to current directory" value="./" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Circular Dichroism Spectra**
+
+Analyzes circular dichroism (CD) spectroscopy data to determine secondary structure and thermal stability.
+
+Parameters
+----------
+sample_name : str
+    Name of the biomolecule sample (e.g., "Znf706", "G-quadruplex")
+sample_type : str
+    Type of biomolecule ("protein" or "nucleic_acid")
+wavelength_data : list or numpy.ndarray
+    Wavelength values in nm for CD spectrum
+cd_signal_data : list or numpy.ndarray
+    CD signal intensity values (typically in mdeg or Δε)
+temperature_data : list or numpy.ndarray, optional
+    Temperature values (°C) for thermal denaturation experiment
+thermal_cd_data : list or numpy.ndarray, optional
+    CD signal values at specific wavelength across different temperatures
+output_dir : str, optional
+    Directory to save result files, defaults to current directory
+
+Returns
+-------
+str
+    Research log summarizing the CD analysis steps and results
+
+**Domain**: biochemistry
+**Function**: analyze_circular_dichroism_spectra
+]]></help>
+</tool>

@@ -1,0 +1,46 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genetics_forward",
+  "annotation": "",
+  "tags": [
+    "biomni",
+    "genetics",
+    "single-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "tool",
+      "tool_id": "python_torch_torch_sigmoid",
+      "label": "Step 1: torch_sigmoid",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {}
+    },
+    "1": {
+      "id": 1,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "forward-output"
+    }
+  ]
+}

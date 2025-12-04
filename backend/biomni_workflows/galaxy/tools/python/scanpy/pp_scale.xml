@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_scanpy_pp_scale" name="Scanpy: pp.scale" version="1.0.0">
+  <description>Call Scanpy pp.scale function</description>
+  <requirements>
+    <requirement type="package" version="">scanpy</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from scanpy import *
+# Tool implementation
+result = pp.scale(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**Scanpy: pp.scale**
+
+Call Scanpy pp.scale function
+
+**Tool Type**: python
+**Library**: scanpy
+**Function**: pp.scale
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;scanpy&quot;,
+  &quot;function&quot;: &quot;pp.scale&quot;,
+  &quot;call_template&quot;: &quot;from scanpy import ...; result = pp.scale(...)&quot;
+}
+]]&gt;</help>
+</tool>

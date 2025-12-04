@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_samtools_mpileup" name="samtools mpileup" version="1.0.0">
+  <description>Run samtools mpileup command</description>
+  <requirements>
+    <requirement type="package">samtools</requirement>
+  </requirements>
+  <command detect_errors="exit_code">samtools mpileup $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**samtools mpileup**
+
+Run samtools mpileup command
+
+**Tool Type**: cli
+**Library**: samtools
+**Function**: mpileup
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;samtools&quot;,
+  &quot;subcommand&quot;: &quot;mpileup&quot;,
+  &quot;call_template&quot;: &quot;samtools mpileup [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

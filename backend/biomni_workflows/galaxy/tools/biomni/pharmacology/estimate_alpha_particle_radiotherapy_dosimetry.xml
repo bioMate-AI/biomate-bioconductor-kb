@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_estimate_alpha_particle_radiotherapy_dosimetry" name="Biomni: Estimate Alpha Particle Radiotherapy Dosimetry" version="1.0.0">
+    <description>Estimate radiation absorbed doses to tumor and normal organs for alpha-particle radiotherapeutics.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import estimate_alpha_particle_radiotherapy_dosimetry
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = estimate_alpha_particle_radiotherapy_dosimetry(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --biodistribution_data '$biodistribution_data'
+--radiation_parameters '$radiation_parameters'
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="biodistribution_data" type="text" label="Biodistribution Data" help="Must include entries for all relevant organs including 'tumor'."  />
+        <param name="radiation_parameters" type="text" label="Radiation Parameters" help="- 'S_factors': dict - S-factors (Gy/Bq-s) for each source-target organ pair"  />
+        <param name="output_file" type="text" label="Output File" help="Filename to save the dosimetry results (default: "dosimetry_results.csv")" value="dosimetry_results.csv" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Estimate Alpha Particle Radiotherapy Dosimetry**
+
+Estimate radiation absorbed doses to tumor and normal organs for alpha-particle radiotherapeutics.
+
+This function implements the Medical Internal Radiation Dose (MIRD) schema to calculate
+absorbed doses based on biodistribution data from healthy mice and radiation transport parameters.
+
+Parameters
+----------
+biodistribution_data : dict
+    Dictionary containing organ/tissue names as keys and a list of time-activity measurements as values.
+    Each measurement should be a tuple of (time_hours, percent_injected_activity).
+    Must include entries for all relevant organs including 'tumor'.
+
+radiation_parameters : dict
+    Dictionary containing radiation parameters for the alpha-emitting radionuclide:
+    - 'radionuclide': str - Name of the radionuclide (e.g., 'Ac-225')
+    - 'half_life_hours': float - Physical half-life in hours
+    - 'energy_per_decay_MeV': float - Energy released per decay in MeV
+    - 'radiation_weighting_factor': float - Radiation weighting factor for alpha particles
+    - 'S_factors': dict - S-factors (Gy/Bq-s) for each source-target organ pair
+
+output_file : str, optional
+    Filename to save the dosimetry results (default: "dosimetry_results.csv")
+
+Returns
+-------
+str
+    Research log summarizing the dosimetry estimation process and results
+
+**Domain**: pharmacology
+**Function**: estimate_alpha_particle_radiotherapy_dosimetry
+]]></help>
+</tool>

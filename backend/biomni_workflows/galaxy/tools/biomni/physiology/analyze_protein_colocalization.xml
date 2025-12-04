@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<tool id="biomni_physiology_analyze_protein_colocalization" name="Biomni: Analyze Protein Colocalization" version="1.0.0">
+    <description>Analyze colocalization between two fluorescently labeled proteins in microscopy images.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.physiology import analyze_protein_colocalization
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_protein_colocalization(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --channel1_path '$channel1_path'
+--channel2_path '$channel2_path'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $threshold_method
+    --threshold_method '$threshold_method'
+#end if
+]]></command>
+    <inputs>
+        <param name="channel1_path" type="text" label="Channel1 Path" help="Path to the first channel image file (fluorescent protein 1)"  />
+        <param name="channel2_path" type="text" label="Channel2 Path" help="Path to the second channel image file (fluorescent protein 2)"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./output")" value="./output" optional="true"/>
+        <param name="threshold_method" type="text" label="Threshold Method" help="Method for thresholding images ('otsu', 'li', or 'yen') (default: "otsu")" value="otsu" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Protein Colocalization**
+
+Analyze colocalization between two fluorescently labeled proteins in microscopy images.
+
+Parameters
+----------
+channel1_path : str
+    Path to the first channel image file (fluorescent protein 1)
+channel2_path : str
+    Path to the second channel image file (fluorescent protein 2)
+output_dir : str
+    Directory to save output files (default: "./output")
+threshold_method : str
+    Method for thresholding images ('otsu', 'li', or 'yen') (default: "otsu")
+
+Returns
+-------
+str
+    Research log summarizing the colocalization analysis results and saved files
+
+**Domain**: physiology
+**Function**: analyze_protein_colocalization
+]]></help>
+</tool>

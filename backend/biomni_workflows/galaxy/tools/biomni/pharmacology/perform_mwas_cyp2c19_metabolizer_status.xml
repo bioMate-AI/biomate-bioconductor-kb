@@ -1,0 +1,101 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_perform_mwas_cyp2c19_metabolizer_status" name="Biomni: Perform Mwas Cyp2C19 Metabolizer Status" version="1.0.0">
+    <description>Perform a Methylome-wide Association Study (MWAS) to identify CpG sites significantly associated with CYP2C19 metabolizer status.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import perform_mwas_cyp2c19_metabolizer_status
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = perform_mwas_cyp2c19_metabolizer_status(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --methylation_data_path '$methylation_data_path'
+--metabolizer_status_path '$metabolizer_status_path'
+#if $covariates_path
+    --covariates_path '$covariates_path'
+#end if
+#if $pvalue_threshold
+    --pvalue_threshold '$pvalue_threshold'
+#end if
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="methylation_data_path" type="text" label="Methylation Data Path" help="Rows should be samples, columns should be CpG sites."  />
+        <param name="metabolizer_status_path" type="text" label="Metabolizer Status Path" help="Should have a sample ID column and a status column (e.g., poor, intermediate, normal, rapid, ultrarapid)."  />
+        <param name="covariates_path" type="text" label="Covariates Path" help="(e.g., age, sex, smoking status)."  optional="true"/>
+        <param name="pvalue_threshold" type="text" label="Pvalue Threshold" help="P-value threshold for significance after multiple testing correction. Default is 0.05." value="0.05" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Filename to save significant CpG sites. Default is "significant_cpg_sites.csv"." value="significant_cpg_sites.csv" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Perform Mwas Cyp2C19 Metabolizer Status**
+
+Perform a Methylome-wide Association Study (MWAS) to identify CpG sites significantly associated with CYP2C19 metabolizer status.
+
+Parameters
+----------
+methylation_data_path : str
+    Path to CSV or TSV file containing DNA methylation beta values.
+    Rows should be samples, columns should be CpG sites.
+metabolizer_status_path : str
+    Path to CSV or TSV file containing CYP2C19 metabolizer status for each sample.
+    Should have a sample ID column and a status column (e.g., poor, intermediate, normal, rapid, ultrarapid).
+covariates_path : str, optional
+    Path to CSV or TSV file containing covariates to adjust for in the regression model
+    (e.g., age, sex, smoking status).
+pvalue_threshold : float, optional
+    P-value threshold for significance after multiple testing correction. Default is 0.05.
+output_file : str, optional
+    Filename to save significant CpG sites. Default is "significant_cpg_sites.csv".
+
+Returns
+-------
+str
+    A research log summarizing the MWAS analysis and results.
+
+**Domain**: pharmacology
+**Function**: perform_mwas_cyp2c19_metabolizer_status
+]]></help>
+</tool>

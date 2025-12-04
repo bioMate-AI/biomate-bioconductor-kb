@@ -1,0 +1,70 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_pathology_analyze_intracellular_calcium_with_rhod2",
+  "annotation": "Analyzes intracellular calcium concentration using Rhod-2 fluorescent indicator from microscopy images.",
+  "tags": [
+    "biomni",
+    "pathology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "background_image_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "control_image_path",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "data_input",
+      "label": "sample_image_path",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "type": "tool",
+      "tool_id": "biomni_pathology_analyze_intracellular_calcium_with_rhod2",
+      "label": "analyze_intracellular_calcium_with_rhod2",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "background_image_path": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "control_image_path": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "sample_image_path": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

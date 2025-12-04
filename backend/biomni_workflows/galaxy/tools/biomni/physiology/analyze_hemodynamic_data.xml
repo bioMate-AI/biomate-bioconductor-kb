@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<tool id="biomni_physiology_analyze_hemodynamic_data" name="Biomni: Analyze Hemodynamic Data" version="1.0.0">
+    <description>Analyzes raw blood pressure data to calculate key hemodynamic parameters.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.physiology import analyze_hemodynamic_data
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_hemodynamic_data(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --pressure_data '$pressure_data'
+--sampling_rate '$sampling_rate'
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="pressure_data" type="text" label="Pressure Data" help="Raw blood pressure measurements in mmHg"  />
+        <param name="sampling_rate" type="text" label="Sampling Rate" help="Data acquisition rate in Hz (samples per second)"  />
+        <param name="output_file" type="text" label="Output File" help="Filename to save the calculated parameters, default is "hemodynamic_results.csv"" value="hemodynamic_results.csv" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Hemodynamic Data**
+
+Analyzes raw blood pressure data to calculate key hemodynamic parameters.
+
+Parameters
+----------
+pressure_data : numpy.ndarray
+    Raw blood pressure measurements in mmHg
+sampling_rate : float
+    Data acquisition rate in Hz (samples per second)
+output_file : str, optional
+    Filename to save the calculated parameters, default is "hemodynamic_results.csv"
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results
+
+**Domain**: physiology
+**Function**: analyze_hemodynamic_data
+]]></help>
+</tool>

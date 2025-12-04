@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+<tool id="biomni_genomics_find_enriched_motifs_with_homer" name="Biomni: Find Enriched Motifs With Homer" version="1.0.0">
+    <description>Find DNA sequence motifs enriched in genomic regions using the HOMER motif discovery software.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genomics import find_enriched_motifs_with_homer
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = find_enriched_motifs_with_homer(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --peak_file '$peak_file'
+#if $genome
+    --genome '$genome'
+#end if
+#if $background_file
+    --background_file '$background_file'
+#end if
+#if $motif_length
+    --motif_length '$motif_length'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $num_motifs
+    --num_motifs '$num_motifs'
+#end if
+#if $threads
+    --threads '$threads'
+#end if
+]]></command>
+    <inputs>
+        <param name="peak_file" type="text" label="Peak File" help="Path to peak file in BED format containing genomic regions to analyze for motif enrichment"  />
+        <param name="genome" type="text" label="Genome" help="Reference genome for sequence extraction (default: "hg38")" value="hg38" optional="true"/>
+        <param name="background_file" type="text" label="Background File" help="background sequences automatically (default: None)"  optional="true"/>
+        <param name="motif_length" type="text" label="Motif Length" help="Comma-separated list of motif lengths to discover (default: "8,10,12")" value="8,10,12" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./homer_motifs")" value="./homer_motifs" optional="true"/>
+        <param name="num_motifs" type="text" label="Num Motifs" help="Number of motifs to find (default: 10)" value="10" optional="true"/>
+        <param name="threads" type="text" label="Threads" help="Number of CPU threads to use (default: 4)" value="4" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Find Enriched Motifs With Homer**
+
+Find DNA sequence motifs enriched in genomic regions using the HOMER motif discovery software.
+
+Parameters
+----------
+peak_file : str
+    Path to peak file in BED format containing genomic regions to analyze for motif enrichment
+genome : str, optional
+    Reference genome for sequence extraction (default: "hg38")
+background_file : str, optional
+    Path to BED file with background regions for comparison. If None, HOMER will generate random
+    background sequences automatically (default: None)
+motif_length : str, optional
+    Comma-separated list of motif lengths to discover (default: "8,10,12")
+output_dir : str, optional
+    Directory to save output files (default: "./homer_motifs")
+num_motifs : int, optional
+    Number of motifs to find (default: 10)
+threads : int, optional
+    Number of CPU threads to use (default: 4)
+
+Returns
+-------
+str
+    A research log summarizing the motif discovery process and results
+
+**Domain**: genomics
+**Function**: find_enriched_motifs_with_homer
+]]></help>
+</tool>

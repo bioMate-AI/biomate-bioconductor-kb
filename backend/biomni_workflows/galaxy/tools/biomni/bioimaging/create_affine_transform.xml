@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<tool id="biomni_bioimaging_create_affine_transform" name="Biomni: Create Affine Transform" version="1.0.0">
+    <description>Create an affine transform for image registration.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.bioimaging import create_affine_transform
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = create_affine_transform(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --fixed_image '$fixed_image'
+--moving_image '$moving_image'
+#if $initial_transform
+    --initial_transform '$initial_transform'
+#end if
+]]></command>
+    <inputs>
+        <param name="fixed_image" type="text" label="Fixed Image" help=""  />
+        <param name="moving_image" type="text" label="Moving Image" help=""  />
+        <param name="initial_transform" type="text" label="Initial Transform" help=""  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Create Affine Transform**
+
+Create an affine transform for image registration.
+
+Args:
+    fixed_image: Reference (fixed) image
+    moving_image: Image to be registered
+    initial_transform: Optional initial transform
+
+Returns:
+    Affine transform object
+
+**Domain**: bioimaging
+**Function**: create_affine_transform
+]]></help>
+</tool>

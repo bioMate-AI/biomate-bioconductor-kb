@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_macs2_bdgcmp" name="macs2 bdgcmp" version="1.0.0">
+  <description>Run macs2 bdgcmp command</description>
+  <requirements>
+    <requirement type="package">macs2</requirement>
+  </requirements>
+  <command detect_errors="exit_code">macs2 bdgcmp $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**macs2 bdgcmp**
+
+Run macs2 bdgcmp command
+
+**Tool Type**: cli
+**Library**: macs2
+**Function**: bdgcmp
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;macs2&quot;,
+  &quot;subcommand&quot;: &quot;bdgcmp&quot;,
+  &quot;call_template&quot;: &quot;macs2 bdgcmp [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

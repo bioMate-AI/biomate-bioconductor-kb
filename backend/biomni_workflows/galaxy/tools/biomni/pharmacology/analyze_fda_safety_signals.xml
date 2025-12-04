@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_analyze_fda_safety_signals" name="Biomni: Analyze Fda Safety Signals" version="1.0.0">
+    <description>Analyze safety signals across multiple drugs.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import analyze_fda_safety_signals
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_fda_safety_signals(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --drug_list '$drug_list'
+#if $comparison_period
+    --comparison_period '$comparison_period'
+#end if
+#if $signal_threshold
+    --signal_threshold '$signal_threshold'
+#end if
+]]></command>
+    <inputs>
+        <param name="drug_list" type="text" label="Drug List" help=""  />
+        <param name="comparison_period" type="text" label="Comparison Period" help=""  optional="true"/>
+        <param name="signal_threshold" type="float" label="Signal Threshold" help="" value="2.0" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Fda Safety Signals**
+
+Analyze safety signals across multiple drugs.
+
+Args:
+    drug_list: List of drug names to analyze
+    comparison_period: Optional comparison time period
+    signal_threshold: Threshold for signal detection
+
+Returns:
+    Formatted string with safety signal analysis
+
+**Domain**: pharmacology
+**Function**: analyze_fda_safety_signals
+]]></help>
+</tool>

@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<tool id="biomni_cancer_biology_detect_and_characterize_structural_variations" name="Biomni: Detect And Characterize Structural Variations" version="1.0.0">
+    <description>Detects and characterizes structural variations (SVs) in genomic sequencing data.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.cancer_biology import detect_and_characterize_structural_variations
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = detect_and_characterize_structural_variations(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --bam_file_path '$bam_file_path'
+--reference_genome_path '$reference_genome_path'
+--output_dir '$output_dir'
+#if $cosmic_db_path
+    --cosmic_db_path '$cosmic_db_path'
+#end if
+#if $clinvar_db_path
+    --clinvar_db_path '$clinvar_db_path'
+#end if
+]]></command>
+    <inputs>
+        <param name="bam_file_path" type="text" label="Bam File Path" help="Path to the aligned sequencing data in BAM format"  />
+        <param name="reference_genome_path" type="text" label="Reference Genome Path" help="Path to the reference genome in FASTA format"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory where results will be saved"  />
+        <param name="cosmic_db_path" type="text" label="Cosmic Db Path" help="Path to the COSMIC database for cancer annotation"  optional="true"/>
+        <param name="clinvar_db_path" type="text" label="Clinvar Db Path" help="Path to the ClinVar database for clinical annotation"  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Detect And Characterize Structural Variations**
+
+Detects and characterizes structural variations (SVs) in genomic sequencing data.
+
+This function uses LUMPY for SV detection followed by annotation with COSMIC and/or ClinVar
+databases to identify and characterize various types of structural variations including
+deletions, inversions, translocations, and duplications.
+
+Parameters
+----------
+bam_file_path : str
+    Path to the aligned sequencing data in BAM format
+reference_genome_path : str
+    Path to the reference genome in FASTA format
+output_dir : str
+    Directory where results will be saved
+cosmic_db_path : str, optional
+    Path to the COSMIC database for cancer annotation
+clinvar_db_path : str, optional
+    Path to the ClinVar database for clinical annotation
+
+Returns
+-------
+str
+    A research log summarizing the steps performed and results obtained
+
+**Domain**: cancer_biology
+**Function**: detect_and_characterize_structural_variations
+]]></help>
+</tool>

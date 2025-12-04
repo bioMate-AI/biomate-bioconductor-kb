@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_bedtools_intersect" name="bedtools intersect" version="1.0.0">
+  <description>Run bedtools intersect command</description>
+  <requirements>
+    <requirement type="package">bedtools</requirement>
+  </requirements>
+  <command detect_errors="exit_code">bedtools intersect $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**bedtools intersect**
+
+Run bedtools intersect command
+
+**Tool Type**: cli
+**Library**: bedtools
+**Function**: intersect
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;bedtools&quot;,
+  &quot;subcommand&quot;: &quot;intersect&quot;,
+  &quot;call_template&quot;: &quot;bedtools intersect [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

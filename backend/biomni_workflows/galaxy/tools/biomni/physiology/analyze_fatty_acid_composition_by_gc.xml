@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<tool id="biomni_physiology_analyze_fatty_acid_composition_by_gc" name="Biomni: Analyze Fatty Acid Composition By Gc" version="1.0.0">
+    <description>Analyzes fatty acid composition in tissue samples using gas chromatography data.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.physiology import analyze_fatty_acid_composition_by_gc
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_fatty_acid_composition_by_gc(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --gc_data_file '$gc_data_file'
+--tissue_type '$tissue_type'
+--sample_id '$sample_id'
+#if $output_directory
+    --output_directory '$output_directory'
+#end if
+]]></command>
+    <inputs>
+        <param name="gc_data_file" type="text" label="Gc Data File" help="Path to the CSV file containing gas chromatography data with columns 'retention_time' and 'peak_area'."  />
+        <param name="tissue_type" type="text" label="Tissue Type" help="Type of tissue sample (e.g., liver, kidney, heart, muscle, adipose)."  />
+        <param name="sample_id" type="text" label="Sample Id" help="Identifier for the sample being analyzed."  />
+        <param name="output_directory" type="text" label="Output Directory" help="Directory where result files will be saved (default: "./results")." value="./results" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Fatty Acid Composition By Gc**
+
+Analyzes fatty acid composition in tissue samples using gas chromatography data.
+
+Parameters
+----------
+gc_data_file : str
+    Path to the CSV file containing gas chromatography data with columns 'retention_time' and 'peak_area'.
+tissue_type : str
+    Type of tissue sample (e.g., liver, kidney, heart, muscle, adipose).
+sample_id : str
+    Identifier for the sample being analyzed.
+output_directory : str, optional
+    Directory where result files will be saved (default: "./results").
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results.
+
+**Domain**: physiology
+**Function**: analyze_fatty_acid_composition_by_gc
+]]></help>
+</tool>

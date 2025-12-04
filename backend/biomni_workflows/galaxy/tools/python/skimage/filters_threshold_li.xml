@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_skimage_filters_threshold_li" name="scikit-image: filters.threshold_li" version="1.0.0">
+  <description>Call scikit-image filters.threshold_li function</description>
+  <requirements>
+    <requirement type="package" version="">skimage</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from skimage import *
+# Tool implementation
+result = filters.threshold_li(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**scikit-image: filters.threshold_li**
+
+Call scikit-image filters.threshold_li function
+
+**Tool Type**: python
+**Library**: skimage
+**Function**: filters.threshold_li
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;skimage&quot;,
+  &quot;function&quot;: &quot;filters.threshold_li&quot;,
+  &quot;call_template&quot;: &quot;from skimage import ...; result = filters.threshold_li(...)&quot;
+}
+]]&gt;</help>
+</tool>

@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<tool id="biomni_bioimaging_segment_with_nn_unet" name="Biomni: Segment With Nn Unet" version="1.0.0">
+    <description>Segment images using nnUNet with proper environment setup and automatic model downloading</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.bioimaging import segment_with_nn_unet
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = segment_with_nn_unet(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --image_path '$image_path'
+--output_dir '$output_dir'
+--task_id '$task_id'
+#if $model_type
+    --model_type '$model_type'
+#end if
+#if $folds
+    --folds '$folds'
+#end if
+#if $use_tta
+    --use_tta '$use_tta'
+#end if
+#if $num_threads
+    --num_threads '$num_threads'
+#end if
+#if $mixed_precision
+    --mixed_precision '$mixed_precision'
+#end if
+#if $verbose
+    --verbose '$verbose'
+#end if
+#if $auto_prepare_input
+    --auto_prepare_input '$auto_prepare_input'
+#end if
+#if $results_folder
+    --results_folder '$results_folder'
+#end if
+#if $auto_download
+    --auto_download '$auto_download'
+#end if
+]]></command>
+    <inputs>
+        <param name="image_path" type="text" label="Image Path" help=""  />
+        <param name="output_dir" type="text" label="Output Dir" help=""  />
+        <param name="task_id" type="text" label="Task Id" help=""  />
+        <param name="model_type" type="text" label="Model Type" help="" value="3d_fullres" optional="true"/>
+        <param name="folds" type="text" label="Folds" help=""  optional="true"/>
+        <param name="use_tta" type="text" label="Use Tta" help="" value="False" optional="true"/>
+        <param name="num_threads" type="text" label="Num Threads" help="" value="1" optional="true"/>
+        <param name="mixed_precision" type="text" label="Mixed Precision" help="" value="True" optional="true"/>
+        <param name="verbose" type="text" label="Verbose" help="" value="True" optional="true"/>
+        <param name="auto_prepare_input" type="text" label="Auto Prepare Input" help="" value="True" optional="true"/>
+        <param name="results_folder" type="text" label="Results Folder" help=""  optional="true"/>
+        <param name="auto_download" type="text" label="Auto Download" help="" value="True" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Segment With Nn Unet**
+
+Segment images using nnUNet with proper environment setup and automatic model downloading
+Args:
+    image_path: Path to input image file or directory
+    output_dir: Directory to save segmentation results
+    task_id: Task identifier (e.g., 'Task001_BrainTumour')
+    model_type: Model type (default: '3d_fullres')
+    folds: Model folds to use (default: [0, 1, 2, 3, 4])
+    use_tta: Use test time augmentation (default: False)
+    num_threads: Number of threads for preprocessing (default: 1)
+    mixed_precision: Use mixed precision (default: True)
+    verbose: Verbose logging (default: True)
+    auto_prepare_input: Automatically prepare input for nnUNet (default: True)
+    results_folder: Path to nnUNet results folder (default: None, will use environment variable or default)
+    auto_download: Automatically download missing models (default: True)
+
+**Domain**: bioimaging
+**Function**: segment_with_nn_unet
+]]></help>
+</tool>

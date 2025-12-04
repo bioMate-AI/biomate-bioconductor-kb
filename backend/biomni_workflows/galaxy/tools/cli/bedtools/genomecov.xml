@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_bedtools_genomecov" name="bedtools genomecov" version="1.0.0">
+  <description>Run bedtools genomecov command</description>
+  <requirements>
+    <requirement type="package">bedtools</requirement>
+  </requirements>
+  <command detect_errors="exit_code">bedtools genomecov $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**bedtools genomecov**
+
+Run bedtools genomecov command
+
+**Tool Type**: cli
+**Library**: bedtools
+**Function**: genomecov
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;bedtools&quot;,
+  &quot;subcommand&quot;: &quot;genomecov&quot;,
+  &quot;call_template&quot;: &quot;bedtools genomecov [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

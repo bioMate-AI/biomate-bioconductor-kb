@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_skimage_exposure_equalize_adapthist" name="scikit-image: exposure.equalize_adapthist" version="1.0.0">
+  <description>Call scikit-image exposure.equalize_adapthist function</description>
+  <requirements>
+    <requirement type="package" version="">skimage</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from skimage import *
+# Tool implementation
+result = exposure.equalize_adapthist(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**scikit-image: exposure.equalize_adapthist**
+
+Call scikit-image exposure.equalize_adapthist function
+
+**Tool Type**: python
+**Library**: skimage
+**Function**: exposure.equalize_adapthist
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;skimage&quot;,
+  &quot;function&quot;: &quot;exposure.equalize_adapthist&quot;,
+  &quot;call_template&quot;: &quot;from skimage import ...; result = exposure.equalize_adapthist(...)&quot;
+}
+]]&gt;</help>
+</tool>

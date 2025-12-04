@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<tool id="biomni_bioengineering_perform_crispr_cas9_genome_editing" name="Biomni: Perform Crispr Cas9 Genome Editing" version="1.0.0">
+    <description>Simulates CRISPR-Cas9 genome editing process including guide RNA design, delivery, and analysis.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.bioengineering import perform_crispr_cas9_genome_editing
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = perform_crispr_cas9_genome_editing(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --guide_rna_sequences '$guide_rna_sequences'
+--target_genomic_loci '$target_genomic_loci'
+--cell_tissue_type '$cell_tissue_type'
+]]></command>
+    <inputs>
+        <param name="guide_rna_sequences" type="text" label="Guide Rna Sequences" help="List of guide RNA sequences (20 nucleotides each) targeting the genomic region of interest"  />
+        <param name="target_genomic_loci" type="text" label="Target Genomic Loci" help="Target genomic sequence to be edited (should be longer than guide RNA and contain the target sites)"  />
+        <param name="cell_tissue_type" type="text" label="Cell Tissue Type" help="Type of cell or tissue being edited (affects delivery efficiency and editing outcomes)"  />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Perform Crispr Cas9 Genome Editing**
+
+Simulates CRISPR-Cas9 genome editing process including guide RNA design, delivery, and analysis.
+
+Parameters
+----------
+guide_rna_sequences : list of str
+    List of guide RNA sequences (20 nucleotides each) targeting the genomic region of interest
+
+target_genomic_loci : str
+    Target genomic sequence to be edited (should be longer than guide RNA and contain the target sites)
+
+cell_tissue_type : str
+    Type of cell or tissue being edited (affects delivery efficiency and editing outcomes)
+
+Returns
+-------
+str
+    Research log detailing the CRISPR-Cas9 editing process, including steps taken and results
+
+**Domain**: bioengineering
+**Function**: perform_crispr_cas9_genome_editing
+]]></help>
+</tool>

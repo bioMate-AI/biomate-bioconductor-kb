@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<tool id="biomni_biochemistry_analyze_itc_binding_thermodynamics" name="Biomni: Analyze Itc Binding Thermodynamics" version="1.0.0">
+    <description>Analyzes isothermal titration calorimetry (ITC) data to determine binding affinity and thermodynamic parameters.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.biochemistry import analyze_itc_binding_thermodynamics
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_itc_binding_thermodynamics(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    #if $itc_data_path
+    --itc_data_path '$itc_data_path'
+#end if
+#if $itc_data
+    --itc_data '$itc_data'
+#end if
+#if $temperature
+    --temperature '$temperature'
+#end if
+#if $protein_concentration
+    --protein_concentration '$protein_concentration'
+#end if
+#if $ligand_concentration
+    --ligand_concentration '$ligand_concentration'
+#end if
+]]></command>
+    <inputs>
+        <param name="itc_data_path" type="text" label="Itc Data Path" help="injection volume, and heat released/absorbed. Expected columns: 'injection', 'volume', 'heat'"  optional="true"/>
+        <param name="itc_data" type="text" label="Itc Data" help="This parameter is provided for backward compatibility and will be deprecated."  optional="true"/>
+        <param name="temperature" type="text" label="Temperature" help="Temperature in Kelvin at which the experiment was conducted. Default is 298.15 K (25°C)." value="298.15" optional="true"/>
+        <param name="protein_concentration" type="text" label="Protein Concentration" help="Initial concentration of protein in the cell in molar (M). Required for accurate fitting."  optional="true"/>
+        <param name="ligand_concentration" type="text" label="Ligand Concentration" help="Concentration of ligand in the syringe in molar (M). Required for accurate fitting."  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Itc Binding Thermodynamics**
+
+Analyzes isothermal titration calorimetry (ITC) data to determine binding affinity and thermodynamic parameters.
+
+Parameters
+----------
+itc_data_path : str, optional
+    Path to CSV or TSV file containing ITC thermogram data with columns for injection number,
+    injection volume, and heat released/absorbed. Expected columns: 'injection', 'volume', 'heat'
+itc_data : numpy.ndarray, optional
+    Raw ITC thermogram data as a numpy array.
+    Expected shape: (n_injections, 3) with columns for injection number, injection volume, and heat
+    This parameter is provided for backward compatibility and will be deprecated.
+temperature : float, optional
+    Temperature in Kelvin at which the experiment was conducted. Default is 298.15 K (25°C).
+protein_concentration : float, optional
+    Initial concentration of protein in the cell in molar (M). Required for accurate fitting.
+ligand_concentration : float, optional
+    Concentration of ligand in the syringe in molar (M). Required for accurate fitting.
+
+Returns
+-------
+str
+    A research log summarizing the analysis steps and results, including binding affinity (Kd),
+    binding enthalpy (ΔH), binding entropy (ΔS), and Gibbs free energy (ΔG).
+
+**Domain**: biochemistry
+**Function**: analyze_itc_binding_thermodynamics
+]]></help>
+</tool>

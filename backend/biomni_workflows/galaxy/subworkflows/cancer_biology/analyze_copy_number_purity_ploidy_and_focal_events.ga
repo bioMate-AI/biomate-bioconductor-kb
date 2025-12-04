@@ -1,0 +1,33 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_cancer_biology_analyze_copy_number_purity_ploidy_and_focal_events",
+  "annotation": "CNVkit-based copy number workflow: CNV segmentation, purity/ploidy & HRD approximation, focal events.",
+  "tags": [
+    "biomni",
+    "cancer_biology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "tool",
+      "tool_id": "biomni_cancer_biology_analyze_copy_number_purity_ploidy_and_focal_events",
+      "label": "analyze_copy_number_purity_ploidy_and_focal_events",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {}
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

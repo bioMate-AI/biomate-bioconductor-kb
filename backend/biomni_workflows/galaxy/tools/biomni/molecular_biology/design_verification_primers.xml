@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<tool id="biomni_molecular_biology_design_verification_primers" name="Biomni: Design Verification Primers" version="1.0.0">
+    <description>Design Sanger sequencing primers to verify a specific region in a plasmid.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.molecular_biology import design_verification_primers
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = design_verification_primers(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --plasmid_sequence '$plasmid_sequence'
+--target_region '$target_region'
+#if $existing_primers
+    --existing_primers '$existing_primers'
+#end if
+#if $is_circular
+    --is_circular
+#end if
+#if $coverage_length
+    --coverage_length '$coverage_length'
+#end if
+#if $primer_length
+    --primer_length '$primer_length'
+#end if
+#if $min_gc
+    --min_gc '$min_gc'
+#end if
+#if $max_gc
+    --max_gc '$max_gc'
+#end if
+#if $min_tm
+    --min_tm '$min_tm'
+#end if
+#if $max_tm
+    --max_tm '$max_tm'
+#end if
+]]></command>
+    <inputs>
+        <param name="plasmid_sequence" type="text" label="Plasmid Sequence" help=""  />
+        <param name="target_region" type="text" label="Target Region" help=""  />
+        <param name="existing_primers" type="text" label="Existing Primers" help="If None, uses common lab primers."  optional="true"/>
+        <param name="is_circular" type="boolean" truevalue="true" falsevalue="false" label="Is Circular" help="" checked="true"/>
+        <param name="coverage_length" type="integer" label="Coverage Length" help="" value="800" optional="true"/>
+        <param name="primer_length" type="integer" label="Primer Length" help="" value="20" optional="true"/>
+        <param name="min_gc" type="float" label="Min Gc" help="" value="0.4" optional="true"/>
+        <param name="max_gc" type="float" label="Max Gc" help="" value="0.6" optional="true"/>
+        <param name="min_tm" type="float" label="Min Tm" help="" value="55.0" optional="true"/>
+        <param name="max_tm" type="float" label="Max Tm" help="" value="65.0" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Design Verification Primers**
+
+Design Sanger sequencing primers to verify a specific region in a plasmid.
+
+First tries to use primers from an existing primer pool. If they cannot fully
+cover the region, designs additional primers as needed.
+
+Args:
+    plasmid_sequence (str): The complete plasmid sequence
+    target_region (Tuple[int, int]): Start and end positions to verify (0-based indexing)
+    existing_primers (Optional[List[Dict[str, str]]]): List of existing primers with
+                                                     their sequences and optional names.
+                                                     If None, uses common lab primers.
+    is_circular (bool): Whether the plasmid is circular (default: True)
+    coverage_length (int): Typical read length for each primer (default: 800bp)
+    primer_length (int): Length of newly designed primers (default: 20)
+    min_gc (float): Minimum GC content for new primers (default: 0.4)
+    max_gc (float): Maximum GC content for new primers (default: 0.6)
+    min_tm (float): Minimum melting temperature in °C (default: 55.0)
+    max_tm (float): Maximum melting temperature in °C (default: 65.0)
+
+Returns:
+    Dict: Dictionary containing:
+        - target_region: The region to be verified
+        - recommended_primers: List of primers to use (from existing and/or newly designed)
+        - coverage_map: How the primers cover the target region
+
+**Domain**: molecular_biology
+**Function**: design_verification_primers
+]]></help>
+</tool>

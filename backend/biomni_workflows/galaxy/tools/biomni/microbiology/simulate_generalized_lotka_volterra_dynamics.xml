@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<tool id="biomni_microbiology_simulate_generalized_lotka_volterra_dynamics" name="Biomni: Simulate Generalized Lotka Volterra Dynamics" version="1.0.0">
+    <description>Simulate microbial community dynamics using the Generalized Lotka-Volterra (gLV) model.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.microbiology import simulate_generalized_lotka_volterra_dynamics
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = simulate_generalized_lotka_volterra_dynamics(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --initial_abundances '$initial_abundances'
+--growth_rates '$growth_rates'
+--interaction_matrix '$interaction_matrix'
+--time_points '$time_points'
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="initial_abundances" type="text" label="Initial Abundances" help="Initial abundances of each microbial species (1D array)"  />
+        <param name="growth_rates" type="text" label="Growth Rates" help="Intrinsic growth rates for each microbial species (1D array)"  />
+        <param name="interaction_matrix" type="text" label="Interaction Matrix" help="Matrix of interaction coefficients where A[i,j] represents the effect of species j on species i (2D array)"  />
+        <param name="time_points" type="text" label="Time Points" help="Time points at which to evaluate the model"  />
+        <param name="output_file" type="text" label="Output File" help="Filename to save the simulation results (default: "glv_simulation_results.csv")" value="glv_simulation_results.csv" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Simulate Generalized Lotka Volterra Dynamics**
+
+Simulate microbial community dynamics using the Generalized Lotka-Volterra (gLV) model.
+
+Parameters
+----------
+initial_abundances : numpy.ndarray
+    Initial abundances of each microbial species (1D array)
+growth_rates : numpy.ndarray
+    Intrinsic growth rates for each microbial species (1D array)
+interaction_matrix : numpy.ndarray
+    Matrix of interaction coefficients where A[i,j] represents the effect of species j on species i (2D array)
+time_points : numpy.ndarray
+    Time points at which to evaluate the model
+output_file : str, optional
+    Filename to save the simulation results (default: "glv_simulation_results.csv")
+
+Returns
+-------
+str
+    Research log summarizing the simulation process and results
+
+**Domain**: microbiology
+**Function**: simulate_generalized_lotka_volterra_dynamics
+]]></help>
+</tool>

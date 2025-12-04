@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<tool id="biomni_molecular_biology_get_golden_gate_assembly_protocol" name="Biomni: Get Golden Gate Assembly Protocol" version="1.0.0">
+    <description>Return a customized protocol for Golden Gate assembly based on the number of inserts</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.molecular_biology import get_golden_gate_assembly_protocol
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = get_golden_gate_assembly_protocol(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    #if $num_inserts
+    --num_inserts '$num_inserts'
+#end if
+#if $enzyme_name
+    --enzyme_name '$enzyme_name'
+#end if
+#if $vector_length
+    --vector_length '$vector_length'
+#end if
+#if $vector_amount_ng
+    --vector_amount_ng '$vector_amount_ng'
+#end if
+#if $insert_lengths
+    --insert_lengths '$insert_lengths'
+#end if
+#if $is_library_prep
+    --is_library_prep
+#end if
+]]></command>
+    <inputs>
+        <param name="num_inserts" type="integer" label="Num Inserts" help="" value="1" optional="true"/>
+        <param name="enzyme_name" type="text" label="Enzyme Name" help=""  optional="true"/>
+        <param name="vector_length" type="integer" label="Vector Length" help=""  optional="true"/>
+        <param name="vector_amount_ng" type="float" label="Vector Amount Ng" help="" value="75.0" optional="true"/>
+        <param name="insert_lengths" type="text" label="Insert Lengths" help=""  optional="true"/>
+        <param name="is_library_prep" type="boolean" truevalue="true" falsevalue="false" label="Is Library Prep" help="" />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Get Golden Gate Assembly Protocol**
+
+Return a customized protocol for Golden Gate assembly based on the number of inserts
+and specific DNA sequences.
+
+Args:
+    num_inserts (int): Number of inserts to be assembled (default: 1)
+    enzyme_name (str): Type IIS restriction enzyme to be used
+    vector_length (int): Length of the destination vector in bp
+    vector_amount_ng (float): Amount of vector to use in ng (default: 75.0)
+    insert_lengths (List[int]): List of insert lengths in bp (optional)
+    is_library_prep (bool): Whether this is for library preparation (default: False)
+
+Returns:
+    Dict: Dictionary containing detailed protocol steps for Golden Gate assembly
+
+**Domain**: molecular_biology
+**Function**: get_golden_gate_assembly_protocol
+]]></help>
+</tool>

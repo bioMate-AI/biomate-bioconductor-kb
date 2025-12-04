@@ -1,0 +1,342 @@
+<?xml version="1.0"?>
+<toolbox>
+  <section id="biomni" name="Biomni Tools">
+    <section id="biomni_biochemistry" name="Biochemistry">
+      <tool file="biomni/biochemistry/analyze_circular_dichroism_spectra.xml"/>
+      <tool file="biomni/biochemistry/analyze_rna_secondary_structure_features.xml"/>
+      <tool file="biomni/biochemistry/analyze_protease_kinetics.xml"/>
+      <tool file="biomni/biochemistry/analyze_enzyme_kinetics_assay.xml"/>
+      <tool file="biomni/biochemistry/analyze_itc_binding_thermodynamics.xml"/>
+      <tool file="biomni/biochemistry/analyze_protein_conservation.xml"/>
+      <tool file="biomni/biochemistry/michaelis_menten.xml"/>
+      <tool file="biomni/biochemistry/michaelis_menten.xml"/>
+      <tool file="biomni/biochemistry/one_site_model.xml"/>
+      <tool file="biomni/biochemistry/dose_response.xml"/>
+    </section>
+    <section id="biomni_bioengineering" name="Bioengineering">
+      <tool file="biomni/bioengineering/analyze_cell_migration_metrics.xml"/>
+      <tool file="biomni/bioengineering/perform_crispr_cas9_genome_editing.xml"/>
+      <tool file="biomni/bioengineering/analyze_calcium_imaging_data.xml"/>
+      <tool file="biomni/bioengineering/analyze_in_vitro_drug_release_kinetics.xml"/>
+      <tool file="biomni/bioengineering/analyze_myofiber_morphology.xml"/>
+      <tool file="biomni/bioengineering/decode_behavior_from_neural_trajectories.xml"/>
+      <tool file="biomni/bioengineering/simulate_whole_cell_ode_model.xml"/>
+      <tool file="biomni/bioengineering/exp_decay.xml"/>
+      <tool file="biomni/bioengineering/zero_order.xml"/>
+      <tool file="biomni/bioengineering/first_order.xml"/>
+      <tool file="biomni/bioengineering/higuchi.xml"/>
+      <tool file="biomni/bioengineering/korsmeyer_peppas.xml"/>
+      <tool file="biomni/bioengineering/default_whole_cell_model.xml"/>
+    </section>
+    <section id="biomni_bioimaging" name="Bioimaging">
+      <tool file="biomni/bioimaging/split_modalities.xml"/>
+      <tool file="biomni/bioimaging/prepare_input_for_nnunet.xml"/>
+      <tool file="biomni/bioimaging/segment_with_nn_unet.xml"/>
+      <tool file="biomni/bioimaging/create_segmentation_visualization.xml"/>
+      <tool file="biomni/bioimaging/preprocess_image.xml"/>
+      <tool file="biomni/bioimaging/quick_rigid_registration.xml"/>
+      <tool file="biomni/bioimaging/quick_affine_registration.xml"/>
+      <tool file="biomni/bioimaging/quick_deformable_registration.xml"/>
+      <tool file="biomni/bioimaging/batch_register_images.xml"/>
+      <tool file="biomni/bioimaging/calculate_similarity_metrics.xml"/>
+      <tool file="biomni/bioimaging/split_modalities.xml"/>
+      <tool file="biomni/bioimaging/prepare_input_for_nnunet.xml"/>
+      <tool file="biomni/bioimaging/setup_nnunet_environment.xml"/>
+      <tool file="biomni/bioimaging/segment_with_nn_unet.xml"/>
+      <tool file="biomni/bioimaging/create_segmentation_visualization.xml"/>
+      <tool file="biomni/bioimaging/load_image.xml"/>
+      <tool file="biomni/bioimaging/save_image.xml"/>
+      <tool file="biomni/bioimaging/preprocess_image.xml"/>
+      <tool file="biomni/bioimaging/create_rigid_transform.xml"/>
+      <tool file="biomni/bioimaging/create_affine_transform.xml"/>
+      <tool file="biomni/bioimaging/create_deformable_transform.xml"/>
+      <tool file="biomni/bioimaging/setup_registration_method.xml"/>
+      <tool file="biomni/bioimaging/register_images.xml"/>
+      <tool file="biomni/bioimaging/calculate_similarity_metrics.xml"/>
+      <tool file="biomni/bioimaging/verify_nifti_input.xml"/>
+      <tool file="biomni/bioimaging/check_model_files_exist.xml"/>
+      <tool file="biomni/bioimaging/patched_torch_load.xml"/>
+      <tool file="biomni/bioimaging/command_iteration.xml"/>
+    </section>
+    <section id="biomni_biophysics" name="Biophysics">
+      <tool file="biomni/biophysics/predict_protein_disorder_regions.xml"/>
+      <tool file="biomni/biophysics/analyze_cell_morphology_and_cytoskeleton.xml"/>
+      <tool file="biomni/biophysics/analyze_tissue_deformation_flow.xml"/>
+    </section>
+    <section id="biomni_cancer_biology" name="Cancer_Biology">
+      <tool file="biomni/cancer_biology/analyze_ddr_network_in_cancer.xml"/>
+      <tool file="biomni/cancer_biology/analyze_cell_senescence_and_apoptosis.xml"/>
+      <tool file="biomni/cancer_biology/detect_and_annotate_somatic_mutations.xml"/>
+      <tool file="biomni/cancer_biology/detect_and_characterize_structural_variations.xml"/>
+      <tool file="biomni/cancer_biology/perform_gene_expression_nmf_analysis.xml"/>
+      <tool file="biomni/cancer_biology/analyze_copy_number_purity_ploidy_and_focal_events.xml"/>
+      <tool file="biomni/cancer_biology/norm_chr.xml"/>
+    </section>
+    <section id="biomni_cell_biology" name="Cell_Biology">
+      <tool file="biomni/cell_biology/quantify_cell_cycle_phases_from_microscopy.xml"/>
+      <tool file="biomni/cell_biology/quantify_and_cluster_cell_motility.xml"/>
+      <tool file="biomni/cell_biology/perform_facs_cell_sorting.xml"/>
+      <tool file="biomni/cell_biology/analyze_flow_cytometry_immunophenotyping.xml"/>
+      <tool file="biomni/cell_biology/analyze_mitochondrial_morphology_and_potential.xml"/>
+    </section>
+    <section id="biomni_database" name="Database">
+      <tool file="biomni/database/get_hpo_names.xml"/>
+      <tool file="biomni/database/query_uniprot.xml"/>
+      <tool file="biomni/database/query_alphafold.xml"/>
+      <tool file="biomni/database/query_interpro.xml"/>
+      <tool file="biomni/database/query_pdb.xml"/>
+      <tool file="biomni/database/query_pdb_identifiers.xml"/>
+      <tool file="biomni/database/query_kegg.xml"/>
+      <tool file="biomni/database/query_stringdb.xml"/>
+      <tool file="biomni/database/query_iucn.xml"/>
+      <tool file="biomni/database/query_paleobiology.xml"/>
+      <tool file="biomni/database/query_jaspar.xml"/>
+      <tool file="biomni/database/query_worms.xml"/>
+      <tool file="biomni/database/query_cbioportal.xml"/>
+      <tool file="biomni/database/query_clinvar.xml"/>
+      <tool file="biomni/database/query_geo.xml"/>
+      <tool file="biomni/database/query_dbsnp.xml"/>
+      <tool file="biomni/database/query_ucsc.xml"/>
+      <tool file="biomni/database/query_ensembl.xml"/>
+      <tool file="biomni/database/query_opentarget.xml"/>
+      <tool file="biomni/database/query_monarch.xml"/>
+      <tool file="biomni/database/query_openfda.xml"/>
+      <tool file="biomni/database/query_gwas_catalog.xml"/>
+      <tool file="biomni/database/query_gnomad.xml"/>
+      <tool file="biomni/database/blast_sequence.xml"/>
+      <tool file="biomni/database/query_reactome.xml"/>
+      <tool file="biomni/database/query_regulomedb.xml"/>
+      <tool file="biomni/database/query_pride.xml"/>
+      <tool file="biomni/database/query_gtopdb.xml"/>
+      <tool file="biomni/database/region_to_ccre_screen.xml"/>
+      <tool file="biomni/database/get_genes_near_ccre.xml"/>
+      <tool file="biomni/database/query_remap.xml"/>
+      <tool file="biomni/database/query_mpd.xml"/>
+      <tool file="biomni/database/query_emdb.xml"/>
+      <tool file="biomni/database/query_synapse.xml"/>
+      <tool file="biomni/database/query_pubchem.xml"/>
+      <tool file="biomni/database/query_chembl.xml"/>
+      <tool file="biomni/database/query_unichem.xml"/>
+      <tool file="biomni/database/query_clinicaltrials.xml"/>
+      <tool file="biomni/database/query_dailymed.xml"/>
+      <tool file="biomni/database/query_quickgo.xml"/>
+      <tool file="biomni/database/query_encode.xml"/>
+      <tool file="biomni/database/reduce_tokens.xml"/>
+    </section>
+    <section id="biomni_genetics" name="Genetics">
+      <tool file="biomni/genetics/liftover_coordinates.xml"/>
+      <tool file="biomni/genetics/bayesian_finemapping_with_deep_vi.xml"/>
+      <tool file="biomni/genetics/analyze_cas9_mutation_outcomes.xml"/>
+      <tool file="biomni/genetics/analyze_crispr_genome_editing.xml"/>
+      <tool file="biomni/genetics/simulate_demographic_history.xml"/>
+      <tool file="biomni/genetics/identify_transcription_factor_binding_sites.xml"/>
+      <tool file="biomni/genetics/fit_genomic_prediction_model.xml"/>
+      <tool file="biomni/genetics/perform_pcr_and_gel_electrophoresis.xml"/>
+      <tool file="biomni/genetics/analyze_protein_phylogeny.xml"/>
+      <tool file="biomni/genetics/forward.xml"/>
+      <tool file="biomni/genetics/elbo_loss.xml"/>
+    </section>
+    <section id="biomni_genomics" name="Genomics">
+      <tool file="biomni/genomics/unsupervised_celltype_transfer_between_scRNA_datasets.xml"/>
+      <tool file="biomni/genomics/interspecies_gene_conversion.xml"/>
+      <tool file="biomni/genomics/generate_gene_embeddings_with_ESM_models.xml"/>
+      <tool file="biomni/genomics/annotate_celltype_scRNA.xml"/>
+      <tool file="biomni/genomics/annotate_celltype_with_panhumanpy.xml"/>
+      <tool file="biomni/genomics/create_scvi_embeddings_scRNA.xml"/>
+      <tool file="biomni/genomics/create_harmony_embeddings_scRNA.xml"/>
+      <tool file="biomni/genomics/get_uce_embeddings_scRNA.xml"/>
+      <tool file="biomni/genomics/map_to_ima_interpret_scRNA.xml"/>
+      <tool file="biomni/genomics/get_rna_seq_archs4.xml"/>
+      <tool file="biomni/genomics/get_gene_set_enrichment_analysis_supported_database_list.xml"/>
+      <tool file="biomni/genomics/gene_set_enrichment_analysis.xml"/>
+      <tool file="biomni/genomics/analyze_chromatin_interactions.xml"/>
+      <tool file="biomni/genomics/analyze_comparative_genomics_and_haplotypes.xml"/>
+      <tool file="biomni/genomics/perform_chipseq_peak_calling_with_macs2.xml"/>
+      <tool file="biomni/genomics/find_enriched_motifs_with_homer.xml"/>
+      <tool file="biomni/genomics/analyze_genomic_region_overlap.xml"/>
+      <tool file="biomni/genomics/generate_embeddings_with_state.xml"/>
+      <tool file="biomni/genomics/generate_transcriptformer_embeddings.xml"/>
+      <tool file="biomni/genomics/conda_env_exists.xml"/>
+      <tool file="biomni/genomics/create_panhumanpy_env.xml"/>
+      <tool file="biomni/genomics/custom_mode.xml"/>
+      <tool file="biomni/genomics/get_matrix.xml"/>
+      <tool file="biomni/genomics/is_model_downloaded.xml"/>
+      <tool file="biomni/genomics/check_ensembl_patterns.xml"/>
+    </section>
+    <section id="biomni_glycoengineering" name="Glycoengineering">
+      <tool file="biomni/glycoengineering/find_n_glycosylation_motifs.xml"/>
+      <tool file="biomni/glycoengineering/predict_o_glycosylation_hotspots.xml"/>
+      <tool file="biomni/glycoengineering/list_glycoengineering_resources.xml"/>
+    </section>
+    <section id="biomni_immunology" name="Immunology">
+      <tool file="biomni/immunology/analyze_atac_seq_differential_accessibility.xml"/>
+      <tool file="biomni/immunology/analyze_bacterial_growth_curve.xml"/>
+      <tool file="biomni/immunology/isolate_purify_immune_cells.xml"/>
+      <tool file="biomni/immunology/estimate_cell_cycle_phase_durations.xml"/>
+      <tool file="biomni/immunology/track_immune_cells_under_flow.xml"/>
+      <tool file="biomni/immunology/analyze_cfse_cell_proliferation.xml"/>
+      <tool file="biomni/immunology/analyze_cytokine_production_in_cd4_tcells.xml"/>
+      <tool file="biomni/immunology/analyze_ebv_antibody_titers.xml"/>
+      <tool file="biomni/immunology/analyze_cns_lesion_histology.xml"/>
+      <tool file="biomni/immunology/analyze_immunohistochemistry_image.xml"/>
+      <tool file="biomni/immunology/logistic_growth.xml"/>
+      <tool file="biomni/immunology/objective_function.xml"/>
+      <tool file="biomni/immunology/simulate_cell_population.xml"/>
+    </section>
+    <section id="biomni_lab_automation" name="Lab_Automation">
+      <tool file="biomni/lab_automation/get_pylabrobot_documentation_liquid.xml"/>
+      <tool file="biomni/lab_automation/get_pylabrobot_documentation_material.xml"/>
+      <tool file="biomni/lab_automation/test_pylabrobot_script.xml"/>
+      <tool file="biomni/lab_automation/pick_first.xml"/>
+      <tool file="biomni/lab_automation/target.xml"/>
+      <tool file="biomni/lab_automation/run_async.xml"/>
+    </section>
+    <section id="biomni_literature" name="Literature">
+      <tool file="biomni/literature/fetch_supplementary_info_from_doi.xml"/>
+      <tool file="biomni/literature/query_arxiv.xml"/>
+      <tool file="biomni/literature/query_scholar.xml"/>
+      <tool file="biomni/literature/query_pubmed.xml"/>
+      <tool file="biomni/literature/search_google.xml"/>
+      <tool file="biomni/literature/advanced_web_search_claude.xml"/>
+      <tool file="biomni/literature/extract_url_content.xml"/>
+      <tool file="biomni/literature/extract_pdf_content.xml"/>
+    </section>
+    <section id="biomni_microbiology" name="Microbiology">
+      <tool file="biomni/microbiology/optimize_anaerobic_digestion_process.xml"/>
+      <tool file="biomni/microbiology/analyze_arsenic_speciation_hplc_icpms.xml"/>
+      <tool file="biomni/microbiology/count_bacterial_colonies.xml"/>
+      <tool file="biomni/microbiology/annotate_bacterial_genome.xml"/>
+      <tool file="biomni/microbiology/enumerate_bacterial_cfu_by_serial_dilution.xml"/>
+      <tool file="biomni/microbiology/model_bacterial_growth_dynamics.xml"/>
+      <tool file="biomni/microbiology/quantify_biofilm_biomass_crystal_violet.xml"/>
+      <tool file="biomni/microbiology/segment_and_analyze_microbial_cells.xml"/>
+      <tool file="biomni/microbiology/segment_cells_with_deep_learning.xml"/>
+      <tool file="biomni/microbiology/simulate_generalized_lotka_volterra_dynamics.xml"/>
+      <tool file="biomni/microbiology/predict_rna_secondary_structure.xml"/>
+      <tool file="biomni/microbiology/simulate_microbial_population_dynamics.xml"/>
+      <tool file="biomni/microbiology/vfa_production_model.xml"/>
+      <tool file="biomni/microbiology/methane_yield_model.xml"/>
+      <tool file="biomni/microbiology/bacterial_dynamics.xml"/>
+      <tool file="biomni/microbiology/glv_equations.xml"/>
+    </section>
+    <section id="biomni_molecular_biology" name="Molecular_Biology">
+      <tool file="biomni/molecular_biology/annotate_open_reading_frames.xml"/>
+      <tool file="biomni/molecular_biology/annotate_plasmid.xml"/>
+      <tool file="biomni/molecular_biology/get_gene_coding_sequence.xml"/>
+      <tool file="biomni/molecular_biology/get_plasmid_sequence.xml"/>
+      <tool file="biomni/molecular_biology/align_sequences.xml"/>
+      <tool file="biomni/molecular_biology/pcr_simple.xml"/>
+      <tool file="biomni/molecular_biology/digest_sequence.xml"/>
+      <tool file="biomni/molecular_biology/find_restriction_sites.xml"/>
+      <tool file="biomni/molecular_biology/find_restriction_enzymes.xml"/>
+      <tool file="biomni/molecular_biology/find_sequence_mutations.xml"/>
+      <tool file="biomni/molecular_biology/design_knockout_sgrna.xml"/>
+      <tool file="biomni/molecular_biology/get_oligo_annealing_protocol.xml"/>
+      <tool file="biomni/molecular_biology/get_golden_gate_assembly_protocol.xml"/>
+      <tool file="biomni/molecular_biology/get_bacterial_transformation_protocol.xml"/>
+      <tool file="biomni/molecular_biology/design_primer.xml"/>
+      <tool file="biomni/molecular_biology/design_verification_primers.xml"/>
+      <tool file="biomni/molecular_biology/design_golden_gate_oligos.xml"/>
+      <tool file="biomni/molecular_biology/golden_gate_assembly.xml"/>
+      <tool file="biomni/molecular_biology/find_orfs_in_frame.xml"/>
+      <tool file="biomni/molecular_biology/search_gene.xml"/>
+      <tool file="biomni/molecular_biology/get_refseq_id.xml"/>
+      <tool file="biomni/molecular_biology/get_coding_sequences.xml"/>
+      <tool file="biomni/molecular_biology/reverse_complement.xml"/>
+      <tool file="biomni/molecular_biology/is_position_covered.xml"/>
+      <tool file="biomni/molecular_biology/is_region_fully_covered.xml"/>
+      <tool file="biomni/molecular_biology/merge_overlapping_regions.xml"/>
+      <tool file="biomni/molecular_biology/reverse_complement.xml"/>
+      <tool file="biomni/molecular_biology/reverse_complement.xml"/>
+    </section>
+    <section id="biomni_pathology" name="Pathology">
+      <tool file="biomni/pathology/analyze_aortic_diameter_and_geometry.xml"/>
+      <tool file="biomni/pathology/analyze_atp_luminescence_assay.xml"/>
+      <tool file="biomni/pathology/analyze_thrombus_histology.xml"/>
+      <tool file="biomni/pathology/analyze_intracellular_calcium_with_rhod2.xml"/>
+      <tool file="biomni/pathology/quantify_corneal_nerve_fibers.xml"/>
+      <tool file="biomni/pathology/segment_and_quantify_cells_in_multiplexed_images.xml"/>
+      <tool file="biomni/pathology/analyze_bone_microct_morphometry.xml"/>
+    </section>
+    <section id="biomni_pharmacology" name="Pharmacology">
+      <tool file="biomni/pharmacology/run_diffdock_with_smiles.xml"/>
+      <tool file="biomni/pharmacology/docking_autodock_vina.xml"/>
+      <tool file="biomni/pharmacology/run_autosite.xml"/>
+      <tool file="biomni/pharmacology/retrieve_topk_repurposing_drugs_from_disease_txgnn.xml"/>
+      <tool file="biomni/pharmacology/predict_admet_properties.xml"/>
+      <tool file="biomni/pharmacology/predict_binding_affinity_protein_1d_sequence.xml"/>
+      <tool file="biomni/pharmacology/analyze_accelerated_stability_of_pharmaceutical_formulations.xml"/>
+      <tool file="biomni/pharmacology/run_3d_chondrogenic_aggregate_assay.xml"/>
+      <tool file="biomni/pharmacology/grade_adverse_events_using_vcog_ctcae.xml"/>
+      <tool file="biomni/pharmacology/analyze_radiolabeled_antibody_biodistribution.xml"/>
+      <tool file="biomni/pharmacology/estimate_alpha_particle_radiotherapy_dosimetry.xml"/>
+      <tool file="biomni/pharmacology/perform_mwas_cyp2c19_metabolizer_status.xml"/>
+      <tool file="biomni/pharmacology/calculate_physicochemical_properties.xml"/>
+      <tool file="biomni/pharmacology/analyze_xenograft_tumor_growth_inhibition.xml"/>
+      <tool file="biomni/pharmacology/analyze_western_blot.xml"/>
+      <tool file="biomni/pharmacology/query_drug_interactions.xml"/>
+      <tool file="biomni/pharmacology/check_drug_combination_safety.xml"/>
+      <tool file="biomni/pharmacology/analyze_interaction_mechanisms.xml"/>
+      <tool file="biomni/pharmacology/find_alternative_drugs_ddinter.xml"/>
+      <tool file="biomni/pharmacology/query_fda_adverse_events.xml"/>
+      <tool file="biomni/pharmacology/get_fda_drug_label_info.xml"/>
+      <tool file="biomni/pharmacology/check_fda_drug_recalls.xml"/>
+      <tool file="biomni/pharmacology/analyze_fda_safety_signals.xml"/>
+      <tool file="biomni/pharmacology/sigmoid.xml"/>
+      <tool file="biomni/pharmacology/ADMET_pred.xml"/>
+      <tool file="biomni/pharmacology/apply_vcog_grade.xml"/>
+      <tool file="biomni/pharmacology/bi_exp_model.xml"/>
+      <tool file="biomni/pharmacology/query_adverse_events.xml"/>
+      <tool file="biomni/pharmacology/query_drug_labels.xml"/>
+      <tool file="biomni/pharmacology/query_drug_recalls.xml"/>
+    </section>
+    <section id="biomni_physiology" name="Physiology">
+      <tool file="biomni/physiology/reconstruct_3d_face_from_mri.xml"/>
+      <tool file="biomni/physiology/analyze_abr_waveform_p1_metrics.xml"/>
+      <tool file="biomni/physiology/analyze_ciliary_beat_frequency.xml"/>
+      <tool file="biomni/physiology/analyze_protein_colocalization.xml"/>
+      <tool file="biomni/physiology/perform_cosinor_analysis.xml"/>
+      <tool file="biomni/physiology/calculate_brain_adc_map.xml"/>
+      <tool file="biomni/physiology/analyze_endolysosomal_calcium_dynamics.xml"/>
+      <tool file="biomni/physiology/analyze_fatty_acid_composition_by_gc.xml"/>
+      <tool file="biomni/physiology/analyze_hemodynamic_data.xml"/>
+      <tool file="biomni/physiology/simulate_thyroid_hormone_pharmacokinetics.xml"/>
+      <tool file="biomni/physiology/quantify_amyloid_beta_plaques.xml"/>
+      <tool file="biomni/physiology/cosinor_model.xml"/>
+      <tool file="biomni/physiology/mono_exp_model.xml"/>
+      <tool file="biomni/physiology/pk_ode_system.xml"/>
+    </section>
+    <section id="biomni_protocols" name="Protocols">
+      <tool file="biomni/protocols/search_protocols.xml"/>
+      <tool file="biomni/protocols/get_protocol_details.xml"/>
+    </section>
+    <section id="biomni_synthetic_biology" name="Synthetic_Biology">
+      <tool file="biomni/synthetic_biology/engineer_bacterial_genome_for_therapeutic_delivery.xml"/>
+      <tool file="biomni/synthetic_biology/analyze_bacterial_growth_rate.xml"/>
+      <tool file="biomni/synthetic_biology/analyze_barcode_sequencing_data.xml"/>
+      <tool file="biomni/synthetic_biology/analyze_bifurcation_diagram.xml"/>
+      <tool file="biomni/synthetic_biology/create_biochemical_network_sbml_model.xml"/>
+      <tool file="biomni/synthetic_biology/optimize_codons_for_heterologous_expression.xml"/>
+      <tool file="biomni/synthetic_biology/simulate_gene_circuit_with_growth_feedback.xml"/>
+      <tool file="biomni/synthetic_biology/identify_fas_functional_domains.xml"/>
+      <tool file="biomni/synthetic_biology/gompertz_model.xml"/>
+      <tool file="biomni/synthetic_biology/gene_circuit_odes.xml"/>
+      <tool file="biomni/synthetic_biology/hamming_distance.xml"/>
+    </section>
+    <section id="biomni_systems_biology" name="Systems_Biology">
+      <tool file="biomni/systems_biology/query_chatnt.xml"/>
+      <tool file="biomni/systems_biology/perform_flux_balance_analysis.xml"/>
+      <tool file="biomni/systems_biology/model_protein_dimerization_network.xml"/>
+      <tool file="biomni/systems_biology/simulate_metabolic_network_perturbation.xml"/>
+      <tool file="biomni/systems_biology/simulate_protein_signaling_network.xml"/>
+      <tool file="biomni/systems_biology/compare_protein_structures.xml"/>
+      <tool file="biomni/systems_biology/simulate_renin_angiotensin_system_dynamics.xml"/>
+      <tool file="biomni/systems_biology/dimerization_odes.xml"/>
+      <tool file="biomni/systems_biology/mass_action_kinetics.xml"/>
+      <tool file="biomni/systems_biology/ode_system.xml"/>
+      <tool file="biomni/systems_biology/hill_function.xml"/>
+      <tool file="biomni/systems_biology/ode_system.xml"/>
+      <tool file="biomni/systems_biology/ras_ode_system.xml"/>
+    </section>
+  </section>
+</toolbox>

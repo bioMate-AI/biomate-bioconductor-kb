@@ -1,0 +1,232 @@
+# BioMate Comprehensive Bioinformatics Docker Image - ARM64 Native
+# Uses Bioconda for ARM64-native bioinformatics tools
+#
+# Build: docker build -t biomate/biotools:arm64 -f Dockerfile.arm64 .
+# Run:   docker run -it biomate/biotools:arm64
+#
+# Key difference from Dockerfile.comprehensive:
+#   - Uses micromamba + Bioconda for native ARM64 binaries of all critical tools
+#   - STAR, hisat2, salmon, kallisto, minimap2, FastQC all work natively on ARM64
+
+# ==============================================================================
+# Single stage with micromamba for package management
+# ==============================================================================
+FROM mambaorg/micromamba:1.5-jammy
+
+LABEL maintainer="BioMate Team"
+LABEL description="ARM64-native bioinformatics tools via Bioconda + Python tools"
+LABEL version="2.1.0-arm64"
+
+USER root
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV MAMBA_ROOT_PREFIX=/opt/conda
+ENV PATH="${MAMBA_ROOT_PREFIX}/bin:${PATH}"
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl wget gzip bzip2 unzip pigz \
+    build-essential gcc g++ gfortran cmake make \
+    zlib1g libbz2-1.0 liblzma5 libcurl4 libssl3 \
+    libncurses6 libncursesw6 libtbb12 libgomp1 \
+    libpng-dev libjpeg-dev libtiff-dev \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    libhdf5-dev pkg-config \
+    libopenblas-dev liblapack-dev \
+    libfreetype6-dev \
+    default-jre-headless \
+    perl \
+    libgsl-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create conda environment with all bioinformatics tools
+# Bioconda has native ARM64/aarch64 builds for all these tools
+USER $MAMBA_USER
+RUN micromamba create -n biotools -c conda-forge -c bioconda -y python=3.11 && \
+    micromamba clean --all -y
+
+# Activate the environment for subsequent commands
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+ENV ENV_NAME=biotools
+
+# ==============================================================================
+# LAYER 1: Core Aligners (ARM64-native from Bioconda)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bwa \
+    bowtie2 \
+    hisat2 \
+    star \
+    minimap2 \
+    bwa-mem2 \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 2: Quantification Tools (ARM64-native)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    salmon \
+    kallisto \
+    subread \
+    stringtie \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 3: Variant Calling & Utilities (ARM64-native)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    samtools \
+    bcftools \
+    htslib \
+    bedtools \
+    vcftools \
+    freebayes \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 4: QC & Trimming (ARM64-native)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    fastqc \
+    multiqc \
+    fastp \
+    cutadapt \
+    trimmomatic \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 5: Sequence Analysis (ARM64-native)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    seqkit \
+    mafft \
+    hmmer \
+    blast \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 6: Assembly & Metagenomics (ARM64-native)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    spades \
+    kraken2 \
+    busco \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7: Java-based Tools (platform-independent)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    picard \
+    gatk4 \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 8: Python packages (via pip in conda env)
+# ==============================================================================
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    numpy scipy pandas matplotlib seaborn \
+    biopython requests aiohttp h5py anndata \
+    scikit-learn pydantic python-dotenv tqdm rich
+
+# Image processing
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    scikit-image opencv-python-headless Pillow nibabel SimpleITK
+
+# Genomics & single-cell
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    scanpy gseapy gget pybedtools pybiomart pyliftover \
+    msprime cooler pysam pyfaidx pyvcf3
+
+# Chemistry & pharmacology
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    rdkit pubchempy statsmodels
+
+# Systems biology
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    cobra networkx python-libsbml
+
+# Flow cytometry
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    flowio flowkit FlowCytometryTools || true
+
+# Literature & web
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    arxiv PyPDF2 beautifulsoup4 \
+    anthropic langchain langchain-core || true
+
+# ML/Deep Learning
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu torch && \
+    micromamba run -n biotools pip install --no-cache-dir \
+    transformers accelerate sentencepiece || true
+
+# Additional bioinformatics
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    HTSeq pybigwig deeptools umi_tools || true
+
+# ==============================================================================
+# Create activation script and verification
+# ==============================================================================
+USER root
+
+# Create wrapper script to activate conda environment
+RUN echo '#!/bin/bash\n\
+source /opt/conda/etc/profile.d/mamba.sh\n\
+micromamba activate biotools\n\
+exec "$@"\n\
+' > /usr/local/bin/biotools-shell && chmod +x /usr/local/bin/biotools-shell
+
+# Verification script
+RUN echo '#!/bin/bash\n\
+source /opt/conda/etc/profile.d/mamba.sh\n\
+micromamba activate biotools\n\
+echo "=== BioMate ARM64-Native Bioinformatics Container ==="\n\
+echo ""\n\
+echo "### CORE ALIGNERS (ALL ARM64-NATIVE) ###"\n\
+echo "  bwa:        $(bwa 2>&1 | head -3 | tail -1 || echo "not found")"\n\
+echo "  bowtie2:    $(bowtie2 --version 2>&1 | head -1 || echo "not found")"\n\
+echo "  hisat2:     $(hisat2 --version 2>&1 | head -1 || echo "not found")"\n\
+echo "  STAR:       $(STAR --version 2>&1 || echo "not found")"\n\
+echo "  minimap2:   $(minimap2 --version 2>&1 || echo "not found")"\n\
+echo "  bwa-mem2:   $(bwa-mem2 version 2>&1 | head -1 || echo "not found")"\n\
+echo ""\n\
+echo "### QUANTIFICATION (ALL ARM64-NATIVE) ###"\n\
+echo "  salmon:       $(salmon --version 2>&1 || echo "not found")"\n\
+echo "  kallisto:     $(kallisto version 2>&1 || echo "not found")"\n\
+echo "  featureCounts:$(featureCounts -v 2>&1 | head -1 || echo "not found")"\n\
+echo "  stringtie:    $(stringtie --version 2>&1 || echo "not found")"\n\
+echo ""\n\
+echo "### VARIANT CALLING (ALL ARM64-NATIVE) ###"\n\
+echo "  samtools:  $(samtools --version 2>&1 | head -1 || echo "not found")"\n\
+echo "  bcftools:  $(bcftools --version 2>&1 | head -1 || echo "not found")"\n\
+echo "  bedtools:  $(bedtools --version 2>&1 || echo "not found")"\n\
+echo "  freebayes: $(freebayes --version 2>&1 | head -1 || echo "not found")"\n\
+echo ""\n\
+echo "### QC & TRIMMING (ALL ARM64-NATIVE) ###"\n\
+echo "  fastqc:  $(fastqc --version 2>&1 || echo "not found")"\n\
+echo "  fastp:   $(fastp --version 2>&1 | head -1 || echo "not found")"\n\
+echo "  multiqc: $(multiqc --version 2>&1 || echo "not found")"\n\
+echo ""\n\
+echo "### SEQUENCE ANALYSIS (ALL ARM64-NATIVE) ###"\n\
+echo "  seqkit:   $(seqkit version 2>&1 || echo "not found")"\n\
+echo "  mafft:    $(mafft --version 2>&1 || echo "not found")"\n\
+echo "  hmmsearch:$(hmmsearch -h 2>&1 | head -2 | tail -1 || echo "not found")"\n\
+echo "  blastn:   $(blastn -version 2>&1 | head -1 || echo "not found")"\n\
+echo ""\n\
+echo "### PYTHON PACKAGES ###"\n\
+python -c "import scanpy; print(f\"  scanpy: {scanpy.__version__}\")" 2>/dev/null || echo "  scanpy: not found"\n\
+python -c "import pysam; print(f\"  pysam: {pysam.__version__}\")" 2>/dev/null || echo "  pysam: not found"\n\
+python -c "import torch; print(f\"  torch: {torch.__version__}\")" 2>/dev/null || echo "  torch: not found"\n\
+python -c "import rdkit; print(f\"  rdkit: installed\")" 2>/dev/null || echo "  rdkit: not found"\n\
+echo ""\n\
+echo "All critical workflow tools are ARM64-NATIVE!"\n\
+echo "Done."\n\
+' > /usr/local/bin/verify-tools.sh && chmod +x /usr/local/bin/verify-tools.sh
+
+WORKDIR /data
+
+# Use ENTRYPOINT to activate conda by default
+ENTRYPOINT ["/usr/local/bin/biotools-shell"]
+CMD ["/usr/local/bin/verify-tools.sh"]

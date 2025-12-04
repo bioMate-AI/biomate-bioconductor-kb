@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<tool id="biomni_genetics_bayesian_finemapping_with_deep_vi" name="Biomni: Bayesian Finemapping With Deep Vi" version="1.0.0">
+    <description>Performs Bayesian fine-mapping from GWAS summary statistics using deep variational inference.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genetics import bayesian_finemapping_with_deep_vi
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = bayesian_finemapping_with_deep_vi(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --gwas_summary_path '$gwas_summary_path'
+--ld_matrix '$ld_matrix'
+#if $n_iterations
+    --n_iterations '$n_iterations'
+#end if
+#if $learning_rate
+    --learning_rate '$learning_rate'
+#end if
+#if $hidden_dim
+    --hidden_dim '$hidden_dim'
+#end if
+#if $credible_threshold
+    --credible_threshold '$credible_threshold'
+#end if
+]]></command>
+    <inputs>
+        <param name="gwas_summary_path" type="text" label="Gwas Summary Path" help="- 'se': Standard error for each variant (optional)"  />
+        <param name="ld_matrix" type="text" label="Ld Matrix" help="Linkage disequilibrium matrix with pairwise correlations between variants."  />
+        <param name="n_iterations" type="text" label="N Iterations" help="Default is 5000." value="5000" optional="true"/>
+        <param name="learning_rate" type="text" label="Learning Rate" help="Learning rate for the optimization algorithm. Default is 0.01." value="0.01" optional="true"/>
+        <param name="hidden_dim" type="text" label="Hidden Dim" help="Hidden dimension size for the neural network. Default is 64." value="64" optional="true"/>
+        <param name="credible_threshold" type="text" label="Credible Threshold" help="Default is 0.95." value="0.95" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Bayesian Finemapping With Deep Vi**
+
+Performs Bayesian fine-mapping from GWAS summary statistics using deep variational inference.
+
+This function implements a deep neural network-based variational inference approach to compute
+posterior inclusion probabilities (PIPs) and credible sets for putative causal variants from
+GWAS summary statistics and linkage disequilibrium (LD) information.
+
+Parameters
+----------
+gwas_summary_path : str
+    Path to CSV or TSV file containing GWAS summary statistics. Expected columns:
+    - 'variant_id': Identifier for each variant
+    - 'effect_size': Effect size (beta) for each variant
+    - 'pvalue': P-value for each variant
+    - 'se': Standard error for each variant (optional)
+
+ld_matrix : numpy.ndarray
+    Linkage disequilibrium matrix with pairwise correlations between variants.
+
+n_iterations : int, optional
+    Number of training iterations for the variational inference algorithm.
+    Default is 5000.
+
+learning_rate : float, optional
+    Learning rate for the optimization algorithm. Default is 0.01.
+
+hidden_dim : int, optional
+    Hidden dimension size for the neural network. Default is 64.
+
+credible_threshold : float, optional
+    Threshold for defining the credible set (e.g., 0.95 for a 95% credible set).
+    Default is 0.95.
+
+Returns
+-------
+str
+    A detailed research log of the fine-mapping analysis including:
+    - Number of variants analyzed
+    - Top variants ranked by posterior inclusion probability
+    - Credible set variants
+    - Visualizations of the posterior distributions
+
+**Domain**: genetics
+**Function**: bayesian_finemapping_with_deep_vi
+]]></help>
+</tool>

@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<tool id="biomni_synthetic_biology_create_biochemical_network_sbml_model" name="Biomni: Create Biochemical Network Sbml Model" version="1.0.0">
+    <description>Generate a mathematical model of a biochemical network in SBML format.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.synthetic_biology import create_biochemical_network_sbml_model
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = create_biochemical_network_sbml_model(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --reaction_network '$reaction_network'
+--kinetic_parameters '$kinetic_parameters'
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="reaction_network" type="text" label="Reaction Network" help="- 'reversible': Boolean indicating if reaction is reversible"  />
+        <param name="kinetic_parameters" type="text" label="Kinetic Parameters" help="- 'parameters': Dict of parameter names and values"  />
+        <param name="output_file" type="text" label="Output File" help="File path to save the SBML model (default: "biochemical_model.xml")" value="biochemical_model.xml" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Create Biochemical Network Sbml Model**
+
+Generate a mathematical model of a biochemical network in SBML format.
+
+Parameters
+----------
+reaction_network : list of dict
+    List of dictionaries, each representing a reaction with keys:
+    - 'id': Reaction identifier
+    - 'name': Reaction name
+    - 'reactants': Dict of reactant species IDs and their stoichiometry
+    - 'products': Dict of product species IDs and their stoichiometry
+    - 'reversible': Boolean indicating if reaction is reversible
+
+kinetic_parameters : dict
+    Dictionary mapping reaction IDs to their kinetic law parameters.
+    Each entry should contain:
+    - 'law_type': Type of kinetic law (e.g., 'mass_action', 'michaelis_menten')
+    - 'parameters': Dict of parameter names and values
+
+output_file : str, optional
+    File path to save the SBML model (default: "biochemical_model.xml")
+
+Returns
+-------
+str
+    Research log summarizing the model creation process
+
+**Domain**: synthetic_biology
+**Function**: create_biochemical_network_sbml_model
+]]></help>
+</tool>

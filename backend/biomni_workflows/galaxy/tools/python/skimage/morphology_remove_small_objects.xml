@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_skimage_morphology_remove_small_objects" name="scikit-image: morphology.remove_small_objects" version="1.0.0">
+  <description>Call scikit-image morphology.remove_small_objects function</description>
+  <requirements>
+    <requirement type="package" version="">skimage</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from skimage import *
+# Tool implementation
+result = morphology.remove_small_objects(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**scikit-image: morphology.remove_small_objects**
+
+Call scikit-image morphology.remove_small_objects function
+
+**Tool Type**: python
+**Library**: skimage
+**Function**: morphology.remove_small_objects
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;skimage&quot;,
+  &quot;function&quot;: &quot;morphology.remove_small_objects&quot;,
+  &quot;call_template&quot;: &quot;from skimage import ...; result = morphology.remove_small_objects(...)&quot;
+}
+]]&gt;</help>
+</tool>

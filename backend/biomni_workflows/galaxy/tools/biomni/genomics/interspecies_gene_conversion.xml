@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<tool id="biomni_genomics_interspecies_gene_conversion" name="Biomni: Interspecies Gene Conversion" version="1.0.0">
+    <description>Convert ENSEMBL gene IDs between different species using BioMart homology mapping.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genomics import interspecies_gene_conversion
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = interspecies_gene_conversion(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --gene_list '$gene_list'
+--source_species '$source_species'
+--target_species '$target_species'
+]]></command>
+    <inputs>
+        <param name="gene_list" type="text" label="Gene List" help="List of ENSEMBL gene IDs to convert (e.g., ['ENSG00000007372', 'ENSG00000181449'])"  />
+        <param name="source_species" type="text" label="Source Species" help="drosophila, worm, yeast, chicken, pig, cow, dog, macaque"  />
+        <param name="target_species" type="text" label="Target Species" help="Target species name. Same supported species as source_species."  />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Interspecies Gene Conversion**
+
+Convert ENSEMBL gene IDs between different species using BioMart homology mapping.
+
+This function converts a list of ENSEMBL gene IDs from one species to their
+homologous counterparts in another species using the Ensembl BioMart database.
+The conversion is based on one-to-one ortholog mappings between species.
+
+Parameters
+----------
+gene_list : list[str]
+    List of ENSEMBL gene IDs to convert (e.g., ['ENSG00000007372', 'ENSG00000181449'])
+source_species : str
+    Source species name. Supported species: human, mouse, rat, zebrafish, fly,
+    drosophila, worm, yeast, chicken, pig, cow, dog, macaque
+target_species : str
+    Target species name. Same supported species as source_species.
+
+Returns
+-------
+str
+    Multi-line string containing the steps performed and file paths where
+    results were saved. Returns empty string if source and target species are the same.
+
+Raises
+------
+ValueError
+    If source_species or target_species is not in the supported species list.
+
+Notes
+-----
+- The function saves conversion results to a CSV file named
+  '{source_species}_to_{target_species}_gene_conversion.csv'
+- Genes that cannot be converted will have NaN values in the output
+- The function includes fallback mechanisms for robust data retrieval
+- Species synonyms are supported (e.g., 'drosophila' maps to 'fly')
+
+Examples
+--------
+>>> gene_ids = ["ENSG00000007372", "ENSG00000181449"]
+>>> result = interspecies_gene_conversion(gene_ids, "human", "mouse")
+>>> print(result)
+Gene conversion results saved to: human_to_mouse_gene_conversion.csv
+
+**Domain**: genomics
+**Function**: interspecies_gene_conversion
+]]></help>
+</tool>

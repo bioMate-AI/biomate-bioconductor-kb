@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_cv2_GaussianBlur" name="OpenCV: GaussianBlur" version="1.0.0">
+  <description>Call OpenCV GaussianBlur function</description>
+  <requirements>
+    <requirement type="package" version="">cv2</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from cv2 import *
+# Tool implementation
+result = GaussianBlur(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**OpenCV: GaussianBlur**
+
+Call OpenCV GaussianBlur function
+
+**Tool Type**: python
+**Library**: cv2
+**Function**: GaussianBlur
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;cv2&quot;,
+  &quot;function&quot;: &quot;GaussianBlur&quot;,
+  &quot;call_template&quot;: &quot;from cv2 import ...; result = GaussianBlur(...)&quot;
+}
+]]&gt;</help>
+</tool>

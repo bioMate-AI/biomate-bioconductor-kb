@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_analyze_interaction_mechanisms" name="Biomni: Analyze Interaction Mechanisms" version="1.0.0">
+    <description>Analyze interaction mechanisms between two specific drugs.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import analyze_interaction_mechanisms
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_interaction_mechanisms(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --drug_pair '$drug_pair'
+#if $detailed_analysis
+    --detailed_analysis '$detailed_analysis'
+#end if
+#if $data_lake_path
+    --data_lake_path '$data_lake_path'
+#end if
+]]></command>
+    <inputs>
+        <param name="drug_pair" type="text" label="Drug Pair" help="Pair of drug names to analyze (drug1, drug2)"  />
+        <param name="detailed_analysis" type="text" label="Detailed Analysis" help="Include detailed mechanistic information" value="True" optional="true"/>
+        <param name="data_lake_path" type="text" label="Data Lake Path" help="Path to data lake directory containing DDInter data"  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Interaction Mechanisms**
+
+Analyze interaction mechanisms between two specific drugs.
+
+Parameters
+----------
+drug_pair : tuple of str
+    Pair of drug names to analyze (drug1, drug2)
+detailed_analysis : bool, default True
+    Include detailed mechanistic information
+data_lake_path : str, optional
+    Path to data lake directory containing DDInter data
+
+Returns
+-------
+str
+    Research log with mechanism analysis
+
+**Domain**: pharmacology
+**Function**: analyze_interaction_mechanisms
+]]></help>
+</tool>

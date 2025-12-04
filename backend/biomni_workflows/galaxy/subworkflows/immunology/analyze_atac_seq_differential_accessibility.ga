@@ -1,0 +1,33 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_immunology_analyze_atac_seq_differential_accessibility",
+  "annotation": "Perform ATAC-seq peak calling and differential accessibility analysis using MACS2.",
+  "tags": [
+    "biomni",
+    "immunology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "tool",
+      "tool_id": "biomni_immunology_analyze_atac_seq_differential_accessibility",
+      "label": "analyze_atac_seq_differential_accessibility",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {}
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<tool id="biomni_genetics_fit_genomic_prediction_model" name="Biomni: Fit Genomic Prediction Model" version="1.0.0">
+    <description>Fit a linear mixed model for genomic prediction using genotype and phenotype data.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genetics import fit_genomic_prediction_model
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = fit_genomic_prediction_model(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --genotypes '$genotypes'
+--phenotypes '$phenotypes'
+#if $fixed_effects
+    --fixed_effects '$fixed_effects'
+#end if
+#if $model_type
+    --model_type '$model_type'
+#end if
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="genotypes" type="text" label="Genotypes" help="encoding for dominance effects."  />
+        <param name="phenotypes" type="text" label="Phenotypes" help="Vector or matrix of phenotype data, with individuals in rows and traits in columns."  />
+        <param name="fixed_effects" type="text" label="Fixed Effects" help="and effects in columns."  optional="true"/>
+        <param name="model_type" type="text" label="Model Type" help="Type of genetic model to fit: "additive" or "additive_dominance"." value="additive" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="File name to save the results." value="genomic_prediction_results.csv" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Fit Genomic Prediction Model**
+
+Fit a linear mixed model for genomic prediction using genotype and phenotype data.
+
+Parameters
+----------
+genotypes : numpy.ndarray
+    Matrix of genotype data, with individuals in rows and markers in columns.
+    Values are typically coded as 0, 1, 2 for additive models or with specific
+    encoding for dominance effects.
+phenotypes : numpy.ndarray
+    Vector or matrix of phenotype data, with individuals in rows and traits in columns.
+fixed_effects : numpy.ndarray, optional
+    Matrix of fixed effects (e.g., environment, management), with individuals in rows
+    and effects in columns.
+model_type : str, optional
+    Type of genetic model to fit: "additive" or "additive_dominance".
+output_file : str, optional
+    File name to save the results.
+
+Returns
+-------
+str
+    Research log summarizing the genomic prediction analysis, including model parameters,
+    variance components, breeding values, and prediction accuracy metrics.
+
+**Domain**: genetics
+**Function**: fit_genomic_prediction_model
+]]></help>
+</tool>

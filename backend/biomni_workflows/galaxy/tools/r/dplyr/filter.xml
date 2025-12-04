@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_dplyr_filter" name="dplyr::filter" version="1.0.0">
+  <description>Call R dplyr::filter function</description>
+  <requirements>
+    <requirement type="package">r-dplyr</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(dplyr); filter()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**dplyr::filter**
+
+Call R dplyr::filter function
+
+**Tool Type**: r
+**Library**: dplyr
+**Function**: filter
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;dplyr&quot;,
+  &quot;function&quot;: &quot;filter&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(dplyr); filter(...)'&quot;
+}
+]]&gt;</help>
+</tool>

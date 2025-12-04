@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_bio_SeqIO_read" name="Biopython: SeqIO.read" version="1.0.0">
+  <description>Call Biopython SeqIO.read function</description>
+  <requirements>
+    <requirement type="package" version="">bio</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from Bio import *
+# Tool implementation
+result = SeqIO.read(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**Biopython: SeqIO.read**
+
+Call Biopython SeqIO.read function
+
+**Tool Type**: python
+**Library**: Bio
+**Function**: SeqIO.read
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;Bio&quot;,
+  &quot;function&quot;: &quot;SeqIO.read&quot;,
+  &quot;call_template&quot;: &quot;from Bio import ...; result = SeqIO.read(...)&quot;
+}
+]]&gt;</help>
+</tool>

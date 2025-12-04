@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<tool id="biomni_database_query_gwas_catalog" name="Biomni: Query Gwas Catalog" version="1.0.0">
+    <description>Query the GWAS Catalog API using natural language or a direct endpoint.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.database import query_gwas_catalog
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = query_gwas_catalog(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    #if $prompt
+    --prompt '$prompt'
+#end if
+#if $endpoint
+    --endpoint '$endpoint'
+#end if
+#if $max_results
+    --max_results '$max_results'
+#end if
+]]></command>
+    <inputs>
+        <param name="prompt" type="text" label="Prompt" help=""  optional="true"/>
+        <param name="endpoint" type="text" label="Endpoint" help=""  optional="true"/>
+        <param name="max_results" type="text" label="Max Results" help="" value="3" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Query Gwas Catalog**
+
+Query the GWAS Catalog API using natural language or a direct endpoint.
+
+Parameters
+----------
+prompt (str, required): Natural language query about GWAS data
+endpoint (str, optional): Full API endpoint to query (e.g., "https://www.ebi.ac.uk/gwas/rest/api/studies?diseaseTraitId=EFO_0001360")
+max_results (int): Maximum number of results to return
+
+Returns
+-------
+dict: Dictionary containing the query results or error information
+
+Examples
+--------
+- Natural language: query_gwas_catalog("Find GWAS studies related to Type 2 diabetes")
+- Direct endpoint: query_gwas_catalog(endpoint="studies", params={"diseaseTraitId": "EFO_0001360"})
+
+**Domain**: database
+**Function**: query_gwas_catalog
+]]></help>
+</tool>

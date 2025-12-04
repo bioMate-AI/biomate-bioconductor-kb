@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_bwa_sampe" name="bwa sampe" version="1.0.0">
+  <description>Run bwa sampe command</description>
+  <requirements>
+    <requirement type="package">bwa</requirement>
+  </requirements>
+  <command detect_errors="exit_code">bwa sampe $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**bwa sampe**
+
+Run bwa sampe command
+
+**Tool Type**: cli
+**Library**: bwa
+**Function**: sampe
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;bwa&quot;,
+  &quot;subcommand&quot;: &quot;sampe&quot;,
+  &quot;call_template&quot;: &quot;bwa sampe [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<tool id="biomni_genetics_analyze_crispr_genome_editing" name="Biomni: Analyze Crispr Genome Editing" version="1.0.0">
+    <description>Analyzes CRISPR-Cas9 genome editing results by comparing original and edited sequences.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genetics import analyze_crispr_genome_editing
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_crispr_genome_editing(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --original_sequence '$original_sequence'
+--edited_sequence '$edited_sequence'
+--guide_rna '$guide_rna'
+#if $repair_template
+    --repair_template '$repair_template'
+#end if
+]]></command>
+    <inputs>
+        <param name="original_sequence" type="text" label="Original Sequence" help="The original DNA sequence before CRISPR-Cas9 editing"  />
+        <param name="edited_sequence" type="text" label="Edited Sequence" help="The DNA sequence after CRISPR-Cas9 editing"  />
+        <param name="guide_rna" type="text" label="Guide Rna" help="The CRISPR guide RNA (crRNA) sequence used for targeting"  />
+        <param name="repair_template" type="text" label="Repair Template" help="The homology-directed repair template sequence, if used"  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Crispr Genome Editing**
+
+Analyzes CRISPR-Cas9 genome editing results by comparing original and edited sequences.
+
+Parameters
+----------
+original_sequence : str
+    The original DNA sequence before CRISPR-Cas9 editing
+edited_sequence : str
+    The DNA sequence after CRISPR-Cas9 editing
+guide_rna : str
+    The CRISPR guide RNA (crRNA) sequence used for targeting
+repair_template : str, optional
+    The homology-directed repair template sequence, if used
+
+Returns
+-------
+str
+    A research log summarizing the CRISPR-Cas9 editing analysis, including identified
+    mutations and characterization of the edited loci
+
+**Domain**: genetics
+**Function**: analyze_crispr_genome_editing
+]]></help>
+</tool>

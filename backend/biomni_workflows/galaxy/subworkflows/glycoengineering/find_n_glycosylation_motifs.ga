@@ -1,0 +1,33 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_glycoengineering_find_n_glycosylation_motifs",
+  "annotation": "Scan a protein sequence for N-linked glycosylation sequons (N-X-[S/T]).",
+  "tags": [
+    "biomni",
+    "glycoengineering",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "tool",
+      "tool_id": "biomni_glycoengineering_find_n_glycosylation_motifs",
+      "label": "find_n_glycosylation_motifs",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {}
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

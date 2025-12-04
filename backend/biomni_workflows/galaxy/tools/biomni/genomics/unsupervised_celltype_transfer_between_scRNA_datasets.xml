@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<tool id="biomni_genomics_unsupervised_celltype_transfer_between_scRNA_datasets" name="Biomni: Unsupervised Celltype Transfer Between Scrna Datasets" version="1.0.0">
+    <description></description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genomics import unsupervised_celltype_transfer_between_scRNA_datasets
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = unsupervised_celltype_transfer_between_scRNA_datasets(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --path_to_annotated_h5ad '$path_to_annotated_h5ad'
+--path_to_not_annotated_h5ad '$path_to_not_annotated_h5ad'
+--ref_labels_key '$ref_labels_key'
+#if $query_batch_key
+    --query_batch_key '$query_batch_key'
+#end if
+#if $ref_batch_key
+    --ref_batch_key '$ref_batch_key'
+#end if
+#if $CELLTYPIST
+    --CELLTYPIST '$CELLTYPIST'
+#end if
+#if $KNN_BBKNN
+    --KNN_BBKNN '$KNN_BBKNN'
+#end if
+#if $KNN_HARMONY
+    --KNN_HARMONY '$KNN_HARMONY'
+#end if
+#if $KNN_SCANORAMA
+    --KNN_SCANORAMA '$KNN_SCANORAMA'
+#end if
+#if $KNN_SCVI
+    --KNN_SCVI '$KNN_SCVI'
+#end if
+#if $ONCLASS
+    --ONCLASS '$ONCLASS'
+#end if
+#if $Random_Forest
+    --Random_Forest '$Random_Forest'
+#end if
+#if $SCANVI_POPV
+    --SCANVI_POPV '$SCANVI_POPV'
+#end if
+#if $Support_Vector
+    --Support_Vector '$Support_Vector'
+#end if
+#if $XGboost
+    --XGboost '$XGboost'
+#end if
+#if $n_jobs
+    --n_jobs '$n_jobs'
+#end if
+#if $output_folder
+    --output_folder '$output_folder'
+#end if
+#if $n_samples_per_label
+    --n_samples_per_label '$n_samples_per_label'
+#end if
+]]></command>
+    <inputs>
+        <param name="path_to_annotated_h5ad" type="text" label="Path To Annotated H5Ad" help=""  />
+        <param name="path_to_not_annotated_h5ad" type="text" label="Path To Not Annotated H5Ad" help=""  />
+        <param name="ref_labels_key" type="text" label="Ref Labels Key" help=""  />
+        <param name="query_batch_key" type="text" label="Query Batch Key" help=""  optional="true"/>
+        <param name="ref_batch_key" type="text" label="Ref Batch Key" help=""  optional="true"/>
+        <param name="CELLTYPIST" type="text" label="Celltypist" help="" value="False" optional="true"/>
+        <param name="KNN_BBKNN" type="text" label="Knn Bbknn" help="" value="False" optional="true"/>
+        <param name="KNN_HARMONY" type="text" label="Knn Harmony" help="" value="False" optional="true"/>
+        <param name="KNN_SCANORAMA" type="text" label="Knn Scanorama" help="" value="False" optional="true"/>
+        <param name="KNN_SCVI" type="text" label="Knn Scvi" help="" value="False" optional="true"/>
+        <param name="ONCLASS" type="text" label="Onclass" help="" value="False" optional="true"/>
+        <param name="Random_Forest" type="text" label="Random Forest" help="" value="False" optional="true"/>
+        <param name="SCANVI_POPV" type="text" label="Scanvi Popv" help="" value="True" optional="true"/>
+        <param name="Support_Vector" type="text" label="Support Vector" help="" value="False" optional="true"/>
+        <param name="XGboost" type="text" label="Xgboost" help="" value="False" optional="true"/>
+        <param name="n_jobs" type="integer" label="N Jobs" help="" value="1" optional="true"/>
+        <param name="output_folder" type="text" label="Output Folder" help="" value="./tmp/" optional="true"/>
+        <param name="n_samples_per_label" type="integer" label="N Samples Per Label" help="" value="10" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Unsupervised Celltype Transfer Between Scrna Datasets**
+
+
+
+**Domain**: genomics
+**Function**: unsupervised_celltype_transfer_between_scRNA_datasets
+]]></help>
+</tool>

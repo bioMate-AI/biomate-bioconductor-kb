@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_cobra_flux_analysis_flux_variability_analysis" name="COBRApy: flux_analysis.flux_variability_analysis" version="1.0.0">
+  <description>Call COBRApy flux_analysis.flux_variability_analysis function</description>
+  <requirements>
+    <requirement type="package" version="">cobra</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from cobra import *
+# Tool implementation
+result = flux_analysis.flux_variability_analysis(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**COBRApy: flux_analysis.flux_variability_analysis**
+
+Call COBRApy flux_analysis.flux_variability_analysis function
+
+**Tool Type**: python
+**Library**: cobra
+**Function**: flux_analysis.flux_variability_analysis
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;cobra&quot;,
+  &quot;function&quot;: &quot;flux_analysis.flux_variability_analysis&quot;,
+  &quot;call_template&quot;: &quot;from cobra import ...; result = flux_analysis.flux_variability_analysis(...)&quot;
+}
+]]&gt;</help>
+</tool>

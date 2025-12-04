@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<tool id="biomni_physiology_analyze_abr_waveform_p1_metrics" name="Biomni: Analyze Abr Waveform P1 Metrics" version="1.0.0">
+    <description>Extracts P1 amplitude and latency from Auditory Brainstem Response (ABR) waveform data.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.physiology import analyze_abr_waveform_p1_metrics
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_abr_waveform_p1_metrics(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --time_ms '$time_ms'
+--amplitude_uv '$amplitude_uv'
+]]></command>
+    <inputs>
+        <param name="time_ms" type="text" label="Time Ms" help="Time points of the ABR recording in milliseconds"  />
+        <param name="amplitude_uv" type="text" label="Amplitude Uv" help="Amplitude values of the ABR recording in microvolts"  />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Abr Waveform P1 Metrics**
+
+Extracts P1 amplitude and latency from Auditory Brainstem Response (ABR) waveform data.
+
+P1 (Wave I) is typically the first positive peak in the ABR waveform and is a critical
+marker for auditory function assessment.
+
+Parameters
+----------
+time_ms : array-like
+    Time points of the ABR recording in milliseconds
+amplitude_uv : array-like
+    Amplitude values of the ABR recording in microvolts
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results, including P1 amplitude and latency
+
+**Domain**: physiology
+**Function**: analyze_abr_waveform_p1_metrics
+]]></help>
+</tool>

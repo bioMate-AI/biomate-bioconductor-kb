@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_gget_muscle" name="gget: muscle" version="1.0.0">
+  <description>Call gget muscle function</description>
+  <requirements>
+    <requirement type="package" version="">gget</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from gget import *
+# Tool implementation
+result = muscle(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**gget: muscle**
+
+Call gget muscle function
+
+**Tool Type**: python
+**Library**: gget
+**Function**: muscle
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;gget&quot;,
+  &quot;function&quot;: &quot;muscle&quot;,
+  &quot;call_template&quot;: &quot;from gget import ...; result = muscle(...)&quot;
+}
+]]&gt;</help>
+</tool>

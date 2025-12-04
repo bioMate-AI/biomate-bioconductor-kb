@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_foldseek_easy-search" name="foldseek easy-search" version="1.0.0">
+  <description>Run foldseek easy-search command</description>
+  <requirements>
+    <requirement type="package">foldseek</requirement>
+  </requirements>
+  <command detect_errors="exit_code">foldseek easy-search $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**foldseek easy-search**
+
+Run foldseek easy-search command
+
+**Tool Type**: cli
+**Library**: foldseek
+**Function**: easy-search
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;foldseek&quot;,
+  &quot;subcommand&quot;: &quot;easy-search&quot;,
+  &quot;call_template&quot;: &quot;foldseek easy-search [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

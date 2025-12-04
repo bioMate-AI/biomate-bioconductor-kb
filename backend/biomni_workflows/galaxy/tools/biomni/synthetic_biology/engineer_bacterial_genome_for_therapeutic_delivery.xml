@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<tool id="biomni_synthetic_biology_engineer_bacterial_genome_for_therapeutic_delivery" name="Biomni: Engineer Bacterial Genome For Therapeutic Delivery" version="1.0.0">
+    <description>Engineer a bacterial genome by integrating therapeutic genetic parts for therapeutic delivery.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.synthetic_biology import engineer_bacterial_genome_for_therapeutic_delivery
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = engineer_bacterial_genome_for_therapeutic_delivery(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --bacterial_genome_file '$bacterial_genome_file'
+--genetic_parts '$genetic_parts'
+]]></command>
+    <inputs>
+        <param name="bacterial_genome_file" type="text" label="Bacterial Genome File" help="Path to the file containing the bacterial genome sequence in FASTA format"  />
+        <param name="genetic_parts" type="text" label="Genetic Parts" help="}"  />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Engineer Bacterial Genome For Therapeutic Delivery**
+
+Engineer a bacterial genome by integrating therapeutic genetic parts for therapeutic delivery.
+
+Parameters
+----------
+bacterial_genome_file : str
+    Path to the file containing the bacterial genome sequence in FASTA format
+genetic_parts : dict
+    Dictionary containing genetic parts to be integrated::
+
+    {
+        'promoters': list of dict with 'name', 'sequence', and 'position',
+        'genes': list of dict with 'name', 'sequence', and 'position',
+        'terminators': list of dict with 'name', 'sequence', and 'position',
+        'cargo': dict with 'name' and 'sequence' of the therapeutic cargo
+    }
+
+Returns
+-------
+str
+    Research log summarizing the engineering process, including the filename of the
+    engineered genome and plasmid map
+
+**Domain**: synthetic_biology
+**Function**: engineer_bacterial_genome_for_therapeutic_delivery
+]]></help>
+</tool>

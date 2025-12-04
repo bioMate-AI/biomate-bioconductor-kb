@@ -1,0 +1,82 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_cancer_biology_detect_and_characterize_structural_variations",
+  "annotation": "Detects and characterizes structural variations (SVs) in genomic sequencing data.",
+  "tags": [
+    "biomni",
+    "cancer_biology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "bam_file_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "reference_genome_path",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "data_input",
+      "label": "cosmic_db_path",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "type": "data_input",
+      "label": "clinvar_db_path",
+      "position": {
+        "left": 0,
+        "top": 300
+      }
+    },
+    "4": {
+      "type": "tool",
+      "tool_id": "biomni_cancer_biology_detect_and_characterize_structural_variations",
+      "label": "detect_and_characterize_structural_variations",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "bam_file_path": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference_genome_path": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "cosmic_db_path": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "clinvar_db_path": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    },
+    "5": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_molecular_biology_pcr_simple",
+  "annotation": "Simulate PCR amplification with given primers and sequence. Uses align_sequences internally to find primer binding sites.",
+  "tags": [
+    "biomni",
+    "molecular_biology",
+    "subworkflow",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "data_input",
+      "label": "sequence",
+      "annotation": "Template DNA sequence for PCR",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "data_input",
+      "label": "forward_primer",
+      "annotation": "Forward primer sequence (5' to 3')",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "data_input",
+      "label": "reverse_primer",
+      "annotation": "Reverse primer sequence (5' to 3')",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "parameter_input",
+      "label": "circular",
+      "annotation": "Whether the template is circular (default: false)",
+      "parameter_type": "boolean",
+      "default": false,
+      "position": {
+        "left": 0,
+        "top": 300
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "subworkflow",
+      "label": "Align forward primer",
+      "annotation": "Find forward primer binding sites on template",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "sequence": {
+          "id": 0,
+          "input_subworkflow_step_id": 0,
+          "output_name": "output"
+        },
+        "query_sequences": {
+          "id": 1,
+          "input_subworkflow_step_id": 1,
+          "output_name": "output"
+        }
+      },
+      "subworkflow": {
+        "a_galaxy_workflow": "true",
+        "format-version": "0.1",
+        "name": "align_sequences",
+        "annotation": "Align short sequences (primers) to a longer sequence, allowing for one mismatch.",
+        "tags": ["biomni", "molecular_biology"],
+        "steps": {
+          "0": {
+            "id": 0,
+            "type": "data_input",
+            "label": "sequence",
+            "annotation": "Target sequence to align against"
+          },
+          "1": {
+            "id": 1,
+            "type": "data_input",
+            "label": "query_sequences",
+            "annotation": "Query sequences to align"
+          },
+          "2": {
+            "id": 2,
+            "type": "tool",
+            "tool_id": "biomni_molecular_biology_align_sequences",
+            "label": "align_sequences",
+            "input_connections": {
+              "sequence": {"id": 0, "output_name": "output"},
+              "query_sequences": {"id": 1, "output_name": "output"}
+            }
+          }
+        },
+        "workflow_outputs": [
+          {"label": "alignments", "output_name": "output", "uuid": "align-output"}
+        ]
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "subworkflow",
+      "label": "Align reverse primer (rev comp)",
+      "annotation": "Find reverse primer binding sites (reverse complement) on template",
+      "position": {
+        "left": 300,
+        "top": 200
+      },
+      "input_connections": {
+        "sequence": {
+          "id": 0,
+          "input_subworkflow_step_id": 0,
+          "output_name": "output"
+        },
+        "query_sequences": {
+          "id": 2,
+          "input_subworkflow_step_id": 1,
+          "output_name": "output"
+        }
+      },
+      "subworkflow": {
+        "a_galaxy_workflow": "true",
+        "format-version": "0.1",
+        "name": "align_sequences",
+        "annotation": "Align short sequences (primers) to a longer sequence, allowing for one mismatch.",
+        "tags": ["biomni", "molecular_biology"],
+        "steps": {
+          "0": {
+            "id": 0,
+            "type": "data_input",
+            "label": "sequence",
+            "annotation": "Target sequence to align against"
+          },
+          "1": {
+            "id": 1,
+            "type": "data_input",
+            "label": "query_sequences",
+            "annotation": "Query sequences to align"
+          },
+          "2": {
+            "id": 2,
+            "type": "tool",
+            "tool_id": "biomni_molecular_biology_align_sequences",
+            "label": "align_sequences",
+            "input_connections": {
+              "sequence": {"id": 0, "output_name": "output"},
+              "query_sequences": {"id": 1, "output_name": "output"}
+            }
+          }
+        },
+        "workflow_outputs": [
+          {"label": "alignments", "output_name": "output", "uuid": "align-output"}
+        ]
+      }
+    },
+    "6": {
+      "id": 6,
+      "type": "tool",
+      "tool_id": "biomni_molecular_biology_pcr_simple",
+      "label": "PCR Product Assembly",
+      "annotation": "Combine alignment results to identify PCR products",
+      "position": {
+        "left": 600,
+        "top": 100
+      },
+      "input_connections": {
+        "sequence": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "forward_primer": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "reverse_primer": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "circular": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "forward_alignment": {
+          "id": 4,
+          "output_name": "alignments"
+        },
+        "reverse_alignment": {
+          "id": 5,
+          "output_name": "alignments"
+        }
+      }
+    },
+    "7": {
+      "id": 7,
+      "type": "data_output",
+      "label": "PCR Results",
+      "annotation": "PCR simulation results including products and primer binding details",
+      "position": {
+        "left": 900,
+        "top": 100
+      },
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "PCR Results",
+      "output_name": "output",
+      "uuid": "pcr-results-output"
+    }
+  ]
+}

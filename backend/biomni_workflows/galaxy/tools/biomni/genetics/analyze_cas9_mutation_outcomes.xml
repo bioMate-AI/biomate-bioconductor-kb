@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<tool id="biomni_genetics_analyze_cas9_mutation_outcomes" name="Biomni: Analyze Cas9 Mutation Outcomes" version="1.0.0">
+    <description>Analyzes and categorizes mutations induced by Cas9 at target sites.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genetics import analyze_cas9_mutation_outcomes
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_cas9_mutation_outcomes(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --reference_sequences '$reference_sequences'
+--edited_sequences '$edited_sequences'
+#if $cell_line_info
+    --cell_line_info '$cell_line_info'
+#end if
+#if $output_prefix
+    --output_prefix '$output_prefix'
+#end if
+]]></command>
+    <inputs>
+        <param name="reference_sequences" type="text" label="Reference Sequences" help="Dictionary mapping sequence IDs to reference DNA sequences (strings)"  />
+        <param name="edited_sequences" type="text" label="Edited Sequences" help="Contains the edited/mutated sequences for each reference"  />
+        <param name="cell_line_info" type="text" label="Cell Line Info" help="Dictionary mapping sequence IDs to cell line information (e.g., wildtype, knockout gene)"  optional="true"/>
+        <param name="output_prefix" type="text" label="Output Prefix" help="Prefix for output files" value="cas9_mutation_analysis" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Cas9 Mutation Outcomes**
+
+Analyzes and categorizes mutations induced by Cas9 at target sites.
+
+Parameters
+----------
+reference_sequences : dict
+    Dictionary mapping sequence IDs to reference DNA sequences (strings)
+edited_sequences : dict of dict
+    Nested dictionary: {sequence_id: {read_id: sequence}}
+    Contains the edited/mutated sequences for each reference
+cell_line_info : dict, optional
+    Dictionary mapping sequence IDs to cell line information (e.g., wildtype, knockout gene)
+output_prefix : str, optional
+    Prefix for output files
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results
+
+**Domain**: genetics
+**Function**: analyze_cas9_mutation_outcomes
+]]></help>
+</tool>
