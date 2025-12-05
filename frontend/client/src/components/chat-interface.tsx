@@ -49,6 +49,12 @@ interface ChatInterfaceProps {
   activeWorkflow?: WorkflowProgress | null
   showProgress?: boolean
   onToggleProgress?: () => void
+  // Workflow execution props for inline artifacts
+  onRunWorkflow?: () => void
+  onStopWorkflow?: () => void
+  onParameterChange?: (stepId: string, params: Record<string, any>) => void
+  isWorkflowRunning?: boolean
+  workflowProgress?: number
 }
 
 export function ChatInterface({
@@ -60,7 +66,12 @@ export function ChatInterface({
   onChatUpdated,
   activeWorkflow,
   showProgress,
-  onToggleProgress
+  onToggleProgress,
+  onRunWorkflow,
+  onStopWorkflow,
+  onParameterChange,
+  isWorkflowRunning = false,
+  workflowProgress = 0
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -312,18 +323,48 @@ export function ChatInterface({
 
   const detectWorkflowTypeFromResponse = (response: string): string => {
     const msg = response.toLowerCase()
-    
+
+    // Biomni tools - database queries
+    if (msg.includes('uniprot') || msg.includes('protein') && msg.includes('query')) return 'database-query'
+    if (msg.includes('ncbi') || msg.includes('genbank') || msg.includes('entrez')) return 'database-query'
+
+    // Biomni tools - genomics/bioinformatics
+    if (msg.includes('gene set enrichment') || msg.includes('gsea') || msg.includes('pathway')) return 'enrichment-analysis'
+    if (msg.includes('primer') || msg.includes('pcr')) return 'primer-design'
+    if (msg.includes('cell type annotation') || msg.includes('scrna') || msg.includes('single-cell')) return 'scrna-analysis'
+
+    // Biomni tools - bioimaging
+    if (msg.includes('segment') && (msg.includes('cell') || msg.includes('nuclei') || msg.includes('image'))) return 'cell-segmentation'
+    if (msg.includes('image registration') || msg.includes('align') && msg.includes('image')) return 'image-registration'
+    if (msg.includes('microscopy') || msg.includes('fluorescence')) return 'bioimaging'
+
+    // Biomni tools - pharmacology
+    if (msg.includes('drug') && (msg.includes('target') || msg.includes('interaction'))) return 'drug-target'
+    if (msg.includes('smiles') || msg.includes('compound')) return 'drug-target'
+
+    // Standard bioinformatics workflows
     if (msg.includes('rna-seq') || msg.includes('transcriptom')) return 'rna-seq'
     if (msg.includes('variant') || msg.includes('snp') || msg.includes('indel')) return 'variant-calling'
     if (msg.includes('genome') && msg.includes('assembl')) return 'genome-assembly'
     if (msg.includes('chip-seq') || msg.includes('chipseq')) return 'chip-seq'
     if (msg.includes('quality') || msg.includes('qc')) return 'quality-control'
-    
-    return 'rna-seq' // Default to RNA-seq for bioinformatics workflows
+
+    return 'custom' // Default to custom workflow instead of hardcoded RNA-seq
   }
 
   const getWorkflowTitleFromType = (type: string): string => {
     switch (type) {
+      // Biomni workflow types
+      case 'database-query': return 'Database Query Workflow'
+      case 'enrichment-analysis': return 'Gene Set Enrichment Analysis'
+      case 'primer-design': return 'PCR Primer Design Workflow'
+      case 'scrna-analysis': return 'scRNA-seq Cell Type Annotation'
+      case 'cell-segmentation': return 'Cell Segmentation Workflow'
+      case 'image-registration': return 'Image Registration Pipeline'
+      case 'bioimaging': return 'Bioimaging Analysis Workflow'
+      case 'drug-target': return 'Drug-Target Interaction Prediction'
+      case 'custom': return 'Custom Analysis Workflow'
+      // Standard bioinformatics workflow types
       case 'rna-seq': return 'RNA-seq Analysis Pipeline'
       case 'variant-calling': return 'Variant Calling Workflow'
       case 'genome-assembly': return 'Genome Assembly Pipeline'
@@ -335,6 +376,104 @@ export function ChatInterface({
 
   const getStepsForType = (type: string) => {
     switch (type) {
+      // Biomni workflow types
+      case 'database-query':
+        return [
+          {
+            id: 'step1',
+            title: 'Database Query',
+            description: 'Query protein/gene database for information',
+            tool: 'UniProt Query',
+            complexity: 'simple',
+            estimatedTime: '1 min'
+          }
+        ]
+
+      case 'enrichment-analysis':
+        return [
+          {
+            id: 'step1',
+            title: 'Gene Set Enrichment',
+            description: 'Analyze gene set enrichment across pathways',
+            tool: 'GSEA',
+            complexity: 'intermediate',
+            estimatedTime: '5 min'
+          }
+        ]
+
+      case 'primer-design':
+        return [
+          {
+            id: 'step1',
+            title: 'Primer Design',
+            description: 'Design PCR primers for target sequence',
+            tool: 'Primer3',
+            complexity: 'simple',
+            estimatedTime: '2 min'
+          }
+        ]
+
+      case 'scrna-analysis':
+        return [
+          {
+            id: 'step1',
+            title: 'Cell Type Annotation',
+            description: 'Annotate cell types in scRNA-seq data',
+            tool: 'scRNA Annotator',
+            complexity: 'complex',
+            estimatedTime: '10 min'
+          }
+        ]
+
+      case 'cell-segmentation':
+        return [
+          {
+            id: 'step1',
+            title: 'Cell Segmentation',
+            description: 'Segment cells/nuclei in microscopy images',
+            tool: 'CellProfiler',
+            complexity: 'intermediate',
+            estimatedTime: '5 min'
+          }
+        ]
+
+      case 'image-registration':
+        return [
+          {
+            id: 'step1',
+            title: 'Image Registration',
+            description: 'Align images to reference',
+            tool: 'Image Aligner',
+            complexity: 'intermediate',
+            estimatedTime: '3 min'
+          }
+        ]
+
+      case 'drug-target':
+        return [
+          {
+            id: 'step1',
+            title: 'Drug-Target Prediction',
+            description: 'Predict drug-target interactions',
+            tool: 'DTI Predictor',
+            complexity: 'complex',
+            estimatedTime: '5 min'
+          }
+        ]
+
+      case 'custom':
+        return [
+          {
+            id: 'step1',
+            title: 'Analysis Step',
+            description: 'Custom analysis step based on request',
+            tool: 'Custom Tool',
+            complexity: 'intermediate',
+            estimatedTime: '5 min'
+          }
+        ]
+
+      // Standard bioinformatics workflow types
       case 'rna-seq':
         return [
           {
@@ -346,7 +485,7 @@ export function ChatInterface({
             estimatedTime: '5 min'
           },
           {
-            id: 'step2', 
+            id: 'step2',
             title: 'Read Alignment',
             description: 'Align reads to reference genome using HISAT2',
             tool: 'HISAT2',
@@ -357,7 +496,7 @@ export function ChatInterface({
             id: 'step3',
             title: 'Gene Expression Quantification',
             description: 'Count reads mapping to genes using featureCounts',
-            tool: 'featureCounts', 
+            tool: 'featureCounts',
             complexity: 'complex',
             estimatedTime: '8 min'
           },
@@ -370,7 +509,7 @@ export function ChatInterface({
             estimatedTime: '12 min'
           }
         ]
-        
+
       case 'variant-calling':
         return [
           {
@@ -655,23 +794,16 @@ export function ChatInterface({
               onToolClick={handleToolClick}
               onDatasetClick={handleDatasetClick}
               onCreateWorkflow={() => {
-                // Extract workflow from message metadata if available
-                console.log('[ChatInterface] Create Workflow clicked for message:', {
-                  messageId: message.id,
-                  hasMetadata: !!message.metadata,
-                  hasWorkflow: !!message.metadata?.workflow,
-                  metadataKeys: message.metadata ? Object.keys(message.metadata) : [],
-                  workflowPreview: message.metadata?.workflow ? Object.keys(message.metadata.workflow).slice(0, 5) : null
-                });
-
                 if (message.metadata?.workflow) {
-                  console.log('[ChatInterface] Loading workflow from message metadata');
                   onWorkflowGenerated(message.metadata.workflow);
-                } else {
-                  console.warn('[ChatInterface] No workflow data found in message metadata for message', message.id);
-                  console.warn('[ChatInterface] Message metadata:', message.metadata);
                 }
               }}
+              // Workflow execution props for inline artifacts
+              onRunWorkflow={onRunWorkflow}
+              onStopWorkflow={onStopWorkflow}
+              onParameterChange={onParameterChange}
+              isWorkflowRunning={isWorkflowRunning}
+              workflowProgress={workflowProgress}
             />
           ))}
           {displayTyping && <TypingIndicator />}

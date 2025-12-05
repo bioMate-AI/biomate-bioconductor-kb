@@ -6,6 +6,7 @@ import { cn, getSimpleToolName } from "@/lib/utils"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
 import { ChatOutputAttachments } from "./chat-output-attachments"
 import { ThinkingDisplay } from "./thinking-display"
+import { WorkflowArtifact } from "./workflow-artifact"
 import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba2b.png"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
 
@@ -19,6 +20,11 @@ interface ChatMessageProps {
   onCreateWorkflow?: () => void
   onToolClick?: (tool: any) => void
   onDatasetClick?: (dataset: any) => void
+  onRunWorkflow?: () => void
+  onStopWorkflow?: () => void
+  onParameterChange?: (stepId: string, params: Record<string, any>) => void
+  isWorkflowRunning?: boolean
+  workflowProgress?: number
 }
 
 export function ChatMessage({
@@ -28,6 +34,11 @@ export function ChatMessage({
   onCreateWorkflow = () => console.log('Create workflow triggered'),
   onToolClick,
   onDatasetClick,
+  onRunWorkflow,
+  onStopWorkflow,
+  onParameterChange,
+  isWorkflowRunning = false,
+  workflowProgress = 0,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
 
@@ -79,50 +90,19 @@ export function ChatMessage({
             />
           )}
 
-          {/* Workflow Display */}
+          {/* Workflow Artifact - Interactive inline workflow display */}
           {!isUser && message.metadata?.type === 'workflow' && message.metadata?.workflow && (
-            <Card className="p-4 bg-muted/50" data-testid="workflow-generated-message">
-              <div className="space-y-3">
-                <div>
-                  <h4 className="font-semibold text-sm">{message.metadata.workflow.name || 'Generated Workflow'}</h4>
-                  {message.metadata.steps && message.metadata.steps.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {message.metadata.steps.length} steps • Confidence: {((message.metadata.confidence || 0) * 100).toFixed(1)}%
-                    </p>
-                  )}
-                </div>
-                {message.metadata.workflow.annotation && (
-                  <p className="text-xs text-muted-foreground">
-                    {message.metadata.workflow.annotation}
-                  </p>
-                )}
-                {message.metadata.steps && message.metadata.steps.length > 0 && (
-                  <div className="space-y-1">
-                    {message.metadata.steps.slice(0, 5).map((step: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2 text-xs">
-                        <span className="font-mono text-muted-foreground">{idx + 1}.</span>
-                        <span>{step.name || getSimpleToolName(step.tool_id) || 'Unknown step'}</span>
-                      </div>
-                    ))}
-                    {message.metadata.steps.length > 5 && (
-                      <p className="text-xs text-muted-foreground">
-                        ...and {message.metadata.steps.length - 5} more steps
-                      </p>
-                    )}
-                  </div>
-                )}
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={onCreateWorkflow}
-                  className="w-full"
-                  data-testid="button-open-workflow-builder"
-                >
-                  <Workflow className="h-3 w-3 mr-1" />
-                  Open in Workflow Builder
-                </Button>
-              </div>
-            </Card>
+            <WorkflowArtifact
+              workflow={message.metadata.workflow}
+              steps={message.metadata.steps || []}
+              confidence={message.metadata.confidence || 0}
+              onRun={onRunWorkflow}
+              onStop={onStopWorkflow}
+              onParameterChange={onParameterChange}
+              isRunning={isWorkflowRunning}
+              progress={workflowProgress}
+              className="mt-2"
+            />
           )}
 
           {/* Output Attachments - Show when workflow execution completes */}

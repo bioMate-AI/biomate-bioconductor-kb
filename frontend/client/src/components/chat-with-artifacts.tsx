@@ -1,287 +1,110 @@
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import { useState } from "react"
 import { ChatInterface } from "./chat-interface"
-import { EnhancedWorkflowBuilder } from "./enhanced-workflow-builder"
 import { WorkflowHistoryPanel } from "./workflow-history-panel"
-import { useWorkflowSync } from "../hooks/useWorkflowSync"
 import { chatHistoryService } from "@/lib/chat-history"
 import type { ChatSession } from "@shared/schema"
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
-import {
-  Workflow,
-  Play,
-  Pause,
-  CheckCircle,
-  Clock,
-  AlertTriangle,
-  Settings,
-  MessageCircle
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-
-interface WorkflowProgress {
-  id: string
-  title: string
-  description: string
-  status: 'running' | 'completed' | 'pending' | 'error'
-  progress: number
-  steps: Array<{
-    id: string
-    name: string
-    status: 'running' | 'completed' | 'pending' | 'error'
-    duration?: string
-  }>
-}
-
-const mockWorkflowProgress: WorkflowProgress = {
-  id: "workflow-1",
-  title: "RNA-seq Analysis Pipeline",
-  description: "Processing transcriptomic data through quality control, alignment, and differential expression analysis",
-  status: 'running',
-  progress: 45,
-  steps: [
-    { id: "step1", name: "Quality Control", status: "completed", duration: "2m 15s" },
-    { id: "step2", name: "Read Alignment", status: "running" },
-    { id: "step3", name: "Gene Expression Quantification", status: "pending" },
-    { id: "step4", name: "Differential Expression Analysis", status: "pending" },
-    { id: "step5", name: "Generate Report", status: "pending" }
-  ]
-}
-
-interface ToolItem {
-  id: string
-  name: string
-  description: string
-  complexity: 'simple' | 'intermediate' | 'complex'
-  category: string
-  icon: any
-}
+import { MessageCircle } from "lucide-react"
 
 interface ChatWithArtifactsProps {
   currentChatSession: ChatSession | null
   onChatUpdated: (session: ChatSession) => void
 }
 
+/**
+ * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
+ * No split panel - workflows appear as collapsible cards within chat messages.
+ */
 export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWithArtifactsProps) {
-  const [showProgress, setShowProgress] = useState(false)
-  const [loadedSessionId, setLoadedSessionId] = useState<string | null>(null)
-
-  // Use workflow sync hook for bidirectional state management
-  const {
-    workflowState,
-    setWorkflowFromChat,
-    updateWorkflow,
-    updateStep,
-    hasWorkflow,
-    isFromChat,
-  } = useWorkflowSync();
-
-  // Load existing workflows when chat session changes (but not when same session is updated)
-  useEffect(() => {
-    const sessionId = currentChatSession?.id || null;
-    console.log('ChatWithArtifacts: Chat session changed', sessionId, 'workflows:', currentChatSession?.workflows)
-
-    // Only reload if we switched to a different session
-    if (sessionId !== loadedSessionId) {
-      console.log('ChatWithArtifacts: Session switched from', loadedSessionId, 'to', sessionId)
-      setLoadedSessionId(sessionId);
-
-      if (currentChatSession?.workflows && Array.isArray(currentChatSession.workflows) && currentChatSession.workflows.length > 0) {
-        const workflow = {
-          id: 'workflow-' + currentChatSession.id,
-          name: currentChatSession.workflows[0]?.tool ? `${currentChatSession.workflows[0].tool} Pipeline` : "Workflow from Chat",
-          steps: currentChatSession.workflows,
-        };
-
-        console.log('ChatWithArtifacts: Loading workflow from session');
-        setWorkflowFromChat(workflow);
-        setShowProgress(true);
-      } else {
-        console.log('ChatWithArtifacts: No workflows in session');
-        setShowProgress(false);
-      }
-    } else {
-      console.log('ChatWithArtifacts: Same session updated, skipping workflow reload');
-    }
-  }, [currentChatSession, loadedSessionId, setWorkflowFromChat])
-  
-  const getStatusIcon = (status: WorkflowProgress['status']) => {
-    switch (status) {
-      case 'running': return Clock
-      case 'completed': return CheckCircle
-      case 'error': return AlertTriangle
-      default: return Clock
-    }
-  }
-
-  const getStatusColor = (status: WorkflowProgress['status']) => {
-    switch (status) {
-      case 'running': return 'text-blue-500'
-      case 'completed': return 'text-green-500'
-      case 'error': return 'text-red-500'
-      default: return 'text-muted-foreground'
-    }
-  }
+  const [isWorkflowRunning, setIsWorkflowRunning] = useState(false)
+  const [workflowProgress, setWorkflowProgress] = useState(0)
 
   const handleWorkflowGenerated = (workflow: any, metadata?: any) => {
-    // This will be called when chat generates a new workflow with Galaxy Assistant
-    console.log('ChatWithArtifacts: New workflow generated:', workflow, metadata);
+    console.log('ChatWithArtifacts: New workflow generated:', workflow);
 
-    if (!workflow) {
-      console.log('ChatWithArtifacts: No workflow to process');
+    if (!workflow || !currentChatSession) {
       return;
     }
 
-    // Set workflow using sync hook (handles both Galaxy .ga and simple formats)
-    setWorkflowFromChat(workflow, metadata);
-    setShowProgress(true);
+    // Get fresh session and update with workflow data in the message metadata
+    const freshSession = chatHistoryService.getSession(currentChatSession.id);
+    if (freshSession) {
+      // Workflow is now stored in the message metadata (via ChatInterface)
+      // Just trigger the update to persist
+      onChatUpdated(freshSession);
+    }
+  };
 
-    // Save to chat session if available
+  const handleRunWorkflow = async () => {
+    console.log('ChatWithArtifacts: Running workflow');
+    setIsWorkflowRunning(true);
+    setWorkflowProgress(0);
+
+    // TODO: Integrate with Galaxy workflow execution
+    // The actual execution will be handled by ChatInterface when it invokes the workflow
+  };
+
+  const handleStopWorkflow = () => {
+    console.log('ChatWithArtifacts: Stopping workflow');
+    setIsWorkflowRunning(false);
+    setWorkflowProgress(0);
+  };
+
+  const handleParameterChange = (stepId: string, params: Record<string, any>) => {
+    console.log('ChatWithArtifacts: Parameter changed for step', stepId, params);
+
+    // Update workflow parameters in the current session
     if (currentChatSession) {
-      // Get the FRESH session from chatHistoryService (not the stale prop)
       const freshSession = chatHistoryService.getSession(currentChatSession.id);
       if (freshSession) {
-        const updatedSession = {
-          ...freshSession,  // Use fresh session with all messages
-          workflows: workflowState.workflowSteps.map(step => ({
-            id: step.id,
-            title: step.title,
-            description: step.description,
-            status: step.status,
-            tool: step.tool || 'Unknown',
-            complexity: step.complexity || 'simple' as const,
-            estimatedTime: step.estimatedTime || '5 min',
-            inputs: step.inputs || [],
-            outputs: step.outputs || [],
-          })),
-        };
-        console.log('ChatWithArtifacts: Saving workflow to session (fresh session has', freshSession.messages.length, 'messages)');
+        // Find the message with the workflow and update its parameters
+        const updatedMessages = freshSession.messages.map(msg => {
+          if (msg.metadata?.type === 'workflow' && msg.metadata?.steps) {
+            const updatedSteps = msg.metadata.steps.map((step: any) =>
+              step.id === stepId ? { ...step, parameters: params } : step
+            );
+            return {
+              ...msg,
+              metadata: { ...msg.metadata, steps: updatedSteps }
+            };
+          }
+          return msg;
+        });
+
+        const updatedSession = { ...freshSession, messages: updatedMessages };
         onChatUpdated(updatedSession);
-      } else {
-        console.log('ChatWithArtifacts: Could not get fresh session, skipping save');
       }
     }
   };
 
-  // Handle workflow updates from workflow builder
-  const handleWorkflowUpdate = (steps: any[]) => {
-    console.log('ChatWithArtifacts: Workflow updated from builder:', steps.length, 'steps');
-    updateWorkflow(steps);
-
-    // Sync back to chat session
-    if (currentChatSession) {
-      const updatedSession = {
-        ...currentChatSession,
-        workflows: steps.map(step => ({
-          id: step.id,
-          title: step.title,
-          description: step.description,
-          status: step.status,
-          tool: step.tool || 'Unknown',
-          complexity: step.complexity || 'simple' as const,
-          estimatedTime: step.estimatedTime || '5 min',
-          inputs: step.inputs || [],
-          outputs: step.outputs || [],
-        })),
-      };
-      onChatUpdated(updatedSession);
-    }
-  }
-
-
-
-  console.log('ChatWithArtifacts: Rendering with workflow:', hasWorkflow, 'showProgress:', showProgress)
-
   return (
     <div className="h-full flex flex-col">
-      {/* Header with History Panel */}
+      {/* Minimal Header */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-muted-foreground" />
-            <h2 className="font-semibold">bioMate Workspace</h2>
-            {hasWorkflow && (
-              <Badge variant="secondary" className="ml-2">
-                <Workflow className="w-3 h-3 mr-1" />
-                Workflow Active
-              </Badge>
-            )}
+            <MessageCircle className="w-5 h-5 text-primary" />
+            <h2 className="font-semibold">bioMate</h2>
           </div>
           <WorkflowHistoryPanel />
         </div>
       </div>
 
-      {/* Content */}
+      {/* Full-width Chat - Workflows appear inline as artifacts */}
       <div className="flex-1 overflow-hidden">
-            {hasWorkflow ? (
-              <ResizablePanelGroup direction="horizontal" className="h-full">
-                {/* Chat Section */}
-                <ResizablePanel
-                  defaultSize={60}
-                  minSize={40}
-                  className="flex flex-col"
-                >
-                  <ChatInterface
-                    chatSession={currentChatSession}
-                    onWorkflowGenerated={handleWorkflowGenerated}
-                    onChatUpdated={onChatUpdated}
-                    activeWorkflow={null}
-                    showProgress={showProgress}
-                    onToggleProgress={() => setShowProgress(!showProgress)}
-                  />
-                </ResizablePanel>
-
-                <ResizableHandle withHandle />
-
-                {/* Artifacts Panel - Only show when there's a workflow */}
-                <ResizablePanel
-                  defaultSize={40}
-                  minSize={25}
-                  className="flex flex-col bg-muted/30"
-                  data-testid="artifacts-panel"
-                >
-                  <div className="p-4 border-b">
-                    <div className="flex items-center gap-2">
-                      <Workflow className="w-4 h-4" />
-                      <h3 className="font-semibold">Workflow Builder</h3>
-                      {isFromChat && (
-                        <Badge variant="outline" className="text-xs">
-                          Generated from Chat
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {workflowState.workflowName || 'Generated workflow'}
-                    </p>
-                  </div>
-
-                  <ScrollArea className="flex-1">
-                    <div className="p-4" data-testid="workflow-builder">
-                      <EnhancedWorkflowBuilder
-                        workflowSteps={workflowState.workflowSteps}
-                        workflowName={workflowState.workflowName}
-                        onGetHelp={() => console.log('Get help from artifacts')}
-                      />
-                    </div>
-                  </ScrollArea>
-                </ResizablePanel>
-              </ResizablePanelGroup>
-            ) : (
-              <div className="h-full flex flex-col">
-                <ChatInterface
-                  chatSession={currentChatSession}
-                  onWorkflowGenerated={handleWorkflowGenerated}
-                  onChatUpdated={onChatUpdated}
-                  activeWorkflow={null}
-                  showProgress={showProgress}
-                  onToggleProgress={() => setShowProgress(!showProgress)}
-                />
-              </div>
-            )}
+        <ChatInterface
+          chatSession={currentChatSession}
+          onWorkflowGenerated={handleWorkflowGenerated}
+          onChatUpdated={onChatUpdated}
+          activeWorkflow={null}
+          showProgress={false}
+          onToggleProgress={() => {}}
+          // Workflow execution props - passed down to chat messages
+          onRunWorkflow={handleRunWorkflow}
+          onStopWorkflow={handleStopWorkflow}
+          onParameterChange={handleParameterChange}
+          isWorkflowRunning={isWorkflowRunning}
+          workflowProgress={workflowProgress}
+        />
       </div>
     </div>
   )
