@@ -1,0 +1,77 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_molecular_biology_find_restriction_enzymes",
+  "annotation": "Finds common restriction enzyme sites in a DNA sequence and returns their cut positions.",
+  "tags": [
+    "biomni",
+    "molecular_biology",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "sequence",
+      "annotation": "Input: sequence",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "tool",
+      "tool_id": "python_bio_Restriction_CommOnly_search",
+      "label": "Step 1: Restriction_CommOnly_search",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "python_bio_Seq",
+      "label": "Step 2: Seq",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "find_restriction_enzymes-output"
+    }
+  ]
+}

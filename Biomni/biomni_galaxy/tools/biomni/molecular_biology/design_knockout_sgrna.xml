@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<tool id="biomni_molecular_biology_design_knockout_sgrna" name="Biomni: Design Knockout Sgrna" version="1.0.0">
+    <description>Design sgRNAs for CRISPR knockout by searching pre-computed sgRNA libraries.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.molecular_biology import design_knockout_sgrna
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = design_knockout_sgrna(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --gene_name '$gene_name'
+--data_lake_path '$data_lake_path'
+#if $species
+    --species '$species'
+#end if
+#if $num_guides
+    --num_guides '$num_guides'
+#end if
+]]></command>
+    <inputs>
+        <param name="gene_name" type="text" label="Gene Name" help=""  />
+        <param name="data_lake_path" type="text" label="Data Lake Path" help=""  />
+        <param name="species" type="text" label="Species" help="" value="human" optional="true"/>
+        <param name="num_guides" type="integer" label="Num Guides" help="" value="1" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Design Knockout Sgrna**
+
+Design sgRNAs for CRISPR knockout by searching pre-computed sgRNA libraries.
+Returns optimized guide RNAs for targeting a specific gene.
+
+Args:
+    gene_name (str): Target gene symbol/name (e.g., "EGFR", "TP53")
+    species (str): Target organism species (default: "human")
+    num_guides (int): Number of guides to return (default: 1)
+
+Returns:
+    Dict: Dictionary containing:
+        - explanation: Explanation of the output fields
+        - gene_name: Target gene name
+        - species: Target species
+        - guides: List of sgRNA sequences
+
+**Domain**: molecular_biology
+**Function**: design_knockout_sgrna
+]]></help>
+</tool>

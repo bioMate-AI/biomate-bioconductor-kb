@@ -1,0 +1,107 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_biochemistry_analyze_protease_kinetics",
+  "annotation": "Analyze protease kinetics data from fluorogenic peptide cleavage assays, fit the data to Michaelis-Menten kinetics, and determine key kinetic parameters.",
+  "tags": [
+    "biomni",
+    "biochemistry",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "time_points",
+      "annotation": "Input: time_points",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "fluorescence_data",
+      "annotation": "Input: fluorescence_data",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "parameter_input",
+      "label": "substrate_concentrations",
+      "annotation": "Input: substrate_concentrations",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "parameter_input",
+      "label": "enzyme_concentration",
+      "annotation": "Input: enzyme_concentration",
+      "position": {
+        "left": 0,
+        "top": 300
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "tool",
+      "tool_id": "python_numpy_np_zeros",
+      "label": "Step 1: np_zeros",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "tool",
+      "tool_id": "python_numpy_np_polyfit",
+      "label": "Step 2: np_polyfit",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      }
+    },
+    "6": {
+      "id": 6,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "analyze_protease_kinetics-output"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_cell_biology_quantify_cell_cycle_phases_from_microscopy",
+  "annotation": "Quantify the percentage of cells in each cell cycle phase using Calcofluor white stained microscopy images.",
+  "tags": [
+    "biomni",
+    "cell_biology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "image_paths",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "biomni_cell_biology_quantify_cell_cycle_phases_from_microscopy",
+      "label": "quantify_cell_cycle_phases_from_microscopy",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "image_paths": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

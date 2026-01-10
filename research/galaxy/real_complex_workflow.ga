@@ -1,0 +1,223 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "\u771f\u5b9e\u7684\u590d\u6742\u751f\u7269\u4fe1\u606f\u5b66workflow - FASTQ\u8d28\u91cf\u63a7\u5236\u548c\u5206\u6790\u6d41\u7a0b",
+  "format-version": "0.1",
+  "name": "Real Bioinformatics Pipeline - QC and Analysis",
+  "steps": {
+    "0": {
+      "annotation": "\u8f93\u5165\u539f\u59cbFASTQ\u6d4b\u5e8f\u6570\u636e",
+      "content_id": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "\u539f\u59cb\u6d4b\u5e8f\u6570\u636e\uff08FASTQ\u683c\u5f0f\uff09",
+          "name": "Input FASTQ"
+        }
+      ],
+      "label": "Raw Sequencing Data",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 10,
+        "top": 10
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger\", \"fastqsanger.gz\"]}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "1c29a0d4-efcd-47b7-8617-84109c98d21a"
+    },
+    "1": {
+      "annotation": "FastQC\u8d28\u91cf\u8bc4\u4f30 - \u7b2c\u4e00\u6b65",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0",
+      "id": 1,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "Quality Assessment (FastQC)",
+      "name": "FastQC",
+      "outputs": [
+        {
+          "name": "html_file",
+          "type": "html"
+        },
+        {
+          "name": "text_file",
+          "type": "txt"
+        }
+      ],
+      "position": {
+        "left": 290,
+        "top": 10
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "5ec9f6bceaee",
+        "name": "fastqc",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"min_length\": null}",
+      "tool_version": "0.74+galaxy0",
+      "type": "tool",
+      "uuid": "47f43be2-1512-4151-9399-587cfd9beaa9"
+    },
+    "2": {
+      "annotation": "Trimmomatic\u8d28\u91cf\u4fee\u526a - \u7b2c\u4e8c\u6b65",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.38.1",
+      "id": 2,
+      "input_connections": {
+        "readtype|fastq_in": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "Quality Trimming (Trimmomatic)",
+      "name": "Trimmomatic",
+      "outputs": [
+        {
+          "name": "fastq_out",
+          "type": "fastqsanger"
+        }
+      ],
+      "position": {
+        "left": 290,
+        "top": 250
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.38.1",
+      "tool_shed_repository": {
+        "changeset_revision": "d94aff5ee623",
+        "name": "trimmomatic",
+        "owner": "pjbriggs",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"readtype\": {\"single_or_paired\": \"se\", \"fastq_in\": {\"__class__\": \"ConnectedValue\"}}, \"operations\": [{\"operation\": {\"name\": \"SLIDINGWINDOW\", \"window_size\": 4, \"required_quality\": 20}}]}",
+      "tool_version": "0.38.1",
+      "type": "tool",
+      "uuid": "c2718d04-9f36-4832-bd1f-7d2f089c61ef"
+    },
+    "3": {
+      "annotation": "\u4fee\u526a\u540e\u7684\u8d28\u91cf\u518d\u8bc4\u4f30",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0",
+      "id": 3,
+      "input_connections": {
+        "input_file": {
+          "id": 2,
+          "output_name": "fastq_out"
+        }
+      },
+      "inputs": [],
+      "label": "Post-trim QC (FastQC)",
+      "name": "FastQC",
+      "outputs": [
+        {
+          "name": "html_file",
+          "type": "html"
+        },
+        {
+          "name": "text_file",
+          "type": "txt"
+        }
+      ],
+      "position": {
+        "left": 570,
+        "top": 250
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "5ec9f6bceaee",
+        "name": "fastqc",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input_file\": {\"__class__\": \"ConnectedValue\"}}",
+      "tool_version": "0.74+galaxy0",
+      "type": "tool",
+      "uuid": "6bf59a6b-cf20-47c8-bfd5-bb4850cdd281"
+    },
+    "4": {
+      "annotation": "\u5e8f\u5217\u6bd4\u5bf9\u5230\u53c2\u8003\u57fa\u56e0\u7ec4",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+      "id": 4,
+      "input_connections": {
+        "library|input_1": {
+          "id": 2,
+          "output_name": "fastq_out"
+        }
+      },
+      "inputs": [],
+      "label": "Alignment (Bowtie2)",
+      "name": "Bowtie2",
+      "outputs": [
+        {
+          "name": "output",
+          "type": "bam"
+        }
+      ],
+      "position": {
+        "left": 570,
+        "top": 490
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+      "tool_shed_repository": {
+        "changeset_revision": "0d9b2c3a7fb1",
+        "name": "bowtie2",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"library\": {\"type\": \"single\", \"input_1\": {\"__class__\": \"ConnectedValue\"}}, \"reference_genome\": {\"source\": \"indexed\", \"index\": \"hg38\"}}",
+      "tool_version": "2.5.3+galaxy1",
+      "type": "tool",
+      "uuid": "3ff8cf5b-7f89-4c40-81dc-44c6dd0fac6f"
+    },
+    "5": {
+      "annotation": "\u7edf\u8ba1\u6bd4\u5bf9\u7ed3\u679c",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/bamtools_stats/bamtools_stats/2.5.2+galaxy1",
+      "id": 5,
+      "input_connections": {
+        "input_bam": {
+          "id": 4,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "Alignment Statistics",
+      "name": "BAM Stats",
+      "outputs": [
+        {
+          "name": "stats_output",
+          "type": "txt"
+        }
+      ],
+      "position": {
+        "left": 850,
+        "top": 490
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bamtools_stats/bamtools_stats/2.5.2+galaxy1",
+      "tool_shed_repository": {
+        "changeset_revision": "fa845c75ac00",
+        "name": "bamtools_stats",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input_bam\": {\"__class__\": \"ConnectedValue\"}}",
+      "tool_version": "2.5.2+galaxy1",
+      "type": "tool",
+      "uuid": "8fa0b6ac-7ca3-4d72-b01b-e7c093099541"
+    }
+  },
+  "tags": [
+    "bioinformatics",
+    "qc",
+    "alignment",
+    "real-pipeline"
+  ],
+  "uuid": "0b9bd22e-2eb3-4933-bc6c-5c97b21163b5",
+  "version": 6
+}

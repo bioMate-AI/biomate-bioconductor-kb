@@ -1,0 +1,46 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_bioengineering_analyze_calcium_imaging_data",
+  "annotation": "Analyze calcium imaging data to quantify neuronal activity metrics.",
+  "tags": [
+    "biomni",
+    "bioengineering",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "image_stack_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "biomni_bioengineering_analyze_calcium_imaging_data",
+      "label": "analyze_calcium_imaging_data",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "image_stack_path": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

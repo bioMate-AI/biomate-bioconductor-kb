@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_scanpy_read_loom" name="Scanpy: read_loom" version="1.0.0">
+  <description>Call Scanpy read_loom function</description>
+  <requirements>
+    <requirement type="package" version="">scanpy</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from scanpy import *
+# Tool implementation
+result = read_loom(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**Scanpy: read_loom**
+
+Call Scanpy read_loom function
+
+**Tool Type**: python
+**Library**: scanpy
+**Function**: read_loom
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;scanpy&quot;,
+  &quot;function&quot;: &quot;read_loom&quot;,
+  &quot;call_template&quot;: &quot;from scanpy import ...; result = read_loom(...)&quot;
+}
+]]&gt;</help>
+</tool>

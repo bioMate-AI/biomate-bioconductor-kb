@@ -1,0 +1,135 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_pathology_quantify_corneal_nerve_fibers",
+  "annotation": "Quantify the volume/density of immunofluorescence-labeled corneal nerve fibers.",
+  "tags": [
+    "biomni",
+    "pathology",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "image_path",
+      "annotation": "Input: image_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "marker_type",
+      "annotation": "Input: marker_type",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "python_skimage_io_imread",
+      "label": "Step 1: io_imread",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "tool",
+      "tool_id": "python_skimage_io_imsave",
+      "label": "Step 2: io_imsave",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "tool",
+      "tool_id": "python_skimage_rgb2gray",
+      "label": "Step 3: rgb2gray",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "tool",
+      "tool_id": "python_skimage_measure_regionprops",
+      "label": "Step 4: measure_regionprops",
+      "position": {
+        "left": 1200,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      }
+    },
+    "6": {
+      "id": 6,
+      "type": "tool",
+      "tool_id": "python_skimage_measure_label",
+      "label": "Step 5: measure_label",
+      "position": {
+        "left": 1500,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "output"
+        }
+      }
+    },
+    "7": {
+      "id": 7,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 1800,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "quantify_corneal_nerve_fibers-output"
+    }
+  ]
+}

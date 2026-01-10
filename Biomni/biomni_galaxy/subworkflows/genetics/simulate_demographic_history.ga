@@ -1,0 +1,46 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genetics_simulate_demographic_history",
+  "annotation": "Simulate DNA sequences with specified demographic and coalescent histories using msprime.",
+  "tags": [
+    "biomni",
+    "genetics",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "output_file",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "biomni_genetics_simulate_demographic_history",
+      "label": "simulate_demographic_history",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "output_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

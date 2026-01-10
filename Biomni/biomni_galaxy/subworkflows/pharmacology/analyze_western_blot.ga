@@ -1,0 +1,46 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_pharmacology_analyze_western_blot",
+  "annotation": "Performs densitometric analysis of Western blot images to quantify relative protein expression.",
+  "tags": [
+    "biomni",
+    "pharmacology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "blot_image_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "biomni_pharmacology_analyze_western_blot",
+      "label": "analyze_western_blot",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "blot_image_path": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

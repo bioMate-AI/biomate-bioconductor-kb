@@ -1,0 +1,145 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genomics_generate_embeddings_with_state",
+  "annotation": "Generate State embeddings for single-cell RNA-seq data using the SE-600M model. This function downloads the SE-600M model from Hugging Face, installs required dependencies (git-lfs, uv, arc-state), and generates embeddings for the input AnnData object. The SE-600M model is a state-of-the-art embedding model for single-cell data that can capture complex biological patterns and cell states. Features include real-time streaming output, automatic retry with reduced batch size on failure, GPU detection and warnings, and input validation.",
+  "tags": [
+    "biomni",
+    "genomics",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "adata_filename",
+      "annotation": "Input: adata_filename",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "data_dir",
+      "annotation": "Input: data_dir",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "parameter_input",
+      "label": "model_folder",
+      "annotation": "Input: model_folder",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "tool",
+      "tool_id": "python_scanpy_sc_read_h5ad",
+      "label": "Step 1: sc_read_h5ad",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "tool",
+      "tool_id": "python_torch_torch_cuda_current_device",
+      "label": "Step 2: torch_cuda_current_device",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "tool",
+      "tool_id": "python_torch_torch_cuda_device_count",
+      "label": "Step 3: torch_cuda_device_count",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      }
+    },
+    "6": {
+      "id": 6,
+      "type": "tool",
+      "tool_id": "python_torch_torch_cuda_get_device_name",
+      "label": "Step 4: torch_cuda_get_device_name",
+      "position": {
+        "left": 1200,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "output"
+        }
+      }
+    },
+    "7": {
+      "id": 7,
+      "type": "tool",
+      "tool_id": "python_torch_torch_cuda_is_available",
+      "label": "Step 5: torch_cuda_is_available",
+      "position": {
+        "left": 1500,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "output"
+        }
+      }
+    },
+    "8": {
+      "id": 8,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 1800,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "generate_embeddings_with_state-output"
+    }
+  ]
+}

@@ -1,0 +1,400 @@
+# BioMate Comprehensive x86 Docker Image for nf-core Workflows
+# Supports: sarek, raredisease, rnaseq, drop, cutandrun, scAuto
+#
+# Build: docker build --platform linux/amd64 -t biomate/workflows:x86 -f Dockerfile.x86-workflows .
+# Run:   docker run --platform linux/amd64 -it biomate/workflows:x86
+
+FROM --platform=linux/amd64 mambaorg/micromamba:1.5-jammy
+
+LABEL maintainer="BioMate Team"
+LABEL description="x86 Docker for nf-core workflows: sarek, raredisease, rnaseq, drop, cutandrun, scAuto"
+LABEL version="1.0.0-x86"
+LABEL workflows="sarek, raredisease, rnaseq, drop, cutandrun, scAuto"
+
+USER root
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV MAMBA_ROOT_PREFIX=/opt/conda
+ENV PATH="${MAMBA_ROOT_PREFIX}/bin:${PATH}"
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl wget gzip bzip2 unzip pigz \
+    build-essential gcc g++ gfortran cmake make \
+    zlib1g-dev libbz2-dev liblzma-dev libcurl4-openssl-dev libssl-dev \
+    libncurses5-dev libncursesw5-dev libtbb-dev \
+    libpng-dev libjpeg-dev libtiff-dev \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    libhdf5-dev pkg-config \
+    libopenblas-dev liblapack-dev \
+    libfreetype6-dev \
+    default-jre-headless default-jdk \
+    perl cpanminus \
+    libgsl-dev \
+    git \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create conda environment
+USER $MAMBA_USER
+RUN micromamba create -n biotools -c conda-forge -c bioconda -y python=3.11 && \
+    micromamba clean --all -y
+
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+ENV ENV_NAME=biotools
+
+# ==============================================================================
+# LAYER 1: Core Aligners (All workflows)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bwa \
+    bwa-mem2 \
+    bowtie2 \
+    hisat2 \
+    star \
+    minimap2 \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 2: Quantification Tools (rnaseq, drop)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    salmon \
+    kallisto \
+    rsem \
+    subread \
+    stringtie \
+    htseq \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 3: BAM/SAM Processing (All workflows)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    samtools \
+    bcftools \
+    htslib \
+    bedtools \
+    vcftools \
+    tabix \
+    picard \
+    sambamba \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 4: GATK4 (sarek, raredisease)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    gatk4 \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 5: Variant Callers - SNV/Indel (sarek, raredisease)
+# Note: DeepVariant has massive TensorFlow deps - use official Google container
+# Note: glnexus also has complex deps - installing separately
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    freebayes \
+    && micromamba clean --all -y
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    lofreq \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    strelka \
+    && micromamba clean --all -y || true
+
+# glnexus for joint genotyping (separate due to complexity)
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    glnexus \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 6: Structural Variant Callers (sarek, raredisease)
+# Split into separate installs for faster solving
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    manta \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    tiddit \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    svdb \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    cnvkit \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    control-freec \
+    && micromamba clean --all -y || true
+
+# CNVnator (requires ROOT)
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    cnvnator \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7: Repeat Expansion (raredisease)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    expansionhunter \
+    stranger \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 8: Variant Annotation (sarek, raredisease)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    snpeff \
+    ensembl-vep \
+    vcfanno \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 9: MSI Detection (sarek)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    msisensor \
+    msisensor-pro \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 10: QC Tools (All workflows)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    fastqc \
+    fastp \
+    multiqc \
+    mosdepth \
+    qualimap \
+    preseq \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 11: Trimming Tools (rnaseq, cutandrun)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    cutadapt \
+    trim-galore \
+    umi_tools \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 12: RNA-seq Specific (rnaseq, drop)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    rseqc \
+    dupradar \
+    sortmerna \
+    bbmap \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 13: Peak Callers (cutandrun)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    macs2 \
+    macs3 \
+    deeptools \
+    && micromamba clean --all -y
+
+# SEACR (CUT&RUN specific peak caller)
+USER root
+RUN git clone --depth 1 https://github.com/FredHutch/SEACR.git /opt/tools/SEACR && \
+    chmod +x /opt/tools/SEACR/SEACR_*.sh && \
+    ln -sf /opt/tools/SEACR/SEACR_1.3.sh /usr/local/bin/SEACR
+USER $MAMBA_USER
+
+# ==============================================================================
+# LAYER 14: Contamination & Sample QC (raredisease)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    verifybamid2 \
+    ngscheckmate \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 15: Mitochondrial Analysis (raredisease)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    haplocheck \
+    haplogrep \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 16: Metagenomics (rnaseq - contamination check)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    kraken2 \
+    bracken \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 17: Single-cell RNA-seq Tools (scAuto)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    alevin-fry \
+    kb-python \
+    velocyto.py \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 18: R and Bioconductor Packages (drop, rnaseq, scAuto)
+# Split for faster solving
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    r-base=4.3 \
+    r-tidyverse \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    r-seurat \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    r-devtools \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bioconductor-deseq2 \
+    bioconductor-edger \
+    bioconductor-limma \
+    && micromamba clean --all -y || true
+
+# OUTRIDER and FRASER for drop pipeline
+RUN micromamba run -n biotools R -e "if (!require('BiocManager', quietly = TRUE)) install.packages('BiocManager'); BiocManager::install(c('OUTRIDER', 'FRASER'), ask=FALSE, update=FALSE)" || true
+
+# ==============================================================================
+# LAYER 19: Python Packages
+# ==============================================================================
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    numpy scipy pandas matplotlib seaborn \
+    biopython pysam pybedtools \
+    scanpy anndata leidenalg \
+    scrublet doubletdetection \
+    scvi-tools \
+    || true
+
+# ==============================================================================
+# LAYER 20: Additional Tools
+# ==============================================================================
+# RTG Tools (raredisease)
+USER root
+RUN wget -q https://github.com/RealTimeGenomics/rtg-tools/releases/download/3.12.1/rtg-tools-3.12.1-linux-x64.zip && \
+    unzip -q rtg-tools-3.12.1-linux-x64.zip -d /opt/tools/ && \
+    rm rtg-tools-3.12.1-linux-x64.zip && \
+    ln -sf /opt/tools/rtg-tools-3.12.1/rtg /usr/local/bin/rtg && \
+    /opt/tools/rtg-tools-3.12.1/rtg --help > /dev/null 2>&1 || true
+
+# genmod (raredisease)
+RUN micromamba run -n biotools pip install --no-cache-dir genmod || true
+
+# chromograph (raredisease)
+RUN micromamba run -n biotools pip install --no-cache-dir chromograph || true
+
+# fgbio for UMI processing (sarek)
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y fgbio || true
+
+USER $MAMBA_USER
+
+# ==============================================================================
+# LAYER 21: DragMap (sarek - DRAGEN alternative)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    dragmap \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 22: Additional Variant Tools
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    varlociraptor \
+    vt \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Create activation and verification scripts
+# ==============================================================================
+USER root
+
+RUN printf '#!/bin/bash\neval "$(micromamba shell hook -s bash)"\nmicromamba activate biotools\nexec "$@"\n' > /usr/local/bin/biotools-shell && chmod +x /usr/local/bin/biotools-shell
+
+RUN cat > /usr/local/bin/verify-tools.sh << 'VERIFY_SCRIPT'
+#!/bin/bash
+eval "$(micromamba shell hook -s bash)"
+micromamba activate biotools
+echo "=== BioMate x86 Workflows Docker ==="
+echo ""
+echo "### ALIGNERS ###"
+echo "  bwa:        $(bwa 2>&1 | head -3 | tail -1 || echo 'not found')"
+echo "  bwa-mem2:   $(bwa-mem2 version 2>&1 | head -1 || echo 'not found')"
+echo "  bowtie2:    $(bowtie2 --version 2>&1 | head -1 || echo 'not found')"
+echo "  STAR:       $(STAR --version 2>&1 || echo 'not found')"
+echo "  hisat2:     $(hisat2 --version 2>&1 | head -1 || echo 'not found')"
+echo ""
+echo "### QUANTIFICATION (rnaseq) ###"
+echo "  salmon:     $(salmon --version 2>&1 || echo 'not found')"
+echo "  kallisto:   $(kallisto version 2>&1 || echo 'not found')"
+echo "  rsem:       $(rsem-calculate-expression --version 2>&1 | head -1 || echo 'not found')"
+echo "  stringtie:  $(stringtie --version 2>&1 || echo 'not found')"
+echo ""
+echo "### VARIANT CALLING (sarek) ###"
+echo "  gatk:       $(gatk --version 2>&1 | head -2 | tail -1 || echo 'not found')"
+echo "  freebayes:  $(freebayes --version 2>&1 | head -1 || echo 'not found')"
+echo "  strelka:    $(which strelka2 >/dev/null 2>&1 && echo 'installed' || which configureStrelkaGermlineWorkflow.py >/dev/null 2>&1 && echo 'installed' || echo 'not found')"
+echo "  lofreq:     $(lofreq version 2>&1 | head -1 || echo 'not found')"
+echo "  glnexus:    $(which glnexus_cli >/dev/null 2>&1 && echo 'installed' || echo 'not found')"
+echo "  Note: DeepVariant should use google/deepvariant Docker container"
+echo ""
+echo "### STRUCTURAL VARIANTS (sarek, raredisease) ###"
+echo "  manta:      $(which configManta.py >/dev/null 2>&1 && echo 'installed' || echo 'not found')"
+echo "  tiddit:     $(tiddit --version 2>&1 || echo 'not found')"
+echo "  cnvkit:     $(cnvkit.py version 2>&1 || echo 'not found')"
+echo ""
+echo "### ANNOTATION ###"
+echo "  snpeff:     $(snpEff -version 2>&1 | head -1 || echo 'not found')"
+echo "  vep:        $(vep --help 2>&1 | head -1 || echo 'not found')"
+echo ""
+echo "### QC TOOLS ###"
+echo "  fastqc:     $(fastqc --version 2>&1 || echo 'not found')"
+echo "  fastp:      $(fastp --version 2>&1 | head -1 || echo 'not found')"
+echo "  multiqc:    $(multiqc --version 2>&1 || echo 'not found')"
+echo "  mosdepth:   $(mosdepth --version 2>&1 || echo 'not found')"
+echo ""
+echo "### PEAK CALLING (cutandrun) ###"
+echo "  macs2:      $(macs2 --version 2>&1 || echo 'not found')"
+echo "  deeptools:  $(deeptools --version 2>&1 || echo 'not found')"
+echo "  SEACR:      $(which SEACR >/dev/null 2>&1 && echo 'installed' || echo 'not found')"
+echo ""
+echo "### SINGLE-CELL (scAuto) ###"
+echo "  alevin-fry: $(alevin-fry --version 2>&1 || echo 'not found')"
+echo "  scanpy:     $(python -c 'import scanpy; print(scanpy.__version__)' 2>/dev/null || echo 'not found')"
+echo ""
+echo "### R PACKAGES (drop) ###"
+R --slave -e "cat('  OUTRIDER:', as.character(packageVersion('OUTRIDER')), '\n')" 2>/dev/null || echo "  OUTRIDER: not found"
+R --slave -e "cat('  FRASER:', as.character(packageVersion('FRASER')), '\n')" 2>/dev/null || echo "  FRASER: not found"
+R --slave -e "cat('  DESeq2:', as.character(packageVersion('DESeq2')), '\n')" 2>/dev/null || echo "  DESeq2: not found"
+R --slave -e "cat('  Seurat:', as.character(packageVersion('Seurat')), '\n')" 2>/dev/null || echo "  Seurat: not found"
+echo ""
+echo "=== Supported Workflows ==="
+echo "  - nf-core/sarek (WGS/WES)"
+echo "  - nf-core/raredisease (WGS/WES rare disease)"
+echo "  - nf-core/rnaseq (Bulk RNA-seq)"
+echo "  - nf-core/drop (Bulk RNA-seq rare disease)"
+echo "  - nf-core/cutandrun (CUT&RUN)"
+echo "  - scAuto (Single-cell RNA-seq)"
+echo ""
+echo "Done."
+VERIFY_SCRIPT
+RUN chmod +x /usr/local/bin/verify-tools.sh
+
+WORKDIR /data
+
+ENTRYPOINT ["/usr/local/bin/biotools-shell"]
+CMD ["/usr/local/bin/verify-tools.sh"]

@@ -1,0 +1,251 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_molecular_biology_design_verification_primers",
+  "annotation": "Design Sanger sequencing primers to verify a construct. Uses align_sequences to map existing primers and design_primer to create new primers for uncovered regions.",
+  "tags": [
+    "biomni",
+    "molecular_biology",
+    "subworkflow",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "data_input",
+      "label": "plasmid_sequence",
+      "annotation": "The plasmid/construct sequence to verify",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "data_input",
+      "label": "region_start",
+      "annotation": "Start position of region to verify (0-indexed)",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "data_input",
+      "label": "region_end",
+      "annotation": "End position of region to verify",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "data_input",
+      "label": "existing_primers",
+      "annotation": "List of existing primers to check for reuse (optional)",
+      "position": {
+        "left": 0,
+        "top": 300
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "subworkflow",
+      "label": "Align existing primers",
+      "annotation": "Map existing primers to plasmid sequence to identify potential binding sites",
+      "position": {
+        "left": 300,
+        "top": 100
+      },
+      "input_connections": {
+        "sequence": {
+          "id": 0,
+          "input_subworkflow_step_id": 0,
+          "output_name": "output"
+        },
+        "query_sequences": {
+          "id": 3,
+          "input_subworkflow_step_id": 1,
+          "output_name": "output"
+        }
+      },
+      "subworkflow": {
+        "a_galaxy_workflow": "true",
+        "format-version": "0.1",
+        "name": "align_sequences",
+        "annotation": "Align short sequences (primers) to a longer sequence, allowing for one mismatch.",
+        "tags": ["biomni", "molecular_biology"],
+        "steps": {
+          "0": {
+            "id": 0,
+            "type": "data_input",
+            "label": "sequence",
+            "annotation": "Target sequence to align against"
+          },
+          "1": {
+            "id": 1,
+            "type": "data_input",
+            "label": "query_sequences",
+            "annotation": "Query sequences to align"
+          },
+          "2": {
+            "id": 2,
+            "type": "tool",
+            "tool_id": "biomni_molecular_biology_align_sequences",
+            "label": "align_sequences",
+            "input_connections": {
+              "sequence": {"id": 0, "output_name": "output"},
+              "query_sequences": {"id": 1, "output_name": "output"}
+            }
+          }
+        },
+        "workflow_outputs": [
+          {"label": "alignments", "output_name": "output", "uuid": "align-output"}
+        ]
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "tool",
+      "tool_id": "biomni_molecular_biology_identify_coverage_gaps",
+      "label": "Identify coverage gaps",
+      "annotation": "Find regions not covered by existing primers",
+      "position": {
+        "left": 600,
+        "top": 100
+      },
+      "input_connections": {
+        "region_start": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "region_end": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "primer_alignments": {
+          "id": 4,
+          "output_name": "alignments"
+        }
+      }
+    },
+    "6": {
+      "id": 6,
+      "type": "subworkflow",
+      "label": "Design new primers",
+      "annotation": "Design primers for uncovered regions",
+      "position": {
+        "left": 900,
+        "top": 100
+      },
+      "input_connections": {
+        "sequence": {
+          "id": 0,
+          "input_subworkflow_step_id": 0,
+          "output_name": "output"
+        },
+        "target_regions": {
+          "id": 5,
+          "input_subworkflow_step_id": 1,
+          "output_name": "gaps"
+        }
+      },
+      "subworkflow": {
+        "a_galaxy_workflow": "true",
+        "format-version": "0.1",
+        "name": "design_primer",
+        "annotation": "Design a single primer within the given sequence window.",
+        "tags": ["biomni", "molecular_biology"],
+        "steps": {
+          "0": {
+            "id": 0,
+            "type": "data_input",
+            "label": "sequence",
+            "annotation": "Template sequence for primer design"
+          },
+          "1": {
+            "id": 1,
+            "type": "data_input",
+            "label": "target_regions",
+            "annotation": "Target regions for primer binding"
+          },
+          "2": {
+            "id": 2,
+            "type": "tool",
+            "tool_id": "biomni_molecular_biology_design_primer",
+            "label": "design_primer",
+            "input_connections": {
+              "sequence": {"id": 0, "output_name": "output"},
+              "target_regions": {"id": 1, "output_name": "output"}
+            }
+          }
+        },
+        "workflow_outputs": [
+          {"label": "primers", "output_name": "output", "uuid": "primer-output"}
+        ]
+      }
+    },
+    "7": {
+      "id": 7,
+      "type": "tool",
+      "tool_id": "biomni_molecular_biology_design_verification_primers",
+      "label": "Compile final primer set",
+      "annotation": "Combine existing and new primers into final verification set",
+      "position": {
+        "left": 1200,
+        "top": 100
+      },
+      "input_connections": {
+        "plasmid_sequence": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "region_start": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "region_end": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "existing_primers": {
+          "id": 3,
+          "output_name": "output"
+        },
+        "aligned_primers": {
+          "id": 4,
+          "output_name": "alignments"
+        },
+        "new_primers": {
+          "id": 6,
+          "output_name": "primers"
+        }
+      }
+    },
+    "8": {
+      "id": 8,
+      "type": "data_output",
+      "label": "Verification Primers",
+      "annotation": "Complete set of verification primers with coverage map",
+      "position": {
+        "left": 1500,
+        "top": 100
+      },
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Verification Primers",
+      "output_name": "output",
+      "uuid": "verification-primers-output"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_physiology_analyze_protein_colocalization",
+  "annotation": "Analyze colocalization between two fluorescently labeled proteins in microscopy images.",
+  "tags": [
+    "biomni",
+    "physiology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "channel1_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "channel2_path",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "biomni_physiology_analyze_protein_colocalization",
+      "label": "analyze_protein_colocalization",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "channel1_path": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "channel2_path": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

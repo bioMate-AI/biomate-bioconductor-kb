@@ -1,0 +1,277 @@
+{
+  "workflow_id": "952b83e52f7d7cff",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "952b83e52f7d7cff",
+    "latest_workflow_id": "f4cb1ff584241a9a",
+    "name": "Phylogeny Workflow",
+    "create_time": "2024-12-28T00:56:44.704073",
+    "update_time": "2025-05-19T13:35:19.203077",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "adc727a9-3b88-45fc-9934-52d83343c986",
+    "creator_deleted": false,
+    "annotations": [
+      ""
+    ],
+    "url": "/api/workflows/952b83e52f7d7cff",
+    "owner": "kt",
+    "source_metadata": null,
+    "number_of_steps": 2,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "name": "Phylogeny Workflow",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [],
+        "label": null,
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 9
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "e7b3ea82-575a-4b38-a2bf-8a30087dede8",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/iqtree/iqtree/2.3.6+galaxy0",
+        "errors": null,
+        "id": 1,
+        "input_connections": {
+          "general_options|s": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool IQ-TREE",
+            "name": "general_options"
+          },
+          {
+            "description": "runtime parameter for tool IQ-TREE",
+            "name": "general_options"
+          },
+          {
+            "description": "runtime parameter for tool IQ-TREE",
+            "name": "likelihood_mapping"
+          }
+        ],
+        "label": null,
+        "name": "IQ-TREE",
+        "outputs": [
+          {
+            "name": "bionj",
+            "type": "nhx"
+          },
+          {
+            "name": "treefile",
+            "type": "nhx"
+          },
+          {
+            "name": "mldist",
+            "type": "mldist"
+          },
+          {
+            "name": "splits",
+            "type": "nex"
+          },
+          {
+            "name": "iqtree",
+            "type": "iqtree"
+          }
+        ],
+        "position": {
+          "left": 280,
+          "top": 0
+        },
+        "post_job_actions": {
+          "DeleteIntermediatesActionbionj": {
+            "action_arguments": {},
+            "action_type": "DeleteIntermediatesAction",
+            "output_name": "bionj"
+          },
+          "EmailActionbionj": {
+            "action_arguments": {
+              "host": "usegalaxy.org"
+            },
+            "action_type": "EmailAction",
+            "output_name": "bionj"
+          },
+          "HideDatasetActionbionj": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "bionj"
+          },
+          "HideDatasetActionmldist": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "mldist"
+          },
+          "HideDatasetActionsplits": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "splits"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/iqtree/iqtree/2.3.6+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "f87ac61981f0",
+          "name": "iqtree",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"bootstrap_parameters\": {\"ultrafast_bootstrap\": {\"ufboot\": \"10000\", \"ufjack\": null, \"jack_prop\": null, \"boot_trees\": false, \"wbtl\": false, \"nmax\": \"1000\", \"bcor\": \"0.99\", \"nstep\": \"100\", \"beps\": \"0.5\", \"sampling\": null, \"bnni\": true}, \"nonparametric_bootstrap\": {\"boot\": null, \"jack\": null, \"jack_prop\": null, \"bcon\": null, \"bonly\": null, \"tbe\": false}}, \"general_options\": {\"s\": {\"__class__\": \"RuntimeValue\"}, \"o\": null, \"short_alignments\": false, \"seqtype\": \"DNA\", \"t\": {\"__class__\": \"RuntimeValue\"}, \"seed\": null, \"keep_ident\": false, \"epsilon\": null, \"safe\": false}, \"likelihood_mapping\": {\"lmap\": null, \"lmclust\": {\"__class__\": \"RuntimeValue\"}, \"quartetlh\": false}, \"miscellaneous_options\": {\"fconst\": null, \"blmin\": null, \"blmax\": null}, \"modelling_parameters\": {\"automatic_model\": {\"cond_model\": {\"opt_custommodel\": \"false\", \"__current_case__\": 1, \"m\": \"MFP\", \"additional_models\": null}, \"merge_strategy\": {\"merge\": \"none\", \"__current_case__\": 0}, \"mset\": null, \"msub\": \"viral\", \"mfreq\": null, \"mrate\": null, \"cmin\": \"2\", \"cmax\": \"10\", \"merit\": \"BIC\", \"mtree\": false, \"madd\": null, \"mdef\": {\"__class__\": \"RuntimeValue\"}, \"modelomatic\": false}, \"specifying_substitution\": {\"mix_opt\": true}, \"rate_heterogeneity\": {\"alpha_min\": null, \"gamma_median\": false, \"i\": null, \"opt_gamma_inv\": true, \"rate\": true, \"mlrate\": false}, \"partition_model\": {\"model_selection\": {\"model\": \"none\", \"__current_case__\": 0}}, \"site_specific_frequency\": {\"tree_freq\": {\"__class__\": \"RuntimeValue\"}, \"site_freq\": null, \"freq_max\": false}}, \"time_tree\": {\"date_source\": {\"select_source\": \"none\", \"__current_case__\": 0}, \"date_tip\": null, \"date_root\": null, \"date_ci\": null, \"clock_sd\": null, \"date_no_outgroup\": false, \"date_outlier\": null, \"date_options\": null}, \"tree_parameters\": {\"tree_search\": {\"n\": null, \"ninit\": \"100\", \"ntop\": \"20\", \"nbest\": \"5\", \"nstop\": \"100\", \"radius\": \"6\", \"perturb\": \"0.5\", \"allnni\": true, \"tree_fix\": false, \"g\": {\"__class__\": \"RuntimeValue\"}, \"fast\": false, \"polytomy\": false, \"treels\": false, \"show_lh\": false, \"terrace\": true}, \"single_branch\": {\"alrt\": null, \"abayes\": false, \"lbp\": null}, \"tree_topology\": {\"trees\": {\"__class__\": \"RuntimeValue\"}, \"test\": null, \"test_weight\": false, \"test_au\": false}, \"constructing_consensus\": {\"contree\": false, \"connet\": false, \"sup_min\": \"0.0\", \"burnin\": null, \"support\": {\"__class__\": \"RuntimeValue\"}, \"suptag\": null}, \"computing_robinson_foulds\": {\"tree_dist_all\": false, \"tree_dist\": {\"__class__\": \"RuntimeValue\"}, \"tree_dist2\": {\"__class__\": \"RuntimeValue\"}}, \"generating_random\": {\"r\": null, \"rand\": null, \"branch_min\": null, \"branch_mean\": null, \"branch_max\": null}, \"ancestral_state\": {\"ancestral\": false, \"asr_min\": null}, \"symmetry_test\": {\"symtest\": false, \"symtest_remove_bad\": false, \"symtest_remove_good\": false, \"symtest_type\": null, \"symtest_pval\": null, \"symtest_keep_zero\": false}, \"concordance_factor\": {\"gcf\": {\"__class__\": \"RuntimeValue\"}, \"df_tree\": false, \"scf\": null, \"cf_verbose\": false, \"cf_quartet\": false}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.3.6+galaxy0",
+        "type": "tool",
+        "uuid": "5073153f-7f46-45a9-a5ef-396c6bd0a558",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "treefile",
+            "output_name": "treefile",
+            "uuid": "bf720177-35ac-4ff8-b185-ee6959c1262b"
+          },
+          {
+            "label": "iqtree",
+            "output_name": "iqtree",
+            "uuid": "c0c3884b-55dd-4b51-915f-0a9b54e4753c"
+          }
+        ]
+      }
+    },
+    "tags": [],
+    "uuid": "adc727a9-3b88-45fc-9934-52d83343c986",
+    "version": 19
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "Phylogeny Workflow",
+      "annotation": "",
+      "format_version": "0.1",
+      "uuid": "adc727a9-3b88-45fc-9934-52d83343c986",
+      "version": 19,
+      "tags": [],
+      "creator": [],
+      "license": ""
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 9
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "tool",
+        "name": "IQ-TREE",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/iqtree/iqtree/2.3.6+galaxy0",
+        "tool_version": "2.3.6+galaxy0",
+        "tool_state": "{\"bootstrap_parameters\": {\"ultrafast_bootstrap\": {\"ufboot\": \"10000\", \"ufjack\": null, \"jack_prop\": null, \"boot_trees\": false, \"wbtl\": false, \"nmax\": \"1000\", \"bcor\": \"0.99\", \"nstep\": \"100\", \"beps\": \"0.5\", \"sampling\": null, \"bnni\": true}, \"nonparametric_bootstrap\": {\"boot\": null, \"jack\": null, \"jack_prop\": null, \"bcon\": null, \"bonly\": null, \"tbe\": false}}, \"general_options\": {\"s\": {\"__class__\": \"RuntimeValue\"}, \"o\": null, \"short_alignments\": false, \"seqtype\": \"DNA\", \"t\": {\"__class__\": \"RuntimeValue\"}, \"seed\": null, \"keep_ident\": false, \"epsilon\": null, \"safe\": false}, \"likelihood_mapping\": {\"lmap\": null, \"lmclust\": {\"__class__\": \"RuntimeValue\"}, \"quartetlh\": false}, \"miscellaneous_options\": {\"fconst\": null, \"blmin\": null, \"blmax\": null}, \"modelling_parameters\": {\"automatic_model\": {\"cond_model\": {\"opt_custommodel\": \"false\", \"__current_case__\": 1, \"m\": \"MFP\", \"additional_models\": null}, \"merge_strategy\": {\"merge\": \"none\", \"__current_case__\": 0}, \"mset\": null, \"msub\": \"viral\", \"mfreq\": null, \"mrate\": null, \"cmin\": \"2\", \"cmax\": \"10\", \"merit\": \"BIC\", \"mtree\": false, \"madd\": null, \"mdef\": {\"__class__\": \"RuntimeValue\"}, \"modelomatic\": false}, \"specifying_substitution\": {\"mix_opt\": true}, \"rate_heterogeneity\": {\"alpha_min\": null, \"gamma_median\": false, \"i\": null, \"opt_gamma_inv\": true, \"rate\": true, \"mlrate\": false}, \"partition_model\": {\"model_selection\": {\"model\": \"none\", \"__current_case__\": 0}}, \"site_specific_frequency\": {\"tree_freq\": {\"__class__\": \"RuntimeValue\"}, \"site_freq\": null, \"freq_max\": false}}, \"time_tree\": {\"date_source\": {\"select_source\": \"none\", \"__current_case__\": 0}, \"date_tip\": null, \"date_root\": null, \"date_ci\": null, \"clock_sd\": null, \"date_no_outgroup\": false, \"date_outlier\": null, \"date_options\": null}, \"tree_parameters\": {\"tree_search\": {\"n\": null, \"ninit\": \"100\", \"ntop\": \"20\", \"nbest\": \"5\", \"nstop\": \"100\", \"radius\": \"6\", \"perturb\": \"0.5\", \"allnni\": true, \"tree_fix\": false, \"g\": {\"__class__\": \"RuntimeValue\"}, \"fast\": false, \"polytomy\": false, \"treels\": false, \"show_lh\": false, \"terrace\": true}, \"single_branch\": {\"alrt\": null, \"abayes\": false, \"lbp\": null}, \"tree_topology\": {\"trees\": {\"__class__\": \"RuntimeValue\"}, \"test\": null, \"test_weight\": false, \"test_au\": false}, \"constructing_consensus\": {\"contree\": false, \"connet\": false, \"sup_min\": \"0.0\", \"burnin\": null, \"support\": {\"__class__\": \"RuntimeValue\"}, \"suptag\": null}, \"computing_robinson_foulds\": {\"tree_dist_all\": false, \"tree_dist\": {\"__class__\": \"RuntimeValue\"}, \"tree_dist2\": {\"__class__\": \"RuntimeValue\"}}, \"generating_random\": {\"r\": null, \"rand\": null, \"branch_min\": null, \"branch_mean\": null, \"branch_max\": null}, \"ancestral_state\": {\"ancestral\": false, \"asr_min\": null}, \"symmetry_test\": {\"symtest\": false, \"symtest_remove_bad\": false, \"symtest_remove_good\": false, \"symtest_type\": null, \"symtest_pval\": null, \"symtest_keep_zero\": false}, \"concordance_factor\": {\"gcf\": {\"__class__\": \"RuntimeValue\"}, \"df_tree\": false, \"scf\": null, \"cf_verbose\": false, \"cf_quartet\": false}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 280,
+          "top": 0
+        },
+        "input_connections": {
+          "general_options|s": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "bionj",
+            "type": "nhx"
+          },
+          {
+            "name": "treefile",
+            "type": "nhx"
+          },
+          {
+            "name": "mldist",
+            "type": "mldist"
+          },
+          {
+            "name": "splits",
+            "type": "nex"
+          },
+          {
+            "name": "iqtree",
+            "type": "iqtree"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/iqtree/iqtree/2.3.6+galaxy0",
+        "tool_version": "2.3.6+galaxy0",
+        "step_id": "1"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": null,
+        "annotation": ""
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "1",
+        "output_name": "treefile",
+        "label": "treefile"
+      },
+      {
+        "step_id": "1",
+        "output_name": "iqtree",
+        "label": "iqtree"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "1",
+        "to_input": "general_options|s"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:46:24.920274"
+}

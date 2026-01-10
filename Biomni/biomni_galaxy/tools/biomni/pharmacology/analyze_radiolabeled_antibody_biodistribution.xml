@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_analyze_radiolabeled_antibody_biodistribution" name="Biomni: Analyze Radiolabeled Antibody Biodistribution" version="1.0.0">
+    <description>Analyze biodistribution and pharmacokinetic profile of radiolabeled antibodies.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import analyze_radiolabeled_antibody_biodistribution
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_radiolabeled_antibody_biodistribution(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --time_points '$time_points'
+--tissue_data '$tissue_data'
+]]></command>
+    <inputs>
+        <param name="time_points" type="text" label="Time Points" help="Time points (hours) at which measurements were taken"  />
+        <param name="tissue_data" type="text" label="Tissue Data" help="measurements corresponding to time_points. Must include 'tumor' as one of the keys."  />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Radiolabeled Antibody Biodistribution**
+
+Analyze biodistribution and pharmacokinetic profile of radiolabeled antibodies.
+
+Parameters
+----------
+time_points : list or numpy.ndarray
+    Time points (hours) at which measurements were taken
+tissue_data : dict
+    Dictionary where keys are tissue names and values are lists/arrays of %IA/g
+    measurements corresponding to time_points. Must include 'tumor' as one of the keys.
+
+Returns
+-------
+str
+    Research log summarizing the biodistribution analysis, pharmacokinetic parameters,
+    and tumor-to-normal tissue ratios
+
+**Domain**: pharmacology
+**Function**: analyze_radiolabeled_antibody_biodistribution
+]]></help>
+</tool>

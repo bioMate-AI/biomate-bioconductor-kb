@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+<tool id="biomni_physiology_calculate_brain_adc_map" name="Biomni: Calculate Brain Adc Map" version="1.0.0">
+    <description>Calculate Apparent Diffusion Coefficient (ADC) map from diffusion-weighted MRI data.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.physiology import calculate_brain_adc_map
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = calculate_brain_adc_map(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --dwi_file_path '$dwi_file_path'
+--b_values '$b_values'
+#if $output_path
+    --output_path '$output_path'
+#end if
+#if $mask_file_path
+    --mask_file_path '$mask_file_path'
+#end if
+]]></command>
+    <inputs>
+        <param name="dwi_file_path" type="text" label="Dwi File Path" help="where the 4th dimension corresponds to different b-values."  />
+        <param name="b_values" type="text" label="B Values" help="List of b-values corresponding to each volume in the 4D DWI data."  />
+        <param name="output_path" type="text" label="Output Path" help="Path where the output ADC map will be saved (default: "adc_map.nii.gz")." value="adc_map.nii.gz" optional="true"/>
+        <param name="mask_file_path" type="text" label="Mask File Path" help="Path to a binary mask file to limit ADC calculation to brain regions (default: None)."  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Calculate Brain Adc Map**
+
+Calculate Apparent Diffusion Coefficient (ADC) map from diffusion-weighted MRI data.
+
+This function fits the DW-MRI data to the monoexponential diffusion model:
+S = S0 * exp(-b * ADC), where S is the signal intensity, S0 is the signal without
+diffusion weighting, b is the b-value, and ADC is the apparent diffusion coefficient.
+
+Parameters
+----------
+dwi_file_path : str
+    Path to the 4D NIfTI file containing diffusion-weighted MRI data,
+    where the 4th dimension corresponds to different b-values.
+b_values : list or numpy.ndarray
+    List of b-values corresponding to each volume in the 4D DWI data.
+output_path : str, optional
+    Path where the output ADC map will be saved (default: "adc_map.nii.gz").
+mask_file_path : str, optional
+    Path to a binary mask file to limit ADC calculation to brain regions (default: None).
+
+Returns
+-------
+str
+    Research log summarizing the ADC mapping process and results.
+
+**Domain**: physiology
+**Function**: calculate_brain_adc_map
+]]></help>
+</tool>

@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_salmon_index" name="salmon index" version="1.0.0">
+  <description>Run salmon index command</description>
+  <requirements>
+    <requirement type="package">salmon</requirement>
+  </requirements>
+  <command detect_errors="exit_code">salmon index $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**salmon index**
+
+Run salmon index command
+
+**Tool Type**: cli
+**Library**: salmon
+**Function**: index
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;salmon&quot;,
+  &quot;subcommand&quot;: &quot;index&quot;,
+  &quot;call_template&quot;: &quot;salmon index [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

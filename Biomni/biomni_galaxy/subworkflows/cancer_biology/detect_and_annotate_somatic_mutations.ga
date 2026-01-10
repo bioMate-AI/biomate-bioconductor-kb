@@ -1,0 +1,46 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_cancer_biology_detect_and_annotate_somatic_mutations",
+  "annotation": "Detects and annotates somatic mutations in tumor samples compared to matched normal samples.",
+  "tags": [
+    "biomni",
+    "cancer_biology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "snpeff_database",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "biomni_cancer_biology_detect_and_annotate_somatic_mutations",
+      "label": "detect_and_annotate_somatic_mutations",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "snpeff_database": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

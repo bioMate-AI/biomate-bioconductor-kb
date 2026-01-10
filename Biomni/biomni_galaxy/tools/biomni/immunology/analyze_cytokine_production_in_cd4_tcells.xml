@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<tool id="biomni_immunology_analyze_cytokine_production_in_cd4_tcells" name="Biomni: Analyze Cytokine Production In Cd4 Tcells" version="1.0.0">
+    <description>Analyze cytokine production (IFN-γ, IL-17) in CD4+ T cells after antigen stimulation.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.immunology import analyze_cytokine_production_in_cd4_tcells
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_cytokine_production_in_cd4_tcells(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --fcs_files_dict '$fcs_files_dict'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="fcs_files_dict" type="text" label="Fcs Files Dict" help="Expected keys: 'unstimulated', 'Mtb300', 'CMV', 'SEB'"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save the results file (default: './results')" value="./results" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Cytokine Production In Cd4 Tcells**
+
+Analyze cytokine production (IFN-γ, IL-17) in CD4+ T cells after antigen stimulation.
+
+Parameters
+----------
+fcs_files_dict : dict
+    Dictionary mapping stimulation conditions to FCS file paths.
+    Expected keys: 'unstimulated', 'Mtb300', 'CMV', 'SEB'
+    Example: {'unstimulated': 'path/to/unstim.fcs', 'Mtb300': 'path/to/mtb.fcs'}
+
+output_dir : str, optional
+    Directory to save the results file (default: './results')
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results
+
+**Domain**: immunology
+**Function**: analyze_cytokine_production_in_cd4_tcells
+]]></help>
+</tool>

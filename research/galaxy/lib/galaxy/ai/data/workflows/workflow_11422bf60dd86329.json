@@ -1,0 +1,364 @@
+{
+  "workflow_id": "11422bf60dd86329",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "11422bf60dd86329",
+    "latest_workflow_id": "deec6e48f320cae2",
+    "name": "Sort the mapped bam",
+    "create_time": "2025-03-10T03:50:41.647001",
+    "update_time": "2025-04-17T17:31:51.647038",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "383ded5a-da5e-49c0-82d0-55652cc01bac",
+    "creator_deleted": false,
+    "annotations": [
+      ""
+    ],
+    "url": "/api/workflows/11422bf60dd86329",
+    "owner": "yhstatong",
+    "source_metadata": null,
+    "number_of_steps": 4,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "name": "Sort the mapped bam",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "bam"
+          }
+        ],
+        "label": "bam",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 0
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "44a5e722-8cca-4246-bc50-84e4b61a2900",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.20+galaxy3",
+        "errors": null,
+        "id": 1,
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Samtools view",
+            "name": "input"
+          }
+        ],
+        "label": "filter the properly mapped pairs",
+        "name": "Samtools view",
+        "outputs": [
+          {
+            "name": "outputsam",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 237.0103759765625,
+          "top": 1.7475230041509633
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.20+galaxy3",
+        "tool_shed_repository": {
+          "changeset_revision": "32dc5f781059",
+          "name": "samtools_view",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"addref_cond\": {\"addref_select\": \"no\", \"__current_case__\": 0}, \"input\": {\"__class__\": \"RuntimeValue\"}, \"mode\": {\"outtype\": \"selected_reads\", \"__current_case__\": 1, \"filter_config\": {\"cond_region\": {\"select_region\": \"no\", \"__current_case__\": 0}, \"cond_rg\": {\"select_rg\": \"no\", \"__current_case__\": 0}, \"cond_expr\": {\"select_expr\": \"no\", \"__current_case__\": 0}, \"quality\": null, \"library\": null, \"cigarcons\": null, \"inclusive_filter\": [\"1\", \"2\"], \"exclusive_filter\": [\"256\"], \"exclusive_filter_all\": null, \"tag\": null, \"qname_file\": {\"__class__\": \"RuntimeValue\"}}, \"subsample_config\": {\"subsampling_mode\": {\"select_subsample\": \"fraction\", \"__current_case__\": 0, \"factor\": \"1.0\", \"seed\": null}}, \"output_options\": {\"reads_report_type\": \"retained\", \"__current_case__\": 0, \"complementary_output\": false, \"adv_output\": {\"readtags\": [], \"collapsecigar\": false}, \"output_format\": {\"oformat\": \"bam\", \"__current_case__\": 2}}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.20+galaxy3",
+        "type": "tool",
+        "uuid": "55c729a9-d51d-4a1b-b4cc-9e61903cb96b",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_sort/samtools_sort/2.0.5",
+        "errors": null,
+        "id": 2,
+        "input_connections": {
+          "input1": {
+            "id": 1,
+            "output_name": "outputsam"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Samtools sort",
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "bam"
+          }
+        ],
+        "position": {
+          "left": 472.34375,
+          "top": 81.73958843383846
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_sort/samtools_sort/2.0.5",
+        "tool_shed_repository": {
+          "changeset_revision": "d54a4df48867",
+          "name": "samtools_sort",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"minhash\": false, \"prim_key_cond\": {\"prim_key_select\": \"-n\", \"__current_case__\": 1}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.0.5",
+        "type": "tool",
+        "uuid": "d2e9ded6-99af-451b-bdd1-2ebcdada45ca",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "output1",
+            "output_name": "output1",
+            "uuid": "4b6338da-27a1-42be-96f5-6c7b20713e73"
+          }
+        ]
+      },
+      "3": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_flagstat/samtools_flagstat/2.0.5",
+        "errors": null,
+        "id": 3,
+        "input_connections": {
+          "input1": {
+            "id": 2,
+            "output_name": "output1"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Samtools flagstat",
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 717.6666870117188,
+          "top": 92.66665649414062
+        },
+        "post_job_actions": {
+          "EmailActionoutput1": {
+            "action_arguments": {
+              "host": "usegalaxy.org"
+            },
+            "action_type": "EmailAction",
+            "output_name": "output1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_flagstat/samtools_flagstat/2.0.5",
+        "tool_shed_repository": {
+          "changeset_revision": "fefd89ab563c",
+          "name": "samtools_flagstat",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"output_fmt\": \"txt\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.0.5",
+        "type": "tool",
+        "uuid": "c18a0995-a16b-43df-9eb9-653650f1df8b",
+        "when": null,
+        "workflow_outputs": []
+      }
+    },
+    "tags": [],
+    "uuid": "383ded5a-da5e-49c0-82d0-55652cc01bac",
+    "version": 4
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "Sort the mapped bam",
+      "annotation": "",
+      "format_version": "0.1",
+      "uuid": "383ded5a-da5e-49c0-82d0-55652cc01bac",
+      "version": 4,
+      "tags": [],
+      "creator": [],
+      "license": ""
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "bam",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "tool",
+        "name": "Samtools view",
+        "label": "filter the properly mapped pairs",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.20+galaxy3",
+        "tool_version": "1.20+galaxy3",
+        "tool_state": "{\"addref_cond\": {\"addref_select\": \"no\", \"__current_case__\": 0}, \"input\": {\"__class__\": \"RuntimeValue\"}, \"mode\": {\"outtype\": \"selected_reads\", \"__current_case__\": 1, \"filter_config\": {\"cond_region\": {\"select_region\": \"no\", \"__current_case__\": 0}, \"cond_rg\": {\"select_rg\": \"no\", \"__current_case__\": 0}, \"cond_expr\": {\"select_expr\": \"no\", \"__current_case__\": 0}, \"quality\": null, \"library\": null, \"cigarcons\": null, \"inclusive_filter\": [\"1\", \"2\"], \"exclusive_filter\": [\"256\"], \"exclusive_filter_all\": null, \"tag\": null, \"qname_file\": {\"__class__\": \"RuntimeValue\"}}, \"subsample_config\": {\"subsampling_mode\": {\"select_subsample\": \"fraction\", \"__current_case__\": 0, \"factor\": \"1.0\", \"seed\": null}}, \"output_options\": {\"reads_report_type\": \"retained\", \"__current_case__\": 0, \"complementary_output\": false, \"adv_output\": {\"readtags\": [], \"collapsecigar\": false}, \"output_format\": {\"oformat\": \"bam\", \"__current_case__\": 2}}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 237.0103759765625,
+          "top": 1.7475230041509633
+        },
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outputsam",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "2",
+        "type": "tool",
+        "name": "Samtools sort",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_sort/samtools_sort/2.0.5",
+        "tool_version": "2.0.5",
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"minhash\": false, \"prim_key_cond\": {\"prim_key_select\": \"-n\", \"__current_case__\": 1}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 472.34375,
+          "top": 81.73958843383846
+        },
+        "input_connections": {
+          "input1": {
+            "id": 1,
+            "output_name": "outputsam"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "bam"
+          }
+        ]
+      },
+      {
+        "step_id": "3",
+        "type": "tool",
+        "name": "Samtools flagstat",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_flagstat/samtools_flagstat/2.0.5",
+        "tool_version": "2.0.5",
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"output_fmt\": \"txt\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 717.6666870117188,
+          "top": 92.66665649414062
+        },
+        "input_connections": {
+          "input1": {
+            "id": 2,
+            "output_name": "output1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "txt"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_view/samtools_view/1.20+galaxy3",
+        "tool_version": "1.20+galaxy3",
+        "step_id": "1"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_sort/samtools_sort/2.0.5",
+        "tool_version": "2.0.5",
+        "step_id": "2"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/samtools_flagstat/samtools_flagstat/2.0.5",
+        "tool_version": "2.0.5",
+        "step_id": "3"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "bam",
+        "annotation": ""
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "2",
+        "output_name": "output1",
+        "label": "output1"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "1",
+        "to_input": "input"
+      },
+      {
+        "from_step": 1,
+        "from_output": "outputsam",
+        "to_step": "2",
+        "to_input": "input1"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output1",
+        "to_step": "3",
+        "to_input": "input1"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T22:13:47.059659"
+}

@@ -1,0 +1,103 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_pharmacology_perform_mwas_cyp2c19_metabolizer_status",
+  "annotation": "Perform a Methylome-wide Association Study (MWAS) to identify CpG sites significantly associated with CYP2C19 metabolizer status.",
+  "tags": [
+    "biomni",
+    "pharmacology",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "methylation_data_path",
+      "annotation": "Input: methylation_data_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "metabolizer_status_path",
+      "annotation": "Input: metabolizer_status_path",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "python_pandas_pd_DataFrame",
+      "label": "Step 1: pd_DataFrame",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "tool",
+      "tool_id": "python_pandas_pd_read_csv",
+      "label": "Step 2: pd_read_csv",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "tool",
+      "tool_id": "python_scipy_linregress",
+      "label": "Step 3: linregress",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 1200,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "perform_mwas_cyp2c19_metabolizer_status-output"
+    }
+  ]
+}

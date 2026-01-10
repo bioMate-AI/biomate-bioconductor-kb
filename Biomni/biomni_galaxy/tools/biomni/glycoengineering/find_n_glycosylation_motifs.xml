@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<tool id="biomni_glycoengineering_find_n_glycosylation_motifs" name="Biomni: Find N Glycosylation Motifs" version="1.0.0">
+    <description>Scan a protein sequence for N-linked glycosylation sequons (N-X-[S/T]).</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.glycoengineering import find_n_glycosylation_motifs
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = find_n_glycosylation_motifs(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --sequence '$sequence'
+#if $allow_overlap
+    --allow_overlap
+#end if
+]]></command>
+    <inputs>
+        <param name="sequence" type="text" label="Sequence" help=""  />
+        <param name="allow_overlap" type="boolean" truevalue="true" falsevalue="false" label="Allow Overlap" help="" />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Find N Glycosylation Motifs**
+
+Scan a protein sequence for N-linked glycosylation sequons (N-X-[S/T]).
+
+Rules
+- Motif: Asn (N) followed by any residue except Proline (P), followed by Serine (S) or Threonine (T)
+- By default, overlapping matches are not reported twice
+
+Parameters
+- sequence: protein sequence (one-letter amino-acid codes)
+- allow_overlap: if True, allow overlapping motif detection
+
+Returns
+- Research log string summarizing motif locations and counts
+
+**Domain**: glycoengineering
+**Function**: find_n_glycosylation_motifs
+]]></help>
+</tool>

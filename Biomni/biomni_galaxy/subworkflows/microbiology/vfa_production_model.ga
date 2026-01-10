@@ -1,0 +1,33 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_microbiology_vfa_production_model",
+  "annotation": "",
+  "tags": [
+    "biomni",
+    "microbiology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "tool",
+      "tool_id": "biomni_microbiology_vfa_production_model",
+      "label": "vfa_production_model",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {}
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

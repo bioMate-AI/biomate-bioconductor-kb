@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<tool id="biomni_cell_biology_analyze_flow_cytometry_immunophenotyping" name="Biomni: Analyze Flow Cytometry Immunophenotyping" version="1.0.0">
+    <description>Analyze flow cytometry data to identify and quantify specific cell populations based on surface markers.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.cell_biology import analyze_flow_cytometry_immunophenotyping
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_flow_cytometry_immunophenotyping(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --fcs_file_path '$fcs_file_path'
+--gating_strategy '$gating_strategy'
+#if $compensation_matrix
+    --compensation_matrix '$compensation_matrix'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="fcs_file_path" type="text" label="Fcs File Path" help="Path to the FCS file containing flow cytometry data"  />
+        <param name="gating_strategy" type="text" label="Gating Strategy" help="(marker, operator, threshold). For example: {'HSCs': [('Lin', '<', 100), ('Sca1', '>', 1000), ...]}"  />
+        <param name="compensation_matrix" type="text" label="Compensation Matrix" help="Spillover/compensation matrix to correct for fluorescence overlap"  optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save the results" value="./results" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Flow Cytometry Immunophenotyping**
+
+Analyze flow cytometry data to identify and quantify specific cell populations based on surface markers.
+
+Parameters
+----------
+fcs_file_path : str
+    Path to the FCS file containing flow cytometry data
+gating_strategy : dict
+    Dictionary defining the gating strategy. Each key is a population name, and each value is a list of tuples
+    (marker, operator, threshold). For example: {'HSCs': [('Lin', '<', 100), ('Sca1', '>', 1000), ...]}
+compensation_matrix : numpy.ndarray, optional
+    Spillover/compensation matrix to correct for fluorescence overlap
+output_dir : str, optional
+    Directory to save the results
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results
+
+**Domain**: cell_biology
+**Function**: analyze_flow_cytometry_immunophenotyping
+]]></help>
+</tool>

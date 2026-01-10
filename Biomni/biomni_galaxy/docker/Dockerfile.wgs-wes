@@ -1,0 +1,243 @@
+# BioMate WGS/WES Docker Image
+# Supports: nf-core/sarek, nf-core/raredisease
+#
+# Build: docker build --platform linux/amd64 -t biomate/wgs-wes:x86 -f Dockerfile.wgs-wes .
+# Run:   docker run --platform linux/amd64 -it biomate/wgs-wes:x86
+
+FROM --platform=linux/amd64 mambaorg/micromamba:1.5-jammy
+
+LABEL maintainer="BioMate Team"
+LABEL description="x86 Docker for WGS/WES: nf-core/sarek, nf-core/raredisease"
+LABEL version="1.0.0"
+
+USER root
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV MAMBA_ROOT_PREFIX=/opt/conda
+ENV PATH="${MAMBA_ROOT_PREFIX}/bin:${PATH}"
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl wget gzip bzip2 unzip pigz \
+    build-essential gcc g++ gfortran cmake make \
+    zlib1g-dev libbz2-dev liblzma-dev libcurl4-openssl-dev libssl-dev \
+    libncurses5-dev libncursesw5-dev libtbb-dev \
+    libhdf5-dev pkg-config \
+    default-jre-headless default-jdk \
+    perl cpanminus \
+    git procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create conda environment
+USER $MAMBA_USER
+RUN micromamba create -n biotools -c conda-forge -c bioconda -y python=3.11 && \
+    micromamba clean --all -y
+
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+ENV ENV_NAME=biotools
+
+# ==============================================================================
+# Core Aligners
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bwa bwa-mem2 bowtie2 minimap2 \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# BAM/SAM Processing
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    samtools bcftools htslib bedtools vcftools tabix \
+    picard sambamba mosdepth \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# GATK4 (main variant caller)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    gatk4 \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# Variant Callers - SNV/Indel
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    freebayes \
+    && micromamba clean --all -y
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    lofreq \
+    && micromamba clean --all -y || true
+
+# glnexus for joint genotyping
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    glnexus \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Structural Variant Callers
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    tiddit \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    svdb \
+    && micromamba clean --all -y || true
+
+# cnvkit requires pandas<2.0 (Int64Index deprecation) and matplotlib<3.9 (BrokenBarHCollection removed)
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    cnvkit "pandas<2.0" "matplotlib<3.9" \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Variant Annotation
+# ==============================================================================
+# NOTE: gatk4 requires openjdk>=17,<18 (Java 17 only). snpEff 5.x requires Java 21.
+# Since bioconda gatk4 is pinned to Java 17, we install snpEff manually with its own Java 21.
+
+# VEP with required Perl modules
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    ensembl-vep perl-dbi perl-dbd-mysql perl-bio-db-hts \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    vcfanno \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# QC Tools
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    fastqc fastp multiqc qualimap preseq \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# Trimming
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    cutadapt trim-galore \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# MSI Detection (sarek)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    msisensor-pro \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# DragMap (DRAGEN alternative)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    dragmap \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Copy Number Analysis (ASCAT, Control-FREEC)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    control-freec \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    r-ascat \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Additional Tools
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    fgbio vt \
+    && micromamba clean --all -y || true
+
+# RTG Tools
+USER root
+RUN wget -q https://github.com/RealTimeGenomics/rtg-tools/releases/download/3.12.1/rtg-tools-3.12.1-linux-x64.zip && \
+    unzip -q rtg-tools-3.12.1-linux-x64.zip -d /opt/tools/ && \
+    rm rtg-tools-3.12.1-linux-x64.zip && \
+    ln -sf /opt/tools/rtg-tools-3.12.1/rtg /usr/local/bin/rtg || true
+
+USER $MAMBA_USER
+
+# ==============================================================================
+# Manual snpEff Installation with Java 21
+# ==============================================================================
+# gatk4 from bioconda requires Java 17 (openjdk>=17,<18). snpEff 5.x requires Java 21.
+# Solution: Keep gatk4 with Java 17, install snpEff manually with its own Java 21 runtime.
+USER root
+
+# Download and install Eclipse Temurin JDK 21 for snpEff
+RUN mkdir -p /opt/java && \
+    curl -L "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jre_x64_linux_hotspot_21.0.5_11.tar.gz" | \
+    tar -xz -C /opt/java && \
+    mv /opt/java/jdk-21.0.5+11-jre /opt/java/jdk21
+
+# Download snpEff 5.2c (latest stable that works well)
+RUN mkdir -p /opt/snpeff && \
+    curl -L "https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip" -o /tmp/snpeff.zip && \
+    unzip -q /tmp/snpeff.zip -d /opt/snpeff && \
+    rm /tmp/snpeff.zip
+
+# Create wrapper script that uses Java 21 for snpEff
+RUN printf '#!/bin/bash\nexport JAVA_HOME=/opt/java/jdk21\nexport PATH=$JAVA_HOME/bin:$PATH\njava -jar /opt/snpeff/snpEff/snpEff.jar "$@"\n' > /usr/local/bin/snpEff && \
+    chmod +x /usr/local/bin/snpEff
+
+# Create SnpSift wrapper too
+RUN printf '#!/bin/bash\nexport JAVA_HOME=/opt/java/jdk21\nexport PATH=$JAVA_HOME/bin:$PATH\njava -jar /opt/snpeff/snpEff/SnpSift.jar "$@"\n' > /usr/local/bin/SnpSift && \
+    chmod +x /usr/local/bin/SnpSift
+
+USER $MAMBA_USER
+
+# ==============================================================================
+# Verification Script
+# ==============================================================================
+USER root
+
+RUN printf '#!/bin/bash\neval "$(micromamba shell hook -s bash)"\nmicromamba activate biotools\nexec "$@"\n' > /usr/local/bin/biotools-shell && chmod +x /usr/local/bin/biotools-shell
+
+RUN cat > /usr/local/bin/verify-tools.sh << 'VERIFY_SCRIPT'
+#!/bin/bash
+eval "$(micromamba shell hook -s bash)"
+micromamba activate biotools
+echo "=== BioMate WGS/WES Docker ==="
+echo ""
+echo "### ALIGNERS ###"
+echo "  bwa:        $(bwa 2>&1 | head -3 | tail -1 || echo 'not found')"
+echo "  bwa-mem2:   $(bwa-mem2 version 2>&1 | head -1 || echo 'not found')"
+echo ""
+echo "### VARIANT CALLING ###"
+echo "  gatk:       $(gatk --version 2>&1 | head -2 | tail -1 || echo 'not found')"
+echo "  freebayes:  $(freebayes --version 2>&1 | head -1 || echo 'not found')"
+echo "  lofreq:     $(lofreq version 2>&1 | head -1 || echo 'not found')"
+echo "  glnexus:    $(which glnexus_cli >/dev/null 2>&1 && echo 'installed' || echo 'not found')"
+echo ""
+echo "### STRUCTURAL VARIANTS ###"
+echo "  tiddit:     $(tiddit --version 2>&1 || echo 'not found')"
+echo "  cnvkit:     $(cnvkit.py version 2>&1 || echo 'not found')"
+echo ""
+echo "### COPY NUMBER ANALYSIS ###"
+echo "  control-freec: $(freec -h 2>&1 | head -1 || echo 'not found')"
+echo "  ascat:      $(R --slave -e 'cat(as.character(packageVersion(\"ASCAT\")))' 2>/dev/null || echo 'not found')"
+echo ""
+echo "### ANNOTATION ###"
+echo "  snpeff:     $(snpEff -version 2>&1 | head -1 || echo 'not found')"
+echo "  vep:        $(vep --help 2>&1 | head -1 || echo 'not found')"
+echo ""
+echo "### QC TOOLS ###"
+echo "  fastqc:     $(fastqc --version 2>&1 || echo 'not found')"
+echo "  multiqc:    $(multiqc --version 2>&1 || echo 'not found')"
+echo "  mosdepth:   $(mosdepth --version 2>&1 || echo 'not found')"
+echo ""
+echo "=== Supported Workflows ==="
+echo "  - nf-core/sarek (WGS/WES)"
+echo "  - nf-core/raredisease (WGS/WES rare disease)"
+echo ""
+echo "Note: For DeepVariant/Strelka/Manta, use their official containers"
+VERIFY_SCRIPT
+RUN chmod +x /usr/local/bin/verify-tools.sh
+
+WORKDIR /data
+
+ENTRYPOINT ["/usr/local/bin/biotools-shell"]
+CMD ["/usr/local/bin/verify-tools.sh"]

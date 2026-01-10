@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_rdkit_Descriptors_TPSA" name="RDKit: Descriptors.TPSA" version="1.0.0">
+  <description>Call RDKit Descriptors.TPSA function</description>
+  <requirements>
+    <requirement type="package" version="">rdkit</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from rdkit import *
+# Tool implementation
+result = Descriptors.TPSA(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**RDKit: Descriptors.TPSA**
+
+Call RDKit Descriptors.TPSA function
+
+**Tool Type**: python
+**Library**: rdkit
+**Function**: Descriptors.TPSA
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;rdkit&quot;,
+  &quot;function&quot;: &quot;Descriptors.TPSA&quot;,
+  &quot;call_template&quot;: &quot;from rdkit import ...; result = Descriptors.TPSA(...)&quot;
+}
+]]&gt;</help>
+</tool>

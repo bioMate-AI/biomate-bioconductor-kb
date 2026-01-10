@@ -1,0 +1,39 @@
+- doc: Test outline for bacterial_genome_assembly.ga
+  job:
+    Input adapter trimmed sequence reads (forward):
+      class: File
+      path: https://zenodo.org/records/11485346/files/fastp_trimmed_R1.fastqsanger.gz
+      filetype: fastqsanger.gz
+    Input adapter trimmed sequence reads (reverse):
+      class: File
+      path: https://zenodo.org/records/11485346/files/fastp_trimmed_R2.fastqsanger.gz
+      filetype: fastqsanger.gz
+  outputs:
+    shovill_contigs_graph:
+      asserts:
+        has_text:
+          text: "KC:i"
+    shovill_logfile:
+      asserts:
+        has_text:
+          text: "[shovill] Done."
+    shovill_contigs_fasta:
+      asserts:
+        has_text:
+          text: ">contig00001"
+    bandage_contig_graph_stats:
+      asserts:
+        has_text:
+          text: "Total length orphaned nodes (bp):"
+        has_n_columns:
+          n: 2
+    tooldistillator_summarize_assembly:
+      asserts:
+        has_text:
+          text: "\"Assembly\": \"shovill_contigs_fasta\""
+        has_text:
+          text: "contig00146"
+        has_text:
+          text: "bandage_plot_path"
+        has_text:
+          text: "Total_length_no_overlaps_(bp)"

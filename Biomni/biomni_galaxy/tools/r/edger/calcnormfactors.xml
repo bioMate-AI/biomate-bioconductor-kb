@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_edger_calcnormfactors" name="edgeR::calcNormFactors" version="1.0.0">
+  <description>Call R edgeR::calcNormFactors function</description>
+  <requirements>
+    <requirement type="package">r-edger</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(edgeR); calcNormFactors()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**edgeR::calcNormFactors**
+
+Call R edgeR::calcNormFactors function
+
+**Tool Type**: r
+**Library**: edgeR
+**Function**: calcNormFactors
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;edgeR&quot;,
+  &quot;function&quot;: &quot;calcNormFactors&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(edgeR); calcNormFactors(...)'&quot;
+}
+]]&gt;</help>
+</tool>

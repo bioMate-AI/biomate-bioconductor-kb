@@ -1,0 +1,87 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_synthetic_biology_analyze_bacterial_growth_rate",
+  "annotation": "Analyze bacterial growth data and extract growth parameters from OD600 measurements.",
+  "tags": [
+    "biomni",
+    "synthetic_biology",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "time_points",
+      "annotation": "Input: time_points",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "od_measurements",
+      "annotation": "Input: od_measurements",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "python_matplotlib_matplotlib_use",
+      "label": "Step 1: matplotlib_use",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "tool",
+      "tool_id": "python_numpy_np_array",
+      "label": "Step 2: np_array",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "analyze_bacterial_growth_rate-output"
+    }
+  ]
+}

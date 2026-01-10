@@ -1,0 +1,12 @@
+{
+  "ai_assistant": {
+    "enable_rag_workflow_generator": true,
+    "crawler_data_path": "/Users/renyuankai/work/pywork/normalWork/galaxy_\u722c\u866b/galaxy_crawler/galaxy_workflows_crawler/data",
+    "rag_settings": {
+      "max_similar_workflows": 5,
+      "similarity_threshold": 0.1,
+      "enable_workflow_adaptation": true,
+      "cache_embeddings": true
+    }
+  }
+}

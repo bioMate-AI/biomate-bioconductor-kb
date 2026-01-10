@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_rdkit_Chem_MolFromSmiles" name="RDKit: Chem.MolFromSmiles" version="1.0.0">
+  <description>Call RDKit Chem.MolFromSmiles function</description>
+  <requirements>
+    <requirement type="package" version="">rdkit</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from rdkit import *
+# Tool implementation
+result = Chem.MolFromSmiles(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**RDKit: Chem.MolFromSmiles**
+
+Call RDKit Chem.MolFromSmiles function
+
+**Tool Type**: python
+**Library**: rdkit
+**Function**: Chem.MolFromSmiles
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;rdkit&quot;,
+  &quot;function&quot;: &quot;Chem.MolFromSmiles&quot;,
+  &quot;call_template&quot;: &quot;from rdkit import ...; result = Chem.MolFromSmiles(...)&quot;
+}
+]]&gt;</help>
+</tool>

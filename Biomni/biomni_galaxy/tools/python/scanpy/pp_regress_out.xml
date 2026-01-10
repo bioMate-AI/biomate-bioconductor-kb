@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_scanpy_pp_regress_out" name="Scanpy: pp.regress_out" version="1.0.0">
+  <description>Call Scanpy pp.regress_out function</description>
+  <requirements>
+    <requirement type="package" version="">scanpy</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from scanpy import *
+# Tool implementation
+result = pp.regress_out(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**Scanpy: pp.regress_out**
+
+Call Scanpy pp.regress_out function
+
+**Tool Type**: python
+**Library**: scanpy
+**Function**: pp.regress_out
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;scanpy&quot;,
+  &quot;function&quot;: &quot;pp.regress_out&quot;,
+  &quot;call_template&quot;: &quot;from scanpy import ...; result = pp.regress_out(...)&quot;
+}
+]]&gt;</help>
+</tool>

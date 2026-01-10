@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_cutadapt_trim" name="cutadapt trim" version="1.0.0">
+  <description>Run cutadapt trim command</description>
+  <requirements>
+    <requirement type="package">cutadapt</requirement>
+  </requirements>
+  <command detect_errors="exit_code">cutadapt trim $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**cutadapt trim**
+
+Run cutadapt trim command
+
+**Tool Type**: cli
+**Library**: cutadapt
+**Function**: trim
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;cutadapt&quot;,
+  &quot;subcommand&quot;: &quot;trim&quot;,
+  &quot;call_template&quot;: &quot;cutadapt trim [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

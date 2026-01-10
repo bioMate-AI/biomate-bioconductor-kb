@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+<tool id="biomni_genomics_annotate_celltype_scRNA" name="Biomni: Annotate Celltype Scrna" version="1.0.0">
+    <description>Annotate cell types based on gene markers and transferred labels using LLM.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genomics import annotate_celltype_scRNA
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = annotate_celltype_scRNA(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --adata_filename '$adata_filename'
+--data_dir '$data_dir'
+--data_info '$data_info'
+--data_lake_path '$data_lake_path'
+#if $cluster
+    --cluster '$cluster'
+#end if
+#if $llm
+    --llm '$llm'
+#end if
+#if $composition
+    --composition '$composition'
+#end if
+]]></command>
+    <inputs>
+        <param name="adata_filename" type="text" label="Adata Filename" help=""  />
+        <param name="data_dir" type="text" label="Data Dir" help=""  />
+        <param name="data_info" type="text" label="Data Info" help=""  />
+        <param name="data_lake_path" type="text" label="Data Lake Path" help=""  />
+        <param name="cluster" type="text" label="Cluster" help="" value="leiden" optional="true"/>
+        <param name="llm" type="text" label="Llm" help="" value="claude-3-5-sonnet-20241022" optional="true"/>
+        <param name="composition" type="text" label="Composition" help=""  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Annotate Celltype Scrna**
+
+Annotate cell types based on gene markers and transferred labels using LLM.
+After leiden clustering, annotate clusters using differentially expressed genes
+and optionally incorporate transferred labels from reference datasets.
+
+Parameters
+----------
+- adata_filename (str): Name of the AnnData file containing scRNA-seq data
+- data_dir (str): Directory containing the data files
+- data_info (str): Information about the scRNA-seq data (e.g., "homo sapiens, brain tissue, normal")
+- data_lake_path (str): Path to the data lake
+- llm (str): Language model instance for cell type prediction, such as 'claude-3-haiku-20240307'
+- composition (pd.DataFrame, optional): Transferred cell type composition for each cluster
+Returns:
+- str: Steps performed and file paths where results were saved
+
+**Domain**: genomics
+**Function**: annotate_celltype_scRNA
+]]></help>
+</tool>

@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<tool id="biomni_molecular_biology_annotate_open_reading_frames" name="Biomni: Annotate Open Reading Frames" version="1.0.0">
+    <description>Find all Open Reading Frames (ORFs) in a DNA sequence using Biopython.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.molecular_biology import annotate_open_reading_frames
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = annotate_open_reading_frames(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --sequence '$sequence'
+--min_length '$min_length'
+#if $search_reverse
+    --search_reverse '$search_reverse'
+#end if
+#if $filter_subsets
+    --filter_subsets '$filter_subsets'
+#end if
+]]></command>
+    <inputs>
+        <param name="sequence" type="text" label="Sequence" help=""  />
+        <param name="min_length" type="text" label="Min Length" help=""  />
+        <param name="search_reverse" type="text" label="Search Reverse" help="" value="False" optional="true"/>
+        <param name="filter_subsets" type="text" label="Filter Subsets" help="" value="False" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Annotate Open Reading Frames**
+
+Find all Open Reading Frames (ORFs) in a DNA sequence using Biopython.
+Searches both forward and reverse complement strands.
+
+Args:
+    sequence (str): DNA sequence
+    min_length (int): Minimum length of ORF in nucleotides
+    search_reverse (bool): Whether to search the reverse complement strand (default: False unless you want to search for reverse ORFs)
+    filter_nested (bool): Whether to filter out ORFs with same end but later start (default: False unless you want to remove nested ORFs)
+
+Returns:
+    dict: Dictionary containing:
+        - explanation: Explanation of the output fields
+        - summary_stats: Statistical overview of found ORFs
+        - orfs: List of all found ORFs, where each ORF contains:
+            - sequence: Nucleotide sequence of the ORF
+            - aa_sequence: Translated amino acid sequence
+            - start: Start position in original sequence (0-based)
+            - end: End position in original sequence
+            - strand: '+' for forward strand, '-' for reverse complement
+            - frame: Reading frame (1,2,3 for forward; -1,-2,-3 for reverse)
+
+**Domain**: molecular_biology
+**Function**: annotate_open_reading_frames
+]]></help>
+</tool>

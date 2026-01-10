@@ -1,0 +1,58 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_bioengineering_decode_behavior_from_neural_trajectories",
+  "annotation": "Model neural activity trajectories and decode behavioral variables.",
+  "tags": [
+    "biomni",
+    "bioengineering",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "neural_data",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "behavioral_data",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "biomni_bioengineering_decode_behavior_from_neural_trajectories",
+      "label": "decode_behavior_from_neural_trajectories",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "neural_data": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "behavioral_data": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

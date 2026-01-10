@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+<tool id="biomni_cancer_biology_detect_and_annotate_somatic_mutations" name="Biomni: Detect And Annotate Somatic Mutations" version="1.0.0">
+    <description>Detects and annotates somatic mutations in tumor samples compared to matched normal samples.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.cancer_biology import detect_and_annotate_somatic_mutations
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = detect_and_annotate_somatic_mutations(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --tumor_bam '$tumor_bam'
+--normal_bam '$normal_bam'
+--reference_genome '$reference_genome'
+--output_prefix '$output_prefix'
+#if $snpeff_database
+    --snpeff_database '$snpeff_database'
+#end if
+]]></command>
+    <inputs>
+        <param name="tumor_bam" type="text" label="Tumor Bam" help="Path to the tumor sample BAM file"  />
+        <param name="normal_bam" type="text" label="Normal Bam" help="Path to the matched normal sample BAM file"  />
+        <param name="reference_genome" type="text" label="Reference Genome" help="Path to the reference genome FASTA file"  />
+        <param name="output_prefix" type="text" label="Output Prefix" help="Prefix for output files"  />
+        <param name="snpeff_database" type="text" label="Snpeff Database" help="SnpEff database to use for annotation (default: "GRCh38.105")" value="GRCh38.105" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Detect And Annotate Somatic Mutations**
+
+Detects and annotates somatic mutations in tumor samples compared to matched normal samples.
+
+This function uses GATK Mutect2 for variant calling, GATK FilterMutectCalls for filtering,
+and SnpEff for functional annotation of somatic mutations.
+
+Parameters
+----------
+tumor_bam : str
+    Path to the tumor sample BAM file
+normal_bam : str
+    Path to the matched normal sample BAM file
+reference_genome : str
+    Path to the reference genome FASTA file
+output_prefix : str
+    Prefix for output files
+snpeff_database : str, optional
+    SnpEff database to use for annotation (default: "GRCh38.105")
+
+Returns
+-------
+str
+    A research log summarizing the steps performed and results obtained
+
+**Domain**: cancer_biology
+**Function**: detect_and_annotate_somatic_mutations
+]]></help>
+</tool>

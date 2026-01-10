@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_cv2_threshold" name="OpenCV: threshold" version="1.0.0">
+  <description>Call OpenCV threshold function</description>
+  <requirements>
+    <requirement type="package" version="">cv2</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from cv2 import *
+# Tool implementation
+result = threshold(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**OpenCV: threshold**
+
+Call OpenCV threshold function
+
+**Tool Type**: python
+**Library**: cv2
+**Function**: threshold
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;cv2&quot;,
+  &quot;function&quot;: &quot;threshold&quot;,
+  &quot;call_template&quot;: &quot;from cv2 import ...; result = threshold(...)&quot;
+}
+]]&gt;</help>
+</tool>

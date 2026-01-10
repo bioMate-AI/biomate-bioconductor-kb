@@ -1,0 +1,1226 @@
+{
+  "workflow_id": "1a08efa0bf83d225",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "1a08efa0bf83d225",
+    "latest_workflow_id": "98742dc63a98fc55",
+    "name": "baredSC_2d_logN (release v0.2)",
+    "create_time": "2023-12-07T00:10:44.085022",
+    "update_time": "2025-04-25T14:10:43.039471",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "cd20cc84-015b-4a33-aa30-59b1088f04f3",
+    "creator_deleted": false,
+    "annotations": [
+      "Run baredSC in 2 dimensions in logNorm for 1 to N gaussians and combine models."
+    ],
+    "url": "/api/workflows/1a08efa0bf83d225",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 10,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "Run baredSC in 2 dimensions in logNorm for 1 to N gaussians and combine models.",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-1964-4960",
+        "name": "Lucille Delisle"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "baredSC_2d_logN (release v0.2)",
+    "steps": {
+      "0": {
+        "annotation": "The dataset must have a first row with row names. Among them should be 'nCount_RNA' and the gene you want to get PDF of.",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "The dataset must have a first row with row names. Among them should be 'nCount_RNA' and the gene you want to get PDF of.",
+            "name": "Tabular with raw expression values"
+          }
+        ],
+        "label": "Tabular with raw expression values",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 0
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"tabular\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "8f10568b-8775-45ac-8695-c3aeaaf15279",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "Must be included in the first row of the tabular",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Must be included in the first row of the tabular",
+            "name": "Gene name for x axis"
+          }
+        ],
+        "label": "Gene name for x axis",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 28,
+          "top": 91
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "785d5e4f-cfa6-4d99-9c51-edd74f1c1bc1",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "Maximum value to explore in logNorm in x-axis (usually between 2 and 4)",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Maximum value to explore in logNorm in x-axis (usually between 2 and 4)",
+            "name": "maximum value in logNorm for x-axis"
+          }
+        ],
+        "label": "maximum value in logNorm for x-axis",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 78,
+          "top": 187.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "6b238dd1-b5eb-44fb-9da7-03aa2365b55d",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "Must be included in the first row of the tabular",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Must be included in the first row of the tabular",
+            "name": "Gene name for y axis"
+          }
+        ],
+        "label": "Gene name for y axis",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 152,
+          "top": 297.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "430d2a12-703f-4a5f-8604-aa9699813830",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "Maximum value to explore in logNorm in y-axis (usually between 2 and 4)",
+        "content_id": null,
+        "errors": null,
+        "id": 4,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Maximum value to explore in logNorm in y-axis (usually between 2 and 4)",
+            "name": "maximum value in logNorm for y-axis"
+          }
+        ],
+        "label": "maximum value in logNorm for y-axis",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 254,
+          "top": 390.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "2e96ce7d-0904-47bc-96f5-d546e6ad4321",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "Usually 4 is enough",
+        "content_id": null,
+        "errors": null,
+        "id": 5,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Usually 4 is enough",
+            "name": "Maximum number of Gaussians to study"
+          }
+        ],
+        "label": "Maximum number of Gaussians to study",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 320,
+          "top": 481
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "b2b66d09-ec2d-4a5d-b1cf-da116c5b7e8b",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "Whether you want to get a p-value. As a consequence, less samples than available will be used for plots.",
+        "content_id": null,
+        "errors": null,
+        "id": 6,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Whether you want to get a p-value. As a consequence, less samples than available will be used for plots.",
+            "name": "compute p-value"
+          }
+        ],
+        "label": "compute p-value",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 378,
+          "top": 578.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "39a6a45f-1080-4016-aee5-7b8caf162faa",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "",
+        "id": 7,
+        "input_connections": {
+          "Maximum number in param output": {
+            "id": 5,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "generate_param_list_one_to_number",
+        "outputs": [],
+        "position": {
+          "left": 677,
+          "top": 346.5
+        },
+        "subworkflow": {
+          "a_galaxy_workflow": "true",
+          "annotation": "",
+          "comments": [],
+          "creator": [
+            {
+              "class": "Person",
+              "identifier": "https://orcid.org/0000-0002-1964-4960",
+              "name": "Lucille Delisle"
+            }
+          ],
+          "format-version": "0.1",
+          "license": "MIT",
+          "name": "generate_param_list_one_to_number",
+          "steps": {
+            "0": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 0,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Maximum number in param output"
+                }
+              ],
+              "label": "Maximum number in param output",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 0,
+                "top": 36
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "77c09297-be5d-4f97-ac59-15e3f56f455d",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": null,
+                  "output_name": "output",
+                  "uuid": "5cc5be66-4588-41ed-b911-9dc4de58b5d1"
+                }
+              ]
+            },
+            "1": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/1.1.0",
+              "errors": null,
+              "id": 1,
+              "input_connections": {
+                "token_set_0|repeat_select|times": {
+                  "id": 0,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [],
+              "label": "create first tabular with good number of rows.",
+              "name": "Create text file",
+              "outputs": [
+                {
+                  "name": "outfile",
+                  "type": "txt"
+                }
+              ],
+              "position": {
+                "left": 280,
+                "top": 0
+              },
+              "post_job_actions": {
+                "ChangeDatatypeActionoutfile": {
+                  "action_arguments": {
+                    "newtype": "tabular"
+                  },
+                  "action_type": "ChangeDatatypeAction",
+                  "output_name": "outfile"
+                },
+                "HideDatasetActionoutfile": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "outfile"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/1.1.0",
+              "tool_shed_repository": {
+                "changeset_revision": "ddf54b12c295",
+                "name": "text_processing",
+                "owner": "bgruening",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"token_set\": [{\"__index__\": 0, \"line\": \"whatever\", \"repeat_select\": {\"repeat_select_opts\": \"user\", \"__current_case__\": 0, \"times\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.1.0",
+              "type": "tool",
+              "uuid": "052068c3-2e33-48b3-be49-80f36164f8a7",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "2": {
+              "annotation": "",
+              "content_id": "addValue",
+              "errors": null,
+              "id": 2,
+              "input_connections": {
+                "input": {
+                  "id": 1,
+                  "output_name": "outfile"
+                }
+              },
+              "inputs": [],
+              "label": "add column with numbers starting at 1",
+              "name": "Add column",
+              "outputs": [
+                {
+                  "name": "out_file1",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 560,
+                "top": 20
+              },
+              "post_job_actions": {
+                "HideDatasetActionout_file1": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "out_file1"
+                }
+              },
+              "tool_id": "addValue",
+              "tool_state": "{\"exp\": \"1\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"iterate\": \"yes\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.0.0",
+              "type": "tool",
+              "uuid": "896ef9d9-6279-4592-bf83-bdbbfbc2e061",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "3": {
+              "annotation": "",
+              "content_id": "Cut1",
+              "errors": null,
+              "id": 3,
+              "input_connections": {
+                "input": {
+                  "id": 2,
+                  "output_name": "out_file1"
+                }
+              },
+              "inputs": [],
+              "label": "retrieve numbers",
+              "name": "Cut",
+              "outputs": [
+                {
+                  "name": "out_file1",
+                  "type": "tabular"
+                }
+              ],
+              "position": {
+                "left": 840,
+                "top": 20
+              },
+              "post_job_actions": {
+                "HideDatasetActionout_file1": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "out_file1"
+                }
+              },
+              "tool_id": "Cut1",
+              "tool_state": "{\"columnList\": \"c2\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.0.2",
+              "type": "tool",
+              "uuid": "36ba9f67-e553-4a5d-8fbc-cf3c98213fa0",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "4": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_to_collection/split_file_to_collection/0.5.1",
+              "errors": null,
+              "id": 4,
+              "input_connections": {
+                "split_parms|input": {
+                  "id": 3,
+                  "output_name": "out_file1"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool Split file",
+                  "name": "split_parms"
+                }
+              ],
+              "label": "split numbers to collection",
+              "name": "Split file",
+              "outputs": [
+                {
+                  "name": "list_output_tab",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 1120,
+                "top": 20
+              },
+              "post_job_actions": {
+                "HideDatasetActionlist_output_tab": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "list_output_tab"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_to_collection/split_file_to_collection/0.5.1",
+              "tool_shed_repository": {
+                "changeset_revision": "baabc30154cd",
+                "name": "split_file_to_collection",
+                "owner": "bgruening",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"split_parms\": {\"select_ftype\": \"tabular\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"top\": \"0\", \"split_by\": {\"select_split_by\": \"row\", \"__current_case__\": 1, \"select_mode\": {\"mode\": \"chunk\", \"__current_case__\": 0, \"chunksize\": \"1\"}, \"newfilenames\": \"split_file\", \"select_allocate\": {\"allocate\": \"byrow\", \"__current_case__\": 2}}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "0.5.1",
+              "type": "tool",
+              "uuid": "8193a92b-5b55-42a8-b74e-2997e4398149",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "5": {
+              "annotation": "",
+              "content_id": "param_value_from_file",
+              "errors": null,
+              "id": 5,
+              "input_connections": {
+                "input1": {
+                  "id": 4,
+                  "output_name": "list_output_tab"
+                }
+              },
+              "inputs": [],
+              "label": "numbers to param",
+              "name": "Parse parameter value",
+              "outputs": [
+                {
+                  "name": "integer_param",
+                  "type": "expression.json"
+                }
+              ],
+              "position": {
+                "left": 1400,
+                "top": 29
+              },
+              "post_job_actions": {},
+              "tool_id": "param_value_from_file",
+              "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"param_type\": \"integer\", \"remove_newlines\": true, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "0.1.0",
+              "type": "tool",
+              "uuid": "de3e45a6-7f0e-401b-bc9d-f2b40cafa9ef",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "params_list",
+                  "output_name": "integer_param",
+                  "uuid": "dd67c5f1-05fd-4942-aae2-4279615ae095"
+                }
+              ]
+            }
+          },
+          "tags": [],
+          "uuid": "b1b8fc8b-21b0-4eb7-a298-f2662100966f"
+        },
+        "tool_id": null,
+        "type": "subworkflow",
+        "uuid": "290127af-5726-48dc-b5e9-780b1869880a",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_2d/baredsc_2d/1.1.2+galaxy1",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "MCMC|nnorm": {
+            "id": 7,
+            "output_name": "params_list"
+          },
+          "MCMC|xmax": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "MCMC|ymax": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "geneXColName": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "geneYColName": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "input_counts|input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool baredSC 2d",
+            "name": "MCMC"
+          },
+          {
+            "description": "runtime parameter for tool baredSC 2d",
+            "name": "MCMC"
+          },
+          {
+            "description": "runtime parameter for tool baredSC 2d",
+            "name": "MCMC"
+          },
+          {
+            "description": "runtime parameter for tool baredSC 2d",
+            "name": "input_counts"
+          }
+        ],
+        "label": null,
+        "name": "baredSC 2d",
+        "outputs": [
+          {
+            "name": "qc_plots",
+            "type": "input"
+          },
+          {
+            "name": "other_outputs",
+            "type": "input"
+          },
+          {
+            "name": "output",
+            "type": "npz"
+          },
+          {
+            "name": "neff",
+            "type": "txt"
+          },
+          {
+            "name": "pdf2d",
+            "type": "tabular"
+          },
+          {
+            "name": "pdf2d_flat",
+            "type": "tabular"
+          },
+          {
+            "name": "plot",
+            "type": "png"
+          },
+          {
+            "name": "logevidence",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 923,
+          "top": 35.5
+        },
+        "post_job_actions": {
+          "HideDatasetActionlogevidence": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "logevidence"
+          },
+          "HideDatasetActionother_outputs": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "other_outputs"
+          },
+          "HideDatasetActionpdf2d": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "pdf2d"
+          },
+          "HideDatasetActionpdf2d_flat": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "pdf2d_flat"
+          },
+          "HideDatasetActionplot": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "plot"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_2d/baredsc_2d/1.1.2+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "344c2af50552",
+          "name": "baredsc_2d",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"MCMC\": {\"xmin\": \"0.0\", \"xmax\": {\"__class__\": \"ConnectedValue\"}, \"nx\": \"25\", \"minScalex\": \"0.1\", \"ymin\": \"0.0\", \"ymax\": {\"__class__\": \"ConnectedValue\"}, \"ny\": \"25\", \"minScaley\": \"0.1\", \"scale\": {\"type\": \"Seurat\", \"__current_case__\": 0, \"targetSum\": \"10000.0\"}, \"seed\": \"1\", \"nnorm\": {\"__class__\": \"ConnectedValue\"}, \"nsampMCMC\": \"100000\", \"automaticRestart\": {\"set_minNeff\": \"yes\", \"__current_case__\": 0, \"minNeff\": \"200.0\"}}, \"advanced\": {\"osampx\": \"10\", \"osampxpdf\": \"4\", \"osampy\": \"10\", \"osampypdf\": \"4\", \"coviscale\": \"1.0\", \"nis\": \"1000\", \"burn\": {\"custom\": \"no\", \"__current_case__\": 0}, \"scalePrior\": \"0.3\"}, \"filter\": {\"nb\": \"0\", \"__current_case__\": 0}, \"geneXColName\": {\"__class__\": \"ConnectedValue\"}, \"geneYColName\": {\"__class__\": \"ConnectedValue\"}, \"input_counts\": {\"filetype\": \"tabular\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}}, \"plots\": {\"image_file_format\": \"png\", \"title\": \"\", \"removeFirstSamples\": \"-1\", \"nsampInPlot\": \"100000\", \"prettyBinsx\": \"-1\", \"prettyBinsy\": \"-1\", \"log1pColorScale\": false, \"splity\": \"\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.2+galaxy1",
+        "type": "tool",
+        "uuid": "a152f394-76eb-4118-9e80-d7ca2a967447",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "baredsc_qc_plots",
+            "output_name": "qc_plots",
+            "uuid": "e2727812-ff8b-4c84-b419-9c8bfc98879b"
+          },
+          {
+            "label": "baredsc_neff",
+            "output_name": "neff",
+            "uuid": "03bf5732-432b-4fda-8236-64ca8252d904"
+          },
+          {
+            "label": "baredsc_numpy",
+            "output_name": "output",
+            "uuid": "7a5f8953-3568-4fc2-a180-07867c096638"
+          }
+        ]
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_combine_2d/baredsc_combine_2d/1.1.2+galaxy1",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "MCMC|outputs": {
+            "id": 8,
+            "output_name": "output"
+          },
+          "MCMC|xmax": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "MCMC|ymax": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "advanced|getPVal": {
+            "id": 6,
+            "output_name": "output"
+          },
+          "geneXColName": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "geneYColName": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "input_counts|input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Combine multiple 2D Models",
+            "name": "MCMC"
+          },
+          {
+            "description": "runtime parameter for tool Combine multiple 2D Models",
+            "name": "MCMC"
+          },
+          {
+            "description": "runtime parameter for tool Combine multiple 2D Models",
+            "name": "MCMC"
+          },
+          {
+            "description": "runtime parameter for tool Combine multiple 2D Models",
+            "name": "advanced"
+          },
+          {
+            "description": "runtime parameter for tool Combine multiple 2D Models",
+            "name": "input_counts"
+          }
+        ],
+        "label": null,
+        "name": "Combine multiple 2D Models",
+        "outputs": [
+          {
+            "name": "other_outputs",
+            "type": "input"
+          },
+          {
+            "name": "pdf2d",
+            "type": "tabular"
+          },
+          {
+            "name": "pdf2d_flat",
+            "type": "tabular"
+          },
+          {
+            "name": "plot",
+            "type": "png"
+          }
+        ],
+        "position": {
+          "left": 1240,
+          "top": 199.5
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_combine_2d/baredsc_combine_2d/1.1.2+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "1d77986f9ddc",
+          "name": "baredsc_combine_2d",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"MCMC\": {\"outputs\": {\"__class__\": \"ConnectedValue\"}, \"xmin\": \"0.0\", \"xmax\": {\"__class__\": \"ConnectedValue\"}, \"nx\": \"25\", \"minScalex\": \"0.1\", \"ymin\": \"0.0\", \"ymax\": {\"__class__\": \"ConnectedValue\"}, \"ny\": \"25\", \"minScaley\": \"0.1\", \"scale\": {\"type\": \"Seurat\", \"__current_case__\": 0, \"targetSum\": \"10000.0\"}, \"seed\": \"1\"}, \"advanced\": {\"getPVal\": {\"__class__\": \"ConnectedValue\"}, \"osampx\": \"10\", \"osampxpdf\": \"4\", \"osampy\": \"10\", \"osampypdf\": \"4\", \"coviscale\": \"1.0\", \"nis\": \"1000\", \"scalePrior\": \"0.3\"}, \"filter\": {\"nb\": \"0\", \"__current_case__\": 0}, \"geneXColName\": {\"__class__\": \"ConnectedValue\"}, \"geneYColName\": {\"__class__\": \"ConnectedValue\"}, \"input_counts\": {\"filetype\": \"tabular\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}}, \"plots\": {\"image_file_format\": \"png\", \"title\": \"\", \"removeFirstSamples\": \"-1\", \"nsampInPlot\": \"100000\", \"prettyBinsx\": \"-1\", \"prettyBinsy\": \"-1\", \"log1pColorScale\": false, \"splity\": \"\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.2+galaxy1",
+        "type": "tool",
+        "uuid": "b4bc675e-e91e-421c-a27b-4d5c3807c011",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "combined_pdf2d",
+            "output_name": "pdf2d",
+            "uuid": "e93d6931-16e2-4190-93ed-21e8934216d8"
+          },
+          {
+            "label": "combined_pdf2d_flat",
+            "output_name": "pdf2d_flat",
+            "uuid": "cc583ac2-170b-4ae6-b3e6-c9abcb018435"
+          },
+          {
+            "label": "combined_plot",
+            "output_name": "plot",
+            "uuid": "61cb1daf-5c4a-4bf9-9d93-9021fc0fac8d"
+          },
+          {
+            "label": "combined_other_outputs",
+            "output_name": "other_outputs",
+            "uuid": "c2bf132f-f1af-44fd-93e3-833fcb42228f"
+          }
+        ]
+      }
+    },
+    "tags": [],
+    "uuid": "cd20cc84-015b-4a33-aa30-59b1088f04f3",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "baredSC_2d_logN (release v0.2)",
+      "annotation": "Run baredSC in 2 dimensions in logNorm for 1 to N gaussians and combine models.",
+      "format_version": "0.1",
+      "uuid": "cd20cc84-015b-4a33-aa30-59b1088f04f3",
+      "version": 1,
+      "tags": [],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-1964-4960",
+          "name": "Lucille Delisle"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Tabular with raw expression values",
+        "annotation": "The dataset must have a first row with row names. Among them should be 'nCount_RNA' and the gene you want to get PDF of.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"tabular\"], \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Gene name for x axis",
+        "annotation": "Must be included in the first row of the tabular",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 28,
+          "top": 91
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "maximum value in logNorm for x-axis",
+        "annotation": "Maximum value to explore in logNorm in x-axis (usually between 2 and 4)",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "position": {
+          "left": 78,
+          "top": 187.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Gene name for y axis",
+        "annotation": "Must be included in the first row of the tabular",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 152,
+          "top": 297.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "maximum value in logNorm for y-axis",
+        "annotation": "Maximum value to explore in logNorm in y-axis (usually between 2 and 4)",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "position": {
+          "left": 254,
+          "top": 390.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "5",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Maximum number of Gaussians to study",
+        "annotation": "Usually 4 is enough",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 320,
+          "top": 481
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "6",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "compute p-value",
+        "annotation": "Whether you want to get a p-value. As a consequence, less samples than available will be used for plots.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "position": {
+          "left": 378,
+          "top": 578.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "7",
+        "type": "subworkflow",
+        "name": "generate_param_list_one_to_number",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": "",
+        "tool_state": "",
+        "position": {
+          "left": 677,
+          "top": 346.5
+        },
+        "input_connections": {
+          "Maximum number in param output": {
+            "id": 5,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": []
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "baredSC 2d",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_2d/baredsc_2d/1.1.2+galaxy1",
+        "tool_version": "1.1.2+galaxy1",
+        "tool_state": "{\"MCMC\": {\"xmin\": \"0.0\", \"xmax\": {\"__class__\": \"ConnectedValue\"}, \"nx\": \"25\", \"minScalex\": \"0.1\", \"ymin\": \"0.0\", \"ymax\": {\"__class__\": \"ConnectedValue\"}, \"ny\": \"25\", \"minScaley\": \"0.1\", \"scale\": {\"type\": \"Seurat\", \"__current_case__\": 0, \"targetSum\": \"10000.0\"}, \"seed\": \"1\", \"nnorm\": {\"__class__\": \"ConnectedValue\"}, \"nsampMCMC\": \"100000\", \"automaticRestart\": {\"set_minNeff\": \"yes\", \"__current_case__\": 0, \"minNeff\": \"200.0\"}}, \"advanced\": {\"osampx\": \"10\", \"osampxpdf\": \"4\", \"osampy\": \"10\", \"osampypdf\": \"4\", \"coviscale\": \"1.0\", \"nis\": \"1000\", \"burn\": {\"custom\": \"no\", \"__current_case__\": 0}, \"scalePrior\": \"0.3\"}, \"filter\": {\"nb\": \"0\", \"__current_case__\": 0}, \"geneXColName\": {\"__class__\": \"ConnectedValue\"}, \"geneYColName\": {\"__class__\": \"ConnectedValue\"}, \"input_counts\": {\"filetype\": \"tabular\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}}, \"plots\": {\"image_file_format\": \"png\", \"title\": \"\", \"removeFirstSamples\": \"-1\", \"nsampInPlot\": \"100000\", \"prettyBinsx\": \"-1\", \"prettyBinsy\": \"-1\", \"log1pColorScale\": false, \"splity\": \"\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 923,
+          "top": 35.5
+        },
+        "input_connections": {
+          "MCMC|nnorm": {
+            "id": 7,
+            "output_name": "params_list"
+          },
+          "MCMC|xmax": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "MCMC|ymax": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "geneXColName": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "geneYColName": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "input_counts|input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "qc_plots",
+            "type": "input"
+          },
+          {
+            "name": "other_outputs",
+            "type": "input"
+          },
+          {
+            "name": "output",
+            "type": "npz"
+          },
+          {
+            "name": "neff",
+            "type": "txt"
+          },
+          {
+            "name": "pdf2d",
+            "type": "tabular"
+          },
+          {
+            "name": "pdf2d_flat",
+            "type": "tabular"
+          },
+          {
+            "name": "plot",
+            "type": "png"
+          },
+          {
+            "name": "logevidence",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "Combine multiple 2D Models",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_combine_2d/baredsc_combine_2d/1.1.2+galaxy1",
+        "tool_version": "1.1.2+galaxy1",
+        "tool_state": "{\"MCMC\": {\"outputs\": {\"__class__\": \"ConnectedValue\"}, \"xmin\": \"0.0\", \"xmax\": {\"__class__\": \"ConnectedValue\"}, \"nx\": \"25\", \"minScalex\": \"0.1\", \"ymin\": \"0.0\", \"ymax\": {\"__class__\": \"ConnectedValue\"}, \"ny\": \"25\", \"minScaley\": \"0.1\", \"scale\": {\"type\": \"Seurat\", \"__current_case__\": 0, \"targetSum\": \"10000.0\"}, \"seed\": \"1\"}, \"advanced\": {\"getPVal\": {\"__class__\": \"ConnectedValue\"}, \"osampx\": \"10\", \"osampxpdf\": \"4\", \"osampy\": \"10\", \"osampypdf\": \"4\", \"coviscale\": \"1.0\", \"nis\": \"1000\", \"scalePrior\": \"0.3\"}, \"filter\": {\"nb\": \"0\", \"__current_case__\": 0}, \"geneXColName\": {\"__class__\": \"ConnectedValue\"}, \"geneYColName\": {\"__class__\": \"ConnectedValue\"}, \"input_counts\": {\"filetype\": \"tabular\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}}, \"plots\": {\"image_file_format\": \"png\", \"title\": \"\", \"removeFirstSamples\": \"-1\", \"nsampInPlot\": \"100000\", \"prettyBinsx\": \"-1\", \"prettyBinsy\": \"-1\", \"log1pColorScale\": false, \"splity\": \"\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1240,
+          "top": 199.5
+        },
+        "input_connections": {
+          "MCMC|outputs": {
+            "id": 8,
+            "output_name": "output"
+          },
+          "MCMC|xmax": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "MCMC|ymax": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "advanced|getPVal": {
+            "id": 6,
+            "output_name": "output"
+          },
+          "geneXColName": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "geneYColName": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "input_counts|input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "other_outputs",
+            "type": "input"
+          },
+          {
+            "name": "pdf2d",
+            "type": "tabular"
+          },
+          {
+            "name": "pdf2d_flat",
+            "type": "tabular"
+          },
+          {
+            "name": "plot",
+            "type": "png"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_2d/baredsc_2d/1.1.2+galaxy1",
+        "tool_version": "1.1.2+galaxy1",
+        "step_id": "8"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/baredsc_combine_2d/baredsc_combine_2d/1.1.2+galaxy1",
+        "tool_version": "1.1.2+galaxy1",
+        "step_id": "9"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "Tabular with raw expression values",
+        "annotation": "The dataset must have a first row with row names. Among them should be 'nCount_RNA' and the gene you want to get PDF of."
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "8",
+        "output_name": "qc_plots",
+        "label": "baredsc_qc_plots"
+      },
+      {
+        "step_id": "8",
+        "output_name": "neff",
+        "label": "baredsc_neff"
+      },
+      {
+        "step_id": "8",
+        "output_name": "output",
+        "label": "baredsc_numpy"
+      },
+      {
+        "step_id": "9",
+        "output_name": "pdf2d",
+        "label": "combined_pdf2d"
+      },
+      {
+        "step_id": "9",
+        "output_name": "pdf2d_flat",
+        "label": "combined_pdf2d_flat"
+      },
+      {
+        "step_id": "9",
+        "output_name": "plot",
+        "label": "combined_plot"
+      },
+      {
+        "step_id": "9",
+        "output_name": "other_outputs",
+        "label": "combined_other_outputs"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "Maximum number in param output"
+      },
+      {
+        "from_step": 7,
+        "from_output": "params_list",
+        "to_step": "8",
+        "to_input": "MCMC|nnorm"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "MCMC|xmax"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "MCMC|ymax"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "geneXColName"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "geneYColName"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "input_counts|input"
+      },
+      {
+        "from_step": 8,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "MCMC|outputs"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "MCMC|xmax"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "MCMC|ymax"
+      },
+      {
+        "from_step": 6,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "advanced|getPVal"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "geneXColName"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "geneYColName"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "input_counts|input"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:52:25.976066"
+}

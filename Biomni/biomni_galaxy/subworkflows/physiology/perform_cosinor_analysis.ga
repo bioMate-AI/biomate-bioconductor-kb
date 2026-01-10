@@ -1,0 +1,58 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_physiology_perform_cosinor_analysis",
+  "annotation": "Performs cosinor analysis on physiological time series data to characterize circadian rhythms.",
+  "tags": [
+    "biomni",
+    "physiology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "time_data",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "physiological_data",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "biomni_physiology_perform_cosinor_analysis",
+      "label": "perform_cosinor_analysis",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "time_data": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "physiological_data": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

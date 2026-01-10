@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_bio_SeqIO_parse" name="Biopython: SeqIO.parse" version="1.0.0">
+  <description>Call Biopython SeqIO.parse function</description>
+  <requirements>
+    <requirement type="package" version="">bio</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from Bio import *
+# Tool implementation
+result = SeqIO.parse(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**Biopython: SeqIO.parse**
+
+Call Biopython SeqIO.parse function
+
+**Tool Type**: python
+**Library**: Bio
+**Function**: SeqIO.parse
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;Bio&quot;,
+  &quot;function&quot;: &quot;SeqIO.parse&quot;,
+  &quot;call_template&quot;: &quot;from Bio import ...; result = SeqIO.parse(...)&quot;
+}
+]]&gt;</help>
+</tool>

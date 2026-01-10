@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<tool id="biomni_synthetic_biology_analyze_bacterial_growth_rate" name="Biomni: Analyze Bacterial Growth Rate" version="1.0.0">
+    <description>Analyze bacterial growth data and extract growth parameters from OD600 measurements.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.synthetic_biology import analyze_bacterial_growth_rate
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_bacterial_growth_rate(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --time_points '$time_points'
+--od_measurements '$od_measurements'
+#if $strain_name
+    --strain_name '$strain_name'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="time_points" type="text" label="Time Points" help="Time points at which OD600 measurements were taken (in hours)"  />
+        <param name="od_measurements" type="text" label="Od Measurements" help="Optical density (OD600) measurements corresponding to each time point"  />
+        <param name="strain_name" type="text" label="Strain Name" help="Name of the bacterial strain being analyzed, default is "Unknown strain"" value="Unknown strain" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory where to save the output files, default is current directory" value="./" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Bacterial Growth Rate**
+
+Analyze bacterial growth data and extract growth parameters from OD600 measurements.
+
+Parameters
+----------
+time_points : list or numpy.ndarray
+    Time points at which OD600 measurements were taken (in hours)
+od_measurements : list or numpy.ndarray
+    Optical density (OD600) measurements corresponding to each time point
+strain_name : str, optional
+    Name of the bacterial strain being analyzed, default is "Unknown strain"
+output_dir : str, optional
+    Directory where to save the output files, default is current directory
+
+Returns
+-------
+str
+    A research log summarizing the analysis steps, fitted parameters, and results
+
+**Domain**: synthetic_biology
+**Function**: analyze_bacterial_growth_rate
+]]></help>
+</tool>

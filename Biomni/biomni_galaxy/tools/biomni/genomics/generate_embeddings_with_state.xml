@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+<tool id="biomni_genomics_generate_embeddings_with_state" name="Biomni: Generate Embeddings With State" version="1.0.0">
+    <description>Generate State embeddings for single-cell RNA-seq data using the SE-600M model.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genomics import generate_embeddings_with_state
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = generate_embeddings_with_state(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --adata_filename '$adata_filename'
+--data_dir '$data_dir'
+--model_folder '$model_folder'
+#if $output_filename
+    --output_filename '$output_filename'
+#end if
+#if $checkpoint
+    --checkpoint '$checkpoint'
+#end if
+#if $embed_key
+    --embed_key '$embed_key'
+#end if
+#if $protein_embeddings
+    --protein_embeddings '$protein_embeddings'
+#end if
+#if $batch_size
+    --batch_size '$batch_size'
+#end if
+]]></command>
+    <inputs>
+        <param name="adata_filename" type="text" label="Adata Filename" help="Name of the input AnnData file (.h5ad format)"  />
+        <param name="data_dir" type="text" label="Data Dir" help="Directory containing the input data file"  />
+        <param name="model_folder" type="text" label="Model Folder" help="Directory where the SE-600M model will be downloaded and stored"  />
+        <param name="output_filename" type="text" label="Output Filename" help="Name of the output file. If None, will use input filename with '_state_embeddings' suffix"  optional="true"/>
+        <param name="checkpoint" type="text" label="Checkpoint" help="Path to the specific model checkpoint. If None, uses the latest checkpoint in model_folder"  optional="true"/>
+        <param name="embed_key" type="text" label="Embed Key" help="Name of key to store embeddings in the output AnnData object" value="X_state" optional="true"/>
+        <param name="protein_embeddings" type="text" label="Protein Embeddings" help="Path to protein embeddings override (.pt). If omitted, auto-detects in model folder"  optional="true"/>
+        <param name="batch_size" type="text" label="Batch Size" help="Batch size for embedding forward pass. Increase to use more VRAM and speed up embedding" value="500" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Generate Embeddings With State**
+
+Generate State embeddings for single-cell RNA-seq data using the SE-600M model.
+
+This function downloads the SE-600M model from Hugging Face, installs required dependencies,
+and generates embeddings for the input AnnData object.
+
+Parameters:
+-----------
+adata_filename : str
+    Name of the input AnnData file (.h5ad format)
+data_dir : str
+    Directory containing the input data file
+model_folder : str
+    Directory where the SE-600M model will be downloaded and stored
+output_filename : str, optional
+    Name of the output file. If None, will use input filename with '_state_embeddings' suffix
+checkpoint : str, optional
+    Path to the specific model checkpoint. If None, uses the latest checkpoint in model_folder
+embed_key : str, default="X_state"
+    Name of key to store embeddings in the output AnnData object
+protein_embeddings : str, optional
+    Path to protein embeddings override (.pt). If omitted, auto-detects in model folder
+batch_size : int, default=500
+    Batch size for embedding forward pass. Increase to use more VRAM and speed up embedding
+
+Returns:
+--------
+str
+    Research log summarizing the steps performed and results
+
+Notes:
+------
+- Requires 10GB+ GPU memory for model loading
+- Downloads ~25GB model files from Hugging Face
+- Installs git-lfs, uv, and arc-state if not already available
+- Validates input h5ad file format (CSR matrix and gene_name column)
+- Provides real-time streaming output for git clone and embedding generation
+- Includes automatic retry with reduced batch size on failure
+
+**Domain**: genomics
+**Function**: generate_embeddings_with_state
+]]></help>
+</tool>

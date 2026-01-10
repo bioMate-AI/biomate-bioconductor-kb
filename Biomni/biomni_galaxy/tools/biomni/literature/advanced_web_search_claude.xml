@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<tool id="biomni_literature_advanced_web_search_claude" name="Biomni: Advanced Web Search Claude" version="1.0.0">
+    <description>Initiate an advanced web search by launching a specialized agent to collect relevant information and citations through multiple rounds of web searches for a given query.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.literature import advanced_web_search_claude
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = advanced_web_search_claude(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --query '$query'
+#if $max_searches
+    --max_searches '$max_searches'
+#end if
+#if $max_retries
+    --max_retries '$max_retries'
+#end if
+]]></command>
+    <inputs>
+        <param name="query" type="text" label="Query" help="The search phrase you want Claude to look up."  />
+        <param name="max_searches" type="integer" label="Max Searches" help="Upper-bound on searches Claude may issue inside this request." value="1" optional="true"/>
+        <param name="max_retries" type="integer" label="Max Retries" help="Maximum number of retry attempts with exponential backoff." value="3" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Advanced Web Search Claude**
+
+Initiate an advanced web search by launching a specialized agent to collect relevant information and citations through multiple rounds of web searches for a given query.
+Craft the query carefully for the search agent to find the most relevant information.
+
+Parameters
+----------
+query : str
+    The search phrase you want Claude to look up.
+max_searches : int, optional
+    Upper-bound on searches Claude may issue inside this request.
+max_retries : int, optional
+    Maximum number of retry attempts with exponential backoff.
+
+Returns
+-------
+full_text : str
+    A formatted string containing the full text response from Claude and the citations.
+
+**Domain**: literature
+**Function**: advanced_web_search_claude
+]]></help>
+</tool>

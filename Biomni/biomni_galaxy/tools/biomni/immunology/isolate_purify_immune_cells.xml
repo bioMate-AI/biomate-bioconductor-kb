@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<tool id="biomni_immunology_isolate_purify_immune_cells" name="Biomni: Isolate Purify Immune Cells" version="1.0.0">
+    <description>Simulates the isolation and purification of immune cells from tissue samples.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.immunology import isolate_purify_immune_cells
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = isolate_purify_immune_cells(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --tissue_type '$tissue_type'
+--target_cell_type '$target_cell_type'
+#if $enzyme_type
+    --enzyme_type '$enzyme_type'
+#end if
+#if $macs_antibody
+    --macs_antibody '$macs_antibody'
+#end if
+#if $digestion_time_min
+    --digestion_time_min '$digestion_time_min'
+#end if
+]]></command>
+    <inputs>
+        <param name="tissue_type" type="text" label="Tissue Type" help="The type of tissue sample (e.g., 'adipose', 'kidney', 'liver', 'lung', 'spleen')"  />
+        <param name="target_cell_type" type="text" label="Target Cell Type" help="The immune cell population to isolate (e.g., 'macrophages', 'leukocytes', 'T cells')"  />
+        <param name="enzyme_type" type="text" label="Enzyme Type" help="The enzyme used for tissue digestion (default: 'collagenase')" value="collagenase" optional="true"/>
+        <param name="macs_antibody" type="text" label="Macs Antibody" help="Specific antibody for magnetic-assisted cell sorting (default: None, will be set based on target cell type)"  optional="true"/>
+        <param name="digestion_time_min" type="text" label="Digestion Time Min" help="Digestion time in minutes (default: 45)" value="45" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Isolate Purify Immune Cells**
+
+Simulates the isolation and purification of immune cells from tissue samples.
+
+Parameters
+----------
+tissue_type : str
+    The type of tissue sample (e.g., 'adipose', 'kidney', 'liver', 'lung', 'spleen')
+target_cell_type : str
+    The immune cell population to isolate (e.g., 'macrophages', 'leukocytes', 'T cells')
+enzyme_type : str, optional
+    The enzyme used for tissue digestion (default: 'collagenase')
+macs_antibody : str, optional
+    Specific antibody for magnetic-assisted cell sorting (default: None, will be set based on target cell type)
+digestion_time_min : int, optional
+    Digestion time in minutes (default: 45)
+
+Returns
+-------
+str
+    A research log describing the cell isolation and purification process
+
+**Domain**: immunology
+**Function**: isolate_purify_immune_cells
+]]></help>
+</tool>

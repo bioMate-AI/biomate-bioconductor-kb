@@ -1,0 +1,155 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_microbiology_simulate_microbial_population_dynamics",
+  "annotation": "Performs stochastic simulation of microbial population dynamics using the Gillespie algorithm.",
+  "tags": [
+    "biomni",
+    "microbiology",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "initial_populations",
+      "annotation": "Input: initial_populations",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "growth_rates",
+      "annotation": "Input: growth_rates",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "parameter_input",
+      "label": "clearance_rates",
+      "annotation": "Input: clearance_rates",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "parameter_input",
+      "label": "carrying_capacities",
+      "annotation": "Input: carrying_capacities",
+      "position": {
+        "left": 0,
+        "top": 300
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "tool",
+      "tool_id": "python_numpy_np_zeros",
+      "label": "Step 1: np_zeros",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "tool",
+      "tool_id": "python_numpy_np_array",
+      "label": "Step 2: np_array",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      }
+    },
+    "6": {
+      "id": 6,
+      "type": "tool",
+      "tool_id": "python_numpy_np_linspace",
+      "label": "Step 3: np_linspace",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "output"
+        }
+      }
+    },
+    "7": {
+      "id": 7,
+      "type": "tool",
+      "tool_id": "python_numpy_np_mean",
+      "label": "Step 4: np_mean",
+      "position": {
+        "left": 1200,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "output"
+        }
+      }
+    },
+    "8": {
+      "id": 8,
+      "type": "tool",
+      "tool_id": "python_numpy_np_random_exponential",
+      "label": "Step 5: np_random_exponential",
+      "position": {
+        "left": 1500,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "output"
+        }
+      }
+    },
+    "9": {
+      "id": 9,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 1800,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 8,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "simulate_microbial_population_dynamics-output"
+    }
+  ]
+}

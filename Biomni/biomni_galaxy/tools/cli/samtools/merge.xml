@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_samtools_merge" name="samtools merge" version="1.0.0">
+  <description>Run samtools merge command</description>
+  <requirements>
+    <requirement type="package">samtools</requirement>
+  </requirements>
+  <command detect_errors="exit_code">samtools merge $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**samtools merge**
+
+Run samtools merge command
+
+**Tool Type**: cli
+**Library**: samtools
+**Function**: merge
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;samtools&quot;,
+  &quot;subcommand&quot;: &quot;merge&quot;,
+  &quot;call_template&quot;: &quot;samtools merge [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

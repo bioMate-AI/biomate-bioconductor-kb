@@ -1,0 +1,1264 @@
+{
+  "workflow_id": "e75bd7d392e65209",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "e75bd7d392e65209",
+    "latest_workflow_id": "cc064e05b41b4ff9",
+    "name": "WGS2Protein v3.0.0",
+    "create_time": "2025-06-29T23:10:23.121503",
+    "update_time": "2025-08-05T15:19:46.655485",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "3e2145d1-9177-4147-98e1-2a9cce35d6f5",
+    "creator_deleted": false,
+    "annotations": [
+      "This workflow extracts protein-coding sequences from whole genome sequencing (WGS) data obtained from the European Nucleotide Archive (ENA). It automates the preprocessing, annotation, and selection of relevant protein sequences using tools such as Prokka, FASTA-to-Tabular, and pattern-based selection. The resulting dataset supports downstream analyses including comparative genomics, phylogenetics, and functional annotation."
+    ],
+    "url": "/api/workflows/e75bd7d392e65209",
+    "owner": "crist_john_m._pastor",
+    "source_metadata": null,
+    "number_of_steps": 12,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "This workflow extracts protein-coding sequences from whole genome sequencing (WGS) data obtained from the European Nucleotide Archive (ENA). It automates the preprocessing, annotation, and selection of relevant protein sequences using tools such as Prokka, FASTA-to-Tabular, and pattern-based selection. The resulting dataset supports downstream analyses including comparative genomics, phylogenetics, and functional annotation.",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "email": "mailto:bioceejlibrary@gmail.com",
+        "honorificSuffix": "PhD, FHEA",
+        "identifier": "0000-0001-5796-3068",
+        "jobTitle": "Associate Professor II",
+        "name": "Crist John M. Pastor"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "CC-BY-4.0",
+    "name": "WGS2Protein v3.0.0",
+    "readme": "## Workflow Overview\n\n### Inputs\n- Paired-end raw sequencing reads (FASTQ files)\n- List of selected protein identifiers to be supplied by the researcher in the \"Select\" tool at the end of the workflow (Please strictly follow syntax to obtain desired protein sequences)\n\n### Tools Used\n| Tool             | Purpose                                                  |\n|------------------|----------------------------------------------------------|\n| FastQC           | Quality control of raw and trimmed reads                 |\n| Trimmomatic      | Adapter and quality trimming                             |\n| Shovill          | Genome assembly                                          |\n| Prokka           | Genome annotation                                        |\n| FASTA-to-Tabular | Format conversion for downstream analysis                |\n| Select           | Selection of specific tabular data rows or columns       |\n\n---\n\n## Step-by-Step Process\n\n### 1. Input Data\n- Two datasets (paired-end FASTQ files - USER SUPPLIED: Import .gz file from European Nucleotide Archive)\n- List of selected protein identifiers to be supplied by the researcher in the \"Select\" tool at the end of the workflow (Please strictly follow syntax to obtain desired protein sequences)\n\n### 2. Quality Control (Pre-trimming)\n- Run FastQC on both input FASTQ files to assess read quality before trimming.\n\n### 3. Read Trimming\n- Use Trimmomatic to remove low-quality bases and adapters.\n- Outputs:\n  - `fastq_out_r1_paired`, `fastq_out_r2_paired` (used for assembly)\n  - `fastq_out_r1_unpaired`, `fastq_out_r2_unpaired` (discarded)\n\n### 4. Quality Control (Post-trimming)\n- Run FastQC again on the trimmed paired reads to ensure quality improvement.\n\n### 5. Genome Assembly\n- Use Shovill to assemble the trimmed paired reads into contigs.\n\n### 6. Genome Annotation\n- Annotate contigs using Prokka.\n- Outputs various files: GFF, GenBank, FASTA proteins (faa), translated proteins (ffn), etc.\n\n### 7. Conversion & Extraction\n- Convert FASTA annotations to tabular format using FASTA-to-Tabular.\n- Use Select to extract relevant sequences or data lines for downstream use or reporting.\n\n---\n\n## Outputs\n\n- Quality reports (`.html`, `.txt` from FastQC)\n- Trimmed reads (`.fastq`)\n- Contigs (`.fasta`)\n- Annotated files:\n  - `out_gff`, `out_gbk`, `out_faa`, `out_fna`, etc.\n- Tabular annotation file for downstream filtering and selection\n\n---\n\n## Requirements\n\n- Galaxy platform (workflow is visualized and executed here)\n- Tools:\n  - FastQC\n  - Trimmomatic\n  - Shovill\n  - Prokka\n  - FASTA-to-Tabular\n  - Select (USER SUPPLIED: List of selected protein identifiers to be supplied by the researcher in the \"Select\" tool at the end of the workflow (Please strictly follow syntax to obtain desired protein sequences)\n\n---\n\n## Notes\n\n- This workflow is modular. You can skip steps like trimming or second-round FastQC depending on your read quality.\n- Ensure adapter lists and parameters in Trimmomatic are appropriate for your sequencer.\n- Default Prokka parameters are used. You can supply a custom protein FASTA database if needed.\n- List of selected protein identifiers to be supplied by the researcher in the \"Select\" tool at the end of the workflow (Please strictly follow syntax to obtain desired protein sequences)\n",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [],
+        "label": null,
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 138.34681805332298
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "4f5c9da1-9896-433a-9411-4a96d248d63b",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [],
+        "label": null,
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 4.114752124562422,
+          "top": 433.76996418513517
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "161089d2-41b9-41d5-9fe3-c4112be170d7",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "errors": null,
+        "id": 2,
+        "input_connections": {
+          "input_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "adapters"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "contaminants"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "limits"
+          }
+        ],
+        "label": null,
+        "name": "FastQC",
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 252.7297223197209,
+          "top": 0
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "2c64fded1286",
+          "name": "fastqc",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.74+galaxy1",
+        "type": "tool",
+        "uuid": "148dc971-8feb-46df-9c4a-3e0b34c1b26e",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "errors": null,
+        "id": 3,
+        "input_connections": {
+          "readtype|fastq_r1_in": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "readtype|fastq_r2_in": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Trimmomatic",
+            "name": "readtype"
+          },
+          {
+            "description": "runtime parameter for tool Trimmomatic",
+            "name": "readtype"
+          }
+        ],
+        "label": null,
+        "name": "Trimmomatic",
+        "outputs": [
+          {
+            "name": "fastq_out_r1_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r2_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r1_unpaired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r2_unpaired",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 255.44840597565764,
+          "top": 260.35935367060097
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "b9aaed85cbd1",
+          "name": "trimmomatic",
+          "owner": "pjbriggs",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"yes\", \"__current_case__\": 0, \"adapter_type\": {\"standard_or_custom\": \"standard\", \"__current_case__\": 0, \"adapter_fasta\": \"TruSeq3-PE.fa\"}, \"seed_mismatches\": \"2\", \"palindrome_clip_threshold\": \"30\", \"simple_clip_threshold\": \"10\", \"min_adapter_len\": \"8\", \"keep_both_reads\": true}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"SLIDINGWINDOW\", \"__current_case__\": 0, \"window_size\": \"4\", \"required_quality\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"pair_of_files\", \"__current_case__\": 1, \"fastq_r1_in\": {\"__class__\": \"ConnectedValue\"}, \"fastq_r2_in\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.39+galaxy2",
+        "type": "tool",
+        "uuid": "6be058a2-9d7b-412a-988a-1aaf93713b5b",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "input_file": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "adapters"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "contaminants"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "limits"
+          }
+        ],
+        "label": null,
+        "name": "FastQC",
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 253.6401407928896,
+          "top": 604.3202587484145
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "2c64fded1286",
+          "name": "fastqc",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.74+galaxy1",
+        "type": "tool",
+        "uuid": "16a57a20-ba3b-4f22-828b-b0b3ffea9c93",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "input_file": {
+            "id": 3,
+            "output_name": "fastq_out_r1_paired"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "adapters"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "contaminants"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "limits"
+          }
+        ],
+        "label": null,
+        "name": "FastQC",
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 551.8411439896186,
+          "top": 1.3416388354645294
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "2c64fded1286",
+          "name": "fastqc",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.74+galaxy1",
+        "type": "tool",
+        "uuid": "350b646b-5fe0-431d-b8aa-f1c37689348d",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/shovill/shovill/1.1.0+galaxy2",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "library|R1": {
+            "id": 3,
+            "output_name": "fastq_out_r1_paired"
+          },
+          "library|R2": {
+            "id": 3,
+            "output_name": "fastq_out_r2_paired"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Shovill",
+            "name": "library"
+          },
+          {
+            "description": "runtime parameter for tool Shovill",
+            "name": "library"
+          }
+        ],
+        "label": null,
+        "name": "Shovill",
+        "outputs": [
+          {
+            "name": "shovill_std_log",
+            "type": "txt"
+          },
+          {
+            "name": "contigs",
+            "type": "fasta"
+          },
+          {
+            "name": "contigs_graph",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 552.4399922929078,
+          "top": 265.2224795487373
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/shovill/shovill/1.1.0+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "ee17a294d3a3",
+          "name": "shovill",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adv\": {\"namefmt\": \"contig%05d\", \"depth\": \"100\", \"gsize\": \"\", \"kmers\": \"\", \"opts\": \"\", \"keep_files\": {\"nocorr\": \"no_correction\", \"__current_case__\": 0}, \"minlen\": \"0\", \"mincov\": \"2\"}, \"assembler\": \"spades\", \"library\": {\"lib_type\": \"paired\", \"__current_case__\": 0, \"R1\": {\"__class__\": \"ConnectedValue\"}, \"R2\": {\"__class__\": \"ConnectedValue\"}}, \"log\": true, \"trim\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.0+galaxy2",
+        "type": "tool",
+        "uuid": "55b0c4fa-907c-4242-a07c-a36050e674f4",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "input_file": {
+            "id": 3,
+            "output_name": "fastq_out_r2_paired"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "adapters"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "contaminants"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "limits"
+          }
+        ],
+        "label": null,
+        "name": "FastQC",
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 550.9301536423307,
+          "top": 458.75611719755716
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "2c64fded1286",
+          "name": "fastqc",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.74+galaxy1",
+        "type": "tool",
+        "uuid": "f69c9dd0-cfe2-4ad1-9917-e172c81412c9",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.6+galaxy1",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "input": {
+            "id": 6,
+            "output_name": "contigs"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Prokka",
+            "name": "proteins"
+          }
+        ],
+        "label": null,
+        "name": "Prokka",
+        "outputs": [
+          {
+            "name": "out_gff",
+            "type": "gff3"
+          },
+          {
+            "name": "out_gbk",
+            "type": "genbank"
+          },
+          {
+            "name": "out_fna",
+            "type": "fasta"
+          },
+          {
+            "name": "out_faa",
+            "type": "fasta"
+          },
+          {
+            "name": "out_ffn",
+            "type": "fasta"
+          },
+          {
+            "name": "out_sqn",
+            "type": "asn1"
+          },
+          {
+            "name": "out_fsa",
+            "type": "fasta"
+          },
+          {
+            "name": "out_tbl",
+            "type": "txt"
+          },
+          {
+            "name": "out_tsv",
+            "type": "tabular"
+          },
+          {
+            "name": "out_err",
+            "type": "txt"
+          },
+          {
+            "name": "out_txt",
+            "type": "txt"
+          },
+          {
+            "name": "out_log",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 822.2344081292861,
+          "top": 261.56249672523967
+        },
+        "post_job_actions": {
+          "HideDatasetActionout_err": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_err"
+          },
+          "HideDatasetActionout_fna": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_fna"
+          },
+          "HideDatasetActionout_fsa": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_fsa"
+          },
+          "HideDatasetActionout_gbk": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_gbk"
+          },
+          "HideDatasetActionout_gff": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_gff"
+          },
+          "HideDatasetActionout_log": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_log"
+          },
+          "HideDatasetActionout_sqn": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_sqn"
+          },
+          "HideDatasetActionout_tbl": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_tbl"
+          },
+          "HideDatasetActionout_tsv": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_tsv"
+          },
+          "HideDatasetActionout_txt": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_txt"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.6+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "8a22554cdde2",
+          "name": "prokka",
+          "owner": "crs4",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"centre\": {\"__class__\": \"ConnectedValue\"}, \"compliant\": {\"compliant_select\": \"no\", \"__current_case__\": 0, \"addgenes\": false, \"mincontig\": \"200\"}, \"evalue\": \"1e-06\", \"fast\": false, \"genus\": \"\", \"gffver\": \"3\", \"increment\": \"1\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"kingdom\": {\"kingdom_select\": \"Bacteria\", \"__current_case__\": 1, \"gcode\": \"11\"}, \"locustag\": \"\", \"metagenome\": true, \"norrna\": false, \"notrna\": false, \"outputs\": [\"gff\", \"gbk\", \"fna\", \"faa\", \"ffn\", \"sqn\", \"fsa\", \"tbl\", \"tsv\", \"err\", \"txt\"], \"plasmid\": \"\", \"proteins\": {\"__class__\": \"RuntimeValue\"}, \"rfam\": false, \"species\": \"\", \"strain\": \"\", \"usegenus\": true, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.14.6+galaxy1",
+        "type": "tool",
+        "uuid": "0053c188-877c-4199-9f48-868b86964e8c",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "out_ffn",
+            "output_name": "out_ffn",
+            "uuid": "1166a615-660b-41b7-8a24-ba52e8b682ef"
+          },
+          {
+            "label": "out_faa",
+            "output_name": "out_faa",
+            "uuid": "80fda4e7-3b57-450a-8fb3-303195f8fc13"
+          }
+        ]
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_to_tabular/fasta2tab/1.1.1",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "input": {
+            "id": 8,
+            "output_name": "out_faa"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "FASTA-to-Tabular",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 1094.851921958302,
+          "top": 283.66536580083533
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_to_tabular/fasta2tab/1.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "e7ed3c310b74",
+          "name": "fasta_to_tabular",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"descr_columns\": \"2\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"keep_first\": \"0\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.1",
+        "type": "tool",
+        "uuid": "516fc2b9-41ce-45b3-85a2-3371a3483ec9",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "10": {
+        "annotation": "",
+        "content_id": "Grep1",
+        "errors": null,
+        "id": 10,
+        "input_connections": {
+          "input": {
+            "id": 9,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Select",
+            "name": "input"
+          }
+        ],
+        "label": null,
+        "name": "Select",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1129.9262950790974,
+          "top": 507.3345447568848
+        },
+        "post_job_actions": {},
+        "tool_id": "Grep1",
+        "tool_state": "{\"input\": {\"__class__\": \"RuntimeValue\"}, \"invert\": \"\", \"keep_header\": false, \"pattern\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.4",
+        "type": "tool",
+        "uuid": "36f4b8f5-4df9-4709-bcd1-99db3d7df185",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "11": {
+        "annotation": "",
+        "content_id": "Grep1",
+        "errors": null,
+        "id": 11,
+        "input_connections": {
+          "input": {
+            "id": 9,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Select",
+            "name": "input"
+          }
+        ],
+        "label": null,
+        "name": "Select",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1335.3124581513,
+          "top": 291.718758268596
+        },
+        "post_job_actions": {},
+        "tool_id": "Grep1",
+        "tool_state": "{\"input\": {\"__class__\": \"RuntimeValue\"}, \"invert\": \"\", \"keep_header\": false, \"pattern\": \"\\\\S.*DNA\\\\-directed RNA polymerase beta|\\\\S.*polymerase|\\\\S.*DNA gyrase subunit A|\\\\S.*DNA gyrase subunit B|\\\\S.*gyrase|\\\\S.*Resuscitation\\\\-promoting factor RpfA|\\\\S.*Resuscitation\\\\-promoting factor RpfB|\\\\S.*Resuscitation\\\\-promoting factor RpfC|\\\\S.*Resuscitation\\\\-promoting factor RpfD|\\\\S.*Resuscitation\\\\-promoting factor RpfE|\\\\S.*Rpf\\\\D|\\\\S.*gyrase|\\\\S.*Peptidoglycan endopeptidase RipA|\\\\S.*Peptidoglycan endopeptidase RipB|\\\\S.*Sec\\\\-independent protein translocase protein TatA|\\\\S.*Sec\\\\-independent protein translocase protein TatC|\\\\S.*Sec\\\\-independent protein translocase protein TatB|\\\\S.*Protein translocase subunit SecY|\\\\S.*Protein translocase subunit SecE|\\\\S.*putative protein\\\\-export membrane protein SecG|\\\\S.*Catalase\\\\-peroxidase|\\\\S.*RNA polymerase sigma factor SigB|\\\\S.*ECF RNA polymerase sigma factor SigE|\\\\S.*RNA polymerase sigma factor SigA|\\\\S.*Ribosomal RNA small subunit methyltransferase A|\\\\S.*4\\\\-diphosphocytidyl\\\\-2\\\\-C\\\\-methyl\\\\-D\\\\-erythritol kinase|\\\\S.*putative metal\\\\-dependent hydrolase TatD|\\\\S.*Diacylglycerol acyltransferase\\\\/mycolyltransferase Ag85B|\\\\S.*Cytochrome c oxidase subunit 2|\\\\S.*putative diacyglycerol O\\\\-acyltransferase tgs1|\\\\S.*Isocitrate lyase|\\\\S.*Malate synthase G|\\\\S.*Phosphoenolpyruvate carboxykinase \\\\[GTP\\\\]|\\\\S.*Fructose\\\\-1,6\\\\-bisphosphatase class 2|\\\\S.*Cyclopropane mycolic acid synthase 1|\\\\S.*Cyclopropane mycolic acid synthase 2|\\\\S.*Cyclopropane mycolic acid synthase MmaA2|\\\\S.*Cyclopropane mycolic acid synthase 3|\\\\S.*Menaquinone reductase|\\\\S.*Demethylmenaquinone methyltransferase|\\\\S.*putative ABC transporter ATP\\\\-binding\\\\/permease protein|\\\\S.*Dihydrolipoyllysine\\\\-residue acetyltransferase component of pyruvate dehydrogenase complex|\\\\S.*proteasome subunit alpha|\\\\S.*Proteasome subunit beta|\\\\S.*Universal stress protein|\\\\S.*alpha\\\\-crystallin|\\\\S.*hypoxic response protein|\\\\S.*Oxygen sensor histidine kinase response regulator DevS\\\\/DosS|\\\\S.*DNA\\\\-binding transcriptional activator DevR\\\\/DosR|\\\\S.*Oxygen sensor histidine kinase response regulator DosT|\\\\S.*Dormancy associated translation inhibitor|\\\\S.*putative polyglutamine synthesis accessory protein|\\\\S.*Putative NAD\\\\(P\\\\)H nitroreductase acg|\\\\S.*Nicotinate phosphoribosyltransferase pncB2|\\\\S.*putative polyglutamine synthesis accessory protein|\\\\S.*putative diacyglycerol O\\\\-acyltransferase tgs1|\\\\S.*RNA polymerase sigma factor SigC|\\\\S.*RNA polymerase sigma factor SigD|\\\\S.*RNA polymerase sigma factor SigF|\\\\S.*RNA polymerase sigma factor SigG|\\\\S.*RNA polymerase sigma factor SigH|\\\\S.*RNA polymerase sigma factor SigK|\\\\S.*RNA polymerase sigma factor SigI|\\\\S.*RNA polymerase sigma factor SigJ|\\\\S.*RNA polymerase sigma factor SigK|\\\\S.*RNA polymerase sigma factor SigL|\\\\S.*RNA polymerase sigma factor SigM|\\\\S.*Enoyl\\\\-\\\\[acyl\\\\-carrier\\\\-protein\\\\] reductase \\\\[NADH\\\\]|\\\\S.*3\\\\-oxoacyl\\\\-\\\\[acyl\\\\-carrier\\\\-protein\\\\] reductase FabG1|\\\\S.*putative arabinosyltransferase A|\\\\S.*putative arabinosyltransferase B|\\\\S.*Nicotinamidase\\\\/pyrazinamidase|\\\\S.*Response regulator MprA|\\\\S.*Signal transduction histidine\\\\-protein kinase\\\\/phosphatase MprB|\\\\S.*putative HTH\\\\-type transcriptional regulator|\\\\S.*Protein translocase subunit SecA 1|\\\\S.*Protein translocase subunit SecA 2|\\\\S.*ESAT\\\\-6\\\\-like protein|\\\\S.*6 kDa early secretory antigenic target|\\\\S.*ESX\\\\-1 secretion\\\\-associated protein|\\\\S.*DNA\\\\-directed RNA polymerase subunit alpha|\\\\S.*DNA\\\\-directed RNA polymerase subunit omega|\\\\S.*DNA\\\\-directed RNA polymerase subunit beta\\u2019|\\\\S.*Beta\\\\-lactamase|\\\\S.*60 kDa chaperonin 2|\\\\S.*Chaperone protein DnaK|\\\\S.*Phosphate\\\\-specific transport system accessory protein PhoU|\\\\S.*Bifunctional \\\\(p\\\\)ppGpp synthase\\\\/hydrolase RelA|\\\\S.*Polyphosphate kinase|\\\\S.*Exopolyphosphatase 1|\\\\S.*Exopolyphosphatase 2|\\\\S.*Transcriptional repressor Mce3R|\\\\S.*Antitoxin|\\\\S.*Redox\\\\- and pH\\\\-responsive transcriptional regulator WhiB3|\\\\S.*whiB|\\\\S.*Diacylglycerol acyltransferase\\\\/mycolyltransferase Ag85A|\\\\S.*Diacylglycerol acyltransferase\\\\/mycolyltransferase Ag85C|\\\\S.*Diacylglycerol acyltransferase\\\\/mycolyltransferase Ag85B|\\\\S.*PE\\\\-PGRS family protein|\\\\S.*N\\\\-acetylmuramoyl\\\\-L\\\\-alanine amidase CwlM\\\\S.*Phosphatidylinositol-3-phosphatase|\\\\S.*SHMVVLGGDRDFWLQ|\\\\S.*VGIDPIQIMTGTATF|\\\\S.*YTLRCYLDDRPIFLG|\\\\S.*RNGRISVFGSERALA|\\\\S.*RYLADEHDHDLSDLS|\\\\S.*TYDDIRTAATDGSLA|\\\\S.*VAVTDDNVYVLSGLV|\\\\S.*DDFADGPDAVDREQL|\\\\S.*DLAVELLRDIGDYSE|\\\\S.*DSAVDKALETTRPLG|\\\\S.*QLVAYVLDPHSVGKP|\\\\S.*TAPYAAAVREWEKLE|\\\\S.*RFVESRLRRE\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.4",
+        "type": "tool",
+        "uuid": "c8f4113b-c8c1-4896-8d3e-639d55814a6a",
+        "when": null,
+        "workflow_outputs": []
+      }
+    },
+    "tags": [],
+    "uuid": "3e2145d1-9177-4147-98e1-2a9cce35d6f5",
+    "version": 18
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "WGS2Protein v3.0.0",
+      "annotation": "This workflow extracts protein-coding sequences from whole genome sequencing (WGS) data obtained from the European Nucleotide Archive (ENA). It automates the preprocessing, annotation, and selection of relevant protein sequences using tools such as Prokka, FASTA-to-Tabular, and pattern-based selection. The resulting dataset supports downstream analyses including comparative genomics, phylogenetics, and functional annotation.",
+      "format_version": "0.1",
+      "uuid": "3e2145d1-9177-4147-98e1-2a9cce35d6f5",
+      "version": 18,
+      "tags": [],
+      "creator": [
+        {
+          "class": "Person",
+          "email": "mailto:bioceejlibrary@gmail.com",
+          "honorificSuffix": "PhD, FHEA",
+          "identifier": "0000-0001-5796-3068",
+          "jobTitle": "Associate Professor II",
+          "name": "Crist John M. Pastor"
+        }
+      ],
+      "license": "CC-BY-4.0"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 138.34681805332298
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 4.114752124562422,
+          "top": 433.76996418513517
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "tool",
+        "name": "FastQC",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 252.7297223197209,
+          "top": 0
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "3",
+        "type": "tool",
+        "name": "Trimmomatic",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_version": "0.39+galaxy2",
+        "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"yes\", \"__current_case__\": 0, \"adapter_type\": {\"standard_or_custom\": \"standard\", \"__current_case__\": 0, \"adapter_fasta\": \"TruSeq3-PE.fa\"}, \"seed_mismatches\": \"2\", \"palindrome_clip_threshold\": \"30\", \"simple_clip_threshold\": \"10\", \"min_adapter_len\": \"8\", \"keep_both_reads\": true}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"SLIDINGWINDOW\", \"__current_case__\": 0, \"window_size\": \"4\", \"required_quality\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"pair_of_files\", \"__current_case__\": 1, \"fastq_r1_in\": {\"__class__\": \"ConnectedValue\"}, \"fastq_r2_in\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 255.44840597565764,
+          "top": 260.35935367060097
+        },
+        "input_connections": {
+          "readtype|fastq_r1_in": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "readtype|fastq_r2_in": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "fastq_out_r1_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r2_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r1_unpaired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r2_unpaired",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "FastQC",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 253.6401407928896,
+          "top": 604.3202587484145
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "FastQC",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 551.8411439896186,
+          "top": 1.3416388354645294
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 3,
+            "output_name": "fastq_out_r1_paired"
+          }
+        },
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "Shovill",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/shovill/shovill/1.1.0+galaxy2",
+        "tool_version": "1.1.0+galaxy2",
+        "tool_state": "{\"adv\": {\"namefmt\": \"contig%05d\", \"depth\": \"100\", \"gsize\": \"\", \"kmers\": \"\", \"opts\": \"\", \"keep_files\": {\"nocorr\": \"no_correction\", \"__current_case__\": 0}, \"minlen\": \"0\", \"mincov\": \"2\"}, \"assembler\": \"spades\", \"library\": {\"lib_type\": \"paired\", \"__current_case__\": 0, \"R1\": {\"__class__\": \"ConnectedValue\"}, \"R2\": {\"__class__\": \"ConnectedValue\"}}, \"log\": true, \"trim\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 552.4399922929078,
+          "top": 265.2224795487373
+        },
+        "input_connections": {
+          "library|R1": {
+            "id": 3,
+            "output_name": "fastq_out_r1_paired"
+          },
+          "library|R2": {
+            "id": 3,
+            "output_name": "fastq_out_r2_paired"
+          }
+        },
+        "outputs": [
+          {
+            "name": "shovill_std_log",
+            "type": "txt"
+          },
+          {
+            "name": "contigs",
+            "type": "fasta"
+          },
+          {
+            "name": "contigs_graph",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "FastQC",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 550.9301536423307,
+          "top": 458.75611719755716
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 3,
+            "output_name": "fastq_out_r2_paired"
+          }
+        },
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "Prokka",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.6+galaxy1",
+        "tool_version": "1.14.6+galaxy1",
+        "tool_state": "{\"centre\": {\"__class__\": \"ConnectedValue\"}, \"compliant\": {\"compliant_select\": \"no\", \"__current_case__\": 0, \"addgenes\": false, \"mincontig\": \"200\"}, \"evalue\": \"1e-06\", \"fast\": false, \"genus\": \"\", \"gffver\": \"3\", \"increment\": \"1\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"kingdom\": {\"kingdom_select\": \"Bacteria\", \"__current_case__\": 1, \"gcode\": \"11\"}, \"locustag\": \"\", \"metagenome\": true, \"norrna\": false, \"notrna\": false, \"outputs\": [\"gff\", \"gbk\", \"fna\", \"faa\", \"ffn\", \"sqn\", \"fsa\", \"tbl\", \"tsv\", \"err\", \"txt\"], \"plasmid\": \"\", \"proteins\": {\"__class__\": \"RuntimeValue\"}, \"rfam\": false, \"species\": \"\", \"strain\": \"\", \"usegenus\": true, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 822.2344081292861,
+          "top": 261.56249672523967
+        },
+        "input_connections": {
+          "input": {
+            "id": 6,
+            "output_name": "contigs"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_gff",
+            "type": "gff3"
+          },
+          {
+            "name": "out_gbk",
+            "type": "genbank"
+          },
+          {
+            "name": "out_fna",
+            "type": "fasta"
+          },
+          {
+            "name": "out_faa",
+            "type": "fasta"
+          },
+          {
+            "name": "out_ffn",
+            "type": "fasta"
+          },
+          {
+            "name": "out_sqn",
+            "type": "asn1"
+          },
+          {
+            "name": "out_fsa",
+            "type": "fasta"
+          },
+          {
+            "name": "out_tbl",
+            "type": "txt"
+          },
+          {
+            "name": "out_tsv",
+            "type": "tabular"
+          },
+          {
+            "name": "out_err",
+            "type": "txt"
+          },
+          {
+            "name": "out_txt",
+            "type": "txt"
+          },
+          {
+            "name": "out_log",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "FASTA-to-Tabular",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_to_tabular/fasta2tab/1.1.1",
+        "tool_version": "1.1.1",
+        "tool_state": "{\"descr_columns\": \"2\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"keep_first\": \"0\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1094.851921958302,
+          "top": 283.66536580083533
+        },
+        "input_connections": {
+          "input": {
+            "id": 8,
+            "output_name": "out_faa"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "10",
+        "type": "tool",
+        "name": "Select",
+        "label": null,
+        "annotation": "",
+        "tool_id": "Grep1",
+        "tool_version": "1.0.4",
+        "tool_state": "{\"input\": {\"__class__\": \"RuntimeValue\"}, \"invert\": \"\", \"keep_header\": false, \"pattern\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1129.9262950790974,
+          "top": 507.3345447568848
+        },
+        "input_connections": {
+          "input": {
+            "id": 9,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "11",
+        "type": "tool",
+        "name": "Select",
+        "label": null,
+        "annotation": "",
+        "tool_id": "Grep1",
+        "tool_version": "1.0.4",
+        "tool_state": "{\"input\": {\"__class__\": \"RuntimeValue\"}, \"invert\": \"\", \"keep_header\": false, \"pattern\": \"\\\\S.*DNA\\\\-directed RNA polymerase beta|\\\\S.*polymerase|\\\\S.*DNA gyrase subunit A|\\\\S.*DNA gyrase subunit B|\\\\S.*gyrase|\\\\S.*Resuscitation\\\\-promoting factor RpfA|\\\\S.*Resuscitation\\\\-promoting factor RpfB|\\\\S.*Resuscitation\\\\-promoting factor RpfC|\\\\S.*Resuscitation\\\\-promoting factor RpfD|\\\\S.*Resuscitation\\\\-promoting factor RpfE|\\\\S.*Rpf\\\\D|\\\\S.*gyrase|\\\\S.*Peptidoglycan endopeptidase RipA|\\\\S.*Peptidoglycan endopeptidase RipB|\\\\S.*Sec\\\\-independent protein translocase protein TatA|\\\\S.*Sec\\\\-independent protein translocase protein TatC|\\\\S.*Sec\\\\-independent protein translocase protein TatB|\\\\S.*Protein translocase subunit SecY|\\\\S.*Protein translocase subunit SecE|\\\\S.*putative protein\\\\-export membrane protein SecG|\\\\S.*Catalase\\\\-peroxidase|\\\\S.*RNA polymerase sigma factor SigB|\\\\S.*ECF RNA polymerase sigma factor SigE|\\\\S.*RNA polymerase sigma factor SigA|\\\\S.*Ribosomal RNA small subunit methyltransferase A|\\\\S.*4\\\\-diphosphocytidyl\\\\-2\\\\-C\\\\-methyl\\\\-D\\\\-erythritol kinase|\\\\S.*putative metal\\\\-dependent hydrolase TatD|\\\\S.*Diacylglycerol acyltransferase\\\\/mycolyltransferase Ag85B|\\\\S.*Cytochrome c oxidase subunit 2|\\\\S.*putative diacyglycerol O\\\\-acyltransferase tgs1|\\\\S.*Isocitrate lyase|\\\\S.*Malate synthase G|\\\\S.*Phosphoenolpyruvate carboxykinase \\\\[GTP\\\\]|\\\\S.*Fructose\\\\-1,6\\\\-bisphosphatase class 2|\\\\S.*Cyclopropane mycolic acid synthase 1|\\\\S.*Cyclopropane mycolic acid synthase 2|\\\\S.*Cyclopropane mycolic acid synthase MmaA2|\\\\S.*Cyclopropane mycolic acid synthase 3|\\\\S.*Menaquinone reductase|\\\\S.*Demethylmenaquinone methyltransferase|\\\\S.*putative ABC transporter ATP\\\\-binding\\\\/permease protein|\\\\S.*Dihydrolipoyllysine\\\\-residue acetyltransferase component of pyruvate dehydrogenase complex|\\\\S.*proteasome subunit alpha|\\\\S.*Proteasome subunit beta|\\\\S.*Universal stress protein|\\\\S.*alpha\\\\-crystallin|\\\\S.*hypoxic response protein|\\\\S.*Oxygen sensor histidine kinase response regulator DevS\\\\/DosS|\\\\S.*DNA\\\\-binding transcriptional activator DevR\\\\/DosR|\\\\S.*Oxygen sensor histidine kinase response regulator DosT|\\\\S.*Dormancy associated translation inhibitor|\\\\S.*putative polyglutamine synthesis accessory protein|\\\\S.*Putative NAD\\\\(P\\\\)H nitroreductase acg|\\\\S.*Nicotinate phosphoribosyltransferase pncB2|\\\\S.*putative polyglutamine synthesis accessory protein|\\\\S.*putative diacyglycerol O\\\\-acyltransferase tgs1|\\\\S.*RNA polymerase sigma factor SigC|\\\\S.*RNA polymerase sigma factor SigD|\\\\S.*RNA polymerase sigma factor SigF|\\\\S.*RNA polymerase sigma factor SigG|\\\\S.*RNA polymerase sigma factor SigH|\\\\S.*RNA polymerase sigma factor SigK|\\\\S.*RNA polymerase sigma factor SigI|\\\\S.*RNA polymerase sigma factor SigJ|\\\\S.*RNA polymerase sigma factor SigK|\\\\S.*RNA polymerase sigma factor SigL|\\\\S.*RNA polymerase sigma factor SigM|\\\\S.*Enoyl\\\\-\\\\[acyl\\\\-carrier\\\\-protein\\\\] reductase \\\\[NADH\\\\]|\\\\S.*3\\\\-oxoacyl\\\\-\\\\[acyl\\\\-carrier\\\\-protein\\\\] reductase FabG1|\\\\S.*putative arabinosyltransferase A|\\\\S.*putative arabinosyltransferase B|\\\\S.*Nicotinamidase\\\\/pyrazinamidase|\\\\S.*Response regulator MprA|\\\\S.*Signal transduction histidine\\\\-protein kinase\\\\/phosphatase MprB|\\\\S.*putative HTH\\\\-type transcriptional regulator|\\\\S.*Protein translocase subunit SecA 1|\\\\S.*Protein translocase subunit SecA 2|\\\\S.*ESAT\\\\-6\\\\-like protein|\\\\S.*6 kDa early secretory antigenic target|\\\\S.*ESX\\\\-1 secretion\\\\-associated protein|\\\\S.*DNA\\\\-directed RNA polymerase subunit alpha|\\\\S.*DNA\\\\-directed RNA polymerase subunit omega|\\\\S.*DNA\\\\-directed RNA polymerase subunit beta\\u2019|\\\\S.*Beta\\\\-lactamase|\\\\S.*60 kDa chaperonin 2|\\\\S.*Chaperone protein DnaK|\\\\S.*Phosphate\\\\-specific transport system accessory protein PhoU|\\\\S.*Bifunctional \\\\(p\\\\)ppGpp synthase\\\\/hydrolase RelA|\\\\S.*Polyphosphate kinase|\\\\S.*Exopolyphosphatase 1|\\\\S.*Exopolyphosphatase 2|\\\\S.*Transcriptional repressor Mce3R|\\\\S.*Antitoxin|\\\\S.*Redox\\\\- and pH\\\\-responsive transcriptional regulator WhiB3|\\\\S.*whiB|\\\\S.*Diacylglycerol acyltransferase\\\\/mycolyltransferase Ag85A|\\\\S.*Diacylglycerol acyltransferase\\\\/mycolyltransferase Ag85C|\\\\S.*Diacylglycerol acyltransferase\\\\/mycolyltransferase Ag85B|\\\\S.*PE\\\\-PGRS family protein|\\\\S.*N\\\\-acetylmuramoyl\\\\-L\\\\-alanine amidase CwlM\\\\S.*Phosphatidylinositol-3-phosphatase|\\\\S.*SHMVVLGGDRDFWLQ|\\\\S.*VGIDPIQIMTGTATF|\\\\S.*YTLRCYLDDRPIFLG|\\\\S.*RNGRISVFGSERALA|\\\\S.*RYLADEHDHDLSDLS|\\\\S.*TYDDIRTAATDGSLA|\\\\S.*VAVTDDNVYVLSGLV|\\\\S.*DDFADGPDAVDREQL|\\\\S.*DLAVELLRDIGDYSE|\\\\S.*DSAVDKALETTRPLG|\\\\S.*QLVAYVLDPHSVGKP|\\\\S.*TAPYAAAVREWEKLE|\\\\S.*RFVESRLRRE\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1335.3124581513,
+          "top": 291.718758268596
+        },
+        "input_connections": {
+          "input": {
+            "id": 9,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "step_id": "2"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_version": "0.39+galaxy2",
+        "step_id": "3"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/shovill/shovill/1.1.0+galaxy2",
+        "tool_version": "1.1.0+galaxy2",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.6+galaxy1",
+        "tool_version": "1.14.6+galaxy1",
+        "step_id": "8"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_to_tabular/fasta2tab/1.1.1",
+        "tool_version": "1.1.1",
+        "step_id": "9"
+      },
+      {
+        "tool_id": "Grep1",
+        "tool_version": "1.0.4",
+        "step_id": "10"
+      },
+      {
+        "tool_id": "Grep1",
+        "tool_version": "1.0.4",
+        "step_id": "11"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": null,
+        "annotation": ""
+      },
+      {
+        "step_id": "1",
+        "label": null,
+        "annotation": ""
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "8",
+        "output_name": "out_ffn",
+        "label": "out_ffn"
+      },
+      {
+        "step_id": "8",
+        "output_name": "out_faa",
+        "label": "out_faa"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "2",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "3",
+        "to_input": "readtype|fastq_r1_in"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "3",
+        "to_input": "readtype|fastq_r2_in"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "4",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 3,
+        "from_output": "fastq_out_r1_paired",
+        "to_step": "5",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 3,
+        "from_output": "fastq_out_r1_paired",
+        "to_step": "6",
+        "to_input": "library|R1"
+      },
+      {
+        "from_step": 3,
+        "from_output": "fastq_out_r2_paired",
+        "to_step": "6",
+        "to_input": "library|R2"
+      },
+      {
+        "from_step": 3,
+        "from_output": "fastq_out_r2_paired",
+        "to_step": "7",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 6,
+        "from_output": "contigs",
+        "to_step": "8",
+        "to_input": "input"
+      },
+      {
+        "from_step": 8,
+        "from_output": "out_faa",
+        "to_step": "9",
+        "to_input": "input"
+      },
+      {
+        "from_step": 9,
+        "from_output": "output",
+        "to_step": "10",
+        "to_input": "input"
+      },
+      {
+        "from_step": 9,
+        "from_output": "output",
+        "to_step": "11",
+        "to_input": "input"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:44:19.162020"
+}

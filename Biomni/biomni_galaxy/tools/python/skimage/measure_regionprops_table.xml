@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_skimage_measure_regionprops_table" name="scikit-image: measure.regionprops_table" version="1.0.0">
+  <description>Call scikit-image measure.regionprops_table function</description>
+  <requirements>
+    <requirement type="package" version="">skimage</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from skimage import *
+# Tool implementation
+result = measure.regionprops_table(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**scikit-image: measure.regionprops_table**
+
+Call scikit-image measure.regionprops_table function
+
+**Tool Type**: python
+**Library**: skimage
+**Function**: measure.regionprops_table
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;skimage&quot;,
+  &quot;function&quot;: &quot;measure.regionprops_table&quot;,
+  &quot;call_template&quot;: &quot;from skimage import ...; result = measure.regionprops_table(...)&quot;
+}
+]]&gt;</help>
+</tool>

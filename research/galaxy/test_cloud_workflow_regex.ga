@@ -1,0 +1,85 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "\u4e91\u6267\u884c\u6d4b\u8bd5 - \u4f7f\u7528regex\u66ff\u6362\u5de5\u5177\uff08\u53ef\u4ee5\u76f4\u63a5\u8f93\u5165\u6587\u4ef6\uff09",
+  "format-version": "0.1",
+  "name": "Cloud Test - Regex Replace",
+  "steps": {
+    "0": {
+      "annotation": "\u8f93\u5165\u6587\u672c\u6587\u4ef6",
+      "content_id": null,
+      "errors": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "\u8f93\u5165\u4e00\u4e2a\u6587\u672c\u6587\u4ef6",
+          "name": "Input Dataset"
+        }
+      ],
+      "label": "Input File",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 10,
+        "top": 10
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"txt\"], \"tag\": \"\"}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "e8cc5bd7-cd06-410b-9274-18ff479a6565",
+      "workflow_outputs": []
+    },
+    "1": {
+      "annotation": "\u4f7f\u7528\u6b63\u5219\u8868\u8fbe\u5f0f\u66ff\u6362\u6587\u672c - \u6b64\u5de5\u5177\u5c06\u5728AWS Batch\u4e91\u7aef\u8fd0\u884c",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/regex_find_replace/regex1/1.0.3",
+      "errors": null,
+      "id": 1,
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "Regex Replace (\u4e91\u7aef\u6267\u884c)",
+      "name": "Regex Find And Replace",
+      "outputs": [
+        {
+          "name": "out_file1",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 290,
+        "top": 10
+      },
+      "post_job_actions": {},
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/regex_find_replace/regex1/1.0.3",
+      "tool_shed_repository": {
+        "changeset_revision": "503bcd6ebe4b",
+        "name": "regex_find_replace",
+        "owner": "galaxyp",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"checks\": [{\"pattern\": \"\u6d4b\u8bd5\", \"replacement\": \"TEST\"}]}",
+      "tool_version": "1.0.3",
+      "type": "tool",
+      "uuid": "7aa233b7-dee4-489a-81e2-754c02244202",
+      "workflow_outputs": [
+        {
+          "label": "regex_output",
+          "output_name": "out_file1",
+          "uuid": "b59ec4d8-c9b9-48f7-bd93-422a72110334"
+        }
+      ]
+    }
+  },
+  "tags": [
+    "test",
+    "cloud",
+    "regex"
+  ],
+  "uuid": "24a6557b-7073-4bcf-aad2-526b511271cd",
+  "version": 1
+}

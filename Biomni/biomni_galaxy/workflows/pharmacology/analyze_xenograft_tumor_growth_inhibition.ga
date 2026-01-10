@@ -1,0 +1,165 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_pharmacology_analyze_xenograft_tumor_growth_inhibition",
+  "annotation": "Analyze tumor growth inhibition in xenograft models across different treatment groups.",
+  "tags": [
+    "biomni",
+    "pharmacology",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "data_path",
+      "annotation": "Input: data_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "time_column",
+      "annotation": "Input: time_column",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "parameter_input",
+      "label": "volume_column",
+      "annotation": "Input: volume_column",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "parameter_input",
+      "label": "group_column",
+      "annotation": "Input: group_column",
+      "position": {
+        "left": 0,
+        "top": 300
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "parameter_input",
+      "label": "subject_column",
+      "annotation": "Input: subject_column",
+      "position": {
+        "left": 0,
+        "top": 400
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "tool",
+      "tool_id": "python_pandas_pd_DataFrame",
+      "label": "Step 1: pd_DataFrame",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      }
+    },
+    "6": {
+      "id": 6,
+      "type": "tool",
+      "tool_id": "python_pandas_pd_read_csv",
+      "label": "Step 2: pd_read_csv",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "output"
+        }
+      }
+    },
+    "7": {
+      "id": 7,
+      "type": "tool",
+      "tool_id": "python_scipy_stats_linregress",
+      "label": "Step 3: stats_linregress",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "output"
+        }
+      }
+    },
+    "8": {
+      "id": 8,
+      "type": "tool",
+      "tool_id": "python_scipy_stats_sem",
+      "label": "Step 4: stats_sem",
+      "position": {
+        "left": 1200,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "output"
+        }
+      }
+    },
+    "9": {
+      "id": 9,
+      "type": "tool",
+      "tool_id": "python_numpy_np_mean",
+      "label": "Step 5: np_mean",
+      "position": {
+        "left": 1500,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 8,
+          "output_name": "output"
+        }
+      }
+    },
+    "10": {
+      "id": 10,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 1800,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 9,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "analyze_xenograft_tumor_growth_inhibition-output"
+    }
+  ]
+}

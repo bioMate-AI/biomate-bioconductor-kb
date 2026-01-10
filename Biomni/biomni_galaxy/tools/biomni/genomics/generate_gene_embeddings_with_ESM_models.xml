@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<tool id="biomni_genomics_generate_gene_embeddings_with_ESM_models" name="Biomni: Generate Gene Embeddings With Esm Models" version="1.0.0">
+    <description>Generate average protein embeddings for a list of Ensembl gene IDs.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genomics import generate_gene_embeddings_with_ESM_models
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = generate_gene_embeddings_with_ESM_models(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --ensembl_gene_ids '$ensembl_gene_ids'
+#if $model_name
+    --model_name '$model_name'
+#end if
+#if $layer
+    --layer '$layer'
+#end if
+#if $save_path
+    --save_path '$save_path'
+#end if
+#if $batch_size
+    --batch_size '$batch_size'
+#end if
+#if $max_sequence_length
+    --max_sequence_length '$max_sequence_length'
+#end if
+]]></command>
+    <inputs>
+        <param name="ensembl_gene_ids" type="text" label="Ensembl Gene Ids" help=""  />
+        <param name="model_name" type="text" label="Model Name" help="" value="esm2_t6_8M_UR50D" optional="true"/>
+        <param name="layer" type="integer" label="Layer" help="" value="6" optional="true"/>
+        <param name="save_path" type="text" label="Save Path" help=""  optional="true"/>
+        <param name="batch_size" type="integer" label="Batch Size" help="" value="1" optional="true"/>
+        <param name="max_sequence_length" type="integer" label="Max Sequence Length" help="" value="1024" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Generate Gene Embeddings With Esm Models**
+
+Generate average protein embeddings for a list of Ensembl gene IDs.
+Memory-friendly implementation with rolling averages and small batch processing.
+Embeddings are automatically saved to disk with a default filename if no save_path is provided.
+
+Args:
+    ensembl_gene_ids: List of Ensembl gene IDs (e.g., ["ENSG00000012048", ...])
+    model_name: ESM model name to use (default: "esm2_t6_8M_UR50D")
+    layer: Which layer to extract embeddings from (default: 6)
+    save_path: Optional path to save embeddings as PyTorch dict. If None, uses default filename
+              format: "esm_embeddings_{model_name}_{gene_list}.pt" (default: None)
+    batch_size: Number of sequences to process at once (default: 1)
+    max_sequence_length: Maximum sequence length to process (default: 1024)
+
+Returns:
+    String containing the steps performed during the embedding generation process
+
+**Domain**: genomics
+**Function**: generate_gene_embeddings_with_ESM_models
+]]></help>
+</tool>

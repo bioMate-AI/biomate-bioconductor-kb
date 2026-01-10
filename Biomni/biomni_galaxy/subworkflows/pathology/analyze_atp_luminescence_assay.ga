@@ -1,0 +1,70 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_pathology_analyze_atp_luminescence_assay",
+  "annotation": "Analyze luminescence-based ATP assay data to determine intracellular ATP concentration.",
+  "tags": [
+    "biomni",
+    "pathology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "data_file",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "standard_curve_file",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "data_input",
+      "label": "normalization_data",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "type": "tool",
+      "tool_id": "biomni_pathology_analyze_atp_luminescence_assay",
+      "label": "analyze_atp_luminescence_assay",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "data_file": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "standard_curve_file": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "normalization_data": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

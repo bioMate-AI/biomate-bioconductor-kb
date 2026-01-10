@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<tool id="biomni_systems_biology_perform_flux_balance_analysis" name="Biomni: Perform Flux Balance Analysis" version="1.0.0">
+    <description>Perform Flux Balance Analysis (FBA) on a genome-scale metabolic network model.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.systems_biology import perform_flux_balance_analysis
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = perform_flux_balance_analysis(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --model_file '$model_file'
+#if $constraints
+    --constraints '$constraints'
+#end if
+#if $objective_reaction
+    --objective_reaction '$objective_reaction'
+#end if
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="model_file" type="text" label="Model File" help="Path to the metabolic model file (SBML or JSON format)"  />
+        <param name="constraints" type="text" label="Constraints" help="values are tuples of (lower_bound, upper_bound)"  optional="true"/>
+        <param name="objective_reaction" type="text" label="Objective Reaction" help="If None, uses the model's default objective"  optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="File name to save the flux distribution results" value="fba_results.csv" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Perform Flux Balance Analysis**
+
+Perform Flux Balance Analysis (FBA) on a genome-scale metabolic network model.
+
+FBA is a computational technique that predicts metabolic flux distributions
+by formulating and solving a linear optimization problem.
+
+Parameters:
+-----------
+model_file : str
+    Path to the metabolic model file (SBML or JSON format)
+constraints : dict, optional
+    Dictionary of reaction constraints where keys are reaction IDs and
+    values are tuples of (lower_bound, upper_bound)
+objective_reaction : str, optional
+    Reaction ID to use as the objective function (e.g., biomass reaction)
+    If None, uses the model's default objective
+output_file : str, optional
+    File name to save the flux distribution results
+
+Returns:
+--------
+str
+    Research log summarizing the FBA process and results
+
+**Domain**: systems_biology
+**Function**: perform_flux_balance_analysis
+]]></help>
+</tool>

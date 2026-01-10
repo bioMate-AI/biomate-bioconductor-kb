@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_bio_Restriction_RestrictionBatch" name="Biopython: Restriction.RestrictionBatch" version="1.0.0">
+  <description>Call Biopython Restriction.RestrictionBatch function</description>
+  <requirements>
+    <requirement type="package" version="">bio</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from Bio import *
+# Tool implementation
+result = Restriction.RestrictionBatch(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**Biopython: Restriction.RestrictionBatch**
+
+Call Biopython Restriction.RestrictionBatch function
+
+**Tool Type**: python
+**Library**: Bio
+**Function**: Restriction.RestrictionBatch
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;Bio&quot;,
+  &quot;function&quot;: &quot;Restriction.RestrictionBatch&quot;,
+  &quot;call_template&quot;: &quot;from Bio import ...; result = Restriction.RestrictionBatch(...)&quot;
+}
+]]&gt;</help>
+</tool>

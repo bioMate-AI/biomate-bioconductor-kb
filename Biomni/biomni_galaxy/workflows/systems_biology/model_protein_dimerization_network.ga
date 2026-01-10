@@ -1,0 +1,81 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_systems_biology_model_protein_dimerization_network",
+  "annotation": "Model protein dimerization networks to find equilibrium concentrations of dimers.",
+  "tags": [
+    "biomni",
+    "systems_biology",
+    "single-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "monomer_concentrations",
+      "annotation": "Input: monomer_concentrations",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "dimerization_affinities",
+      "annotation": "Input: dimerization_affinities",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "parameter_input",
+      "label": "network_topology",
+      "annotation": "Input: network_topology",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "tool",
+      "tool_id": "python_numpy_np_zeros",
+      "label": "Step 1: np_zeros",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "model_protein_dimerization_network-output"
+    }
+  ]
+}

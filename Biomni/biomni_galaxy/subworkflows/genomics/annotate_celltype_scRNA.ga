@@ -1,0 +1,82 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genomics_annotate_celltype_scRNA",
+  "annotation": "Annotate cell types based on gene markers and transferred labels using LLM.",
+  "tags": [
+    "biomni",
+    "genomics",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "adata_filename",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "data_dir",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "data_input",
+      "label": "data_info",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "type": "data_input",
+      "label": "data_lake_path",
+      "position": {
+        "left": 0,
+        "top": 300
+      }
+    },
+    "4": {
+      "type": "tool",
+      "tool_id": "biomni_genomics_annotate_celltype_scRNA",
+      "label": "annotate_celltype_scRNA",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "adata_filename": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "data_dir": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "data_info": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "data_lake_path": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    },
+    "5": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

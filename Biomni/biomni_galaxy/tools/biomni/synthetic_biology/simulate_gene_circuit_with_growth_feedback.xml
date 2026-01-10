@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<tool id="biomni_synthetic_biology_simulate_gene_circuit_with_growth_feedback" name="Biomni: Simulate Gene Circuit With Growth Feedback" version="1.0.0">
+    <description>Simulate gene regulatory circuit dynamics with growth feedback.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.synthetic_biology import simulate_gene_circuit_with_growth_feedback
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = simulate_gene_circuit_with_growth_feedback(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --circuit_topology '$circuit_topology'
+--kinetic_params '$kinetic_params'
+--growth_params '$growth_params'
+#if $simulation_time
+    --simulation_time '$simulation_time'
+#end if
+#if $time_points
+    --time_points '$time_points'
+#end if
+]]></command>
+    <inputs>
+        <param name="circuit_topology" type="text" label="Circuit Topology" help="Shape should be (n_genes, n_genes) where n_genes is the number of genes in the circuit."  />
+        <param name="kinetic_params" type="text" label="Kinetic Params" help="- 'threshold_constants': list of threshold constants for regulatory interactions"  />
+        <param name="growth_params" type="text" label="Growth Params" help="- 'gene_growth_weights': weights for how each gene affects growth"  />
+        <param name="simulation_time" type="text" label="Simulation Time" help="Total simulation time (default: 100)" value="100" optional="true"/>
+        <param name="time_points" type="text" label="Time Points" help="Number of time points to sample (default: 1000)" value="1000" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Simulate Gene Circuit With Growth Feedback**
+
+Simulate gene regulatory circuit dynamics with growth feedback.
+
+Parameters
+----------
+circuit_topology : numpy.ndarray
+    Adjacency matrix representing the gene circuit topology.
+    Positive values indicate activation, negative values indicate repression.
+    Shape should be (n_genes, n_genes) where n_genes is the number of genes in the circuit.
+
+kinetic_params : dict
+    Dictionary containing kinetic parameters:
+    - 'basal_rates': list of basal expression rates for each gene
+    - 'degradation_rates': list of degradation rates for each gene
+    - 'hill_coefficients': list of Hill coefficients for regulatory interactions
+    - 'threshold_constants': list of threshold constants for regulatory interactions
+
+growth_params : dict
+    Dictionary containing growth-related parameters:
+    - 'max_growth_rate': maximum cell growth rate
+    - 'growth_inhibition': how gene expression affects growth
+    - 'gene_growth_weights': weights for how each gene affects growth
+
+simulation_time : float, optional
+    Total simulation time (default: 100)
+
+time_points : int, optional
+    Number of time points to sample (default: 1000)
+
+Returns
+-------
+str
+    Research log summarizing the simulation and results with file names of saved data
+
+**Domain**: synthetic_biology
+**Function**: simulate_gene_circuit_with_growth_feedback
+]]></help>
+</tool>

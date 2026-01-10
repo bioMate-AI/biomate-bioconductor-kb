@@ -1,0 +1,82 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_pharmacology_perform_mwas_cyp2c19_metabolizer_status",
+  "annotation": "Perform a Methylome-wide Association Study (MWAS) to identify CpG sites significantly associated with CYP2C19 metabolizer status.",
+  "tags": [
+    "biomni",
+    "pharmacology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "methylation_data_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "metabolizer_status_path",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "data_input",
+      "label": "covariates_path",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "type": "data_input",
+      "label": "output_file",
+      "position": {
+        "left": 0,
+        "top": 300
+      }
+    },
+    "4": {
+      "type": "tool",
+      "tool_id": "biomni_pharmacology_perform_mwas_cyp2c19_metabolizer_status",
+      "label": "perform_mwas_cyp2c19_metabolizer_status",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "methylation_data_path": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "metabolizer_status_path": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "covariates_path": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "output_file": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    },
+    "5": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_physiology_analyze_protein_colocalization",
+  "annotation": "Analyze colocalization between two fluorescently labeled proteins in microscopy images.",
+  "tags": [
+    "biomni",
+    "physiology",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "channel1_path",
+      "annotation": "Input: channel1_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "channel2_path",
+      "annotation": "Input: channel2_path",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "python_skimage_io_imread",
+      "label": "Step 1: io_imread",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "tool",
+      "tool_id": "python_skimage_filters_threshold_yen",
+      "label": "Step 2: filters_threshold_yen",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "tool",
+      "tool_id": "python_skimage_filters_threshold_otsu",
+      "label": "Step 3: filters_threshold_otsu",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "tool",
+      "tool_id": "python_skimage_filters_threshold_li",
+      "label": "Step 4: filters_threshold_li",
+      "position": {
+        "left": 1200,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      }
+    },
+    "6": {
+      "id": 6,
+      "type": "tool",
+      "tool_id": "python_skimage_exposure_rescale_intensity",
+      "label": "Step 5: exposure_rescale_intensity",
+      "position": {
+        "left": 1500,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "output"
+        }
+      }
+    },
+    "7": {
+      "id": 7,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 1800,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 6,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "analyze_protein_colocalization-output"
+    }
+  ]
+}

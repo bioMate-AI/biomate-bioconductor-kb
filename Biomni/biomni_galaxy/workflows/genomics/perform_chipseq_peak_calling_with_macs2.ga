@@ -1,0 +1,71 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genomics_perform_chipseq_peak_calling_with_macs2",
+  "annotation": "Perform ChIP-seq peak calling using MACS2 to identify genomic regions with significant binding.",
+  "tags": [
+    "biomni",
+    "genomics",
+    "single-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "chip_seq_file",
+      "annotation": "Input: chip_seq_file",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "control_file",
+      "annotation": "Input: control_file",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "cli_macs2_run",
+      "label": "Step 1: run",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "perform_chipseq_peak_calling_with_macs2-output"
+    }
+  ]
+}

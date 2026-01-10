@@ -1,0 +1,33 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_literature_fetch_supplementary_info_from_doi",
+  "annotation": "Fetches supplementary information for a paper given its DOI and returns a research log.",
+  "tags": [
+    "biomni",
+    "literature",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "tool",
+      "tool_id": "biomni_literature_fetch_supplementary_info_from_doi",
+      "label": "fetch_supplementary_info_from_doi",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {}
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

@@ -1,0 +1,112 @@
+import json
+import os
+import sys
+sys.path.append('.')
+from utils import LLM, AnswerPaser, muti_thread, extract_final_answer, replace_function
+from datasets import load_dataset
+
+dataset = load_dataset("InternScience/SGI-DryExperiment")
+save_dir = './task_3_dry_experiment/logs'
+model_name = 'gpt-4.1'
+discipline = "['all']"
+discipline_list = ['astronomy', 'chemistry', 'earth', 'energy', 'information', 'life', 'material', 'mathematics', 'neuroscience', 'physics']
+if len(sys.argv) > 1:
+    model_name = sys.argv[1]
+    sys.argv = sys.argv[1:]
+if len(sys.argv) > 1:
+    discipline = sys.argv[1]
+    discipline_list = eval(discipline)
+    sys.argv = sys.argv[1:]
+print(f'Evaluating {model_name} in {discipline}')
+
+llm_model = LLM(model_name)
+answer_paser = AnswerPaser()
+output_requirements = """
+Output the completed function enclosed within <answer> and </answer> tags. 
+
+Example 1:
+<answer>
+def hello():
+    print("Hello")
+</answer>
+
+Example 2:
+<answer>
+def add(a, b):
+    return a+b
+
+def minus(a, b):
+    return a-b
+</answer>
+
+"""
+
+answer_example = """
+def add(a, b):
+    return a+b
+
+def minus(a, b):
+    return a-b
+"""
+
+
+def get_answer(ques_dict: dict):
+    question = ques_dict['question']
+    incomplete_functions = ques_dict['incomplete_functions']
+    main_code = ques_dict['incomplete_main_code']
+    
+    try:
+        answer_with_thinking = llm_model(question+output_requirements)
+        answer_with_thinking = str(answer_with_thinking)
+    except Exception as e:
+        answer_with_thinking = f"[Error][{str(e)}]"
+        print(str(e))
+    
+    if answer_with_thinking.lower()=='none' or len(answer_with_thinking)==0:
+        answer_with_thinking = "None"
+        answer = "None"
+        answer_after_llm_paser = "None"
+    elif answer_with_thinking.startswith("[Error]"):
+        answer = "None"
+        answer_after_llm_paser = "None"
+    else:
+        answer = extract_final_answer(answer_with_thinking)
+        if answer is None:
+            answer = answer_with_thinking
+        
+        try:
+            answer_after_llm_paser = answer_paser(answer, answer_example)
+            answer_after_llm_paser = str(answer_after_llm_paser)
+        except:
+            answer_after_llm_paser = answer
+    
+    for incomplete_function in incomplete_functions:
+        try:
+            main_code = replace_function(main_code, answer, incomplete_function)
+        except:
+            try:
+                main_code = replace_function(main_code, answer_after_llm_paser, incomplete_function)
+            except:
+                pass
+
+    ques_dict['model_answer_with_thinking'] = answer_with_thinking
+    ques_dict['model_answer'] = answer
+    ques_dict['model_answer_after_llm_paser'] = answer_after_llm_paser
+    ques_dict['model_code'] = main_code
+
+    if answer_with_thinking == "None" or answer_with_thinking.startswith("[Error]"):
+        return ques_dict
+    
+    for unit_test_idx in range(5):
+        save_path = os.path.join('task_3_dry_experiment/codes', ques_dict['idx'], f"unit_test_{unit_test_idx}", f"main_[{model_name.replace('/', '')}].py")
+        with open(save_path, 'w', encoding='utf-8') as f:
+            f.write(main_code)
+
+    return ques_dict
+
+inp_list = [{"ques_dict": q} for q in dataset['test'] if q['discipline'] in discipline_list]
+out_list = muti_thread(inp_list, get_answer)
+
+os.makedirs(save_dir, exist_ok=True)
+with open(os.path.join(save_dir, f"{model_name.replace('/', '_')}{discipline}.json"), 'w', encoding='utf-8') as json_file:
+    json.dump(out_list, json_file, ensure_ascii=False, indent=4)

@@ -1,0 +1,58 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genomics_analyze_comparative_genomics_and_haplotypes",
+  "annotation": "Perform comparative genomics and haplotype analysis on multiple genome samples.",
+  "tags": [
+    "biomni",
+    "genomics",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "sample_fasta_files",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "reference_genome_path",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "biomni_genomics_analyze_comparative_genomics_and_haplotypes",
+      "label": "analyze_comparative_genomics_and_haplotypes",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "sample_fasta_files": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference_genome_path": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

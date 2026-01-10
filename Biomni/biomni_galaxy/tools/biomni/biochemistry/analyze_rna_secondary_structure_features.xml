@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<tool id="biomni_biochemistry_analyze_rna_secondary_structure_features" name="Biomni: Analyze Rna Secondary Structure Features" version="1.0.0">
+    <description>Calculate numeric values for various structural features of an RNA secondary structure.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.biochemistry import analyze_rna_secondary_structure_features
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_rna_secondary_structure_features(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --dot_bracket_structure '$dot_bracket_structure'
+#if $sequence
+    --sequence '$sequence'
+#end if
+]]></command>
+    <inputs>
+        <param name="dot_bracket_structure" type="text" label="Dot Bracket Structure" help="Parentheses represent base pairs, dots represent unpaired bases."  />
+        <param name="sequence" type="text" label="Sequence" help="sequence-dependent energy calculations will be performed."  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Rna Secondary Structure Features**
+
+Calculate numeric values for various structural features of an RNA secondary structure.
+
+Parameters
+----------
+dot_bracket_structure : str
+    RNA secondary structure in dot-bracket notation (e.g., "(((...)))").
+    Parentheses represent base pairs, dots represent unpaired bases.
+sequence : str, optional
+    The RNA sequence corresponding to the structure. If provided,
+    sequence-dependent energy calculations will be performed.
+
+Returns
+-------
+str
+    A research log summarizing the calculated structural features and analysis steps.
+
+**Domain**: biochemistry
+**Function**: analyze_rna_secondary_structure_features
+]]></help>
+</tool>

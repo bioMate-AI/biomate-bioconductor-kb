@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<tool id="biomni_glycoengineering_predict_o_glycosylation_hotspots" name="Biomni: Predict O Glycosylation Hotspots" version="1.0.0">
+    <description>Heuristic O-glycosylation hotspot scoring.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.glycoengineering import predict_o_glycosylation_hotspots
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = predict_o_glycosylation_hotspots(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --sequence '$sequence'
+#if $window
+    --window '$window'
+#end if
+#if $min_st_fraction
+    --min_st_fraction '$min_st_fraction'
+#end if
+#if $disallow_proline_next
+    --disallow_proline_next
+#end if
+]]></command>
+    <inputs>
+        <param name="sequence" type="text" label="Sequence" help=""  />
+        <param name="window" type="integer" label="Window" help="" value="7" optional="true"/>
+        <param name="min_st_fraction" type="float" label="Min St Fraction" help="" value="0.4" optional="true"/>
+        <param name="disallow_proline_next" type="boolean" truevalue="true" falsevalue="false" label="Disallow Proline Next" help="" checked="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Predict O Glycosylation Hotspots**
+
+Heuristic O-glycosylation hotspot scoring.
+
+Background
+- O-GalNAc glycosylation frequently occurs on Ser/Thr-rich segments.
+- This lightweight heuristic flags residues in local windows enriched for S/T.
+- Not a substitute for NetOGlyc; provided as a fast, dependency-free baseline.
+
+Parameters
+- sequence: protein sequence (one-letter AA codes)
+- window: odd window size for local S/T density (default 7)
+- min_st_fraction: minimum S/T fraction in window to flag sites (0..1)
+- disallow_proline_next: if True, avoid flagging S/T immediately followed by Proline
+
+Returns
+- Research log string with candidate sites and scores
+
+**Domain**: glycoengineering
+**Function**: predict_o_glycosylation_hotspots
+]]></help>
+</tool>

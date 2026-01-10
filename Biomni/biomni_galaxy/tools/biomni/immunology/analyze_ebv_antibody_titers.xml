@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<tool id="biomni_immunology_analyze_ebv_antibody_titers" name="Biomni: Analyze Ebv Antibody Titers" version="1.0.0">
+    <description>Analyze ELISA data to quantify EBV antibody titers in plasma/serum samples.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.immunology import analyze_ebv_antibody_titers
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_ebv_antibody_titers(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --raw_od_data '$raw_od_data'
+--standard_curve_data '$standard_curve_data'
+--sample_metadata '$sample_metadata'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="raw_od_data" type="text" label="Raw Od Data" help="Dictionary containing optical density (OD) readings for each sample."  />
+        <param name="standard_curve_data" type="text" label="Standard Curve Data" help="Dictionary containing standard curve data for each antibody type."  />
+        <param name="sample_metadata" type="text" label="Sample Metadata" help="Dictionary containing metadata for each sample."  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files. Default is current directory." value="./" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Ebv Antibody Titers**
+
+Analyze ELISA data to quantify EBV antibody titers in plasma/serum samples.
+
+Parameters
+----------
+raw_od_data : dict
+    Dictionary containing optical density (OD) readings for each sample.
+    Format: {sample_id: {'VCA_IgG': float, 'VCA_IgM': float, 'EA_IgG': float, 'EA_IgM': float, 'EBNA1_IgG': float, 'EBNA1_IgM': float}}
+standard_curve_data : dict
+    Dictionary containing standard curve data for each antibody type.
+    Format: {antibody_type: [(concentration, OD), ...]}
+sample_metadata : dict
+    Dictionary containing metadata for each sample.
+    Format: {sample_id: {'group': str, 'collection_date': str}}
+output_dir : str, optional
+    Directory to save output files. Default is current directory.
+
+Returns
+-------
+str
+    Research log summarizing the analysis process and results.
+
+**Domain**: immunology
+**Function**: analyze_ebv_antibody_titers
+]]></help>
+</tool>

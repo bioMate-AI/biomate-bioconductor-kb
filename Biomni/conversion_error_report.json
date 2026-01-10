@@ -1,0 +1,50 @@
+{
+  "timestamp": "2025-12-04T05:15:17.520091",
+  "summary": {
+    "total": 397,
+    "valid": 395,
+    "invalid": 2,
+    "conversion_failed": 0
+  },
+  "errors_by_type": {
+    "other": [
+      {
+        "file": "subworkflows/genetics/fit_genomic_prediction_model.ga",
+        "error": "Timeout during validation"
+      },
+      {
+        "file": "workflows/pathology/analyze_aortic_diameter_and_geometry.ga",
+        "error": "Timeout during validation"
+      }
+    ]
+  },
+  "errors_by_category": {
+    "subworkflows": [
+      {
+        "file": "subworkflows/genetics/fit_genomic_prediction_model.ga",
+        "error": "Timeout during validation"
+      }
+    ],
+    "workflows": [
+      {
+        "file": "workflows/pathology/analyze_aortic_diameter_and_geometry.ga",
+        "error": "Timeout during validation"
+      }
+    ]
+  },
+  "invalid_details": [
+    {
+      "file": "subworkflows/genetics/fit_genomic_prediction_model.ga",
+      "category": "subworkflows",
+      "error": "Timeout during validation",
+      "code_snippet": "#!/usr/bin/env nextflow\n/*\n * biomni_genetics_fit_genomic_prediction_model\n * Fit a linear mixed model for genomic prediction using genotype and phenotype data.\n * Converted from Galaxy format\n * Docker: biomate/biotools:latest\n */\n\nnextflow.enable.dsl = 2\n\n// Parameters\nparams.output_file = null\n\n// Processes\nprocess FIT_GENOMIC_PREDICTION_MODEL {\n    tag \"${task.process}\"\n    label 'process_medium'\n\n    container 'biomate/biotools:latest'\n\n    input:\n    path(output_file)\n\n    output:\n    path"
+    },
+    {
+      "file": "workflows/pathology/analyze_aortic_diameter_and_geometry.ga",
+      "category": "workflows",
+      "error": "Timeout during validation",
+      "code_snippet": "#!/usr/bin/env nextflow\n/*\n * biomni_pathology_analyze_aortic_diameter_and_geometry\n * Analyze aortic diameter and geometry from cardiovascular imaging data to measure aortic root diameter, ascending aorta diameter, and calculate geometric parameters such as tortuosity and dilation indices.\n * Converted from Galaxy format\n * Docker: biomate/biotools:latest\n */\n\nnextflow.enable.dsl = 2\n\n// Parameters\nparams.image_path = null\n\n// Processes\nprocess STEP_1__CV2_MOMENTS {\n    tag \"${task.process}\"\n  "
+    }
+  ],
+  "conversion_failures": []
+}

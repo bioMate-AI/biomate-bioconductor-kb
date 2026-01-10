@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_bio_Entrez_esearch" name="Biopython: Entrez.esearch" version="1.0.0">
+  <description>Call Biopython Entrez.esearch function</description>
+  <requirements>
+    <requirement type="package" version="">bio</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from Bio import *
+# Tool implementation
+result = Entrez.esearch(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**Biopython: Entrez.esearch**
+
+Call Biopython Entrez.esearch function
+
+**Tool Type**: python
+**Library**: Bio
+**Function**: Entrez.esearch
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;Bio&quot;,
+  &quot;function&quot;: &quot;Entrez.esearch&quot;,
+  &quot;call_template&quot;: &quot;from Bio import ...; result = Entrez.esearch(...)&quot;
+}
+]]&gt;</help>
+</tool>

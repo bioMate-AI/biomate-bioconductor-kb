@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_deseq2_results" name="DESeq2::results" version="1.0.0">
+  <description>Call R DESeq2::results function</description>
+  <requirements>
+    <requirement type="package">r-deseq2</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(DESeq2); results()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**DESeq2::results**
+
+Call R DESeq2::results function
+
+**Tool Type**: r
+**Library**: DESeq2
+**Function**: results
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;DESeq2&quot;,
+  &quot;function&quot;: &quot;results&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(DESeq2); results(...)'&quot;
+}
+]]&gt;</help>
+</tool>

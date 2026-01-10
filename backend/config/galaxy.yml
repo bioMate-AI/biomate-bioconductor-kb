@@ -1,0 +1,57 @@
+galaxy:
+  # Enable AI Assistant
+  enable_ai_assistant: true
+
+  # Claude Sonnet 4.5 Configuration (Primary)
+  ai_llm_provider: anthropic
+  ai_llm_model: claude-sonnet-4-5
+  # API key read from ANTHROPIC_API_KEY environment variable (see lib/galaxy/config/ai_config.py)
+
+  # HTTP Server Configuration
+  http: 0.0.0.0:8081
+
+  # Basic Galaxy settings
+  admin_users: admin@galaxy.org
+  bootstrap_admin_api_key: e5b2a0e7e843b203ec49ec9a5b1a2dbfab20f92e72651410f29bd7b2101467b3
+  # Allow admin to access all histories and run as other users
+  allow_user_impersonation: true
+  expose_potentially_sensitive_api_actions: true
+  database_connection: sqlite:///./database/universe.sqlite?isolation_level=IMMEDIATE
+  file_path: files
+  new_file_path: tmp
+  tool_dependency_dir: dependencies
+  check_migrate_tools: false
+  # Include both standard Galaxy tools and Biomni tools
+  # Use absolute path for Biomni tools
+  tool_config_file: tool_conf.xml.sample,/home/yzhang/biomate/backend/biomni_workflows/galaxy/tools/biomni/tool_conf_biomni.xml
+
+  # Memory optimization - load tools on demand instead of preloading
+  preload_tool_panel: false
+
+  # Job configuration - use Docker container for tool execution
+  # See job_conf.yml for details on biomate/biotools:arm64 container
+  job_config_file: config/job_conf.yml
+
+gravity:
+  gunicorn:
+    # Bind to port 8081
+    bind: 0.0.0.0:8081
+    # Reduce workers to prevent OOM
+    workers: 1
+    # Increase timeout for AI operations
+    timeout: 300
+    # Limit memory per worker
+    worker_class: sync
+    max_requests: 1000
+    max_requests_jitter: 50
+    # Do NOT preload app - load toolbox per worker to reduce memory
+    preload: false
+    # Environment variables for AI Assistant
+    environment:
+      PYTHONPATH: '/home/yzhang/biomate/backend/lib'
+      ANTHROPIC_API_KEY: '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'
+      GITHUB_TOKEN: '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'
+  celery:
+    environment:
+      PYTHONPATH: '/home/yzhang/biomate/backend/lib'
+      ANTHROPIC_API_KEY: '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'

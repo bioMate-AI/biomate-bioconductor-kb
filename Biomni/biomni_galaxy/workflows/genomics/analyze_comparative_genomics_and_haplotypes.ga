@@ -1,0 +1,87 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genomics_analyze_comparative_genomics_and_haplotypes",
+  "annotation": "Perform comparative genomics and haplotype analysis on multiple genome samples. Aligns genome samples to a reference, identifies variants, analyzes shared and unique genomic regions, and determines haplotype structure.",
+  "tags": [
+    "biomni",
+    "genomics",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "sample_fasta_files",
+      "annotation": "Input: sample_fasta_files",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "reference_genome_path",
+      "annotation": "Input: reference_genome_path",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "python_bio_SeqIO_parse",
+      "label": "Step 1: SeqIO_parse",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "tool",
+      "tool_id": "cli_bwa_run",
+      "label": "Step 2: run",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "analyze_comparative_genomics_and_haplotypes-output"
+    }
+  ]
+}

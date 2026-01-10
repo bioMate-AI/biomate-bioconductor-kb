@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<tool id="biomni_synthetic_biology_analyze_barcode_sequencing_data" name="Biomni: Analyze Barcode Sequencing Data" version="1.0.0">
+    <description>Analyze sequencing data to extract, quantify and determine lineage relationships of barcodes.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.synthetic_biology import analyze_barcode_sequencing_data
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_barcode_sequencing_data(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --input_file '$input_file'
+#if $barcode_pattern
+    --barcode_pattern '$barcode_pattern'
+#end if
+#if $flanking_seq_5prime
+    --flanking_seq_5prime '$flanking_seq_5prime'
+#end if
+#if $flanking_seq_3prime
+    --flanking_seq_3prime '$flanking_seq_3prime'
+#end if
+#if $min_count
+    --min_count '$min_count'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="input_file" type="text" label="Input File" help="Path to the input sequencing file in FASTQ or FASTA format"  />
+        <param name="barcode_pattern" type="text" label="Barcode Pattern" help="Regular expression pattern to identify barcodes. If None, will use flanking sequences"  optional="true"/>
+        <param name="flanking_seq_5prime" type="text" label="Flanking Seq 5Prime" help="5' flanking sequence of the barcode region"  optional="true"/>
+        <param name="flanking_seq_3prime" type="text" label="Flanking Seq 3Prime" help="3' flanking sequence of the barcode region"  optional="true"/>
+        <param name="min_count" type="text" label="Min Count" help="Minimum count threshold for considering a barcode" value="5" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files" value="./results" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Barcode Sequencing Data**
+
+Analyze sequencing data to extract, quantify and determine lineage relationships of barcodes.
+
+Parameters
+----------
+input_file : str
+    Path to the input sequencing file in FASTQ or FASTA format
+barcode_pattern : str, optional
+    Regular expression pattern to identify barcodes. If None, will use flanking sequences
+flanking_seq_5prime : str, optional
+    5' flanking sequence of the barcode region
+flanking_seq_3prime : str, optional
+    3' flanking sequence of the barcode region
+min_count : int, default=5
+    Minimum count threshold for considering a barcode
+output_dir : str, default="./results"
+    Directory to save output files
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results
+
+**Domain**: synthetic_biology
+**Function**: analyze_barcode_sequencing_data
+]]></help>
+</tool>

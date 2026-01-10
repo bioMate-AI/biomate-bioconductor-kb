@@ -1,0 +1,221 @@
+function_name,domain,line_number,internal_tools,complexity,galaxy_tool_type,notes
+unsupervised_celltype_transfer_between_scRNA_datasets,genomics,18,"scvi,scanpy",High,subworkflow,Transfer learning for cell types
+interspecies_gene_conversion,genomics,108,"gget,BioMart",Medium,api_wrapper,Gene ID conversion across species
+generate_gene_embeddings_with_ESM_models,genomics,314,"ESM,torch",High,ml_tool,GPU required
+annotate_celltype_scRNA,genomics,463,"LLM,scanpy",High,ai_workflow,LLM-dependent annotation
+annotate_celltype_with_panhumanpy,genomics,600,panhumanpy,Medium,python_wrapper,Pan-human cell type annotation
+create_scvi_embeddings_scRNA,genomics,801,scvi,Medium,python_wrapper,scVI embedding generation
+create_harmony_embeddings_scRNA,genomics,842,harmony,Medium,python_wrapper,Harmony batch correction
+get_uce_embeddings_scRNA,genomics,861,UCE,High,ml_tool,UCE model embeddings
+map_to_ima_interpret_scRNA,genomics,914,IMA,High,ml_tool,IMA interpretation
+get_rna_seq_archs4,genomics,974,ARCHS4_API,Low,api_wrapper,ARCHS4 RNA-seq data
+get_gene_set_enrichment_analysis_supported_database_list,genomics,1017,gseapy,Low,python_wrapper,List supported databases
+gene_set_enrichment_analysis,genomics,1021,"gseapy,gget",Medium,python_wrapper,Gene enrichment analysis
+analyze_chromatin_interactions,genomics,1091,"cooler,hicstraw",High,python_wrapper,Hi-C analysis
+analyze_comparative_genomics_and_haplotypes,genomics,1424,"bwa,samtools",High,cli_wrapper,Comparative genomics
+perform_chipseq_peak_calling_with_macs2,genomics,1617,MACS2,Medium,cli_wrapper,ChIP-seq peak calling
+find_enriched_motifs_with_homer,genomics,1794,HOMER,Medium,cli_wrapper,Motif enrichment
+analyze_genomic_region_overlap,genomics,1965,bedtools,Medium,cli_wrapper,Region overlap analysis
+generate_embeddings_with_state,genomics,2167,STATE,High,ml_tool,STATE model embeddings
+generate_transcriptformer_embeddings,genomics,2422,Transcriptformer,High,ml_tool,Transcriptformer embeddings
+get_hpo_names,database,17,data_lake,Low,python_wrapper,HPO term lookup
+query_uniprot,database,448,UniProt_REST,Medium,api_wrapper,UniProt queries
+query_alphafold,database,544,AlphaFold_API,Medium,api_wrapper,AlphaFold structure queries
+query_interpro,database,693,InterPro_API,Medium,api_wrapper,InterPro domain queries
+query_pdb,database,800,PDB_REST,Medium,api_wrapper,PDB structure queries
+query_pdb_identifiers,database,917,PDB_REST,Low,api_wrapper,PDB ID queries
+query_kegg,database,1030,KEGG_API,Medium,api_wrapper,KEGG pathway queries
+query_stringdb,database,1119,STRING_API,Medium,api_wrapper,STRING interaction queries
+query_iucn,database,1286,IUCN_API,Medium,api_wrapper,IUCN conservation queries
+query_paleobiology,database,1393,PBDB_API,Medium,api_wrapper,Paleobiology queries
+query_jaspar,database,1521,JASPAR_API,Medium,api_wrapper,JASPAR motif queries
+query_worms,database,1625,WoRMS_API,Medium,api_wrapper,WoRMS taxonomy queries
+query_cbioportal,database,1722,cBioPortal_API,Medium,api_wrapper,cBioPortal cancer data
+query_clinvar,database,1824,ClinVar_API,Medium,api_wrapper,ClinVar variant queries
+query_geo,database,1907,GEO_API,Medium,api_wrapper,GEO dataset queries
+query_dbsnp,database,2005,dbSNP_API,Medium,api_wrapper,dbSNP variant queries
+query_ucsc,database,2093,UCSC_API,Medium,api_wrapper,UCSC genome browser
+query_ensembl,database,2195,Ensembl_REST,Medium,api_wrapper,Ensembl queries
+query_opentarget,database,2315,OpenTargets_API,Medium,api_wrapper,OpenTargets queries
+query_monarch,database,2416,Monarch_API,Medium,api_wrapper,Monarch disease queries
+query_openfda,database,2530,OpenFDA_API,Medium,api_wrapper,OpenFDA queries
+query_gwas_catalog,database,2652,GWAS_Catalog,Medium,api_wrapper,GWAS Catalog queries
+query_gnomad,database,2753,gnomAD_API,Medium,api_wrapper,gnomAD variant queries
+blast_sequence,database,2852,NCBI_BLAST,High,api_wrapper,NCBI BLAST search
+query_reactome,database,2954,Reactome_API,Medium,api_wrapper,Reactome pathway queries
+query_regulomedb,database,3120,RegulomeDB_API,Medium,api_wrapper,RegulomeDB queries
+query_pride,database,3208,PRIDE_API,Medium,api_wrapper,PRIDE proteomics queries
+query_gtopdb,database,3307,GtoPdb_API,Medium,api_wrapper,GtoPdb queries
+region_to_ccre_screen,database,3409,SCREEN_API,Medium,api_wrapper,ENCODE SCREEN queries
+get_genes_near_ccre,database,3516,SCREEN_API,Low,api_wrapper,Genes near cCREs
+query_remap,database,3575,ReMap_API,Medium,api_wrapper,ReMap regulatory queries
+query_mpd,database,3676,MPD_API,Medium,api_wrapper,Mouse Phenome DB queries
+query_emdb,database,3777,EMDB_API,Medium,api_wrapper,EMDB structure queries
+query_synapse,database,3882,Synapse_API,Medium,api_wrapper,Synapse data queries
+query_pubchem,database,4032,PubChem_API,Medium,api_wrapper,PubChem compound queries
+query_chembl,database,4134,ChEMBL_API,Medium,api_wrapper,ChEMBL queries
+query_unichem,database,4374,UniChem_API,Medium,api_wrapper,UniChem ID mapping
+query_clinicaltrials,database,4486,ClinicalTrials_API,Medium,api_wrapper,ClinicalTrials queries
+query_dailymed,database,4602,DailyMed_API,Medium,api_wrapper,DailyMed drug info
+query_quickgo,database,4706,QuickGO_API,Medium,api_wrapper,QuickGO GO queries
+query_encode,database,4819,ENCODE_API,Medium,api_wrapper,ENCODE queries
+annotate_open_reading_frames,molecular_biology,15,Biopython,Low,python_wrapper,ORF annotation
+annotate_plasmid,molecular_biology,167,Biopython,Medium,python_wrapper,Plasmid annotation
+get_gene_coding_sequence,molecular_biology,252,NCBI_Entrez,Medium,api_wrapper,CDS retrieval
+get_plasmid_sequence,molecular_biology,330,Addgene_API,Medium,api_wrapper,Addgene plasmid retrieval
+align_sequences,molecular_biology,422,Biopython,Low,python_wrapper,Sequence alignment
+pcr_simple,molecular_biology,496,align_sequences,Medium,subworkflow,PCR simulation - calls align_sequences
+digest_sequence,molecular_biology,602,Biopython,Low,python_wrapper,Restriction digest
+find_restriction_sites,molecular_biology,725,Biopython,Low,python_wrapper,Find restriction sites
+find_restriction_enzymes,molecular_biology,791,Biopython,Low,python_wrapper,Find enzymes for sequence
+find_sequence_mutations,molecular_biology,822,Biopython,Low,python_wrapper,Mutation detection
+design_knockout_sgrna,molecular_biology,876,Biopython,Medium,python_wrapper,sgRNA design
+get_oligo_annealing_protocol,molecular_biology,951,static,Low,static,Protocol text
+get_golden_gate_assembly_protocol,molecular_biology,1006,static,Low,static,Protocol text
+get_bacterial_transformation_protocol,molecular_biology,1196,static,Low,static,Protocol text
+design_primer,molecular_biology,1277,primer3,Medium,cli_wrapper,Primer design
+design_verification_primers,molecular_biology,1353,primer3,Medium,cli_wrapper,Verification primer design
+design_golden_gate_oligos,molecular_biology,1699,Biopython,Medium,python_wrapper,Golden Gate oligo design
+golden_gate_assembly,molecular_biology,1849,"digest_sequence,find_restriction_sites",High,subworkflow,Full GG assembly
+run_diffdock_with_smiles,pharmacology,13,DiffDock,High,ml_tool,Molecular docking
+docking_autodock_vina,pharmacology,96,AutoDock_Vina,High,cli_wrapper,Vina docking
+run_autosite,pharmacology,136,AutoSite,Medium,cli_wrapper,Binding site prediction
+retrieve_topk_repurposing_drugs_from_disease_txgnn,pharmacology,184,TxGNN,High,ml_tool,Drug repurposing
+predict_admet_properties,pharmacology,249,DeepPurpose,High,ml_tool,ADMET prediction
+predict_binding_affinity_protein_1d_sequence,pharmacology,364,DeepPurpose,High,ml_tool,Binding affinity prediction
+analyze_accelerated_stability_of_pharmaceutical_formulations,pharmacology,414,scipy,Medium,python_wrapper,Stability analysis
+run_3d_chondrogenic_aggregate_assay,pharmacology,577,skimage,Medium,python_wrapper,3D assay analysis
+grade_adverse_events_using_vcog_ctcae,pharmacology,682,pandas,Medium,python_wrapper,Adverse event grading
+analyze_radiolabeled_antibody_biodistribution,pharmacology,1073,scipy,Medium,python_wrapper,Biodistribution analysis
+estimate_alpha_particle_radiotherapy_dosimetry,pharmacology,1209,scipy,High,python_wrapper,Dosimetry calculation
+perform_mwas_cyp2c19_metabolizer_status,pharmacology,1321,statsmodels,High,python_wrapper,MWAS analysis
+calculate_physicochemical_properties,pharmacology,1523,RDKit,Low,python_wrapper,Physicochemical properties
+analyze_xenograft_tumor_growth_inhibition,pharmacology,1616,scipy,Medium,python_wrapper,Tumor growth analysis
+analyze_western_blot,pharmacology,1864,skimage,Medium,python_wrapper,Western blot analysis
+query_drug_interactions,pharmacology,2311,DDInter,Medium,python_wrapper,Drug interaction queries
+check_drug_combination_safety,pharmacology,2442,DDInter,Medium,python_wrapper,Drug safety check
+analyze_interaction_mechanisms,pharmacology,2607,DDInter,Medium,python_wrapper,Interaction mechanism
+find_alternative_drugs_ddinter,pharmacology,2763,DDInter,High,python_wrapper,Alternative drug search
+query_fda_adverse_events,pharmacology,3571,OpenFDA_API,Medium,api_wrapper,FDA adverse events
+get_fda_drug_label_info,pharmacology,3654,OpenFDA_API,Medium,api_wrapper,FDA drug labels
+check_fda_drug_recalls,pharmacology,3692,OpenFDA_API,Medium,api_wrapper,FDA recalls
+analyze_fda_safety_signals,pharmacology,3741,OpenFDA_API,Medium,api_wrapper,FDA safety signals
+analyze_atac_seq_differential_accessibility,immunology,1,"pyatac,scanpy",High,python_wrapper,ATAC-seq analysis
+analyze_bacterial_growth_curve,immunology,185,scipy,Medium,python_wrapper,Growth curve analysis
+isolate_purify_immune_cells,immunology,311,protocol,Low,static,Protocol text
+estimate_cell_cycle_phase_durations,immunology,448,scipy,High,python_wrapper,Cell cycle estimation
+track_immune_cells_under_flow,immunology,633,TrackMate,High,python_wrapper,Cell tracking
+analyze_cfse_cell_proliferation,immunology,969,flowkit,High,python_wrapper,CFSE analysis
+analyze_cytokine_production_in_cd4_tcells,immunology,1178,flowkit,High,python_wrapper,Cytokine analysis
+analyze_ebv_antibody_titers,immunology,1331,scipy,Medium,python_wrapper,Antibody titer analysis
+analyze_cns_lesion_histology,immunology,1490,"skimage,SAM",High,python_wrapper,Histology analysis
+analyze_immunohistochemistry_image,immunology,1848,skimage,High,python_wrapper,IHC analysis
+liftover_coordinates,genetics,1,liftover,Low,python_wrapper,Coordinate liftover
+bayesian_finemapping_with_deep_vi,genetics,80,DeepVI,High,ml_tool,Fine-mapping
+analyze_cas9_mutation_outcomes,genetics,323,Biopython,Medium,python_wrapper,CRISPR outcome analysis
+analyze_crispr_genome_editing,genetics,510,Biopython,Medium,python_wrapper,Genome editing analysis
+simulate_demographic_history,genetics,646,msprime,High,python_wrapper,Demographic simulation
+identify_transcription_factor_binding_sites,genetics,851,MEME,High,cli_wrapper,TF binding site detection
+fit_genomic_prediction_model,genetics,975,sklearn,High,python_wrapper,Genomic prediction
+perform_pcr_and_gel_electrophoresis,genetics,1237,skimage,Medium,python_wrapper,Gel analysis
+analyze_protein_phylogeny,genetics,1445,"Biopython,MAFFT",High,python_wrapper,Phylogenetic analysis
+optimize_anaerobic_digestion_process,microbiology,1,scipy,High,python_wrapper,Digestion optimization
+analyze_arsenic_speciation_hplc_icpms,microbiology,256,pandas,Medium,python_wrapper,Speciation analysis
+count_bacterial_colonies,microbiology,393,skimage,Medium,python_wrapper,Colony counting
+annotate_bacterial_genome,microbiology,529,Prokka,High,cli_wrapper,Genome annotation
+enumerate_bacterial_cfu_by_serial_dilution,microbiology,662,pandas,Low,python_wrapper,CFU enumeration
+model_bacterial_growth_dynamics,microbiology,808,scipy,Medium,python_wrapper,Growth dynamics
+quantify_biofilm_biomass_crystal_violet,microbiology,897,scipy,Medium,python_wrapper,Biofilm quantification
+segment_and_analyze_microbial_cells,microbiology,999,skimage,Medium,python_wrapper,Cell segmentation
+segment_cells_with_deep_learning,microbiology,1113,Cellpose,High,ml_tool,Deep learning segmentation
+simulate_generalized_lotka_volterra_dynamics,microbiology,1265,scipy,High,python_wrapper,Population dynamics
+predict_rna_secondary_structure,microbiology,1355,RNAfold,Medium,cli_wrapper,RNA structure prediction
+simulate_microbial_population_dynamics,microbiology,1431,scipy,High,python_wrapper,Population simulation
+analyze_cell_migration_metrics,bioengineering,1,skimage,Medium,python_wrapper,Migration analysis
+perform_crispr_cas9_genome_editing,bioengineering,234,Biopython,High,python_wrapper,CRISPR editing
+analyze_calcium_imaging_data,bioengineering,402,"scipy,skimage",High,python_wrapper,Calcium imaging
+analyze_in_vitro_drug_release_kinetics,bioengineering,595,scipy,Medium,python_wrapper,Drug release kinetics
+analyze_myofiber_morphology,bioengineering,893,skimage,High,python_wrapper,Myofiber analysis
+decode_behavior_from_neural_trajectories,bioengineering,1062,"sklearn,scipy",High,python_wrapper,Neural decoding
+simulate_whole_cell_ode_model,bioengineering,1243,scipy,High,python_wrapper,Whole cell simulation
+engineer_bacterial_genome_for_therapeutic_delivery,synthetic_biology,1,Biopython,High,python_wrapper,Genome engineering
+analyze_bacterial_growth_rate,synthetic_biology,225,scipy,Medium,python_wrapper,Growth rate analysis
+analyze_barcode_sequencing_data,synthetic_biology,356,pandas,Medium,python_wrapper,Barcode analysis
+analyze_bifurcation_diagram,synthetic_biology,515,scipy,High,python_wrapper,Bifurcation analysis
+create_biochemical_network_sbml_model,synthetic_biology,706,libsbml,High,python_wrapper,SBML model creation
+optimize_codons_for_heterologous_expression,synthetic_biology,860,Biopython,Medium,python_wrapper,Codon optimization
+simulate_gene_circuit_with_growth_feedback,synthetic_biology,973,scipy,High,python_wrapper,Gene circuit simulation
+identify_fas_functional_domains,synthetic_biology,1152,Biopython,Medium,python_wrapper,FAS domain identification
+analyze_ddr_network_in_cancer,cancer_biology,1,"pandas,networkx",High,python_wrapper,DDR network analysis
+analyze_cell_senescence_and_apoptosis,cancer_biology,268,flowkit,High,python_wrapper,Senescence analysis
+detect_and_annotate_somatic_mutations,cancer_biology,422,"VEP,Biopython",High,subworkflow,Mutation annotation
+detect_and_characterize_structural_variations,cancer_biology,571,pysam,High,python_wrapper,SV detection
+perform_gene_expression_nmf_analysis,cancer_biology,821,sklearn,High,python_wrapper,NMF analysis
+analyze_copy_number_purity_ploidy_and_focal_events,cancer_biology,953,ASCAT-like,High,python_wrapper,Copy number analysis
+reconstruct_3d_face_from_mri,physiology,1,"nibabel,skimage",High,python_wrapper,3D reconstruction
+analyze_abr_waveform_p1_metrics,physiology,150,scipy,Medium,python_wrapper,ABR waveform analysis
+analyze_ciliary_beat_frequency,physiology,217,"scipy,skimage",High,python_wrapper,Ciliary beat analysis
+analyze_protein_colocalization,physiology,365,skimage,Medium,python_wrapper,Colocalization analysis
+perform_cosinor_analysis,physiology,516,scipy,Medium,python_wrapper,Circadian analysis
+calculate_brain_adc_map,physiology,613,nibabel,High,python_wrapper,ADC map calculation
+analyze_endolysosomal_calcium_dynamics,physiology,738,scipy,High,python_wrapper,Calcium dynamics
+analyze_fatty_acid_composition_by_gc,physiology,889,pandas,Medium,python_wrapper,GC analysis
+analyze_hemodynamic_data,physiology,1015,scipy,Medium,python_wrapper,Hemodynamic analysis
+simulate_thyroid_hormone_pharmacokinetics,physiology,1099,scipy,High,python_wrapper,PK simulation
+quantify_amyloid_beta_plaques,physiology,1251,skimage,High,python_wrapper,Plaque quantification
+analyze_aortic_diameter_and_geometry,pathology,1,skimage,High,python_wrapper,Aortic analysis
+analyze_atp_luminescence_assay,pathology,206,scipy,Medium,python_wrapper,ATP assay analysis
+analyze_thrombus_histology,pathology,352,skimage,High,python_wrapper,Thrombus histology
+analyze_intracellular_calcium_with_rhod2,pathology,507,skimage,High,python_wrapper,Rhod-2 calcium imaging
+quantify_corneal_nerve_fibers,pathology,605,skimage,High,python_wrapper,Nerve fiber analysis
+segment_and_quantify_cells_in_multiplexed_images,pathology,745,skimage,High,python_wrapper,Multiplex segmentation
+analyze_bone_microct_morphometry,pathology,896,nibabel,High,python_wrapper,microCT morphometry
+analyze_circular_dichroism_spectra,biochemistry,1,scipy,Medium,python_wrapper,CD spectra analysis
+analyze_rna_secondary_structure_features,biochemistry,160,Biopython,Medium,python_wrapper,RNA structure features
+analyze_protease_kinetics,biochemistry,307,scipy,Medium,python_wrapper,Protease kinetics
+analyze_enzyme_kinetics_assay,biochemistry,458,scipy,Medium,python_wrapper,Enzyme kinetics
+analyze_itc_binding_thermodynamics,biochemistry,670,scipy,High,python_wrapper,ITC analysis
+analyze_protein_conservation,biochemistry,872,"Biopython,MAFFT",High,python_wrapper,Conservation analysis
+query_chatnt,systems_biology,1,ChatNT_API,Medium,api_wrapper,ChatNT queries
+perform_flux_balance_analysis,systems_biology,33,COBRApy,High,python_wrapper,FBA analysis
+model_protein_dimerization_network,systems_biology,150,scipy,High,python_wrapper,Dimerization modeling
+simulate_metabolic_network_perturbation,systems_biology,294,COBRApy,High,python_wrapper,Metabolic perturbation
+simulate_protein_signaling_network,systems_biology,460,scipy,High,python_wrapper,Signaling network sim
+compare_protein_structures,systems_biology,605,"pymol,biotite",High,python_wrapper,Structure comparison
+simulate_renin_angiotensin_system_dynamics,systems_biology,775,scipy,High,python_wrapper,RAS dynamics
+quantify_cell_cycle_phases_from_microscopy,cell_biology,1,skimage,High,python_wrapper,Cell cycle quantification
+quantify_and_cluster_cell_motility,cell_biology,162,"trackpy,sklearn",High,python_wrapper,Motility clustering
+perform_facs_cell_sorting,cell_biology,369,protocol,Low,static,Protocol text
+analyze_flow_cytometry_immunophenotyping,cell_biology,473,flowkit,High,python_wrapper,Flow cytometry analysis
+analyze_mitochondrial_morphology_and_potential,cell_biology,574,skimage,High,python_wrapper,Mitochondrial analysis
+predict_protein_disorder_regions,biophysics,1,IUPred2A,Medium,api_wrapper,Disorder prediction
+analyze_cell_morphology_and_cytoskeleton,biophysics,124,skimage,High,python_wrapper,Cytoskeleton analysis
+analyze_tissue_deformation_flow,biophysics,324,"skimage,opencv",High,python_wrapper,Deformation analysis
+find_n_glycosylation_motifs,glycoengineering,9,regex,Low,python_wrapper,N-glyc motif search
+predict_o_glycosylation_hotspots,glycoengineering,49,ML_model,Medium,python_wrapper,O-glyc prediction
+list_glycoengineering_resources,glycoengineering,115,static,Low,static,Resource list
+fetch_supplementary_info_from_doi,literature,13,requests,Medium,api_wrapper,DOI info fetch
+query_arxiv,literature,90,arxiv_API,Low,api_wrapper,arXiv search
+query_scholar,literature,114,scholarly,Medium,api_wrapper,Scholar search
+query_pubmed,literature,144,NCBI_Entrez,Low,api_wrapper,PubMed search
+search_google,literature,186,googlesearch,Medium,api_wrapper,Google search
+advanced_web_search_claude,literature,218,Claude_API,High,ai_workflow,AI-powered search
+extract_url_content,literature,303,"requests,BeautifulSoup",Medium,python_wrapper,URL content extraction
+extract_pdf_content,literature,343,PyPDF2,Medium,python_wrapper,PDF extraction
+search_protocols,protocols,29,protocols_io_API,Low,api_wrapper,Protocol search
+get_protocol_details,protocols,134,protocols_io_API,Low,api_wrapper,Protocol details
+run_python_repl,support_tools,13,exec,High,python_wrapper,Python REPL
+read_function_source_code,support_tools,141,inspect,Low,python_wrapper,Source code reading
+download_synapse_data,support_tools,199,synapseclient,Medium,python_wrapper,Synapse download
+get_pylabrobot_documentation_liquid,lab_automation,209,GitHub_API,Low,api_wrapper,PyLabRobot docs
+test_pylabrobot_script,lab_automation,232,PyLabRobot,High,python_wrapper,Script testing
+split_modalities,bioimaging,965,nibabel,Low,python_wrapper,Modality splitting
+prepare_input_for_nnunet,bioimaging,971,nibabel,Medium,python_wrapper,nnU-Net prep
+segment_with_nn_unet,bioimaging,977,nnU-Net,High,ml_tool,nnU-Net segmentation
+create_segmentation_visualization,bioimaging,1007,matplotlib,Low,python_wrapper,Visualization
+preprocess_image,bioimaging,1014,skimage,Medium,python_wrapper,Image preprocessing
+quick_rigid_registration,bioimaging,1034,ants,High,python_wrapper,Rigid registration
+quick_affine_registration,bioimaging,1110,ants,High,python_wrapper,Affine registration
+quick_deformable_registration,bioimaging,1186,ants,High,python_wrapper,Deformable registration
+batch_register_images,bioimaging,1264,ants,High,subworkflow,Batch registration
+calculate_similarity_metrics,bioimaging,1380,skimage,Medium,python_wrapper,Image similarity

@@ -1,0 +1,71 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_molecular_biology_digest_sequence",
+  "annotation": "Simulates restriction enzyme digestion of a DNA sequence and returns the resulting fragments with their properties.",
+  "tags": [
+    "biomni",
+    "molecular_biology",
+    "single-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "dna_sequence",
+      "annotation": "Input: dna_sequence",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "parameter_input",
+      "label": "enzyme_names",
+      "annotation": "Input: enzyme_names",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "python_bio_Seq",
+      "label": "Step 1: Seq",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "digest_sequence-output"
+    }
+  ]
+}

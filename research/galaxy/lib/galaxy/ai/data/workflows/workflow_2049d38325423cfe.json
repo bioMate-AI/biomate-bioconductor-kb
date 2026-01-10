@@ -1,0 +1,808 @@
+{
+  "workflow_id": "2049d38325423cfe",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "2049d38325423cfe",
+    "latest_workflow_id": "80398da00bdacf13",
+    "name": "Promoter Sequence Extraction and Motif Scanning",
+    "create_time": "2025-04-13T15:39:37.034955",
+    "update_time": "2025-05-01T07:19:42.148560",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "193dad65-1b77-4e7f-9aef-3be554a2c744",
+    "creator_deleted": false,
+    "annotations": [
+      ""
+    ],
+    "url": "/api/workflows/2049d38325423cfe",
+    "owner": "abhishek_s_r",
+    "source_metadata": null,
+    "number_of_steps": 10,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "Promoter Sequence Extraction and Motif Scanning",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "Gene Annotation (GTF/GFF)"
+          }
+        ],
+        "label": "Gene Annotation (GTF/GFF)",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 140
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"gtf\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "ed64404e-8661-45a6-b2cf-d03d9ab0fa70",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "Reference Genome (FASTA)"
+          }
+        ],
+        "label": "Reference Genome (FASTA)",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 1500,
+          "top": 360
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "710d2958-e713-48a9-92fa-fe7d83d772be",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "Motif File (MEME)"
+          }
+        ],
+        "label": "Motif File (MEME)",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 1800,
+          "top": 0
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "1db96d6e-f9a7-4b43-addc-5af33dd008e8",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/gtftobed12/gtftobed12/357",
+        "errors": null,
+        "id": 3,
+        "input_connections": {
+          "gtf_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Convert GTF to BED12",
+        "outputs": [
+          {
+            "name": "bed_file",
+            "type": "bed12"
+          }
+        ],
+        "position": {
+          "left": 300,
+          "top": 140
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/gtftobed12/gtftobed12/357",
+        "tool_shed_repository": {
+          "changeset_revision": "b026dae67fba",
+          "name": "gtftobed12",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"advanced_options\": {\"advanced_options_selector\": \"default\", \"__current_case__\": 0}, \"gtf_file\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "357",
+        "type": "tool",
+        "uuid": "8558a683-6d3b-4609-9c86-6f9a19bac01d",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "",
+        "content_id": "gene2exon1",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "input1": {
+            "id": 3,
+            "output_name": "bed_file"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Gene BED To Exon/Intron/Codon BED",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "bed"
+          }
+        ],
+        "position": {
+          "left": 600,
+          "top": 140
+        },
+        "post_job_actions": {},
+        "tool_id": "gene2exon1",
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"region\": \"transcribed\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.0",
+        "type": "tool",
+        "uuid": "cd0b8c5f-f325-4cce-b822-9176c7eb2010",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_slopbed/2.31.1+galaxy0",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "inputA": {
+            "id": 4,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "bedtools SlopBed",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "bed"
+          }
+        ],
+        "position": {
+          "left": 900,
+          "top": 140
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_slopbed/2.31.1+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "2892111d91f8",
+          "name": "bedtools",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"addition\": {\"addition_select\": \"b\", \"__current_case__\": 0, \"b\": \"1\"}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"loc\", \"__current_case__\": 0, \"genome\": \"CHM13_T2T_v2.0\"}, \"header\": false, \"inputA\": {\"__class__\": \"ConnectedValue\"}, \"pct\": false, \"strand\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.31.1+galaxy0",
+        "type": "tool",
+        "uuid": "8cae3c82-fef7-4dfe-a6b5-bc635e11a365",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.1",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "input": {
+            "id": 5,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Compute",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1200,
+          "top": 140
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.1",
+        "tool_shed_repository": {
+          "changeset_revision": "aff5135563c6",
+          "name": "column_maker",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"avoid_scientific_notation\": false, \"error_handling\": {\"auto_col_types\": true, \"fail_on_non_existent_columns\": true, \"non_computable\": {\"action\": \"--fail-on-non-computable\", \"__current_case__\": 0}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"ops\": {\"header_lines_select\": \"no\", \"__current_case__\": 0, \"expressions\": [{\"__index__\": 0, \"cond\": \"c3-c2\", \"add_column\": {\"mode\": \"\", \"__current_case__\": 0, \"pos\": \"\"}}, {\"__index__\": 1, \"cond\": \"if($6 == \\\"+\\\") {   print $1\\\"\\\\t\\\"$2\\\"\\\\t\\\"int($2)+1\\\"\\\\t\\\"$4\\\"\\\\t\\\"$5\\\"\\\\t\\\"$6; } else {   print $1\\\"\\\\t\\\"int($3)-1\\\"\\\\t\\\"$3\\\"\\\\t\\\"$4\\\"\\\\t\\\"$5\\\"\\\\t\\\"$6; }\", \"add_column\": {\"mode\": \"\", \"__current_case__\": 0, \"pos\": \"\"}}]}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.1",
+        "type": "tool",
+        "uuid": "80271250-6a0d-4cdc-8035-92303e6cda2a",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_flankbed/2.31.1+galaxy0",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "input": {
+            "id": 6,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool bedtools FlankBed",
+            "name": "genome_file_opts"
+          }
+        ],
+        "label": null,
+        "name": "bedtools FlankBed",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1500,
+          "top": 140
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_flankbed/2.31.1+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "2892111d91f8",
+          "name": "bedtools",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"addition\": {\"addition_select\": \"b\", \"__current_case__\": 0, \"b\": \"1\"}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\", \"__current_case__\": 1, \"genome\": {\"__class__\": \"ConnectedValue\"}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"pct\": false, \"strand\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.31.1+galaxy0",
+        "type": "tool",
+        "uuid": "999832f6-e79a-4612-b961-ac775b41c52f",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_getfastabed/2.31.1+galaxy0",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "fasta_source|fasta": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "input": {
+            "id": 7,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool bedtools getfasta",
+            "name": "fasta_source"
+          }
+        ],
+        "label": null,
+        "name": "bedtools getfasta",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "fasta"
+          }
+        ],
+        "position": {
+          "left": 1800,
+          "top": 140
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_getfastabed/2.31.1+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "2892111d91f8",
+          "name": "bedtools",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"fasta_source\": {\"fasta_source_selector\": \"history\", \"__current_case__\": 0, \"fasta\": {\"__class__\": \"ConnectedValue\"}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": true, \"nameOnly\": true, \"split\": false, \"strand\": true, \"tab\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.31.1+galaxy0",
+        "type": "tool",
+        "uuid": "9e2a30d5-7458-464f-bcb6-d2b213593c26",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "output",
+            "output_name": "output",
+            "uuid": "a86fd52b-eea2-4909-b16e-2144fa02aad7"
+          }
+        ]
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/meme_fimo/meme_fimo/5.5.6+galaxy0",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "fasta_type|input_database": {
+            "id": 8,
+            "output_name": "output"
+          },
+          "input_motifs": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FIMO",
+            "name": "fasta_type"
+          }
+        ],
+        "label": null,
+        "name": "FIMO",
+        "outputs": [
+          {
+            "name": "txt_outfile",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 2100,
+          "top": 0
+        },
+        "post_job_actions": {
+          "ChangeDatatypeActiontxt_outfile": {
+            "action_arguments": {
+              "newtype": "tabular"
+            },
+            "action_type": "ChangeDatatypeAction",
+            "output_name": "txt_outfile"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/meme_fimo/meme_fimo/5.5.6+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "01f5d04846c4",
+          "name": "meme_fimo",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"fasta_type\": {\"fasta_type_selector\": \"history\", \"__current_case__\": 1, \"input_database\": {\"__class__\": \"ConnectedValue\"}}, \"input_motifs\": {\"__class__\": \"ConnectedValue\"}, \"non_commercial_use\": true, \"options_type\": {\"options_type_selector\": \"basic\", \"__current_case__\": 0}, \"output_options\": {\"html_outfile\": false, \"xml_outfile\": false, \"gff_outfile\": false}, \"scanrc\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "5.5.6+galaxy0",
+        "type": "tool",
+        "uuid": "686288e2-1216-469b-b0a6-ebab6af48433",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "txt_outfile",
+            "output_name": "txt_outfile",
+            "uuid": "46923695-1f7c-4410-80cb-f4bfbd71edd9"
+          }
+        ]
+      }
+    },
+    "tags": [],
+    "uuid": "193dad65-1b77-4e7f-9aef-3be554a2c744",
+    "version": 12
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "Promoter Sequence Extraction and Motif Scanning",
+      "annotation": "",
+      "format_version": "0.1",
+      "uuid": "193dad65-1b77-4e7f-9aef-3be554a2c744",
+      "version": 12,
+      "tags": [],
+      "creator": [],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Gene Annotation (GTF/GFF)",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"gtf\"], \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 140
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Reference Genome (FASTA)",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "position": {
+          "left": 1500,
+          "top": 360
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Motif File (MEME)",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 1800,
+          "top": 0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "tool",
+        "name": "Convert GTF to BED12",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/gtftobed12/gtftobed12/357",
+        "tool_version": "357",
+        "tool_state": "{\"advanced_options\": {\"advanced_options_selector\": \"default\", \"__current_case__\": 0}, \"gtf_file\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 300,
+          "top": 140
+        },
+        "input_connections": {
+          "gtf_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "bed_file",
+            "type": "bed12"
+          }
+        ]
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "Gene BED To Exon/Intron/Codon BED",
+        "label": null,
+        "annotation": "",
+        "tool_id": "gene2exon1",
+        "tool_version": "1.0.0",
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"region\": \"transcribed\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 600,
+          "top": 140
+        },
+        "input_connections": {
+          "input1": {
+            "id": 3,
+            "output_name": "bed_file"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "bed"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "bedtools SlopBed",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_slopbed/2.31.1+galaxy0",
+        "tool_version": "2.31.1+galaxy0",
+        "tool_state": "{\"addition\": {\"addition_select\": \"b\", \"__current_case__\": 0, \"b\": \"1\"}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"loc\", \"__current_case__\": 0, \"genome\": \"CHM13_T2T_v2.0\"}, \"header\": false, \"inputA\": {\"__class__\": \"ConnectedValue\"}, \"pct\": false, \"strand\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 900,
+          "top": 140
+        },
+        "input_connections": {
+          "inputA": {
+            "id": 4,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "bed"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "Compute",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.1",
+        "tool_version": "2.1",
+        "tool_state": "{\"avoid_scientific_notation\": false, \"error_handling\": {\"auto_col_types\": true, \"fail_on_non_existent_columns\": true, \"non_computable\": {\"action\": \"--fail-on-non-computable\", \"__current_case__\": 0}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"ops\": {\"header_lines_select\": \"no\", \"__current_case__\": 0, \"expressions\": [{\"__index__\": 0, \"cond\": \"c3-c2\", \"add_column\": {\"mode\": \"\", \"__current_case__\": 0, \"pos\": \"\"}}, {\"__index__\": 1, \"cond\": \"if($6 == \\\"+\\\") {   print $1\\\"\\\\t\\\"$2\\\"\\\\t\\\"int($2)+1\\\"\\\\t\\\"$4\\\"\\\\t\\\"$5\\\"\\\\t\\\"$6; } else {   print $1\\\"\\\\t\\\"int($3)-1\\\"\\\\t\\\"$3\\\"\\\\t\\\"$4\\\"\\\\t\\\"$5\\\"\\\\t\\\"$6; }\", \"add_column\": {\"mode\": \"\", \"__current_case__\": 0, \"pos\": \"\"}}]}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1200,
+          "top": 140
+        },
+        "input_connections": {
+          "input": {
+            "id": 5,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "bedtools FlankBed",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_flankbed/2.31.1+galaxy0",
+        "tool_version": "2.31.1+galaxy0",
+        "tool_state": "{\"addition\": {\"addition_select\": \"b\", \"__current_case__\": 0, \"b\": \"1\"}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"hist\", \"__current_case__\": 1, \"genome\": {\"__class__\": \"ConnectedValue\"}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"pct\": false, \"strand\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1500,
+          "top": 140
+        },
+        "input_connections": {
+          "input": {
+            "id": 6,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "bedtools getfasta",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_getfastabed/2.31.1+galaxy0",
+        "tool_version": "2.31.1+galaxy0",
+        "tool_state": "{\"fasta_source\": {\"fasta_source_selector\": \"history\", \"__current_case__\": 0, \"fasta\": {\"__class__\": \"ConnectedValue\"}}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": true, \"nameOnly\": true, \"split\": false, \"strand\": true, \"tab\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1800,
+          "top": 140
+        },
+        "input_connections": {
+          "fasta_source|fasta": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "input": {
+            "id": 7,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "fasta"
+          }
+        ]
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "FIMO",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/meme_fimo/meme_fimo/5.5.6+galaxy0",
+        "tool_version": "5.5.6+galaxy0",
+        "tool_state": "{\"fasta_type\": {\"fasta_type_selector\": \"history\", \"__current_case__\": 1, \"input_database\": {\"__class__\": \"ConnectedValue\"}}, \"input_motifs\": {\"__class__\": \"ConnectedValue\"}, \"non_commercial_use\": true, \"options_type\": {\"options_type_selector\": \"basic\", \"__current_case__\": 0}, \"output_options\": {\"html_outfile\": false, \"xml_outfile\": false, \"gff_outfile\": false}, \"scanrc\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2100,
+          "top": 0
+        },
+        "input_connections": {
+          "fasta_type|input_database": {
+            "id": 8,
+            "output_name": "output"
+          },
+          "input_motifs": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "txt_outfile",
+            "type": "txt"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/gtftobed12/gtftobed12/357",
+        "tool_version": "357",
+        "step_id": "3"
+      },
+      {
+        "tool_id": "gene2exon1",
+        "tool_version": "1.0.0",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_slopbed/2.31.1+galaxy0",
+        "tool_version": "2.31.1+galaxy0",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/column_maker/Add_a_column1/2.1",
+        "tool_version": "2.1",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_flankbed/2.31.1+galaxy0",
+        "tool_version": "2.31.1+galaxy0",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_getfastabed/2.31.1+galaxy0",
+        "tool_version": "2.31.1+galaxy0",
+        "step_id": "8"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/meme_fimo/meme_fimo/5.5.6+galaxy0",
+        "tool_version": "5.5.6+galaxy0",
+        "step_id": "9"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "Gene Annotation (GTF/GFF)",
+        "annotation": ""
+      },
+      {
+        "step_id": "1",
+        "label": "Reference Genome (FASTA)",
+        "annotation": ""
+      },
+      {
+        "step_id": "2",
+        "label": "Motif File (MEME)",
+        "annotation": ""
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "8",
+        "output_name": "output",
+        "label": "output"
+      },
+      {
+        "step_id": "9",
+        "output_name": "txt_outfile",
+        "label": "txt_outfile"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "3",
+        "to_input": "gtf_file"
+      },
+      {
+        "from_step": 3,
+        "from_output": "bed_file",
+        "to_step": "4",
+        "to_input": "input1"
+      },
+      {
+        "from_step": 4,
+        "from_output": "out_file1",
+        "to_step": "5",
+        "to_input": "inputA"
+      },
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "input"
+      },
+      {
+        "from_step": 6,
+        "from_output": "out_file1",
+        "to_step": "7",
+        "to_input": "input"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "fasta_source|fasta"
+      },
+      {
+        "from_step": 7,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "input"
+      },
+      {
+        "from_step": 8,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "fasta_type|input_database"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "input_motifs"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:47:27.795161"
+}

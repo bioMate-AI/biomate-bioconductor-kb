@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_pysam_VariantFile" name="PySAM: VariantFile" version="1.0.0">
+  <description>Call PySAM VariantFile function</description>
+  <requirements>
+    <requirement type="package" version="">pysam</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from pysam import *
+# Tool implementation
+result = VariantFile(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**PySAM: VariantFile**
+
+Call PySAM VariantFile function
+
+**Tool Type**: python
+**Library**: pysam
+**Function**: VariantFile
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;pysam&quot;,
+  &quot;function&quot;: &quot;VariantFile&quot;,
+  &quot;call_template&quot;: &quot;from pysam import ...; result = VariantFile(...)&quot;
+}
+]]&gt;</help>
+</tool>

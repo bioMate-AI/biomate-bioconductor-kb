@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<tool id="biomni_cancer_biology_analyze_cell_senescence_and_apoptosis" name="Biomni: Analyze Cell Senescence And Apoptosis" version="1.0.0">
+    <description>Analyze flow cytometry data to quantify senescent and apoptotic cell populations.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.cancer_biology import analyze_cell_senescence_and_apoptosis
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_cell_senescence_and_apoptosis(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --fcs_file_path '$fcs_file_path'
+]]></command>
+    <inputs>
+        <param name="fcs_file_path" type="text" label="Fcs File Path" help="senescence-associated β-galactosidase (SA-β-Gal) and Annexin V/7-AAD staining"  />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Cell Senescence And Apoptosis**
+
+Analyze flow cytometry data to quantify senescent and apoptotic cell populations.
+
+Parameters
+----------
+fcs_file_path : str
+    Path to the FCS file containing flow cytometry data with measurements for
+    senescence-associated β-galactosidase (SA-β-Gal) and Annexin V/7-AAD staining
+
+Returns
+-------
+str
+    A research log summarizing the analysis steps and results, including percentages
+    of senescent and apoptotic cell populations
+
+**Domain**: cancer_biology
+**Function**: analyze_cell_senescence_and_apoptosis
+]]></help>
+</tool>

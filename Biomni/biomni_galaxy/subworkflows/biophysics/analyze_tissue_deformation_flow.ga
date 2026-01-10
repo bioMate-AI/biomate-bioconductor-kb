@@ -1,0 +1,33 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_biophysics_analyze_tissue_deformation_flow",
+  "annotation": "Quantify tissue deformation and flow dynamics from microscopy image sequence.",
+  "tags": [
+    "biomni",
+    "biophysics",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "tool",
+      "tool_id": "biomni_biophysics_analyze_tissue_deformation_flow",
+      "label": "analyze_tissue_deformation_flow",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {}
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

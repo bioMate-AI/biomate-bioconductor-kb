@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<tool id="biomni_pathology_analyze_intracellular_calcium_with_rhod2" name="Biomni: Analyze Intracellular Calcium With Rhod2" version="1.0.0">
+    <description>Analyzes intracellular calcium concentration using Rhod-2 fluorescent indicator from microscopy images.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pathology import analyze_intracellular_calcium_with_rhod2
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_intracellular_calcium_with_rhod2(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --background_image_path '$background_image_path'
+--control_image_path '$control_image_path'
+--sample_image_path '$sample_image_path'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="background_image_path" type="text" label="Background Image Path" help="Path to the background image (no cells, just media)"  />
+        <param name="control_image_path" type="text" label="Control Image Path" help="Path to the control image (cells without calcium stimulus)"  />
+        <param name="sample_image_path" type="text" label="Sample Image Path" help="Path to the sample image (cells with calcium stimulus)"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files, default is "./output"" value="./output" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Intracellular Calcium With Rhod2**
+
+Analyzes intracellular calcium concentration using Rhod-2 fluorescent indicator from microscopy images.
+
+Parameters
+----------
+background_image_path : str
+    Path to the background image (no cells, just media)
+control_image_path : str
+    Path to the control image (cells without calcium stimulus)
+sample_image_path : str
+    Path to the sample image (cells with calcium stimulus)
+output_dir : str, optional
+    Directory to save output files, default is "./output"
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results
+
+**Domain**: pathology
+**Function**: analyze_intracellular_calcium_with_rhod2
+]]></help>
+</tool>

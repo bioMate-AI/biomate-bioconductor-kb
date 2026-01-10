@@ -1,0 +1,332 @@
+# https://aka.ms/yaml
+
+trigger:
+  - master
+
+variables:
+    regression: 1
+
+jobs:
+  - job: build_ubuntu
+    displayName: Build Ubuntu
+    pool:
+      vmImage: 'Ubuntu-22.04'
+    timeoutInMinutes: 120
+    strategy:
+      matrix:
+        avx2:
+          SIMD: 'AVX2'
+          STATIC: 1
+          MPI: 0
+          BUILD_TYPE: Release
+        sse41:
+          SIMD: 'SSE4_1'
+          STATIC: 1
+          MPI: 0
+          BUILD_TYPE: Release
+        # sse2:
+        #   SIMD: 'SSE2'
+        #   STATIC: 1
+        #   MPI: 0
+        #   BUILD_TYPE: RelWithDebInfo
+        avx2_mpi:
+          SIMD: 'AVX2'
+          STATIC: 0
+          MPI: 1
+          BUILD_TYPE: Release
+        asan:
+          SIMD: 'AVX2'
+          STATIC: 0
+          MPI: 0
+          BUILD_TYPE: ASanOpt
+    steps:
+      - checkout: self
+        submodules: true
+      - script: |
+          # sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y gcc-11 g++-11 libgcc-11-dev rustc cargo build-essential
+        displayName: Install newer GCC
+      - script: |
+          sudo apt-get update
+          sudo apt-get -y install mpi-default-dev mpi-default-bin
+        displayName: Install Dependencies
+        condition: eq(variables['MPI'], 1)
+      - script: |
+          mkdir build && cd build
+          export CC=gcc-11 ; export CXX=g++-11
+          if [ "${STATIC}" -eq "1" ]; then
+            LIBGOMP=/usr/lib/gcc/x86_64-linux-gnu/11
+            cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DFORCE_STATIC_DEPS=1 \
+              -DOpenMP_C_FLAGS="-fopenmp -I${LIBGOMP}" -DOpenMP_C_LIB_NAMES=gomp -DOpenMP_CXX_FLAGS="-fopenmp -I${LIBGOMP}" -DOpenMP_CXX_LIB_NAMES=gomp -DOpenMP_gomp_LIBRARY=${LIBGOMP}/libgomp.a \
+              -DENABLE_WERROR=1 -DHAVE_${SIMD}=1 -DHAVE_MPI=${MPI} ..
+          else
+            cmake -DHAVE_SANITIZER=1 -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+              -DENABLE_WERROR=1 -DHAVE_${SIMD}=1 -DHAVE_MPI=${MPI} ..
+          fi
+
+          make -j $(nproc --all) VERBOSE=1
+        displayName: Build foldseek
+      - script: |
+          if [ "${SIMD}" = "SSE2" ]; then
+            export SKIP_PROSTT5=1
+          fi
+          cd ${BUILD_SOURCESDIRECTORY}
+          ./regression/run_regression.sh ./build/src/foldseek examples 
+        displayName: Run Regression Suite
+        condition: eq(variables['regression'], 1)
+      - task: PublishPipelineArtifact@0
+        condition: eq(variables['STATIC'], 1)
+        inputs:
+          targetPath: $(Build.SourcesDirectory)/build/src/foldseek
+          artifactName: foldseek-linux-$(SIMD)
+
+  - job: build_ubuntu_gpu
+    displayName: Ubuntu GPU
+    pool:
+      vmImage: 'ubuntu-latest'
+    timeoutInMinutes: 120
+    strategy:
+      matrix:
+        x86_64:
+          ARCH: x86_64
+          DOCKER: .github/workflows/Dockerfile.GPU-manylinux2014
+        aarch64:
+          ARCH: aarch64
+          DOCKER: .github/workflows/Dockerfile.GPU-buster-cross-sbsa
+    steps:
+      - checkout: self
+        submodules: false
+      - script: |
+          mkdir -p ${BUILD_SOURCESDIRECTORY}/output
+          docker build -t manylinux-builder \
+            -f ${DOCKER} .
+          docker run --rm \
+            -v ${BUILD_SOURCESDIRECTORY}/output:/output \
+            manylinux-builder \
+            /bin/bash -c "cp /work/build/src/foldseek /output/"
+        displayName: Run Docker Container and Copy Binary
+      - task: PublishPipelineArtifact@0
+        inputs:
+          targetPath: $(Build.SourcesDirectory)/output/foldseek
+          artifactName: foldseek-linux-gpu-$(ARCH)
+
+  - job: build_ubuntu_cross
+    displayName: Build Cross-Compile
+    pool:
+      vmImage: 'ubuntu-22.04'
+    strategy:
+      matrix:
+        arm64:
+          SIMD: ARM8
+          ARCH: arm64
+          CPREF: aarch64
+    steps:
+      - script: |
+          CODENAME=$(lsb_release -cs)
+          sudo dpkg --add-architecture "$ARCH"
+          cat << HEREDOC | sudo tee /etc/apt/sources.list
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ ${CODENAME} main universe multiverse
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ ${CODENAME}-updates main universe multiverse
+          deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ ${CODENAME}-backports main universe multiverse
+          deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu/ ${CODENAME}-security main universe multiverse
+          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ ${CODENAME} main universe multiverse
+          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ ${CODENAME}-updates main universe multiverse
+          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ ${CODENAME}-backports main universe multiverse
+          deb [arch=$ARCH] http://ports.ubuntu.com/ubuntu-ports/ ${CODENAME}-security main universe multiverse
+          HEREDOC
+          sudo apt-get update
+          sudo apt-get -y install -o APT::Immediate-Configure=false crossbuild-essential-$ARCH zlib1g-dev:$ARCH libbz2-dev:$ARCH
+          rustup target add ${CPREF}-unknown-linux-gnu
+        displayName: Install Toolchain
+      - script: |
+          mkdir build && cd build
+          LIBGOMP=/usr/lib/gcc-cross/${CPREF}-linux-gnu/11
+          CC=${CPREF}-linux-gnu-gcc CXX=${CPREF}-linux-gnu-g++ \
+           cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DHAVE_TESTS=1 -DFORCE_STATIC_DEPS=1 \
+            -DRust_CARGO_TARGET=${CPREF}-unknown-linux-gnu \
+            -DOpenMP_C_FLAGS="-fopenmp -I${LIBGOMP}" -DOpenMP_C_LIB_NAMES=gomp -DOpenMP_CXX_FLAGS="-fopenmp -I${LIBGOMP}" -DOpenMP_CXX_LIB_NAMES=gomp -DOpenMP_gomp_LIBRARY=${LIBGOMP}/libgomp.a \
+            -DENABLE_WERROR=1 -DHAVE_${SIMD}=1 ..
+          make -j $(nproc --all)
+        displayName: Build foldseek
+      - task: PublishPipelineArtifact@0
+        inputs:
+          targetPath: $(Build.SourcesDirectory)/build/src/foldseek
+          artifactName: foldseek-linux-$(SIMD)
+
+  - job: build_macos
+    displayName: macOS
+    pool:
+      vmImage: 'macos-latest'
+    steps:
+      - checkout: self
+        submodules: true
+      - script: |
+          rustup update
+          rustup target install x86_64-apple-darwin
+          rustup target install aarch64-apple-darwin
+        displayName: Install Rust Toolchain
+      - script: |
+          cd ${BUILD_SOURCESDIRECTORY}
+          ./util/build_osx.sh . build foldseek
+        displayName: Build foldseek
+      - script: |
+          cd ${BUILD_SOURCESDIRECTORY}
+          ./regression/run_regression.sh ./build/foldseek examples 
+        displayName: Run Regression Suite
+        condition: eq(variables['regression'], 1)
+      - task: PublishPipelineArtifact@0
+        inputs:
+          targetPath: $(Build.SourcesDirectory)/build/foldseek
+          artifactName: foldseek-darwin-universal
+
+  - job: upload_artifacts
+    displayName: Upload Artifacts
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    pool:
+      vmImage: 'ubuntu-latest'
+    dependsOn:
+      - build_macos
+      - build_ubuntu
+      - build_ubuntu_cross
+      - build_ubuntu_gpu
+    steps:
+      - script: |
+          cd "${BUILD_SOURCESDIRECTORY}"
+          mkdir foldseek
+          cp -f README.md LICENCE.md foldseek
+          mkdir foldseek/bin
+      - task: DownloadPipelineArtifact@1
+        inputs:
+          artifactName: foldseek-darwin-universal
+          targetPath: $(Build.SourcesDirectory)/foldseek/bin
+      - script:
+          chmod +x "${BUILD_SOURCESDIRECTORY}/foldseek/bin/foldseek"
+      - task: ArchiveFiles@2
+        inputs:
+          rootFolderOrFile: $(Build.SourcesDirectory)/foldseek
+          archiveFile: $(Build.SourcesDirectory)/foldseek-osx-universal.tar.gz
+          includeRootFolder: true
+          archiveType: tar
+      - task: DownloadPipelineArtifact@1
+        inputs:
+          artifactName: foldseek-linux-gpu-x86_64
+          targetPath: $(Build.SourcesDirectory)/foldseek/bin
+      - script:
+          chmod +x "${BUILD_SOURCESDIRECTORY}/foldseek/bin/foldseek"
+      - task: ArchiveFiles@2
+        inputs:
+          rootFolderOrFile: $(Build.SourcesDirectory)/foldseek
+          archiveFile: $(Build.SourcesDirectory)/foldseek-linux-gpu.tar.gz
+          includeRootFolder: true
+          archiveType: tar
+      - task: DownloadPipelineArtifact@1
+        inputs:
+          artifactName: foldseek-linux-gpu-aarch64
+          targetPath: $(Build.SourcesDirectory)/foldseek/bin
+      - script:
+          chmod +x "${BUILD_SOURCESDIRECTORY}/foldseek/bin/foldseek"
+      - task: ArchiveFiles@2
+        inputs:
+          rootFolderOrFile: $(Build.SourcesDirectory)/foldseek
+          archiveFile: $(Build.SourcesDirectory)/foldseek-linux-gpu-arm64.tar.gz
+          includeRootFolder: true
+          archiveType: tar
+      # - task: DownloadPipelineArtifact@1
+      #   inputs:
+      #     artifactName: foldseek-linux-SSE2
+      #     targetPath: $(Build.SourcesDirectory)/foldseek/bin
+      # - script:
+      #     chmod +x "${BUILD_SOURCESDIRECTORY}/foldseek/bin/foldseek"
+      # - task: ArchiveFiles@2
+      #   inputs:
+      #     rootFolderOrFile: $(Build.SourcesDirectory)/foldseek
+      #     archiveFile: $(Build.SourcesDirectory)/foldseek-linux-sse2.tar.gz
+      #     includeRootFolder: true
+      #     archiveType: tar
+      - task: DownloadPipelineArtifact@1
+        inputs:
+          artifactName: foldseek-linux-SSE4_1
+          targetPath: $(Build.SourcesDirectory)/foldseek/bin
+      - script:
+          chmod +x "${BUILD_SOURCESDIRECTORY}/foldseek/bin/foldseek"
+      - task: ArchiveFiles@2
+        inputs:
+          rootFolderOrFile: $(Build.SourcesDirectory)/foldseek
+          archiveFile: $(Build.SourcesDirectory)/foldseek-linux-sse41.tar.gz
+          includeRootFolder: true
+          archiveType: tar
+      - task: DownloadPipelineArtifact@1
+        inputs:
+          artifactName: foldseek-linux-AVX2
+          targetPath: $(Build.SourcesDirectory)/foldseek/bin
+      - script:
+          chmod +x "${BUILD_SOURCESDIRECTORY}/foldseek/bin/foldseek"
+      - task: ArchiveFiles@2
+        inputs:
+          rootFolderOrFile: $(Build.SourcesDirectory)/foldseek
+          archiveFile: $(Build.SourcesDirectory)/foldseek-linux-avx2.tar.gz
+          includeRootFolder: true
+          archiveType: tar
+      - task: DownloadPipelineArtifact@1
+        inputs:
+          artifactName: foldseek-linux-ARM8
+          targetPath: $(Build.SourcesDirectory)/foldseek/bin
+      - script:
+          chmod +x "${BUILD_SOURCESDIRECTORY}/foldseek/bin/foldseek"
+      - task: ArchiveFiles@2
+        inputs:
+          rootFolderOrFile: $(Build.SourcesDirectory)/foldseek
+          archiveFile: $(Build.SourcesDirectory)/foldseek-linux-arm64.tar.gz
+          includeRootFolder: true
+          archiveType: tar
+      # - task: DownloadPipelineArtifact@1
+      #   inputs:
+      #     artifactName: foldseek-linux-POWER8
+      #     targetPath: $(Build.SourcesDirectory)/foldseek/bin
+      # - script:
+      #     chmod +x "${BUILD_SOURCESDIRECTORY}/foldseek/bin/foldseek"
+      # - task: ArchiveFiles@2
+      #   inputs:
+      #     rootFolderOrFile: $(Build.SourcesDirectory)/foldseek
+      #     archiveFile: $(Build.SourcesDirectory)/foldseek-linux-ppc64le-POWER8.tar.gz
+      #     includeRootFolder: true
+      #     archiveType: tar
+      # - task: DownloadPipelineArtifact@1
+      #   inputs:
+      #     artifactName: foldseek-linux-POWER9
+      #     targetPath: $(Build.SourcesDirectory)/foldseek/bin
+      # - script:
+      #     chmod +x "${BUILD_SOURCESDIRECTORY}/foldseek/bin/foldseek"
+      # - task: ArchiveFiles@2
+      #   inputs:
+      #     rootFolderOrFile: $(Build.SourcesDirectory)/foldseek
+      #     archiveFile: $(Build.SourcesDirectory)/foldseek-linux-ppc64le-POWER9.tar.gz
+      #     includeRootFolder: true
+      #     archiveType: tar
+      - task: DownloadSecureFile@1
+        inputs:
+          secureFile: azure_upload_foldseek
+        displayName: Get Deployment Key
+      - script: |
+          mkdir ~/.ssh && mv $DOWNLOADSECUREFILE_SECUREFILEPATH ~/.ssh/id_rsa
+          chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_rsa
+          ssh-keygen -f ~/.ssh/id_rsa -y > ~/.ssh/id_rsa.pub
+          cd "${BUILD_SOURCESDIRECTORY}"
+          # disabled:foldseek-linux-sse2.tar.gz foldseek-linux-ppc64le-POWER8.tar.gz foldseek-linux-ppc64le-POWER9.tar.gz
+          ssh-keygen -Y sign -f ~/.ssh/id_rsa -n file \
+             foldseek-osx-universal.tar.gz \
+             foldseek-linux-sse41.tar.gz \
+             foldseek-linux-avx2.tar.gz \
+             foldseek-linux-gpu.tar.gz \
+             foldseek-linux-gpu-arm64.tar.gz \
+             foldseek-linux-arm64.tar.gz
+          curl --fail --retry 5 --retry-all-errors -X POST \
+            -F file[]=@foldseek-osx-universal.tar.gz -F signature[]=@foldseek-osx-universal.tar.gz.sig \
+            -F file[]=@foldseek-linux-sse41.tar.gz -F signature[]=@foldseek-linux-sse41.tar.gz.sig \
+            -F file[]=@foldseek-linux-avx2.tar.gz -F signature[]=@foldseek-linux-avx2.tar.gz.sig \
+            -F file[]=@foldseek-linux-gpu.tar.gz -F signature[]=@foldseek-linux-gpu.tar.gz.sig \
+            -F file[]=@foldseek-linux-gpu-arm64.tar.gz -F signature[]=@foldseek-linux-gpu-arm64.tar.gz.sig \
+            -F file[]=@foldseek-linux-arm64.tar.gz -F signature[]=@foldseek-linux-arm64.tar.gz.sig \
+            -F identifier="foldseek" -F directory="${BUILD_SOURCEVERSION}" \
+              https://mmseqs.com/upload

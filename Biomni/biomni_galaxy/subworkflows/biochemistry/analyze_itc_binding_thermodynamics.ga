@@ -1,0 +1,58 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_biochemistry_analyze_itc_binding_thermodynamics",
+  "annotation": "Analyzes isothermal titration calorimetry (ITC) data to determine binding affinity and thermodynamic parameters.",
+  "tags": [
+    "biomni",
+    "biochemistry",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "itc_data_path",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "itc_data",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "biomni_biochemistry_analyze_itc_binding_thermodynamics",
+      "label": "analyze_itc_binding_thermodynamics",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "itc_data_path": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "itc_data": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

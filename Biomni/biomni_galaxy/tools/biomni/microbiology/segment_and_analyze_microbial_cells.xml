@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<tool id="biomni_microbiology_segment_and_analyze_microbial_cells" name="Biomni: Segment And Analyze Microbial Cells" version="1.0.0">
+    <description>Perform automated cell segmentation and quantify morphological metrics from fluorescence microscopy images.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.microbiology import segment_and_analyze_microbial_cells
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = segment_and_analyze_microbial_cells(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --image_path '$image_path'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $min_cell_size
+    --min_cell_size '$min_cell_size'
+#end if
+]]></command>
+    <inputs>
+        <param name="image_path" type="text" label="Image Path" help="Path to the fluorescence microscopy image file"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './output')" value="./output" optional="true"/>
+        <param name="min_cell_size" type="text" label="Min Cell Size" help="Minimum cell size in pixels to filter noise (default: 50)" value="50" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Segment And Analyze Microbial Cells**
+
+Perform automated cell segmentation and quantify morphological metrics from fluorescence microscopy images.
+
+Parameters
+----------
+image_path : str
+    Path to the fluorescence microscopy image file
+output_dir : str, optional
+    Directory to save output files (default: './output')
+min_cell_size : int, optional
+    Minimum cell size in pixels to filter noise (default: 50)
+
+Returns
+-------
+str
+    Research log summarizing the segmentation process, metrics calculated, and output file paths
+
+**Domain**: microbiology
+**Function**: segment_and_analyze_microbial_cells
+]]></help>
+</tool>

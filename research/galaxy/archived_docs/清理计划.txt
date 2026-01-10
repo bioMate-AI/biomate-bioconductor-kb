@@ -1,0 +1,60 @@
+根目录文档清理计划
+====================
+
+保留文件（必要的）
+------------------
+1. LICENSE.txt                           # Galaxy官方许可证
+2. CODE_OF_CONDUCT.md                    # 行为准则
+3. CONTRIBUTING.md                       # 贡献指南
+4. CONTRIBUTORS.md                       # 贡献者列表
+5. SECURITY.md                           # 安全政策
+6. 完全云端执行-快速导航.md               # 新建的顶层入口
+7. 文档整理完成总结.md                    # 新建的整理说明
+
+移动到 archived_docs/（历史文档，但可能有参考价值）
+---------------------------------------------------
+# 云执行相关（已整理到all_docs/，这些是原始文件）
+- CLOUD_CONFIG_SUMMARY.md
+- HOW_CLOUD_EXECUTION_WORKS.md
+- GALAXY_CLOUD_SETUP.md
+- HOW_TO_TEST_CLOUD_EXECUTION.md
+- REAL_WORKFLOW_TEST_GUIDE.md
+- QUICK_START.txt
+- QUICK_TEST_STEPS.md
+- DIRECTORY_STRUCTURE.md
+- cloud_setup_guide.md
+- TEST_FILES_PATH.txt
+- testing_summary.md
+- QUICK_COLLECTION_GUIDE.md
+- RUN_TEST_NOW.md
+- TEST_WORKFLOW_GUIDE.md
+- test_input.txt
+
+# Galaxy架构和开发（历史文档）
+- GALAXY_ARCHITECTURE_GUIDE.md
+- GALAXY_CODE_STRUCTURE.md
+- GALAXY_STARTUP_MINDMAP.md
+- GALAXY_STARTUP_PROCESS.md
+- GALAXY_STARTUP_VISUAL.md
+- STARTUP_EXAMPLES.md
+- GALAXY_AI_ENHANCEMENT_SUMMARY.md
+- Galaxy_AI_Project_Analysis.md
+- Galaxy_Tool_Management_and_Customization.md
+- Galaxy_Workflow_Generation_Deep_Analysis.md
+
+# 开发和调试（历史文档）
+- DEVELOPMENT_PROCESS.md
+- DEBUG_GUIDE.md
+- ENTERPRISE_DEBUGGING_GUIDE.md
+- AI_ASSISTANT_TROUBLESHOOTING.md
+
+# 其他历史文档
+- CLEANUP_SUMMARY.md
+- PROJECT_STRUCTURE_CLEANUP.md
+- WORKFLOW_CREATION_FIX_SUMMARY.md
+- RAG_SYSTEM_ARCHITECTURE.md
+- RAG_WORKFLOW_GENERATOR_README.md
+- PRACTICAL_EXAMPLE.md
+- CLAUDE_SETUP_GUIDE.md
+- MULTI_LLM_SETUP_GUIDE.md
+

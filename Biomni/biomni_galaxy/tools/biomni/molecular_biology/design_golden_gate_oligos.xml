@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<tool id="biomni_molecular_biology_design_golden_gate_oligos" name="Biomni: Design Golden Gate Oligos" version="1.0.0">
+    <description>Design oligos for Golden Gate assembly by identifying backbone overhangs</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.molecular_biology import design_golden_gate_oligos
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = design_golden_gate_oligos(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --backbone_sequence '$backbone_sequence'
+--insert_sequence '$insert_sequence'
+--enzyme_name '$enzyme_name'
+#if $is_circular
+    --is_circular
+#end if
+]]></command>
+    <inputs>
+        <param name="backbone_sequence" type="text" label="Backbone Sequence" help=""  />
+        <param name="insert_sequence" type="text" label="Insert Sequence" help=""  />
+        <param name="enzyme_name" type="text" label="Enzyme Name" help=""  />
+        <param name="is_circular" type="boolean" truevalue="true" falsevalue="false" label="Is Circular" help="" checked="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Design Golden Gate Oligos**
+
+Design oligos for Golden Gate assembly by identifying backbone overhangs
+and creating matching insert oligos.
+
+Args:
+    backbone_sequence (str): The plasmid/backbone sequence
+    insert_sequence (str): Sequence to be inserted
+    enzyme_name (str): Type IIS restriction enzyme to be used
+    is_circular (bool): Whether the backbone is circular (default: True)
+
+Returns:
+    Dict: Dictionary containing overhang information and designed oligos
+
+**Domain**: molecular_biology
+**Function**: design_golden_gate_oligos
+]]></help>
+</tool>

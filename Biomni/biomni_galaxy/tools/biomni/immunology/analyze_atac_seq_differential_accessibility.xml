@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<tool id="biomni_immunology_analyze_atac_seq_differential_accessibility" name="Biomni: Analyze Atac Seq Differential Accessibility" version="1.0.0">
+    <description>Perform ATAC-seq peak calling and differential accessibility analysis using MACS2.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.immunology import analyze_atac_seq_differential_accessibility
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_atac_seq_differential_accessibility(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --treatment_bam '$treatment_bam'
+--control_bam '$control_bam'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $genome_size
+    --genome_size '$genome_size'
+#end if
+#if $q_value
+    --q_value '$q_value'
+#end if
+#if $name_prefix
+    --name_prefix '$name_prefix'
+#end if
+]]></command>
+    <inputs>
+        <param name="treatment_bam" type="text" label="Treatment Bam" help="Path to the treatment condition BAM file with aligned ATAC-seq reads"  />
+        <param name="control_bam" type="text" label="Control Bam" help="Path to the control condition BAM file with aligned ATAC-seq reads"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./atac_results")" value="./atac_results" optional="true"/>
+        <param name="genome_size" type="text" label="Genome Size" help="Genome size parameter for MACS2 (default: "hs" for human)" value="hs" optional="true"/>
+        <param name="q_value" type="text" label="Q Value" help="q-value cutoff for peak detection (default: 0.05)" value="0.05" optional="true"/>
+        <param name="name_prefix" type="text" label="Name Prefix" help="Prefix for output file names (default: "atac")" value="atac" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Atac Seq Differential Accessibility**
+
+Perform ATAC-seq peak calling and differential accessibility analysis using MACS2.
+
+Parameters
+----------
+treatment_bam : str
+    Path to the treatment condition BAM file with aligned ATAC-seq reads
+control_bam : str
+    Path to the control condition BAM file with aligned ATAC-seq reads
+output_dir : str
+    Directory to save output files (default: "./atac_results")
+genome_size : str
+    Genome size parameter for MACS2 (default: "hs" for human)
+q_value : float
+    q-value cutoff for peak detection (default: 0.05)
+name_prefix : str
+    Prefix for output file names (default: "atac")
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results
+
+**Domain**: immunology
+**Function**: analyze_atac_seq_differential_accessibility
+]]></help>
+</tool>

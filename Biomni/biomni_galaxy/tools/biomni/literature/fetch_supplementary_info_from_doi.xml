@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<tool id="biomni_literature_fetch_supplementary_info_from_doi" name="Biomni: Fetch Supplementary Info From Doi" version="1.0.0">
+    <description>Fetches supplementary information for a paper given its DOI and returns a research log.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.literature import fetch_supplementary_info_from_doi
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = fetch_supplementary_info_from_doi(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --doi '$doi'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="doi" type="text" label="Doi" help=""  />
+        <param name="output_dir" type="text" label="Output Dir" help="" value="supplementary_info" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Fetch Supplementary Info From Doi**
+
+Fetches supplementary information for a paper given its DOI and returns a research log.
+
+Args:
+    doi: The paper DOI.
+    output_dir: Directory to save supplementary files.
+
+Returns:
+    dict: A dictionary containing a research log and the downloaded file paths.
+
+**Domain**: literature
+**Function**: fetch_supplementary_info_from_doi
+]]></help>
+</tool>

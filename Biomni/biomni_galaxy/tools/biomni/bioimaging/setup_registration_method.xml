@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+<tool id="biomni_bioimaging_setup_registration_method" name="Biomni: Setup Registration Method" version="1.0.0">
+    <description>Setup the registration method with specified parameters.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.bioimaging import setup_registration_method
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = setup_registration_method(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --transform '$transform'
+#if $metric
+    --metric '$metric'
+#end if
+#if $optimizer
+    --optimizer '$optimizer'
+#end if
+#if $learning_rate
+    --learning_rate '$learning_rate'
+#end if
+#if $number_of_iterations
+    --number_of_iterations '$number_of_iterations'
+#end if
+#if $gradient_convergence_tolerance
+    --gradient_convergence_tolerance '$gradient_convergence_tolerance'
+#end if
+]]></command>
+    <inputs>
+        <param name="transform" type="text" label="Transform" help=""  />
+        <param name="metric" type="text" label="Metric" help="" value="mutual_information" optional="true"/>
+        <param name="optimizer" type="text" label="Optimizer" help="" value="gradient_descent" optional="true"/>
+        <param name="learning_rate" type="float" label="Learning Rate" help="" value="0.01" optional="true"/>
+        <param name="number_of_iterations" type="integer" label="Number Of Iterations" help="" value="100" optional="true"/>
+        <param name="gradient_convergence_tolerance" type="float" label="Gradient Convergence Tolerance" help="" value="1e-06" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Setup Registration Method**
+
+Setup the registration method with specified parameters.
+
+Args:
+    transform: Transform object
+    metric: Similarity metric name
+    optimizer: Optimizer name
+    learning_rate: Learning rate for gradient descent
+    number_of_iterations: Maximum number of iterations
+    gradient_convergence_tolerance: Convergence tolerance
+
+Returns:
+    Configured registration method
+
+**Domain**: bioimaging
+**Function**: setup_registration_method
+]]></help>
+</tool>

@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_analyze_xenograft_tumor_growth_inhibition" name="Biomni: Analyze Xenograft Tumor Growth Inhibition" version="1.0.0">
+    <description>Analyze tumor growth inhibition in xenograft models across different treatment groups.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import analyze_xenograft_tumor_growth_inhibition
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_xenograft_tumor_growth_inhibition(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --data_path '$data_path'
+--time_column '$time_column'
+--volume_column '$volume_column'
+--group_column '$group_column'
+--subject_column '$subject_column'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="data_path" type="text" label="Data Path" help="time, volume, treatment group, and subject ID"  />
+        <param name="time_column" type="text" label="Time Column" help="Name of the column containing time points (e.g., 'Day', 'Time')"  />
+        <param name="volume_column" type="text" label="Volume Column" help="Name of the column containing tumor volume measurements"  />
+        <param name="group_column" type="text" label="Group Column" help="Name of the column containing treatment group labels"  />
+        <param name="subject_column" type="text" label="Subject Column" help="Name of the column containing subject/mouse identifiers"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./results")" value="./results" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Xenograft Tumor Growth Inhibition**
+
+Analyze tumor growth inhibition in xenograft models across different treatment groups.
+
+Parameters
+----------
+data_path : str
+    Path to CSV or TSV file containing tumor volume measurements. The file should have columns for
+    time, volume, treatment group, and subject ID
+time_column : str
+    Name of the column containing time points (e.g., 'Day', 'Time')
+volume_column : str
+    Name of the column containing tumor volume measurements
+group_column : str
+    Name of the column containing treatment group labels
+subject_column : str
+    Name of the column containing subject/mouse identifiers
+output_dir : str, optional
+    Directory to save output files (default: "./results")
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps, findings, and generated file paths
+
+**Domain**: pharmacology
+**Function**: analyze_xenograft_tumor_growth_inhibition
+]]></help>
+</tool>

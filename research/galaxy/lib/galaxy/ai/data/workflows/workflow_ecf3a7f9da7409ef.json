@@ -1,0 +1,1761 @@
+{
+  "workflow_id": "ecf3a7f9da7409ef",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "ecf3a7f9da7409ef",
+    "latest_workflow_id": "537f791ec5085bea",
+    "name": "dada2 amplicon analysis pipeline - for paired en (release v0.1)",
+    "create_time": "2024-03-14T00:10:37.435978",
+    "update_time": "2025-04-25T14:10:35.577612",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [
+      "name:amplicon"
+    ],
+    "latest_workflow_uuid": "26976482-70ff-4568-a81a-58ec7e57018a",
+    "creator_deleted": false,
+    "annotations": [
+      "dada2 amplicon analysis for paired end data\n\nThe workflow has three main outputs: \n- the sequence table (output of makeSequenceTable)\n- the taxonomy (output of assignTaxonomy)\n- the counts which allow to track the number of sequences in the samples through the steps (output of sequence counts)"
+    ],
+    "url": "/api/workflows/ecf3a7f9da7409ef",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 19,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "dada2 amplicon analysis for paired end data\n\nThe workflow has three main outputs: \n- the sequence table (output of makeSequenceTable)\n- the taxonomy (output of assignTaxonomy)\n- the counts which allow to track the number of sequences in the samples through the steps (output of sequence counts)",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "0000-0003-3763-0797",
+        "name": "Matthias Bernt"
+      },
+      {
+        "class": "Organization",
+        "name": "UFZ Leipzig"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "dada2 amplicon analysis pipeline - for paired en (release v0.1)",
+    "steps": {
+      "0": {
+        "annotation": "Paired input data",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Paired input data",
+            "name": "Paired input data"
+          }
+        ],
+        "label": "Paired input data",
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 6
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "345479b5-b141-4fea-a9ca-a8f880dc4406",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "Forward reads will be truncated to this length. Empty means no truncation.",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Forward reads will be truncated to this length. Empty means no truncation.",
+            "name": "Read length forward read"
+          }
+        ],
+        "label": "Read length forward read",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 12,
+          "top": 242.3237599999942
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": true}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "8d2de60e-5c95-49be-be4f-e78cbd46fb3c",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "57c1622f-a86a-4b0d-ab2a-8b381de5ab67"
+          }
+        ]
+      },
+      "2": {
+        "annotation": "Reverse reads will be truncated to this length. Empty means no truncation.",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Reverse reads will be truncated to this length. Empty means no truncation.",
+            "name": "Read length reverse read"
+          }
+        ],
+        "label": "Read length reverse read",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 11,
+          "top": 367.3237599999942
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": true}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "76661e12-791a-4a81-ba4c-f11a56237bb5",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "e281a191-066a-4c68-a41d-2ba0d088e765"
+          }
+        ]
+      },
+      "3": {
+        "annotation": "Pooling may increase sensitivity",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Pooling may increase sensitivity",
+            "name": "Pool samples"
+          }
+        ],
+        "label": "Pool samples",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 10.577839999617993,
+          "top": 522.3237599999942
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "5e8c732a-e2e3-4a16-bbaa-2821545428d3",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "246bd108-0c90-4af2-a26b-71c4e6188983"
+          }
+        ]
+      },
+      "4": {
+        "annotation": "for taxonomic assignment. If a cached reference is used no reference from history is used. ",
+        "content_id": null,
+        "errors": null,
+        "id": 4,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "for taxonomic assignment. If a cached reference is used no reference from history is used. ",
+            "name": "Cached reference database"
+          }
+        ],
+        "label": "Cached reference database",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 38.24183470363951,
+          "top": 889.0398222178009
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "3833d1fb-83c3-4c6d-9ce2-cdaf3ea79e03",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "99df70b6-f4c7-4fa6-a3a8-fe18010f26e6"
+          }
+        ]
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "__APPLY_RULES__",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "Sort samples",
+        "name": "Apply rules",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 280,
+          "top": 0
+        },
+        "post_job_actions": {},
+        "tool_id": "__APPLY_RULES__",
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"rules\": {\"mapping\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"columns\": [0], \"connectable\": true, \"editing\": false, \"is_workflow\": false, \"type\": \"list_identifiers\"}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"columns\": [1], \"connectable\": true, \"is_workflow\": false, \"type\": \"paired_identifier\"}], \"rules\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier0\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier1\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"numeric\": false, \"target_column\": 0, \"type\": \"sort\", \"warn\": null}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.0",
+        "type": "tool",
+        "uuid": "3eea70d6-0378-4f55-a10e-8edd36ca42d6",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_plotqualityprofile/dada2_plotQualityProfile/1.28+galaxy0",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "batch_cond|paired_cond|reads": {
+            "id": 5,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "QualityProfile before filterAndTrim",
+        "name": "dada2: plotQualityProfile",
+        "outputs": [
+          {
+            "name": "output_fwd",
+            "type": "pdf"
+          },
+          {
+            "name": "output_rev",
+            "type": "pdf"
+          }
+        ],
+        "position": {
+          "left": 560,
+          "top": 5
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_plotqualityprofile/dada2_plotQualityProfile/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "7b8cb2b02978",
+          "name": "dada2_plotqualityprofile",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"batch_cond\": {\"batch_select\": \"joint\", \"__current_case__\": 0, \"paired_cond\": {\"paired_select\": \"paired\", \"__current_case__\": 0, \"reads\": {\"__class__\": \"ConnectedValue\"}}, \"aggregate\": true}, \"n\": \"10000000\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "4b2a2427-345f-4e16-a255-c0e2d3d5f1a5",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_filterandtrim/dada2_filterAndTrim/1.28+galaxy0",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "paired_cond|reads": {
+            "id": 5,
+            "output_name": "output"
+          },
+          "seprev_cond|trim|truncLen": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "trim|truncLen": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool dada2: filterAndTrim",
+            "name": "paired_cond"
+          },
+          {
+            "description": "runtime parameter for tool dada2: filterAndTrim",
+            "name": "trim"
+          }
+        ],
+        "label": null,
+        "name": "dada2: filterAndTrim",
+        "outputs": [
+          {
+            "name": "paired_output",
+            "type": "input"
+          },
+          {
+            "name": "outtab",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 560,
+          "top": 233
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_filterandtrim/dada2_filterAndTrim/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "addaf9d22850",
+          "name": "dada2_filterandtrim",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"filter\": {\"maxLen\": null, \"minLen\": \"20\", \"maxN\": \"0\", \"minQ\": \"0\", \"maxEE\": \"2\"}, \"orientFwd\": \"\", \"output_statistics\": true, \"paired_cond\": {\"paired_select\": \"paired\", \"__current_case__\": 0, \"reads\": {\"__class__\": \"ConnectedValue\"}}, \"rmPhiX\": true, \"rmlowcomplex\": \"0\", \"seprev_cond\": {\"seprev_select\": \"yes\", \"__current_case__\": 1, \"trim\": {\"truncQ\": \"2\", \"trimLeft\": \"0\", \"trimRight\": \"0\", \"truncLen\": {\"__class__\": \"ConnectedValue\"}}, \"filter\": {\"maxLen\": null, \"minLen\": \"20\", \"maxN\": \"0\", \"minQ\": \"0\", \"maxEE\": \"2\"}}, \"trim\": {\"truncQ\": \"2\", \"trimLeft\": \"0\", \"trimRight\": \"0\", \"truncLen\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "1697c288-29c5-492c-bd2a-2e9f015a73ff",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_plotqualityprofile/dada2_plotQualityProfile/1.28+galaxy0",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "batch_cond|paired_cond|reads": {
+            "id": 7,
+            "output_name": "paired_output"
+          }
+        },
+        "inputs": [],
+        "label": "QualityProfile after filterAndTrim",
+        "name": "dada2: plotQualityProfile",
+        "outputs": [
+          {
+            "name": "output_fwd",
+            "type": "pdf"
+          },
+          {
+            "name": "output_rev",
+            "type": "pdf"
+          }
+        ],
+        "position": {
+          "left": 840,
+          "top": 263
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_plotqualityprofile/dada2_plotQualityProfile/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "7b8cb2b02978",
+          "name": "dada2_plotqualityprofile",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"batch_cond\": {\"batch_select\": \"joint\", \"__current_case__\": 0, \"paired_cond\": {\"paired_select\": \"paired\", \"__current_case__\": 0, \"reads\": {\"__class__\": \"ConnectedValue\"}}, \"aggregate\": true}, \"n\": \"1000000\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "be5490b2-fd51-4a52-8ddb-81ef221bcb04",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "__UNZIP_COLLECTION__",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "input": {
+            "id": 7,
+            "output_name": "paired_output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Unzip collection",
+        "outputs": [
+          {
+            "name": "forward",
+            "type": "input"
+          },
+          {
+            "name": "reverse",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 840,
+          "top": 491
+        },
+        "post_job_actions": {
+          "TagDatasetActionforward": {
+            "action_arguments": {
+              "tags": "#forward"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "forward"
+          },
+          "TagDatasetActionreverse": {
+            "action_arguments": {
+              "tags": "#reverse"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "reverse"
+          }
+        },
+        "tool_id": "__UNZIP_COLLECTION__",
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.0",
+        "type": "tool",
+        "uuid": "e9dc2aaa-e671-4210-a31e-4b95cd798af8",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "10": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_learnerrors/dada2_learnErrors/1.28+galaxy0",
+        "errors": null,
+        "id": 10,
+        "input_connections": {
+          "fls": {
+            "id": 9,
+            "output_name": "forward"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "dada2: learnErrors",
+        "outputs": [
+          {
+            "name": "errors",
+            "type": "dada2_errorrates"
+          },
+          {
+            "name": "plot",
+            "type": "pdf"
+          }
+        ],
+        "position": {
+          "left": 1120,
+          "top": 362
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_learnerrors/dada2_learnErrors/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "75403243703a",
+          "name": "dada2_learnerrors",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"advanced\": {\"errfoo\": \"loessErrfun\", \"randomize\": false, \"maxconsist\": \"10\", \"omegac\": \"0.0\"}, \"chromInfo\": \"/gpfs1/data/galaxy_server/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"fls\": {\"__class__\": \"ConnectedValue\"}, \"nbases\": \"8\", \"plotopt\": {\"obs\": true, \"err_out\": true, \"err_in\": false, \"nominalQ\": true}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "b83964c2-6b81-4cda-ba64-25fa5f86da8f",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "11": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_learnerrors/dada2_learnErrors/1.28+galaxy0",
+        "errors": null,
+        "id": 11,
+        "input_connections": {
+          "fls": {
+            "id": 9,
+            "output_name": "reverse"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "dada2: learnErrors",
+        "outputs": [
+          {
+            "name": "errors",
+            "type": "dada2_errorrates"
+          },
+          {
+            "name": "plot",
+            "type": "pdf"
+          }
+        ],
+        "position": {
+          "left": 1113,
+          "top": 716.3237599999942
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_learnerrors/dada2_learnErrors/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "75403243703a",
+          "name": "dada2_learnerrors",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"advanced\": {\"errfoo\": \"loessErrfun\", \"randomize\": false, \"maxconsist\": \"10\", \"omegac\": \"0.0\"}, \"chromInfo\": \"/gpfs1/data/galaxy_server/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"fls\": {\"__class__\": \"ConnectedValue\"}, \"nbases\": \"8\", \"plotopt\": {\"obs\": true, \"err_out\": true, \"err_in\": false, \"nominalQ\": true}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "fecf3331-21aa-4717-b0d8-adcbe5367f25",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "12": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_dada/dada2_dada/1.28+galaxy0",
+        "errors": null,
+        "id": 12,
+        "input_connections": {
+          "batch_cond|derep": {
+            "id": 9,
+            "output_name": "forward"
+          },
+          "batch_cond|pool": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "err": {
+            "id": 10,
+            "output_name": "errors"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool dada2: dada",
+            "name": "batch_cond"
+          },
+          {
+            "description": "runtime parameter for tool dada2: dada",
+            "name": "batch_cond"
+          }
+        ],
+        "label": null,
+        "name": "dada2: dada",
+        "outputs": [
+          {
+            "name": "data_collection",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1400,
+          "top": 406
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_dada/dada2_dada/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "96336c6a2bb7",
+          "name": "dada2_dada",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"batch_cond\": {\"batch_select\": \"no\", \"__current_case__\": 1, \"derep\": {\"__class__\": \"ConnectedValue\"}, \"pool\": {\"__class__\": \"ConnectedValue\"}}, \"err\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "ff05ecad-d30f-4247-88ea-4ed330dec559",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "13": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_dada/dada2_dada/1.28+galaxy0",
+        "errors": null,
+        "id": 13,
+        "input_connections": {
+          "batch_cond|derep": {
+            "id": 9,
+            "output_name": "reverse"
+          },
+          "batch_cond|pool": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "err": {
+            "id": 11,
+            "output_name": "errors"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool dada2: dada",
+            "name": "batch_cond"
+          },
+          {
+            "description": "runtime parameter for tool dada2: dada",
+            "name": "batch_cond"
+          }
+        ],
+        "label": null,
+        "name": "dada2: dada",
+        "outputs": [
+          {
+            "name": "data_collection",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1390,
+          "top": 715.0071096093692
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_dada/dada2_dada/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "96336c6a2bb7",
+          "name": "dada2_dada",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"batch_cond\": {\"batch_select\": \"no\", \"__current_case__\": 1, \"derep\": {\"__class__\": \"ConnectedValue\"}, \"pool\": {\"__class__\": \"ConnectedValue\"}}, \"err\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "7913f2df-f6fe-42b3-a199-b690b8f28052",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "14": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_mergepairs/dada2_mergePairs/1.28+galaxy0",
+        "errors": null,
+        "id": 14,
+        "input_connections": {
+          "dadaF": {
+            "id": 12,
+            "output_name": "data_collection"
+          },
+          "dadaR": {
+            "id": 13,
+            "output_name": "data_collection"
+          },
+          "derepF": {
+            "id": 9,
+            "output_name": "forward"
+          },
+          "derepR": {
+            "id": 9,
+            "output_name": "reverse"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "dada2: mergePairs",
+        "outputs": [
+          {
+            "name": "merged",
+            "type": "dada2_mergepairs"
+          }
+        ],
+        "position": {
+          "left": 1683,
+          "top": 468.0071096093692
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_mergepairs/dada2_mergePairs/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "5c865a382933",
+          "name": "dada2_mergepairs",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"chromInfo\": \"/gpfs1/data/galaxy_server/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"dadaF\": {\"__class__\": \"ConnectedValue\"}, \"dadaF|__identifier__\": \"pool.feces.fastq\", \"dadaR\": {\"__class__\": \"ConnectedValue\"}, \"dadaR|__identifier__\": \"pool.feces.fastq\", \"derepF\": {\"__class__\": \"ConnectedValue\"}, \"derepF|__identifier__\": \"pool.feces.fastq\", \"derepR\": {\"__class__\": \"ConnectedValue\"}, \"derepR|__identifier__\": \"pool.feces.fastq\", \"justConcatenate\": false, \"maxMismatch\": \"0\", \"minOverlap\": \"12\", \"trimOverhang\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "1c68c888-43a1-42af-9d11-bf374d4671ab",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "15": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_makesequencetable/dada2_makeSequenceTable/1.28+galaxy0",
+        "errors": null,
+        "id": 15,
+        "input_connections": {
+          "samples": {
+            "id": 14,
+            "output_name": "merged"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "dada2: makeSequenceTable",
+        "outputs": [
+          {
+            "name": "stable",
+            "type": "dada2_sequencetable"
+          },
+          {
+            "name": "plot_output",
+            "type": "pdf"
+          }
+        ],
+        "position": {
+          "left": 1960.0001199993603,
+          "top": 521.0070943505801
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_makesequencetable/dada2_makeSequenceTable/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "43c99742158b",
+          "name": "dada2_makesequencetable",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"filter_cond\": {\"filter_select\": \"no\", \"__current_case__\": 0}, \"orderBy\": \"abundance\", \"plot\": true, \"samples\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "19e6e402-fcd6-47dd-afd6-0a620f13a136",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "16": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_removebimeradenovo/dada2_removeBimeraDenovo/1.28+galaxy0",
+        "errors": null,
+        "id": 16,
+        "input_connections": {
+          "unqs": {
+            "id": 15,
+            "output_name": "stable"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "dada2: removeBimeraDenovo",
+        "outputs": [
+          {
+            "name": "stable_uniques",
+            "type": "dada2_uniques"
+          },
+          {
+            "name": "stable_mergepairs",
+            "type": "dada2_mergepairs"
+          },
+          {
+            "name": "stable_sequencetable",
+            "type": "dada2_sequencetable"
+          }
+        ],
+        "position": {
+          "left": 2240,
+          "top": 554
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_removebimeradenovo/dada2_removeBimeraDenovo/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "7136e9ab70db",
+          "name": "dada2_removebimeradenovo",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"method\": \"consensus\", \"unqs\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "c3ce5a94-e9eb-4e0b-a5f5-28d91c0a9da6",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Sequence Table",
+            "output_name": "stable_sequencetable",
+            "uuid": "10f06729-66a0-4239-9922-e9d1e0e6fdfc"
+          }
+        ]
+      },
+      "17": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_seqcounts/dada2_seqCounts/1.28+galaxy0",
+        "errors": null,
+        "id": 17,
+        "input_connections": {
+          "inrep_0|input": {
+            "id": 7,
+            "output_name": "outtab"
+          },
+          "inrep_1|input": {
+            "id": 12,
+            "output_name": "data_collection"
+          },
+          "inrep_2|input": {
+            "id": 13,
+            "output_name": "data_collection"
+          },
+          "inrep_3|input": {
+            "id": 14,
+            "output_name": "merged"
+          },
+          "inrep_4|input": {
+            "id": 15,
+            "output_name": "stable"
+          },
+          "inrep_5|input": {
+            "id": 16,
+            "output_name": "stable_sequencetable"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "dada2: sequence counts",
+        "outputs": [
+          {
+            "name": "counts",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 2523.672846294445,
+          "top": 53.76299803013818
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_seqcounts/dada2_seqCounts/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "19299bb1c6af",
+          "name": "dada2_seqcounts",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"inrep\": [{\"__index__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"FiltTrim\"}, {\"__index__\": 1, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"Dada Fwd\"}, {\"__index__\": 2, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"Dada Rev\"}, {\"__index__\": 3, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"MakePairs\"}, {\"__index__\": 4, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"SeqTab\"}, {\"__index__\": 5, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"Bimera\"}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "c4fbb13a-f94d-4301-be24-498a789a57da",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Counts",
+            "output_name": "counts",
+            "uuid": "1974f58c-6903-459d-a016-6cebf21fae49"
+          }
+        ]
+      },
+      "18": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_assigntaxonomyaddspecies/dada2_assignTaxonomyAddspecies/1.28+galaxy0",
+        "errors": null,
+        "id": 18,
+        "input_connections": {
+          "reference_cond|refFasta": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "seqs": {
+            "id": 16,
+            "output_name": "stable_sequencetable"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool dada2: assignTaxonomy and addSpecies",
+            "name": "reference_cond"
+          }
+        ],
+        "label": "dada2: assignTaxonomy",
+        "name": "dada2: assignTaxonomy and addSpecies",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 2647.6612392582533,
+          "top": 838.3432775089392
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_assigntaxonomyaddspecies/dada2_assignTaxonomyAddspecies/1.28+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "7c2100246a2f",
+          "name": "dada2_assigntaxonomyaddspecies",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"addSpecies_cond\": {\"addSpecies_select\": \"FALSE\", \"__current_case__\": 0}, \"minBoot\": \"50\", \"outputBootstraps\": false, \"reference_cond\": {\"reference_select\": \"builtin\", \"__current_case__\": 0, \"refFasta\": {\"__class__\": \"ConnectedValue\"}}, \"seed\": null, \"seqs\": {\"__class__\": \"ConnectedValue\"}, \"tryRC\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.28+galaxy0",
+        "type": "tool",
+        "uuid": "808251ff-3e1b-40d3-a2d8-bb7d2cafa1e9",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Taxonomy",
+            "output_name": "output",
+            "uuid": "883bb02f-1062-4a62-9ec7-7c235e66e524"
+          }
+        ]
+      }
+    },
+    "tags": [
+      "name:amplicon"
+    ],
+    "uuid": "26976482-70ff-4568-a81a-58ec7e57018a",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "dada2 amplicon analysis pipeline - for paired en (release v0.1)",
+      "annotation": "dada2 amplicon analysis for paired end data\n\nThe workflow has three main outputs: \n- the sequence table (output of makeSequenceTable)\n- the taxonomy (output of assignTaxonomy)\n- the counts which allow to track the number of sequences in the samples through the steps (output of sequence counts)",
+      "format_version": "0.1",
+      "uuid": "26976482-70ff-4568-a81a-58ec7e57018a",
+      "version": 1,
+      "tags": [
+        "name:amplicon"
+      ],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "0000-0003-3763-0797",
+          "name": "Matthias Bernt"
+        },
+        {
+          "class": "Organization",
+          "name": "UFZ Leipzig"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": "Paired input data",
+        "annotation": "Paired input data",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+        "position": {
+          "left": 0,
+          "top": 6
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Read length forward read",
+        "annotation": "Forward reads will be truncated to this length. Empty means no truncation.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": true}",
+        "position": {
+          "left": 12,
+          "top": 242.3237599999942
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Read length reverse read",
+        "annotation": "Reverse reads will be truncated to this length. Empty means no truncation.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": true}",
+        "position": {
+          "left": 11,
+          "top": 367.3237599999942
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Pool samples",
+        "annotation": "Pooling may increase sensitivity",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 10.577839999617993,
+          "top": 522.3237599999942
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Cached reference database",
+        "annotation": "for taxonomic assignment. If a cached reference is used no reference from history is used. ",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 38.24183470363951,
+          "top": 889.0398222178009
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "Apply rules",
+        "label": "Sort samples",
+        "annotation": "",
+        "tool_id": "__APPLY_RULES__",
+        "tool_version": "1.1.0",
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"rules\": {\"mapping\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"columns\": [0], \"connectable\": true, \"editing\": false, \"is_workflow\": false, \"type\": \"list_identifiers\"}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"columns\": [1], \"connectable\": true, \"is_workflow\": false, \"type\": \"paired_identifier\"}], \"rules\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier0\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier1\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"numeric\": false, \"target_column\": 0, \"type\": \"sort\", \"warn\": null}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 280,
+          "top": 0
+        },
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "dada2: plotQualityProfile",
+        "label": "QualityProfile before filterAndTrim",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_plotqualityprofile/dada2_plotQualityProfile/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"batch_cond\": {\"batch_select\": \"joint\", \"__current_case__\": 0, \"paired_cond\": {\"paired_select\": \"paired\", \"__current_case__\": 0, \"reads\": {\"__class__\": \"ConnectedValue\"}}, \"aggregate\": true}, \"n\": \"10000000\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 560,
+          "top": 5
+        },
+        "input_connections": {
+          "batch_cond|paired_cond|reads": {
+            "id": 5,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output_fwd",
+            "type": "pdf"
+          },
+          {
+            "name": "output_rev",
+            "type": "pdf"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "dada2: filterAndTrim",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_filterandtrim/dada2_filterAndTrim/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"filter\": {\"maxLen\": null, \"minLen\": \"20\", \"maxN\": \"0\", \"minQ\": \"0\", \"maxEE\": \"2\"}, \"orientFwd\": \"\", \"output_statistics\": true, \"paired_cond\": {\"paired_select\": \"paired\", \"__current_case__\": 0, \"reads\": {\"__class__\": \"ConnectedValue\"}}, \"rmPhiX\": true, \"rmlowcomplex\": \"0\", \"seprev_cond\": {\"seprev_select\": \"yes\", \"__current_case__\": 1, \"trim\": {\"truncQ\": \"2\", \"trimLeft\": \"0\", \"trimRight\": \"0\", \"truncLen\": {\"__class__\": \"ConnectedValue\"}}, \"filter\": {\"maxLen\": null, \"minLen\": \"20\", \"maxN\": \"0\", \"minQ\": \"0\", \"maxEE\": \"2\"}}, \"trim\": {\"truncQ\": \"2\", \"trimLeft\": \"0\", \"trimRight\": \"0\", \"truncLen\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 560,
+          "top": 233
+        },
+        "input_connections": {
+          "paired_cond|reads": {
+            "id": 5,
+            "output_name": "output"
+          },
+          "seprev_cond|trim|truncLen": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "trim|truncLen": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "paired_output",
+            "type": "input"
+          },
+          {
+            "name": "outtab",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "dada2: plotQualityProfile",
+        "label": "QualityProfile after filterAndTrim",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_plotqualityprofile/dada2_plotQualityProfile/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"batch_cond\": {\"batch_select\": \"joint\", \"__current_case__\": 0, \"paired_cond\": {\"paired_select\": \"paired\", \"__current_case__\": 0, \"reads\": {\"__class__\": \"ConnectedValue\"}}, \"aggregate\": true}, \"n\": \"1000000\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 840,
+          "top": 263
+        },
+        "input_connections": {
+          "batch_cond|paired_cond|reads": {
+            "id": 7,
+            "output_name": "paired_output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output_fwd",
+            "type": "pdf"
+          },
+          {
+            "name": "output_rev",
+            "type": "pdf"
+          }
+        ]
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "Unzip collection",
+        "label": null,
+        "annotation": "",
+        "tool_id": "__UNZIP_COLLECTION__",
+        "tool_version": "1.0.0",
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 840,
+          "top": 491
+        },
+        "input_connections": {
+          "input": {
+            "id": 7,
+            "output_name": "paired_output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "forward",
+            "type": "input"
+          },
+          {
+            "name": "reverse",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "10",
+        "type": "tool",
+        "name": "dada2: learnErrors",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_learnerrors/dada2_learnErrors/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"advanced\": {\"errfoo\": \"loessErrfun\", \"randomize\": false, \"maxconsist\": \"10\", \"omegac\": \"0.0\"}, \"chromInfo\": \"/gpfs1/data/galaxy_server/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"fls\": {\"__class__\": \"ConnectedValue\"}, \"nbases\": \"8\", \"plotopt\": {\"obs\": true, \"err_out\": true, \"err_in\": false, \"nominalQ\": true}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1120,
+          "top": 362
+        },
+        "input_connections": {
+          "fls": {
+            "id": 9,
+            "output_name": "forward"
+          }
+        },
+        "outputs": [
+          {
+            "name": "errors",
+            "type": "dada2_errorrates"
+          },
+          {
+            "name": "plot",
+            "type": "pdf"
+          }
+        ]
+      },
+      {
+        "step_id": "11",
+        "type": "tool",
+        "name": "dada2: learnErrors",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_learnerrors/dada2_learnErrors/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"advanced\": {\"errfoo\": \"loessErrfun\", \"randomize\": false, \"maxconsist\": \"10\", \"omegac\": \"0.0\"}, \"chromInfo\": \"/gpfs1/data/galaxy_server/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"fls\": {\"__class__\": \"ConnectedValue\"}, \"nbases\": \"8\", \"plotopt\": {\"obs\": true, \"err_out\": true, \"err_in\": false, \"nominalQ\": true}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1113,
+          "top": 716.3237599999942
+        },
+        "input_connections": {
+          "fls": {
+            "id": 9,
+            "output_name": "reverse"
+          }
+        },
+        "outputs": [
+          {
+            "name": "errors",
+            "type": "dada2_errorrates"
+          },
+          {
+            "name": "plot",
+            "type": "pdf"
+          }
+        ]
+      },
+      {
+        "step_id": "12",
+        "type": "tool",
+        "name": "dada2: dada",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_dada/dada2_dada/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"batch_cond\": {\"batch_select\": \"no\", \"__current_case__\": 1, \"derep\": {\"__class__\": \"ConnectedValue\"}, \"pool\": {\"__class__\": \"ConnectedValue\"}}, \"err\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1400,
+          "top": 406
+        },
+        "input_connections": {
+          "batch_cond|derep": {
+            "id": 9,
+            "output_name": "forward"
+          },
+          "batch_cond|pool": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "err": {
+            "id": 10,
+            "output_name": "errors"
+          }
+        },
+        "outputs": [
+          {
+            "name": "data_collection",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "13",
+        "type": "tool",
+        "name": "dada2: dada",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_dada/dada2_dada/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"batch_cond\": {\"batch_select\": \"no\", \"__current_case__\": 1, \"derep\": {\"__class__\": \"ConnectedValue\"}, \"pool\": {\"__class__\": \"ConnectedValue\"}}, \"err\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1390,
+          "top": 715.0071096093692
+        },
+        "input_connections": {
+          "batch_cond|derep": {
+            "id": 9,
+            "output_name": "reverse"
+          },
+          "batch_cond|pool": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "err": {
+            "id": 11,
+            "output_name": "errors"
+          }
+        },
+        "outputs": [
+          {
+            "name": "data_collection",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "14",
+        "type": "tool",
+        "name": "dada2: mergePairs",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_mergepairs/dada2_mergePairs/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"chromInfo\": \"/gpfs1/data/galaxy_server/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"dadaF\": {\"__class__\": \"ConnectedValue\"}, \"dadaF|__identifier__\": \"pool.feces.fastq\", \"dadaR\": {\"__class__\": \"ConnectedValue\"}, \"dadaR|__identifier__\": \"pool.feces.fastq\", \"derepF\": {\"__class__\": \"ConnectedValue\"}, \"derepF|__identifier__\": \"pool.feces.fastq\", \"derepR\": {\"__class__\": \"ConnectedValue\"}, \"derepR|__identifier__\": \"pool.feces.fastq\", \"justConcatenate\": false, \"maxMismatch\": \"0\", \"minOverlap\": \"12\", \"trimOverhang\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1683,
+          "top": 468.0071096093692
+        },
+        "input_connections": {
+          "dadaF": {
+            "id": 12,
+            "output_name": "data_collection"
+          },
+          "dadaR": {
+            "id": 13,
+            "output_name": "data_collection"
+          },
+          "derepF": {
+            "id": 9,
+            "output_name": "forward"
+          },
+          "derepR": {
+            "id": 9,
+            "output_name": "reverse"
+          }
+        },
+        "outputs": [
+          {
+            "name": "merged",
+            "type": "dada2_mergepairs"
+          }
+        ]
+      },
+      {
+        "step_id": "15",
+        "type": "tool",
+        "name": "dada2: makeSequenceTable",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_makesequencetable/dada2_makeSequenceTable/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"filter_cond\": {\"filter_select\": \"no\", \"__current_case__\": 0}, \"orderBy\": \"abundance\", \"plot\": true, \"samples\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1960.0001199993603,
+          "top": 521.0070943505801
+        },
+        "input_connections": {
+          "samples": {
+            "id": 14,
+            "output_name": "merged"
+          }
+        },
+        "outputs": [
+          {
+            "name": "stable",
+            "type": "dada2_sequencetable"
+          },
+          {
+            "name": "plot_output",
+            "type": "pdf"
+          }
+        ]
+      },
+      {
+        "step_id": "16",
+        "type": "tool",
+        "name": "dada2: removeBimeraDenovo",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_removebimeradenovo/dada2_removeBimeraDenovo/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"method\": \"consensus\", \"unqs\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2240,
+          "top": 554
+        },
+        "input_connections": {
+          "unqs": {
+            "id": 15,
+            "output_name": "stable"
+          }
+        },
+        "outputs": [
+          {
+            "name": "stable_uniques",
+            "type": "dada2_uniques"
+          },
+          {
+            "name": "stable_mergepairs",
+            "type": "dada2_mergepairs"
+          },
+          {
+            "name": "stable_sequencetable",
+            "type": "dada2_sequencetable"
+          }
+        ]
+      },
+      {
+        "step_id": "17",
+        "type": "tool",
+        "name": "dada2: sequence counts",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_seqcounts/dada2_seqCounts/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"inrep\": [{\"__index__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"FiltTrim\"}, {\"__index__\": 1, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"Dada Fwd\"}, {\"__index__\": 2, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"Dada Rev\"}, {\"__index__\": 3, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"MakePairs\"}, {\"__index__\": 4, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"SeqTab\"}, {\"__index__\": 5, \"input\": {\"__class__\": \"ConnectedValue\"}, \"name\": \"Bimera\"}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2523.672846294445,
+          "top": 53.76299803013818
+        },
+        "input_connections": {
+          "inrep_0|input": {
+            "id": 7,
+            "output_name": "outtab"
+          },
+          "inrep_1|input": {
+            "id": 12,
+            "output_name": "data_collection"
+          },
+          "inrep_2|input": {
+            "id": 13,
+            "output_name": "data_collection"
+          },
+          "inrep_3|input": {
+            "id": 14,
+            "output_name": "merged"
+          },
+          "inrep_4|input": {
+            "id": 15,
+            "output_name": "stable"
+          },
+          "inrep_5|input": {
+            "id": 16,
+            "output_name": "stable_sequencetable"
+          }
+        },
+        "outputs": [
+          {
+            "name": "counts",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "18",
+        "type": "tool",
+        "name": "dada2: assignTaxonomy and addSpecies",
+        "label": "dada2: assignTaxonomy",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_assigntaxonomyaddspecies/dada2_assignTaxonomyAddspecies/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "tool_state": "{\"addSpecies_cond\": {\"addSpecies_select\": \"FALSE\", \"__current_case__\": 0}, \"minBoot\": \"50\", \"outputBootstraps\": false, \"reference_cond\": {\"reference_select\": \"builtin\", \"__current_case__\": 0, \"refFasta\": {\"__class__\": \"ConnectedValue\"}}, \"seed\": null, \"seqs\": {\"__class__\": \"ConnectedValue\"}, \"tryRC\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2647.6612392582533,
+          "top": 838.3432775089392
+        },
+        "input_connections": {
+          "reference_cond|refFasta": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "seqs": {
+            "id": 16,
+            "output_name": "stable_sequencetable"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "__APPLY_RULES__",
+        "tool_version": "1.1.0",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_plotqualityprofile/dada2_plotQualityProfile/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_filterandtrim/dada2_filterAndTrim/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_plotqualityprofile/dada2_plotQualityProfile/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "8"
+      },
+      {
+        "tool_id": "__UNZIP_COLLECTION__",
+        "tool_version": "1.0.0",
+        "step_id": "9"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_learnerrors/dada2_learnErrors/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "10"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_learnerrors/dada2_learnErrors/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "11"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_dada/dada2_dada/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "12"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_dada/dada2_dada/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "13"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_mergepairs/dada2_mergePairs/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "14"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_makesequencetable/dada2_makeSequenceTable/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "15"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_removebimeradenovo/dada2_removeBimeraDenovo/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "16"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_seqcounts/dada2_seqCounts/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "17"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dada2_assigntaxonomyaddspecies/dada2_assignTaxonomyAddspecies/1.28+galaxy0",
+        "tool_version": "1.28+galaxy0",
+        "step_id": "18"
+      }
+    ],
+    "inputs": [],
+    "outputs": [
+      {
+        "step_id": "1",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "2",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "3",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "4",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "16",
+        "output_name": "stable_sequencetable",
+        "label": "Sequence Table"
+      },
+      {
+        "step_id": "17",
+        "output_name": "counts",
+        "label": "Counts"
+      },
+      {
+        "step_id": "18",
+        "output_name": "output",
+        "label": "Taxonomy"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "input"
+      },
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "batch_cond|paired_cond|reads"
+      },
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "paired_cond|reads"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "seprev_cond|trim|truncLen"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "trim|truncLen"
+      },
+      {
+        "from_step": 7,
+        "from_output": "paired_output",
+        "to_step": "8",
+        "to_input": "batch_cond|paired_cond|reads"
+      },
+      {
+        "from_step": 7,
+        "from_output": "paired_output",
+        "to_step": "9",
+        "to_input": "input"
+      },
+      {
+        "from_step": 9,
+        "from_output": "forward",
+        "to_step": "10",
+        "to_input": "fls"
+      },
+      {
+        "from_step": 9,
+        "from_output": "reverse",
+        "to_step": "11",
+        "to_input": "fls"
+      },
+      {
+        "from_step": 9,
+        "from_output": "forward",
+        "to_step": "12",
+        "to_input": "batch_cond|derep"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "12",
+        "to_input": "batch_cond|pool"
+      },
+      {
+        "from_step": 10,
+        "from_output": "errors",
+        "to_step": "12",
+        "to_input": "err"
+      },
+      {
+        "from_step": 9,
+        "from_output": "reverse",
+        "to_step": "13",
+        "to_input": "batch_cond|derep"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "13",
+        "to_input": "batch_cond|pool"
+      },
+      {
+        "from_step": 11,
+        "from_output": "errors",
+        "to_step": "13",
+        "to_input": "err"
+      },
+      {
+        "from_step": 12,
+        "from_output": "data_collection",
+        "to_step": "14",
+        "to_input": "dadaF"
+      },
+      {
+        "from_step": 13,
+        "from_output": "data_collection",
+        "to_step": "14",
+        "to_input": "dadaR"
+      },
+      {
+        "from_step": 9,
+        "from_output": "forward",
+        "to_step": "14",
+        "to_input": "derepF"
+      },
+      {
+        "from_step": 9,
+        "from_output": "reverse",
+        "to_step": "14",
+        "to_input": "derepR"
+      },
+      {
+        "from_step": 14,
+        "from_output": "merged",
+        "to_step": "15",
+        "to_input": "samples"
+      },
+      {
+        "from_step": 15,
+        "from_output": "stable",
+        "to_step": "16",
+        "to_input": "unqs"
+      },
+      {
+        "from_step": 7,
+        "from_output": "outtab",
+        "to_step": "17",
+        "to_input": "inrep_0|input"
+      },
+      {
+        "from_step": 12,
+        "from_output": "data_collection",
+        "to_step": "17",
+        "to_input": "inrep_1|input"
+      },
+      {
+        "from_step": 13,
+        "from_output": "data_collection",
+        "to_step": "17",
+        "to_input": "inrep_2|input"
+      },
+      {
+        "from_step": 14,
+        "from_output": "merged",
+        "to_step": "17",
+        "to_input": "inrep_3|input"
+      },
+      {
+        "from_step": 15,
+        "from_output": "stable",
+        "to_step": "17",
+        "to_input": "inrep_4|input"
+      },
+      {
+        "from_step": 16,
+        "from_output": "stable_sequencetable",
+        "to_step": "17",
+        "to_input": "inrep_5|input"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "18",
+        "to_input": "reference_cond|refFasta"
+      },
+      {
+        "from_step": 16,
+        "from_output": "stable_sequencetable",
+        "to_step": "18",
+        "to_input": "seqs"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:53:10.515595"
+}

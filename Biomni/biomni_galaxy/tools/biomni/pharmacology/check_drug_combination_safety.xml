@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_check_drug_combination_safety" name="Biomni: Check Drug Combination Safety" version="1.0.0">
+    <description>Analyze safety of a drug combination for potential interactions.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import check_drug_combination_safety
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = check_drug_combination_safety(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --drug_list '$drug_list'
+#if $include_mechanisms
+    --include_mechanisms '$include_mechanisms'
+#end if
+#if $include_management
+    --include_management '$include_management'
+#end if
+#if $data_lake_path
+    --data_lake_path '$data_lake_path'
+#end if
+]]></command>
+    <inputs>
+        <param name="drug_list" type="text" label="Drug List" help="List of drugs to analyze for combination safety"  />
+        <param name="include_mechanisms" type="text" label="Include Mechanisms" help="Include interaction mechanism descriptions" value="True" optional="true"/>
+        <param name="include_management" type="text" label="Include Management" help="Include management recommendations" value="True" optional="true"/>
+        <param name="data_lake_path" type="text" label="Data Lake Path" help="Path to data lake directory containing DDInter data"  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Check Drug Combination Safety**
+
+Analyze safety of a drug combination for potential interactions.
+
+Parameters
+----------
+drug_list : list of str
+    List of drugs to analyze for combination safety
+include_mechanisms : bool, default True
+    Include interaction mechanism descriptions
+include_management : bool, default True
+    Include management recommendations
+data_lake_path : str, optional
+    Path to data lake directory containing DDInter data
+
+Returns
+-------
+str
+    Research log with safety analysis and recommendations
+
+**Domain**: pharmacology
+**Function**: check_drug_combination_safety
+]]></help>
+</tool>

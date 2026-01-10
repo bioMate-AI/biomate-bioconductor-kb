@@ -1,0 +1,455 @@
+{
+  "workflow_id": "6c7d320ad951f445",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "6c7d320ad951f445",
+    "latest_workflow_id": "cf0522396adc32f9",
+    "name": "leshmaina detector ",
+    "create_time": "2025-06-03T10:23:20.832271",
+    "update_time": "2025-06-03T16:30:39.992278",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "1ccde667-0052-446f-9c89-4d6231f3f79b",
+    "creator_deleted": false,
+    "annotations": [
+      ""
+    ],
+    "url": "/api/workflows/6c7d320ad951f445",
+    "owner": "marah_qunbar",
+    "source_metadata": null,
+    "number_of_steps": 6,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "name": "leshmaina detector ",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [],
+        "label": null,
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 0
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "5b93a4ef-8abd-4e09-99d1-33681b9da351",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [],
+        "label": null,
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 3,
+          "top": 119
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "25027dbe-9bc0-4488-81c7-3e2aa35fb33e",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_paired_end_joiner/fastq_paired_end_joiner/2.0.1.1+galaxy1",
+        "errors": null,
+        "id": 2,
+        "input_connections": {
+          "input1_file": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "input2_file": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "FASTQ joiner",
+        "outputs": [
+          {
+            "name": "output_file",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 297,
+          "top": 43
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_paired_end_joiner/fastq_paired_end_joiner/2.0.1.1+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "8d958759cf2a",
+          "name": "fastq_paired_end_joiner",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input1_file\": {\"__class__\": \"ConnectedValue\"}, \"input2_file\": {\"__class__\": \"ConnectedValue\"}, \"paste_sequence\": \"\", \"style\": \"old\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.0.1.1+galaxy1",
+        "type": "tool",
+        "uuid": "fab115e7-fc2d-41f5-afa6-e217776cbddc",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqtofasta/fastq_to_fasta_python/1.1.5+galaxy2",
+        "errors": null,
+        "id": 3,
+        "input_connections": {
+          "input_file": {
+            "id": 2,
+            "output_name": "output_file"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "FASTQ to FASTA",
+        "outputs": [
+          {
+            "name": "output_file",
+            "type": "fasta"
+          }
+        ],
+        "position": {
+          "left": 591,
+          "top": 47
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqtofasta/fastq_to_fasta_python/1.1.5+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "ac3fed111eb6",
+          "name": "fastqtofasta",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.5+galaxy2",
+        "type": "tool",
+        "uuid": "c58bbc13-18fb-4303-8611-8bd8b78e9452",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "",
+        "content_id": "Grep1",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "input": {
+            "id": 3,
+            "output_name": "output_file"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Select",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 853,
+          "top": 62
+        },
+        "post_job_actions": {},
+        "tool_id": "Grep1",
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"invert\": \"\", \"keep_header\": false, \"pattern\": \"^chr([0-9A-Za-z])+\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.4",
+        "type": "tool",
+        "uuid": "9032eb85-060c-4878-bb4b-41a600d9d2e3",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_to_tabular/fasta2tab/1.1.1",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "input": {
+            "id": 4,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FASTA-to-Tabular",
+            "name": "input"
+          }
+        ],
+        "label": null,
+        "name": "FASTA-to-Tabular",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 1117.5,
+          "top": 57
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_to_tabular/fasta2tab/1.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "e7ed3c310b74",
+          "name": "fasta_to_tabular",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"descr_columns\": \"1\", \"input\": {\"__class__\": \"RuntimeValue\"}, \"keep_first\": \"0\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.1",
+        "type": "tool",
+        "uuid": "5f67951a-21f2-4880-b539-d7fbffe1cc6d",
+        "when": null,
+        "workflow_outputs": []
+      }
+    },
+    "tags": [],
+    "uuid": "1ccde667-0052-446f-9c89-4d6231f3f79b",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "leshmaina detector ",
+      "annotation": "",
+      "format_version": "0.1",
+      "uuid": "1ccde667-0052-446f-9c89-4d6231f3f79b",
+      "version": 1,
+      "tags": [],
+      "creator": [],
+      "license": ""
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+        "position": {
+          "left": 0,
+          "top": 0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+        "position": {
+          "left": 3,
+          "top": 119
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "tool",
+        "name": "FASTQ joiner",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_paired_end_joiner/fastq_paired_end_joiner/2.0.1.1+galaxy1",
+        "tool_version": "2.0.1.1+galaxy1",
+        "tool_state": "{\"input1_file\": {\"__class__\": \"ConnectedValue\"}, \"input2_file\": {\"__class__\": \"ConnectedValue\"}, \"paste_sequence\": \"\", \"style\": \"old\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 297,
+          "top": 43
+        },
+        "input_connections": {
+          "input1_file": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "input2_file": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output_file",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "3",
+        "type": "tool",
+        "name": "FASTQ to FASTA",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqtofasta/fastq_to_fasta_python/1.1.5+galaxy2",
+        "tool_version": "1.1.5+galaxy2",
+        "tool_state": "{\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 591,
+          "top": 47
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 2,
+            "output_name": "output_file"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output_file",
+            "type": "fasta"
+          }
+        ]
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "Select",
+        "label": null,
+        "annotation": "",
+        "tool_id": "Grep1",
+        "tool_version": "1.0.4",
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"invert\": \"\", \"keep_header\": false, \"pattern\": \"^chr([0-9A-Za-z])+\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 853,
+          "top": 62
+        },
+        "input_connections": {
+          "input": {
+            "id": 3,
+            "output_name": "output_file"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "FASTA-to-Tabular",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_to_tabular/fasta2tab/1.1.1",
+        "tool_version": "1.1.1",
+        "tool_state": "{\"descr_columns\": \"1\", \"input\": {\"__class__\": \"RuntimeValue\"}, \"keep_first\": \"0\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1117.5,
+          "top": 57
+        },
+        "input_connections": {
+          "input": {
+            "id": 4,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_paired_end_joiner/fastq_paired_end_joiner/2.0.1.1+galaxy1",
+        "tool_version": "2.0.1.1+galaxy1",
+        "step_id": "2"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqtofasta/fastq_to_fasta_python/1.1.5+galaxy2",
+        "tool_version": "1.1.5+galaxy2",
+        "step_id": "3"
+      },
+      {
+        "tool_id": "Grep1",
+        "tool_version": "1.0.4",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_to_tabular/fasta2tab/1.1.1",
+        "tool_version": "1.1.1",
+        "step_id": "5"
+      }
+    ],
+    "inputs": [],
+    "outputs": [],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "2",
+        "to_input": "input1_file"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "2",
+        "to_input": "input2_file"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output_file",
+        "to_step": "3",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output_file",
+        "to_step": "4",
+        "to_input": "input"
+      },
+      {
+        "from_step": 4,
+        "from_output": "out_file1",
+        "to_step": "5",
+        "to_input": "input"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:45:31.957020"
+}

@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_scanpy_tl_pca" name="Scanpy: tl.pca" version="1.0.0">
+  <description>Call Scanpy tl.pca function</description>
+  <requirements>
+    <requirement type="package" version="">scanpy</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from scanpy import *
+# Tool implementation
+result = tl.pca(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**Scanpy: tl.pca**
+
+Call Scanpy tl.pca function
+
+**Tool Type**: python
+**Library**: scanpy
+**Function**: tl.pca
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;scanpy&quot;,
+  &quot;function&quot;: &quot;tl.pca&quot;,
+  &quot;call_template&quot;: &quot;from scanpy import ...; result = tl.pca(...)&quot;
+}
+]]&gt;</help>
+</tool>

@@ -1,0 +1,175 @@
+<?xml version="1.0"?>
+<tool id="biomni_genomics_generate_transcriptformer_embeddings" name="Biomni: Generate Transcriptformer Embeddings" version="1.0.0">
+    <description>Generate Transcriptformer embeddings for single-cell RNA-seq data.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genomics import generate_transcriptformer_embeddings
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = generate_transcriptformer_embeddings(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --adata_filename '$adata_filename'
+--data_dir '$data_dir'
+#if $output_filename
+    --output_filename '$output_filename'
+#end if
+#if $model_type
+    --model_type '$model_type'
+#end if
+#if $checkpoint_path
+    --checkpoint_path '$checkpoint_path'
+#end if
+#if $batch_size
+    --batch_size '$batch_size'
+#end if
+#if $precision
+    --precision '$precision'
+#end if
+#if $clip_counts
+    --clip_counts '$clip_counts'
+#end if
+#if $embedding_layer_index
+    --embedding_layer_index '$embedding_layer_index'
+#end if
+#if $num_gpus
+    --num_gpus '$num_gpus'
+#end if
+#if $n_data_workers
+    --n_data_workers '$n_data_workers'
+#end if
+#if $gene_col_name
+    --gene_col_name '$gene_col_name'
+#end if
+#if $pretrained_embedding
+    --pretrained_embedding '$pretrained_embedding'
+#end if
+#if $filter_to_vocabs
+    --filter_to_vocabs
+#end if
+#if $use_raw
+    --use_raw '$use_raw'
+#end if
+#if $emb_type
+    --emb_type '$emb_type'
+#end if
+#if $remove_duplicate_genes
+    --remove_duplicate_genes
+#end if
+#if $oom_dataloader
+    --oom_dataloader
+#end if
+]]></command>
+    <inputs>
+        <param name="adata_filename" type="text" label="Adata Filename" help="Name of the input AnnData file (.h5ad format)"  />
+        <param name="data_dir" type="text" label="Data Dir" help="Directory containing the input data file"  />
+        <param name="output_filename" type="text" label="Output Filename" help="Name of the output embeddings file. If None, will use input filename with '_transcriptformer_embeddings' suffix"  optional="true"/>
+        <param name="model_type" type="text" label="Model Type" help="Type of transcriptformer model to download and use. Options: "tf-sapiens", "tf-exemplar", "tf-metazoa" (default: "tf-sapiens")" value="tf-sapiens" optional="true"/>
+        <param name="checkpoint_path" type="text" label="Checkpoint Path" help="Path to the transcriptformer checkpoint directory. If None, will use "./checkpoints/{model_type}" (default: None)"  optional="true"/>
+        <param name="batch_size" type="integer" label="Batch Size" help="Batch size for inference (default: 8)" value="8" optional="true"/>
+        <param name="precision" type="text" label="Precision" help="Precision for inference. Options: "16-mixed", "32" (default: "16-mixed")" value="16-mixed" optional="true"/>
+        <param name="clip_counts" type="integer" label="Clip Counts" help="Maximum count value to clip to (default: 30)" value="30" optional="true"/>
+        <param name="embedding_layer_index" type="integer" label="Embedding Layer Index" help="Which layer to extract embeddings from (default: -1, last layer)"  optional="true"/>
+        <param name="num_gpus" type="integer" label="Num Gpus" help="Number of GPUs to use (default: 1)" value="1" optional="true"/>
+        <param name="n_data_workers" type="integer" label="N Data Workers" help="Number of data loading workers (default: 0)" value="0" optional="true"/>
+        <param name="gene_col_name" type="text" label="Gene Col Name" help="Column name in AnnData.var containing gene identifiers (default: "ensembl_id")" value="ensembl_id" optional="true"/>
+        <param name="pretrained_embedding" type="text" label="Pretrained Embedding" help="Path to pretrained embeddings for out-of-distribution species (default: None)"  optional="true"/>
+        <param name="filter_to_vocabs" type="boolean" truevalue="true" falsevalue="false" label="Filter To Vocabs" help="Whether to filter genes to only those in the vocabulary (default: True)" checked="true"/>
+        <param name="use_raw" type="text" label="Use Raw" help="Whether to use raw counts from AnnData.raw.X (True), adata.X (False), or auto-detect (None/auto) (default: "None")" value="None" optional="true"/>
+        <param name="emb_type" type="text" label="Emb Type" help="Type of embeddings to extract: 'cell' for mean-pooled cell embeddings or 'cge' for contextual gene embeddings (default: "cell")" value="cell" optional="true"/>
+        <param name="remove_duplicate_genes" type="boolean" truevalue="true" falsevalue="false" label="Remove Duplicate Genes" help="Remove duplicate genes if found instead of raising an error (default: False)" />
+        <param name="oom_dataloader" type="boolean" truevalue="true" falsevalue="false" label="Oom Dataloader" help="Use map-style out-of-memory DataLoader (DistributedSampler-friendly) (default: False)" />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Generate Transcriptformer Embeddings**
+
+Generate Transcriptformer embeddings for single-cell RNA-seq data.
+
+Parameters:
+-----------
+adata_filename : str
+    Name of the input AnnData file (.h5ad format)
+data_dir : str
+    Directory containing the input data file
+output_filename : str, optional
+    Name of the output embeddings file. If None, will use input filename with '_transcriptformer_embeddings' suffix
+model_type : str, optional
+    Type of transcriptformer model to download and use. Options: "tf-sapiens", "tf-exemplar", "tf-metazoa" (default: "tf-sapiens")
+checkpoint_path : str, optional
+    Path to the transcriptformer checkpoint directory. If None, will use "./checkpoints/{model_type}" (default: None)
+batch_size : int, optional
+    Batch size for inference (default: 8)
+precision : str, optional
+    Precision for inference. Options: "16-mixed", "32" (default: "16-mixed")
+clip_counts : int, optional
+    Maximum count value to clip to (default: 30)
+embedding_layer_index : int, optional
+    Which layer to extract embeddings from (default: -1, last layer)
+num_gpus : int, optional
+    Number of GPUs to use (default: 1)
+n_data_workers : int, optional
+    Number of data loading workers (default: 0)
+gene_col_name : str, optional
+    Column name in AnnData.var containing gene identifiers (default: "ensembl_id")
+pretrained_embedding : str, optional
+    Path to pretrained embeddings for out-of-distribution species (default: None)
+filter_to_vocabs : bool, optional
+    Whether to filter genes to only those in the vocabulary (default: True)
+use_raw : str, optional
+    Whether to use raw counts from AnnData.raw.X (True), adata.X (False), or auto-detect (None/auto) (default: "None")
+emb_type : str, optional
+    Type of embeddings to extract: 'cell' for mean-pooled cell embeddings or 'cge' for contextual gene embeddings (default: "cell")
+remove_duplicate_genes : bool, optional
+    Remove duplicate genes if found instead of raising an error (default: False)
+oom_dataloader : bool, optional
+    Use map-style out-of-memory DataLoader (DistributedSampler-friendly) (default: False)
+Returns:
+--------
+str
+    Path to the generated embeddings file
+
+**Domain**: genomics
+**Function**: generate_transcriptformer_embeddings
+]]></help>
+</tool>

@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<tool id="biomni_immunology_track_immune_cells_under_flow" name="Biomni: Track Immune Cells Under Flow" version="1.0.0">
+    <description>Track immune cells under flow conditions and classify their behaviors.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.immunology import track_immune_cells_under_flow
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = track_immune_cells_under_flow(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --image_sequence_path '$image_sequence_path'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $pixel_size_um
+    --pixel_size_um '$pixel_size_um'
+#end if
+#if $time_interval_sec
+    --time_interval_sec '$time_interval_sec'
+#end if
+#if $flow_direction
+    --flow_direction '$flow_direction'
+#end if
+]]></command>
+    <inputs>
+        <param name="image_sequence_path" type="text" label="Image Sequence Path" help=""  />
+        <param name="output_dir" type="text" label="Output Dir" help="" value="./output" optional="true"/>
+        <param name="pixel_size_um" type="text" label="Pixel Size Um" help="" value="1.0" optional="true"/>
+        <param name="time_interval_sec" type="text" label="Time Interval Sec" help="" value="1.0" optional="true"/>
+        <param name="flow_direction" type="text" label="Flow Direction" help="" value="right" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Track Immune Cells Under Flow**
+
+Track immune cells under flow conditions and classify their behaviors.
+
+Args:
+    image_sequence_path (str): Path to image sequence directory or video file.
+    output_dir (str): Directory to save output files.
+    pixel_size_um (float): Pixel size in micrometers.
+    time_interval_sec (float): Time interval between frames in seconds.
+    flow_direction (str): Direction of flow ('right', 'left', 'up', 'down').
+
+Returns:
+    str: Log of the analysis process.
+
+**Domain**: immunology
+**Function**: track_immune_cells_under_flow
+]]></help>
+</tool>

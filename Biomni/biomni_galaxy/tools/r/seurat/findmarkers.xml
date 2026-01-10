@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_seurat_findmarkers" name="Seurat::FindMarkers" version="1.0.0">
+  <description>Call R Seurat::FindMarkers function</description>
+  <requirements>
+    <requirement type="package">r-seurat</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(Seurat); FindMarkers()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**Seurat::FindMarkers**
+
+Call R Seurat::FindMarkers function
+
+**Tool Type**: r
+**Library**: Seurat
+**Function**: FindMarkers
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;Seurat&quot;,
+  &quot;function&quot;: &quot;FindMarkers&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(Seurat); FindMarkers(...)'&quot;
+}
+]]&gt;</help>
+</tool>

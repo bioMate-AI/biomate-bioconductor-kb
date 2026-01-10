@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<tool id="biomni_cell_biology_quantify_and_cluster_cell_motility" name="Biomni: Quantify And Cluster Cell Motility" version="1.0.0">
+    <description>Quantify cell motility features from time-lapse microscopy images and cluster cells based on motility patterns.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.cell_biology import quantify_and_cluster_cell_motility
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = quantify_and_cluster_cell_motility(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --image_sequence_path '$image_sequence_path'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $num_clusters
+    --num_clusters '$num_clusters'
+#end if
+]]></command>
+    <inputs>
+        <param name="image_sequence_path" type="text" label="Image Sequence Path" help="Path to directory containing time-lapse microscopy images in sequential order"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./results")" value="./results" optional="true"/>
+        <param name="num_clusters" type="text" label="Num Clusters" help="Number of motility pattern clusters to identify (default: 3)" value="3" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Quantify And Cluster Cell Motility**
+
+Quantify cell motility features from time-lapse microscopy images and cluster cells based on motility patterns.
+
+Parameters
+----------
+image_sequence_path : str
+    Path to directory containing time-lapse microscopy images in sequential order
+output_dir : str
+    Directory to save output files (default: "./results")
+num_clusters : int
+    Number of motility pattern clusters to identify (default: 3)
+
+Returns
+-------
+str
+    Research log summarizing the analysis process and results
+
+**Domain**: cell_biology
+**Function**: quantify_and_cluster_cell_motility
+]]></help>
+</tool>

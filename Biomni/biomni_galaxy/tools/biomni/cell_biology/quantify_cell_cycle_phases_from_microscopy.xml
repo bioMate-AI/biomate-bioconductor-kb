@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<tool id="biomni_cell_biology_quantify_cell_cycle_phases_from_microscopy" name="Biomni: Quantify Cell Cycle Phases From Microscopy" version="1.0.0">
+    <description>Quantify the percentage of cells in each cell cycle phase using Calcofluor white stained microscopy images.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.cell_biology import quantify_cell_cycle_phases_from_microscopy
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = quantify_cell_cycle_phases_from_microscopy(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --image_paths '$image_paths'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="image_paths" type="text" label="Image Paths" help="List of file paths to microscopy images of cells stained with Calcofluor white"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save results (default: './results')" value="./results" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Quantify Cell Cycle Phases From Microscopy**
+
+Quantify the percentage of cells in each cell cycle phase using Calcofluor white stained microscopy images.
+
+This function processes microscopy images where cell walls/septa are stained with Calcofluor white,
+segments individual cells, extracts features, and classifies each cell into G1, S, or G2/M phase.
+
+Parameters
+----------
+image_paths : list of str
+    List of file paths to microscopy images of cells stained with Calcofluor white
+output_dir : str, optional
+    Directory to save results (default: './results')
+
+Returns
+-------
+str
+    Research log summarizing the analysis process and results
+
+**Domain**: cell_biology
+**Function**: quantify_cell_cycle_phases_from_microscopy
+]]></help>
+</tool>

@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_query_fda_adverse_events" name="Biomni: Query Fda Adverse Events" version="1.0.0">
+    <description>Query FDA adverse event reports for specific drugs.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import query_fda_adverse_events
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = query_fda_adverse_events(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --drug_name '$drug_name'
+#if $date_range
+    --date_range '$date_range'
+#end if
+#if $severity_filter
+    --severity_filter '$severity_filter'
+#end if
+#if $outcome_filter
+    --outcome_filter '$outcome_filter'
+#end if
+#if $limit
+    --limit '$limit'
+#end if
+]]></command>
+    <inputs>
+        <param name="drug_name" type="text" label="Drug Name" help=""  />
+        <param name="date_range" type="text" label="Date Range" help=""  optional="true"/>
+        <param name="severity_filter" type="text" label="Severity Filter" help=""  optional="true"/>
+        <param name="outcome_filter" type="text" label="Outcome Filter" help=""  optional="true"/>
+        <param name="limit" type="integer" label="Limit" help="" value="100" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Query Fda Adverse Events**
+
+Query FDA adverse event reports for specific drugs.
+
+Args:
+    drug_name: Name of the drug to query
+    date_range: Optional date range as (start_date, end_date) in YYYY-MM-DD format
+    severity_filter: Optional filter by severity levels ["serious", "non_serious"]
+    outcome_filter: Optional filter by outcomes ["life_threatening", "hospitalization", "death"]
+    limit: Maximum number of results to return
+
+Returns:
+    Formatted string with adverse event analysis
+
+**Domain**: pharmacology
+**Function**: query_fda_adverse_events
+]]></help>
+</tool>

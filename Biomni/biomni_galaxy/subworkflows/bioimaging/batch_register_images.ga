@@ -1,0 +1,309 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_bioimaging_batch_register_images",
+  "annotation": "Batch register multiple images to a reference using progressive registration (rigid -> affine -> deformable). Uses quick_rigid_registration, quick_affine_registration, and quick_deformable_registration internally.",
+  "tags": [
+    "biomni",
+    "bioimaging",
+    "subworkflow",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "data_collection_input",
+      "label": "moving_images",
+      "annotation": "Collection of images to register to the reference",
+      "collection_type": "list",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "data_input",
+      "label": "reference_image",
+      "annotation": "Reference image (fixed image) for registration",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "parameter_input",
+      "label": "registration_type",
+      "annotation": "Type of registration: rigid, affine, deformable, or progressive (default: progressive)",
+      "parameter_type": "text",
+      "default": "progressive",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "parameter_input",
+      "label": "use_gpu",
+      "annotation": "Use GPU acceleration if available (default: false)",
+      "parameter_type": "boolean",
+      "default": false,
+      "position": {
+        "left": 0,
+        "top": 300
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "subworkflow",
+      "label": "Step 1: Rigid Registration",
+      "annotation": "Initial rigid (translation + rotation) alignment to fix gross misalignment",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "moving_image": {
+          "id": 0,
+          "input_subworkflow_step_id": 0,
+          "output_name": "output"
+        },
+        "fixed_image": {
+          "id": 1,
+          "input_subworkflow_step_id": 1,
+          "output_name": "output"
+        }
+      },
+      "subworkflow": {
+        "a_galaxy_workflow": "true",
+        "format-version": "0.1",
+        "name": "quick_rigid_registration",
+        "annotation": "Quick rigid registration (translation + rotation) of a moving image to a fixed image.",
+        "tags": ["biomni", "bioimaging"],
+        "steps": {
+          "0": {
+            "id": 0,
+            "type": "data_input",
+            "label": "moving_image",
+            "annotation": "Image to be registered"
+          },
+          "1": {
+            "id": 1,
+            "type": "data_input",
+            "label": "fixed_image",
+            "annotation": "Reference image"
+          },
+          "2": {
+            "id": 2,
+            "type": "tool",
+            "tool_id": "biomni_bioimaging_quick_rigid_registration",
+            "label": "quick_rigid_registration",
+            "input_connections": {
+              "moving_image": {"id": 0, "output_name": "output"},
+              "fixed_image": {"id": 1, "output_name": "output"}
+            }
+          }
+        },
+        "workflow_outputs": [
+          {"label": "registered_image", "output_name": "output", "uuid": "rigid-output"}
+        ]
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "subworkflow",
+      "label": "Step 2: Affine Registration",
+      "annotation": "Affine transformation (scaling + shearing) to correct for geometric distortions",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "moving_image": {
+          "id": 4,
+          "input_subworkflow_step_id": 0,
+          "output_name": "registered_image"
+        },
+        "fixed_image": {
+          "id": 1,
+          "input_subworkflow_step_id": 1,
+          "output_name": "output"
+        }
+      },
+      "subworkflow": {
+        "a_galaxy_workflow": "true",
+        "format-version": "0.1",
+        "name": "quick_affine_registration",
+        "annotation": "Quick affine registration (scaling + rotation + shearing) of a moving image to a fixed image.",
+        "tags": ["biomni", "bioimaging"],
+        "steps": {
+          "0": {
+            "id": 0,
+            "type": "data_input",
+            "label": "moving_image",
+            "annotation": "Image to be registered"
+          },
+          "1": {
+            "id": 1,
+            "type": "data_input",
+            "label": "fixed_image",
+            "annotation": "Reference image"
+          },
+          "2": {
+            "id": 2,
+            "type": "tool",
+            "tool_id": "biomni_bioimaging_quick_affine_registration",
+            "label": "quick_affine_registration",
+            "input_connections": {
+              "moving_image": {"id": 0, "output_name": "output"},
+              "fixed_image": {"id": 1, "output_name": "output"}
+            }
+          }
+        },
+        "workflow_outputs": [
+          {"label": "registered_image", "output_name": "output", "uuid": "affine-output"}
+        ]
+      }
+    },
+    "6": {
+      "id": 6,
+      "type": "subworkflow",
+      "label": "Step 3: Deformable Registration",
+      "annotation": "Non-rigid deformable registration for local alignment refinement",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "moving_image": {
+          "id": 5,
+          "input_subworkflow_step_id": 0,
+          "output_name": "registered_image"
+        },
+        "fixed_image": {
+          "id": 1,
+          "input_subworkflow_step_id": 1,
+          "output_name": "output"
+        }
+      },
+      "subworkflow": {
+        "a_galaxy_workflow": "true",
+        "format-version": "0.1",
+        "name": "quick_deformable_registration",
+        "annotation": "Quick deformable (non-rigid) registration for local alignment refinement.",
+        "tags": ["biomni", "bioimaging"],
+        "steps": {
+          "0": {
+            "id": 0,
+            "type": "data_input",
+            "label": "moving_image",
+            "annotation": "Image to be registered"
+          },
+          "1": {
+            "id": 1,
+            "type": "data_input",
+            "label": "fixed_image",
+            "annotation": "Reference image"
+          },
+          "2": {
+            "id": 2,
+            "type": "tool",
+            "tool_id": "biomni_bioimaging_quick_deformable_registration",
+            "label": "quick_deformable_registration",
+            "input_connections": {
+              "moving_image": {"id": 0, "output_name": "output"},
+              "fixed_image": {"id": 1, "output_name": "output"}
+            }
+          }
+        },
+        "workflow_outputs": [
+          {"label": "registered_image", "output_name": "output", "uuid": "deformable-output"}
+        ]
+      }
+    },
+    "7": {
+      "id": 7,
+      "type": "tool",
+      "tool_id": "biomni_bioimaging_batch_register_images",
+      "label": "Compile Registration Results",
+      "annotation": "Collect all registration results and compute quality metrics",
+      "position": {
+        "left": 1200,
+        "top": 100
+      },
+      "input_connections": {
+        "moving_images": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "reference_image": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "registration_type": {
+          "id": 2,
+          "output_name": "output"
+        },
+        "rigid_results": {
+          "id": 4,
+          "output_name": "registered_image"
+        },
+        "affine_results": {
+          "id": 5,
+          "output_name": "registered_image"
+        },
+        "deformable_results": {
+          "id": 6,
+          "output_name": "registered_image"
+        }
+      }
+    },
+    "8": {
+      "id": 8,
+      "type": "data_collection_output",
+      "label": "Registered Images",
+      "annotation": "Collection of registered images aligned to the reference",
+      "collection_type": "list",
+      "position": {
+        "left": 1500,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "registered_images"
+        }
+      }
+    },
+    "9": {
+      "id": 9,
+      "type": "data_output",
+      "label": "Registration Metrics",
+      "annotation": "Quality metrics for each registered image (similarity scores, transformation parameters)",
+      "position": {
+        "left": 1500,
+        "top": 150
+      },
+      "input_connections": {
+        "input": {
+          "id": 7,
+          "output_name": "metrics"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Registered Images",
+      "output_name": "registered_images",
+      "uuid": "registered-images-output"
+    },
+    {
+      "label": "Registration Metrics",
+      "output_name": "metrics",
+      "uuid": "registration-metrics-output"
+    }
+  ]
+}

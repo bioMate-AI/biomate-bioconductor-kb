@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<tool id="biomni_pathology_analyze_atp_luminescence_assay" name="Biomni: Analyze Atp Luminescence Assay" version="1.0.0">
+    <description>Analyze luminescence-based ATP assay data to determine intracellular ATP concentration.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pathology import analyze_atp_luminescence_assay
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_atp_luminescence_assay(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --data_file '$data_file'
+--standard_curve_file '$standard_curve_file'
+#if $normalization_method
+    --normalization_method '$normalization_method'
+#end if
+#if $normalization_data
+    --normalization_data '$normalization_data'
+#end if
+]]></command>
+    <inputs>
+        <param name="data_file" type="text" label="Data File" help="Expected format: columns for 'Sample_ID' and 'Luminescence_Value'."  />
+        <param name="standard_curve_file" type="text" label="Standard Curve File" help="Expected format: columns for 'ATP_Concentration' (in nM) and 'Luminescence_Value'."  />
+        <param name="normalization_method" type="text" label="Normalization Method" help="Default is 'cell_count'." value="cell_count" optional="true"/>
+        <param name="normalization_data" type="text" label="Normalization Data" help="For 'protein_content': values should be protein concentration (μg/mL)."  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Atp Luminescence Assay**
+
+Analyze luminescence-based ATP assay data to determine intracellular ATP concentration.
+
+Parameters
+----------
+data_file : str
+    Path to CSV file containing luminescence readings from samples.
+    Expected format: columns for 'Sample_ID' and 'Luminescence_Value'.
+
+standard_curve_file : str
+    Path to CSV file containing standard curve data.
+    Expected format: columns for 'ATP_Concentration' (in nM) and 'Luminescence_Value'.
+
+normalization_method : str, optional
+    Method used to normalize ATP values, either 'cell_count' or 'protein_content'.
+    Default is 'cell_count'.
+
+normalization_data : str or dict, optional
+    Either path to CSV file with normalization data or dictionary with sample IDs as keys.
+    For 'cell_count': values should be cell counts per sample.
+    For 'protein_content': values should be protein concentration (μg/mL).
+
+Returns
+-------
+str
+    Research log summarizing the ATP content measurement process and results.
+
+**Domain**: pathology
+**Function**: analyze_atp_luminescence_assay
+]]></help>
+</tool>

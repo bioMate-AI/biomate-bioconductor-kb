@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_clusterprofiler_gsekegg" name="clusterProfiler::gseKEGG" version="1.0.0">
+  <description>Call R clusterProfiler::gseKEGG function</description>
+  <requirements>
+    <requirement type="package">r-clusterprofiler</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(clusterProfiler); gseKEGG()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**clusterProfiler::gseKEGG**
+
+Call R clusterProfiler::gseKEGG function
+
+**Tool Type**: r
+**Library**: clusterProfiler
+**Function**: gseKEGG
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;clusterProfiler&quot;,
+  &quot;function&quot;: &quot;gseKEGG&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(clusterProfiler); gseKEGG(...)'&quot;
+}
+]]&gt;</help>
+</tool>

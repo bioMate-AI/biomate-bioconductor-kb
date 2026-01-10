@@ -1,0 +1,150 @@
+<?xml version="1.0"?>
+<tool id="biomni_genetics_simulate_demographic_history" name="Biomni: Simulate Demographic History" version="1.0.0">
+    <description>Simulate DNA sequences with specified demographic and coalescent histories using msprime.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genetics import simulate_demographic_history
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = simulate_demographic_history(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    #if $num_samples
+    --num_samples '$num_samples'
+#end if
+#if $sequence_length
+    --sequence_length '$sequence_length'
+#end if
+#if $recombination_rate
+    --recombination_rate '$recombination_rate'
+#end if
+#if $mutation_rate
+    --mutation_rate '$mutation_rate'
+#end if
+#if $demographic_model
+    --demographic_model '$demographic_model'
+#end if
+#if $demographic_params
+    --demographic_params '$demographic_params'
+#end if
+#if $coalescent_model
+    --coalescent_model '$coalescent_model'
+#end if
+#if $beta_coalescent_param
+    --beta_coalescent_param '$beta_coalescent_param'
+#end if
+#if $random_seed
+    --random_seed '$random_seed'
+#end if
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="num_samples" type="text" label="Num Samples" help="Number of sample sequences to simulate" value="10" optional="true"/>
+        <param name="sequence_length" type="text" label="Sequence Length" help="Length of the simulated sequence in base pairs" value="100000" optional="true"/>
+        <param name="recombination_rate" type="text" label="Recombination Rate" help="Per-base recombination rate" value="1e-08" optional="true"/>
+        <param name="mutation_rate" type="text" label="Mutation Rate" help="Per-base mutation rate" value="1e-08" optional="true"/>
+        <param name="demographic_model" type="text" label="Demographic Model" help="- "sawtooth": Sawtooth pattern of population size changes" value="constant" optional="true"/>
+        <param name="demographic_params" type="text" label="Demographic Params" help="- For "sawtooth": {"N_values": list of population sizes, "times": list of times for changes}"  optional="true"/>
+        <param name="coalescent_model" type="text" label="Coalescent Model" help="- "beta": Beta-coalescent model" value="kingman" optional="true"/>
+        <param name="beta_coalescent_param" type="text" label="Beta Coalescent Param" help="Parameter for beta-coalescent model (required if coalescent_model="beta")"  optional="true"/>
+        <param name="random_seed" type="text" label="Random Seed" help="Seed for random number generator (for reproducibility)"  optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Filename to save the simulated sequences (VCF format)" value="simulated_sequences.vcf" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Simulate Demographic History**
+
+Simulate DNA sequences with specified demographic and coalescent histories using msprime.
+
+Parameters
+----------
+num_samples : int
+    Number of sample sequences to simulate
+sequence_length : int
+    Length of the simulated sequence in base pairs
+recombination_rate : float
+    Per-base recombination rate
+mutation_rate : float
+    Per-base mutation rate
+demographic_model : str
+    Type of demographic model to simulate. Options:
+    - "constant": Constant population size
+    - "bottleneck": Population bottleneck
+    - "expansion": Population expansion
+    - "contraction": Population contraction
+    - "sawtooth": Sawtooth pattern of population size changes
+demographic_params : dict
+    Parameters specific to the chosen demographic model. Supported formats::
+
+        - For "constant": {"N": population size}
+        - For "bottleneck": {
+            "N_initial": initial pop size,
+            "N_bottleneck": bottleneck pop size,
+            "T_bottleneck": time of bottleneck (generations ago),
+            "T_recovery": time of recovery (generations ago)
+        }
+        - For "expansion": {"N_initial": initial pop size, "N_final": final pop size, "T_expansion": time of expansion (generations ago)}
+        - For "contraction": {"N_initial": initial pop size, "N_final": final pop size, "T_contraction": time of contraction (generations ago)}
+        - For "sawtooth": {"N_values": list of population sizes, "times": list of times for changes}
+coalescent_model : str
+    Type of coalescent model to use. Options:
+    - "kingman": Standard Kingman coalescent
+    - "beta": Beta-coalescent model
+beta_coalescent_param : float
+    Parameter for beta-coalescent model (required if coalescent_model="beta")
+random_seed : int
+    Seed for random number generator (for reproducibility)
+output_file : str
+    Filename to save the simulated sequences (VCF format)
+
+Returns
+-------
+str
+    Research log summarizing the simulation parameters and results
+
+**Domain**: genetics
+**Function**: simulate_demographic_history
+]]></help>
+</tool>

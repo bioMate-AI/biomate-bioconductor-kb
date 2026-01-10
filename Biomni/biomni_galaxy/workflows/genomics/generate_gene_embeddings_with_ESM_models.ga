@@ -1,0 +1,125 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genomics_generate_gene_embeddings_with_ESM_models",
+  "annotation": "Generate average protein embeddings for a list of Ensembl gene IDs using ESM (Evolutionary Scale Modeling) protein language models. This function fetches all protein isoform sequences for each gene, computes embeddings for each isoform using the specified ESM model and layer, then averages the embeddings across all isoforms to create a single representative embedding per gene. The embeddings are saved as PyTorch tensors for future use. Memory-friendly implementation with rolling averages, small batch processing, and automatic memory management. Automatically handles GPU/CPU device selection and includes error recovery for out-of-memory situations by falling back to single-sequence processing.",
+  "tags": [
+    "biomni",
+    "genomics",
+    "multi-step"
+  ],
+  "steps": {
+    "0": {
+      "id": 0,
+      "type": "parameter_input",
+      "label": "ensembl_gene_ids",
+      "annotation": "Input: ensembl_gene_ids",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "id": 1,
+      "type": "tool",
+      "tool_id": "python_torch_torch_stack",
+      "label": "Step 1: torch_stack",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 0,
+          "output_name": "output"
+        }
+      }
+    },
+    "2": {
+      "id": 2,
+      "type": "tool",
+      "tool_id": "python_torch_torch_save",
+      "label": "Step 2: torch_save",
+      "position": {
+        "left": 600,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "id": 3,
+      "type": "tool",
+      "tool_id": "python_torch_torch_cuda_empty_cache",
+      "label": "Step 3: torch_cuda_empty_cache",
+      "position": {
+        "left": 900,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "id": 4,
+      "type": "tool",
+      "tool_id": "python_torch_torch_cuda_is_available",
+      "label": "Step 4: torch_cuda_is_available",
+      "position": {
+        "left": 1200,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 3,
+          "output_name": "output"
+        }
+      }
+    },
+    "5": {
+      "id": 5,
+      "type": "tool",
+      "tool_id": "python_torch_torch_from_numpy",
+      "label": "Step 5: torch_from_numpy",
+      "position": {
+        "left": 1500,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 4,
+          "output_name": "output"
+        }
+      }
+    },
+    "6": {
+      "id": 6,
+      "type": "data_output",
+      "label": "Output",
+      "position": {
+        "left": 1800,
+        "top": 50
+      },
+      "input_connections": {
+        "input": {
+          "id": 5,
+          "output_name": "output"
+        }
+      }
+    }
+  },
+  "workflow_outputs": [
+    {
+      "label": "Result",
+      "output_name": "output",
+      "uuid": "generate_gene_embeddings_with_ESM_models-output"
+    }
+  ]
+}

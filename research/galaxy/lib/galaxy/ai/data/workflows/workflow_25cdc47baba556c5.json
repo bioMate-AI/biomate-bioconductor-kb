@@ -1,0 +1,2173 @@
+{
+  "workflow_id": "25cdc47baba556c5",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "25cdc47baba556c5",
+    "latest_workflow_id": "36bd7a32f86a08f1",
+    "name": "RNAseq_DE_filtering_plotting (release v0.2)",
+    "create_time": "2024-11-28T00:15:55.849680",
+    "update_time": "2025-04-25T14:08:15.776009",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [
+      "transcriptomics",
+      "RNAseq"
+    ],
+    "latest_workflow_uuid": "431d8c42-9f77-4094-83dd-350af4074a99",
+    "creator_deleted": false,
+    "annotations": [
+      "This workflow can only work on an experimental setup with exactly 2 conditions. It takes two collections of count tables as input and performs differential expression analysis. Additionally it filters for DE genes based on adjusted p-value  and log2 fold changes thresholds. It also generates informative plots.\n"
+    ],
+    "url": "/api/workflows/25cdc47baba556c5",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 25,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "This workflow can only work on an experimental setup with exactly 2 conditions. It takes two collections of count tables as input and performs differential expression analysis. Additionally it filters for DE genes based on adjusted p-value  and log2 fold changes thresholds. It also generates informative plots.\n",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-5192-126X",
+        "name": "Pavankumar Videm"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "RNAseq_DE_filtering_plotting (release v0.2)",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "Counts from experimental condition or changed condition. For eg. counts from treatment or knockdown samples.",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Counts from experimental condition or changed condition. For eg. counts from treatment or knockdown samples.",
+            "name": "Counts from changed condition"
+          }
+        ],
+        "label": "Counts from changed condition",
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 231.6810606846659
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "f2de6756-ca2b-484c-99b2-0925894b42d5",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "Counts from reference condition or base condition. For eg. counts from untreated or wildtype samples.",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Counts from reference condition or base condition. For eg. counts from untreated or wildtype samples.",
+            "name": "Counts from reference condition"
+          }
+        ],
+        "label": "Counts from reference condition",
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 47.54331804667683,
+          "top": 344.2691910956221
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "2f2e7da1-47d7-47c2-b675-bc40570c4530",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "Usually, count files generated from featureCounts tool have a header line whereas count files from RNA-STAR do not have.",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Usually, count files generated from featureCounts tool have a header line whereas count files from RNA-STAR do not have.",
+            "name": "Count files have header"
+          }
+        ],
+        "label": "Count files have header",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 110.4753923836675,
+          "top": 456.18541400369907
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "9b41026c-0cd2-4ca3-8b9e-a757c0d5e891",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "15a610d4-c67d-4acd-a78b-57786a99a7b1"
+          }
+        ]
+      },
+      "3": {
+        "annotation": "The same annotation GTF used for mapping and counting",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "The same annotation GTF used for mapping and counting",
+            "name": "Gene Annotaton"
+          }
+        ],
+        "label": "Gene Annotaton",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 153.82812224613164,
+          "top": 585.5486767979796
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "9e910d68-54f5-4787-aefa-b18ecf4c8153",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "Adjusted p-value threshold to call genes as differentially expressed. If not set, default 0.05 is used.",
+        "content_id": null,
+        "errors": null,
+        "id": 4,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Adjusted p-value threshold to call genes as differentially expressed. If not set, default 0.05 is used.",
+            "name": "Adjusted p-value threshold"
+          }
+        ],
+        "label": "Adjusted p-value threshold",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 184.15025210412472,
+          "top": 735.8477989364526
+        },
+        "tool_id": null,
+        "tool_state": "{\"default\": 0.05, \"validators\": [], \"parameter_type\": \"float\", \"optional\": true}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "2de18d70-2bf3-49b4-954f-cd18bb839b24",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "23b5f691-a66f-411e-b408-92033bf80fdb"
+          }
+        ]
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/9.3+galaxy1",
+        "errors": null,
+        "id": 5,
+        "input_connections": {},
+        "inputs": [],
+        "label": null,
+        "name": "Create text file",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 812.5163140349712,
+          "top": 0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutfile": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "outfile"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/9.3+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "86755160afbf",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"token_set\": [{\"__index__\": 0, \"line\": \"GeneID\\tBase mean\\tlog2(FC)\\tStdErr\\tWald-Stats\\tP-value\\tP-adj\\tChromosome\\tStart\\tEnd\\tStrand\\tFeature\\tGene name\", \"repeat_select\": {\"repeat_select_opts\": \"user\", \"__current_case__\": 0, \"times\": \"1\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.3+galaxy1",
+        "type": "tool",
+        "uuid": "6b08ef31-8fc2-4b2f-871d-a06c6637653c",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "log2 fold change threshold to filter for highly regulated genes. If not set, default 1.0 is used.",
+        "content_id": null,
+        "errors": null,
+        "id": 6,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "log2 fold change threshold to filter for highly regulated genes. If not set, default 1.0 is used.",
+            "name": "log2 fold change threshold"
+          }
+        ],
+        "label": "log2 fold change threshold",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 211.7099474957992,
+          "top": 880.615777567409
+        },
+        "tool_id": null,
+        "tool_state": "{\"default\": 1.0, \"validators\": [], \"parameter_type\": \"float\", \"optional\": true}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "a836a0c9-d505-41bd-b2ba-d1db63db2c12",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "da3d1088-da6b-42a5-b7d2-592a5c5896f4"
+          }
+        ]
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/pick_value/pick_value/0.2.0",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "style_cond|type_cond|pick_from_0|value": {
+            "id": 4,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Pick parameter value",
+        "outputs": [
+          {
+            "name": "float_param",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 450.98839299501634,
+          "top": 659.5669461166157
+        },
+        "post_job_actions": {
+          "HideDatasetActionfloat_param": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "float_param"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pick_value/pick_value/0.2.0",
+        "tool_shed_repository": {
+          "changeset_revision": "b19e21af9c52",
+          "name": "pick_value",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"style_cond\": {\"pick_style\": \"first_or_default\", \"__current_case__\": 1, \"type_cond\": {\"param_type\": \"float\", \"__current_case__\": 2, \"pick_from\": [{\"__index__\": 0, \"value\": {\"__class__\": \"ConnectedValue\"}}], \"default_value\": \"0.05\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.2.0",
+        "type": "tool",
+        "uuid": "78c38c31-7f98-472e-8ef5-a6b14c16121a",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/9.3+galaxy1",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "infile": {
+            "id": 5,
+            "output_name": "outfile"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Text transformation",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1065.0285936858018,
+          "top": 27.545761768432413
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutput": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/9.3+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "86755160afbf",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"basic\", \"__current_case__\": 0}, \"code\": \"s/__tc__/\\\\t/g\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.3+galaxy1",
+        "type": "tool",
+        "uuid": "e1377a60-c1e3-4161-84eb-0eb6ec1d8163",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/pick_value/pick_value/0.2.0",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "style_cond|type_cond|pick_from_0|value": {
+            "id": 6,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Pick parameter value",
+        "outputs": [
+          {
+            "name": "float_param",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 497.8587064818947,
+          "top": 824.4797977763942
+        },
+        "post_job_actions": {
+          "HideDatasetActionfloat_param": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "float_param"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pick_value/pick_value/0.2.0",
+        "tool_shed_repository": {
+          "changeset_revision": "b19e21af9c52",
+          "name": "pick_value",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"style_cond\": {\"pick_style\": \"first_or_default\", \"__current_case__\": 1, \"type_cond\": {\"param_type\": \"float\", \"__current_case__\": 2, \"pick_from\": [{\"__index__\": 0, \"value\": {\"__class__\": \"ConnectedValue\"}}], \"default_value\": \"1.0\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.2.0",
+        "type": "tool",
+        "uuid": "8ef7ab01-96e7-4294-8c08-8e24873724bf",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "10": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/deseq2/2.11.40.8+galaxy0",
+        "errors": null,
+        "id": 10,
+        "input_connections": {
+          "header": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "output_options|alpha_ma": {
+            "id": 7,
+            "output_name": "float_param"
+          },
+          "select_data|rep_factorName_0|rep_factorLevel_0|countsFile": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "select_data|rep_factorName_0|rep_factorLevel_1|countsFile": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool DESeq2",
+            "name": "batch_factors"
+          },
+          {
+            "description": "runtime parameter for tool DESeq2",
+            "name": "output_options"
+          }
+        ],
+        "label": "Differential Analysis",
+        "name": "DESeq2",
+        "outputs": [
+          {
+            "name": "deseq_out",
+            "type": "tabular"
+          },
+          {
+            "name": "plots",
+            "type": "pdf"
+          },
+          {
+            "name": "counts_out",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 741.3738148942634,
+          "top": 199.67185694924424
+        },
+        "post_job_actions": {
+          "HideDatasetActiondeseq_out": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "deseq_out"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/deseq2/2.11.40.8+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "9a882d108833",
+          "name": "deseq2",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"advanced_options\": {\"esf_cond\": {\"esf\": \"\", \"__current_case__\": 0}, \"fit_type\": \"1\", \"outlier_replace_off\": false, \"outlier_filter_off\": false, \"auto_mean_filter_off\": false, \"prefilter_conditional\": {\"prefilter\": \"\", \"__current_case__\": 1}, \"use_beta_priors\": false}, \"batch_factors\": {\"__class__\": \"RuntimeValue\"}, \"header\": {\"__class__\": \"ConnectedValue\"}, \"output_options\": {\"output_selector\": [\"pdf\", \"normCounts\"], \"alpha_ma\": {\"__class__\": \"ConnectedValue\"}}, \"select_data\": {\"how\": \"datasets_per_level\", \"__current_case__\": 1, \"rep_factorName\": [{\"__index__\": 0, \"factorName\": \"DEFactor\", \"rep_factorLevel\": [{\"__index__\": 0, \"factorLevel\": \"MainFactor\", \"countsFile\": {\"__class__\": \"ConnectedValue\"}}, {\"__index__\": 1, \"factorLevel\": \"BaseFactor\", \"countsFile\": {\"__class__\": \"ConnectedValue\"}}]}]}, \"tximport\": {\"tximport_selector\": \"count\", \"__current_case__\": 1}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.11.40.8+galaxy0",
+        "type": "tool",
+        "uuid": "c9b80988-8323-4f06-968e-f2eaf6702626",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "DESeq2 Normalized Counts",
+            "output_name": "counts_out",
+            "uuid": "03504c2a-78b5-4e88-bb8e-a74dd5e7f957"
+          },
+          {
+            "label": "DESeq2 Plots",
+            "output_name": "plots",
+            "uuid": "92895b30-f3c5-430f-b00a-bc8c41920461"
+          }
+        ]
+      },
+      "11": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "errors": null,
+        "id": 11,
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 7,
+            "output_name": "float_param"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Compose text parameter value",
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 1030.3831032381008,
+          "top": 646.2395043126207
+        },
+        "post_job_actions": {
+          "HideDatasetActionout1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "e188c9826e0f",
+          "name": "compose_text_param",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"c7<\"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"float\", \"__current_case__\": 2, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.1",
+        "type": "tool",
+        "uuid": "7df764eb-afab-4a71-8967-9b492941957c",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "12": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "errors": null,
+        "id": 12,
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 9,
+            "output_name": "float_param"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Compose text parameter value",
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 1037.5832128440811,
+          "top": 834.4804304279605
+        },
+        "post_job_actions": {
+          "HideDatasetActionout1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "e188c9826e0f",
+          "name": "compose_text_param",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"abs(c3)>\"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"float\", \"__current_case__\": 2, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.1",
+        "type": "tool",
+        "uuid": "9e04ad34-b513-4611-b8db-26a72ce2725c",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "13": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/deg_annotate/deg_annotate/1.1.0",
+        "errors": null,
+        "id": 13,
+        "input_connections": {
+          "annotation": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "input_table": {
+            "id": 10,
+            "output_name": "deseq_out"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Annotate DESeq2/DEXSeq output tables",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 1053.2118356859382,
+          "top": 253.53181990473982
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutput": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deg_annotate/deg_annotate/1.1.0",
+        "tool_shed_repository": {
+          "changeset_revision": "e98d4ab5b5bc",
+          "name": "deg_annotate",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"tabular\", \"advanced_parameters\": {\"gff_feature_type\": \"exon\", \"gff_feature_attribute\": \"gene_id\", \"gff_transcript_attribute\": \"transcript_id\", \"gff_attributes\": \"gene_biotype, gene_name\"}, \"annotation\": {\"__class__\": \"ConnectedValue\"}, \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/dm6.len\", \"input_table\": {\"__class__\": \"ConnectedValue\"}, \"mode\": \"degseq\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.0",
+        "type": "tool",
+        "uuid": "8940e044-88e0-4cc6-8404-8707f940492f",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "14": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.3+galaxy1",
+        "errors": null,
+        "id": 14,
+        "input_connections": {
+          "infile": {
+            "id": 10,
+            "output_name": "counts_out"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Text reformatting",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1444.0049932961922,
+          "top": 643.7692280168025
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutfile": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "outfile"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.3+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "86755160afbf",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"code\": \"END{print NF}\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.3+galaxy1",
+        "type": "tool",
+        "uuid": "e696d0c0-1698-428a-92cc-ce256d14375a",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "15": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/9.3+galaxy1",
+        "errors": null,
+        "id": 15,
+        "input_connections": {
+          "inputs": {
+            "id": 8,
+            "output_name": "output"
+          },
+          "queries_0|inputs2": {
+            "id": 13,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "Annotate DESeq2 table",
+        "name": "Concatenate datasets",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1353.5294001633204,
+          "top": 147.05412728617347
+        },
+        "post_job_actions": {
+          "ChangeDatatypeActionout_file1": {
+            "action_arguments": {
+              "newtype": "tabular"
+            },
+            "action_type": "ChangeDatatypeAction",
+            "output_name": "out_file1"
+          },
+          "RenameDatasetActionout_file1": {
+            "action_arguments": {
+              "newname": "Annotated DESeq2 results"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "out_file1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/9.3+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "86755160afbf",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"inputs\": {\"__class__\": \"ConnectedValue\"}, \"queries\": [{\"__index__\": 0, \"inputs2\": {\"__class__\": \"ConnectedValue\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.3+galaxy1",
+        "type": "tool",
+        "uuid": "067c10fa-8414-47d6-a4dc-70c1c3b5de28",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Annotated DESeq2 results table",
+            "output_name": "out_file1",
+            "uuid": "5e1b15ff-444f-47fa-a880-16771208850f"
+          }
+        ]
+      },
+      "16": {
+        "annotation": "",
+        "content_id": "param_value_from_file",
+        "errors": null,
+        "id": 16,
+        "input_connections": {
+          "input1": {
+            "id": 14,
+            "output_name": "outfile"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Parse parameter value",
+        "outputs": [
+          {
+            "name": "text_param",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 1795.8106940526452,
+          "top": 744.1580154160025
+        },
+        "post_job_actions": {
+          "HideDatasetActiontext_param": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "text_param"
+          }
+        },
+        "tool_id": "param_value_from_file",
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"param_type\": \"text\", \"remove_newlines\": true, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.0",
+        "type": "tool",
+        "uuid": "6ef0637b-3537-4c5b-8a75-ea32375abe10",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "17": {
+        "annotation": "",
+        "content_id": "Filter1",
+        "errors": null,
+        "id": 17,
+        "input_connections": {
+          "cond": {
+            "id": 11,
+            "output_name": "out1"
+          },
+          "input": {
+            "id": 15,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [],
+        "label": "Filter with p-adj threshold",
+        "name": "Filter",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1605.546743310479,
+          "top": 371.3592826475832
+        },
+        "post_job_actions": {
+          "HideDatasetActionout_file1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_file1"
+          },
+          "RenameDatasetActionout_file1": {
+            "action_arguments": {
+              "newname": "Genes filtered with adj p-value threshold"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "out_file1"
+          }
+        },
+        "tool_id": "Filter1",
+        "tool_state": "{\"cond\": {\"__class__\": \"ConnectedValue\"}, \"header_lines\": \"1\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.1",
+        "type": "tool",
+        "uuid": "09249df7-5cec-4673-a48e-04c1d68bc4de",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "18": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/volcanoplot/volcanoplot/0.0.6",
+        "errors": null,
+        "id": 18,
+        "input_connections": {
+          "input": {
+            "id": 15,
+            "output_name": "out_file1"
+          },
+          "lfc_thresh": {
+            "id": 9,
+            "output_name": "float_param"
+          },
+          "signif_thresh": {
+            "id": 7,
+            "output_name": "float_param"
+          }
+        },
+        "inputs": [],
+        "label": "Generate Valcanot plot of DE genes",
+        "name": "Volcano Plot",
+        "outputs": [
+          {
+            "name": "plot",
+            "type": "pdf"
+          }
+        ],
+        "position": {
+          "left": 2610.2086912391,
+          "top": 957.2308087191843
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/volcanoplot/volcanoplot/0.0.6",
+        "tool_shed_repository": {
+          "changeset_revision": "99ace6c1ff57",
+          "name": "volcanoplot",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"fdr_col\": \"7\", \"header\": \"yes\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"label_col\": \"13\", \"labels\": {\"label_select\": \"signif\", \"__current_case__\": 0, \"top_num\": \"10\"}, \"lfc_col\": \"3\", \"lfc_thresh\": {\"__class__\": \"ConnectedValue\"}, \"out_options\": {\"rscript_out\": false}, \"plot_options\": {\"boxes\": false, \"title\": null, \"xlab\": null, \"ylab\": null, \"xmin\": null, \"xmax\": null, \"ymax\": null, \"legend\": null, \"legend_labs\": \"Down,Not Sig,Up\"}, \"pval_col\": \"6\", \"signif_thresh\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.0.6",
+        "type": "tool",
+        "uuid": "034e35f7-a009-4fbd-a624-c013c95700df",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Volcano Plot of DE genes",
+            "output_name": "plot",
+            "uuid": "6380dfce-2479-4d9d-939a-5ef9d28a6190"
+          }
+        ]
+      },
+      "19": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "errors": null,
+        "id": 19,
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 16,
+            "output_name": "text_param"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Compose text parameter value",
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 2144.7794821932416,
+          "top": 725.294415795629
+        },
+        "post_job_actions": {
+          "HideDatasetActionout1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "e188c9826e0f",
+          "name": "compose_text_param",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"c1-c\"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.1",
+        "type": "tool",
+        "uuid": "1e95a086-abc0-4228-87fa-9fd790131fd8",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "20": {
+        "annotation": "",
+        "content_id": "Filter1",
+        "errors": null,
+        "id": 20,
+        "input_connections": {
+          "cond": {
+            "id": 12,
+            "output_name": "out1"
+          },
+          "input": {
+            "id": 17,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [],
+        "label": "Filter with log2 FC threshold",
+        "name": "Filter",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1910.07823962931,
+          "top": 474.9743920452724
+        },
+        "post_job_actions": {
+          "RenameDatasetActionout_file1": {
+            "action_arguments": {
+              "newname": "Genes filtered with adj p-value and log2(FC) thresholds"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "out_file1"
+          }
+        },
+        "tool_id": "Filter1",
+        "tool_state": "{\"cond\": {\"__class__\": \"ConnectedValue\"}, \"header_lines\": \"1\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.1",
+        "type": "tool",
+        "uuid": "b92de1cb-d4d0-4e9f-8403-b30e3d9bcb54",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Significantly differentially expressed genes",
+            "output_name": "out_file1",
+            "uuid": "44c6e296-d5ef-4f04-9c51-70ad4a5e40ba"
+          }
+        ]
+      },
+      "21": {
+        "annotation": "",
+        "content_id": "join1",
+        "errors": null,
+        "id": 21,
+        "input_connections": {
+          "input1": {
+            "id": 10,
+            "output_name": "counts_out"
+          },
+          "input2": {
+            "id": 20,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Join two Datasets",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 2271.404780182028,
+          "top": 406.30668475687355
+        },
+        "post_job_actions": {
+          "HideDatasetActionout_file1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_file1"
+          }
+        },
+        "tool_id": "join1",
+        "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/dm6.len\", \"field1\": \"1\", \"field2\": \"1\", \"fill_empty_columns\": {\"fill_empty_columns_switch\": \"no_fill\", \"__current_case__\": 0}, \"header\": \"-H\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"input2\": {\"__class__\": \"ConnectedValue\"}, \"partial\": \"\", \"unmatched\": \"\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.1.3",
+        "type": "tool",
+        "uuid": "e460e3de-57ef-4364-beb4-a40e3694157d",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "22": {
+        "annotation": "",
+        "content_id": "Cut1",
+        "errors": null,
+        "id": 22,
+        "input_connections": {
+          "columnList": {
+            "id": 19,
+            "output_name": "out1"
+          },
+          "input": {
+            "id": 21,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Cut",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 2560.320455929024,
+          "top": 649.1552708097212
+        },
+        "post_job_actions": {
+          "HideDatasetActionout_file1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_file1"
+          },
+          "RenameDatasetActionout_file1": {
+            "action_arguments": {
+              "newname": "Normalized counts for the most differentially expressed genes"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "out_file1"
+          }
+        },
+        "tool_id": "Cut1",
+        "tool_state": "{\"columnList\": {\"__class__\": \"ConnectedValue\"}, \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.2",
+        "type": "tool",
+        "uuid": "276e6072-c1a9-43f7-818a-a01bc3283c41",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "23": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_heatmap2/ggplot2_heatmap2/3.2.0+galaxy1",
+        "errors": null,
+        "id": 23,
+        "input_connections": {
+          "input1": {
+            "id": 22,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [],
+        "label": "Generate Heatmap of counts",
+        "name": "heatmap2",
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "pdf"
+          }
+        ],
+        "position": {
+          "left": 2874.905386062883,
+          "top": 454.7381454908998
+        },
+        "post_job_actions": {
+          "RenameDatasetActionoutput1": {
+            "action_arguments": {
+              "newname": "Normalized counts Heatmap"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "output1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_heatmap2/ggplot2_heatmap2/3.2.0+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "48b42ee61bc5",
+          "name": "ggplot2_heatmap2",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/dm6.len\", \"cluster_cond\": {\"cluster\": \"yes\", \"__current_case__\": 0, \"cluster_cols_rows\": \"both\", \"distance\": \"euclidean\", \"clustering\": \"complete\"}, \"colorchoice\": {\"type\": \"two\", \"__current_case__\": 1, \"color1\": \"#ffffff\", \"color2\": \"#ff0000\"}, \"image_file_format\": \"pdf\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"key\": \"\", \"labels\": \"columns\", \"title\": \"\", \"transform\": \"log2plus1\", \"zscore_cond\": {\"zscore\": \"none\", \"__current_case__\": 0, \"scale\": \"none\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "3.2.0+galaxy1",
+        "type": "tool",
+        "uuid": "1d1df790-183c-48e9-8c7c-23ca8e392b53",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Heatmap of log transformed normalized counts",
+            "output_name": "output1",
+            "uuid": "889353db-c7af-4597-8099-0c3d0deaac52"
+          }
+        ]
+      },
+      "24": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_heatmap2/ggplot2_heatmap2/3.2.0+galaxy1",
+        "errors": null,
+        "id": 24,
+        "input_connections": {
+          "input1": {
+            "id": 22,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [],
+        "label": "Generate Heatmap of Z-scores",
+        "name": "heatmap2",
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "pdf"
+          }
+        ],
+        "position": {
+          "left": 2899.706231952903,
+          "top": 852.4572467969889
+        },
+        "post_job_actions": {
+          "RenameDatasetActionoutput1": {
+            "action_arguments": {
+              "newname": "Z-scores Heatmap"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "output1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_heatmap2/ggplot2_heatmap2/3.2.0+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "48b42ee61bc5",
+          "name": "ggplot2_heatmap2",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/dm6.len\", \"cluster_cond\": {\"cluster\": \"yes\", \"__current_case__\": 0, \"cluster_cols_rows\": \"both\", \"distance\": \"euclidean\", \"clustering\": \"complete\"}, \"colorchoice\": {\"type\": \"three\", \"__current_case__\": 2, \"color1\": \"#0000ff\", \"color2\": \"#ffffff\", \"color3\": \"#ff0000\"}, \"image_file_format\": \"pdf\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"key\": \"\", \"labels\": \"columns\", \"title\": \"\", \"transform\": \"none\", \"zscore_cond\": {\"zscore\": \"rows\", \"__current_case__\": 1}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "3.2.0+galaxy1",
+        "type": "tool",
+        "uuid": "1004b7ba-a98e-433f-b71f-468c22b46079",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Heatmap of Z-scores",
+            "output_name": "output1",
+            "uuid": "dab8ccc5-9c80-4145-8779-39aa2f5dc337"
+          }
+        ]
+      }
+    },
+    "tags": [
+      "transcriptomics",
+      "RNAseq"
+    ],
+    "uuid": "431d8c42-9f77-4094-83dd-350af4074a99",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "RNAseq_DE_filtering_plotting (release v0.2)",
+      "annotation": "This workflow can only work on an experimental setup with exactly 2 conditions. It takes two collections of count tables as input and performs differential expression analysis. Additionally it filters for DE genes based on adjusted p-value  and log2 fold changes thresholds. It also generates informative plots.\n",
+      "format_version": "0.1",
+      "uuid": "431d8c42-9f77-4094-83dd-350af4074a99",
+      "version": 1,
+      "tags": [
+        "transcriptomics",
+        "RNAseq"
+      ],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-5192-126X",
+          "name": "Pavankumar Videm"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": "Counts from changed condition",
+        "annotation": "Counts from experimental condition or changed condition. For eg. counts from treatment or knockdown samples.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+        "position": {
+          "left": 0,
+          "top": 231.6810606846659
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": "Counts from reference condition",
+        "annotation": "Counts from reference condition or base condition. For eg. counts from untreated or wildtype samples.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+        "position": {
+          "left": 47.54331804667683,
+          "top": 344.2691910956221
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Count files have header",
+        "annotation": "Usually, count files generated from featureCounts tool have a header line whereas count files from RNA-STAR do not have.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "position": {
+          "left": 110.4753923836675,
+          "top": 456.18541400369907
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Gene Annotaton",
+        "annotation": "The same annotation GTF used for mapping and counting",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 153.82812224613164,
+          "top": 585.5486767979796
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Adjusted p-value threshold",
+        "annotation": "Adjusted p-value threshold to call genes as differentially expressed. If not set, default 0.05 is used.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"default\": 0.05, \"validators\": [], \"parameter_type\": \"float\", \"optional\": true}",
+        "position": {
+          "left": 184.15025210412472,
+          "top": 735.8477989364526
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "Create text file",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/9.3+galaxy1",
+        "tool_version": "9.3+galaxy1",
+        "tool_state": "{\"token_set\": [{\"__index__\": 0, \"line\": \"GeneID\\tBase mean\\tlog2(FC)\\tStdErr\\tWald-Stats\\tP-value\\tP-adj\\tChromosome\\tStart\\tEnd\\tStrand\\tFeature\\tGene name\", \"repeat_select\": {\"repeat_select_opts\": \"user\", \"__current_case__\": 0, \"times\": \"1\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 812.5163140349712,
+          "top": 0
+        },
+        "input_connections": {},
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "log2 fold change threshold",
+        "annotation": "log2 fold change threshold to filter for highly regulated genes. If not set, default 1.0 is used.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"default\": 1.0, \"validators\": [], \"parameter_type\": \"float\", \"optional\": true}",
+        "position": {
+          "left": 211.7099474957992,
+          "top": 880.615777567409
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "Pick parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pick_value/pick_value/0.2.0",
+        "tool_version": "0.2.0",
+        "tool_state": "{\"style_cond\": {\"pick_style\": \"first_or_default\", \"__current_case__\": 1, \"type_cond\": {\"param_type\": \"float\", \"__current_case__\": 2, \"pick_from\": [{\"__index__\": 0, \"value\": {\"__class__\": \"ConnectedValue\"}}], \"default_value\": \"0.05\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 450.98839299501634,
+          "top": 659.5669461166157
+        },
+        "input_connections": {
+          "style_cond|type_cond|pick_from_0|value": {
+            "id": 4,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "float_param",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "Text transformation",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/9.3+galaxy1",
+        "tool_version": "9.3+galaxy1",
+        "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"basic\", \"__current_case__\": 0}, \"code\": \"s/__tc__/\\\\t/g\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1065.0285936858018,
+          "top": 27.545761768432413
+        },
+        "input_connections": {
+          "infile": {
+            "id": 5,
+            "output_name": "outfile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "Pick parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pick_value/pick_value/0.2.0",
+        "tool_version": "0.2.0",
+        "tool_state": "{\"style_cond\": {\"pick_style\": \"first_or_default\", \"__current_case__\": 1, \"type_cond\": {\"param_type\": \"float\", \"__current_case__\": 2, \"pick_from\": [{\"__index__\": 0, \"value\": {\"__class__\": \"ConnectedValue\"}}], \"default_value\": \"1.0\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 497.8587064818947,
+          "top": 824.4797977763942
+        },
+        "input_connections": {
+          "style_cond|type_cond|pick_from_0|value": {
+            "id": 6,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "float_param",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "10",
+        "type": "tool",
+        "name": "DESeq2",
+        "label": "Differential Analysis",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/deseq2/2.11.40.8+galaxy0",
+        "tool_version": "2.11.40.8+galaxy0",
+        "tool_state": "{\"advanced_options\": {\"esf_cond\": {\"esf\": \"\", \"__current_case__\": 0}, \"fit_type\": \"1\", \"outlier_replace_off\": false, \"outlier_filter_off\": false, \"auto_mean_filter_off\": false, \"prefilter_conditional\": {\"prefilter\": \"\", \"__current_case__\": 1}, \"use_beta_priors\": false}, \"batch_factors\": {\"__class__\": \"RuntimeValue\"}, \"header\": {\"__class__\": \"ConnectedValue\"}, \"output_options\": {\"output_selector\": [\"pdf\", \"normCounts\"], \"alpha_ma\": {\"__class__\": \"ConnectedValue\"}}, \"select_data\": {\"how\": \"datasets_per_level\", \"__current_case__\": 1, \"rep_factorName\": [{\"__index__\": 0, \"factorName\": \"DEFactor\", \"rep_factorLevel\": [{\"__index__\": 0, \"factorLevel\": \"MainFactor\", \"countsFile\": {\"__class__\": \"ConnectedValue\"}}, {\"__index__\": 1, \"factorLevel\": \"BaseFactor\", \"countsFile\": {\"__class__\": \"ConnectedValue\"}}]}]}, \"tximport\": {\"tximport_selector\": \"count\", \"__current_case__\": 1}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 741.3738148942634,
+          "top": 199.67185694924424
+        },
+        "input_connections": {
+          "header": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "output_options|alpha_ma": {
+            "id": 7,
+            "output_name": "float_param"
+          },
+          "select_data|rep_factorName_0|rep_factorLevel_0|countsFile": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "select_data|rep_factorName_0|rep_factorLevel_1|countsFile": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "deseq_out",
+            "type": "tabular"
+          },
+          {
+            "name": "plots",
+            "type": "pdf"
+          },
+          {
+            "name": "counts_out",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "11",
+        "type": "tool",
+        "name": "Compose text parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"c7<\"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"float\", \"__current_case__\": 2, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1030.3831032381008,
+          "top": 646.2395043126207
+        },
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 7,
+            "output_name": "float_param"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "12",
+        "type": "tool",
+        "name": "Compose text parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"abs(c3)>\"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"float\", \"__current_case__\": 2, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1037.5832128440811,
+          "top": 834.4804304279605
+        },
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 9,
+            "output_name": "float_param"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "13",
+        "type": "tool",
+        "name": "Annotate DESeq2/DEXSeq output tables",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deg_annotate/deg_annotate/1.1.0",
+        "tool_version": "1.1.0",
+        "tool_state": "{\"__input_ext\": \"tabular\", \"advanced_parameters\": {\"gff_feature_type\": \"exon\", \"gff_feature_attribute\": \"gene_id\", \"gff_transcript_attribute\": \"transcript_id\", \"gff_attributes\": \"gene_biotype, gene_name\"}, \"annotation\": {\"__class__\": \"ConnectedValue\"}, \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/dm6.len\", \"input_table\": {\"__class__\": \"ConnectedValue\"}, \"mode\": \"degseq\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1053.2118356859382,
+          "top": 253.53181990473982
+        },
+        "input_connections": {
+          "annotation": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "input_table": {
+            "id": 10,
+            "output_name": "deseq_out"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "14",
+        "type": "tool",
+        "name": "Text reformatting",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.3+galaxy1",
+        "tool_version": "9.3+galaxy1",
+        "tool_state": "{\"code\": \"END{print NF}\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1444.0049932961922,
+          "top": 643.7692280168025
+        },
+        "input_connections": {
+          "infile": {
+            "id": 10,
+            "output_name": "counts_out"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "15",
+        "type": "tool",
+        "name": "Concatenate datasets",
+        "label": "Annotate DESeq2 table",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/9.3+galaxy1",
+        "tool_version": "9.3+galaxy1",
+        "tool_state": "{\"inputs\": {\"__class__\": \"ConnectedValue\"}, \"queries\": [{\"__index__\": 0, \"inputs2\": {\"__class__\": \"ConnectedValue\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1353.5294001633204,
+          "top": 147.05412728617347
+        },
+        "input_connections": {
+          "inputs": {
+            "id": 8,
+            "output_name": "output"
+          },
+          "queries_0|inputs2": {
+            "id": 13,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "16",
+        "type": "tool",
+        "name": "Parse parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "param_value_from_file",
+        "tool_version": "0.1.0",
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"param_type\": \"text\", \"remove_newlines\": true, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1795.8106940526452,
+          "top": 744.1580154160025
+        },
+        "input_connections": {
+          "input1": {
+            "id": 14,
+            "output_name": "outfile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "text_param",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "17",
+        "type": "tool",
+        "name": "Filter",
+        "label": "Filter with p-adj threshold",
+        "annotation": "",
+        "tool_id": "Filter1",
+        "tool_version": "1.1.1",
+        "tool_state": "{\"cond\": {\"__class__\": \"ConnectedValue\"}, \"header_lines\": \"1\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1605.546743310479,
+          "top": 371.3592826475832
+        },
+        "input_connections": {
+          "cond": {
+            "id": 11,
+            "output_name": "out1"
+          },
+          "input": {
+            "id": 15,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "18",
+        "type": "tool",
+        "name": "Volcano Plot",
+        "label": "Generate Valcanot plot of DE genes",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/volcanoplot/volcanoplot/0.0.6",
+        "tool_version": "0.0.6",
+        "tool_state": "{\"fdr_col\": \"7\", \"header\": \"yes\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"label_col\": \"13\", \"labels\": {\"label_select\": \"signif\", \"__current_case__\": 0, \"top_num\": \"10\"}, \"lfc_col\": \"3\", \"lfc_thresh\": {\"__class__\": \"ConnectedValue\"}, \"out_options\": {\"rscript_out\": false}, \"plot_options\": {\"boxes\": false, \"title\": null, \"xlab\": null, \"ylab\": null, \"xmin\": null, \"xmax\": null, \"ymax\": null, \"legend\": null, \"legend_labs\": \"Down,Not Sig,Up\"}, \"pval_col\": \"6\", \"signif_thresh\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2610.2086912391,
+          "top": 957.2308087191843
+        },
+        "input_connections": {
+          "input": {
+            "id": 15,
+            "output_name": "out_file1"
+          },
+          "lfc_thresh": {
+            "id": 9,
+            "output_name": "float_param"
+          },
+          "signif_thresh": {
+            "id": 7,
+            "output_name": "float_param"
+          }
+        },
+        "outputs": [
+          {
+            "name": "plot",
+            "type": "pdf"
+          }
+        ]
+      },
+      {
+        "step_id": "19",
+        "type": "tool",
+        "name": "Compose text parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"c1-c\"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2144.7794821932416,
+          "top": 725.294415795629
+        },
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 16,
+            "output_name": "text_param"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "20",
+        "type": "tool",
+        "name": "Filter",
+        "label": "Filter with log2 FC threshold",
+        "annotation": "",
+        "tool_id": "Filter1",
+        "tool_version": "1.1.1",
+        "tool_state": "{\"cond\": {\"__class__\": \"ConnectedValue\"}, \"header_lines\": \"1\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1910.07823962931,
+          "top": 474.9743920452724
+        },
+        "input_connections": {
+          "cond": {
+            "id": 12,
+            "output_name": "out1"
+          },
+          "input": {
+            "id": 17,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "21",
+        "type": "tool",
+        "name": "Join two Datasets",
+        "label": null,
+        "annotation": "",
+        "tool_id": "join1",
+        "tool_version": "2.1.3",
+        "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/dm6.len\", \"field1\": \"1\", \"field2\": \"1\", \"fill_empty_columns\": {\"fill_empty_columns_switch\": \"no_fill\", \"__current_case__\": 0}, \"header\": \"-H\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"input2\": {\"__class__\": \"ConnectedValue\"}, \"partial\": \"\", \"unmatched\": \"\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2271.404780182028,
+          "top": 406.30668475687355
+        },
+        "input_connections": {
+          "input1": {
+            "id": 10,
+            "output_name": "counts_out"
+          },
+          "input2": {
+            "id": 20,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "22",
+        "type": "tool",
+        "name": "Cut",
+        "label": null,
+        "annotation": "",
+        "tool_id": "Cut1",
+        "tool_version": "1.0.2",
+        "tool_state": "{\"columnList\": {\"__class__\": \"ConnectedValue\"}, \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2560.320455929024,
+          "top": 649.1552708097212
+        },
+        "input_connections": {
+          "columnList": {
+            "id": 19,
+            "output_name": "out1"
+          },
+          "input": {
+            "id": 21,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "23",
+        "type": "tool",
+        "name": "heatmap2",
+        "label": "Generate Heatmap of counts",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_heatmap2/ggplot2_heatmap2/3.2.0+galaxy1",
+        "tool_version": "3.2.0+galaxy1",
+        "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/dm6.len\", \"cluster_cond\": {\"cluster\": \"yes\", \"__current_case__\": 0, \"cluster_cols_rows\": \"both\", \"distance\": \"euclidean\", \"clustering\": \"complete\"}, \"colorchoice\": {\"type\": \"two\", \"__current_case__\": 1, \"color1\": \"#ffffff\", \"color2\": \"#ff0000\"}, \"image_file_format\": \"pdf\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"key\": \"\", \"labels\": \"columns\", \"title\": \"\", \"transform\": \"log2plus1\", \"zscore_cond\": {\"zscore\": \"none\", \"__current_case__\": 0, \"scale\": \"none\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2874.905386062883,
+          "top": 454.7381454908998
+        },
+        "input_connections": {
+          "input1": {
+            "id": 22,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "pdf"
+          }
+        ]
+      },
+      {
+        "step_id": "24",
+        "type": "tool",
+        "name": "heatmap2",
+        "label": "Generate Heatmap of Z-scores",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_heatmap2/ggplot2_heatmap2/3.2.0+galaxy1",
+        "tool_version": "3.2.0+galaxy1",
+        "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/dm6.len\", \"cluster_cond\": {\"cluster\": \"yes\", \"__current_case__\": 0, \"cluster_cols_rows\": \"both\", \"distance\": \"euclidean\", \"clustering\": \"complete\"}, \"colorchoice\": {\"type\": \"three\", \"__current_case__\": 2, \"color1\": \"#0000ff\", \"color2\": \"#ffffff\", \"color3\": \"#ff0000\"}, \"image_file_format\": \"pdf\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"key\": \"\", \"labels\": \"columns\", \"title\": \"\", \"transform\": \"none\", \"zscore_cond\": {\"zscore\": \"rows\", \"__current_case__\": 1}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2899.706231952903,
+          "top": 852.4572467969889
+        },
+        "input_connections": {
+          "input1": {
+            "id": 22,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "pdf"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/9.3+galaxy1",
+        "tool_version": "9.3+galaxy1",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pick_value/pick_value/0.2.0",
+        "tool_version": "0.2.0",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/9.3+galaxy1",
+        "tool_version": "9.3+galaxy1",
+        "step_id": "8"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pick_value/pick_value/0.2.0",
+        "tool_version": "0.2.0",
+        "step_id": "9"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deseq2/deseq2/2.11.40.8+galaxy0",
+        "tool_version": "2.11.40.8+galaxy0",
+        "step_id": "10"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "step_id": "11"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "step_id": "12"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/deg_annotate/deg_annotate/1.1.0",
+        "tool_version": "1.1.0",
+        "step_id": "13"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.3+galaxy1",
+        "tool_version": "9.3+galaxy1",
+        "step_id": "14"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/9.3+galaxy1",
+        "tool_version": "9.3+galaxy1",
+        "step_id": "15"
+      },
+      {
+        "tool_id": "param_value_from_file",
+        "tool_version": "0.1.0",
+        "step_id": "16"
+      },
+      {
+        "tool_id": "Filter1",
+        "tool_version": "1.1.1",
+        "step_id": "17"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/volcanoplot/volcanoplot/0.0.6",
+        "tool_version": "0.0.6",
+        "step_id": "18"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "step_id": "19"
+      },
+      {
+        "tool_id": "Filter1",
+        "tool_version": "1.1.1",
+        "step_id": "20"
+      },
+      {
+        "tool_id": "join1",
+        "tool_version": "2.1.3",
+        "step_id": "21"
+      },
+      {
+        "tool_id": "Cut1",
+        "tool_version": "1.0.2",
+        "step_id": "22"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_heatmap2/ggplot2_heatmap2/3.2.0+galaxy1",
+        "tool_version": "3.2.0+galaxy1",
+        "step_id": "23"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/ggplot2_heatmap2/ggplot2_heatmap2/3.2.0+galaxy1",
+        "tool_version": "3.2.0+galaxy1",
+        "step_id": "24"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "3",
+        "label": "Gene Annotaton",
+        "annotation": "The same annotation GTF used for mapping and counting"
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "2",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "4",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "6",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "10",
+        "output_name": "counts_out",
+        "label": "DESeq2 Normalized Counts"
+      },
+      {
+        "step_id": "10",
+        "output_name": "plots",
+        "label": "DESeq2 Plots"
+      },
+      {
+        "step_id": "15",
+        "output_name": "out_file1",
+        "label": "Annotated DESeq2 results table"
+      },
+      {
+        "step_id": "18",
+        "output_name": "plot",
+        "label": "Volcano Plot of DE genes"
+      },
+      {
+        "step_id": "20",
+        "output_name": "out_file1",
+        "label": "Significantly differentially expressed genes"
+      },
+      {
+        "step_id": "23",
+        "output_name": "output1",
+        "label": "Heatmap of log transformed normalized counts"
+      },
+      {
+        "step_id": "24",
+        "output_name": "output1",
+        "label": "Heatmap of Z-scores"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "style_cond|type_cond|pick_from_0|value"
+      },
+      {
+        "from_step": 5,
+        "from_output": "outfile",
+        "to_step": "8",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 6,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "style_cond|type_cond|pick_from_0|value"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "10",
+        "to_input": "header"
+      },
+      {
+        "from_step": 7,
+        "from_output": "float_param",
+        "to_step": "10",
+        "to_input": "output_options|alpha_ma"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "10",
+        "to_input": "select_data|rep_factorName_0|rep_factorLevel_0|countsFile"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "10",
+        "to_input": "select_data|rep_factorName_0|rep_factorLevel_1|countsFile"
+      },
+      {
+        "from_step": 7,
+        "from_output": "float_param",
+        "to_step": "11",
+        "to_input": "components_1|param_type|component_value"
+      },
+      {
+        "from_step": 9,
+        "from_output": "float_param",
+        "to_step": "12",
+        "to_input": "components_1|param_type|component_value"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "13",
+        "to_input": "annotation"
+      },
+      {
+        "from_step": 10,
+        "from_output": "deseq_out",
+        "to_step": "13",
+        "to_input": "input_table"
+      },
+      {
+        "from_step": 10,
+        "from_output": "counts_out",
+        "to_step": "14",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 8,
+        "from_output": "output",
+        "to_step": "15",
+        "to_input": "inputs"
+      },
+      {
+        "from_step": 13,
+        "from_output": "output",
+        "to_step": "15",
+        "to_input": "queries_0|inputs2"
+      },
+      {
+        "from_step": 14,
+        "from_output": "outfile",
+        "to_step": "16",
+        "to_input": "input1"
+      },
+      {
+        "from_step": 11,
+        "from_output": "out1",
+        "to_step": "17",
+        "to_input": "cond"
+      },
+      {
+        "from_step": 15,
+        "from_output": "out_file1",
+        "to_step": "17",
+        "to_input": "input"
+      },
+      {
+        "from_step": 15,
+        "from_output": "out_file1",
+        "to_step": "18",
+        "to_input": "input"
+      },
+      {
+        "from_step": 9,
+        "from_output": "float_param",
+        "to_step": "18",
+        "to_input": "lfc_thresh"
+      },
+      {
+        "from_step": 7,
+        "from_output": "float_param",
+        "to_step": "18",
+        "to_input": "signif_thresh"
+      },
+      {
+        "from_step": 16,
+        "from_output": "text_param",
+        "to_step": "19",
+        "to_input": "components_1|param_type|component_value"
+      },
+      {
+        "from_step": 12,
+        "from_output": "out1",
+        "to_step": "20",
+        "to_input": "cond"
+      },
+      {
+        "from_step": 17,
+        "from_output": "out_file1",
+        "to_step": "20",
+        "to_input": "input"
+      },
+      {
+        "from_step": 10,
+        "from_output": "counts_out",
+        "to_step": "21",
+        "to_input": "input1"
+      },
+      {
+        "from_step": 20,
+        "from_output": "out_file1",
+        "to_step": "21",
+        "to_input": "input2"
+      },
+      {
+        "from_step": 19,
+        "from_output": "out1",
+        "to_step": "22",
+        "to_input": "columnList"
+      },
+      {
+        "from_step": 21,
+        "from_output": "out_file1",
+        "to_step": "22",
+        "to_input": "input"
+      },
+      {
+        "from_step": 22,
+        "from_output": "out_file1",
+        "to_step": "23",
+        "to_input": "input1"
+      },
+      {
+        "from_step": 22,
+        "from_output": "out_file1",
+        "to_step": "24",
+        "to_input": "input1"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T22:09:35.055702"
+}

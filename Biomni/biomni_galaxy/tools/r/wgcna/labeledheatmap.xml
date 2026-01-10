@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_wgcna_labeledheatmap" name="WGCNA::labeledHeatmap" version="1.0.0">
+  <description>Call R WGCNA::labeledHeatmap function</description>
+  <requirements>
+    <requirement type="package">r-wgcna</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(WGCNA); labeledHeatmap()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**WGCNA::labeledHeatmap**
+
+Call R WGCNA::labeledHeatmap function
+
+**Tool Type**: r
+**Library**: WGCNA
+**Function**: labeledHeatmap
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;WGCNA&quot;,
+  &quot;function&quot;: &quot;labeledHeatmap&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(WGCNA); labeledHeatmap(...)'&quot;
+}
+]]&gt;</help>
+</tool>

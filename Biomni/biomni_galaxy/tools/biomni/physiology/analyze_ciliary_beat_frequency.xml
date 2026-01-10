@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<tool id="biomni_physiology_analyze_ciliary_beat_frequency" name="Biomni: Analyze Ciliary Beat Frequency" version="1.0.0">
+    <description>Analyze ciliary beat frequency from high-speed video microscopy data using FFT analysis.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.physiology import analyze_ciliary_beat_frequency
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_ciliary_beat_frequency(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --video_path '$video_path'
+#if $roi_count
+    --roi_count '$roi_count'
+#end if
+#if $min_freq
+    --min_freq '$min_freq'
+#end if
+#if $max_freq
+    --max_freq '$max_freq'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="video_path" type="text" label="Video Path" help="Path to the high-speed video microscopy file of ciliary beating"  />
+        <param name="roi_count" type="text" label="Roi Count" help="Number of regions of interest to analyze (default: 5)" value="5" optional="true"/>
+        <param name="min_freq" type="text" label="Min Freq" help="Minimum frequency to consider in Hz (default: 0)" value="0" optional="true"/>
+        <param name="max_freq" type="text" label="Max Freq" help="Maximum frequency to consider in Hz (default: 30)" value="30" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: current directory)" value="./" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Ciliary Beat Frequency**
+
+Analyze ciliary beat frequency from high-speed video microscopy data using FFT analysis.
+
+Parameters
+----------
+video_path : str
+    Path to the high-speed video microscopy file of ciliary beating
+roi_count : int, optional
+    Number of regions of interest to analyze (default: 5)
+min_freq : float, optional
+    Minimum frequency to consider in Hz (default: 0)
+max_freq : float, optional
+    Maximum frequency to consider in Hz (default: 30)
+output_dir : str, optional
+    Directory to save output files (default: current directory)
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results
+
+**Domain**: physiology
+**Function**: analyze_ciliary_beat_frequency
+]]></help>
+</tool>

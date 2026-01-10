@@ -1,0 +1,168 @@
+# BioMate RNA-seq Docker Image
+# Supports: nf-core/rnaseq, nf-core/drop
+#
+# Build: docker build --platform linux/amd64 -t biomate/rnaseq:x86 -f Dockerfile.rnaseq .
+# Run:   docker run --platform linux/amd64 -it biomate/rnaseq:x86
+
+FROM --platform=linux/amd64 mambaorg/micromamba:1.5-jammy
+
+LABEL maintainer="BioMate Team"
+LABEL description="x86 Docker for RNA-seq: nf-core/rnaseq, nf-core/drop"
+LABEL version="1.0.0"
+
+USER root
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV MAMBA_ROOT_PREFIX=/opt/conda
+ENV PATH="${MAMBA_ROOT_PREFIX}/bin:${PATH}"
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl wget gzip bzip2 unzip pigz \
+    build-essential gcc g++ gfortran cmake make \
+    zlib1g-dev libbz2-dev liblzma-dev libcurl4-openssl-dev libssl-dev \
+    libncurses5-dev libncursesw5-dev libtbb-dev \
+    libhdf5-dev pkg-config \
+    default-jre-headless default-jdk \
+    perl cpanminus \
+    git procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create conda environment
+USER $MAMBA_USER
+RUN micromamba create -n biotools -c conda-forge -c bioconda -y python=3.11 && \
+    micromamba clean --all -y
+
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+ENV ENV_NAME=biotools
+
+# ==============================================================================
+# RNA-seq Aligners
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    star hisat2 \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# Quantification Tools
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    salmon kallisto \
+    && micromamba clean --all -y
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    rsem subread stringtie htseq \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# BAM/SAM Processing
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    samtools bcftools bedtools picard \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# QC Tools
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    fastqc fastp multiqc preseq qualimap \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# Trimming Tools
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    cutadapt trim-galore umi_tools \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# RNA-seq Specific QC
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    rseqc \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    dupradar \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    sortmerna bbmap \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Contamination Check
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    kraken2 bracken \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# R and Bioconductor (for drop pipeline)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    r-base=4.3 r-tidyverse \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bioconductor-deseq2 bioconductor-edger bioconductor-limma \
+    && micromamba clean --all -y || true
+
+# OUTRIDER and FRASER for drop pipeline - install via conda for better dependency management
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bioconductor-outrider bioconductor-fraser \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Python Packages - via conda for better dependency management
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    numpy scipy pandas matplotlib seaborn \
+    biopython pysam \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Verification Script
+# ==============================================================================
+USER root
+
+RUN printf '#!/bin/bash\neval "$(micromamba shell hook -s bash)"\nmicromamba activate biotools\nexec "$@"\n' > /usr/local/bin/biotools-shell && chmod +x /usr/local/bin/biotools-shell
+
+RUN cat > /usr/local/bin/verify-tools.sh << 'VERIFY_SCRIPT'
+#!/bin/bash
+eval "$(micromamba shell hook -s bash)"
+micromamba activate biotools
+echo "=== BioMate RNA-seq Docker ==="
+echo ""
+echo "### ALIGNERS ###"
+echo "  STAR:       $(STAR --version 2>&1 || echo 'not found')"
+echo "  hisat2:     $(hisat2 --version 2>&1 | head -1 || echo 'not found')"
+echo ""
+echo "### QUANTIFICATION ###"
+echo "  salmon:     $(salmon --version 2>&1 || echo 'not found')"
+echo "  kallisto:   $(kallisto version 2>&1 || echo 'not found')"
+echo "  rsem:       $(rsem-calculate-expression --version 2>&1 | head -1 || echo 'not found')"
+echo "  stringtie:  $(stringtie --version 2>&1 || echo 'not found')"
+echo "  featureCounts: $(featureCounts -v 2>&1 | head -1 || echo 'not found')"
+echo ""
+echo "### QC TOOLS ###"
+echo "  fastqc:     $(fastqc --version 2>&1 || echo 'not found')"
+echo "  fastp:      $(fastp --version 2>&1 | head -1 || echo 'not found')"
+echo "  multiqc:    $(multiqc --version 2>&1 || echo 'not found')"
+echo "  rseqc:      $(which bam_stat.py >/dev/null 2>&1 && echo 'installed' || echo 'not found')"
+echo ""
+echo "### R PACKAGES (drop) ###"
+R --slave -e "cat('  DESeq2:', as.character(packageVersion('DESeq2')), '\n')" 2>/dev/null || echo "  DESeq2: not found"
+R --slave -e "cat('  OUTRIDER:', as.character(packageVersion('OUTRIDER')), '\n')" 2>/dev/null || echo "  OUTRIDER: not found"
+R --slave -e "cat('  FRASER:', as.character(packageVersion('FRASER')), '\n')" 2>/dev/null || echo "  FRASER: not found"
+echo ""
+echo "=== Supported Workflows ==="
+echo "  - nf-core/rnaseq (Bulk RNA-seq)"
+echo "  - nf-core/drop (RNA-seq rare disease)"
+VERIFY_SCRIPT
+RUN chmod +x /usr/local/bin/verify-tools.sh
+
+WORKDIR /data
+
+ENTRYPOINT ["/usr/local/bin/biotools-shell"]
+CMD ["/usr/local/bin/verify-tools.sh"]

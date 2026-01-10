@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_bcftools_annotate" name="bcftools annotate" version="1.0.0">
+  <description>Run bcftools annotate command</description>
+  <requirements>
+    <requirement type="package">bcftools</requirement>
+  </requirements>
+  <command detect_errors="exit_code">bcftools annotate $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**bcftools annotate**
+
+Run bcftools annotate command
+
+**Tool Type**: cli
+**Library**: bcftools
+**Function**: annotate
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;bcftools&quot;,
+  &quot;subcommand&quot;: &quot;annotate&quot;,
+  &quot;call_template&quot;: &quot;bcftools annotate [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

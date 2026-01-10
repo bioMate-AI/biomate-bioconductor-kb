@@ -1,0 +1,52 @@
+# Galaxy Job Configuration - Enable Docker Execution
+# This enables containerized tool execution using Docker
+
+runners:
+  local:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+    workers: 4
+
+execution:
+  # Use Docker-enabled local runner by default
+  default: docker_local
+
+  environments:
+    # Standard local execution (fallback)
+    local:
+      runner: local
+
+    # Docker-enabled local execution (default)
+    docker_local:
+      runner: local
+      # Enable docker execution for tools with container definitions
+      docker_enabled: true
+
+      # Auto-remove containers after execution
+      docker_auto_rm: true
+
+      # Use host networking so Docker can access Ollama on localhost
+      docker_net: host
+
+      # Set user to Galaxy's user id for file permissions
+      docker_set_user: $UID
+
+      # Default container for tools without specific container
+      # Use biomate/biotools:arm64 which has comprehensive bioinformatics tools
+      docker_default_container_id: biomate/biotools:arm64
+
+      # Volumes configuration - $defaults expands to include:
+      # $galaxy_root:ro, $tool_directory:ro, $job_directory:ro, $working_directory:rw, $default_file_path:rw
+      docker_volumes: $defaults
+
+      # Pass environment variables for LLM access
+      docker_run_extra_arguments: -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY -e OLLAMA_HOST=http://localhost:11434 -e LLM_SOURCE=Ollama
+
+# Tool-specific configuration (optional)
+# If a tool specifies a container in its XML, that will be used
+# Otherwise, the docker_default_container_id will be used
+
+limits:
+  - type: registered_user_concurrent_jobs
+    value: 4
+  - type: anonymous_user_concurrent_jobs
+    value: 1

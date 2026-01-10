@@ -1,0 +1,713 @@
+{
+  "workflow_id": "a8e39acc103c3d6b",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "a8e39acc103c3d6b",
+    "latest_workflow_id": "40b689c17fe32549",
+    "name": "Segmentation and counting of cell nuclei in fluorescence microscopy images (release v0.1)",
+    "create_time": "2024-10-31T00:14:28.459630",
+    "update_time": "2025-04-25T14:08:21.779684",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "80297adc-9b11-477b-9352-18b324ddf3ac",
+    "creator_deleted": false,
+    "annotations": [
+      "This workflow performs segmentation and counting of cell nuclei using fluorescence microscopy images. The segmentation step is performed using Otsu thresholding (Otsu, 1979). The workflow is based on the tutorial: https://training.galaxyproject.org/training-material/topics/imaging/tutorials/imaging-introduction/tutorial.html"
+    ],
+    "url": "/api/workflows/a8e39acc103c3d6b",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 8,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "This workflow performs segmentation and counting of cell nuclei using fluorescence microscopy images. The segmentation step is performed using Otsu thresholding (Otsu, 1979). The workflow is based on the tutorial: https://training.galaxyproject.org/training-material/topics/imaging/tutorials/imaging-introduction/tutorial.html",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0003-1323-3762",
+        "name": "Leonid Kostrykin",
+        "url": "https://github.com/kostrykin/"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "Segmentation and counting of cell nuclei in fluorescence microscopy images (release v0.1)",
+    "steps": {
+      "0": {
+        "annotation": "The fluorescence microscopy images to be segmented. Must be the single image channel, which contains the cell nuclei.",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "The fluorescence microscopy images to be segmented. Must be the single image channel, which contains the cell nuclei.",
+            "name": "input_image"
+          }
+        ],
+        "label": "input_image",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 123.6936084329719
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "20356354-a8c4-4684-9aee-9573ff00bc07",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_simple_filter/ip_filter_standard/0.0.3-3",
+        "errors": null,
+        "id": 1,
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Filter 2D image",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tiff"
+          }
+        ],
+        "position": {
+          "left": 320.6808544907898,
+          "top": 244.80388558482915
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_simple_filter/ip_filter_standard/0.0.3-3",
+        "tool_shed_repository": {
+          "changeset_revision": "f70b215d155c",
+          "name": "2d_simple_filter",
+          "owner": "imgteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"tiff\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"filter_type\": \"gaussian\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"radius\": \"3\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.0.3-3",
+        "type": "tool",
+        "uuid": "e5503e01-55ed-48e2-a827-82b6dd9b1ee6",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_histogram_equalization/ip_histogram_equalization/0.0.1-2",
+        "errors": null,
+        "id": 2,
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Perform histogram equalization",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tiff"
+          }
+        ],
+        "position": {
+          "left": 438.81238880324617,
+          "top": 9.67052833486391
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_histogram_equalization/ip_histogram_equalization/0.0.1-2",
+        "tool_shed_repository": {
+          "changeset_revision": "77f7159d775a",
+          "name": "2d_histogram_equalization",
+          "owner": "imgteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"tiff\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"h_type\": \"clahe\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.0.1-2",
+        "type": "tool",
+        "uuid": "390f4095-a74c-41c8-9b29-e7cabd5ef806",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_auto_threshold/ip_threshold/0.0.5-2",
+        "errors": null,
+        "id": 3,
+        "input_connections": {
+          "input": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Threshold image",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tiff"
+          }
+        ],
+        "position": {
+          "left": 565.4531507696091,
+          "top": 243.376959571321
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_auto_threshold/ip_threshold/0.0.5-2",
+        "tool_shed_repository": {
+          "changeset_revision": "3df9f0a4bf34",
+          "name": "2d_auto_threshold",
+          "owner": "imgteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"input\", \"block_size\": \"5\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"dark_bg\": true, \"input\": {\"__class__\": \"ConnectedValue\"}, \"th_method\": \"otsu\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.0.5-2",
+        "type": "tool",
+        "uuid": "e5b7d18a-5651-4c42-abc1-c33ba6f44293",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/imgteam/bfconvert/ip_convertimage/6.7.0+galaxy2",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "input_file": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Convert image format",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tiff"
+          }
+        ],
+        "position": {
+          "left": 689.7987516288889,
+          "top": 0
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/bfconvert/ip_convertimage/6.7.0+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "85edbb7a436b",
+          "name": "bfconvert",
+          "owner": "imgteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"tiff\", \"bigtiff\": false, \"channel_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"compression\": \"False\", \"crop_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"noflat\": true, \"out_format\": \"png\", \"pyramid_options\": {\"generate\": \"False\", \"__current_case__\": 1}, \"range_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"series_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"tile_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"timepoint_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"z_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "6.7.0+galaxy2",
+        "type": "tool",
+        "uuid": "b3e19d74-e1ee-481c-a800-7be9af59c8a2",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/imgteam/binary2labelimage/ip_binary_to_labelimage/0.5+galaxy0",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "input": {
+            "id": 3,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Convert binary image to label map",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tiff"
+          }
+        ],
+        "position": {
+          "left": 812.10278473575,
+          "top": 245.5611328413049
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/binary2labelimage/ip_binary_to_labelimage/0.5+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "984358e43242",
+          "name": "binary2labelimage",
+          "owner": "imgteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"tiff\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"mode\": {\"mode_selector\": \"cca\", \"__current_case__\": 0}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.5+galaxy0",
+        "type": "tool",
+        "uuid": "bea209dc-e6c4-4518-b243-ffd42df8d69c",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "label_image",
+            "output_name": "output",
+            "uuid": "56c979c2-6b89-46c0-b744-a16d8cd54ac9"
+          }
+        ]
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/imgteam/overlay_images/ip_overlay_images/0.0.4+galaxy0",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "method_option|im1": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "method_option|im2": {
+            "id": 5,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Overlay images",
+            "name": "method_option"
+          },
+          {
+            "description": "runtime parameter for tool Overlay images",
+            "name": "method_option"
+          }
+        ],
+        "label": null,
+        "name": "Overlay images",
+        "outputs": [
+          {
+            "name": "out_png",
+            "type": "png"
+          }
+        ],
+        "position": {
+          "left": 1085.3470167429655,
+          "top": 104.58436042741572
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/overlay_images/ip_overlay_images/0.0.4+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "37662cbf44b8",
+          "name": "overlay_images",
+          "owner": "imgteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"input\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"method_option\": {\"method\": \"seg_contour\", \"__current_case__\": 2, \"im1\": {\"__class__\": \"ConnectedValue\"}, \"im2\": {\"__class__\": \"ConnectedValue\"}, \"thickness\": \"2\", \"color\": \"#ff0000\", \"show_label\": true, \"label_color\": \"#ffff00\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.0.4+galaxy0",
+        "type": "tool",
+        "uuid": "766edd54-f116-48d2-af5a-c69aea936f38",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "overlay_image",
+            "output_name": "out_png",
+            "uuid": "bf908dd6-3f58-4dc9-8c81-c11961e7a851"
+          }
+        ]
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/imgteam/count_objects/ip_count_objects/0.0.5-2",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "input": {
+            "id": 5,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Count objects in label map",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 1086.8749834881503,
+          "top": 370.25000974083935
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/count_objects/ip_count_objects/0.0.5-2",
+        "tool_shed_repository": {
+          "changeset_revision": "b58447a2eed2",
+          "name": "count_objects",
+          "owner": "imgteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"tiff\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.0.5-2",
+        "type": "tool",
+        "uuid": "89077ebd-359c-48ad-b00d-0b43b8af6435",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "objects_count",
+            "output_name": "output",
+            "uuid": "37e77243-b039-4878-85f4-2153970fa86e"
+          }
+        ]
+      }
+    },
+    "tags": [],
+    "uuid": "80297adc-9b11-477b-9352-18b324ddf3ac",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "Segmentation and counting of cell nuclei in fluorescence microscopy images (release v0.1)",
+      "annotation": "This workflow performs segmentation and counting of cell nuclei using fluorescence microscopy images. The segmentation step is performed using Otsu thresholding (Otsu, 1979). The workflow is based on the tutorial: https://training.galaxyproject.org/training-material/topics/imaging/tutorials/imaging-introduction/tutorial.html",
+      "format_version": "0.1",
+      "uuid": "80297adc-9b11-477b-9352-18b324ddf3ac",
+      "version": 1,
+      "tags": [],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0003-1323-3762",
+          "name": "Leonid Kostrykin",
+          "url": "https://github.com/kostrykin/"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "input_image",
+        "annotation": "The fluorescence microscopy images to be segmented. Must be the single image channel, which contains the cell nuclei.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 123.6936084329719
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "tool",
+        "name": "Filter 2D image",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_simple_filter/ip_filter_standard/0.0.3-3",
+        "tool_version": "0.0.3-3",
+        "tool_state": "{\"__input_ext\": \"tiff\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"filter_type\": \"gaussian\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"radius\": \"3\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 320.6808544907898,
+          "top": 244.80388558482915
+        },
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tiff"
+          }
+        ]
+      },
+      {
+        "step_id": "2",
+        "type": "tool",
+        "name": "Perform histogram equalization",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_histogram_equalization/ip_histogram_equalization/0.0.1-2",
+        "tool_version": "0.0.1-2",
+        "tool_state": "{\"__input_ext\": \"tiff\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"h_type\": \"clahe\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 438.81238880324617,
+          "top": 9.67052833486391
+        },
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tiff"
+          }
+        ]
+      },
+      {
+        "step_id": "3",
+        "type": "tool",
+        "name": "Threshold image",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_auto_threshold/ip_threshold/0.0.5-2",
+        "tool_version": "0.0.5-2",
+        "tool_state": "{\"__input_ext\": \"input\", \"block_size\": \"5\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"dark_bg\": true, \"input\": {\"__class__\": \"ConnectedValue\"}, \"th_method\": \"otsu\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 565.4531507696091,
+          "top": 243.376959571321
+        },
+        "input_connections": {
+          "input": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tiff"
+          }
+        ]
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "Convert image format",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/bfconvert/ip_convertimage/6.7.0+galaxy2",
+        "tool_version": "6.7.0+galaxy2",
+        "tool_state": "{\"__input_ext\": \"tiff\", \"bigtiff\": false, \"channel_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"compression\": \"False\", \"crop_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"noflat\": true, \"out_format\": \"png\", \"pyramid_options\": {\"generate\": \"False\", \"__current_case__\": 1}, \"range_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"series_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"tile_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"timepoint_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"z_options\": {\"extract\": \"False\", \"__current_case__\": 0}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 689.7987516288889,
+          "top": 0
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tiff"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "Convert binary image to label map",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/binary2labelimage/ip_binary_to_labelimage/0.5+galaxy0",
+        "tool_version": "0.5+galaxy0",
+        "tool_state": "{\"__input_ext\": \"tiff\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"mode\": {\"mode_selector\": \"cca\", \"__current_case__\": 0}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 812.10278473575,
+          "top": 245.5611328413049
+        },
+        "input_connections": {
+          "input": {
+            "id": 3,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tiff"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "Overlay images",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/overlay_images/ip_overlay_images/0.0.4+galaxy0",
+        "tool_version": "0.0.4+galaxy0",
+        "tool_state": "{\"__input_ext\": \"input\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"method_option\": {\"method\": \"seg_contour\", \"__current_case__\": 2, \"im1\": {\"__class__\": \"ConnectedValue\"}, \"im2\": {\"__class__\": \"ConnectedValue\"}, \"thickness\": \"2\", \"color\": \"#ff0000\", \"show_label\": true, \"label_color\": \"#ffff00\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1085.3470167429655,
+          "top": 104.58436042741572
+        },
+        "input_connections": {
+          "method_option|im1": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "method_option|im2": {
+            "id": 5,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_png",
+            "type": "png"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "Count objects in label map",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/count_objects/ip_count_objects/0.0.5-2",
+        "tool_version": "0.0.5-2",
+        "tool_state": "{\"__input_ext\": \"tiff\", \"chromInfo\": \"/opt/galaxy/tool-data/shared/ucsc/chrom/?.len\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1086.8749834881503,
+          "top": 370.25000974083935
+        },
+        "input_connections": {
+          "input": {
+            "id": 5,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_simple_filter/ip_filter_standard/0.0.3-3",
+        "tool_version": "0.0.3-3",
+        "step_id": "1"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_histogram_equalization/ip_histogram_equalization/0.0.1-2",
+        "tool_version": "0.0.1-2",
+        "step_id": "2"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/2d_auto_threshold/ip_threshold/0.0.5-2",
+        "tool_version": "0.0.5-2",
+        "step_id": "3"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/bfconvert/ip_convertimage/6.7.0+galaxy2",
+        "tool_version": "6.7.0+galaxy2",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/binary2labelimage/ip_binary_to_labelimage/0.5+galaxy0",
+        "tool_version": "0.5+galaxy0",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/overlay_images/ip_overlay_images/0.0.4+galaxy0",
+        "tool_version": "0.0.4+galaxy0",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/imgteam/count_objects/ip_count_objects/0.0.5-2",
+        "tool_version": "0.0.5-2",
+        "step_id": "7"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "input_image",
+        "annotation": "The fluorescence microscopy images to be segmented. Must be the single image channel, which contains the cell nuclei."
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "5",
+        "output_name": "output",
+        "label": "label_image"
+      },
+      {
+        "step_id": "6",
+        "output_name": "out_png",
+        "label": "overlay_image"
+      },
+      {
+        "step_id": "7",
+        "output_name": "output",
+        "label": "objects_count"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "1",
+        "to_input": "input"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "2",
+        "to_input": "input"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "3",
+        "to_input": "input"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "4",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "input"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "method_option|im1"
+      },
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "method_option|im2"
+      },
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "input"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T22:08:40.810275"
+}

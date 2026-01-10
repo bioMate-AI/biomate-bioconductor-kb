@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<tool id="biomni_microbiology_quantify_biofilm_biomass_crystal_violet" name="Biomni: Quantify Biofilm Biomass Crystal Violet" version="1.0.0">
+    <description>Quantifies biofilm biomass using crystal violet staining assay data.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.microbiology import quantify_biofilm_biomass_crystal_violet
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = quantify_biofilm_biomass_crystal_violet(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --od_values '$od_values'
+#if $sample_names
+    --sample_names '$sample_names'
+#end if
+#if $control_index
+    --control_index '$control_index'
+#end if
+#if $save_path
+    --save_path '$save_path'
+#end if
+]]></command>
+    <inputs>
+        <param name="od_values" type="text" label="Od Values" help="Each value represents the absorbance reading for a sample."  />
+        <param name="sample_names" type="text" label="Sample Names" help="If None, samples will be labeled as Sample 1, Sample 2, etc."  optional="true"/>
+        <param name="control_index" type="text" label="Control Index" help="Index of the negative control sample in od_values. Default is 0." value="0" optional="true"/>
+        <param name="save_path" type="text" label="Save Path" help="Path to save the results. If None, results won't be saved to a file."  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Quantify Biofilm Biomass Crystal Violet**
+
+Quantifies biofilm biomass using crystal violet staining assay data.
+
+Parameters
+----------
+od_values : list or numpy.ndarray
+    Optical density measurements from crystal violet staining.
+    Each value represents the absorbance reading for a sample.
+sample_names : list, optional
+    Names of the biofilm samples corresponding to od_values.
+    If None, samples will be labeled as Sample 1, Sample 2, etc.
+control_index : int, optional
+    Index of the negative control sample in od_values. Default is 0.
+save_path : str, optional
+    Path to save the results. If None, results won't be saved to a file.
+
+Returns
+-------
+str
+    Research log detailing the quantification process and results.
+
+**Domain**: microbiology
+**Function**: quantify_biofilm_biomass_crystal_violet
+]]></help>
+</tool>

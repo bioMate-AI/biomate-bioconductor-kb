@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<tool id="biomni_systems_biology_simulate_protein_signaling_network" name="Biomni: Simulate Protein Signaling Network" version="1.0.0">
+    <description>Simulate protein signaling network dynamics using ODE-based logic modeling with normalized Hill functions.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.systems_biology import simulate_protein_signaling_network
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = simulate_protein_signaling_network(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --network_structure '$network_structure'
+--reaction_params '$reaction_params'
+--species_params '$species_params'
+#if $simulation_time
+    --simulation_time '$simulation_time'
+#end if
+#if $time_points
+    --time_points '$time_points'
+#end if
+]]></command>
+    <inputs>
+        <param name="network_structure" type="text" label="Network Structure" help="(regulator, regulation_type) where regulation_type is 1 for activation and -1 for inhibition."  />
+        <param name="reaction_params" type="text" label="Reaction Params" help="with keys 'W' (weight), 'n' (Hill coefficient), and 'EC50' (half-maximal effective concentration)."  />
+        <param name="species_params" type="text" label="Species Params" help="with keys 'tau' (time constant), 'y0' (initial concentration), and 'ymax' (maximum concentration)."  />
+        <param name="simulation_time" type="text" label="Simulation Time" help="Total simulation time in arbitrary time units. Default is 100." value="100" optional="true"/>
+        <param name="time_points" type="text" label="Time Points" help="Number of time points for the simulation. Default is 1000." value="1000" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Simulate Protein Signaling Network**
+
+Simulate protein signaling network dynamics using ODE-based logic modeling with normalized Hill functions.
+
+Parameters:
+-----------
+network_structure : dict
+    Dictionary defining the network topology. Each key is a target protein and its value is a list of tuples
+    (regulator, regulation_type) where regulation_type is 1 for activation and -1 for inhibition.
+
+reaction_params : dict
+    Dictionary of reaction parameters. Keys are tuples (regulator, target) and values are dictionaries
+    with keys 'W' (weight), 'n' (Hill coefficient), and 'EC50' (half-maximal effective concentration).
+
+species_params : dict
+    Dictionary of species parameters. Keys are protein names and values are dictionaries
+    with keys 'tau' (time constant), 'y0' (initial concentration), and 'ymax' (maximum concentration).
+
+simulation_time : float, optional
+    Total simulation time in arbitrary time units. Default is 100.
+
+time_points : int, optional
+    Number of time points for the simulation. Default is 1000.
+
+Returns:
+--------
+str
+    Research log summarizing the simulation process and results.
+
+**Domain**: systems_biology
+**Function**: simulate_protein_signaling_network
+]]></help>
+</tool>

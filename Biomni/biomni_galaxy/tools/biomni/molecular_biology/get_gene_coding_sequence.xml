@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<tool id="biomni_molecular_biology_get_gene_coding_sequence" name="Biomni: Get Gene Coding Sequence" version="1.0.0">
+    <description>Retrieves the coding sequence(s) of a specified gene from NCBI Entrez.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.molecular_biology import get_gene_coding_sequence
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = get_gene_coding_sequence(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --gene_name '$gene_name'
+--organism '$organism'
+#if $email
+    --email '$email'
+#end if
+]]></command>
+    <inputs>
+        <param name="gene_name" type="text" label="Gene Name" help=""  />
+        <param name="organism" type="text" label="Organism" help=""  />
+        <param name="email" type="text" label="Email" help=""  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Get Gene Coding Sequence**
+
+Retrieves the coding sequence(s) of a specified gene from NCBI Entrez.
+
+Args:
+    gene_name: Name of the gene
+    organism: Name of the organism
+    email: Email address for NCBI Entrez (recommended)
+
+Returns:
+    List of dictionaries containing:
+        - refseq_id: RefSeq ID of the gene
+        - sequence: Coding sequence of the gene
+
+**Domain**: molecular_biology
+**Function**: get_gene_coding_sequence
+]]></help>
+</tool>

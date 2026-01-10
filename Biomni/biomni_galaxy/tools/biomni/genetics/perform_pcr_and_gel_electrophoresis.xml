@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+<tool id="biomni_genetics_perform_pcr_and_gel_electrophoresis" name="Biomni: Perform Pcr And Gel Electrophoresis" version="1.0.0">
+    <description>Performs PCR amplification of a target transgene and visualizes results using agarose gel electrophoresis.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.genetics import perform_pcr_and_gel_electrophoresis
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = perform_pcr_and_gel_electrophoresis(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --genomic_dna '$genomic_dna'
+#if $forward_primer
+    --forward_primer '$forward_primer'
+#end if
+#if $reverse_primer
+    --reverse_primer '$reverse_primer'
+#end if
+#if $target_region
+    --target_region '$target_region'
+#end if
+#if $annealing_temp
+    --annealing_temp '$annealing_temp'
+#end if
+#if $extension_time
+    --extension_time '$extension_time'
+#end if
+#if $cycles
+    --cycles '$cycles'
+#end if
+#if $gel_percentage
+    --gel_percentage '$gel_percentage'
+#end if
+#if $output_prefix
+    --output_prefix '$output_prefix'
+#end if
+]]></command>
+    <inputs>
+        <param name="genomic_dna" type="text" label="Genomic Dna" help="Path to file containing genomic DNA sequence in FASTA format or the sequence itself"  />
+        <param name="forward_primer" type="text" label="Forward Primer" help="Forward primer sequence. If not provided, will be designed based on target_region"  optional="true"/>
+        <param name="reverse_primer" type="text" label="Reverse Primer" help="Reverse primer sequence. If not provided, will be designed based on target_region"  optional="true"/>
+        <param name="target_region" type="text" label="Target Region" help="Tuple of (start, end) positions for the target region in the genomic DNA"  optional="true"/>
+        <param name="annealing_temp" type="text" label="Annealing Temp" help="Annealing temperature for PCR in °C" value="58" optional="true"/>
+        <param name="extension_time" type="text" label="Extension Time" help="Extension time in seconds" value="30" optional="true"/>
+        <param name="cycles" type="text" label="Cycles" help="Number of PCR cycles" value="35" optional="true"/>
+        <param name="gel_percentage" type="text" label="Gel Percentage" help="Percentage of agarose gel" value="2.0" optional="true"/>
+        <param name="output_prefix" type="text" label="Output Prefix" help="Prefix for output files" value="pcr_result" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Perform Pcr And Gel Electrophoresis**
+
+Performs PCR amplification of a target transgene and visualizes results using agarose gel electrophoresis.
+
+Parameters
+----------
+genomic_dna : str
+    Path to file containing genomic DNA sequence in FASTA format or the sequence itself
+forward_primer : str, optional
+    Forward primer sequence. If not provided, will be designed based on target_region
+reverse_primer : str, optional
+    Reverse primer sequence. If not provided, will be designed based on target_region
+target_region : tuple, optional
+    Tuple of (start, end) positions for the target region in the genomic DNA
+annealing_temp : float, default=58
+    Annealing temperature for PCR in °C
+extension_time : int, default=30
+    Extension time in seconds
+cycles : int, default=35
+    Number of PCR cycles
+gel_percentage : float, default=2.0
+    Percentage of agarose gel
+output_prefix : str, default="pcr_result"
+    Prefix for output files
+
+Returns
+-------
+str
+    Research log summarizing the PCR and gel electrophoresis procedures and results
+
+**Domain**: genetics
+**Function**: perform_pcr_and_gel_electrophoresis
+]]></help>
+</tool>

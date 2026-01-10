@@ -1,0 +1,132 @@
+<?xml version="1.0"?>
+<tool id="biomni_cancer_biology_analyze_copy_number_purity_ploidy_and_focal_events" name="Biomni: Analyze Copy Number Purity Ploidy And Focal Events" version="1.0.0">
+    <description>CNVkit-based copy number workflow: CNV segmentation, purity/ploidy & HRD approximation, focal events.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.cancer_biology import analyze_copy_number_purity_ploidy_and_focal_events
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_copy_number_purity_ploidy_and_focal_events(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --tumor_bam '$tumor_bam'
+--reference_genome '$reference_genome'
+#if $normal_bam
+    --normal_bam '$normal_bam'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $targets_bed
+    --targets_bed '$targets_bed'
+#end if
+#if $antitargets_bed
+    --antitargets_bed '$antitargets_bed'
+#end if
+#if $gene_bed
+    --gene_bed '$gene_bed'
+#end if
+#if $focal_genes
+    --focal_genes '$focal_genes'
+#end if
+#if $log2_amp_threshold
+    --log2_amp_threshold '$log2_amp_threshold'
+#end if
+#if $log2_del_threshold
+    --log2_del_threshold '$log2_del_threshold'
+#end if
+]]></command>
+    <inputs>
+        <param name="tumor_bam" type="text" label="Tumor Bam" help="Path to tumor BAM (indexed)"  />
+        <param name="reference_genome" type="text" label="Reference Genome" help="Path to reference FASTA (with index files present)"  />
+        <param name="normal_bam" type="text" label="Normal Bam" help="Matched normal BAM (recommended for allele-specific & purity inference)"  optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory for all outputs" value="cn_analysis_results" optional="true"/>
+        <param name="targets_bed" type="text" label="Targets Bed" help="BED of target regions (e.g. exome / panel) for CNVkit / gCNV"  optional="true"/>
+        <param name="antitargets_bed" type="text" label="Antitargets Bed" help="BED of antitarget regions for CNVkit (if panel / exome)"  optional="true"/>
+        <param name="gene_bed" type="text" label="Gene Bed" help="BED file with gene coordinates (chrom, start, end, gene). Used for focal event annotation"  optional="true"/>
+        <param name="focal_genes" type="text" label="Focal Genes" help="List of genes to highlight for focal amplification/deletion; defaults to ["MYC","ERBB2","CDKN2A"]"  optional="true"/>
+        <param name="log2_amp_threshold" type="text" label="Log2 Amp Threshold" help="Log2 ratio threshold to call focal amplification (~ >2x copy relative to baseline)" value="1.0" optional="true"/>
+        <param name="log2_del_threshold" type="text" label="Log2 Del Threshold" help="Log2 ratio threshold to call focal deep deletion (~ homozygous loss)"  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Copy Number Purity Ploidy And Focal Events**
+
+CNVkit-based copy number workflow: CNV segmentation, purity/ploidy & HRD approximation, focal events.
+
+This function orchestrates a CNVkit-based copy number analysis workflow for tumor samples.
+It performs CNV segmentation, derives approximate purity & ploidy metrics, calculates a simplified
+HRD-style summary, and detects focal amplifications/deletions in key oncogenes / tumor suppressors.
+
+Parameters
+----------
+tumor_bam : str
+    Path to tumor BAM (indexed)
+reference_genome : str
+    Path to reference FASTA (with index files present)
+normal_bam : str, optional
+    Matched normal BAM (recommended for allele-specific & purity inference)
+output_dir : str, default "cn_analysis_results"
+    Directory for all outputs
+targets_bed : str, optional
+    BED of target regions (e.g. exome / panel) for CNVkit / gCNV
+antitargets_bed : str, optional
+    BED of antitarget regions for CNVkit (if panel / exome)
+gene_bed : str, optional
+    BED file with gene coordinates (chrom, start, end, gene). Used for focal event annotation
+focal_genes : list[str], optional
+    List of genes to highlight for focal amplification/deletion; defaults to ["MYC","ERBB2","CDKN2A"]
+log2_amp_threshold : float, default 1.0
+    Log2 ratio threshold to call focal amplification (~ >2x copy relative to baseline)
+log2_del_threshold : float, default -1.0
+    Log2 ratio threshold to call focal deep deletion (~ homozygous loss)
+
+Returns
+-------
+str
+    Research log summarizing steps, tool executions, and findings.
+
+**Domain**: cancer_biology
+**Function**: analyze_copy_number_purity_ploidy_and_focal_events
+]]></help>
+</tool>

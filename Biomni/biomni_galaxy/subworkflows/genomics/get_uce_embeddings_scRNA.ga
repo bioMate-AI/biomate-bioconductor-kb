@@ -1,0 +1,70 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genomics_get_uce_embeddings_scRNA",
+  "annotation": "The UCE embeddings are usually our default tools to get cell embeddings, we map UCE embeddings to IMA referece dataset and get the cell types for a better understanding.",
+  "tags": [
+    "biomni",
+    "genomics",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "adata_filename",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "data_dir",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "data_input",
+      "label": "DATA_ROOT",
+      "position": {
+        "left": 0,
+        "top": 200
+      }
+    },
+    "3": {
+      "type": "tool",
+      "tool_id": "biomni_genomics_get_uce_embeddings_scRNA",
+      "label": "get_uce_embeddings_scRNA",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "adata_filename": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "data_dir": {
+          "id": 1,
+          "output_name": "output"
+        },
+        "DATA_ROOT": {
+          "id": 2,
+          "output_name": "output"
+        }
+      }
+    },
+    "4": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

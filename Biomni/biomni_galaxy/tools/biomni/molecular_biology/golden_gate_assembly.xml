@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<tool id="biomni_molecular_biology_golden_gate_assembly" name="Biomni: Golden Gate Assembly" version="1.0.0">
+    <description>Simulate Golden Gate assembly to predict final construct sequences.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.molecular_biology import golden_gate_assembly
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = golden_gate_assembly(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --backbone_sequence '$backbone_sequence'
+--enzyme_name '$enzyme_name'
+--fragments '$fragments'
+#if $is_circular
+    --is_circular
+#end if
+]]></command>
+    <inputs>
+        <param name="backbone_sequence" type="text" label="Backbone Sequence" help=""  />
+        <param name="enzyme_name" type="text" label="Enzyme Name" help=""  />
+        <param name="fragments" type="text" label="Fragments" help="- name + sequence: Double-stranded DNA fragment containing restriction sites"  />
+        <param name="is_circular" type="boolean" truevalue="true" falsevalue="false" label="Is Circular" help="" checked="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Golden Gate Assembly**
+
+Simulate Golden Gate assembly to predict final construct sequences.
+
+Args:
+    backbone_sequence (str): Complete backbone sequence
+    enzyme_name (str): Type IIS restriction enzyme to be used (e.g., "BsmBI", "BsaI")
+    fragments (List[Dict[str, str]]): List of fragments to insert, containing one of:
+        - name + fwd_oligo + rev_oligo: Oligo pair with matching overhangs
+        - name + sequence: Double-stranded DNA fragment containing restriction sites
+    is_circular (bool): Whether the backbone is circular (default: True)
+
+Returns:
+    Dict: Dictionary containing:
+        - success: Boolean indicating if assembly was successful
+        - assembled_sequence: The final assembled sequence
+        - message: Error message if assembly failed
+
+**Domain**: molecular_biology
+**Function**: golden_gate_assembly
+]]></help>
+</tool>

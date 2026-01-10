@@ -1,0 +1,165 @@
+# BioMate Single-cell RNA-seq Docker Image
+# Supports: scAuto (in-house pipeline)
+#
+# Build: docker build --platform linux/amd64 -t biomate/singlecell:x86 -f Dockerfile.singlecell .
+# Run:   docker run --platform linux/amd64 -it biomate/singlecell:x86
+
+FROM --platform=linux/amd64 mambaorg/micromamba:1.5-jammy
+
+LABEL maintainer="BioMate Team"
+LABEL description="x86 Docker for Single-cell RNA-seq: scAuto"
+LABEL version="1.0.0"
+
+USER root
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV MAMBA_ROOT_PREFIX=/opt/conda
+ENV PATH="${MAMBA_ROOT_PREFIX}/bin:${PATH}"
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl wget gzip bzip2 unzip pigz \
+    build-essential gcc g++ gfortran cmake make \
+    zlib1g-dev libbz2-dev liblzma-dev libcurl4-openssl-dev libssl-dev \
+    libncurses5-dev libncursesw5-dev libtbb-dev \
+    libhdf5-dev pkg-config \
+    libpng-dev libjpeg-dev libtiff-dev \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    git procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create conda environment
+USER $MAMBA_USER
+RUN micromamba create -n biotools -c conda-forge -c bioconda -y python=3.11 && \
+    micromamba clean --all -y
+
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+ENV ENV_NAME=biotools
+
+# ==============================================================================
+# Core Single-cell Tools
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    alevin-fry \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    kb-python \
+    && micromamba clean --all -y || true
+
+# salmon and kallisto with hdf5 dependency
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    salmon kallisto hdf5 \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# Aligners
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    star minimap2 \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# BAM Processing
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    samtools bedtools \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# QC Tools
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    fastqc fastp multiqc \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# R and Seurat
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    r-base=4.3 r-tidyverse \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    r-seurat \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bioconductor-singlecellexperiment bioconductor-scater \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Python Single-cell Packages - use conda for better dependency management
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    numpy scipy pandas matplotlib seaborn \
+    scanpy anndata leidenalg igraph \
+    && micromamba clean --all -y
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    scrublet \
+    && micromamba clean --all -y || true
+
+# doubletdetection via pip (not in conda)
+RUN micromamba run -n biotools pip install --no-cache-dir doubletdetection || true
+
+# scvi-tools with pytorch dependencies via conda
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    pytorch scvi-tools \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Spatial and Trajectory Analysis - via conda
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    squidpy scvelo \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# Verification Script
+# ==============================================================================
+USER root
+
+RUN printf '#!/bin/bash\neval "$(micromamba shell hook -s bash)"\nmicromamba activate biotools\nexec "$@"\n' > /usr/local/bin/biotools-shell && chmod +x /usr/local/bin/biotools-shell
+
+RUN cat > /usr/local/bin/verify-tools.sh << 'VERIFY_SCRIPT'
+#!/bin/bash
+eval "$(micromamba shell hook -s bash)"
+micromamba activate biotools
+echo "=== BioMate Single-cell Docker ==="
+echo ""
+echo "### QUANTIFICATION ###"
+echo "  alevin-fry: $(alevin-fry --version 2>&1 || echo 'not found')"
+echo "  kb-python:  $(kb --version 2>&1 || echo 'not found')"
+echo "  salmon:     $(salmon --version 2>&1 || echo 'not found')"
+echo "  kallisto:   $(kallisto version 2>&1 || echo 'not found')"
+echo ""
+echo "### ALIGNERS ###"
+echo "  STAR:       $(STAR --version 2>&1 || echo 'not found')"
+echo "  minimap2:   $(minimap2 --version 2>&1 || echo 'not found')"
+echo ""
+echo "### PYTHON PACKAGES ###"
+echo "  scanpy:     $(python -c 'import scanpy; print(scanpy.__version__)' 2>/dev/null || echo 'not found')"
+echo "  anndata:    $(python -c 'import anndata; print(anndata.__version__)' 2>/dev/null || echo 'not found')"
+echo "  scrublet:   $(python -c 'import scrublet; print(\"installed\")' 2>/dev/null || echo 'not found')"
+echo "  scvi-tools: $(python -c 'import scvi; print(scvi.__version__)' 2>/dev/null || echo 'not found')"
+echo "  squidpy:    $(python -c 'import squidpy; print(squidpy.__version__)' 2>/dev/null || echo 'not found')"
+echo ""
+echo "### R PACKAGES ###"
+R --slave -e "cat('  Seurat:', as.character(packageVersion('Seurat')), '\n')" 2>/dev/null || echo "  Seurat: not found"
+R --slave -e "cat('  SingleCellExperiment:', as.character(packageVersion('SingleCellExperiment')), '\n')" 2>/dev/null || echo "  SingleCellExperiment: not found"
+echo ""
+echo "### QC TOOLS ###"
+echo "  fastqc:     $(fastqc --version 2>&1 || echo 'not found')"
+echo "  multiqc:    $(multiqc --version 2>&1 || echo 'not found')"
+echo ""
+echo "=== Supported Workflows ==="
+echo "  - scAuto (Single-cell RNA-seq)"
+echo "  - Compatible with 10x Genomics, Drop-seq, Smart-seq2"
+VERIFY_SCRIPT
+RUN chmod +x /usr/local/bin/verify-tools.sh
+
+WORKDIR /data
+
+ENTRYPOINT ["/usr/local/bin/biotools-shell"]
+CMD ["/usr/local/bin/verify-tools.sh"]

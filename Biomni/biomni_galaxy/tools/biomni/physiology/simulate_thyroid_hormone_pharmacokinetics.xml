@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<tool id="biomni_physiology_simulate_thyroid_hormone_pharmacokinetics" name="Biomni: Simulate Thyroid Hormone Pharmacokinetics" version="1.0.0">
+    <description>Simulates the transport and binding of thyroid hormones across different tissue compartments</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.physiology import simulate_thyroid_hormone_pharmacokinetics
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = simulate_thyroid_hormone_pharmacokinetics(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --parameters '$parameters'
+--initial_conditions '$initial_conditions'
+#if $time_span
+    --time_span '$time_span'
+#end if
+#if $time_points
+    --time_points '$time_points'
+#end if
+]]></command>
+    <inputs>
+        <param name="parameters" type="text" label="Parameters" help="- volumes : dict of compartment volumes"  />
+        <param name="initial_conditions" type="text" label="Initial Conditions" help="Dictionary of initial concentrations for all molecular species in each compartment"  />
+        <param name="time_span" type="text" label="Time Span" help="Start and end time for simulation in hours (default: (0, 24))"  optional="true"/>
+        <param name="time_points" type="text" label="Time Points" help="Number of time points to output (default: 100)" value="100" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Simulate Thyroid Hormone Pharmacokinetics**
+
+Simulates the transport and binding of thyroid hormones across different tissue compartments
+using an ODE-based pharmacokinetic model.
+
+Parameters
+----------
+parameters : dict
+    Dictionary containing model parameters:
+    - transport_rates : dict of rate constants for hormone transport between compartments
+    - binding_constants : dict of association/dissociation constants for hormone-protein binding
+    - metabolism_rates : dict of rate constants for hormone metabolism in different tissues
+    - volumes : dict of compartment volumes
+
+initial_conditions : dict
+    Dictionary of initial concentrations for all molecular species in each compartment
+
+time_span : tuple, optional
+    Start and end time for simulation in hours (default: (0, 24))
+
+time_points : int, optional
+    Number of time points to output (default: 100)
+
+Returns
+-------
+str
+    Research log summarizing the simulation and results
+
+**Domain**: physiology
+**Function**: simulate_thyroid_hormone_pharmacokinetics
+]]></help>
+</tool>

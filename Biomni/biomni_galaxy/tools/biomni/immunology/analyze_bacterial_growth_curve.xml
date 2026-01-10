@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<tool id="biomni_immunology_analyze_bacterial_growth_curve" name="Biomni: Analyze Bacterial Growth Curve" version="1.0.0">
+    <description>Analyzes bacterial growth curve data to determine growth parameters.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.immunology import analyze_bacterial_growth_curve
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_bacterial_growth_curve(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --time_points '$time_points'
+--od_values '$od_values'
+--strain_name '$strain_name'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="time_points" type="text" label="Time Points" help="Time points of measurements in hours"  />
+        <param name="od_values" type="text" label="Od Values" help="Optical density measurements corresponding to each time point"  />
+        <param name="strain_name" type="text" label="Strain Name" help="Name of the bacterial strain being analyzed"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory where output files will be saved (default: current directory)" value="." optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Bacterial Growth Curve**
+
+Analyzes bacterial growth curve data to determine growth parameters.
+
+Parameters
+----------
+time_points : list or numpy.ndarray
+    Time points of measurements in hours
+od_values : list or numpy.ndarray
+    Optical density measurements corresponding to each time point
+strain_name : str
+    Name of the bacterial strain being analyzed
+output_dir : str, optional
+    Directory where output files will be saved (default: current directory)
+
+Returns
+-------
+str
+    A research log summarizing the analysis steps and results
+
+**Domain**: immunology
+**Function**: analyze_bacterial_growth_curve
+]]></help>
+</tool>

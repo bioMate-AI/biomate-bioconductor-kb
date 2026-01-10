@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<tool id="biomni_synthetic_biology_analyze_bifurcation_diagram" name="Biomni: Analyze Bifurcation Diagram" version="1.0.0">
+    <description>Performs bifurcation analysis on a dynamical system and generates a bifurcation diagram.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.synthetic_biology import analyze_bifurcation_diagram
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_bifurcation_diagram(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --time_series_data '$time_series_data'
+--parameter_values '$parameter_values'
+#if $system_name
+    --system_name '$system_name'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+]]></command>
+    <inputs>
+        <param name="time_series_data" type="text" label="Time Series Data" help="Shape should be (n_parameter_values, n_time_points)."  />
+        <param name="parameter_values" type="text" label="Parameter Values" help="Shape should be (n_parameter_values,)."  />
+        <param name="system_name" type="text" label="System Name" help="Name of the dynamical system being analyzed, used for plot titles." value="Dynamical System" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save the output files." value="./" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Bifurcation Diagram**
+
+Performs bifurcation analysis on a dynamical system and generates a bifurcation diagram.
+
+Parameters
+----------
+time_series_data : numpy.ndarray
+    A 2D array where each row represents a time series for a specific parameter value.
+    Shape should be (n_parameter_values, n_time_points).
+parameter_values : numpy.ndarray
+    1D array of parameter values corresponding to each time series.
+    Shape should be (n_parameter_values,).
+system_name : str, optional
+    Name of the dynamical system being analyzed, used for plot titles.
+output_dir : str, optional
+    Directory to save the output files.
+
+Returns
+-------
+str
+    Research log summarizing the bifurcation analysis process and results.
+
+**Domain**: synthetic_biology
+**Function**: analyze_bifurcation_diagram
+]]></help>
+</tool>

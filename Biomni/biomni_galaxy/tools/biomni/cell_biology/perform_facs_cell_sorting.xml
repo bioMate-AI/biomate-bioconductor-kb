@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<tool id="biomni_cell_biology_perform_facs_cell_sorting" name="Biomni: Perform Facs Cell Sorting" version="1.0.0">
+    <description>Performs Fluorescence-Activated Cell Sorting (FACS) to enrich cell populations based on fluorescence characteristics.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.cell_biology import perform_facs_cell_sorting
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = perform_facs_cell_sorting(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --cell_suspension_data '$cell_suspension_data'
+--fluorescence_parameter '$fluorescence_parameter'
+#if $threshold_min
+    --threshold_min '$threshold_min'
+#end if
+#if $threshold_max
+    --threshold_max '$threshold_max'
+#end if
+#if $output_file
+    --output_file '$output_file'
+#end if
+]]></command>
+    <inputs>
+        <param name="cell_suspension_data" type="text" label="Cell Suspension Data" help="Path to the FCS file containing flow cytometry data"  />
+        <param name="fluorescence_parameter" type="text" label="Fluorescence Parameter" help="The fluorescence parameter to use for sorting (e.g., 'GFP', 'FITC', 'PE')"  />
+        <param name="threshold_min" type="text" label="Threshold Min" help="Minimum threshold for the fluorescence parameter. Cells below this value will be excluded"  optional="true"/>
+        <param name="threshold_max" type="text" label="Threshold Max" help="Maximum threshold for the fluorescence parameter. Cells above this value will be excluded"  optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Filename to save the sorted cell population data" value="sorted_cells.csv" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Perform Facs Cell Sorting**
+
+Performs Fluorescence-Activated Cell Sorting (FACS) to enrich cell populations based on fluorescence characteristics.
+
+Parameters
+----------
+cell_suspension_data : str
+    Path to the FCS file containing flow cytometry data
+fluorescence_parameter : str
+    The fluorescence parameter to use for sorting (e.g., 'GFP', 'FITC', 'PE')
+threshold_min : float, optional
+    Minimum threshold for the fluorescence parameter. Cells below this value will be excluded
+threshold_max : float, optional
+    Maximum threshold for the fluorescence parameter. Cells above this value will be excluded
+output_file : str, optional
+    Filename to save the sorted cell population data
+
+Returns
+-------
+str
+    Research log detailing the FACS cell sorting process
+
+**Domain**: cell_biology
+**Function**: perform_facs_cell_sorting
+]]></help>
+</tool>

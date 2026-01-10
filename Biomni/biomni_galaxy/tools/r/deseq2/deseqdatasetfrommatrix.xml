@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_deseq2_deseqdatasetfrommatrix" name="DESeq2::DESeqDataSetFromMatrix" version="1.0.0">
+  <description>Call R DESeq2::DESeqDataSetFromMatrix function</description>
+  <requirements>
+    <requirement type="package">r-deseq2</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(DESeq2); DESeqDataSetFromMatrix()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**DESeq2::DESeqDataSetFromMatrix**
+
+Call R DESeq2::DESeqDataSetFromMatrix function
+
+**Tool Type**: r
+**Library**: DESeq2
+**Function**: DESeqDataSetFromMatrix
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;DESeq2&quot;,
+  &quot;function&quot;: &quot;DESeqDataSetFromMatrix&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(DESeq2); DESeqDataSetFromMatrix(...)'&quot;
+}
+]]&gt;</help>
+</tool>

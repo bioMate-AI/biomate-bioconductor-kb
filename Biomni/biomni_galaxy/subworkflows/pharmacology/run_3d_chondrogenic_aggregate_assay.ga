@@ -1,0 +1,33 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_pharmacology_run_3d_chondrogenic_aggregate_assay",
+  "annotation": "Generates a detailed protocol for performing a 3D chondrogenic aggregate culture assay to evaluate compounds' effects on chondrogenesis.",
+  "tags": [
+    "biomni",
+    "pharmacology",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "tool",
+      "tool_id": "biomni_pharmacology_run_3d_chondrogenic_aggregate_assay",
+      "label": "run_3d_chondrogenic_aggregate_assay",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {}
+    },
+    "1": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

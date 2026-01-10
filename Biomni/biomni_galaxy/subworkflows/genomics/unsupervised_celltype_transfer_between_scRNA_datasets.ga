@@ -1,0 +1,58 @@
+{
+  "a_galaxy_workflow": "true",
+  "format-version": "0.1",
+  "name": "biomni_genomics_unsupervised_celltype_transfer_between_scRNA_datasets",
+  "annotation": "",
+  "tags": [
+    "biomni",
+    "genomics",
+    "subworkflow"
+  ],
+  "steps": {
+    "0": {
+      "type": "data_input",
+      "label": "path_to_annotated_h5ad",
+      "position": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    "1": {
+      "type": "data_input",
+      "label": "path_to_not_annotated_h5ad",
+      "position": {
+        "left": 0,
+        "top": 100
+      }
+    },
+    "2": {
+      "type": "tool",
+      "tool_id": "biomni_genomics_unsupervised_celltype_transfer_between_scRNA_datasets",
+      "label": "unsupervised_celltype_transfer_between_scRNA_datasets",
+      "position": {
+        "left": 300,
+        "top": 50
+      },
+      "tool_state": {},
+      "input_connections": {
+        "path_to_annotated_h5ad": {
+          "id": 0,
+          "output_name": "output"
+        },
+        "path_to_not_annotated_h5ad": {
+          "id": 1,
+          "output_name": "output"
+        }
+      }
+    },
+    "3": {
+      "type": "tool",
+      "tool_id": "cat1",
+      "label": "output",
+      "position": {
+        "left": 600,
+        "top": 50
+      }
+    }
+  }
+}

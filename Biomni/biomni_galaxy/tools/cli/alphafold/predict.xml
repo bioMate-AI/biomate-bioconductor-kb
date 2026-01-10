@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_alphafold_predict" name="alphafold predict" version="1.0.0">
+  <description>Run alphafold predict command</description>
+  <requirements>
+    <requirement type="package">alphafold</requirement>
+  </requirements>
+  <command detect_errors="exit_code">alphafold predict $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**alphafold predict**
+
+Run alphafold predict command
+
+**Tool Type**: cli
+**Library**: alphafold
+**Function**: predict
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;alphafold&quot;,
+  &quot;subcommand&quot;: &quot;predict&quot;,
+  &quot;call_template&quot;: &quot;alphafold predict [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

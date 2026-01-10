@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="r_edger_toptags" name="edgeR::topTags" version="1.0.0">
+  <description>Call R edgeR::topTags function</description>
+  <requirements>
+    <requirement type="package">r-edger</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+Rscript -e 'library(edgeR); topTags()'
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**edgeR::topTags**
+
+Call R edgeR::topTags function
+
+**Tool Type**: r
+**Library**: edgeR
+**Function**: topTags
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;r&quot;,
+  &quot;package&quot;: &quot;edgeR&quot;,
+  &quot;function&quot;: &quot;topTags&quot;,
+  &quot;call_template&quot;: &quot;Rscript -e 'library(edgeR); topTags(...)'&quot;
+}
+]]&gt;</help>
+</tool>

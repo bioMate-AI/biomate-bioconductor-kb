@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<tool id="biomni_microbiology_analyze_arsenic_speciation_hplc_icpms" name="Biomni: Analyze Arsenic Speciation Hplc Icpms" version="1.0.0">
+    <description>Analyzes arsenic speciation in liquid samples using HPLC-ICP-MS technique.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.microbiology import analyze_arsenic_speciation_hplc_icpms
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = analyze_arsenic_speciation_hplc_icpms(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --sample_data '$sample_data'
+#if $sample_name
+    --sample_name '$sample_name'
+#end if
+#if $calibration_data
+    --calibration_data '$calibration_data'
+#end if
+]]></command>
+    <inputs>
+        <param name="sample_data" type="text" label="Sample Data" help="with retention times (in minutes) as keys and signal intensities as values."  />
+        <param name="sample_name" type="text" label="Sample Name" help="Name of the sample being analyzed (default: "Unknown Sample")" value="Unknown Sample" optional="true"/>
+        <param name="calibration_data" type="text" label="Calibration Data" help="If None, default calibration values will be used."  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Analyze Arsenic Speciation Hplc Icpms**
+
+Analyzes arsenic speciation in liquid samples using HPLC-ICP-MS technique.
+
+Parameters
+----------
+sample_data : dict
+    Dictionary containing sample data with keys as sample IDs and values as dictionaries
+    with retention times (in minutes) as keys and signal intensities as values.
+sample_name : str, optional
+    Name of the sample being analyzed (default: "Unknown Sample")
+calibration_data : dict, optional
+    Dictionary containing calibration standards data with known concentrations for each arsenic species.
+    If None, default calibration values will be used.
+
+Returns
+-------
+str
+    A research log summarizing the steps of the analysis and results.
+
+**Domain**: microbiology
+**Function**: analyze_arsenic_speciation_hplc_icpms
+]]></help>
+</tool>

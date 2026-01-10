@@ -1,0 +1,10 @@
+这是测试数据第1行
+这是测试数据第2行
+这是测试数据第3行
+云执行测试
+Galaxy Cloud Executor Test
+QIIME2工具将在AWS Batch上运行
+数据会自动上传到S3
+结果会自动下载回来
+测试完成
+End of test data

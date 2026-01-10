@@ -1,0 +1,151 @@
+{
+  "a_galaxy_workflow": "true",
+  "annotation": "简化的云测试workflow - 只用已安装的工具",
+  "format-version": "0.1",
+  "name": "Simple Cloud Test Workflow",
+  "steps": {
+    "0": {
+      "annotation": "输入FASTQ数据",
+      "content_id": null,
+      "id": 0,
+      "input_connections": {},
+      "inputs": [
+        {
+          "description": "测序数据（FASTQ格式）",
+          "name": "Input FASTQ"
+        }
+      ],
+      "label": "Input Data",
+      "name": "Input dataset",
+      "outputs": [],
+      "position": {
+        "left": 10,
+        "top": 10
+      },
+      "tool_id": null,
+      "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger\", \"fastqsanger.gz\"]}",
+      "tool_version": null,
+      "type": "data_input",
+      "uuid": "cdad3c4f-c038-489c-b9ea-c4e61f81ae6f"
+    },
+    "1": {
+      "annotation": "FastQC质量评估",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0",
+      "id": 1,
+      "input_connections": {
+        "input_file": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "Quality Check",
+      "name": "FastQC",
+      "outputs": [
+        {
+          "name": "html_file",
+          "type": "html"
+        },
+        {
+          "name": "text_file",
+          "type": "txt"
+        }
+      ],
+      "position": {
+        "left": 230,
+        "top": 10
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "5ec9f6bceaee",
+        "name": "fastqc",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__input_ext\": \"fastqsanger.gz\"}",
+      "tool_version": "0.74+galaxy0",
+      "type": "tool",
+      "uuid": "476959e2-9112-47fe-9384-14a8c94c93e7"
+    },
+    "2": {
+      "annotation": "质量修剪",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.38.1",
+      "id": 2,
+      "input_connections": {
+        "readtype|fastq_in": {
+          "id": 0,
+          "output_name": "output"
+        }
+      },
+      "inputs": [],
+      "label": "Quality Trimming",
+      "name": "Trimmomatic",
+      "outputs": [
+        {
+          "name": "fastq_out",
+          "type": "input"
+        }
+      ],
+      "position": {
+        "left": 450,
+        "top": 10
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.38.1",
+      "tool_shed_repository": {
+        "changeset_revision": "d94aff5ee623",
+        "name": "trimmomatic",
+        "owner": "pjbriggs",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__input_ext\": \"fastqsanger.gz\", \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"SLIDINGWINDOW\", \"__current_case__\": 0, \"window_size\": \"4\", \"required_quality\": \"20\"}}], \"readtype\": {\"single_or_paired\": \"se\", \"__current_case__\": 0}}",
+      "tool_version": "0.38.1",
+      "type": "tool",
+      "uuid": "47906e00-ab35-4d4d-ab96-039200d6b0aa"
+    },
+    "3": {
+      "annotation": "修剪后质量检查",
+      "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0",
+      "id": 3,
+      "input_connections": {
+        "input_file": {
+          "id": 2,
+          "output_name": "fastq_out"
+        }
+      },
+      "inputs": [],
+      "label": "Quality Check After Trimming",
+      "name": "FastQC",
+      "outputs": [
+        {
+          "name": "html_file",
+          "type": "html"
+        },
+        {
+          "name": "text_file",
+          "type": "txt"
+        }
+      ],
+      "position": {
+        "left": 670,
+        "top": 10
+      },
+      "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0",
+      "tool_shed_repository": {
+        "changeset_revision": "5ec9f6bceaee",
+        "name": "fastqc",
+        "owner": "devteam",
+        "tool_shed": "toolshed.g2.bx.psu.edu"
+      },
+      "tool_state": "{\"__input_ext\": \"fastqsanger\"}",
+      "tool_version": "0.74+galaxy0",
+      "type": "tool",
+      "uuid": "034ac35e-cac1-4bc2-aa83-5afaec6b5583"
+    }
+  },
+  "tags": [
+    "cloud-test",
+    "qc"
+  ],
+  "uuid": "4e380e41-87f6-4f3b-bd17-b4eb58eb5f59",
+  "version": 1
+}

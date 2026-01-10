@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<tool id="python_cobra_io_read_sbml_model" name="COBRApy: io.read_sbml_model" version="1.0.0">
+  <description>Call COBRApy io.read_sbml_model function</description>
+  <requirements>
+    <requirement type="package" version="">cobra</requirement>
+  </requirements>
+  <command detect_errors="exit_code">&lt;![CDATA[
+python3 &lt;&lt; 'EOF'
+from cobra import *
+# Tool implementation
+result = io.read_sbml_model(${input})
+# Save output
+EOF
+]]&gt;</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**COBRApy: io.read_sbml_model**
+
+Call COBRApy io.read_sbml_model function
+
+**Tool Type**: python
+**Library**: cobra
+**Function**: io.read_sbml_model
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;python&quot;,
+  &quot;module&quot;: &quot;cobra&quot;,
+  &quot;function&quot;: &quot;io.read_sbml_model&quot;,
+  &quot;call_template&quot;: &quot;from cobra import ...; result = io.read_sbml_model(...)&quot;
+}
+]]&gt;</help>
+</tool>

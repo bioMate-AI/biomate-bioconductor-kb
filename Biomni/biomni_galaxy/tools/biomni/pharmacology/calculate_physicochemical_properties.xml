@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<tool id="biomni_pharmacology_calculate_physicochemical_properties" name="Biomni: Calculate Physicochemical Properties" version="1.0.0">
+    <description>Calculate key physicochemical properties of a drug candidate molecule.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pharmacology import calculate_physicochemical_properties
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = calculate_physicochemical_properties(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --smiles_string '$smiles_string'
+]]></command>
+    <inputs>
+        <param name="smiles_string" type="text" label="Smiles String" help="The molecular structure in SMILES format"  />
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Calculate Physicochemical Properties**
+
+Calculate key physicochemical properties of a drug candidate molecule.
+
+Parameters
+----------
+smiles_string : str
+    The molecular structure in SMILES format
+
+Returns
+-------
+str
+    A research log summarizing the calculated physicochemical properties and
+    indicating where the detailed results are saved
+
+**Domain**: pharmacology
+**Function**: calculate_physicochemical_properties
+]]></help>
+</tool>

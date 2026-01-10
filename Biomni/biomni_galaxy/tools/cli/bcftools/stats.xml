@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="cli_bcftools_stats" name="bcftools stats" version="1.0.0">
+  <description>Run bcftools stats command</description>
+  <requirements>
+    <requirement type="package">bcftools</requirement>
+  </requirements>
+  <command detect_errors="exit_code">bcftools stats $input $output</command>
+  <inputs>
+    <param name="input" type="data" label="Input file"/>
+  </inputs>
+  <outputs>
+    <data name="output" format="data" label="Output"/>
+  </outputs>
+  <help>&lt;![CDATA[
+**bcftools stats**
+
+Run bcftools stats command
+
+**Tool Type**: cli
+**Library**: bcftools
+**Function**: stats
+
+**Implementation**:
+{
+  &quot;type&quot;: &quot;cli&quot;,
+  &quot;executable&quot;: &quot;bcftools&quot;,
+  &quot;subcommand&quot;: &quot;stats&quot;,
+  &quot;call_template&quot;: &quot;bcftools stats [options] input output&quot;
+}
+]]&gt;</help>
+</tool>

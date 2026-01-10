@@ -1,0 +1,2123 @@
+{
+  "workflow_id": "49da012e2839c046",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "49da012e2839c046",
+    "latest_workflow_id": "43e102ff0daa4d01",
+    "name": "bacterial_genome_annotation (release v1.1.11)",
+    "create_time": "2025-07-31T00:18:05.961163",
+    "update_time": "2025-07-31T01:25:53.761402",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [
+      "Genomics",
+      "fasta",
+      "ABRomics",
+      "bacterial-genomics",
+      "Annotation",
+      "genome-annotation"
+    ],
+    "latest_workflow_uuid": "c58bac98-4ac7-434b-a409-6b1eaa367ec9",
+    "creator_deleted": false,
+    "annotations": [
+      "Annotation of an assembled bacterial genomes to detect genes, potential plasmids, integrons and Insertion sequence (IS) elements."
+    ],
+    "url": "/api/workflows/49da012e2839c046",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 10,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "Annotation of an assembled bacterial genomes to detect genes, potential plasmids, integrons and Insertion sequence (IS) elements.",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "email": "mailto:abromics-support@groupes.france-bioinformatique.fr",
+        "name": "ABRomics"
+      },
+      {
+        "class": "Organization",
+        "name": "abromics-consortium",
+        "url": "https://www.abromics.fr/"
+      },
+      {
+        "alternateName": "pimarin",
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-8304-138X",
+        "name": "Pierre Marin"
+      },
+      {
+        "alternateName": "clsiguret",
+        "class": "Person",
+        "identifier": "https://orcid.org/0009-0005-6140-0379",
+        "name": "Clea Siguret"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "GPL-3.0-or-later",
+    "name": "bacterial_genome_annotation (release v1.1.11)",
+    "steps": {
+      "0": {
+        "annotation": "Can be any fasta file.",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Can be any fasta file.",
+            "name": "Input sequence fasta"
+          }
+        ],
+        "label": "Input sequence fasta",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 559.2197431502472
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "9e02e452-c56a-49da-9064-b95f5d30d658",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "Select a database to identify plasmids with PlasmidFinder.",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Select a database to identify plasmids with PlasmidFinder.",
+            "name": "Select a plasmid detection database"
+          }
+        ],
+        "label": "Select a plasmid detection database",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 9.602014342350742,
+          "top": 734.3939210886799
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "f29acc7a-2d92-4e13-9261-5ae3056150ab",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "25aa68e3-b1f7-46df-8066-afb5afb08eeb"
+          }
+        ]
+      },
+      "2": {
+        "annotation": "Select a database to predict CDS and small proteins (sORF) with Bakta.",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Select a database to predict CDS and small proteins (sORF) with Bakta.",
+            "name": "Select a bacterial genome annotation database"
+          }
+        ],
+        "label": "Select a bacterial genome annotation database",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 21.882601498378413,
+          "top": 859.5166625976562
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "d20f20f5-bff3-4d75-b252-f759ab99cc86",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "c4857692-eb6a-4d94-b0dd-0f9f50521aa0"
+          }
+        ]
+      },
+      "3": {
+        "annotation": "Select a database to annotate AMR genes with Bakta.",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Select a database to annotate AMR genes with Bakta.",
+            "name": "Select a AMRFinderPlus database"
+          }
+        ],
+        "label": "Select a AMRFinderPlus database",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 10.643158620281753,
+          "top": 995.2631409484753
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "7cf50001-7fcc-49b6-b65b-2c209878c499",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "3c4f4e8a-1382-4b54-bf7b-d6649c198618"
+          }
+        ]
+      },
+      "4": {
+        "annotation": "genomic_annotation_insertionelement_isescan",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/isescan/isescan/1.7.3+galaxy0",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "input_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "genomic_annotation_insertionelement_isescan",
+        "name": "ISEScan",
+        "outputs": [
+          {
+            "name": "logfile",
+            "type": "txt"
+          },
+          {
+            "name": "summary",
+            "type": "tabular"
+          },
+          {
+            "name": "all_results",
+            "type": "tabular"
+          },
+          {
+            "name": "annotation",
+            "type": "gff"
+          },
+          {
+            "name": "is_fasta",
+            "type": "fasta"
+          },
+          {
+            "name": "orf_fna",
+            "type": "fasta"
+          },
+          {
+            "name": "orf_faa",
+            "type": "fasta"
+          }
+        ],
+        "position": {
+          "left": 887.7889628790149,
+          "top": 105.14125185095409
+        },
+        "post_job_actions": {
+          "RenameDatasetActionall_results": {
+            "action_arguments": {
+              "newname": "isescan_results_tabular"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "all_results"
+          },
+          "RenameDatasetActionannotation": {
+            "action_arguments": {
+              "newname": "isescan_annotation_gff3"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "annotation"
+          },
+          "RenameDatasetActionis_fasta": {
+            "action_arguments": {
+              "newname": "isescan_is_fasta"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "is_fasta"
+          },
+          "RenameDatasetActionlogfile": {
+            "action_arguments": {
+              "newname": "isescan_logfile_text"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "logfile"
+          },
+          "RenameDatasetActionorf_faa": {
+            "action_arguments": {
+              "newname": "isescan_orf_faa"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "orf_faa"
+          },
+          "RenameDatasetActionorf_fna": {
+            "action_arguments": {
+              "newname": "isescan_orf_fasta"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "orf_fna"
+          },
+          "RenameDatasetActionsummary": {
+            "action_arguments": {
+              "newname": "isescan_summary_tabular"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "summary"
+          },
+          "TagDatasetActionall_results": {
+            "action_arguments": {
+              "tags": "isescan_results_tabular"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "all_results"
+          },
+          "TagDatasetActionannotation": {
+            "action_arguments": {
+              "tags": "isescan_annotation_gff3"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "annotation"
+          },
+          "TagDatasetActionis_fasta": {
+            "action_arguments": {
+              "tags": "isescan_is_fasta"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "is_fasta"
+          },
+          "TagDatasetActionlogfile": {
+            "action_arguments": {
+              "tags": "isescan,logfile"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "logfile"
+          },
+          "TagDatasetActionorf_faa": {
+            "action_arguments": {
+              "tags": "isescan_orf_faa"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "orf_faa"
+          },
+          "TagDatasetActionorf_fna": {
+            "action_arguments": {
+              "tags": "isescan_orf_fasta"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "orf_fna"
+          },
+          "TagDatasetActionsummary": {
+            "action_arguments": {
+              "tags": "isescan_summary_tabular"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "summary"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/isescan/isescan/1.7.3+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "81539b9ae80a",
+          "name": "isescan",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"log_activate\": true, \"remove_short_is\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.7.3+galaxy0",
+        "type": "tool",
+        "uuid": "1daaee22-689a-4171-abd1-ae98d38405a1",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "isescan_results_tabular",
+            "output_name": "all_results",
+            "uuid": "de774547-7040-4e7f-bcb3-c2695a102b4a"
+          },
+          {
+            "label": "isescan_logfile_text",
+            "output_name": "logfile",
+            "uuid": "fb81a37d-984a-4f12-8a44-d582fd7c4bc2"
+          },
+          {
+            "label": "isescan_annotation_gff3",
+            "output_name": "annotation",
+            "uuid": "9c2c464e-c054-4d50-bccc-32f9a4f8031a"
+          },
+          {
+            "label": "isescan_summary_tabular",
+            "output_name": "summary",
+            "uuid": "483bcd69-b1eb-4f13-a086-3df5fdfa188c"
+          },
+          {
+            "label": "isescan_is_fasta",
+            "output_name": "is_fasta",
+            "uuid": "e08b9610-e7cf-4b5e-ad26-bdb90ae411a9"
+          },
+          {
+            "label": "isescan_orf_fasta",
+            "output_name": "orf_fna",
+            "uuid": "4ff1906d-688d-4e97-9586-32d046707968"
+          },
+          {
+            "label": "isescan_orf_faa",
+            "output_name": "orf_faa",
+            "uuid": "630c8e47-b69a-4c70-8a26-f1eee1ad56ac"
+          }
+        ]
+      },
+      "5": {
+        "annotation": "genomic_annotation_integron",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/integron_finder/integron_finder/2.0.5+galaxy0",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "sequence": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Integron Finder",
+            "name": "topology_file"
+          }
+        ],
+        "label": "genomic_annotation_integron",
+        "name": "Integron Finder",
+        "outputs": [
+          {
+            "name": "integron_log",
+            "type": "txt"
+          },
+          {
+            "name": "integrons_table",
+            "type": "tsv"
+          },
+          {
+            "name": "summary",
+            "type": "tsv"
+          }
+        ],
+        "position": {
+          "left": 581.3510244512896,
+          "top": 719.4853608141518
+        },
+        "post_job_actions": {
+          "RenameDatasetActionintegron_log": {
+            "action_arguments": {
+              "newname": "integronfinder2_logfile_text"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "integron_log"
+          },
+          "RenameDatasetActionintegrons_table": {
+            "action_arguments": {
+              "newname": "integronfinder2_results_tabular"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "integrons_table"
+          },
+          "RenameDatasetActionsummary": {
+            "action_arguments": {
+              "newname": "integronfinder2_summary"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "summary"
+          },
+          "TagDatasetActionintegron_log": {
+            "action_arguments": {
+              "tags": "integronfinder,logfile"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "integron_log"
+          },
+          "TagDatasetActionintegrons_table": {
+            "action_arguments": {
+              "tags": "integronfinder2_results_tabular"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "integrons_table"
+          },
+          "TagDatasetActionsummary": {
+            "action_arguments": {
+              "tags": "integronfinder2_summary"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "summary"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/integron_finder/integron_finder/2.0.5+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "bfd290fe1588",
+          "name": "integron_finder",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"gbk\": false, \"local_max\": true, \"no_logfile\": false, \"pdf\": false, \"promoter_attI\": true, \"sequence\": {\"__class__\": \"ConnectedValue\"}, \"settings\": {\"attc_settings\": {\"dist_thresh\": \"4000\", \"calin_threshold\": \"2\", \"max_attc_size\": \"200\", \"min_attc_size\": \"40\", \"keep_palindromes\": false, \"covar_matrix\": {\"__class__\": \"RuntimeValue\"}}, \"protein_settings\": {\"no_proteins\": false, \"union_integrases\": false, \"func_annot\": false}}, \"topology_file\": {\"__class__\": \"RuntimeValue\"}, \"type_replicon\": null, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.0.5+galaxy0",
+        "type": "tool",
+        "uuid": "48a42f99-3380-4ef6-8c1f-90adce14675d",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "integronfinder2_results_tabular",
+            "output_name": "integrons_table",
+            "uuid": "5acc9f58-624d-4005-bb8e-74447a8de40f"
+          },
+          {
+            "label": "integronfinder2_logfile_text",
+            "output_name": "integron_log",
+            "uuid": "2e7c892d-7fff-4e3b-b447-0dc12ea2c602"
+          },
+          {
+            "label": "integronfinder2_summary",
+            "output_name": "summary",
+            "uuid": "78eda0dc-5e5c-4f49-ac27-9d3d4eed416c"
+          }
+        ]
+      },
+      "6": {
+        "annotation": "genomic_annotation_plasmid_plasmidfinder",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/plasmidfinder/plasmidfinder/2.1.6+galaxy1",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "input|database_name": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "input|input_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool PlasmidFinder",
+            "name": "input"
+          },
+          {
+            "description": "runtime parameter for tool PlasmidFinder",
+            "name": "input"
+          }
+        ],
+        "label": "genomic_annotation_plasmid_plasmidfinder",
+        "name": "PlasmidFinder",
+        "outputs": [
+          {
+            "name": "json_file",
+            "type": "json"
+          },
+          {
+            "name": "hit_file",
+            "type": "fasta"
+          },
+          {
+            "name": "plasmid_file",
+            "type": "fasta"
+          },
+          {
+            "name": "result_file",
+            "type": "tabular"
+          },
+          {
+            "name": "raw_file",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 469.0425884161387,
+          "top": 0
+        },
+        "post_job_actions": {
+          "RenameDatasetActionhit_file": {
+            "action_arguments": {
+              "newname": "plasmidfinder_hit_genome_fasta"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "hit_file"
+          },
+          "RenameDatasetActionjson_file": {
+            "action_arguments": {
+              "newname": "plasmidfinder_result_json"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "json_file"
+          },
+          "RenameDatasetActionplasmid_file": {
+            "action_arguments": {
+              "newname": "plasmidfinder_hit_reference_fasta"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "plasmid_file"
+          },
+          "RenameDatasetActionraw_file": {
+            "action_arguments": {
+              "newname": "plasmidfinder_results_raw"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "raw_file"
+          },
+          "RenameDatasetActionresult_file": {
+            "action_arguments": {
+              "newname": "plasmidfinder_results_tabular"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "result_file"
+          },
+          "TagDatasetActionhit_file": {
+            "action_arguments": {
+              "tags": "plasmidfinder_hit_genome_fasta"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "hit_file"
+          },
+          "TagDatasetActionjson_file": {
+            "action_arguments": {
+              "tags": "plasmidfinder_result_json"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "json_file"
+          },
+          "TagDatasetActionplasmid_file": {
+            "action_arguments": {
+              "tags": "plasmidfinder_hit_reference_fasta"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "plasmid_file"
+          },
+          "TagDatasetActionraw_file": {
+            "action_arguments": {
+              "tags": "plasmidfinder_results_raw"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "raw_file"
+          },
+          "TagDatasetActionresult_file": {
+            "action_arguments": {
+              "tags": "plasmidfinder_results_tabular"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "result_file"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/plasmidfinder/plasmidfinder/2.1.6+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "7075b7a5441b",
+          "name": "plasmidfinder",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input\": {\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"database_name\": {\"__class__\": \"ConnectedValue\"}}, \"options\": {\"min_cov\": \"0.6\", \"threshold\": \"0.95\"}, \"output_files\": {\"output_selection\": [\"hit_fasta\", \"plasmid_fasta\", \"result_tsv\", \"result_txt\", \"data_json\"]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.1.6+galaxy1",
+        "type": "tool",
+        "uuid": "734f2313-8127-446c-a463-c116d8ee81a0",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "plasmidfinder_results_raw",
+            "output_name": "raw_file",
+            "uuid": "23cb3295-1fa6-4a29-bcd2-5e080a17041f"
+          },
+          {
+            "label": "plasmidfinder_hit_genome_fasta",
+            "output_name": "hit_file",
+            "uuid": "a0f46a7e-abd2-4c3d-9c0f-3496292d7281"
+          },
+          {
+            "label": "plasmidfinder_hit_reference_fasta",
+            "output_name": "plasmid_file",
+            "uuid": "3be17ef2-5d63-4387-b14e-ee9697355474"
+          },
+          {
+            "label": "plasmidfinder_results_tabular",
+            "output_name": "result_file",
+            "uuid": "50e25941-e896-418e-8769-8b601cc5451c"
+          },
+          {
+            "label": "plasmidfinder_result_json",
+            "output_name": "json_file",
+            "uuid": "22ebed58-12f0-41d3-894e-bf4d58c06716"
+          }
+        ]
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bakta/bakta/1.9.4+galaxy1",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "input_option|amrfinder_db_select": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "input_option|bakta_db_select": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "input_option|input_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Bakta",
+            "name": "annotation"
+          },
+          {
+            "description": "runtime parameter for tool Bakta",
+            "name": "annotation"
+          },
+          {
+            "description": "runtime parameter for tool Bakta",
+            "name": "annotation"
+          },
+          {
+            "description": "runtime parameter for tool Bakta",
+            "name": "annotation"
+          },
+          {
+            "description": "runtime parameter for tool Bakta",
+            "name": "input_option"
+          },
+          {
+            "description": "runtime parameter for tool Bakta",
+            "name": "input_option"
+          },
+          {
+            "description": "runtime parameter for tool Bakta",
+            "name": "input_option"
+          }
+        ],
+        "label": null,
+        "name": "Bakta",
+        "outputs": [
+          {
+            "name": "annotation_tsv",
+            "type": "tabular"
+          },
+          {
+            "name": "annotation_gff3",
+            "type": "gff3"
+          },
+          {
+            "name": "annotation_gbff",
+            "type": "tabular"
+          },
+          {
+            "name": "annotation_embl",
+            "type": "tabular"
+          },
+          {
+            "name": "annotation_fna",
+            "type": "fasta"
+          },
+          {
+            "name": "annotation_ffn",
+            "type": "fasta"
+          },
+          {
+            "name": "annotation_faa",
+            "type": "fasta"
+          },
+          {
+            "name": "hypotheticals_tsv",
+            "type": "tabular"
+          },
+          {
+            "name": "hypotheticals_faa",
+            "type": "fasta"
+          },
+          {
+            "name": "summary_txt",
+            "type": "txt"
+          },
+          {
+            "name": "annotation_json",
+            "type": "json"
+          },
+          {
+            "name": "annotation_plot",
+            "type": "svg"
+          }
+        ],
+        "position": {
+          "left": 1035.0012031530584,
+          "top": 927.9172491992002
+        },
+        "post_job_actions": {
+          "RenameDatasetActionannotation_embl": {
+            "action_arguments": {
+              "newname": "bakta_annotation_embl"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "annotation_embl"
+          },
+          "RenameDatasetActionannotation_faa": {
+            "action_arguments": {
+              "newname": "bakta_aminoacid_sequence_faa"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "annotation_faa"
+          },
+          "RenameDatasetActionannotation_ffn": {
+            "action_arguments": {
+              "newname": "bakta_nucleotide_sequence_fasta"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "annotation_ffn"
+          },
+          "RenameDatasetActionannotation_fna": {
+            "action_arguments": {
+              "newname": "bakta_assembly_fasta"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "annotation_fna"
+          },
+          "RenameDatasetActionannotation_gbff": {
+            "action_arguments": {
+              "newname": "bakta_annotation_gbff"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "annotation_gbff"
+          },
+          "RenameDatasetActionannotation_gff3": {
+            "action_arguments": {
+              "newname": "bakta_annotation_gff3"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "annotation_gff3"
+          },
+          "RenameDatasetActionannotation_json": {
+            "action_arguments": {
+              "newname": "bakta_annotation_json"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "annotation_json"
+          },
+          "RenameDatasetActionannotation_plot": {
+            "action_arguments": {
+              "newname": "bakta_annotation_plot"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "annotation_plot"
+          },
+          "RenameDatasetActionannotation_tsv": {
+            "action_arguments": {
+              "newname": "bakta_annotation_tabular"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "annotation_tsv"
+          },
+          "RenameDatasetActionhypotheticals_faa": {
+            "action_arguments": {
+              "newname": "bakta_hypothetical_faa"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "hypotheticals_faa"
+          },
+          "RenameDatasetActionhypotheticals_tsv": {
+            "action_arguments": {
+              "newname": "bakta_hypothetical_tabular"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "hypotheticals_tsv"
+          },
+          "RenameDatasetActionsummary_txt": {
+            "action_arguments": {
+              "newname": "bakta_summary_text"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "summary_txt"
+          },
+          "TagDatasetActionannotation_embl": {
+            "action_arguments": {
+              "tags": "bakta_annotation_embl"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "annotation_embl"
+          },
+          "TagDatasetActionannotation_faa": {
+            "action_arguments": {
+              "tags": "bakta_aminoacid_sequence_faa"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "annotation_faa"
+          },
+          "TagDatasetActionannotation_ffn": {
+            "action_arguments": {
+              "tags": "bakta_nucleotide_sequence_fasta"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "annotation_ffn"
+          },
+          "TagDatasetActionannotation_fna": {
+            "action_arguments": {
+              "tags": "bakta_assembly_fasta"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "annotation_fna"
+          },
+          "TagDatasetActionannotation_gbff": {
+            "action_arguments": {
+              "tags": "bakta_annotation_gbff"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "annotation_gbff"
+          },
+          "TagDatasetActionannotation_gff3": {
+            "action_arguments": {
+              "tags": "bakta_annotation_gff3"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "annotation_gff3"
+          },
+          "TagDatasetActionannotation_json": {
+            "action_arguments": {
+              "tags": "bakta_annotation_json"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "annotation_json"
+          },
+          "TagDatasetActionannotation_plot": {
+            "action_arguments": {
+              "tags": "bakta_annotation_plot"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "annotation_plot"
+          },
+          "TagDatasetActionannotation_tsv": {
+            "action_arguments": {
+              "tags": "bakta_annotation_tabular"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "annotation_tsv"
+          },
+          "TagDatasetActionhypotheticals_faa": {
+            "action_arguments": {
+              "tags": "bakta_hypothetical_faa"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "hypotheticals_faa"
+          },
+          "TagDatasetActionhypotheticals_tsv": {
+            "action_arguments": {
+              "tags": "bakta_hypothetical_tabular"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "hypotheticals_tsv"
+          },
+          "TagDatasetActionsummary_txt": {
+            "action_arguments": {
+              "tags": "bakta_summary_text"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "summary_txt"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bakta/bakta/1.9.4+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "1942e86e2ee1",
+          "name": "bakta",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"annotation\": {\"complete\": false, \"prodigal\": {\"__class__\": \"RuntimeValue\"}, \"translation_table\": \"11\", \"keep_contig_headers\": false, \"replicons\": {\"__class__\": \"RuntimeValue\"}, \"compliant\": false, \"proteins\": {\"__class__\": \"RuntimeValue\"}, \"meta\": false, \"regions\": {\"__class__\": \"RuntimeValue\"}}, \"input_option\": {\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"min_contig_length\": null, \"bakta_db_select\": {\"__class__\": \"ConnectedValue\"}, \"amrfinder_db_select\": {\"__class__\": \"ConnectedValue\"}}, \"organism\": {\"genus\": null, \"species\": null, \"strain\": null, \"plasmid\": null}, \"output_files\": {\"output_selection\": [\"file_tsv\", \"file_gff3\", \"file_ffn\", \"file_plot\", \"file_gbff\", \"file_embl\", \"file_fna\", \"file_faa\", \"hypo_tsv\", \"hypo_fa\", \"file_json\", \"sum_txt\"]}, \"workflow\": {\"skip_analysis\": null}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.9.4+galaxy1",
+        "type": "tool",
+        "uuid": "fb872d88-7c79-46e5-a450-28e7abf7d4f2",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "bakta_hypothetical_tabular",
+            "output_name": "hypotheticals_tsv",
+            "uuid": "f66d16e4-e4f2-441f-a519-780634220cca"
+          },
+          {
+            "label": "bakta_assembly_fasta",
+            "output_name": "annotation_fna",
+            "uuid": "66cdebdc-2aa6-4a21-9628-ff26b5829dd4"
+          },
+          {
+            "label": "bakta_annotation_tabular",
+            "output_name": "annotation_tsv",
+            "uuid": "68e8898f-c534-4d74-995d-01532fdd64c0"
+          },
+          {
+            "label": "bakta_annotation_gff3",
+            "output_name": "annotation_gff3",
+            "uuid": "923363c8-2efe-4952-84e3-d40b90cd1fda"
+          },
+          {
+            "label": "bakta_annotation_gbff",
+            "output_name": "annotation_gbff",
+            "uuid": "a93c3e40-c52b-46cb-ba4c-8f5c3f11e472"
+          },
+          {
+            "label": "bakta_annotation_embl",
+            "output_name": "annotation_embl",
+            "uuid": "cd5978df-74cc-4396-88d6-59eeccfcac2f"
+          },
+          {
+            "label": "bakta_hypothetical_faa",
+            "output_name": "hypotheticals_faa",
+            "uuid": "e024976d-3044-4609-9db1-b7e7cb93ad33"
+          },
+          {
+            "label": "bakta_annotation_json",
+            "output_name": "annotation_json",
+            "uuid": "6abf9062-0202-4b40-a1a0-dba95dd9e7b4"
+          },
+          {
+            "label": "bakta_annotation_plot",
+            "output_name": "annotation_plot",
+            "uuid": "bdfd6b0e-8242-4eb6-b47f-01dd8f6f02eb"
+          },
+          {
+            "label": "bakta_summary_text",
+            "output_name": "summary_txt",
+            "uuid": "d3335c84-cba0-474d-9b25-5a1cf82104ae"
+          },
+          {
+            "label": "bakta_nucleotide_sequence_fasta",
+            "output_name": "annotation_ffn",
+            "uuid": "1ee56941-936e-45fb-8fb0-48e66812e07f"
+          },
+          {
+            "label": "bakta_aminoacid_sequence_faa",
+            "output_name": "annotation_faa",
+            "uuid": "2df48ce4-2215-498e-bc5f-f95778b2f7a5"
+          }
+        ]
+      },
+      "8": {
+        "annotation": "ToolDistillator extracts results from tools and creates a JSON file for each tool",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator/tooldistillator/1.0.0+galaxy1",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "tool_section|tools_0|select_tool|genome_hit_path": {
+            "id": 6,
+            "output_name": "hit_file"
+          },
+          "tool_section|tools_0|select_tool|input": {
+            "id": 6,
+            "output_name": "json_file"
+          },
+          "tool_section|tools_0|select_tool|plasmid_hit_path": {
+            "id": 6,
+            "output_name": "plasmid_file"
+          },
+          "tool_section|tools_0|select_tool|plasmid_result_tabular_path": {
+            "id": 6,
+            "output_name": "result_file"
+          },
+          "tool_section|tools_0|select_tool|reference_database_version": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "tool_section|tools_1|select_tool|annotation_path": {
+            "id": 4,
+            "output_name": "annotation"
+          },
+          "tool_section|tools_1|select_tool|input": {
+            "id": 4,
+            "output_name": "all_results"
+          },
+          "tool_section|tools_1|select_tool|is_fna_path": {
+            "id": 4,
+            "output_name": "is_fasta"
+          },
+          "tool_section|tools_1|select_tool|orf_faa_path": {
+            "id": 4,
+            "output_name": "orf_faa"
+          },
+          "tool_section|tools_1|select_tool|orf_fna_path": {
+            "id": 4,
+            "output_name": "orf_fna"
+          },
+          "tool_section|tools_1|select_tool|summary_path": {
+            "id": 4,
+            "output_name": "summary"
+          },
+          "tool_section|tools_2|select_tool|input": {
+            "id": 5,
+            "output_name": "integrons_table"
+          },
+          "tool_section|tools_2|select_tool|summary_file_path": {
+            "id": 5,
+            "output_name": "summary"
+          },
+          "tool_section|tools_3|select_tool|amino_acid_annotation_path": {
+            "id": 7,
+            "output_name": "annotation_faa"
+          },
+          "tool_section|tools_3|select_tool|annotation_embl_path": {
+            "id": 7,
+            "output_name": "annotation_embl"
+          },
+          "tool_section|tools_3|select_tool|annotation_genbank_path": {
+            "id": 7,
+            "output_name": "annotation_gbff"
+          },
+          "tool_section|tools_3|select_tool|annotation_tabular_path": {
+            "id": 7,
+            "output_name": "annotation_tsv"
+          },
+          "tool_section|tools_3|select_tool|contig_sequences_path": {
+            "id": 7,
+            "output_name": "annotation_fna"
+          },
+          "tool_section|tools_3|select_tool|gff_file_path": {
+            "id": 7,
+            "output_name": "annotation_gff3"
+          },
+          "tool_section|tools_3|select_tool|hypothetical_protein_path": {
+            "id": 7,
+            "output_name": "hypotheticals_faa"
+          },
+          "tool_section|tools_3|select_tool|hypothetical_tabular_path": {
+            "id": 7,
+            "output_name": "hypotheticals_tsv"
+          },
+          "tool_section|tools_3|select_tool|input": {
+            "id": 7,
+            "output_name": "annotation_json"
+          },
+          "tool_section|tools_3|select_tool|nucleotide_annotation_path": {
+            "id": 7,
+            "output_name": "annotation_ffn"
+          },
+          "tool_section|tools_3|select_tool|plot_file_path": {
+            "id": 7,
+            "output_name": "annotation_plot"
+          },
+          "tool_section|tools_3|select_tool|reference_database_version": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "tool_section|tools_3|select_tool|summary_result_path": {
+            "id": 7,
+            "output_name": "summary_txt"
+          }
+        },
+        "inputs": [],
+        "label": "ToolDistillator",
+        "name": "ToolDistillator",
+        "outputs": [
+          {
+            "name": "output_json",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1521.7059634117236,
+          "top": 515.5903476661389
+        },
+        "post_job_actions": {
+          "RenameDatasetActionoutput_json": {
+            "action_arguments": {
+              "newname": "tooldistillator_results_annotation"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "output_json"
+          },
+          "TagDatasetActionoutput_json": {
+            "action_arguments": {
+              "tags": "tooldistillator_results_annotation"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "output_json"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator/tooldistillator/1.0.0+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "c6b5c2975e51",
+          "name": "tooldistillator",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"log\": false, \"tool_section\": {\"tools\": [{\"__index__\": 0, \"select_tool\": {\"tool_list\": \"plasmidfinder\", \"__current_case__\": 30, \"input\": {\"__class__\": \"ConnectedValue\"}, \"plasmid_result_tabular_path\": {\"__class__\": \"ConnectedValue\"}, \"genome_hit_path\": {\"__class__\": \"ConnectedValue\"}, \"plasmid_hit_path\": {\"__class__\": \"ConnectedValue\"}, \"origin\": {\"origin\": \"false\", \"__current_case__\": 1}, \"reference_database_version\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"select_tool\": {\"tool_list\": \"isescan\", \"__current_case__\": 22, \"input\": {\"__class__\": \"ConnectedValue\"}, \"summary_path\": {\"__class__\": \"ConnectedValue\"}, \"annotation_path\": {\"__class__\": \"ConnectedValue\"}, \"orf_fna_path\": {\"__class__\": \"ConnectedValue\"}, \"orf_faa_path\": {\"__class__\": \"ConnectedValue\"}, \"is_fna_path\": {\"__class__\": \"ConnectedValue\"}, \"origin\": {\"origin\": \"false\", \"__current_case__\": 1}, \"reference_database_version\": null}}, {\"__index__\": 2, \"select_tool\": {\"tool_list\": \"integronfinder2\", \"__current_case__\": 21, \"input\": {\"__class__\": \"ConnectedValue\"}, \"summary_file_path\": {\"__class__\": \"ConnectedValue\"}, \"origin\": {\"origin\": \"false\", \"__current_case__\": 1}, \"reference_database_version\": null}}, {\"__index__\": 3, \"select_tool\": {\"tool_list\": \"bakta\", \"__current_case__\": 3, \"input\": {\"__class__\": \"ConnectedValue\"}, \"annotation_tabular_path\": {\"__class__\": \"ConnectedValue\"}, \"annotation_genbank_path\": {\"__class__\": \"ConnectedValue\"}, \"annotation_embl_path\": {\"__class__\": \"ConnectedValue\"}, \"contig_sequences_path\": {\"__class__\": \"ConnectedValue\"}, \"hypothetical_protein_path\": {\"__class__\": \"ConnectedValue\"}, \"hypothetical_tabular_path\": {\"__class__\": \"ConnectedValue\"}, \"plot_file_path\": {\"__class__\": \"ConnectedValue\"}, \"summary_result_path\": {\"__class__\": \"ConnectedValue\"}, \"nucleotide_annotation_path\": {\"__class__\": \"ConnectedValue\"}, \"amino_acid_annotation_path\": {\"__class__\": \"ConnectedValue\"}, \"gff_file_path\": {\"__class__\": \"ConnectedValue\"}, \"origin\": {\"origin\": \"false\", \"__current_case__\": 1}, \"reference_database_version\": {\"__class__\": \"ConnectedValue\"}}}]}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.0+galaxy1",
+        "type": "tool",
+        "uuid": "1c5e7d86-783b-40b8-976c-9dc123221438",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "tooldistillator_results_annotation",
+            "output_name": "output_json",
+            "uuid": "8c57ef19-99ad-4214-b139-534a75dc8885"
+          }
+        ]
+      },
+      "9": {
+        "annotation": "ToolDistillator summarize groups all JSON file into a unique JSON file",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator_summarize/tooldistillator_summarize/1.0.0+galaxy1",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "summarize_data": {
+            "id": 8,
+            "output_name": "output_json"
+          }
+        },
+        "inputs": [],
+        "label": "ToolDistillator summarize",
+        "name": "ToolDistillator Summarize",
+        "outputs": [
+          {
+            "name": "summary_json",
+            "type": "json"
+          }
+        ],
+        "position": {
+          "left": 1999.7866424448703,
+          "top": 1179.174084225585
+        },
+        "post_job_actions": {
+          "RenameDatasetActionsummary_json": {
+            "action_arguments": {
+              "newname": "tooldistillator_summarize_annotation"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "summary_json"
+          },
+          "TagDatasetActionsummary_json": {
+            "action_arguments": {
+              "tags": "tooldistillator_summarize_annotation"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "summary_json"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator_summarize/tooldistillator_summarize/1.0.0+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "3d0223265277",
+          "name": "tooldistillator_summarize",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"summarize_data\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.0+galaxy1",
+        "type": "tool",
+        "uuid": "c4be03a9-89f4-4e3a-80a5-84f590afbfe8",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "tooldistillator_summarize_annotation",
+            "output_name": "summary_json",
+            "uuid": "6593779e-fd31-4bff-95f5-a450c3522d66"
+          }
+        ]
+      }
+    },
+    "tags": [
+      "Genomics",
+      "fasta",
+      "ABRomics",
+      "bacterial-genomics",
+      "Annotation",
+      "genome-annotation"
+    ],
+    "uuid": "c58bac98-4ac7-434b-a409-6b1eaa367ec9",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "bacterial_genome_annotation (release v1.1.11)",
+      "annotation": "Annotation of an assembled bacterial genomes to detect genes, potential plasmids, integrons and Insertion sequence (IS) elements.",
+      "format_version": "0.1",
+      "uuid": "c58bac98-4ac7-434b-a409-6b1eaa367ec9",
+      "version": 1,
+      "tags": [
+        "Genomics",
+        "fasta",
+        "ABRomics",
+        "bacterial-genomics",
+        "Annotation",
+        "genome-annotation"
+      ],
+      "creator": [
+        {
+          "class": "Person",
+          "email": "mailto:abromics-support@groupes.france-bioinformatique.fr",
+          "name": "ABRomics"
+        },
+        {
+          "class": "Organization",
+          "name": "abromics-consortium",
+          "url": "https://www.abromics.fr/"
+        },
+        {
+          "alternateName": "pimarin",
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-8304-138X",
+          "name": "Pierre Marin"
+        },
+        {
+          "alternateName": "clsiguret",
+          "class": "Person",
+          "identifier": "https://orcid.org/0009-0005-6140-0379",
+          "name": "Clea Siguret"
+        }
+      ],
+      "license": "GPL-3.0-or-later"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Input sequence fasta",
+        "annotation": "Can be any fasta file.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 559.2197431502472
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Select a plasmid detection database",
+        "annotation": "Select a database to identify plasmids with PlasmidFinder.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 9.602014342350742,
+          "top": 734.3939210886799
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Select a bacterial genome annotation database",
+        "annotation": "Select a database to predict CDS and small proteins (sORF) with Bakta.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 21.882601498378413,
+          "top": 859.5166625976562
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Select a AMRFinderPlus database",
+        "annotation": "Select a database to annotate AMR genes with Bakta.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 10.643158620281753,
+          "top": 995.2631409484753
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "ISEScan",
+        "label": "genomic_annotation_insertionelement_isescan",
+        "annotation": "genomic_annotation_insertionelement_isescan",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/isescan/isescan/1.7.3+galaxy0",
+        "tool_version": "1.7.3+galaxy0",
+        "tool_state": "{\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"log_activate\": true, \"remove_short_is\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 887.7889628790149,
+          "top": 105.14125185095409
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "logfile",
+            "type": "txt"
+          },
+          {
+            "name": "summary",
+            "type": "tabular"
+          },
+          {
+            "name": "all_results",
+            "type": "tabular"
+          },
+          {
+            "name": "annotation",
+            "type": "gff"
+          },
+          {
+            "name": "is_fasta",
+            "type": "fasta"
+          },
+          {
+            "name": "orf_fna",
+            "type": "fasta"
+          },
+          {
+            "name": "orf_faa",
+            "type": "fasta"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "Integron Finder",
+        "label": "genomic_annotation_integron",
+        "annotation": "genomic_annotation_integron",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/integron_finder/integron_finder/2.0.5+galaxy0",
+        "tool_version": "2.0.5+galaxy0",
+        "tool_state": "{\"gbk\": false, \"local_max\": true, \"no_logfile\": false, \"pdf\": false, \"promoter_attI\": true, \"sequence\": {\"__class__\": \"ConnectedValue\"}, \"settings\": {\"attc_settings\": {\"dist_thresh\": \"4000\", \"calin_threshold\": \"2\", \"max_attc_size\": \"200\", \"min_attc_size\": \"40\", \"keep_palindromes\": false, \"covar_matrix\": {\"__class__\": \"RuntimeValue\"}}, \"protein_settings\": {\"no_proteins\": false, \"union_integrases\": false, \"func_annot\": false}}, \"topology_file\": {\"__class__\": \"RuntimeValue\"}, \"type_replicon\": null, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 581.3510244512896,
+          "top": 719.4853608141518
+        },
+        "input_connections": {
+          "sequence": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "integron_log",
+            "type": "txt"
+          },
+          {
+            "name": "integrons_table",
+            "type": "tsv"
+          },
+          {
+            "name": "summary",
+            "type": "tsv"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "PlasmidFinder",
+        "label": "genomic_annotation_plasmid_plasmidfinder",
+        "annotation": "genomic_annotation_plasmid_plasmidfinder",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/plasmidfinder/plasmidfinder/2.1.6+galaxy1",
+        "tool_version": "2.1.6+galaxy1",
+        "tool_state": "{\"input\": {\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"database_name\": {\"__class__\": \"ConnectedValue\"}}, \"options\": {\"min_cov\": \"0.6\", \"threshold\": \"0.95\"}, \"output_files\": {\"output_selection\": [\"hit_fasta\", \"plasmid_fasta\", \"result_tsv\", \"result_txt\", \"data_json\"]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 469.0425884161387,
+          "top": 0
+        },
+        "input_connections": {
+          "input|database_name": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "input|input_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "json_file",
+            "type": "json"
+          },
+          {
+            "name": "hit_file",
+            "type": "fasta"
+          },
+          {
+            "name": "plasmid_file",
+            "type": "fasta"
+          },
+          {
+            "name": "result_file",
+            "type": "tabular"
+          },
+          {
+            "name": "raw_file",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "Bakta",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bakta/bakta/1.9.4+galaxy1",
+        "tool_version": "1.9.4+galaxy1",
+        "tool_state": "{\"annotation\": {\"complete\": false, \"prodigal\": {\"__class__\": \"RuntimeValue\"}, \"translation_table\": \"11\", \"keep_contig_headers\": false, \"replicons\": {\"__class__\": \"RuntimeValue\"}, \"compliant\": false, \"proteins\": {\"__class__\": \"RuntimeValue\"}, \"meta\": false, \"regions\": {\"__class__\": \"RuntimeValue\"}}, \"input_option\": {\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"min_contig_length\": null, \"bakta_db_select\": {\"__class__\": \"ConnectedValue\"}, \"amrfinder_db_select\": {\"__class__\": \"ConnectedValue\"}}, \"organism\": {\"genus\": null, \"species\": null, \"strain\": null, \"plasmid\": null}, \"output_files\": {\"output_selection\": [\"file_tsv\", \"file_gff3\", \"file_ffn\", \"file_plot\", \"file_gbff\", \"file_embl\", \"file_fna\", \"file_faa\", \"hypo_tsv\", \"hypo_fa\", \"file_json\", \"sum_txt\"]}, \"workflow\": {\"skip_analysis\": null}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1035.0012031530584,
+          "top": 927.9172491992002
+        },
+        "input_connections": {
+          "input_option|amrfinder_db_select": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "input_option|bakta_db_select": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "input_option|input_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "annotation_tsv",
+            "type": "tabular"
+          },
+          {
+            "name": "annotation_gff3",
+            "type": "gff3"
+          },
+          {
+            "name": "annotation_gbff",
+            "type": "tabular"
+          },
+          {
+            "name": "annotation_embl",
+            "type": "tabular"
+          },
+          {
+            "name": "annotation_fna",
+            "type": "fasta"
+          },
+          {
+            "name": "annotation_ffn",
+            "type": "fasta"
+          },
+          {
+            "name": "annotation_faa",
+            "type": "fasta"
+          },
+          {
+            "name": "hypotheticals_tsv",
+            "type": "tabular"
+          },
+          {
+            "name": "hypotheticals_faa",
+            "type": "fasta"
+          },
+          {
+            "name": "summary_txt",
+            "type": "txt"
+          },
+          {
+            "name": "annotation_json",
+            "type": "json"
+          },
+          {
+            "name": "annotation_plot",
+            "type": "svg"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "ToolDistillator",
+        "label": "ToolDistillator",
+        "annotation": "ToolDistillator extracts results from tools and creates a JSON file for each tool",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator/tooldistillator/1.0.0+galaxy1",
+        "tool_version": "1.0.0+galaxy1",
+        "tool_state": "{\"log\": false, \"tool_section\": {\"tools\": [{\"__index__\": 0, \"select_tool\": {\"tool_list\": \"plasmidfinder\", \"__current_case__\": 30, \"input\": {\"__class__\": \"ConnectedValue\"}, \"plasmid_result_tabular_path\": {\"__class__\": \"ConnectedValue\"}, \"genome_hit_path\": {\"__class__\": \"ConnectedValue\"}, \"plasmid_hit_path\": {\"__class__\": \"ConnectedValue\"}, \"origin\": {\"origin\": \"false\", \"__current_case__\": 1}, \"reference_database_version\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"select_tool\": {\"tool_list\": \"isescan\", \"__current_case__\": 22, \"input\": {\"__class__\": \"ConnectedValue\"}, \"summary_path\": {\"__class__\": \"ConnectedValue\"}, \"annotation_path\": {\"__class__\": \"ConnectedValue\"}, \"orf_fna_path\": {\"__class__\": \"ConnectedValue\"}, \"orf_faa_path\": {\"__class__\": \"ConnectedValue\"}, \"is_fna_path\": {\"__class__\": \"ConnectedValue\"}, \"origin\": {\"origin\": \"false\", \"__current_case__\": 1}, \"reference_database_version\": null}}, {\"__index__\": 2, \"select_tool\": {\"tool_list\": \"integronfinder2\", \"__current_case__\": 21, \"input\": {\"__class__\": \"ConnectedValue\"}, \"summary_file_path\": {\"__class__\": \"ConnectedValue\"}, \"origin\": {\"origin\": \"false\", \"__current_case__\": 1}, \"reference_database_version\": null}}, {\"__index__\": 3, \"select_tool\": {\"tool_list\": \"bakta\", \"__current_case__\": 3, \"input\": {\"__class__\": \"ConnectedValue\"}, \"annotation_tabular_path\": {\"__class__\": \"ConnectedValue\"}, \"annotation_genbank_path\": {\"__class__\": \"ConnectedValue\"}, \"annotation_embl_path\": {\"__class__\": \"ConnectedValue\"}, \"contig_sequences_path\": {\"__class__\": \"ConnectedValue\"}, \"hypothetical_protein_path\": {\"__class__\": \"ConnectedValue\"}, \"hypothetical_tabular_path\": {\"__class__\": \"ConnectedValue\"}, \"plot_file_path\": {\"__class__\": \"ConnectedValue\"}, \"summary_result_path\": {\"__class__\": \"ConnectedValue\"}, \"nucleotide_annotation_path\": {\"__class__\": \"ConnectedValue\"}, \"amino_acid_annotation_path\": {\"__class__\": \"ConnectedValue\"}, \"gff_file_path\": {\"__class__\": \"ConnectedValue\"}, \"origin\": {\"origin\": \"false\", \"__current_case__\": 1}, \"reference_database_version\": {\"__class__\": \"ConnectedValue\"}}}]}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1521.7059634117236,
+          "top": 515.5903476661389
+        },
+        "input_connections": {
+          "tool_section|tools_0|select_tool|genome_hit_path": {
+            "id": 6,
+            "output_name": "hit_file"
+          },
+          "tool_section|tools_0|select_tool|input": {
+            "id": 6,
+            "output_name": "json_file"
+          },
+          "tool_section|tools_0|select_tool|plasmid_hit_path": {
+            "id": 6,
+            "output_name": "plasmid_file"
+          },
+          "tool_section|tools_0|select_tool|plasmid_result_tabular_path": {
+            "id": 6,
+            "output_name": "result_file"
+          },
+          "tool_section|tools_0|select_tool|reference_database_version": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "tool_section|tools_1|select_tool|annotation_path": {
+            "id": 4,
+            "output_name": "annotation"
+          },
+          "tool_section|tools_1|select_tool|input": {
+            "id": 4,
+            "output_name": "all_results"
+          },
+          "tool_section|tools_1|select_tool|is_fna_path": {
+            "id": 4,
+            "output_name": "is_fasta"
+          },
+          "tool_section|tools_1|select_tool|orf_faa_path": {
+            "id": 4,
+            "output_name": "orf_faa"
+          },
+          "tool_section|tools_1|select_tool|orf_fna_path": {
+            "id": 4,
+            "output_name": "orf_fna"
+          },
+          "tool_section|tools_1|select_tool|summary_path": {
+            "id": 4,
+            "output_name": "summary"
+          },
+          "tool_section|tools_2|select_tool|input": {
+            "id": 5,
+            "output_name": "integrons_table"
+          },
+          "tool_section|tools_2|select_tool|summary_file_path": {
+            "id": 5,
+            "output_name": "summary"
+          },
+          "tool_section|tools_3|select_tool|amino_acid_annotation_path": {
+            "id": 7,
+            "output_name": "annotation_faa"
+          },
+          "tool_section|tools_3|select_tool|annotation_embl_path": {
+            "id": 7,
+            "output_name": "annotation_embl"
+          },
+          "tool_section|tools_3|select_tool|annotation_genbank_path": {
+            "id": 7,
+            "output_name": "annotation_gbff"
+          },
+          "tool_section|tools_3|select_tool|annotation_tabular_path": {
+            "id": 7,
+            "output_name": "annotation_tsv"
+          },
+          "tool_section|tools_3|select_tool|contig_sequences_path": {
+            "id": 7,
+            "output_name": "annotation_fna"
+          },
+          "tool_section|tools_3|select_tool|gff_file_path": {
+            "id": 7,
+            "output_name": "annotation_gff3"
+          },
+          "tool_section|tools_3|select_tool|hypothetical_protein_path": {
+            "id": 7,
+            "output_name": "hypotheticals_faa"
+          },
+          "tool_section|tools_3|select_tool|hypothetical_tabular_path": {
+            "id": 7,
+            "output_name": "hypotheticals_tsv"
+          },
+          "tool_section|tools_3|select_tool|input": {
+            "id": 7,
+            "output_name": "annotation_json"
+          },
+          "tool_section|tools_3|select_tool|nucleotide_annotation_path": {
+            "id": 7,
+            "output_name": "annotation_ffn"
+          },
+          "tool_section|tools_3|select_tool|plot_file_path": {
+            "id": 7,
+            "output_name": "annotation_plot"
+          },
+          "tool_section|tools_3|select_tool|reference_database_version": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "tool_section|tools_3|select_tool|summary_result_path": {
+            "id": 7,
+            "output_name": "summary_txt"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output_json",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "ToolDistillator Summarize",
+        "label": "ToolDistillator summarize",
+        "annotation": "ToolDistillator summarize groups all JSON file into a unique JSON file",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator_summarize/tooldistillator_summarize/1.0.0+galaxy1",
+        "tool_version": "1.0.0+galaxy1",
+        "tool_state": "{\"summarize_data\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1999.7866424448703,
+          "top": 1179.174084225585
+        },
+        "input_connections": {
+          "summarize_data": {
+            "id": 8,
+            "output_name": "output_json"
+          }
+        },
+        "outputs": [
+          {
+            "name": "summary_json",
+            "type": "json"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/isescan/isescan/1.7.3+galaxy0",
+        "tool_version": "1.7.3+galaxy0",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/integron_finder/integron_finder/2.0.5+galaxy0",
+        "tool_version": "2.0.5+galaxy0",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/plasmidfinder/plasmidfinder/2.1.6+galaxy1",
+        "tool_version": "2.1.6+galaxy1",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bakta/bakta/1.9.4+galaxy1",
+        "tool_version": "1.9.4+galaxy1",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator/tooldistillator/1.0.0+galaxy1",
+        "tool_version": "1.0.0+galaxy1",
+        "step_id": "8"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator_summarize/tooldistillator_summarize/1.0.0+galaxy1",
+        "tool_version": "1.0.0+galaxy1",
+        "step_id": "9"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "Input sequence fasta",
+        "annotation": "Can be any fasta file."
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "1",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "2",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "3",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "4",
+        "output_name": "all_results",
+        "label": "isescan_results_tabular"
+      },
+      {
+        "step_id": "4",
+        "output_name": "logfile",
+        "label": "isescan_logfile_text"
+      },
+      {
+        "step_id": "4",
+        "output_name": "annotation",
+        "label": "isescan_annotation_gff3"
+      },
+      {
+        "step_id": "4",
+        "output_name": "summary",
+        "label": "isescan_summary_tabular"
+      },
+      {
+        "step_id": "4",
+        "output_name": "is_fasta",
+        "label": "isescan_is_fasta"
+      },
+      {
+        "step_id": "4",
+        "output_name": "orf_fna",
+        "label": "isescan_orf_fasta"
+      },
+      {
+        "step_id": "4",
+        "output_name": "orf_faa",
+        "label": "isescan_orf_faa"
+      },
+      {
+        "step_id": "5",
+        "output_name": "integrons_table",
+        "label": "integronfinder2_results_tabular"
+      },
+      {
+        "step_id": "5",
+        "output_name": "integron_log",
+        "label": "integronfinder2_logfile_text"
+      },
+      {
+        "step_id": "5",
+        "output_name": "summary",
+        "label": "integronfinder2_summary"
+      },
+      {
+        "step_id": "6",
+        "output_name": "raw_file",
+        "label": "plasmidfinder_results_raw"
+      },
+      {
+        "step_id": "6",
+        "output_name": "hit_file",
+        "label": "plasmidfinder_hit_genome_fasta"
+      },
+      {
+        "step_id": "6",
+        "output_name": "plasmid_file",
+        "label": "plasmidfinder_hit_reference_fasta"
+      },
+      {
+        "step_id": "6",
+        "output_name": "result_file",
+        "label": "plasmidfinder_results_tabular"
+      },
+      {
+        "step_id": "6",
+        "output_name": "json_file",
+        "label": "plasmidfinder_result_json"
+      },
+      {
+        "step_id": "7",
+        "output_name": "hypotheticals_tsv",
+        "label": "bakta_hypothetical_tabular"
+      },
+      {
+        "step_id": "7",
+        "output_name": "annotation_fna",
+        "label": "bakta_assembly_fasta"
+      },
+      {
+        "step_id": "7",
+        "output_name": "annotation_tsv",
+        "label": "bakta_annotation_tabular"
+      },
+      {
+        "step_id": "7",
+        "output_name": "annotation_gff3",
+        "label": "bakta_annotation_gff3"
+      },
+      {
+        "step_id": "7",
+        "output_name": "annotation_gbff",
+        "label": "bakta_annotation_gbff"
+      },
+      {
+        "step_id": "7",
+        "output_name": "annotation_embl",
+        "label": "bakta_annotation_embl"
+      },
+      {
+        "step_id": "7",
+        "output_name": "hypotheticals_faa",
+        "label": "bakta_hypothetical_faa"
+      },
+      {
+        "step_id": "7",
+        "output_name": "annotation_json",
+        "label": "bakta_annotation_json"
+      },
+      {
+        "step_id": "7",
+        "output_name": "annotation_plot",
+        "label": "bakta_annotation_plot"
+      },
+      {
+        "step_id": "7",
+        "output_name": "summary_txt",
+        "label": "bakta_summary_text"
+      },
+      {
+        "step_id": "7",
+        "output_name": "annotation_ffn",
+        "label": "bakta_nucleotide_sequence_fasta"
+      },
+      {
+        "step_id": "7",
+        "output_name": "annotation_faa",
+        "label": "bakta_aminoacid_sequence_faa"
+      },
+      {
+        "step_id": "8",
+        "output_name": "output_json",
+        "label": "tooldistillator_results_annotation"
+      },
+      {
+        "step_id": "9",
+        "output_name": "summary_json",
+        "label": "tooldistillator_summarize_annotation"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "4",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "sequence"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "input|database_name"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "input|input_file"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "input_option|amrfinder_db_select"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "input_option|bakta_db_select"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "input_option|input_file"
+      },
+      {
+        "from_step": 6,
+        "from_output": "hit_file",
+        "to_step": "8",
+        "to_input": "tool_section|tools_0|select_tool|genome_hit_path"
+      },
+      {
+        "from_step": 6,
+        "from_output": "json_file",
+        "to_step": "8",
+        "to_input": "tool_section|tools_0|select_tool|input"
+      },
+      {
+        "from_step": 6,
+        "from_output": "plasmid_file",
+        "to_step": "8",
+        "to_input": "tool_section|tools_0|select_tool|plasmid_hit_path"
+      },
+      {
+        "from_step": 6,
+        "from_output": "result_file",
+        "to_step": "8",
+        "to_input": "tool_section|tools_0|select_tool|plasmid_result_tabular_path"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "tool_section|tools_0|select_tool|reference_database_version"
+      },
+      {
+        "from_step": 4,
+        "from_output": "annotation",
+        "to_step": "8",
+        "to_input": "tool_section|tools_1|select_tool|annotation_path"
+      },
+      {
+        "from_step": 4,
+        "from_output": "all_results",
+        "to_step": "8",
+        "to_input": "tool_section|tools_1|select_tool|input"
+      },
+      {
+        "from_step": 4,
+        "from_output": "is_fasta",
+        "to_step": "8",
+        "to_input": "tool_section|tools_1|select_tool|is_fna_path"
+      },
+      {
+        "from_step": 4,
+        "from_output": "orf_faa",
+        "to_step": "8",
+        "to_input": "tool_section|tools_1|select_tool|orf_faa_path"
+      },
+      {
+        "from_step": 4,
+        "from_output": "orf_fna",
+        "to_step": "8",
+        "to_input": "tool_section|tools_1|select_tool|orf_fna_path"
+      },
+      {
+        "from_step": 4,
+        "from_output": "summary",
+        "to_step": "8",
+        "to_input": "tool_section|tools_1|select_tool|summary_path"
+      },
+      {
+        "from_step": 5,
+        "from_output": "integrons_table",
+        "to_step": "8",
+        "to_input": "tool_section|tools_2|select_tool|input"
+      },
+      {
+        "from_step": 5,
+        "from_output": "summary",
+        "to_step": "8",
+        "to_input": "tool_section|tools_2|select_tool|summary_file_path"
+      },
+      {
+        "from_step": 7,
+        "from_output": "annotation_faa",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|amino_acid_annotation_path"
+      },
+      {
+        "from_step": 7,
+        "from_output": "annotation_embl",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|annotation_embl_path"
+      },
+      {
+        "from_step": 7,
+        "from_output": "annotation_gbff",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|annotation_genbank_path"
+      },
+      {
+        "from_step": 7,
+        "from_output": "annotation_tsv",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|annotation_tabular_path"
+      },
+      {
+        "from_step": 7,
+        "from_output": "annotation_fna",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|contig_sequences_path"
+      },
+      {
+        "from_step": 7,
+        "from_output": "annotation_gff3",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|gff_file_path"
+      },
+      {
+        "from_step": 7,
+        "from_output": "hypotheticals_faa",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|hypothetical_protein_path"
+      },
+      {
+        "from_step": 7,
+        "from_output": "hypotheticals_tsv",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|hypothetical_tabular_path"
+      },
+      {
+        "from_step": 7,
+        "from_output": "annotation_json",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|input"
+      },
+      {
+        "from_step": 7,
+        "from_output": "annotation_ffn",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|nucleotide_annotation_path"
+      },
+      {
+        "from_step": 7,
+        "from_output": "annotation_plot",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|plot_file_path"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|reference_database_version"
+      },
+      {
+        "from_step": 7,
+        "from_output": "summary_txt",
+        "to_step": "8",
+        "to_input": "tool_section|tools_3|select_tool|summary_result_path"
+      },
+      {
+        "from_step": 8,
+        "from_output": "output_json",
+        "to_step": "9",
+        "to_input": "summarize_data"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:44:31.952699"
+}

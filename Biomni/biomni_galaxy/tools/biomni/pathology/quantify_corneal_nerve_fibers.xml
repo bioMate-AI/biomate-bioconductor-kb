@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<tool id="biomni_pathology_quantify_corneal_nerve_fibers" name="Biomni: Quantify Corneal Nerve Fibers" version="1.0.0">
+    <description>Quantify the volume/density of immunofluorescence-labeled corneal nerve fibers.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.pathology import quantify_corneal_nerve_fibers
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = quantify_corneal_nerve_fibers(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --image_path '$image_path'
+--marker_type '$marker_type'
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $threshold_method
+    --threshold_method '$threshold_method'
+#end if
+]]></command>
+    <inputs>
+        <param name="image_path" type="text" label="Image Path" help="Path to the immunofluorescence microscopy image file"  />
+        <param name="marker_type" type="text" label="Marker Type" help="Type of nerve fiber marker (e.g., 'βIII-tubulin', 'SP', 'L1CAM')"  />
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './output')" value="./output" optional="true"/>
+        <param name="threshold_method" type="text" label="Threshold Method" help="Method for thresholding ('otsu', 'adaptive', 'manual'), default is 'otsu'" value="otsu" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Quantify Corneal Nerve Fibers**
+
+Quantify the volume/density of immunofluorescence-labeled corneal nerve fibers.
+
+Parameters
+----------
+image_path : str
+    Path to the immunofluorescence microscopy image file
+marker_type : str
+    Type of nerve fiber marker (e.g., 'βIII-tubulin', 'SP', 'L1CAM')
+output_dir : str, optional
+    Directory to save output files (default: './output')
+threshold_method : str, optional
+    Method for thresholding ('otsu', 'adaptive', 'manual'), default is 'otsu'
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results
+
+**Domain**: pathology
+**Function**: quantify_corneal_nerve_fibers
+]]></help>
+</tool>

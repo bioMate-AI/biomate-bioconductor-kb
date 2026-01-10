@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<tool id="biomni_cancer_biology_perform_gene_expression_nmf_analysis" name="Biomni: Perform Gene Expression Nmf Analysis" version="1.0.0">
+    <description>Performs Non-negative Matrix Factorization (NMF) on gene expression data to extract</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.cancer_biology import perform_gene_expression_nmf_analysis
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = perform_gene_expression_nmf_analysis(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --expression_data_path '$expression_data_path'
+#if $n_components
+    --n_components '$n_components'
+#end if
+#if $normalize
+    --normalize '$normalize'
+#end if
+#if $output_dir
+    --output_dir '$output_dir'
+#end if
+#if $random_state
+    --random_state '$random_state'
+#end if
+]]></command>
+    <inputs>
+        <param name="expression_data_path" type="text" label="Expression Data Path" help="Values should be non-negative (e.g., normalized counts or expression values)."  />
+        <param name="n_components" type="text" label="N Components" help="Number of metagenes (components) to extract." value="10" optional="true"/>
+        <param name="normalize" type="text" label="Normalize" help="Whether to normalize the expression data before applying NMF." value="True" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save the output files." value="nmf_results" optional="true"/>
+        <param name="random_state" type="text" label="Random State" help="Random seed for reproducibility." value="42" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Perform Gene Expression Nmf Analysis**
+
+Performs Non-negative Matrix Factorization (NMF) on gene expression data to extract
+metagenes and their associated sample weights for tumor subtype identification.
+
+Parameters
+----------
+expression_data_path : str
+    Path to a CSV or TSV file containing gene expression data with genes as rows and samples as columns.
+    Values should be non-negative (e.g., normalized counts or expression values).
+n_components : int, default=10
+    Number of metagenes (components) to extract.
+normalize : bool, default=True
+    Whether to normalize the expression data before applying NMF.
+output_dir : str, default="nmf_results"
+    Directory to save the output files.
+random_state : int, default=42
+    Random seed for reproducibility.
+
+Returns
+-------
+str
+    Research log summarizing the analysis steps and results.
+
+**Domain**: cancer_biology
+**Function**: perform_gene_expression_nmf_analysis
+]]></help>
+</tool>
