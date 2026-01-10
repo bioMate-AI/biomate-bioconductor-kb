@@ -1,0 +1,86 @@
+# Galaxy Cloud Executor Configuration - Simplified
+# 与 Python 配置类完全匹配的版本
+
+# ========================================
+# AWS Provider Configuration
+# ========================================
+aws:
+  enabled: true
+  region: "us-west-2"
+  
+  # 认证配置 - 使用 SSO Profile
+  profile: "AdministratorAccess-399683337364"
+  
+  # Batch 配置
+  batch_queue: "galaxy-cloud-queue"
+  batch_compute_environment: "galaxy-cloud-compute"
+  batch_job_definition: "galaxy-cloud-executor"
+  
+  # S3 配置
+  s3_bucket: "galaxy-cloud-data-1760241377"
+  s3_prefix: "galaxy-cloud-executor"
+  s3_storage_class: "STANDARD"
+  
+  # EC2/Spot 配置
+  instance_types:
+    - "m5.large"
+    - "m5.xlarge" 
+    - "c5.large"
+    - "c5.xlarge"
+  spot_allocation: "spot"
+  max_spot_attempts: 3
+  
+  # 资源限制
+  resource_limits:
+    max_cpus: 64
+    max_memory_mb: 128000
+    max_concurrent_jobs: 50
+  
+  # 重试配置
+  retry_config:
+    max_attempts: 3
+    initial_delay: 1.0
+    max_delay: 60.0
+    exponential_base: 2.0
+    jitter: 0.1
+
+# ========================================
+# 其他云提供商 (禁用)
+# ========================================
+azure:
+  enabled: false
+
+gcp:
+  enabled: false
+
+kubernetes:
+  enabled: false
+
+# ========================================
+# 全局设置
+# ========================================
+default_provider: "aws"
+enable_auto_discovery: true
+job_timeout_seconds: 3600
+poll_interval_seconds: 30.0
+cleanup_completed_jobs: true
+
+# ========================================
+# 安全配置
+# ========================================
+security:
+  enable_encryption: true
+  enable_tls: true
+  secret_backend: "env"
+
+# ========================================
+# 监控配置
+# ========================================
+monitoring:
+  enable_metrics: true
+  enable_tracing: false
+  metrics_port: 8080
+  log_level: "info"
+  structured_logging: true
+  prometheus_job: "galaxy-cloud-executor"
+  jaeger_service_name: "galaxy-cloud-executor"

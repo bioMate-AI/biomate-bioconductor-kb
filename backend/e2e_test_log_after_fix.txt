@@ -1,0 +1,145 @@
+
+================================================================================
+  BIOMNI AI AGENT E2E TEST SUITE
+  Testing: Single Tools, Subworkflows, Workflows with Embeddings
+================================================================================
+
+[SETUP] Registration
+    Waiting for registration form to load...
+    Registration form loaded
+Registered: biomni_test_1766090889@biomate.test
+
+================================================================================
+  SCENARIO 1: Single Tool - Database Query (query_uniprot)
+  Type: single_tool | Domain: database
+================================================================================
+
+[Initial Request]
+Researcher: I need to look up information about the BRCA1 protein from UniProt.
+Can you help me query the databa...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 8.0s
+BioMate: ✅ Generated new workflow with 2 steps (tool-constrained)
+
+This workflow addresses the research goal of retrieving BRCA1 protein information from UniPr...
+Researcher: Yes, this workflow looks perfect for my needs! I need to retrieve the BRCA1 protein sequence and functional annotations from UniProt, and this two-step approach will give me exactly that information. Please run it.
+
+[Turn 2] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 13.1s
+BioMate: ✅ Generated new workflow with 2 steps (tool-constrained)
+
+This workflow addresses the research goal of retrieving BRCA1 protein sequence and functiona...
+Researcher: Yes, this is exactly what I need! The workflow will retrieve the BRCA1 protein sequence and add comprehensive functional annotations - please run it.
+
+[Turn 3] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 16.1s
+BioMate: ✅ Generated new workflow with 4 steps (tool-constrained)
+
+This workflow is designed to comprehensively annotate the BRCA1 protein with functional info...
+Researcher: Perfect! This comprehensive 4-step workflow will give me everything I need - the BRCA1 sequence, functional domains, pathway annotations, and physicochemical properties. Please run it now.
+
+[Turn 4] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 15.1s
+BioMate: ✅ Generated new workflow with 4 steps (tool-constrained)
+
+This workflow addresses the comprehensive BRCA1 analysis request by: (1) retrieving the BRCA...
+Researcher: Yes, this comprehensive workflow is exactly what I need for my BRCA1 research! Please run it to get the sequence, functional domains, pathway annotations, and conservation analysis.
+
+[Turn 5] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 20.1s
+BioMate: ✅ Generated new workflow with 5 steps (tool-constrained)
+
+This workflow addresses BRCA1 research requirements by: (1) retrieving BRCA1 sequence data f...
+Researcher: Yes, this 5-step workflow is perfect for my BRCA1 research! The cancer-specific enrichment analysis with oncoEnrichR is particularly valuable given BRCA1's role in breast cancer. Please run it.
+
+[Turn 6] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 23.2s
+BioMate: ✅ Generated new workflow with 5 steps (tool-constrained)
+
+This workflow is specifically designed for comprehensive BRCA1 cancer research. It begins wi...
+Researcher: Perfect! This cancer-focused workflow with DDR network analysis and mutational signatures is ideal for my BRCA1 research. Please run it now.
+
+Result: FAIL (Turns: 6)
+
+================================================================================
+  SCENARIO 2: Single Tool - Genomics (gene_set_enrichment_analysis)
+  Type: single_tool | Domain: genomics
+================================================================================
+
+[Initial Request]
+Researcher: I have a list of differentially expressed genes from my RNA-seq experiment.
+Can you run gene set enr...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 17.1s
+BioMate: ✅ Generated new workflow with 5 steps (tool-constrained)
+
+This workflow is designed to perform comprehensive gene set enrichment analysis on a list of...
+Researcher: Yes, this workflow looks perfect for my gene set enrichment analysis! The multi-tool approach with g:Profiler, Reactome, and ClusterProfiler will give me comprehensive pathway coverage for my 8 differentially expressed genes. Let's run it.
+
+[Turn 2] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 18.1s
+BioMate: ✅ Generated new workflow with 5 steps (tool-constrained)
+
+This workflow implements a comprehensive multi-tool gene set enrichment analysis strategy fo...
+Researcher: Yes, this is exactly what I need! The comprehensive multi-tool approach with g:Profiler, Reactome, and ClusterProfiler will provide robust enrichment analysis for my gene list, and the cross-validation step is perfect for identifying consensus pathways. Let's run this workflow.
+
+[Turn 3] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 22.1s
+BioMate: ✅ Generated new workflow with 8 steps (tool-constrained)
+
+This workflow implements a comprehensive multi-tool enrichment analysis strategy with cross-...
+Researcher: Perfect! This 8-step workflow with cross-validation and protein interaction network analysis is exactly what I need for comprehensive enrichment analysis of my cancer-related genes. Let's run it now.
+
+[Turn 4] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 21.2s
+BioMate: ✅ Generated new workflow with 8 steps (tool-constrained)
+
+This comprehensive 8-step workflow is specifically designed for cancer-related gene enrichme...
+Researcher: Yes, this is perfect! The cancer-specific focus with DDR network analysis is ideal for my gene list since it includes key cancer genes like BRCA1, TP53, and PTEN. Let's run this workflow.
+
+[Turn 5] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 22.2s
+BioMate: ✅ Generated new workflow with 7 steps (tool-constrained)
+
+This workflow is specifically designed for cancer-focused DDR (DNA damage response) network ...
+Researcher: Excellent! This workflow is perfect for my cancer research - the specialized DDR network analysis with oncoEnrichR is exactly what I need for these cancer genes. Let's run it now.
+
+[Turn 6] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 22.1s
+BioMate: ✅ Generated new workflow with 8 steps (tool-constrained)
+
+This workflow is specifically designed for comprehensive cancer DDR (DNA Damage Response) ne...
+Researcher: This comprehensive workflow looks excellent for my cancer DDR analysis! The combination of genomic alteration detection, specialized DDR network analysis, and cancer-specific enrichment with oncoEnrichR is exactly what I need. Let's run it.
+
+Result: FAIL (Turns: 6)
+
+================================================================================
+  SCENARIO 3: Single Tool - Molecular Biology (design_primers)
+  Type: single_tool | Domain: molecular_biology
+================================================================================
+
+[Initial Request]
+Researcher: I need to design PCR primers for amplifying a gene region.
+Here is my target sequence: ATGCGATCGATCG...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 11.1s
+BioMate: ✅ Generated new workflow with 3 steps (tool-constrained)
+
+This workflow addresses the PCR primer design task systematically. Step 1 uses the Design Pr...
+Researcher: Yes, this looks perfect! This three-step workflow is exactly what I need - primer design, validation, and PCR simulation will ensure I get optimal primers for my target sequence. Let's run it.

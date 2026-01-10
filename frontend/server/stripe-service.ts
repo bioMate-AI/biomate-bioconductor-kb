@@ -28,7 +28,7 @@ export class StripeService {
   constructor() {
     if (STRIPE_SECRET_KEY) {
       this.stripe = new Stripe(STRIPE_SECRET_KEY, {
-        apiVersion: '2024-11-20.acacia',
+        apiVersion: '2025-09-30.clover' as const,
       });
       this.initialized = true;
       console.log('[Stripe] Service initialized');

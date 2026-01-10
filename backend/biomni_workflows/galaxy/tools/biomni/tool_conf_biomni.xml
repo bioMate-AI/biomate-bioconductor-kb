@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<toolbox>
+<!-- Tool path is one level up so paths like biomni/database/... resolve correctly -->
+<toolbox tool_path="/home/yzhang/biomate/backend/biomni_workflows/galaxy/tools">
   <section id="biomni" name="Biomni Tools">
     <section id="biomni_biochemistry" name="Biochemistry">
       <tool file="biomni/biochemistry/analyze_circular_dichroism_spectra.xml"/>

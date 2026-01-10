@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   ChevronDown,
   ChevronRight,
@@ -16,10 +17,24 @@ import {
   AlertCircle,
   Loader2,
   Workflow,
-  FileOutput
+  FileOutput,
+  BookOpen,
+  FlaskConical,
+  AlertTriangle,
+  Info,
+  FileText,
+  Laptop,
+  Scissors,
+  Download
 } from "lucide-react"
 import { cn, getSimpleToolName } from "@/lib/utils"
 import { ParameterDialog } from "./parameter-dialog"
+import { CitationPanel } from "./citation-panel"
+import { PilotRunPanel } from "./pilot-run-panel"
+import { WorkflowReportViewer } from "./workflow-report-viewer"
+import { InteractiveLauncher } from "./interactive-launcher"
+import { SubworkflowExtractor } from "./subworkflow-extractor"
+import type { Citation, MethodsSection, TuningConfig, ParameterRecommendation } from "@shared/schema"
 
 interface WorkflowStep {
   id: string
@@ -33,6 +48,13 @@ interface WorkflowStep {
   outputs?: any[]
 }
 
+interface OutputFile {
+  id: string
+  name: string
+  size: number
+  type?: string
+}
+
 interface WorkflowArtifactProps {
   workflow: {
     name?: string
@@ -41,12 +63,35 @@ interface WorkflowArtifactProps {
   }
   steps: WorkflowStep[]
   confidence?: number
-  onRun?: () => void
+  onRun?: (workflow: any, steps: WorkflowStep[]) => void
   onStop?: () => void
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   isRunning?: boolean
   progress?: number
   className?: string
+  // Citation support
+  citations?: Citation[]
+  methodsSection?: MethodsSection
+  onViewCitations?: () => void
+  // Pilot run support - enhanced with reasons
+  pilotRunSuggested?: boolean
+  pilotReasons?: string[]
+  pilotMessage?: string
+  totalSamples?: number
+  tuningConfig?: TuningConfig
+  onStartPilotRun?: (config: TuningConfig) => Promise<void>
+  onProceedToFullRun?: (params: Record<string, any>) => void
+  // Parameter recommendations
+  parameterRecommendations?: Record<string, ParameterRecommendation>
+  // Validation info
+  validationIssues?: string[]
+  validationWarnings?: string[]
+  // Completion state (for post-execution actions)
+  isCompleted?: boolean
+  invocationId?: string
+  galaxyWorkflowId?: string
+  galaxyHistoryId?: string
+  outputs?: OutputFile[]
 }
 
 export function WorkflowArtifact({
@@ -58,11 +103,46 @@ export function WorkflowArtifact({
   onParameterChange,
   isRunning = false,
   progress = 0,
-  className
+  className,
+  // Citation props
+  citations = [],
+  methodsSection,
+  onViewCitations,
+  // Pilot run props - enhanced
+  pilotRunSuggested = false,
+  pilotReasons = [],
+  pilotMessage,
+  totalSamples = 0,
+  tuningConfig,
+  onStartPilotRun,
+  onProceedToFullRun,
+  // Parameter recommendations
+  parameterRecommendations = {},
+  // Validation info
+  validationIssues = [],
+  validationWarnings = [],
+  // Completion state
+  isCompleted = false,
+  invocationId,
+  galaxyWorkflowId,
+  galaxyHistoryId,
+  outputs = []
 }: WorkflowArtifactProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
   const [editingStep, setEditingStep] = useState<WorkflowStep | null>(null)
+  const [showCitations, setShowCitations] = useState(false)
+  const [showPilotRun, setShowPilotRun] = useState(false)
+  const [pilotBannerDismissed, setPilotBannerDismissed] = useState(false)
+  // P1-P3: New dialog states
+  const [showReportViewer, setShowReportViewer] = useState(false)
+  const [showInteractiveLauncher, setShowInteractiveLauncher] = useState(false)
+  const [showSubworkflowExtractor, setShowSubworkflowExtractor] = useState(false)
+
+  // Determine if we should show the pilot suggestion banner prominently
+  const showPilotBanner = pilotRunSuggested && !pilotBannerDismissed && !isRunning && pilotReasons.length > 0
+
+  const citationsCount = citations.filter(c => c.doi || c.pmid || c.title).length
 
   // Normalize steps array
   const normalizedSteps: WorkflowStep[] = Array.isArray(steps) ? steps :
@@ -144,13 +224,42 @@ export function WorkflowArtifact({
                   </Badge>
                 )}
 
+                {/* Citation badge */}
+                {citationsCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => {
+                      setShowCitations(!showCitations)
+                      onViewCitations?.()
+                    }}
+                  >
+                    <BookOpen className="h-3 w-3 mr-1" />
+                    {citationsCount} citation{citationsCount !== 1 ? 's' : ''}
+                  </Button>
+                )}
+
+                {/* Pilot run button - shows when pilot is suggested, regardless of sample count */}
+                {pilotRunSuggested && !isRunning && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                    onClick={() => setShowPilotRun(true)}
+                  >
+                    <FlaskConical className="h-3 w-3 mr-1" />
+                    Pilot Run
+                  </Button>
+                )}
+
                 {isRunning ? (
                   <Button size="sm" variant="destructive" onClick={onStop}>
                     <Square className="h-3 w-3 mr-1" />
                     Stop
                   </Button>
                 ) : (
-                  <Button size="sm" onClick={onRun} className="bg-green-600 hover:bg-green-700">
+                  <Button size="sm" onClick={() => onRun?.(workflow, normalizedSteps)} className="bg-green-600 hover:bg-green-700">
                     <Play className="h-3 w-3 mr-1" />
                     Run
                   </Button>
@@ -173,6 +282,86 @@ export function WorkflowArtifact({
               <p className="text-sm text-muted-foreground mt-2">
                 {workflow.annotation}
               </p>
+            )}
+
+            {/* Prominent Pilot Run Suggestion Banner */}
+            {showPilotBanner && (
+              <Alert className="mt-3 border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
+                <FlaskConical className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800 dark:text-amber-200 text-sm font-medium">
+                  Pilot Run Recommended
+                </AlertTitle>
+                <AlertDescription className="text-amber-700 dark:text-amber-300">
+                  <p className="text-xs mb-2">
+                    {pilotMessage || 'We suggest running a pilot test before full execution.'}
+                  </p>
+                  {pilotReasons.length > 0 && (
+                    <ul className="text-xs space-y-1 mb-3">
+                      {pilotReasons.map((reason, idx) => (
+                        <li key={idx} className="flex items-start gap-1">
+                          <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                          <span>{reason}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-7 bg-amber-600 hover:bg-amber-700 text-white"
+                      onClick={() => setShowPilotRun(true)}
+                    >
+                      <FlaskConical className="h-3 w-3 mr-1" />
+                      Configure Pilot Run
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs text-amber-700 hover:text-amber-800"
+                      onClick={() => setPilotBannerDismissed(true)}
+                    >
+                      Skip pilot
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Validation Issues Warning */}
+            {validationIssues.length > 0 && (
+              <Alert variant="destructive" className="mt-3">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle className="text-sm font-medium">Validation Issues</AlertTitle>
+                <AlertDescription>
+                  <ul className="text-xs space-y-1 mt-1">
+                    {validationIssues.slice(0, 3).map((issue, idx) => (
+                      <li key={idx}>{issue}</li>
+                    ))}
+                    {validationIssues.length > 3 && (
+                      <li className="text-muted-foreground">+{validationIssues.length - 3} more issues</li>
+                    )}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Validation Warnings */}
+            {validationWarnings.length > 0 && validationIssues.length === 0 && (
+              <Alert className="mt-3 border-yellow-500/50 bg-yellow-50/50 dark:bg-yellow-950/20">
+                <Info className="h-4 w-4 text-yellow-600" />
+                <AlertTitle className="text-yellow-800 dark:text-yellow-200 text-sm font-medium">Warnings</AlertTitle>
+                <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+                  <ul className="text-xs space-y-1 mt-1">
+                    {validationWarnings.slice(0, 3).map((warning, idx) => (
+                      <li key={idx}>{warning}</li>
+                    ))}
+                    {validationWarnings.length > 3 && (
+                      <li className="text-muted-foreground">+{validationWarnings.length - 3} more warnings</li>
+                    )}
+                  </ul>
+                </AlertDescription>
+              </Alert>
             )}
           </CardHeader>
 
@@ -278,6 +467,75 @@ export function WorkflowArtifact({
                   </div>
                 ))}
               </div>
+
+              {/* Completion Actions Panel - P1, P2, P3 */}
+              {isCompleted && !isRunning && (
+                <>
+                  <Separator className="my-4" />
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      Workflow Completed
+                    </h4>
+
+                    {/* Output summary */}
+                    {outputs.length > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        {outputs.length} output file{outputs.length !== 1 ? 's' : ''} generated
+                      </div>
+                    )}
+
+                    {/* Action buttons grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {/* P1: Generate Report */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-auto py-2 flex-col gap-1"
+                        onClick={() => setShowReportViewer(true)}
+                        disabled={!invocationId}
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span className="text-xs">Report</span>
+                      </Button>
+
+                      {/* P2: Open in Jupyter */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-auto py-2 flex-col gap-1"
+                        onClick={() => setShowInteractiveLauncher(true)}
+                      >
+                        <Laptop className="h-4 w-4" />
+                        <span className="text-xs">Jupyter</span>
+                      </Button>
+
+                      {/* P3: Extract Subworkflow */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-auto py-2 flex-col gap-1"
+                        onClick={() => setShowSubworkflowExtractor(true)}
+                        disabled={!galaxyWorkflowId}
+                      >
+                        <Scissors className="h-4 w-4" />
+                        <span className="text-xs">Extract</span>
+                      </Button>
+
+                      {/* Download outputs */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-auto py-2 flex-col gap-1"
+                        disabled={outputs.length === 0}
+                      >
+                        <Download className="h-4 w-4" />
+                        <span className="text-xs">Download</span>
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </CollapsibleContent>
         </Collapsible>
@@ -295,6 +553,65 @@ export function WorkflowArtifact({
             parameters: editingStep.parameters || {}
           }}
           onSave={(stepId, params) => handleSaveParameters(params)}
+        />
+      )}
+
+      {/* Citation Panel */}
+      {showCitations && (citations.length > 0 || methodsSection || workflow) && (
+        <div className="mt-3">
+          <CitationPanel
+            citations={citations}
+            methodsSection={methodsSection}
+            workflow={workflow}
+            isCollapsed={false}
+            onExportBibTeX={() => {
+              console.log('Exporting BibTeX...')
+            }}
+          />
+        </div>
+      )}
+
+      {/* Pilot Run Panel */}
+      {showPilotRun && (
+        <div className="mt-3">
+          <PilotRunPanel
+            workflowId={workflow.name || 'workflow'}
+            totalSamples={totalSamples || 10}
+            initialConfig={tuningConfig}
+            onStartPilot={onStartPilotRun}
+            onProceedToFull={onProceedToFullRun}
+            onClose={() => setShowPilotRun(false)}
+            parameterRecommendations={parameterRecommendations}
+          />
+        </div>
+      )}
+
+      {/* P1: Workflow Report Viewer */}
+      {invocationId && (
+        <WorkflowReportViewer
+          open={showReportViewer}
+          onOpenChange={setShowReportViewer}
+          invocationId={invocationId}
+          workflowName={workflow.name}
+        />
+      )}
+
+      {/* P2: Interactive Tool Launcher */}
+      <InteractiveLauncher
+        open={showInteractiveLauncher}
+        onOpenChange={setShowInteractiveLauncher}
+        outputs={outputs}
+        historyId={galaxyHistoryId}
+      />
+
+      {/* P3: Subworkflow Extractor */}
+      {galaxyWorkflowId && (
+        <SubworkflowExtractor
+          open={showSubworkflowExtractor}
+          onOpenChange={setShowSubworkflowExtractor}
+          workflowId={galaxyWorkflowId}
+          workflowName={workflow.name}
+          steps={normalizedSteps}
         />
       )}
     </>

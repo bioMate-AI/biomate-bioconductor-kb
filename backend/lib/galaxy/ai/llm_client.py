@@ -34,7 +34,7 @@ class LLMClient:
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
             }
-            
+
         elif self.provider == 'anthropic':
             self.api_base = self.base_url or "https://api.anthropic.com"
             self.headers = {
@@ -42,51 +42,45 @@ class LLMClient:
                 "Content-Type": "application/json",
                 "anthropic-version": "2023-06-01"
             }
-            
-        elif self.provider == 'qwen':  # 通义千问
-            self.api_base = self.base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+        elif self.provider in ['gemini', 'google']:
+            # Gemini uses API key in URL, not headers
+            self.api_base = "https://generativelanguage.googleapis.com/v1beta"
             self.headers = {
-                "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
             }
-            
-        elif self.provider == 'zhipu':  # 智谱AI (GLM)
-            self.api_base = self.base_url or "https://open.bigmodel.cn/api/paas/v4"
-            self.headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            
-        elif self.provider == 'baichuan':  # 百川
-            self.api_base = self.base_url or "https://api.baichuan-ai.com/v1"
-            self.headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            
-        elif self.provider == 'moonshot':  # 月之暗面 Kimi
-            self.api_base = self.base_url or "https://api.moonshot.cn/v1"
-            self.headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            
-        elif self.provider == 'deepseek':  # 深度求索
+
+        elif self.provider == 'deepseek':
             self.api_base = self.base_url or "https://api.deepseek.com/v1"
             self.headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
             }
-            
+
+        elif self.provider == 'ollama':
+            # Ollama local models (qwen3, llama3, mistral, etc.)
+            self.api_base = self.base_url or "http://localhost:11434/v1"
+            self.headers = {
+                "Content-Type": "application/json"
+            }
+
+        elif self.provider == 'zhipu':
+            # Zhipu AI GLM models (GLM-4.7, GLM-4.6V-Flash, etc.)
+            self.api_base = self.base_url or "https://open.bigmodel.cn/api/paas/v4"
+            self.headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
         elif self.provider == 'local':
-            # For local models (e.g., Ollama, LM Studio)
+            # For local models (e.g., LM Studio, vLLM)
             self.api_base = self.base_url or "http://localhost:1234/v1"
             self.headers = {
                 "Content-Type": "application/json"
             }
             if self.api_key:
                 self.headers["Authorization"] = f"Bearer {self.api_key}"
-                
+
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
     
@@ -99,9 +93,15 @@ class LLMClient:
                 return await self._generate_openai(prompt, **kwargs)
             elif self.provider == 'anthropic':
                 return await self._generate_anthropic(prompt, **kwargs)
-            elif self.provider in ['qwen', 'zhipu', 'baichuan', 'moonshot', 'deepseek']:
-                # 国内模型大多使用OpenAI兼容API
+            elif self.provider in ['gemini', 'google']:
+                return await self._generate_gemini(prompt, **kwargs)
+            elif self.provider in ['deepseek']:
+                # DeepSeek uses OpenAI-compatible API
                 return await self._generate_openai_compatible(prompt, **kwargs)
+            elif self.provider == 'ollama':
+                return await self._generate_ollama(prompt, **kwargs)
+            elif self.provider == 'zhipu':
+                return await self._generate_zhipu(prompt, **kwargs)
             elif self.provider == 'local':
                 return await self._generate_local(prompt, **kwargs)
             else:
@@ -128,7 +128,7 @@ class LLMClient:
                         original_headers = self.headers
 
                         self.provider = 'anthropic'
-                        self.model = 'claude-3-5-sonnet-20241022'
+                        self.model = 'claude-sonnet-4-5'
                         self.api_key = fallback_api_key
                         self._setup_provider()  # Re-setup with Anthropic config
 
@@ -174,7 +174,7 @@ class LLMClient:
                 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(run_async)
-                    return future.result(timeout=30)
+                    return future.result(timeout=120)
             else:
                 return loop.run_until_complete(self.generate_async(prompt, **kwargs))
         except:
@@ -243,7 +243,7 @@ class LLMClient:
                 f"{self.api_base}/v1/messages",
                 headers=self.headers,
                 json=data,
-                timeout=30.0
+                timeout=120.0
             )
             
             if response.status_code == 200:
@@ -251,7 +251,46 @@ class LLMClient:
                 return result['content'][0]['text'].strip()
             else:
                 raise Exception(f"Anthropic API error: {response.status_code} {response.text}")
-    
+
+    async def _generate_gemini(self, prompt: str, **kwargs) -> str:
+        """Generate using Google Gemini API."""
+        # Gemini uses a different API format
+        data = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": f"You are a helpful bioinformatics assistant. {prompt}"}
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": kwargs.get('temperature', 0.3),
+                "maxOutputTokens": kwargs.get('max_tokens', 1000),
+            }
+        }
+
+        async with httpx.AsyncClient() as client:
+            # Gemini API endpoint format
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+            response = await client.post(
+                url,
+                json=data,
+                timeout=120.0
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                # Extract text from Gemini response format
+                candidates = result.get('candidates', [])
+                if candidates:
+                    content = candidates[0].get('content', {})
+                    parts = content.get('parts', [])
+                    if parts:
+                        return parts[0].get('text', '').strip()
+                raise Exception("No content in Gemini response")
+            else:
+                raise Exception(f"Gemini API error: {response.status_code} {response.text}")
+
     async def _generate_openai_compatible(self, prompt: str, **kwargs) -> str:
         """Generate using OpenAI-compatible APIs (for Chinese models)."""
         data = {
@@ -269,7 +308,7 @@ class LLMClient:
                 f"{self.api_base}/chat/completions",
                 headers=self.headers,
                 json=data,
-                timeout=30.0
+                timeout=120.0
             )
             
             if response.status_code == 200:
@@ -277,6 +316,71 @@ class LLMClient:
                 return result['choices'][0]['message']['content'].strip()
             else:
                 raise Exception(f"{self.provider.upper()} API error: {response.status_code} {response.text}")
+
+    async def _generate_ollama(self, prompt: str, **kwargs) -> str:
+        """Generate using Ollama local models (qwen3, llama3, mistral, etc.)."""
+        # Check if we should use thinking mode for complex tasks
+        use_thinking = kwargs.get('use_thinking', False)
+
+        # Prepare the prompt - Qwen3 supports /think and /no_think toggles
+        if use_thinking and 'qwen3' in self.model.lower():
+            prompt = f"/think\n{prompt}"
+
+        data = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": "You are a helpful bioinformatics assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            "options": {
+                "num_predict": kwargs.get('max_tokens', 1000),
+                "temperature": kwargs.get('temperature', 0.3)
+            }
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.api_base}/chat/completions",
+                headers=self.headers,
+                json=data,
+                timeout=300.0  # Longer timeout for local models
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                return result['choices'][0]['message']['content'].strip()
+            else:
+                raise Exception(f"Ollama API error: {response.status_code} {response.text}")
+
+    async def _generate_zhipu(self, prompt: str, **kwargs) -> str:
+        """Generate using Zhipu AI GLM models (GLM-4.7, GLM-4.6V-Flash, etc.)."""
+        data = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": "You are a helpful bioinformatics assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": kwargs.get('max_tokens', 1000),
+            "temperature": kwargs.get('temperature', 0.3)
+        }
+
+        # GLM-4.7 supports tool calling - add if provided
+        if 'tools' in kwargs:
+            data['tools'] = kwargs['tools']
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.api_base}/chat/completions",
+                headers=self.headers,
+                json=data,
+                timeout=120.0
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                return result['choices'][0]['message']['content'].strip()
+            else:
+                raise Exception(f"Zhipu API error: {response.status_code} {response.text}")
 
     async def _generate_local(self, prompt: str, **kwargs) -> str:
         """Generate using local model API (compatible with OpenAI format)."""
@@ -289,15 +393,15 @@ class LLMClient:
             "max_tokens": kwargs.get('max_tokens', 1000),
             "temperature": kwargs.get('temperature', 0.3)
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{self.api_base}/chat/completions",
                 headers=self.headers,
                 json=data,
-                timeout=30.0
+                timeout=120.0
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
                 return result['choices'][0]['message']['content'].strip()
@@ -327,160 +431,133 @@ class LLMClient:
 
 # Provider-specific model mappings
 
-# OpenAI 模型
-OPENAI_MODELS = [
-    "gpt-4o",                        # 最新多模态模型
-    "gpt-4",                         # 高性能通用模型  
-    "gpt-4-turbo",                   # 优化版GPT-4
-    "gpt-3.5-turbo"                  # 经济实用选择
-]
-
-# Anthropic Claude 模型
+# Anthropic Claude models (Primary)
 CLAUDE_MODELS = [
-    "claude-3-5-sonnet-20241022",    # 最新且最强大
-    "claude-3-5-haiku-20241022",     # 最快
-    "claude-3-opus-20240229",        # 最智能但较慢
-    "claude-3-sonnet-20240229",      # 平衡性能
-    "claude-3-haiku-20240307"        # 快速且经济
+    "claude-sonnet-4-5",             # Claude 4.5 Sonnet - Best balance
+    "claude-opus-4-5",               # Claude 4.5 Opus - Most capable
+    "claude-haiku-3-5",              # Claude 3.5 Haiku - Fast & efficient
 ]
 
-# 通义千问模型 (阿里巴巴)
-QWEN_MODELS = [
-    "qwen-max",                      # 最强模型 (推荐)
-    "qwen-max-1201",                 # 12月最新版本
-    "qwen-plus",                     # 平衡性价比
-    "qwen-turbo",                    # 快速响应
-    "qwen-long",                     # 长文本处理
+# Google Gemini models
+GEMINI_MODELS = [
+    "gemini-2.0-flash-exp",          # Gemini 2.0 Flash - Latest experimental
+    "gemini-1.5-pro",                # Gemini 1.5 Pro - Production ready
+    "gemini-1.5-flash",              # Gemini 1.5 Flash - Fast responses
+    "gemini-nano",                   # Gemini Nano - Edge/mobile
 ]
 
-# 智谱AI GLM模型
-ZHIPU_MODELS = [
-    "glm-4-plus",                    # 最强版本
-    "glm-4",                         # 标准版本 (推荐)
-    "glm-4-air",                     # 轻量版本
-    "glm-4-airx",                    # 超快版本
-    "glm-4-flash",                   # 闪电版本
+# OpenAI models
+OPENAI_MODELS = [
+    "gpt-4o",                        # GPT-4o - Multimodal
+    "gpt-4-turbo",                   # GPT-4 Turbo
+    "gpt-3.5-turbo",                 # GPT-3.5 - Economic
 ]
 
-# 百川模型
-BAICHUAN_MODELS = [
-    "baichuan2-turbo",               # Turbo版本 (推荐)
-    "baichuan2-turbo-192k",          # 长上下文版本
-    "baichuan2-53b",                 # 53B参数版本
-]
-
-# 月之暗面 Kimi 模型
-MOONSHOT_MODELS = [
-    "moonshot-v1-128k",              # 128K上下文 (推荐)
-    "moonshot-v1-32k",               # 32K上下文
-    "moonshot-v1-8k",                # 8K上下文
-]
-
-# 深度求索模型
+# DeepSeek models
 DEEPSEEK_MODELS = [
-    "deepseek-chat",                 # 通用对话模型 (推荐)
-    "deepseek-coder",                # 代码专用模型
+    "deepseek-chat",                 # General chat
+    "deepseek-coder",                # Code specialist
 ]
 
-# 本地模型
-LOCAL_MODELS = [
-    "llama3",                        # Llama 3
-    "llama3.1",                      # Llama 3.1
-    "qwen2",                         # 通义千问本地版
-    "chatglm3",                      # ChatGLM3
-    "baichuan2",                     # 百川2本地版
+# Ollama local models
+OLLAMA_MODELS = [
+    "qwen3:32b",                     # Qwen3 32B - Strong reasoning, /think mode
+    "qwen3:14b",                     # Qwen3 14B - Good balance
+    "qwen3:8b",                      # Qwen3 8B - Fast
+    "llama3.3:70b",                  # Llama 3.3 70B - Very capable
+    "llama3.1:8b",                   # Llama 3.1 8B - Fast routing
+    "mistral:7b",                    # Mistral 7B - Efficient
+    "qwen3-coder:32b",               # Qwen3 Coder - Code specialist
+]
+
+# Zhipu GLM models
+ZHIPU_MODELS = [
+    "glm-4.7",                       # GLM-4.7 - Flagship, 400B MoE, best coding
+    "glm-4.6v-flash",                # GLM-4.6V-Flash 9B - Fast vision+language
+    "glm-4.6v",                      # GLM-4.6V 106B - Full vision model
+    "glm-4-flash",                   # GLM-4 Flash - Economic
 ]
 
 
 def get_recommended_model(provider: str) -> str:
     """Get recommended model for provider."""
     recommendations = {
+        'anthropic': 'claude-sonnet-4-5',
+        'gemini': 'gemini-2.0-flash-exp',
+        'google': 'gemini-2.0-flash-exp',
         'openai': 'gpt-4o',
-        'anthropic': 'claude-3-5-sonnet-20241022', 
-        'qwen': 'qwen-max',                        # 通义千问推荐
-        'zhipu': 'glm-4',                          # 智谱AI推荐  
-        'baichuan': 'baichuan2-turbo',             # 百川推荐
-        'moonshot': 'moonshot-v1-128k',            # Kimi推荐
-        'deepseek': 'deepseek-chat',               # DeepSeek推荐
-        'local': 'llama3.1'                       # 本地模型推荐
+        'deepseek': 'deepseek-chat',
+        'ollama': 'qwen3:32b',
+        'zhipu': 'glm-4.7',
     }
-    
-    return recommendations.get(provider.lower(), 'gpt-4')
+
+    return recommendations.get(provider.lower(), 'claude-sonnet-4-5')
 
 
 def get_provider_models(provider: str) -> list:
     """Get available models for a specific provider."""
     model_maps = {
-        'openai': OPENAI_MODELS,
         'anthropic': CLAUDE_MODELS,
-        'qwen': QWEN_MODELS,
-        'zhipu': ZHIPU_MODELS, 
-        'baichuan': BAICHUAN_MODELS,
-        'moonshot': MOONSHOT_MODELS,
+        'gemini': GEMINI_MODELS,
+        'google': GEMINI_MODELS,
+        'openai': OPENAI_MODELS,
         'deepseek': DEEPSEEK_MODELS,
-        'local': LOCAL_MODELS
+        'ollama': OLLAMA_MODELS,
+        'zhipu': ZHIPU_MODELS,
     }
-    
+
     return model_maps.get(provider.lower(), [])
 
 
 def get_all_providers() -> Dict[str, Dict[str, Any]]:
     """Get information about all supported providers."""
     return {
+        'anthropic': {
+            'name': 'Anthropic Claude',
+            'models': CLAUDE_MODELS,
+            'recommended': 'claude-sonnet-4-5',
+            'api_key_required': True,
+            'local': False,
+            'description': 'Safe, reliable AI assistant with strong reasoning'
+        },
+        'gemini': {
+            'name': 'Google Gemini',
+            'models': GEMINI_MODELS,
+            'recommended': 'gemini-2.0-flash-exp',
+            'api_key_required': True,
+            'local': False,
+            'description': 'Google multimodal AI with strong performance'
+        },
         'openai': {
             'name': 'OpenAI',
             'models': OPENAI_MODELS,
             'recommended': 'gpt-4o',
             'api_key_required': True,
-            'description': '国际领先的AI模型，功能强大'
-        },
-        'anthropic': {
-            'name': 'Anthropic Claude', 
-            'models': CLAUDE_MODELS,
-            'recommended': 'claude-3-5-sonnet-20241022',
-            'api_key_required': True,
-            'description': '安全可靠的AI助手，理解能力强'
-        },
-        'qwen': {
-            'name': '通义千问 (阿里巴巴)',
-            'models': QWEN_MODELS, 
-            'recommended': 'qwen-max',
-            'api_key_required': True,
-            'description': '阿里云出品，中文理解优秀，性价比高'
-        },
-        'zhipu': {
-            'name': '智谱AI GLM',
-            'models': ZHIPU_MODELS,
-            'recommended': 'glm-4', 
-            'api_key_required': True,
-            'description': '清华系AI公司，中英文双语能力强'
-        },
-        'baichuan': {
-            'name': '百川智能',
-            'models': BAICHUAN_MODELS,
-            'recommended': 'baichuan2-turbo',
-            'api_key_required': True, 
-            'description': '搜狗创始人创立，中文NLP技术领先'
-        },
-        'moonshot': {
-            'name': '月之暗面 Kimi',
-            'models': MOONSHOT_MODELS,
-            'recommended': 'moonshot-v1-128k',
-            'api_key_required': True,
-            'description': '长文本处理能力出众，上下文理解强'
+            'local': False,
+            'description': 'Industry-leading AI models'
         },
         'deepseek': {
-            'name': '深度求索 DeepSeek',
+            'name': 'DeepSeek',
             'models': DEEPSEEK_MODELS,
             'recommended': 'deepseek-chat',
             'api_key_required': True,
-            'description': '深度学习专家团队，推理能力强'
+            'local': False,
+            'description': 'Strong reasoning and coding capabilities'
         },
-        'local': {
-            'name': '本地模型',
-            'models': LOCAL_MODELS,
-            'recommended': 'llama3.1',
+        'ollama': {
+            'name': 'Ollama (Local)',
+            'models': OLLAMA_MODELS,
+            'recommended': 'qwen3:32b',
             'api_key_required': False,
-            'description': '本地部署，数据安全，无网络依赖'
-        }
+            'local': True,
+            'description': 'Local models via Ollama - qwen3, llama3, mistral'
+        },
+        'zhipu': {
+            'name': 'Zhipu AI (GLM)',
+            'models': ZHIPU_MODELS,
+            'recommended': 'glm-4.7',
+            'api_key_required': True,
+            'local': False,
+            'description': 'Chinese AI leader - GLM-4.7 flagship, strong coding'
+        },
     }

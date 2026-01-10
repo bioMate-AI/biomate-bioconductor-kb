@@ -1,0 +1,271 @@
+{
+  "workflow_id": "0816aa5461c390d2",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "0816aa5461c390d2",
+    "latest_workflow_id": "ecdecd48e919219d",
+    "name": " 'first class'",
+    "create_time": "2025-04-17T02:14:56.686137",
+    "update_time": "2025-04-23T02:19:10.516145",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "0b13d650-d68e-48f1-9596-e7b50395f1db",
+    "creator_deleted": false,
+    "annotations": [
+      ""
+    ],
+    "url": "/api/workflows/0816aa5461c390d2",
+    "owner": "dyy11",
+    "source_metadata": null,
+    "number_of_steps": 3,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "name": " 'first class'",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "mutant_R1.fastq"
+          }
+        ],
+        "label": "mutant_R1.fastq",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 0
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "bcc2b951-e575-481a-ab1f-383511effeaf",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "errors": null,
+        "id": 1,
+        "input_connections": {
+          "input_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "FastQC",
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 220,
+          "top": 0
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "2c64fded1286",
+          "name": "fastqc",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"input\", \"adapters\": null, \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"contaminants\": null, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": null, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.74+galaxy1",
+        "type": "tool",
+        "uuid": "0f7717d2-b0a2-4af4-8b5c-d667698b7aa1",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_quality_filter/cshl_fastq_quality_filter/1.0.2+galaxy2",
+        "errors": null,
+        "id": 2,
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Filter by quality",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 220,
+          "top": 120
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_quality_filter/cshl_fastq_quality_filter/1.0.2+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "b1e332a385f1",
+          "name": "fastq_quality_filter",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"input\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"percent\": \"80\", \"quality\": \"35\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.2+galaxy2",
+        "type": "tool",
+        "uuid": "483df44b-5da7-4982-8679-afa1a63ce3e1",
+        "when": null,
+        "workflow_outputs": []
+      }
+    },
+    "tags": [],
+    "uuid": "0b13d650-d68e-48f1-9596-e7b50395f1db",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": " 'first class'",
+      "annotation": "",
+      "format_version": "0.1",
+      "uuid": "0b13d650-d68e-48f1-9596-e7b50395f1db",
+      "version": 1,
+      "tags": [],
+      "creator": [],
+      "license": ""
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "mutant_R1.fastq",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "tool",
+        "name": "FastQC",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "tool_state": "{\"__input_ext\": \"input\", \"adapters\": null, \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"contaminants\": null, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": null, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 220,
+          "top": 0
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "2",
+        "type": "tool",
+        "name": "Filter by quality",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_quality_filter/cshl_fastq_quality_filter/1.0.2+galaxy2",
+        "tool_version": "1.0.2+galaxy2",
+        "tool_state": "{\"__input_ext\": \"input\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"percent\": \"80\", \"quality\": \"35\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 220,
+          "top": 120
+        },
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "step_id": "1"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_quality_filter/cshl_fastq_quality_filter/1.0.2+galaxy2",
+        "tool_version": "1.0.2+galaxy2",
+        "step_id": "2"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "mutant_R1.fastq",
+        "annotation": ""
+      }
+    ],
+    "outputs": [],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "1",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "2",
+        "to_input": "input"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T22:13:32.890565"
+}

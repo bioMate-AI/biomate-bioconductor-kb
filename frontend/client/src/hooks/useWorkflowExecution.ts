@@ -77,7 +77,7 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
       }));
 
       // Connect to SSE for real-time updates
-      connectToSSE(invocation.id);
+      connectToSSE(workflowId, invocation.id);
 
       return invocation;
     } catch (error: any) {
@@ -89,11 +89,11 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
   /**
    * Connect to SSE endpoint for real-time updates
    */
-  const connectToSSE = (invocationId: string) => {
+  const connectToSSE = (workflowId: string, invocationId: string) => {
     // Close existing connection
     disconnectFromSSE();
 
-    const eventSource = new EventSource(`/api/galaxy/workflows/sse/${invocationId}`);
+    const eventSource = new EventSource(`/api/galaxy/workflows/sse/${workflowId}/${invocationId}`);
 
     eventSource.onopen = () => {
       console.log(`[SSE] Connected to invocation ${invocationId}`);
@@ -279,10 +279,10 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
 
   // Auto-connect on mount if invocationId exists
   useEffect(() => {
-    if (autoConnect && state.invocationId && !isConnected) {
-      connectToSSE(state.invocationId);
+    if (autoConnect && state.workflowId && state.invocationId && !isConnected) {
+      connectToSSE(state.workflowId, state.invocationId);
     }
-  }, [autoConnect, state.invocationId, isConnected]);
+  }, [autoConnect, state.workflowId, state.invocationId, isConnected]);
 
   // Cleanup on unmount
   useEffect(() => {

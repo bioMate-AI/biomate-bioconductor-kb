@@ -1,0 +1,772 @@
+{
+  "workflow_id": "685b0de4c31f6695",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "685b0de4c31f6695",
+    "latest_workflow_id": "cc34e91b9fd6cf4a",
+    "name": "QIIME2 Ia: multiplexed data (single-en (release v0.2)",
+    "create_time": "2024-09-19T00:17:21.435314",
+    "update_time": "2025-04-25T14:08:33.160032",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "c56dcf21-433b-410d-824c-2ae855feb3b6",
+    "creator_deleted": false,
+    "annotations": [
+      "Importing single-end multiplexed data (not demultiplexed yet)"
+    ],
+    "url": "/api/workflows/685b0de4c31f6695",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 9,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "Importing single-end multiplexed data (not demultiplexed yet)",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "0009-0008-1496-1677",
+        "name": "Debjyoti Ghosh"
+      },
+      {
+        "address": "Permoserstraße 15, 04318 Leipzig",
+        "class": "Organization",
+        "name": "Helmholtz-Zentrum für Umweltforschung - UFZ"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "QIIME2 Ia: multiplexed data (single-en (release v0.2)",
+    "steps": {
+      "0": {
+        "annotation": "Single-end sequences",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Single-end sequences",
+            "name": "Sequences"
+          }
+        ],
+        "label": "Sequences",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 2.349740917339593,
+          "top": 0
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\", \"fastqillumina.gz\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "527ee0da-9670-4e51-a877-ffea15208e51",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "Barcode sequences",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Barcode sequences",
+            "name": "Barcodes"
+          }
+        ],
+        "label": "Barcodes",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0.5855346656953526,
+          "top": 97.72533948535487
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\", \"fastqillumina.gz\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "f474fb7c-9434-4f3d-abe6-4da9f1828d77",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "Metadata",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Metadata",
+            "name": "Metadata"
+          }
+        ],
+        "label": "Metadata",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0.5183062535642966,
+          "top": 204.0675768088665
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"tabular\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "17287d48-f061-4e8f-97e5-f8396758f6b1",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "Column name of the metadata to be used for demultiplexing",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Column name of the metadata to be used for demultiplexing",
+            "name": "Metadata parameter"
+          }
+        ],
+        "label": "Metadata parameter",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 310.7679254201888
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "c9fbbcee-1c15-4596-8d3c-025c35767f9a",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "Reverse complement barcodes",
+        "content_id": null,
+        "errors": null,
+        "id": 4,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Reverse complement barcodes",
+            "name": "Reverse complement barcodes"
+          }
+        ],
+        "label": "Reverse complement barcodes",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 2.073822021484375,
+          "top": 430.05810546875
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "801b1687-2431-4a86-a2dc-4562ed1eddeb",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "qiime2 tools input\nThis step allows the input of the files to be analysed and then generate a qza output, necessary for the QIIME2 pipeline.",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2_core__tools__import/qiime2_core__tools__import/2023.5.0+dist.h193f7cc9.3",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "import_root|__q2galaxy__GUI__cond__format__|import_barcodes|data": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "import_root|__q2galaxy__GUI__cond__format__|import_sequences|data": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "Input files",
+        "name": "qiime2 tools import",
+        "outputs": [
+          {
+            "name": "imported_data",
+            "type": "qza"
+          }
+        ],
+        "position": {
+          "left": 296.96873815702213,
+          "top": 157.00082696025927
+        },
+        "post_job_actions": {
+          "HideDatasetActionimported_data": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "imported_data"
+          },
+          "RenameDatasetActionimported_data": {
+            "action_arguments": {
+              "newname": "input-data-single-end"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "imported_data"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2_core__tools__import/qiime2_core__tools__import/2023.5.0+dist.h193f7cc9.3",
+        "tool_shed_repository": {
+          "changeset_revision": "10447a4b0cc3",
+          "name": "qiime2_core__tools__import",
+          "owner": "q2d2",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"import_root\": {\"type\": \"EMPSingleEndSequences\", \"__current_case__\": 5, \"__q2galaxy__GUI__cond__format__\": {\"format\": \"EMPSingleEndDirFmt\", \"__current_case__\": 1, \"import_sequences\": {\"name\": \"sequences.fastq.gz\", \"data\": {\"__class__\": \"ConnectedValue\"}}, \"import_barcodes\": {\"name\": \"barcodes.fastq.gz\", \"data\": {\"__class__\": \"ConnectedValue\"}}}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2023.5.0+dist.h193f7cc9.3",
+        "type": "tool",
+        "uuid": "c3b4a938-514b-4616-998d-2845e38cfb65",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "Import the metadata as artifact",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2_core__tools__import/qiime2_core__tools__import/2023.5.0+dist.h193f7cc9.3",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "import_root|__q2galaxy__GUI__cond__format__|import|data": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "Metadata as artifact",
+        "name": "qiime2 tools import",
+        "outputs": [
+          {
+            "name": "imported_data",
+            "type": "qza"
+          }
+        ],
+        "position": {
+          "left": 297.4600499643163,
+          "top": 3.3186015520126793
+        },
+        "post_job_actions": {
+          "HideDatasetActionimported_data": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "imported_data"
+          },
+          "RenameDatasetActionimported_data": {
+            "action_arguments": {
+              "newname": "input-metadata"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "imported_data"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2_core__tools__import/qiime2_core__tools__import/2023.5.0+dist.h193f7cc9.3",
+        "tool_shed_repository": {
+          "changeset_revision": "10447a4b0cc3",
+          "name": "qiime2_core__tools__import",
+          "owner": "q2d2",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"import_root\": {\"type\": \"ImmutableMetadata\", \"__current_case__\": 29, \"__q2galaxy__GUI__cond__format__\": {\"format\": \"ImmutableMetadataFormat\", \"__current_case__\": 0, \"import\": {\"name\": \"__q2galaxy__::literal::None\", \"data\": {\"__class__\": \"ConnectedValue\"}}}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2023.5.0+dist.h193f7cc9.3",
+        "type": "tool",
+        "uuid": "ede253fe-ee26-4eda-a8c2-cae140728270",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "qiime2 demux emp-single\nDemultiplex sequence data generated with the EMP protocol.",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__emp_single/qiime2__demux__emp_single/2023.5.0+q2galaxy.2023.5.0.2",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "__q2galaxy__GUI__section__extra_opts__|rev_comp_mapping_barcodes": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "barcodes|column": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "barcodes|source": {
+            "id": 6,
+            "output_name": "imported_data"
+          },
+          "seqs": {
+            "id": 5,
+            "output_name": "imported_data"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool qiime2 demux emp-single",
+            "name": "__q2galaxy__GUI__section__extra_opts__"
+          },
+          {
+            "description": "runtime parameter for tool qiime2 demux emp-single",
+            "name": "barcodes"
+          },
+          {
+            "description": "runtime parameter for tool qiime2 demux emp-single",
+            "name": "barcodes"
+          }
+        ],
+        "label": "Demultiplex single-end data",
+        "name": "qiime2 demux emp-single",
+        "outputs": [
+          {
+            "name": "per_sample_sequences",
+            "type": "qza"
+          },
+          {
+            "name": "error_correction_details",
+            "type": "qza"
+          }
+        ],
+        "position": {
+          "left": 588.0871883326284,
+          "top": 1.7404776473888466
+        },
+        "post_job_actions": {
+          "HideDatasetActionerror_correction_details": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "error_correction_details"
+          },
+          "RenameDatasetActionerror_correction_details": {
+            "action_arguments": {
+              "newname": "error-correction-demux"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "error_correction_details"
+          },
+          "RenameDatasetActionper_sample_sequences": {
+            "action_arguments": {
+              "newname": "demux-single-end"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "per_sample_sequences"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__emp_single/qiime2__demux__emp_single/2023.5.0+q2galaxy.2023.5.0.2",
+        "tool_shed_repository": {
+          "changeset_revision": "75b07a996ac0",
+          "name": "qiime2__demux__emp_single",
+          "owner": "q2d2",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"golay_error_correction\": true, \"rev_comp_barcodes\": false, \"rev_comp_mapping_barcodes\": {\"__class__\": \"ConnectedValue\"}, \"ignore_description_mismatch\": false}, \"barcodes\": {\"type\": \"qza\", \"__current_case__\": 1, \"source\": {\"__class__\": \"ConnectedValue\"}, \"column\": {\"__class__\": \"ConnectedValue\"}}, \"seqs\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2023.5.0+q2galaxy.2023.5.0.2",
+        "type": "tool",
+        "uuid": "e58a84be-b58a-4026-a097-7f068433a5c1",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Demultiplexed single-end data",
+            "output_name": "per_sample_sequences",
+            "uuid": "05975b9e-842c-4e64-b540-769573a215d6"
+          }
+        ]
+      },
+      "8": {
+        "annotation": "qiime2 demux summarize\nSummarize counts per sample.\n(Galaxy Version 2023.5.0+q2galaxy.2023.5.0.2)",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__summarize/qiime2__demux__summarize/2023.5.0+q2galaxy.2023.5.0.2",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "data": {
+            "id": 7,
+            "output_name": "per_sample_sequences"
+          }
+        },
+        "inputs": [],
+        "label": "Summarize demultiplexed output",
+        "name": "qiime2 demux summarize",
+        "outputs": [
+          {
+            "name": "visualization",
+            "type": "qzv"
+          }
+        ],
+        "position": {
+          "left": 869.9317626953125,
+          "top": 4.6328125
+        },
+        "post_job_actions": {
+          "RenameDatasetActionvisualization": {
+            "action_arguments": {
+              "newname": "demux-single-end-visualization"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "visualization"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__summarize/qiime2__demux__summarize/2023.5.0+q2galaxy.2023.5.0.2",
+        "tool_shed_repository": {
+          "changeset_revision": "d8a9f74f1a6d",
+          "name": "qiime2__demux__summarize",
+          "owner": "q2d2",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"n\": \"10000\"}, \"data\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2023.5.0+q2galaxy.2023.5.0.2",
+        "type": "tool",
+        "uuid": "ec972bbf-e2f0-451b-9f37-2152c3b16517",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Summary of the demultiplexing",
+            "output_name": "visualization",
+            "uuid": "83ada67d-9d73-4565-bcd4-cc537b15b986"
+          }
+        ]
+      }
+    },
+    "tags": [],
+    "uuid": "c56dcf21-433b-410d-824c-2ae855feb3b6",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "QIIME2 Ia: multiplexed data (single-en (release v0.2)",
+      "annotation": "Importing single-end multiplexed data (not demultiplexed yet)",
+      "format_version": "0.1",
+      "uuid": "c56dcf21-433b-410d-824c-2ae855feb3b6",
+      "version": 1,
+      "tags": [],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "0009-0008-1496-1677",
+          "name": "Debjyoti Ghosh"
+        },
+        {
+          "address": "Permoserstraße 15, 04318 Leipzig",
+          "class": "Organization",
+          "name": "Helmholtz-Zentrum für Umweltforschung - UFZ"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Sequences",
+        "annotation": "Single-end sequences",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\", \"fastqillumina.gz\"], \"tag\": null}",
+        "position": {
+          "left": 2.349740917339593,
+          "top": 0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Barcodes",
+        "annotation": "Barcode sequences",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\", \"fastqillumina.gz\"], \"tag\": null}",
+        "position": {
+          "left": 0.5855346656953526,
+          "top": 97.72533948535487
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Metadata",
+        "annotation": "Metadata",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"tabular\"], \"tag\": null}",
+        "position": {
+          "left": 0.5183062535642966,
+          "top": 204.0675768088665
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Metadata parameter",
+        "annotation": "Column name of the metadata to be used for demultiplexing",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 0,
+          "top": 310.7679254201888
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Reverse complement barcodes",
+        "annotation": "Reverse complement barcodes",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "position": {
+          "left": 2.073822021484375,
+          "top": 430.05810546875
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "qiime2 tools import",
+        "label": "Input files",
+        "annotation": "qiime2 tools input\nThis step allows the input of the files to be analysed and then generate a qza output, necessary for the QIIME2 pipeline.",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2_core__tools__import/qiime2_core__tools__import/2023.5.0+dist.h193f7cc9.3",
+        "tool_version": "2023.5.0+dist.h193f7cc9.3",
+        "tool_state": "{\"import_root\": {\"type\": \"EMPSingleEndSequences\", \"__current_case__\": 5, \"__q2galaxy__GUI__cond__format__\": {\"format\": \"EMPSingleEndDirFmt\", \"__current_case__\": 1, \"import_sequences\": {\"name\": \"sequences.fastq.gz\", \"data\": {\"__class__\": \"ConnectedValue\"}}, \"import_barcodes\": {\"name\": \"barcodes.fastq.gz\", \"data\": {\"__class__\": \"ConnectedValue\"}}}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 296.96873815702213,
+          "top": 157.00082696025927
+        },
+        "input_connections": {
+          "import_root|__q2galaxy__GUI__cond__format__|import_barcodes|data": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "import_root|__q2galaxy__GUI__cond__format__|import_sequences|data": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "imported_data",
+            "type": "qza"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "qiime2 tools import",
+        "label": "Metadata as artifact",
+        "annotation": "Import the metadata as artifact",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2_core__tools__import/qiime2_core__tools__import/2023.5.0+dist.h193f7cc9.3",
+        "tool_version": "2023.5.0+dist.h193f7cc9.3",
+        "tool_state": "{\"import_root\": {\"type\": \"ImmutableMetadata\", \"__current_case__\": 29, \"__q2galaxy__GUI__cond__format__\": {\"format\": \"ImmutableMetadataFormat\", \"__current_case__\": 0, \"import\": {\"name\": \"__q2galaxy__::literal::None\", \"data\": {\"__class__\": \"ConnectedValue\"}}}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 297.4600499643163,
+          "top": 3.3186015520126793
+        },
+        "input_connections": {
+          "import_root|__q2galaxy__GUI__cond__format__|import|data": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "imported_data",
+            "type": "qza"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "qiime2 demux emp-single",
+        "label": "Demultiplex single-end data",
+        "annotation": "qiime2 demux emp-single\nDemultiplex sequence data generated with the EMP protocol.",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__emp_single/qiime2__demux__emp_single/2023.5.0+q2galaxy.2023.5.0.2",
+        "tool_version": "2023.5.0+q2galaxy.2023.5.0.2",
+        "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"golay_error_correction\": true, \"rev_comp_barcodes\": false, \"rev_comp_mapping_barcodes\": {\"__class__\": \"ConnectedValue\"}, \"ignore_description_mismatch\": false}, \"barcodes\": {\"type\": \"qza\", \"__current_case__\": 1, \"source\": {\"__class__\": \"ConnectedValue\"}, \"column\": {\"__class__\": \"ConnectedValue\"}}, \"seqs\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 588.0871883326284,
+          "top": 1.7404776473888466
+        },
+        "input_connections": {
+          "__q2galaxy__GUI__section__extra_opts__|rev_comp_mapping_barcodes": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "barcodes|column": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "barcodes|source": {
+            "id": 6,
+            "output_name": "imported_data"
+          },
+          "seqs": {
+            "id": 5,
+            "output_name": "imported_data"
+          }
+        },
+        "outputs": [
+          {
+            "name": "per_sample_sequences",
+            "type": "qza"
+          },
+          {
+            "name": "error_correction_details",
+            "type": "qza"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "qiime2 demux summarize",
+        "label": "Summarize demultiplexed output",
+        "annotation": "qiime2 demux summarize\nSummarize counts per sample.\n(Galaxy Version 2023.5.0+q2galaxy.2023.5.0.2)",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__summarize/qiime2__demux__summarize/2023.5.0+q2galaxy.2023.5.0.2",
+        "tool_version": "2023.5.0+q2galaxy.2023.5.0.2",
+        "tool_state": "{\"__q2galaxy__GUI__section__extra_opts__\": {\"n\": \"10000\"}, \"data\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 869.9317626953125,
+          "top": 4.6328125
+        },
+        "input_connections": {
+          "data": {
+            "id": 7,
+            "output_name": "per_sample_sequences"
+          }
+        },
+        "outputs": [
+          {
+            "name": "visualization",
+            "type": "qzv"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2_core__tools__import/qiime2_core__tools__import/2023.5.0+dist.h193f7cc9.3",
+        "tool_version": "2023.5.0+dist.h193f7cc9.3",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2_core__tools__import/qiime2_core__tools__import/2023.5.0+dist.h193f7cc9.3",
+        "tool_version": "2023.5.0+dist.h193f7cc9.3",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__emp_single/qiime2__demux__emp_single/2023.5.0+q2galaxy.2023.5.0.2",
+        "tool_version": "2023.5.0+q2galaxy.2023.5.0.2",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/q2d2/qiime2__demux__summarize/qiime2__demux__summarize/2023.5.0+q2galaxy.2023.5.0.2",
+        "tool_version": "2023.5.0+q2galaxy.2023.5.0.2",
+        "step_id": "8"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "Sequences",
+        "annotation": "Single-end sequences"
+      },
+      {
+        "step_id": "1",
+        "label": "Barcodes",
+        "annotation": "Barcode sequences"
+      },
+      {
+        "step_id": "2",
+        "label": "Metadata",
+        "annotation": "Metadata"
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "7",
+        "output_name": "per_sample_sequences",
+        "label": "Demultiplexed single-end data"
+      },
+      {
+        "step_id": "8",
+        "output_name": "visualization",
+        "label": "Summary of the demultiplexing"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "import_root|__q2galaxy__GUI__cond__format__|import_barcodes|data"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "import_root|__q2galaxy__GUI__cond__format__|import_sequences|data"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "import_root|__q2galaxy__GUI__cond__format__|import|data"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "__q2galaxy__GUI__section__extra_opts__|rev_comp_mapping_barcodes"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "barcodes|column"
+      },
+      {
+        "from_step": 6,
+        "from_output": "imported_data",
+        "to_step": "7",
+        "to_input": "barcodes|source"
+      },
+      {
+        "from_step": 5,
+        "from_output": "imported_data",
+        "to_step": "7",
+        "to_input": "seqs"
+      },
+      {
+        "from_step": 7,
+        "from_output": "per_sample_sequences",
+        "to_step": "8",
+        "to_input": "data"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T22:07:11.216659"
+}

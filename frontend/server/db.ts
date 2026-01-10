@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '../shared/schema';
+import * as ltmSchema from '../shared/ltm-schema';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
@@ -9,11 +10,14 @@ if (!process.env.DATABASE_URL) {
 // Create connection pool
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-// Create Drizzle instance with schema
-export const db = drizzle(pool, { schema });
+// Combine schemas
+const combinedSchema = { ...schema, ...ltmSchema };
 
-// Export schema for use in queries
-export { schema };
+// Create Drizzle instance with combined schema
+export const db = drizzle(pool, { schema: combinedSchema });
+
+// Export schemas for use in queries
+export { schema, ltmSchema };
 
 // Health check function
 export async function checkDatabaseConnection(): Promise<boolean> {

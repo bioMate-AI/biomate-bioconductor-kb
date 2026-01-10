@@ -1,0 +1,3846 @@
+{
+  "workflow_id": "634bbef1f67a0e30",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "634bbef1f67a0e30",
+    "latest_workflow_id": "5d6f3d426d773904",
+    "name": "dcTMD calculations with GROMACS (release v0.1.4)",
+    "create_time": "2023-11-13T11:08:22.458152",
+    "update_time": "2025-04-25T14:10:57.067955",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "47f5f855-3b31-4a59-bf0b-2bccc554379f",
+    "creator_deleted": false,
+    "annotations": [
+      "Perform dcTMD free energy simulations and calculations"
+    ],
+    "url": "/api/workflows/634bbef1f67a0e30",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 36,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "Perform dcTMD free energy simulations and calculations",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-0621-6705",
+        "name": "Simon Bray"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "dcTMD calculations with GROMACS (release v0.1.4)",
+    "steps": {
+      "0": {
+        "annotation": "Ligand SDF",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Ligand SDF",
+            "name": "Ligand SDF"
+          }
+        ],
+        "label": "Ligand SDF",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0.0,
+          "top": 0.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "62bbf04d-a7b4-4825-9b2d-55442241708d",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "Set to -1.0 to skip protonation",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Set to -1.0 to skip protonation",
+            "name": "pH to protonate ligand"
+          }
+        ],
+        "label": "pH to protonate ligand",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 0.0,
+          "top": 100.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"default\": -1.0, \"validators\": [], \"parameter_type\": \"float\", \"optional\": true}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "4af951e9-4245-4ee7-9b62-48b3c4150f6c",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "961ee3ff-e5aa-4cda-a1c3-0d3a632c8268"
+          }
+        ]
+      },
+      "2": {
+        "annotation": "Protein PDB",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Protein PDB",
+            "name": "Protein PDB"
+          }
+        ],
+        "label": "Protein PDB",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0.0,
+          "top": 241.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "b7327403-34eb-4094-b8b4-6dedc60de126",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "NaCl concentration (mol/dm^3)",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "NaCl concentration (mol/dm^3)",
+            "name": "Salt concentration"
+          }
+        ],
+        "label": "Salt concentration",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 288.0,
+          "top": 11.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "f642db2e-691c-4f0a-8ab5-c5a1ccfa45d0",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "c2d9a4a0-ab9b-485e-9626-98c1e7d85e17"
+          }
+        ]
+      },
+      "4": {
+        "annotation": "Water model",
+        "content_id": null,
+        "errors": null,
+        "id": 4,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Water model",
+            "name": "Water model"
+          }
+        ],
+        "label": "Water model",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 0.0,
+          "top": 341.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictions\": [\"tip3p\", \"tip4p\", \"tips3p\", \"tip5p\", \"spc\", \"spce\", \"none\"], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "f7ad790c-57af-4195-8ce4-1170cce903a9",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "1f0f38eb-7055-40b5-9374-b4d8f49b47dd"
+          }
+        ]
+      },
+      "5": {
+        "annotation": "Force field",
+        "content_id": null,
+        "errors": null,
+        "id": 5,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Force field",
+            "name": "Force field"
+          }
+        ],
+        "label": "Force field",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 0.0,
+          "top": 441.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictions\": [\"oplsaa\", \"gromos43a1\", \"amber96\", \"gromos53a6\", \"amber99sb\", \"gromos53a5\", \"gromos43a2\", \"amberGS\", \"charmm27\", \"amber03\", \"gromos54a7\", \"gromos45a3\", \"amber99\", \"amber94\"], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "b4df9a24-f174-45f6-a42a-6e04157e8ed6",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "aabd4711-a476-4728-84ec-a2e6ae687106"
+          }
+        ]
+      },
+      "6": {
+        "annotation": "Number of simulations in the TMD ensemble",
+        "content_id": null,
+        "errors": null,
+        "id": 6,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Number of simulations in the TMD ensemble",
+            "name": "Number of simulations"
+          }
+        ],
+        "label": "Number of simulations",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 0.0,
+          "top": 842.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "8a311a27-cc9f-4e18-985b-9be0abeb1a9a",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "fe169a4d-c08e-4495-9801-58b1884dbfe7"
+          }
+        ]
+      },
+      "7": {
+        "annotation": "Temperature",
+        "content_id": null,
+        "errors": null,
+        "id": 7,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Temperature",
+            "name": "Temperature"
+          }
+        ],
+        "label": "Temperature",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 0.0,
+          "top": 983.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "4782f006-0273-4be7-8494-2c3a0e58ca29",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "3dc083c8-a4d3-4124-b4e3-f3c2e4cf5d52"
+          }
+        ]
+      },
+      "8": {
+        "annotation": "Number of equilibration steps",
+        "content_id": null,
+        "errors": null,
+        "id": 8,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Number of equilibration steps",
+            "name": "Number of equilibration steps"
+          }
+        ],
+        "label": "Number of equilibration steps",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 864.0,
+          "top": 897.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "606d5ed8-e755-42a8-8b2a-55f8fddd7c2f",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "4bbdb3d0-ad45-4ec1-8734-9e5336af3243"
+          }
+        ]
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/get_online_data/ctb_online_data_fetch/0.4",
+        "errors": null,
+        "id": 9,
+        "input_connections": {},
+        "inputs": [],
+        "label": null,
+        "name": "Online data",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 586.0,
+          "top": 1169.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutput": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/get_online_data/ctb_online_data_fetch/0.4",
+        "tool_shed_repository": {
+          "changeset_revision": "2538366eb8fb",
+          "name": "get_online_data",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"url_paste\": \"https://raw.githubusercontent.com/galaxyproject/iwc/main/workflows/computational-chemistry/gromacs-dctmd/tmd.mdp\", \"whitelist\": \"mdp\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.4",
+        "type": "tool",
+        "uuid": "46ef98e7-3753-4e8f-9fa9-1e5bada13bc8",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "10": {
+        "annotation": "Rate to pull groups apart (nm/ps)",
+        "content_id": null,
+        "errors": null,
+        "id": 10,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Rate to pull groups apart (nm/ps)",
+            "name": "Pulling rate"
+          }
+        ],
+        "label": "Pulling rate",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 288.0,
+          "top": 1315.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "e1b86671-aaa6-49c4-ac4a-848cb7f693a7",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "93acf07c-7661-442d-b40a-e4c117409e88"
+          }
+        ]
+      },
+      "11": {
+        "annotation": "MD step length",
+        "content_id": null,
+        "errors": null,
+        "id": 11,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "MD step length",
+            "name": "Step length (ps)"
+          }
+        ],
+        "label": "Step length (ps)",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 864.0,
+          "top": 1160.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "bc0ed58b-b656-4112-9376-02b93586d9b4",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "b1fd3b94-987b-40bf-8f38-deb8c1e2e8af"
+          }
+        ]
+      },
+      "12": {
+        "annotation": "List of atom indices (separated with spaces) which make up the protein pull group",
+        "content_id": null,
+        "errors": null,
+        "id": 12,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "List of atom indices (separated with spaces) which make up the protein pull group",
+            "name": "Protein pull group"
+          }
+        ],
+        "label": "Protein pull group",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 1440.0,
+          "top": 550.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "2e171a2c-f902-4582-af4a-5a3b91b0be3f",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "65916da0-3a4e-4765-bace-d4e1301f3f40"
+          }
+        ]
+      },
+      "13": {
+        "annotation": "Number of steps for the production simulation",
+        "content_id": null,
+        "errors": null,
+        "id": 13,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Number of steps for the production simulation",
+            "name": "Number of steps"
+          }
+        ],
+        "label": "Number of steps",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 586.0,
+          "top": 1468.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "cb1ebd84-317f-442c-b3e7-bdcb62fed552",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "40391cba-49ac-48fd-9c1a-04da1ed37911"
+          }
+        ]
+      },
+      "14": {
+        "annotation": "pull-group1-pbcatom - the reference atom index for the treatment of periodic boundary conditions inside the group ",
+        "content_id": null,
+        "errors": null,
+        "id": 14,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "pull-group1-pbcatom - the reference atom index for the treatment of periodic boundary conditions inside the group ",
+            "name": "Pull group pbcatom"
+          }
+        ],
+        "label": "Pull group pbcatom",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 1162.0,
+          "top": 1101.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "230061e2-5bac-4872-9290-000932cbeb5e",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "ed9e8e7f-54cf-481b-a582-74c1cd906292"
+          }
+        ]
+      },
+      "15": {
+        "annotation": "",
+        "id": 15,
+        "input_connections": {
+          "Apoprotein PDB": {
+            "id": 2,
+            "input_subworkflow_step_id": 2,
+            "output_name": "output"
+          },
+          "Force field": {
+            "id": 5,
+            "input_subworkflow_step_id": 4,
+            "output_name": "output"
+          },
+          "Ligand SDF": {
+            "id": 0,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output"
+          },
+          "Water model": {
+            "id": 4,
+            "input_subworkflow_step_id": 3,
+            "output_name": "output"
+          },
+          "pH": {
+            "id": 1,
+            "input_subworkflow_step_id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Create GRO and TOP complex files",
+        "outputs": [],
+        "position": {
+          "left": 285.5,
+          "top": 167.0
+        },
+        "subworkflow": {
+          "a_galaxy_workflow": "true",
+          "annotation": "",
+          "comments": [],
+          "creator": [
+            {
+              "class": "Person",
+              "identifier": "https://orcid.org/0000-0002-0621-6705",
+              "name": "Simon Bray"
+            }
+          ],
+          "format-version": "0.1",
+          "license": "MIT",
+          "name": "Create GRO and TOP complex files",
+          "steps": {
+            "0": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 0,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Ligand SDF"
+                }
+              ],
+              "label": "Ligand SDF",
+              "name": "Input dataset",
+              "outputs": [],
+              "position": {
+                "left": 0,
+                "top": 461
+              },
+              "tool_id": null,
+              "tool_state": "{\"optional\": false, \"format\": [\"sdf\"], \"tag\": null}",
+              "tool_version": null,
+              "type": "data_input",
+              "uuid": "faa5cc6a-f37f-4686-8fc1-6be67ffc4e1a",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "1": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 1,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "pH"
+                }
+              ],
+              "label": "pH",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 0,
+                "top": 718
+              },
+              "tool_id": null,
+              "tool_state": "{\"default\": -1.0, \"validators\": [], \"parameter_type\": \"float\", \"optional\": true}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "0a1d3df6-0180-4bed-ab4b-7e48b21cdcd1",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": null,
+                  "output_name": "output",
+                  "uuid": "7dd2e035-f906-40c8-990a-00550e31bf55"
+                }
+              ]
+            },
+            "2": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 2,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Apoprotein PDB"
+                }
+              ],
+              "label": "Apoprotein PDB",
+              "name": "Input dataset",
+              "outputs": [],
+              "position": {
+                "left": 1112,
+                "top": 0
+              },
+              "tool_id": null,
+              "tool_state": "{\"optional\": false, \"tag\": null}",
+              "tool_version": null,
+              "type": "data_input",
+              "uuid": "32994eea-dca4-4038-adf5-de388e070ef6",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "3": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 3,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Water model"
+                }
+              ],
+              "label": "Water model",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 1112,
+                "top": 120
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"restrictions\": [\"tip3p\", \"tip4p\", \"tips3p\", \"tip5p\", \"spc\", \"spce\", \"none\"], \"parameter_type\": \"text\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "4f8bffd3-58ce-4ac4-b1c1-6d7de2245f3c",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": null,
+                  "output_name": "output",
+                  "uuid": "b1f7a15d-4b4f-4d8f-95a1-efd856d81f1d"
+                }
+              ]
+            },
+            "4": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 4,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Force field"
+                }
+              ],
+              "label": "Force field",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 1112,
+                "top": 220
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"restrictions\": [\"oplsaa\", \"gromos43a1\", \"amber96\", \"gromos53a6\", \"amber99sb\", \"amber99sb\", \"gromos53a5\", \"gromos43a2\", \"amberGS\", \"charmm27\", \"amber03\", \"gromos54a7\", \"gromos45a3\", \"amber99\", \"amber94\"], \"parameter_type\": \"text\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "b64f9319-362a-47fe-8235-4ef6922d9c5a",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": null,
+                  "output_name": "output",
+                  "uuid": "f7885ea7-8ef3-4271-bf77-80a22444d67a"
+                }
+              ]
+            },
+            "5": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/ctb_rdkit_descriptors/ctb_rdkit_descriptors/2020.03.4+galaxy1",
+              "errors": null,
+              "id": 5,
+              "input_connections": {
+                "infile": {
+                  "id": 0,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "Descriptors",
+              "outputs": [
+                {
+                  "name": "outfile",
+                  "type": "tabular"
+                }
+              ],
+              "position": {
+                "left": 278,
+                "top": 445
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutfile": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "outfile"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/ctb_rdkit_descriptors/ctb_rdkit_descriptors/2020.03.4+galaxy1",
+              "tool_shed_repository": {
+                "changeset_revision": "0993ac4f4a23",
+                "name": "ctb_rdkit_descriptors",
+                "owner": "bgruening",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"header\": false, \"infile\": {\"__class__\": \"ConnectedValue\"}, \"select_multiple\": [\"FormalCharge\"], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "2020.03.4+galaxy1",
+              "type": "tool",
+              "uuid": "42f12ef9-b4bb-40d8-9ef9-ce323282e0d9",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "6": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/openbabel_compound_convert/openbabel_compound_convert/3.1.1+galaxy0",
+              "errors": null,
+              "id": 6,
+              "input_connections": {
+                "infile": {
+                  "id": 0,
+                  "output_name": "output"
+                },
+                "ph": {
+                  "id": 1,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "Compound conversion",
+              "outputs": [
+                {
+                  "name": "outfile",
+                  "type": "text"
+                }
+              ],
+              "position": {
+                "left": 278,
+                "top": 595
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutfile": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "outfile"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/openbabel_compound_convert/openbabel_compound_convert/3.1.1+galaxy0",
+              "tool_shed_repository": {
+                "changeset_revision": "e2c36f62e22f",
+                "name": "openbabel_compound_convert",
+                "owner": "bgruening",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"appendtotitle\": \"\", \"dative_bonds\": false, \"infile\": {\"__class__\": \"ConnectedValue\"}, \"oformat\": {\"oformat_opts_selector\": \"pdb\", \"__current_case__\": 51}, \"ph\": {\"__class__\": \"ConnectedValue\"}, \"remove_h\": false, \"split\": false, \"unique\": {\"unique_opts_selector\": \"\", \"__current_case__\": 0}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "3.1.1+galaxy0",
+              "type": "tool",
+              "uuid": "597682e1-d877-4e18-a5e4-daa997b8c702",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "7": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_setup/gmx_setup/2022+galaxy0",
+              "errors": null,
+              "id": 7,
+              "input_connections": {
+                "ff": {
+                  "id": 4,
+                  "output_name": "output"
+                },
+                "pdb_input": {
+                  "id": 2,
+                  "output_name": "output"
+                },
+                "water": {
+                  "id": 3,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "GROMACS initial setup",
+              "outputs": [
+                {
+                  "name": "output1",
+                  "type": "top"
+                },
+                {
+                  "name": "output2",
+                  "type": "gro"
+                },
+                {
+                  "name": "output3",
+                  "type": "itp"
+                },
+                {
+                  "name": "report",
+                  "type": "txt"
+                }
+              ],
+              "position": {
+                "left": 1386,
+                "top": 44
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutput1": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output1"
+                },
+                "HideDatasetActionoutput2": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output2"
+                },
+                "HideDatasetActionreport": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "report"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_setup/gmx_setup/2022+galaxy0",
+              "tool_shed_repository": {
+                "changeset_revision": "070e3ecc3fda",
+                "name": "gmx_setup",
+                "owner": "chemteam",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"capture_log\": true, \"ff\": {\"__class__\": \"ConnectedValue\"}, \"ignore_h\": false, \"pdb_input\": {\"__class__\": \"ConnectedValue\"}, \"water\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "2022+galaxy0",
+              "type": "tool",
+              "uuid": "c5fa27d7-389c-40ff-b860-2cb3d8408ff4",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "Position restraints file",
+                  "output_name": "output3",
+                  "uuid": "2fbb7eda-c376-495a-94b9-ea5f7b87c87f"
+                }
+              ]
+            },
+            "8": {
+              "annotation": "",
+              "content_id": "Cut1",
+              "errors": null,
+              "id": 8,
+              "input_connections": {
+                "input": {
+                  "id": 5,
+                  "output_name": "outfile"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "Cut",
+              "outputs": [
+                {
+                  "name": "out_file1",
+                  "type": "tabular"
+                }
+              ],
+              "position": {
+                "left": 556,
+                "top": 445
+              },
+              "post_job_actions": {
+                "HideDatasetActionout_file1": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "out_file1"
+                }
+              },
+              "tool_id": "Cut1",
+              "tool_state": "{\"columnList\": \"c2\", \"delimiter\": \"T\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.0.2",
+              "type": "tool",
+              "uuid": "f6a063ef-e721-4726-ab1b-4dec29c080c0",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "9": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_grep_tool/1.1.1",
+              "errors": null,
+              "id": 9,
+              "input_connections": {
+                "infile": {
+                  "id": 6,
+                  "output_name": "outfile"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "Search in textfiles",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 556,
+                "top": 651
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutput": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_grep_tool/1.1.1",
+              "tool_shed_repository": {
+                "changeset_revision": "ddf54b12c295",
+                "name": "text_processing",
+                "owner": "bgruening",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"case_sensitive\": \"-i\", \"color\": \"NOCOLOR\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"invert\": \"\", \"lines_after\": \"0\", \"lines_before\": \"0\", \"regex_type\": \"-P\", \"url_paste\": \"HETATM\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.1.1",
+              "type": "tool",
+              "uuid": "153c1608-20f0-4f4f-9e03-91a97745d394",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "10": {
+              "annotation": "",
+              "content_id": "param_value_from_file",
+              "errors": null,
+              "id": 10,
+              "input_connections": {
+                "input1": {
+                  "id": 8,
+                  "output_name": "out_file1"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "Parse parameter value",
+              "outputs": [
+                {
+                  "name": "integer_param",
+                  "type": "expression.json"
+                }
+              ],
+              "position": {
+                "left": 834,
+                "top": 415
+              },
+              "post_job_actions": {
+                "HideDatasetActioninteger_param": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "integer_param"
+                }
+              },
+              "tool_id": "param_value_from_file",
+              "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"param_type\": \"integer\", \"remove_newlines\": true, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "0.1.0",
+              "type": "tool",
+              "uuid": "fcde93a3-7fb7-4332-9992-020019ba6c28",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "11": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/chemteam/ambertools_antechamber/ambertools_antechamber/21.10+galaxy0",
+              "errors": null,
+              "id": 11,
+              "input_connections": {
+                "allparams|nc": {
+                  "id": 10,
+                  "output_name": "integer_param"
+                },
+                "input1": {
+                  "id": 9,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool AnteChamber",
+                  "name": "allparams"
+                }
+              ],
+              "label": null,
+              "name": "AnteChamber",
+              "outputs": [
+                {
+                  "name": "output1",
+                  "type": "mol2"
+                }
+              ],
+              "position": {
+                "left": 1112,
+                "top": 540
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutput1": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output1"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/ambertools_antechamber/ambertools_antechamber/21.10+galaxy0",
+              "tool_shed_repository": {
+                "changeset_revision": "8a839e6a1e3e",
+                "name": "ambertools_antechamber",
+                "owner": "chemteam",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"allparams\": {\"nc\": {\"__class__\": \"ConnectedValue\"}, \"m\": \"1\", \"resname\": \"UNL\", \"c\": \"bcc\", \"at\": \"gaff\", \"j\": \"4\"}, \"extraparams\": {\"pf\": true, \"usenc\": true}, \"input1\": {\"__class__\": \"ConnectedValue\"}, \"selected_output_format\": \"mol2\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "21.10+galaxy0",
+              "type": "tool",
+              "uuid": "59808959-222a-43aa-9a4c-9f0ff3dc41fd",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "12": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/chemteam/ambertools_acpype/ambertools_acpype/21.10+galaxy0",
+              "errors": null,
+              "id": 12,
+              "input_connections": {
+                "charge": {
+                  "id": 10,
+                  "output_name": "integer_param"
+                },
+                "input1": {
+                  "id": 11,
+                  "output_name": "output1"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "Generate MD topologies for small molecules",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "itp"
+                },
+                {
+                  "name": "gro_output",
+                  "type": "gro"
+                }
+              ],
+              "position": {
+                "left": 1390,
+                "top": 423
+              },
+              "post_job_actions": {
+                "HideDatasetActiongro_output": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "gro_output"
+                },
+                "HideDatasetActionoutput": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/ambertools_acpype/ambertools_acpype/21.10+galaxy0",
+              "tool_shed_repository": {
+                "changeset_revision": "095ad4d096d1",
+                "name": "ambertools_acpype",
+                "owner": "chemteam",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"atomtype\": \"gaff\", \"charge\": {\"__class__\": \"ConnectedValue\"}, \"charge_method\": \"user\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"multiplicity\": \"1\", \"save_gro\": true, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "21.10+galaxy0",
+              "type": "tool",
+              "uuid": "f10ee44f-f566-4f71-9de7-176fe1761b58",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "13": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_merge_topology_files/gmx_merge_topology_files/3.4.3+galaxy0",
+              "errors": null,
+              "id": 13,
+              "input_connections": {
+                "lig_gro": {
+                  "id": 12,
+                  "output_name": "gro_output"
+                },
+                "lig_top": {
+                  "id": 12,
+                  "output_name": "output"
+                },
+                "prot_gro": {
+                  "id": 7,
+                  "output_name": "output2"
+                },
+                "prot_top": {
+                  "id": 7,
+                  "output_name": "output1"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "Merge GROMACS topologies",
+              "outputs": [
+                {
+                  "name": "complex_top",
+                  "type": "top"
+                },
+                {
+                  "name": "complex_gro",
+                  "type": "gro"
+                }
+              ],
+              "position": {
+                "left": 1678,
+                "top": 203
+              },
+              "post_job_actions": {},
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_merge_topology_files/gmx_merge_topology_files/3.4.3+galaxy0",
+              "tool_shed_repository": {
+                "changeset_revision": "bc31d02be922",
+                "name": "gmx_merge_topology_files",
+                "owner": "chemteam",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"lig_gro\": {\"__class__\": \"ConnectedValue\"}, \"lig_top\": {\"__class__\": \"ConnectedValue\"}, \"prot_gro\": {\"__class__\": \"ConnectedValue\"}, \"prot_top\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "3.4.3+galaxy0",
+              "type": "tool",
+              "uuid": "555481ab-14a6-4acc-93fa-3068041a0e3f",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "Complex topology",
+                  "output_name": "complex_top",
+                  "uuid": "b65bb68e-259b-4664-a082-a4bddaf54ceb"
+                },
+                {
+                  "label": "Complex GRO",
+                  "output_name": "complex_gro",
+                  "uuid": "e32de3a7-eff7-4646-b50a-a626966003c7"
+                }
+              ]
+            }
+          },
+          "tags": [],
+          "uuid": "79d08c29-3d92-4f80-8c12-abec379dadca"
+        },
+        "tool_id": null,
+        "type": "subworkflow",
+        "uuid": "ea6dbb0a-4c36-4280-8f8f-9154117509e3",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Structure file (GRO format, optional)",
+            "output_name": "Complex GRO",
+            "uuid": "909c5ae3-ee4b-43c0-b233-f62b2445cbda"
+          },
+          {
+            "label": "GROMACS setup (ITP) on input dataset(s)",
+            "output_name": "Position restraints file",
+            "uuid": "92f0baf1-9bff-4233-8a79-56e184f517aa"
+          },
+          {
+            "label": "Topology",
+            "output_name": "Complex topology",
+            "uuid": "c672221c-188b-4810-bd9e-aea606135cb6"
+          },
+          {
+            "label": null,
+            "output_name": "1:output",
+            "uuid": "163cfb13-b9e3-429e-a0dc-2c9403d9a853"
+          },
+          {
+            "label": null,
+            "output_name": "3:output",
+            "uuid": "15adc763-94e7-4a75-9f9a-d06cd01d539a"
+          },
+          {
+            "label": null,
+            "output_name": "4:output",
+            "uuid": "de780c62-8f06-4b7f-9acb-b203761e6f75"
+          }
+        ]
+      },
+      "16": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/1.1.0",
+        "errors": null,
+        "id": 16,
+        "input_connections": {
+          "token_set_0|line": {
+            "id": 7,
+            "output_name": "output"
+          },
+          "token_set_0|repeat_select|times": {
+            "id": 6,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Create text file",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 288.0,
+          "top": 902.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutfile": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "outfile"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/1.1.0",
+        "tool_shed_repository": {
+          "changeset_revision": "ddf54b12c295",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"token_set\": [{\"__index__\": 0, \"line\": {\"__class__\": \"ConnectedValue\"}, \"repeat_select\": {\"repeat_select_opts\": \"user\", \"__current_case__\": 0, \"times\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.0",
+        "type": "tool",
+        "uuid": "782ea322-bde4-4715-94a6-4f6b083d1a31",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "17": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "errors": null,
+        "id": 17,
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 10,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Compose text parameter value",
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 586.0,
+          "top": 1269.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionout1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "e188c9826e0f",
+          "name": "compose_text_param",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"pull_coord1_rate = \"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"float\", \"__current_case__\": 2, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.1",
+        "type": "tool",
+        "uuid": "904c3b7f-176d-4ce4-bab9-e8adb3ee5087",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "18": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "errors": null,
+        "id": 18,
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 11,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Compose text parameter value",
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 1162.0,
+          "top": 1221.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionout1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "e188c9826e0f",
+          "name": "compose_text_param",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"dt = \"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"float\", \"__current_case__\": 2, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.1",
+        "type": "tool",
+        "uuid": "297eaeae-a765-4fa5-b0f5-85e115f50e79",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "19": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "errors": null,
+        "id": 19,
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 13,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Compose text parameter value",
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 864.0,
+          "top": 1422.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionout1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "e188c9826e0f",
+          "name": "compose_text_param",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"nsteps = \"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"integer\", \"__current_case__\": 1, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.1",
+        "type": "tool",
+        "uuid": "1ddb7a90-5b49-4298-84f9-a9bc2cf722b0",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "20": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "errors": null,
+        "id": 20,
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 14,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Compose text parameter value",
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 1440.0,
+          "top": 1065.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionout1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "e188c9826e0f",
+          "name": "compose_text_param",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \" pull-group1-pbcatom = \"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"integer\", \"__current_case__\": 1, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.1",
+        "type": "tool",
+        "uuid": "077bcff8-d932-42a7-85c2-d8021b82d9ae",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "21": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_solvate/gmx_solvate/2022+galaxy0",
+        "errors": null,
+        "id": 21,
+        "input_connections": {
+          "conc": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "gro_input": {
+            "id": 15,
+            "output_name": "Complex GRO"
+          },
+          "top_input": {
+            "id": 15,
+            "output_name": "Complex topology"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "GROMACS solvation and adding ions",
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "gro"
+          },
+          {
+            "name": "output2",
+            "type": "top"
+          }
+        ],
+        "position": {
+          "left": 586.0,
+          "top": 374.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutput1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output1"
+          },
+          "HideDatasetActionoutput2": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output2"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_solvate/gmx_solvate/2022+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "c4fbab8e03c5",
+          "name": "gmx_solvate",
+          "owner": "chemteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"capture_log\": false, \"conc\": {\"__class__\": \"ConnectedValue\"}, \"gro_input\": {\"__class__\": \"ConnectedValue\"}, \"mxw\": \"0\", \"neutralise\": \"-neutral\", \"seed\": \"1\", \"top_input\": {\"__class__\": \"ConnectedValue\"}, \"water_model\": \"spc216\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2022+galaxy0",
+        "type": "tool",
+        "uuid": "776717ac-58ed-4d28-8f87-52ae56752090",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "22": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_to_collection/split_file_to_collection/0.5.0",
+        "errors": null,
+        "id": 22,
+        "input_connections": {
+          "split_parms|input": {
+            "id": 16,
+            "output_name": "outfile"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Split file",
+            "name": "split_parms"
+          }
+        ],
+        "label": null,
+        "name": "Split file",
+        "outputs": [
+          {
+            "name": "list_output_txt",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 586.0,
+          "top": 725.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionlist_output_txt": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "list_output_txt"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_to_collection/split_file_to_collection/0.5.0",
+        "tool_shed_repository": {
+          "changeset_revision": "6cbe2f30c2d7",
+          "name": "split_file_to_collection",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"split_parms\": {\"select_ftype\": \"txt\", \"__current_case__\": 5, \"input\": {\"__class__\": \"ConnectedValue\"}, \"select_mode\": {\"mode\": \"chunk\", \"__current_case__\": 0, \"chunksize\": \"1\"}, \"newfilenames\": \"split_file\", \"select_allocate\": {\"allocate\": \"byrow\", \"__current_case__\": 2}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.5.0",
+        "type": "tool",
+        "uuid": "187b16c7-6f64-4dad-b7c9-5956abba236f",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "23": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "errors": null,
+        "id": 23,
+        "input_connections": {
+          "infile": {
+            "id": 9,
+            "output_name": "output"
+          },
+          "text_input": {
+            "id": 17,
+            "output_name": "out1"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Add line to file",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 864.0,
+          "top": 1260.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutfile": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "outfile"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_shed_repository": {
+          "changeset_revision": "8e251055b1a9",
+          "name": "add_line_to_file",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"options\": \"footer\", \"text_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.0",
+        "type": "tool",
+        "uuid": "5370971e-53c0-4bb3-a795-08b947f7a713",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "24": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_em/gmx_em/2022+galaxy0",
+        "errors": null,
+        "id": 24,
+        "input_connections": {
+          "gro_input": {
+            "id": 21,
+            "output_name": "output1"
+          },
+          "top_input": {
+            "id": 21,
+            "output_name": "output2"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "GROMACS energy minimization",
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "gro"
+          },
+          {
+            "name": "output2",
+            "type": "edr"
+          }
+        ],
+        "position": {
+          "left": 864.0,
+          "top": 473.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutput1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output1"
+          },
+          "HideDatasetActionoutput2": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output2"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_em/gmx_em/2022+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "b46d4b4d995c",
+          "name": "gmx_em",
+          "owner": "chemteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"capture_log\": false, \"gro_input\": {\"__class__\": \"ConnectedValue\"}, \"mdp\": {\"mdpfile\": \"default\", \"__current_case__\": 1, \"integrator\": \"steep\", \"cutoffscheme\": \"Verlet\", \"coulombtype\": \"PME\", \"rcoulomb\": \"1.0\", \"rlist\": \"1.0\", \"rvdw\": \"1.0\", \"md_steps\": \"50000\", \"emtol\": \"1000.0\", \"emstep\": \"0.01\", \"seed\": \"1\"}, \"mxw\": \"0\", \"top_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2022+galaxy0",
+        "type": "tool",
+        "uuid": "24aaa2b9-9a26-4fe3-baa5-4abd15f03e20",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "25": {
+        "annotation": "",
+        "content_id": "param_value_from_file",
+        "errors": null,
+        "id": 25,
+        "input_connections": {
+          "input1": {
+            "id": 22,
+            "output_name": "list_output_txt"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Parse parameter value",
+        "outputs": [
+          {
+            "name": "integer_param",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 864.0,
+          "top": 705.0
+        },
+        "post_job_actions": {
+          "HideDatasetActioninteger_param": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "integer_param"
+          }
+        },
+        "tool_id": "param_value_from_file",
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"param_type\": \"integer\", \"remove_newlines\": true, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.0",
+        "type": "tool",
+        "uuid": "5951ddd0-0729-498e-b8ff-5a0ba159ec51",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "26": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "errors": null,
+        "id": 26,
+        "input_connections": {
+          "infile": {
+            "id": 23,
+            "output_name": "outfile"
+          },
+          "text_input": {
+            "id": 19,
+            "output_name": "out1"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Add line to file",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1162.0,
+          "top": 1413.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutfile": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "outfile"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_shed_repository": {
+          "changeset_revision": "8e251055b1a9",
+          "name": "add_line_to_file",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"options\": \"footer\", \"text_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.0",
+        "type": "tool",
+        "uuid": "a44c4d5b-a6ab-4328-a545-3b192d3b5560",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "27": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_makendx/gmx_makendx/2022+galaxy0",
+        "errors": null,
+        "id": 27,
+        "input_connections": {
+          "input_file": {
+            "id": 24,
+            "output_name": "output1"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Create GROMACS index files",
+        "outputs": [
+          {
+            "name": "ndx",
+            "type": "ndx"
+          }
+        ],
+        "position": {
+          "left": 1162.0,
+          "top": 473.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionndx": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "ndx"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_makendx/gmx_makendx/2022+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "e3e536aa2633",
+          "name": "gmx_makendx",
+          "owner": "chemteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"capture_log\": false, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"sel\": \"13 & ! a H*\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2022+galaxy0",
+        "type": "tool",
+        "uuid": "2b9f01a3-f28f-4b2d-910e-6cfcfac3294f",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "28": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_sim/gmx_sim/2022+galaxy0",
+        "errors": null,
+        "id": 28,
+        "input_connections": {
+          "gro_input": {
+            "id": 24,
+            "output_name": "output1"
+          },
+          "inps|itp_in": {
+            "id": 15,
+            "output_name": "Position restraints file"
+          },
+          "sets|mdp|md_steps": {
+            "id": 8,
+            "output_name": "output"
+          },
+          "sets|mdp|step_length": {
+            "id": 11,
+            "output_name": "output"
+          },
+          "sets|mdp|temperature": {
+            "id": 25,
+            "output_name": "integer_param"
+          },
+          "top_input": {
+            "id": 21,
+            "output_name": "output2"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool GROMACS simulation",
+            "name": "inps"
+          },
+          {
+            "description": "runtime parameter for tool GROMACS simulation",
+            "name": "inps"
+          },
+          {
+            "description": "runtime parameter for tool GROMACS simulation",
+            "name": "inps"
+          }
+        ],
+        "label": null,
+        "name": "GROMACS simulation",
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "gro"
+          },
+          {
+            "name": "output4",
+            "type": "xtc"
+          },
+          {
+            "name": "output5",
+            "type": "cpt"
+          },
+          {
+            "name": "report",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 1162.0,
+          "top": 625.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutput1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output1"
+          },
+          "HideDatasetActionoutput4": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output4"
+          },
+          "HideDatasetActionoutput5": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output5"
+          },
+          "HideDatasetActionreport": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "report"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_sim/gmx_sim/2022+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "c0c9a5024177",
+          "name": "gmx_sim",
+          "owner": "chemteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__job_resource\": {\"__current_case__\": 0, \"__job_resource__select\": \"no\"}, \"capture_log\": true, \"gro_input\": {\"__class__\": \"ConnectedValue\"}, \"inps\": {\"cpt_in\": {\"__class__\": \"RuntimeValue\"}, \"itp_in\": {\"__class__\": \"ConnectedValue\"}, \"ndx_in\": {\"__class__\": \"RuntimeValue\"}}, \"mxw\": \"0\", \"outps\": {\"traj\": \"xtc\", \"str\": \"gro\", \"cpt_out\": \"true\", \"edr_out\": \"false\", \"xvg_out\": \"false\", \"tpr_out\": \"false\"}, \"sets\": {\"ensembleselect\": {\"ensemble\": \"nvt\", \"__current_case__\": 0, \"startvel\": \"false\"}, \"mdp\": {\"mdpfile\": \"default\", \"__current_case__\": 1, \"integrator\": \"md\", \"constraints\": \"h-bonds\", \"cutoffscheme\": \"Verlet\", \"coulombtype\": \"PME\", \"temperature\": {\"__class__\": \"ConnectedValue\"}, \"systemTcouple\": \"false\", \"step_length\": {\"__class__\": \"ConnectedValue\"}, \"write_freq\": \"1000\", \"rcoulomb\": \"1.0\", \"rlist\": \"1.0\", \"rvdw\": \"1.0\", \"md_steps\": {\"__class__\": \"ConnectedValue\"}}}, \"top_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2022+galaxy0",
+        "type": "tool",
+        "uuid": "ad38e361-bb58-4ef8-8b88-0d5d1aedb16a",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "29": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "errors": null,
+        "id": 29,
+        "input_connections": {
+          "infile": {
+            "id": 26,
+            "output_name": "outfile"
+          },
+          "text_input": {
+            "id": 18,
+            "output_name": "out1"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Add line to file",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1440.0,
+          "top": 1260.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutfile": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "outfile"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_shed_repository": {
+          "changeset_revision": "8e251055b1a9",
+          "name": "add_line_to_file",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"options\": \"footer\", \"text_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.0",
+        "type": "tool",
+        "uuid": "09195004-1a65-4856-bfa1-ed2cb05f0ecb",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "30": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/1.1.1",
+        "errors": null,
+        "id": 30,
+        "input_connections": {
+          "infile": {
+            "id": 27,
+            "output_name": "ndx"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Text transformation",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1440.0,
+          "top": 670.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutput": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/1.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "ddf54b12c295",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"basic\", \"__current_case__\": 0}, \"code\": \"s/System/pullgrp/;t;d\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.1",
+        "type": "tool",
+        "uuid": "30081468-1515-4c05-905b-ed2958f204af",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "31": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "errors": null,
+        "id": 31,
+        "input_connections": {
+          "infile": {
+            "id": 29,
+            "output_name": "outfile"
+          },
+          "text_input": {
+            "id": 20,
+            "output_name": "out1"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Add line to file",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1728.0,
+          "top": 863.0
+        },
+        "post_job_actions": {
+          "ChangeDatatypeActionoutfile": {
+            "action_arguments": {
+              "newtype": "mdp"
+            },
+            "action_type": "ChangeDatatypeAction",
+            "output_name": "outfile"
+          },
+          "HideDatasetActionoutfile": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "outfile"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_shed_repository": {
+          "changeset_revision": "8e251055b1a9",
+          "name": "add_line_to_file",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"options\": \"footer\", \"text_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.0",
+        "type": "tool",
+        "uuid": "70bc2d56-f068-4fc9-8630-06415c208390",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "32": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "errors": null,
+        "id": 32,
+        "input_connections": {
+          "infile": {
+            "id": 30,
+            "output_name": "output"
+          },
+          "text_input": {
+            "id": 12,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Add line to file",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1728.0,
+          "top": 553.0
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutfile": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "outfile"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_shed_repository": {
+          "changeset_revision": "8e251055b1a9",
+          "name": "add_line_to_file",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"options\": \"footer\", \"text_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.0",
+        "type": "tool",
+        "uuid": "7bc90c1e-5ae4-4bf2-a077-ecb9ebc1ae5f",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "33": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/0.1.1",
+        "errors": null,
+        "id": 33,
+        "input_connections": {
+          "inputs": {
+            "id": 27,
+            "output_name": "ndx"
+          },
+          "queries_0|inputs2": {
+            "id": 32,
+            "output_name": "outfile"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Concatenate datasets",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 2006.0,
+          "top": 485.0
+        },
+        "post_job_actions": {
+          "ChangeDatatypeActionout_file1": {
+            "action_arguments": {
+              "newtype": "ndx"
+            },
+            "action_type": "ChangeDatatypeAction",
+            "output_name": "out_file1"
+          },
+          "HideDatasetActionout_file1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out_file1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/0.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "d698c222f354",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"inputs\": {\"__class__\": \"ConnectedValue\"}, \"queries\": [{\"__index__\": 0, \"inputs2\": {\"__class__\": \"ConnectedValue\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.1",
+        "type": "tool",
+        "uuid": "5da94199-00b3-4d43-939a-bb21b3606ed1",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "34": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_sim/gmx_sim/2022+galaxy0",
+        "errors": null,
+        "id": 34,
+        "input_connections": {
+          "gro_input": {
+            "id": 28,
+            "output_name": "output1"
+          },
+          "inps|cpt_in": {
+            "id": 28,
+            "output_name": "output5"
+          },
+          "inps|ndx_in": {
+            "id": 33,
+            "output_name": "out_file1"
+          },
+          "sets|mdp|mdp_input": {
+            "id": 31,
+            "output_name": "outfile"
+          },
+          "top_input": {
+            "id": 21,
+            "output_name": "output2"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool GROMACS simulation",
+            "name": "inps"
+          },
+          {
+            "description": "runtime parameter for tool GROMACS simulation",
+            "name": "inps"
+          },
+          {
+            "description": "runtime parameter for tool GROMACS simulation",
+            "name": "inps"
+          }
+        ],
+        "label": null,
+        "name": "GROMACS simulation",
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "gro"
+          },
+          {
+            "name": "output4",
+            "type": "xtc"
+          },
+          {
+            "name": "output7",
+            "type": "xvg"
+          },
+          {
+            "name": "output7_1",
+            "type": "xvg"
+          },
+          {
+            "name": "output8",
+            "type": "tpr"
+          },
+          {
+            "name": "report",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 2294.0,
+          "top": 690.0
+        },
+        "post_job_actions": {
+          "ChangeDatatypeActionoutput8": {
+            "action_arguments": {
+              "newtype": "tpr"
+            },
+            "action_type": "ChangeDatatypeAction",
+            "output_name": "output8"
+          },
+          "HideDatasetActionoutput7_1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output7_1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_sim/gmx_sim/2022+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "c0c9a5024177",
+          "name": "gmx_sim",
+          "owner": "chemteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__job_resource\": {\"__current_case__\": 1, \"__job_resource__select\": \"yes\", \"gpu\": \"1\"}, \"capture_log\": true, \"gro_input\": {\"__class__\": \"ConnectedValue\"}, \"inps\": {\"cpt_in\": {\"__class__\": \"ConnectedValue\"}, \"itp_in\": {\"__class__\": \"RuntimeValue\"}, \"ndx_in\": {\"__class__\": \"ConnectedValue\"}}, \"mxw\": \"0\", \"outps\": {\"traj\": \"xtc\", \"str\": \"gro\", \"cpt_out\": \"false\", \"edr_out\": \"false\", \"xvg_out\": \"true\", \"tpr_out\": \"true\"}, \"sets\": {\"ensembleselect\": {\"ensemble\": \"nvt\", \"__current_case__\": 0, \"startvel\": \"false\"}, \"mdp\": {\"mdpfile\": \"custom\", \"__current_case__\": 0, \"mdp_input\": {\"__class__\": \"ConnectedValue\"}}}, \"top_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2022+galaxy0",
+        "type": "tool",
+        "uuid": "617abccd-6e1d-4792-831a-ba11d510cb75",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "XVG files",
+            "output_name": "output7",
+            "uuid": "197027e4-2d3b-4043-942d-44e5064fd34c"
+          },
+          {
+            "label": "XTC files",
+            "output_name": "output4",
+            "uuid": "ec1c9d9d-0068-406a-ac5a-329d79b7eb6d"
+          },
+          {
+            "label": "TPR files",
+            "output_name": "output8",
+            "uuid": "8da91dac-db43-422a-8979-e8908bb376cd"
+          },
+          {
+            "label": "GRO files",
+            "output_name": "output1",
+            "uuid": "5226082a-7f46-4dd1-81f4-72ff428fd9a5"
+          },
+          {
+            "label": "Log",
+            "output_name": "report",
+            "uuid": "0931d287-ab8d-4463-b81f-f74eb2796cf1"
+          }
+        ]
+      },
+      "35": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/chemteam/biomd_neqgamma/biomd_neqgamma/0.1.5.2+galaxy1",
+        "errors": null,
+        "id": 35,
+        "input_connections": {
+          "xvgs": {
+            "id": 34,
+            "output_name": "output7"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool dcTMD friction correction",
+            "name": "json"
+          }
+        ],
+        "label": null,
+        "name": "dcTMD friction correction",
+        "outputs": [
+          {
+            "name": "outp_col",
+            "type": "input"
+          },
+          {
+            "name": "outp_frict_col",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 2572.0,
+          "top": 875.0
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/biomd_neqgamma/biomd_neqgamma/0.1.5.2+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "afcb925def69",
+          "name": "biomd_neqgamma",
+          "owner": "chemteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"T\": \"300.0\", \"av\": \"1\", \"json\": {\"__class__\": \"RuntimeValue\"}, \"sigma\": \"1\", \"vel\": \"0.001\", \"xvgs\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.5.2+galaxy1",
+        "type": "tool",
+        "uuid": "dbff7742-c191-404d-b540-74c34a6bd135",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Free energy data",
+            "output_name": "outp",
+            "uuid": "3acaf02c-c3fe-430a-8025-a0f321c34df8"
+          },
+          {
+            "label": "Friction data",
+            "output_name": "outp_frict",
+            "uuid": "c53c02be-6a25-4b06-a447-d77a513fe7a0"
+          }
+        ]
+      }
+    },
+    "tags": [],
+    "uuid": "47f5f855-3b31-4a59-bf0b-2bccc554379f",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "dcTMD calculations with GROMACS (release v0.1.4)",
+      "annotation": "Perform dcTMD free energy simulations and calculations",
+      "format_version": "0.1",
+      "uuid": "47f5f855-3b31-4a59-bf0b-2bccc554379f",
+      "version": 1,
+      "tags": [],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-0621-6705",
+          "name": "Simon Bray"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Ligand SDF",
+        "annotation": "Ligand SDF",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 0.0,
+          "top": 0.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "pH to protonate ligand",
+        "annotation": "Set to -1.0 to skip protonation",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"default\": -1.0, \"validators\": [], \"parameter_type\": \"float\", \"optional\": true}",
+        "position": {
+          "left": 0.0,
+          "top": 100.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Protein PDB",
+        "annotation": "Protein PDB",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 0.0,
+          "top": 241.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Salt concentration",
+        "annotation": "NaCl concentration (mol/dm^3)",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "position": {
+          "left": 288.0,
+          "top": 11.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Water model",
+        "annotation": "Water model",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictions\": [\"tip3p\", \"tip4p\", \"tips3p\", \"tip5p\", \"spc\", \"spce\", \"none\"], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 0.0,
+          "top": 341.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "5",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Force field",
+        "annotation": "Force field",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictions\": [\"oplsaa\", \"gromos43a1\", \"amber96\", \"gromos53a6\", \"amber99sb\", \"gromos53a5\", \"gromos43a2\", \"amberGS\", \"charmm27\", \"amber03\", \"gromos54a7\", \"gromos45a3\", \"amber99\", \"amber94\"], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 0.0,
+          "top": 441.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "6",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Number of simulations",
+        "annotation": "Number of simulations in the TMD ensemble",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 0.0,
+          "top": 842.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "7",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Temperature",
+        "annotation": "Temperature",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 0.0,
+          "top": 983.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "8",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Number of equilibration steps",
+        "annotation": "Number of equilibration steps",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 864.0,
+          "top": 897.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "Online data",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/get_online_data/ctb_online_data_fetch/0.4",
+        "tool_version": "0.4",
+        "tool_state": "{\"url_paste\": \"https://raw.githubusercontent.com/galaxyproject/iwc/main/workflows/computational-chemistry/gromacs-dctmd/tmd.mdp\", \"whitelist\": \"mdp\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 586.0,
+          "top": 1169.0
+        },
+        "input_connections": {},
+        "outputs": [
+          {
+            "name": "output",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "10",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Pulling rate",
+        "annotation": "Rate to pull groups apart (nm/ps)",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "position": {
+          "left": 288.0,
+          "top": 1315.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "11",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Step length (ps)",
+        "annotation": "MD step length",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "position": {
+          "left": 864.0,
+          "top": 1160.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "12",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Protein pull group",
+        "annotation": "List of atom indices (separated with spaces) which make up the protein pull group",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 1440.0,
+          "top": 550.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "13",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Number of steps",
+        "annotation": "Number of steps for the production simulation",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 586.0,
+          "top": 1468.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "14",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Pull group pbcatom",
+        "annotation": "pull-group1-pbcatom - the reference atom index for the treatment of periodic boundary conditions inside the group ",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 1162.0,
+          "top": 1101.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "15",
+        "type": "subworkflow",
+        "name": "Create GRO and TOP complex files",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": "",
+        "tool_state": "",
+        "position": {
+          "left": 285.5,
+          "top": 167.0
+        },
+        "input_connections": {
+          "Apoprotein PDB": {
+            "id": 2,
+            "input_subworkflow_step_id": 2,
+            "output_name": "output"
+          },
+          "Force field": {
+            "id": 5,
+            "input_subworkflow_step_id": 4,
+            "output_name": "output"
+          },
+          "Ligand SDF": {
+            "id": 0,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output"
+          },
+          "Water model": {
+            "id": 4,
+            "input_subworkflow_step_id": 3,
+            "output_name": "output"
+          },
+          "pH": {
+            "id": 1,
+            "input_subworkflow_step_id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": []
+      },
+      {
+        "step_id": "16",
+        "type": "tool",
+        "name": "Create text file",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/1.1.0",
+        "tool_version": "1.1.0",
+        "tool_state": "{\"token_set\": [{\"__index__\": 0, \"line\": {\"__class__\": \"ConnectedValue\"}, \"repeat_select\": {\"repeat_select_opts\": \"user\", \"__current_case__\": 0, \"times\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 288.0,
+          "top": 902.0
+        },
+        "input_connections": {
+          "token_set_0|line": {
+            "id": 7,
+            "output_name": "output"
+          },
+          "token_set_0|repeat_select|times": {
+            "id": 6,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "17",
+        "type": "tool",
+        "name": "Compose text parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"pull_coord1_rate = \"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"float\", \"__current_case__\": 2, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 586.0,
+          "top": 1269.0
+        },
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 10,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "18",
+        "type": "tool",
+        "name": "Compose text parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"dt = \"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"float\", \"__current_case__\": 2, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1162.0,
+          "top": 1221.0
+        },
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 11,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "19",
+        "type": "tool",
+        "name": "Compose text parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"nsteps = \"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"integer\", \"__current_case__\": 1, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 864.0,
+          "top": 1422.0
+        },
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 13,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "20",
+        "type": "tool",
+        "name": "Compose text parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \" pull-group1-pbcatom = \"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"integer\", \"__current_case__\": 1, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1440.0,
+          "top": 1065.0
+        },
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 14,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "21",
+        "type": "tool",
+        "name": "GROMACS solvation and adding ions",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_solvate/gmx_solvate/2022+galaxy0",
+        "tool_version": "2022+galaxy0",
+        "tool_state": "{\"capture_log\": false, \"conc\": {\"__class__\": \"ConnectedValue\"}, \"gro_input\": {\"__class__\": \"ConnectedValue\"}, \"mxw\": \"0\", \"neutralise\": \"-neutral\", \"seed\": \"1\", \"top_input\": {\"__class__\": \"ConnectedValue\"}, \"water_model\": \"spc216\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 586.0,
+          "top": 374.0
+        },
+        "input_connections": {
+          "conc": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "gro_input": {
+            "id": 15,
+            "output_name": "Complex GRO"
+          },
+          "top_input": {
+            "id": 15,
+            "output_name": "Complex topology"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "gro"
+          },
+          {
+            "name": "output2",
+            "type": "top"
+          }
+        ]
+      },
+      {
+        "step_id": "22",
+        "type": "tool",
+        "name": "Split file",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_to_collection/split_file_to_collection/0.5.0",
+        "tool_version": "0.5.0",
+        "tool_state": "{\"split_parms\": {\"select_ftype\": \"txt\", \"__current_case__\": 5, \"input\": {\"__class__\": \"ConnectedValue\"}, \"select_mode\": {\"mode\": \"chunk\", \"__current_case__\": 0, \"chunksize\": \"1\"}, \"newfilenames\": \"split_file\", \"select_allocate\": {\"allocate\": \"byrow\", \"__current_case__\": 2}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 586.0,
+          "top": 725.0
+        },
+        "input_connections": {
+          "split_parms|input": {
+            "id": 16,
+            "output_name": "outfile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "list_output_txt",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "23",
+        "type": "tool",
+        "name": "Add line to file",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_version": "0.1.0",
+        "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"options\": \"footer\", \"text_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 864.0,
+          "top": 1260.0
+        },
+        "input_connections": {
+          "infile": {
+            "id": 9,
+            "output_name": "output"
+          },
+          "text_input": {
+            "id": 17,
+            "output_name": "out1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "24",
+        "type": "tool",
+        "name": "GROMACS energy minimization",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_em/gmx_em/2022+galaxy0",
+        "tool_version": "2022+galaxy0",
+        "tool_state": "{\"capture_log\": false, \"gro_input\": {\"__class__\": \"ConnectedValue\"}, \"mdp\": {\"mdpfile\": \"default\", \"__current_case__\": 1, \"integrator\": \"steep\", \"cutoffscheme\": \"Verlet\", \"coulombtype\": \"PME\", \"rcoulomb\": \"1.0\", \"rlist\": \"1.0\", \"rvdw\": \"1.0\", \"md_steps\": \"50000\", \"emtol\": \"1000.0\", \"emstep\": \"0.01\", \"seed\": \"1\"}, \"mxw\": \"0\", \"top_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 864.0,
+          "top": 473.0
+        },
+        "input_connections": {
+          "gro_input": {
+            "id": 21,
+            "output_name": "output1"
+          },
+          "top_input": {
+            "id": 21,
+            "output_name": "output2"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "gro"
+          },
+          {
+            "name": "output2",
+            "type": "edr"
+          }
+        ]
+      },
+      {
+        "step_id": "25",
+        "type": "tool",
+        "name": "Parse parameter value",
+        "label": null,
+        "annotation": "",
+        "tool_id": "param_value_from_file",
+        "tool_version": "0.1.0",
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"param_type\": \"integer\", \"remove_newlines\": true, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 864.0,
+          "top": 705.0
+        },
+        "input_connections": {
+          "input1": {
+            "id": 22,
+            "output_name": "list_output_txt"
+          }
+        },
+        "outputs": [
+          {
+            "name": "integer_param",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "26",
+        "type": "tool",
+        "name": "Add line to file",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_version": "0.1.0",
+        "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"options\": \"footer\", \"text_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1162.0,
+          "top": 1413.0
+        },
+        "input_connections": {
+          "infile": {
+            "id": 23,
+            "output_name": "outfile"
+          },
+          "text_input": {
+            "id": 19,
+            "output_name": "out1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "27",
+        "type": "tool",
+        "name": "Create GROMACS index files",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_makendx/gmx_makendx/2022+galaxy0",
+        "tool_version": "2022+galaxy0",
+        "tool_state": "{\"capture_log\": false, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"sel\": \"13 & ! a H*\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1162.0,
+          "top": 473.0
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 24,
+            "output_name": "output1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "ndx",
+            "type": "ndx"
+          }
+        ]
+      },
+      {
+        "step_id": "28",
+        "type": "tool",
+        "name": "GROMACS simulation",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_sim/gmx_sim/2022+galaxy0",
+        "tool_version": "2022+galaxy0",
+        "tool_state": "{\"__job_resource\": {\"__current_case__\": 0, \"__job_resource__select\": \"no\"}, \"capture_log\": true, \"gro_input\": {\"__class__\": \"ConnectedValue\"}, \"inps\": {\"cpt_in\": {\"__class__\": \"RuntimeValue\"}, \"itp_in\": {\"__class__\": \"ConnectedValue\"}, \"ndx_in\": {\"__class__\": \"RuntimeValue\"}}, \"mxw\": \"0\", \"outps\": {\"traj\": \"xtc\", \"str\": \"gro\", \"cpt_out\": \"true\", \"edr_out\": \"false\", \"xvg_out\": \"false\", \"tpr_out\": \"false\"}, \"sets\": {\"ensembleselect\": {\"ensemble\": \"nvt\", \"__current_case__\": 0, \"startvel\": \"false\"}, \"mdp\": {\"mdpfile\": \"default\", \"__current_case__\": 1, \"integrator\": \"md\", \"constraints\": \"h-bonds\", \"cutoffscheme\": \"Verlet\", \"coulombtype\": \"PME\", \"temperature\": {\"__class__\": \"ConnectedValue\"}, \"systemTcouple\": \"false\", \"step_length\": {\"__class__\": \"ConnectedValue\"}, \"write_freq\": \"1000\", \"rcoulomb\": \"1.0\", \"rlist\": \"1.0\", \"rvdw\": \"1.0\", \"md_steps\": {\"__class__\": \"ConnectedValue\"}}}, \"top_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1162.0,
+          "top": 625.0
+        },
+        "input_connections": {
+          "gro_input": {
+            "id": 24,
+            "output_name": "output1"
+          },
+          "inps|itp_in": {
+            "id": 15,
+            "output_name": "Position restraints file"
+          },
+          "sets|mdp|md_steps": {
+            "id": 8,
+            "output_name": "output"
+          },
+          "sets|mdp|step_length": {
+            "id": 11,
+            "output_name": "output"
+          },
+          "sets|mdp|temperature": {
+            "id": 25,
+            "output_name": "integer_param"
+          },
+          "top_input": {
+            "id": 21,
+            "output_name": "output2"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "gro"
+          },
+          {
+            "name": "output4",
+            "type": "xtc"
+          },
+          {
+            "name": "output5",
+            "type": "cpt"
+          },
+          {
+            "name": "report",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "29",
+        "type": "tool",
+        "name": "Add line to file",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_version": "0.1.0",
+        "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"options\": \"footer\", \"text_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1440.0,
+          "top": 1260.0
+        },
+        "input_connections": {
+          "infile": {
+            "id": 26,
+            "output_name": "outfile"
+          },
+          "text_input": {
+            "id": 18,
+            "output_name": "out1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "30",
+        "type": "tool",
+        "name": "Text transformation",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/1.1.1",
+        "tool_version": "1.1.1",
+        "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"basic\", \"__current_case__\": 0}, \"code\": \"s/System/pullgrp/;t;d\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1440.0,
+          "top": 670.0
+        },
+        "input_connections": {
+          "infile": {
+            "id": 27,
+            "output_name": "ndx"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "31",
+        "type": "tool",
+        "name": "Add line to file",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_version": "0.1.0",
+        "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"options\": \"footer\", \"text_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1728.0,
+          "top": 863.0
+        },
+        "input_connections": {
+          "infile": {
+            "id": 29,
+            "output_name": "outfile"
+          },
+          "text_input": {
+            "id": 20,
+            "output_name": "out1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "32",
+        "type": "tool",
+        "name": "Add line to file",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_version": "0.1.0",
+        "tool_state": "{\"infile\": {\"__class__\": \"ConnectedValue\"}, \"options\": \"footer\", \"text_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1728.0,
+          "top": 553.0
+        },
+        "input_connections": {
+          "infile": {
+            "id": 30,
+            "output_name": "output"
+          },
+          "text_input": {
+            "id": 12,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "33",
+        "type": "tool",
+        "name": "Concatenate datasets",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/0.1.1",
+        "tool_version": "0.1.1",
+        "tool_state": "{\"inputs\": {\"__class__\": \"ConnectedValue\"}, \"queries\": [{\"__index__\": 0, \"inputs2\": {\"__class__\": \"ConnectedValue\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2006.0,
+          "top": 485.0
+        },
+        "input_connections": {
+          "inputs": {
+            "id": 27,
+            "output_name": "ndx"
+          },
+          "queries_0|inputs2": {
+            "id": 32,
+            "output_name": "outfile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "34",
+        "type": "tool",
+        "name": "GROMACS simulation",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_sim/gmx_sim/2022+galaxy0",
+        "tool_version": "2022+galaxy0",
+        "tool_state": "{\"__job_resource\": {\"__current_case__\": 1, \"__job_resource__select\": \"yes\", \"gpu\": \"1\"}, \"capture_log\": true, \"gro_input\": {\"__class__\": \"ConnectedValue\"}, \"inps\": {\"cpt_in\": {\"__class__\": \"ConnectedValue\"}, \"itp_in\": {\"__class__\": \"RuntimeValue\"}, \"ndx_in\": {\"__class__\": \"ConnectedValue\"}}, \"mxw\": \"0\", \"outps\": {\"traj\": \"xtc\", \"str\": \"gro\", \"cpt_out\": \"false\", \"edr_out\": \"false\", \"xvg_out\": \"true\", \"tpr_out\": \"true\"}, \"sets\": {\"ensembleselect\": {\"ensemble\": \"nvt\", \"__current_case__\": 0, \"startvel\": \"false\"}, \"mdp\": {\"mdpfile\": \"custom\", \"__current_case__\": 0, \"mdp_input\": {\"__class__\": \"ConnectedValue\"}}}, \"top_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2294.0,
+          "top": 690.0
+        },
+        "input_connections": {
+          "gro_input": {
+            "id": 28,
+            "output_name": "output1"
+          },
+          "inps|cpt_in": {
+            "id": 28,
+            "output_name": "output5"
+          },
+          "inps|ndx_in": {
+            "id": 33,
+            "output_name": "out_file1"
+          },
+          "sets|mdp|mdp_input": {
+            "id": 31,
+            "output_name": "outfile"
+          },
+          "top_input": {
+            "id": 21,
+            "output_name": "output2"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "gro"
+          },
+          {
+            "name": "output4",
+            "type": "xtc"
+          },
+          {
+            "name": "output7",
+            "type": "xvg"
+          },
+          {
+            "name": "output7_1",
+            "type": "xvg"
+          },
+          {
+            "name": "output8",
+            "type": "tpr"
+          },
+          {
+            "name": "report",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "35",
+        "type": "tool",
+        "name": "dcTMD friction correction",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/biomd_neqgamma/biomd_neqgamma/0.1.5.2+galaxy1",
+        "tool_version": "0.1.5.2+galaxy1",
+        "tool_state": "{\"T\": \"300.0\", \"av\": \"1\", \"json\": {\"__class__\": \"RuntimeValue\"}, \"sigma\": \"1\", \"vel\": \"0.001\", \"xvgs\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2572.0,
+          "top": 875.0
+        },
+        "input_connections": {
+          "xvgs": {
+            "id": 34,
+            "output_name": "output7"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outp_col",
+            "type": "input"
+          },
+          {
+            "name": "outp_frict_col",
+            "type": "input"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/get_online_data/ctb_online_data_fetch/0.4",
+        "tool_version": "0.4",
+        "step_id": "9"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_text_file_with_recurring_lines/1.1.0",
+        "tool_version": "1.1.0",
+        "step_id": "16"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "step_id": "17"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "step_id": "18"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "step_id": "19"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": "0.1.1",
+        "step_id": "20"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_solvate/gmx_solvate/2022+galaxy0",
+        "tool_version": "2022+galaxy0",
+        "step_id": "21"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/split_file_to_collection/split_file_to_collection/0.5.0",
+        "tool_version": "0.5.0",
+        "step_id": "22"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_version": "0.1.0",
+        "step_id": "23"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_em/gmx_em/2022+galaxy0",
+        "tool_version": "2022+galaxy0",
+        "step_id": "24"
+      },
+      {
+        "tool_id": "param_value_from_file",
+        "tool_version": "0.1.0",
+        "step_id": "25"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_version": "0.1.0",
+        "step_id": "26"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_makendx/gmx_makendx/2022+galaxy0",
+        "tool_version": "2022+galaxy0",
+        "step_id": "27"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_sim/gmx_sim/2022+galaxy0",
+        "tool_version": "2022+galaxy0",
+        "step_id": "28"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_version": "0.1.0",
+        "step_id": "29"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sed_tool/1.1.1",
+        "tool_version": "1.1.1",
+        "step_id": "30"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_version": "0.1.0",
+        "step_id": "31"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/add_line_to_file/add_line_to_file/0.1.0",
+        "tool_version": "0.1.0",
+        "step_id": "32"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_cat/0.1.1",
+        "tool_version": "0.1.1",
+        "step_id": "33"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/gmx_sim/gmx_sim/2022+galaxy0",
+        "tool_version": "2022+galaxy0",
+        "step_id": "34"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/chemteam/biomd_neqgamma/biomd_neqgamma/0.1.5.2+galaxy1",
+        "tool_version": "0.1.5.2+galaxy1",
+        "step_id": "35"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "Ligand SDF",
+        "annotation": "Ligand SDF"
+      },
+      {
+        "step_id": "2",
+        "label": "Protein PDB",
+        "annotation": "Protein PDB"
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "1",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "3",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "4",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "5",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "6",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "7",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "8",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "10",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "11",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "12",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "13",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "14",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "15",
+        "output_name": "Complex GRO",
+        "label": "Structure file (GRO format, optional)"
+      },
+      {
+        "step_id": "15",
+        "output_name": "Position restraints file",
+        "label": "GROMACS setup (ITP) on input dataset(s)"
+      },
+      {
+        "step_id": "15",
+        "output_name": "Complex topology",
+        "label": "Topology"
+      },
+      {
+        "step_id": "15",
+        "output_name": "1:output",
+        "label": null
+      },
+      {
+        "step_id": "15",
+        "output_name": "3:output",
+        "label": null
+      },
+      {
+        "step_id": "15",
+        "output_name": "4:output",
+        "label": null
+      },
+      {
+        "step_id": "34",
+        "output_name": "output7",
+        "label": "XVG files"
+      },
+      {
+        "step_id": "34",
+        "output_name": "output4",
+        "label": "XTC files"
+      },
+      {
+        "step_id": "34",
+        "output_name": "output8",
+        "label": "TPR files"
+      },
+      {
+        "step_id": "34",
+        "output_name": "output1",
+        "label": "GRO files"
+      },
+      {
+        "step_id": "34",
+        "output_name": "report",
+        "label": "Log"
+      },
+      {
+        "step_id": "35",
+        "output_name": "outp",
+        "label": "Free energy data"
+      },
+      {
+        "step_id": "35",
+        "output_name": "outp_frict",
+        "label": "Friction data"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "15",
+        "to_input": "Apoprotein PDB"
+      },
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "15",
+        "to_input": "Force field"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "15",
+        "to_input": "Ligand SDF"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "15",
+        "to_input": "Water model"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "15",
+        "to_input": "pH"
+      },
+      {
+        "from_step": 7,
+        "from_output": "output",
+        "to_step": "16",
+        "to_input": "token_set_0|line"
+      },
+      {
+        "from_step": 6,
+        "from_output": "output",
+        "to_step": "16",
+        "to_input": "token_set_0|repeat_select|times"
+      },
+      {
+        "from_step": 10,
+        "from_output": "output",
+        "to_step": "17",
+        "to_input": "components_1|param_type|component_value"
+      },
+      {
+        "from_step": 11,
+        "from_output": "output",
+        "to_step": "18",
+        "to_input": "components_1|param_type|component_value"
+      },
+      {
+        "from_step": 13,
+        "from_output": "output",
+        "to_step": "19",
+        "to_input": "components_1|param_type|component_value"
+      },
+      {
+        "from_step": 14,
+        "from_output": "output",
+        "to_step": "20",
+        "to_input": "components_1|param_type|component_value"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "21",
+        "to_input": "conc"
+      },
+      {
+        "from_step": 15,
+        "from_output": "Complex GRO",
+        "to_step": "21",
+        "to_input": "gro_input"
+      },
+      {
+        "from_step": 15,
+        "from_output": "Complex topology",
+        "to_step": "21",
+        "to_input": "top_input"
+      },
+      {
+        "from_step": 16,
+        "from_output": "outfile",
+        "to_step": "22",
+        "to_input": "split_parms|input"
+      },
+      {
+        "from_step": 9,
+        "from_output": "output",
+        "to_step": "23",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 17,
+        "from_output": "out1",
+        "to_step": "23",
+        "to_input": "text_input"
+      },
+      {
+        "from_step": 21,
+        "from_output": "output1",
+        "to_step": "24",
+        "to_input": "gro_input"
+      },
+      {
+        "from_step": 21,
+        "from_output": "output2",
+        "to_step": "24",
+        "to_input": "top_input"
+      },
+      {
+        "from_step": 22,
+        "from_output": "list_output_txt",
+        "to_step": "25",
+        "to_input": "input1"
+      },
+      {
+        "from_step": 23,
+        "from_output": "outfile",
+        "to_step": "26",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 19,
+        "from_output": "out1",
+        "to_step": "26",
+        "to_input": "text_input"
+      },
+      {
+        "from_step": 24,
+        "from_output": "output1",
+        "to_step": "27",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 24,
+        "from_output": "output1",
+        "to_step": "28",
+        "to_input": "gro_input"
+      },
+      {
+        "from_step": 15,
+        "from_output": "Position restraints file",
+        "to_step": "28",
+        "to_input": "inps|itp_in"
+      },
+      {
+        "from_step": 8,
+        "from_output": "output",
+        "to_step": "28",
+        "to_input": "sets|mdp|md_steps"
+      },
+      {
+        "from_step": 11,
+        "from_output": "output",
+        "to_step": "28",
+        "to_input": "sets|mdp|step_length"
+      },
+      {
+        "from_step": 25,
+        "from_output": "integer_param",
+        "to_step": "28",
+        "to_input": "sets|mdp|temperature"
+      },
+      {
+        "from_step": 21,
+        "from_output": "output2",
+        "to_step": "28",
+        "to_input": "top_input"
+      },
+      {
+        "from_step": 26,
+        "from_output": "outfile",
+        "to_step": "29",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 18,
+        "from_output": "out1",
+        "to_step": "29",
+        "to_input": "text_input"
+      },
+      {
+        "from_step": 27,
+        "from_output": "ndx",
+        "to_step": "30",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 29,
+        "from_output": "outfile",
+        "to_step": "31",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 20,
+        "from_output": "out1",
+        "to_step": "31",
+        "to_input": "text_input"
+      },
+      {
+        "from_step": 30,
+        "from_output": "output",
+        "to_step": "32",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 12,
+        "from_output": "output",
+        "to_step": "32",
+        "to_input": "text_input"
+      },
+      {
+        "from_step": 27,
+        "from_output": "ndx",
+        "to_step": "33",
+        "to_input": "inputs"
+      },
+      {
+        "from_step": 32,
+        "from_output": "outfile",
+        "to_step": "33",
+        "to_input": "queries_0|inputs2"
+      },
+      {
+        "from_step": 28,
+        "from_output": "output1",
+        "to_step": "34",
+        "to_input": "gro_input"
+      },
+      {
+        "from_step": 28,
+        "from_output": "output5",
+        "to_step": "34",
+        "to_input": "inps|cpt_in"
+      },
+      {
+        "from_step": 33,
+        "from_output": "out_file1",
+        "to_step": "34",
+        "to_input": "inps|ndx_in"
+      },
+      {
+        "from_step": 31,
+        "from_output": "outfile",
+        "to_step": "34",
+        "to_input": "sets|mdp|mdp_input"
+      },
+      {
+        "from_step": 21,
+        "from_output": "output2",
+        "to_step": "34",
+        "to_input": "top_input"
+      },
+      {
+        "from_step": 34,
+        "from_output": "output7",
+        "to_step": "35",
+        "to_input": "xvgs"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:51:01.490563"
+}

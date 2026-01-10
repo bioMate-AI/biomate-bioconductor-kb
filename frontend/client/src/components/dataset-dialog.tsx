@@ -30,9 +30,9 @@ export function DatasetDialog({
 
   // Mock available datasets (replace with API call)
   const mockDatasets: DatasetConfig[] = [
-    { id: "1", name: "Sample RNA-seq FASTQ", type: "fastq", size: 1024000, path: "/data/sample1.fastq" },
-    { id: "2", name: "Reference Genome hg38", type: "fasta", size: 3072000, path: "/data/hg38.fasta" },
-    { id: "3", name: "Gene Annotations GTF", type: "gtf", size: 512000, path: "/data/genes.gtf" },
+    { id: "1", name: "Sample RNA-seq FASTQ", type: "input", format: "fastq", size: 1024000, storageType: "local", localPath: "/data/sample1.fastq", createdAt: new Date() },
+    { id: "2", name: "Reference Genome hg38", type: "input", format: "fasta", size: 3072000, storageType: "local", localPath: "/data/hg38.fasta", createdAt: new Date() },
+    { id: "3", name: "Gene Annotations GTF", type: "input", format: "gtf", size: 512000, storageType: "local", localPath: "/data/genes.gtf", createdAt: new Date() },
   ]
 
   const filteredDatasets = mockDatasets.filter(d =>
@@ -51,9 +51,12 @@ export function DatasetDialog({
     const uploadDatasets: DatasetConfig[] = uploadedFiles.map((file, index) => ({
       id: `upload-${Date.now()}-${index}`,
       name: file.name,
-      type: file.name.split('.').pop() || 'unknown',
+      type: 'input' as const,
+      format: file.name.split('.').pop() || 'unknown',
       size: file.size,
-      path: URL.createObjectURL(file), // Temporary - should upload to server
+      storageType: 'local' as const,
+      localPath: URL.createObjectURL(file), // Temporary - should upload to server
+      createdAt: new Date(),
     }))
 
     onDatasetsSelected(
@@ -183,7 +186,7 @@ export function DatasetDialog({
                         <div className="flex-1">
                           <p className="text-sm font-medium">{dataset.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {dataset.type.toUpperCase()} • {(dataset.size / 1024 / 1024).toFixed(2)} MB
+                            {(dataset.format || dataset.type).toUpperCase()} • {dataset.size ? ((dataset.size / 1024 / 1024).toFixed(2) + ' MB') : 'Unknown size'}
                           </p>
                         </div>
                         <div className="flex gap-2">

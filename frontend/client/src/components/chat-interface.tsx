@@ -50,7 +50,7 @@ interface ChatInterfaceProps {
   showProgress?: boolean
   onToggleProgress?: () => void
   // Workflow execution props for inline artifacts
-  onRunWorkflow?: () => void
+  onRunWorkflow?: (workflow: any, steps: any[]) => void
   onStopWorkflow?: () => void
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   isWorkflowRunning?: boolean
@@ -151,20 +151,34 @@ export function ChatInterface({
     onSuccess: (data) => {
       console.log('[ChatInterface] API Response:', data)
 
-      // If workflow generation failed, use demo workflow as fallback
+      // Handle workflow generation response - NO silent fallbacks
       let workflowData = data.workflow_ga;
       let workflowSuccess = data.success;
+      let isDemo = false;
 
+      // If workflow generation failed, show clear error to user
       if (!data.success || !data.workflow_ga) {
-        console.log('[ChatInterface] Workflow generation failed, using demo workflow fallback');
+        console.warn('[ChatInterface] Workflow generation failed:', data.message);
+
+        // Show a demo workflow but CLEARLY LABEL IT AS DEMO
         workflowData = generateDemoWorkflow();
-        workflowSuccess = true;
+        isDemo = true;
+
+        // Keep workflowSuccess false so we show proper error messaging
+        workflowSuccess = false;
       }
 
-      // Galaxy API response format
-      const workflowInfo = workflowSuccess && workflowData ?
-        `✅ ${data.message || 'Workflow generated successfully'}\n\n${workflowData.annotation || 'Workflow ready for execution'}` :
-        'Workflow generation completed'
+      // Galaxy API response format - be transparent about status
+      let workflowInfo: string;
+      if (workflowSuccess && workflowData) {
+        workflowInfo = `✅ ${data.message || 'Workflow generated successfully'}\n\n${workflowData.annotation || 'Workflow ready for execution'}`;
+      } else if (isDemo) {
+        workflowInfo = `⚠️ **Note:** Could not generate a real workflow${data.message ? `: ${data.message}` : ''}.\n\n📋 **Showing a demo workflow** for reference. This is a preview of what a workflow might look like - it won't execute real analysis.\n\nTo get a real workflow, try:\n• Being more specific about your data type\n• Describing your analysis goal in detail\n• Checking that the Galaxy backend is available`;
+        // Mark as demo for visual distinction
+        workflowData = { ...workflowData, _isDemo: true, annotation: '[DEMO] ' + (workflowData.annotation || 'Sample workflow for preview') };
+      } else {
+        workflowInfo = 'Workflow generation completed';
+      }
 
       // Convert workflow_ga.steps object to array
       const stepsArray = workflowData?.steps ?
@@ -181,13 +195,32 @@ export function ChatInterface({
         content: workflowInfo,
         role: "assistant",
         timestamp: new Date(),
-        suggestions: workflowSuccess ? ["Open in Workflow Builder", "Show details", "Generate another"] : ["Try again", "Refine request"],
+        suggestions: workflowSuccess
+          ? ["Open in Workflow Builder", "Show details", "Generate another"]
+          : isDemo
+          ? ["Try again with different request", "Check server status", "View demo anyway"]
+          : ["Try again", "Refine request"],
         metadata: {
-          type: workflowSuccess ? 'workflow' : 'text',
+          type: workflowSuccess ? 'workflow' : isDemo ? 'demo_workflow' : 'text',
           workflow: workflowData,
           steps: stepsArray,
           confidence: data.confidence,
-          source: data.source || 'demo'
+          source: data.source || (isDemo ? 'demo_fallback' : 'unknown'),
+          isDemo: isDemo,
+          generationFailed: !data.success,
+          failureReason: !data.success ? data.message : undefined,
+          // Citation and pilot run data from enhanced API response
+          citations: data.citations || [],
+          methods_section: data.methods_section,
+          pilot_run_suggested: data.pilot_run_suggested || false,
+          pilot_reasons: data.pilot_reasons || [],
+          pilot_message: data.pilot_message,
+          tuning_config: data.tuning_config,
+          parameter_recommendations: data.parameter_recommendations || {},
+          total_samples: data.total_samples || 0,
+          // Validation info for user transparency
+          validation: data.validation || { is_valid: true, issues: [], warnings: [] },
+          tool_installation: data.tool_installation || { success: true, failed_tools: [] }
         }
       }
 
@@ -209,8 +242,8 @@ export function ChatInterface({
           console.log('[ChatInterface] Extracting workflow to session.workflows')
           const workflowSteps = stepsArray.map((step: any, index: number) => ({
             id: `step_${index}`,
+            title: step.name || step.tool_id || `Step ${index + 1}`,
             tool: step.tool_id || step.name || 'Unknown Tool',
-            name: step.name || step.tool_id || `Step ${index + 1}`,
             description: step.annotation || '',
             status: 'pending' as const,
             complexity: 'intermediate' as const,
@@ -236,8 +269,8 @@ export function ChatInterface({
           console.log('[ChatInterface] Extracting workflow to new session.workflows')
           const workflowSteps = stepsArray.map((step: any, index: number) => ({
             id: `step_${index}`,
+            title: step.name || step.tool_id || `Step ${index + 1}`,
             tool: step.tool_id || step.name || 'Unknown Tool',
-            name: step.name || step.tool_id || `Step ${index + 1}`,
             description: step.annotation || '',
             status: 'pending' as const,
             complexity: 'intermediate' as const,
@@ -259,7 +292,7 @@ export function ChatInterface({
 
       // Trigger workflow builder display
       if (workflowSuccess && workflowData) {
-        onWorkflowGenerated(workflowData, data)
+        onWorkflowGenerated(workflowData)
       }
     },
     onError: (error) => {
@@ -269,22 +302,38 @@ export function ChatInterface({
         name: error.name,
         stack: error.stack
       })
-      // Fallback to demo response
-      const responses = [
-        "I understand you want to work on bioinformatics analysis. Let me help you build a workflow for that!",
-        "Great! I can help you create a pipeline for your data analysis. Let's start building a workflow.",
-        "Excellent choice! Let me design a workflow to help you process your data step by step.",
-        "I'll help you set up an analysis pipeline. Let me create a workflow for you."
-      ]
-      
+
+      // Show CLEAR error message to user - no hiding the problem
+      const errorMessage = error.message || 'Unknown error occurred';
+      const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed to fetch');
+
+      let userFriendlyError: string;
+      if (isNetworkError) {
+        userFriendlyError = `⚠️ **Connection Error**\n\nCould not reach the workflow generation service. This might be because:\n\n• The server is temporarily unavailable\n• Your network connection is interrupted\n• The service is being updated\n\n**What you can do:**\n1. Check your internet connection\n2. Try again in a few moments\n3. Contact support if the issue persists`;
+      } else {
+        userFriendlyError = `❌ **Workflow Generation Failed**\n\n${errorMessage}\n\n**What you can do:**\n1. Try rephrasing your request\n2. Be more specific about your data type and analysis goal\n3. Try again in a few moments`;
+      }
+
+      // Show demo workflow but CLEARLY LABEL IT
+      const demoWorkflow = generateDemoWorkflow();
+      const demoNote = `\n\n---\n📋 **Demo Preview:** Below is a sample workflow to show you what a typical analysis might look like. This is for reference only and won't execute real analysis.`;
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: responses[Math.floor(Math.random() * responses.length)],
+        content: userFriendlyError + demoNote,
         role: "assistant",
         timestamp: new Date(),
-        suggestions: ["Show me the workflow", "Explain the steps", "Start analysis", "Customize workflow"]
+        suggestions: ["Try again", "Refine my request", "Check server status", "Get help"],
+        metadata: {
+          type: 'error',
+          errorType: isNetworkError ? 'network' : 'api',
+          errorMessage: errorMessage,
+          // Include demo workflow but mark it clearly
+          workflow: { ...demoWorkflow, _isDemo: true, _isError: true },
+        }
       }
-      // Add message to chat session
+
+      // Add error message to chat session
       if (chatSession) {
         const updatedSession = chatHistoryService.addMessage(chatSession.id, aiMessage)
         if (updatedSession && onChatUpdated) {
@@ -292,9 +341,9 @@ export function ChatInterface({
         }
       }
       setIsTypingLocal(false)
-      
-      // Generate demo workflow when API fails
-      onWorkflowGenerated(generateDemoWorkflow())
+
+      // Pass demo workflow but marked as demo/error
+      onWorkflowGenerated({ ...demoWorkflow, _isDemo: true, _isError: true })
     }
   })
 
@@ -810,44 +859,31 @@ export function ChatInterface({
         </div>
       </ScrollArea>
       
-      {/* Progress Section - Above Chat Input */}
-      {activeWorkflow && (
+      {/* Compact Progress Indicator - Shows ONLY if workflow running but NO inline artifact visible
+          The inline WorkflowArtifact in chat messages is the primary progress display.
+          This compact bar only shows for workflows started outside chat or legacy mode.
+          UI Simplification: Removed detailed step list - see inline artifact for details. */}
+      {activeWorkflow && !displayMessages.some(m => m.metadata?.type === 'workflow' && m.metadata?.workflow) && (
         <div className="border-t bg-background">
           <div
-            className="w-full p-4 cursor-pointer hover:bg-muted/50 transition-colors border-b"
+            className="w-full p-3 cursor-pointer hover:bg-muted/50 transition-colors"
             onClick={onToggleProgress}
             data-testid="button-toggle-progress"
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {showProgress ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                <div className="flex items-center gap-2">
-                  {(() => {
-                    const StatusIcon = getStatusIcon(activeWorkflow.status)
-                    return <StatusIcon className={cn("w-4 h-4", getStatusColor(activeWorkflow.status))} />
-                  })()}
-                  <span className="font-medium">{activeWorkflow.title}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {activeWorkflow.progress}% complete
-                  </Badge>
-                </div>
-              </div>
               <div className="flex items-center gap-2">
-                <div className="text-sm text-muted-foreground">
-                  Step {activeWorkflow.steps.filter(s => s.status === 'completed').length + 1} of {activeWorkflow.steps.length}
-                </div>
-                {activeWorkflow.status === 'running' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      console.log('Pause workflow')
-                    }}
-                  >
-                    <Pause className="w-3 h-3" />
-                  </Button>
-                )}
+                {(() => {
+                  const StatusIcon = getStatusIcon(activeWorkflow.status)
+                  return <StatusIcon className={cn("w-4 h-4", getStatusColor(activeWorkflow.status))} />
+                })()}
+                <span className="text-sm font-medium">{activeWorkflow.title}</span>
+                <Badge variant="secondary" className="text-xs">
+                  {activeWorkflow.progress}%
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {activeWorkflow.steps.filter(s => s.status === 'completed').length}/{activeWorkflow.steps.length} steps
+                {showProgress ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
               </div>
             </div>
           </div>

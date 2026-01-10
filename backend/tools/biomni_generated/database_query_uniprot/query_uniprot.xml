@@ -1,0 +1,86 @@
+<tool id="biomni_database_query_uniprot" name="Query UniProt (Biomni)" version="1.0.0" profile="21.05">
+    <description>Query the UniProt REST API for protein information</description>
+    <requirements>
+        <container type="docker">biomate/biotools:arm64</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+/opt/conda/envs/biotools/bin/python3 '$__tool_directory__/query_uniprot_wrapper.py'
+#if str($query_type.type) == "accession"
+    --accession '$query_type.accession'
+#else
+    --query '$query_type.query'
+#end if
+    --format '$output_format'
+    --output '$output'
+    ]]></command>
+    <inputs>
+        <conditional name="query_type">
+            <param name="type" type="select" label="Query Type">
+                <option value="accession" selected="true">UniProt Accession ID</option>
+                <option value="search">Search Query</option>
+            </param>
+            <when value="accession">
+                <param name="accession" type="text" label="UniProt Accession ID"
+                       help="e.g., P38398 for BRCA1"/>
+            </when>
+            <when value="search">
+                <param name="query" type="text" label="Search Query"
+                       help="e.g., 'BRCA1 human' or 'insulin'"/>
+            </when>
+        </conditional>
+        <param name="output_format" type="select" label="Output Format">
+            <option value="fasta" selected="true">FASTA</option>
+            <option value="json">JSON</option>
+            <option value="txt">Text</option>
+            <option value="gff">GFF</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="UniProt query result: ${query_type.accession if $query_type.type == 'accession' else $query_type.query}">
+            <change_format>
+                <when input="output_format" value="fasta" format="fasta"/>
+                <when input="output_format" value="json" format="json"/>
+                <when input="output_format" value="gff" format="gff"/>
+            </change_format>
+        </data>
+    </outputs>
+    <tests>
+        <test>
+            <conditional name="query_type">
+                <param name="type" value="accession"/>
+                <param name="accession" value="P38398"/>
+            </conditional>
+            <param name="output_format" value="fasta"/>
+            <output name="output" ftype="fasta">
+                <assert_contents>
+                    <has_text text=">sp|P38398|"/>
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help><![CDATA[
+**Query UniProt**
+
+This tool queries the UniProt protein database REST API.
+
+**Input Options:**
+
+- **UniProt Accession ID**: Direct lookup by accession (e.g., P38398 for BRCA1)
+- **Search Query**: Free-text search (e.g., "BRCA1 human", "insulin")
+
+**Output Formats:**
+
+- **FASTA**: Protein sequence in FASTA format
+- **JSON**: Full protein entry data in JSON format
+- **Text**: Human-readable text format
+- **GFF**: Genomic Feature Format
+
+**Examples:**
+
+- Accession: ``P38398`` returns BRCA1 protein information
+- Search: ``BRCA1 human`` returns matching proteins
+    ]]></help>
+    <citations>
+        <citation type="doi">10.1093/nar/gkac1052</citation>
+    </citations>
+</tool>

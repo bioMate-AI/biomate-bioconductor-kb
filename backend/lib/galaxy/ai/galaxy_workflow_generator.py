@@ -2,9 +2,10 @@
 Galaxy Workflow Generator with Tool Validation and Dataset Integration
 
 Generates Galaxy .ga workflow JSON using:
-1. ToolSearchIndex - retrieve available tools (VALIDATION)
+1. UnifiedToolSearch - multi-stage retrieval (LLM + vector + FTS5)
 2. Claude LLM - generate workflow from retrieved tools only
 3. WorkflowDatasetSelector - add datasets to workflow steps
+4. ToolKnowledgeProvider - inject citations and best practices
 
 This ensures NO non-existent tools are used in generated workflows.
 """
@@ -17,13 +18,28 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
+# Lazy import for tool knowledge provider
+_tool_knowledge_provider = None
+
+def get_tool_knowledge_provider():
+    """Get singleton tool knowledge provider."""
+    global _tool_knowledge_provider
+    if _tool_knowledge_provider is None:
+        try:
+            from .tool_knowledge_provider import ToolKnowledgeProvider
+            _tool_knowledge_provider = ToolKnowledgeProvider()
+            log.info("Initialized ToolKnowledgeProvider for citation injection")
+        except Exception as e:
+            log.warning(f"Failed to initialize ToolKnowledgeProvider: {e}")
+    return _tool_knowledge_provider
+
 
 class GalaxyWorkflowGenerator:
     """
     LLM-based Galaxy workflow generator with tool validation.
 
     Architecture:
-    1. Tool Retrieval: Search ToolSearchIndex for available tools
+    1. Tool Retrieval: UnifiedToolSearch with LLM + vector + FTS5
     2. Workflow Generation: LLM creates workflow using ONLY retrieved tools
     3. Dataset Integration: WorkflowDatasetSelector adds datasets
     4. .ga JSON Output: Generate Galaxy workflow format
@@ -45,9 +61,9 @@ class GalaxyWorkflowGenerator:
         from galaxy.ai.llm_client import LLMClient
         self.llm_client = LLMClient(config)
 
-        # Tool search index for validation - lazy loaded to avoid heavy imports
-        self._tool_index = tool_search_index
-        self._tool_index_loaded = False
+        # Tool search - lazy loaded to avoid heavy imports
+        self._tool_search = tool_search_index
+        self._tool_search_loaded = False
 
         # Dataset selector for dataset integration
         if dataset_selector is None:
@@ -62,26 +78,40 @@ class GalaxyWorkflowGenerator:
 
     @property
     def tool_index(self):
-        """Lazy-load tool index on first access to avoid heavy imports during init."""
-        if not self._tool_index_loaded:
-            if self._tool_index is None:
-                from galaxy.tools.search_index import ToolSearchIndex
-                self._tool_index = ToolSearchIndex()
-            self._tool_index_loaded = True
-        return self._tool_index
+        """Lazy-load unified tool search on first access."""
+        if not self._tool_search_loaded:
+            if self._tool_search is None:
+                # Use UnifiedToolSearch for multi-stage retrieval
+                try:
+                    from galaxy.ai.unified_tool_search import create_unified_search
+                    self._tool_search = create_unified_search(
+                        llm_client=self.llm_client
+                    )
+                    log.info("Initialized UnifiedToolSearch with LLM support")
+                except Exception as e:
+                    log.warning(f"Failed to initialize UnifiedToolSearch: {e}")
+                    # Fallback to basic ToolSearchIndex
+                    from galaxy.tools.search_index import ToolSearchIndex
+                    self._tool_search = ToolSearchIndex()
+                    log.info("Fallback to basic ToolSearchIndex")
+            self._tool_search_loaded = True
+        return self._tool_search
 
     def generate_workflow(
         self,
         user_intent: str,
-        max_tools_search: int = 30
+        max_tools_search: int = 30,
+        progress_callback: callable = None
     ) -> Dict[str, Any]:
         """
-        Generate complete Galaxy workflow with datasets.
+        Generate complete Galaxy workflow with datasets and progress tracking.
 
         Args:
             user_intent: User's research goal
                 Example: "Identify metabolites from human serum LC-MS data"
             max_tools_search: Max tools to retrieve from index for LLM context
+            progress_callback: Optional callback function for progress updates
+                Signature: callback(step: str, progress: float, message: str, details: dict)
 
         Returns:
             Dict with:
@@ -89,9 +119,30 @@ class GalaxyWorkflowGenerator:
             - tool_selections: Tools selected from index
             - dataset_assignments: Datasets assigned to steps
             - reasoning: LLM reasoning for workflow design
+            - generation_progress: List of progress steps taken
         """
 
+        # Progress tracking
+        progress_steps = []
+
+        def report_progress(step: str, progress: float, message: str, details: dict = None):
+            """Report progress to callback and log."""
+            progress_info = {
+                "step": step,
+                "progress": progress,
+                "message": message,
+                "details": details or {}
+            }
+            progress_steps.append(progress_info)
+            log.info(f"[WorkflowGen Progress] {step}: {message} ({progress*100:.0f}%)")
+            if progress_callback:
+                try:
+                    progress_callback(step, progress, message, details or {})
+                except Exception as e:
+                    log.warning(f"Progress callback failed: {e}")
+
         # STEP 1: Retrieve available tools from index
+        report_progress("tool_search", 0.1, "Searching for relevant tools...", {"user_intent": user_intent})
         log.info(f"Retrieving tools for: {user_intent}")
         available_tools = self._retrieve_tools_from_index(user_intent, max_tools_search)
 
@@ -103,8 +154,10 @@ class GalaxyWorkflowGenerator:
             }
 
         log.info(f"Retrieved {len(available_tools)} tools from index")
+        report_progress("tool_search", 0.2, f"Found {len(available_tools)} relevant tools", {"tool_count": len(available_tools)})
 
         # STEP 2: Generate workflow structure using LLM (ONLY from retrieved tools)
+        report_progress("workflow_design", 0.3, "Designing intelligent workflow structure...", {"phase": "llm_generation"})
         log.info("Generating workflow structure with LLM...")
         workflow_structure = self._generate_workflow_structure(
             user_intent,
@@ -112,26 +165,81 @@ class GalaxyWorkflowGenerator:
         )
 
         if not workflow_structure or 'error' in workflow_structure:
+            report_progress("workflow_design", 0.3, "Workflow design failed", {"error": workflow_structure.get('error', 'Unknown error')})
             return {
                 "success": False,
                 "error": "Workflow generation failed",
                 "message": workflow_structure.get('error', 'Unknown error')
             }
 
+        step_count = len(workflow_structure.get('steps', []))
+        phases = workflow_structure.get('phases', [])
+        report_progress("workflow_design", 0.5, f"Designed {step_count}-step workflow", {
+            "step_count": step_count,
+            "phases": [p.get('phase') for p in phases] if phases else [],
+            "workflow_name": workflow_structure.get('workflow_name', '')
+        })
+
         # STEP 3: Select datasets for workflow steps
+        report_progress("dataset_selection", 0.6, "Selecting datasets for workflow...", {"phase": "dataset_matching"})
         log.info("Selecting datasets for workflow steps...")
         dataset_assignments = self.dataset_selector.select_datasets_for_workflow(
             workflow=workflow_structure,
             user_intent=user_intent
         )
+        report_progress("dataset_selection", 0.7, "Datasets assigned to workflow steps", {"assignments": len(dataset_assignments.get('workflow_steps', []))})
 
         # STEP 4: Build Galaxy .ga JSON with LLM parameter generation
+        report_progress("workflow_build", 0.8, "Building Galaxy workflow with parameters...", {"phase": "ga_json_generation"})
         log.info("Building Galaxy .ga workflow JSON...")
         galaxy_workflow, generated_parameters = self._build_galaxy_workflow_json(
             workflow_structure,
             dataset_assignments,
             user_intent=user_intent
         )
+        report_progress("workflow_build", 0.9, "Workflow JSON created", {"parameter_count": len(generated_parameters)})
+
+        # STEP 5: Collect citations and generate methods section
+        report_progress("finalization", 0.95, "Collecting citations and finalizing...", {"phase": "citations"})
+        citations = []
+        methods_section = None
+        knowledge_provider = get_tool_knowledge_provider()
+        if knowledge_provider:
+            try:
+                # Collect citations for all tools
+                for step in workflow_structure.get('steps', []):
+                    tool_id = step.get('tool_id', '')
+                    if tool_id:
+                        knowledge = knowledge_provider.get_tool_knowledge(tool_id)
+                        if knowledge and knowledge.citation:
+                            citations.append({
+                                "tool_id": tool_id,
+                                "tool_name": step.get('tool_name', tool_id),
+                                "citation": knowledge.citation.to_dict()
+                            })
+
+                # Generate methods section if we have citations
+                if citations:
+                    try:
+                        from .methods_generator import MethodsSectionGenerator
+                        methods_gen = MethodsSectionGenerator(knowledge_provider)
+                        methods_section = methods_gen.generate(
+                            galaxy_workflow,
+                            citation_style="short",
+                            include_parameters=True
+                        )
+                    except Exception as e:
+                        log.debug(f"Methods generation failed: {e}")
+
+            except Exception as e:
+                log.warning(f"Failed to collect citations: {e}")
+
+        # Final progress report
+        report_progress("complete", 1.0, "Workflow generation complete!", {
+            "workflow_name": workflow_structure.get('workflow_name', ''),
+            "step_count": len(workflow_structure.get('steps', [])),
+            "citation_count": len(citations)
+        })
 
         return {
             "success": True,
@@ -140,7 +248,10 @@ class GalaxyWorkflowGenerator:
             "dataset_assignments": dataset_assignments,
             "tool_selections": available_tools,
             "user_intent": user_intent,
-            "generated_parameters": generated_parameters  # NEW: LLM-generated parameters with confidence scores
+            "generated_parameters": generated_parameters,  # LLM-generated parameters with confidence scores
+            "citations": citations,  # Tool citations with DOI/PMID
+            "methods_section": methods_section,  # Auto-generated methods text
+            "generation_progress": progress_steps  # Progress tracking for UI
         }
 
     def _retrieve_tools_from_index(
@@ -149,19 +260,26 @@ class GalaxyWorkflowGenerator:
         limit: int = 30
     ) -> List[Dict[str, Any]]:
         """
-        Retrieve available tools from ToolSearchIndex.
+        Retrieve available tools using UnifiedToolSearch.
+
+        Uses multi-stage retrieval:
+        1. LLM query analysis (extract entities, infer category)
+        2. Direct entity matching
+        3. Vector similarity search
+        4. FTS5 full-text search
+        5. Result fusion with RRF
 
         This ensures we only use tools that exist in Galaxy.
         """
         try:
-            # ToolSearchIndex.search() now handles query transformation internally (converts to OR query)
-            # So we pass the user intent directly without transformation
             log.info(f"Searching for tools with query: {user_intent}")
 
-            # Search tool index - it will handle query transformation and sanitization
+            # Use unified search - handles query analysis and multi-stage retrieval
             results = self.tool_index.search(user_intent, limit=limit)
 
-            # Format tools for LLM context (include keywords!)
+            log.info(f"Found {len(results)} tools from unified search")
+
+            # Format tools for LLM context
             formatted_tools = []
             for tool in results:
                 formatted_tools.append({
@@ -170,9 +288,10 @@ class GalaxyWorkflowGenerator:
                     'description': tool.get('description', ''),
                     'version': tool.get('version', ''),
                     'category': tool.get('category', ''),
-                    'keywords': tool.get('keywords', ''),  # Include keywords
+                    'keywords': tool.get('keywords', ''),
                     'repo_owner': tool.get('repo_owner', ''),
-                    'repo_name': tool.get('repo_name', '')
+                    'repo_name': tool.get('repo_name', ''),
+                    'relevance_score': tool.get('rrf_score', 0)  # Include relevance from fusion
                 })
 
             return formatted_tools
@@ -271,53 +390,108 @@ Return ONLY the FTS5 query string, nothing else."""
         available_tools: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Generate workflow structure using LLM.
+        Generate intelligent workflow structure using LLM.
 
         CRITICAL: LLM can ONLY use tools from available_tools list.
+
+        Workflow Design Principles:
+        1. Data quality check first - validate input data
+        2. Core analysis - satisfy user's information needs
+        3. Post-processing - format, visualize, summarize results
+        4. Output preparation - provide downloadable outputs
         """
 
         # Build tool catalog for LLM
         tool_catalog = self._build_tool_catalog(available_tools)
 
-        system_prompt = f"""You are a scientific workflow design expert for Galaxy bioinformatics platform.
+        system_prompt = f"""You are an expert bioinformatics workflow architect for the Galaxy platform.
 
-Available tools for this workflow:
+Your task is to design COMPLETE, INTELLIGENT workflows that fully satisfy user needs.
+
+## AVAILABLE TOOLS (Use ONLY these exact tool_ids):
 
 {tool_catalog}
 
-Guidelines:
-1. Use ONLY tools from the list above (exact tool_id)
-2. Select tools based on Category and Keywords
-3. Design logical workflow steps
-4. Each step: step number, tool_id, tool_name, purpose
+## WORKFLOW DESIGN PRINCIPLES:
 
-Return JSON:
+A well-designed workflow should follow these phases:
+
+### PHASE 1: DATA VALIDATION (if applicable)
+- Check data quality and format
+- Validate input parameters
+- Report potential data issues
+
+### PHASE 2: CORE ANALYSIS
+- Perform the main analysis task requested by user
+- Use appropriate tools in logical sequence
+- Ensure outputs satisfy user's information needs
+
+### PHASE 3: POST-PROCESSING (if applicable)
+- Format results for readability
+- Generate summaries and statistics
+- Create visualizations (plots, charts)
+
+### PHASE 4: OUTPUT PREPARATION
+- Prepare downloadable results
+- Generate reports if appropriate
+- Provide results in user-requested format
+
+## IMPORTANT GUIDELINES:
+
+1. Use ONLY tools from the AVAILABLE TOOLS list (exact tool_id)
+2. Consider what information the user ACTUALLY needs
+3. Include visualization if it helps understanding
+4. Provide summary/statistics where meaningful
+5. Design for user convenience - ready-to-download outputs
+6. Keep workflows efficient - don't add unnecessary steps
+
+## OUTPUT FORMAT (JSON):
+
 {{
-  "workflow_name": "title",
+  "workflow_name": "Descriptive title reflecting the analysis",
+  "workflow_description": "Brief description of what this workflow accomplishes",
+  "user_need_addressed": "How this workflow satisfies the user's request",
+  "phases": [
+    {{
+      "phase": "data_validation|core_analysis|post_processing|output_preparation",
+      "phase_description": "What this phase accomplishes"
+    }}
+  ],
   "steps": [
     {{
       "step": 1,
-      "tool_id": "exact tool_id from list",
-      "tool_name": "tool name",
-      "purpose": "what this step does"
+      "phase": "data_validation|core_analysis|post_processing|output_preparation",
+      "tool_id": "exact tool_id from AVAILABLE TOOLS",
+      "tool_name": "human readable name",
+      "purpose": "What this step does and why it's needed",
+      "expected_output": "What output this step produces",
+      "user_benefit": "How this step helps the user"
     }}
   ],
-  "reasoning": "workflow rationale",
-  "missing_tools": []
+  "reasoning": "Overall workflow design rationale",
+  "output_summary": "What outputs the user will receive from this workflow",
+  "missing_capabilities": ["List any capabilities the user asked for that cannot be fulfilled"]
 }}
 """
 
-        user_prompt = f"""Scientific Research Goal: {user_intent}
+        user_prompt = f"""## USER REQUEST:
+{user_intent}
 
-Task: Design workflow using ONLY the tools from the provided list.
+## TASK:
+Design a complete, intelligent workflow that:
+1. VALIDATES data quality (if applicable)
+2. PERFORMS the core analysis to answer the user's question
+3. FORMATS and VISUALIZES results (if helpful)
+4. PREPARES downloadable outputs
 
-Steps:
-1. Select tools from catalog (exact tool_id)
-2. Order them logically
-3. Explain each step purpose
-4. Note missing tools
+Consider:
+- What information does the user actually need?
+- What format would be most useful for them?
+- Should results include visualizations?
+- What summary statistics would be helpful?
 
-Return JSON only.
+Design the workflow using ONLY tools from the AVAILABLE TOOLS list.
+Return valid JSON only - no additional text.
 """
 
         try:
@@ -437,11 +611,14 @@ Return JSON only.
         galaxy_steps = {}
         for step in workflow_structure.get('steps', []):
             step_num = step['step']
-            tool_id = step['tool_id']
+            # Original tool ID from AI database (uses slashes for Biomni tools)
+            db_tool_id = step['tool_id']
+            # Normalize tool ID for Galaxy (uses underscores for Biomni tools)
+            tool_id = self._normalize_tool_id(db_tool_id)
             tool_name = step['tool_name']
 
-            # Get tool parameters and help from database
-            tool_params, tool_help = self._get_tool_parameters_and_help(tool_id)
+            # Get tool parameters and help from database (use original DB format)
+            tool_params, tool_help = self._get_tool_parameters_and_help(db_tool_id)
 
             # Determine if this is a data source tool that needs LLM parameter generation
             is_data_source = self._is_data_source_tool(tool_id)
@@ -582,7 +759,7 @@ Return JSON only.
         return json.dumps(tool_state)
 
     def _build_step_annotation(self, step: Dict[str, Any], help_text: Dict[str, Any]) -> str:
-        """Build step annotation from tool help text."""
+        """Build step annotation from tool help text and citations."""
         annotations = []
 
         # Add step description from workflow structure
@@ -597,7 +774,45 @@ Return JSON only.
         if help_text.get('input_description'):
             annotations.append(f"Input: {help_text['input_description']}")
 
+        # Inject citation from tool knowledge provider
+        tool_id = step.get('tool_id', '')
+        knowledge_provider = get_tool_knowledge_provider()
+        if knowledge_provider and tool_id:
+            try:
+                knowledge = knowledge_provider.get_tool_knowledge(tool_id)
+                if knowledge and knowledge.citation:
+                    citation = knowledge.citation
+                    citation_text = f"Citation: {citation.format_short()}"
+                    if citation.doi:
+                        citation_text += f" (doi:{citation.doi})"
+                    annotations.append(citation_text)
+
+                    # Add key limitations as warnings
+                    if knowledge.limitations:
+                        limit_text = "; ".join(knowledge.limitations[:2])
+                        annotations.append(f"Note: {limit_text}")
+            except Exception as e:
+                log.debug(f"Failed to get knowledge for {tool_id}: {e}")
+
         return " | ".join(annotations) if annotations else step.get('tool_name', '')
+
+    def _normalize_tool_id(self, tool_id: str) -> str:
+        """
+        Normalize tool ID to match Galaxy's loaded tool format.
+
+        The AI database stores tool IDs with slashes (biomni/database/query_uniprot)
+        but Galaxy loads tools with underscores (biomni_database_query_uniprot).
+
+        Args:
+            tool_id: Tool ID from AI database (may use slashes or underscores)
+
+        Returns:
+            Normalized tool ID using underscores
+        """
+        if tool_id.startswith('biomni/'):
+            # Convert biomni/X/Y to biomni_X_Y
+            return tool_id.replace('/', '_')
+        return tool_id
 
     def _is_data_source_tool(self, tool_id: str) -> bool:
         """

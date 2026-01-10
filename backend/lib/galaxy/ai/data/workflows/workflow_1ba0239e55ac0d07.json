@@ -1,0 +1,1542 @@
+{
+  "workflow_id": "1ba0239e55ac0d07",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "1ba0239e55ac0d07",
+    "latest_workflow_id": "f0de615044c9f974",
+    "name": "T-DNA detect(map to TDNA,then map to plant genome)",
+    "create_time": "2025-08-17T12:46:56.703338",
+    "update_time": "2025-08-20T07:53:32.800515",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "10c33ed1-d4f9-4ce7-9145-e29c0b263f13",
+    "creator_deleted": false,
+    "annotations": [
+      ""
+    ],
+    "url": "/api/workflows/1ba0239e55ac0d07",
+    "owner": "xpb2005",
+    "source_metadata": null,
+    "number_of_steps": 18,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "name": "T-DNA detect(map to TDNA,then map to plant genome)",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "重测序的原始数据（双端的R1）",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "重测序的原始数据（双端的R1）",
+            "name": "input_1.fq.gz"
+          }
+        ],
+        "label": "input_1.fq.gz",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 414.84559991233186
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "c3c2b641-6b3c-4034-aa36-0110d5c1c429",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "the sequence of T-DNA(LB_to_RB)",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "the sequence of T-DNA(LB_to_RB)",
+            "name": "T-DNA.fa"
+          }
+        ],
+        "label": "T-DNA.fa",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 297.2569822333777,
+          "top": 501.11879041538174
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "6a331a64-d7da-4bbb-a3b0-3499831c29f0",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "重测序的原始数据（双端的R2）",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "重测序的原始数据（双端的R2）",
+            "name": "input_2.fq.gz"
+          }
+        ],
+        "label": "input_2.fq.gz",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 2.129638671875,
+          "top": 598.1326329933866
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "67d50387-e9eb-4700-b024-e073af5ec9d6",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "plant genome"
+          }
+        ],
+        "label": "plant genome",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 1348.472263571023,
+          "top": 474.8687499963679
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "6800c950-5148-4cf6-a105-6dfaabe3f7d7",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.10+galaxy0",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "singlePaired|input_singles": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Trim Galore!",
+            "name": "singlePaired"
+          }
+        ],
+        "label": "clean_reads_R1",
+        "name": "Trim Galore!",
+        "outputs": [
+          {
+            "name": "trimmed_reads_single",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 283.2407468818152,
+          "top": 245.7252052103036
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.10+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "b94789823aad",
+          "name": "trim_galore",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"params\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"rrbs\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"singlePaired\": {\"sPaired\": \"single\", \"__current_case__\": 0, \"input_singles\": {\"__class__\": \"RuntimeValue\"}, \"trimming\": {\"trimming_select\": \"\", \"__current_case__\": 0}, \"three_prime_clip_R1\": null}, \"trimming\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.6.10+galaxy0",
+        "type": "tool",
+        "uuid": "d89fbecb-a410-43ff-a440-0d7fb7168151",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.10+galaxy0",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "singlePaired|input_singles": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Trim Galore!",
+            "name": "singlePaired"
+          }
+        ],
+        "label": "clean_reads_R2",
+        "name": "Trim Galore!",
+        "outputs": [
+          {
+            "name": "trimmed_reads_single",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 261.2269529365027,
+          "top": 696.8825843606942
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.10+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "b94789823aad",
+          "name": "trim_galore",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"params\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"rrbs\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"singlePaired\": {\"sPaired\": \"single\", \"__current_case__\": 0, \"input_singles\": {\"__class__\": \"RuntimeValue\"}, \"trimming\": {\"trimming_select\": \"\", \"__current_case__\": 0}, \"three_prime_clip_R1\": null}, \"trimming\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.6.10+galaxy0",
+        "type": "tool",
+        "uuid": "ddf4dab5-e8a2-4cf5-ae9f-96fd5ae10945",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "library|input_1": {
+            "id": 4,
+            "output_name": "trimmed_reads_single"
+          },
+          "reference_genome|own_file": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Bowtie2",
+            "name": "library"
+          },
+          {
+            "description": "runtime parameter for tool Bowtie2",
+            "name": "reference_genome"
+          }
+        ],
+        "label": "mapping_TDNA_R1",
+        "name": "Bowtie2",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "bam"
+          }
+        ],
+        "position": {
+          "left": 619.3519091967563,
+          "top": 360.5092787169477
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "d5ceb9f3c25b",
+          "name": "bowtie2",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"analysis_type\": {\"analysis_type_selector\": \"simple\", \"__current_case__\": 0, \"presets\": \"--fast-local\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"RuntimeValue\"}, \"unaligned_file\": false, \"aligned_file\": false}, \"reference_genome\": {\"source\": \"history\", \"__current_case__\": 1, \"own_file\": {\"__class__\": \"RuntimeValue\"}}, \"rg\": {\"rg_selector\": \"do_not_set\", \"__current_case__\": 3}, \"sam_options\": {\"sam_options_selector\": \"yes\", \"__current_case__\": 0, \"sam_opt\": true, \"no_unal\": false, \"omit_sec_seq\": false, \"sam_no_qname_trunc\": false, \"xeq\": false, \"soft_clipped_unmapped_tlen\": false, \"reorder\": false}, \"save_mapping_stats\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.5.3+galaxy1",
+        "type": "tool",
+        "uuid": "01410671-7105-41c9-94e9-5780968fa4e6",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "library|input_1": {
+            "id": 5,
+            "output_name": "trimmed_reads_single"
+          },
+          "reference_genome|own_file": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Bowtie2",
+            "name": "library"
+          },
+          {
+            "description": "runtime parameter for tool Bowtie2",
+            "name": "reference_genome"
+          }
+        ],
+        "label": "mapping_TDNA_R2",
+        "name": "Bowtie2",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "bam"
+          }
+        ],
+        "position": {
+          "left": 612.175988581034,
+          "top": 598.7924354349129
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "d5ceb9f3c25b",
+          "name": "bowtie2",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"analysis_type\": {\"analysis_type_selector\": \"simple\", \"__current_case__\": 0, \"presets\": \"--fast-local\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"RuntimeValue\"}, \"unaligned_file\": false, \"aligned_file\": false}, \"reference_genome\": {\"source\": \"history\", \"__current_case__\": 1, \"own_file\": {\"__class__\": \"RuntimeValue\"}}, \"rg\": {\"rg_selector\": \"do_not_set\", \"__current_case__\": 3}, \"sam_options\": {\"sam_options_selector\": \"yes\", \"__current_case__\": 0, \"sam_opt\": true, \"no_unal\": false, \"omit_sec_seq\": false, \"sam_no_qname_trunc\": false, \"xeq\": false, \"soft_clipped_unmapped_tlen\": false, \"reorder\": false}, \"save_mapping_stats\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.5.3+galaxy1",
+        "type": "tool",
+        "uuid": "fb335d6a-aed5-4817-9754-1fd1ed39214f",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "infile": {
+            "id": 6,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Text reformatting",
+            "name": "infile"
+          }
+        ],
+        "label": "mapping_TDNA_soft-clipped_R1_reads",
+        "name": "Text reformatting",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 859.5602273708417,
+          "top": 0.0
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "c41d78ae5fee",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"code\": \"$6 ~ /S/\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.5+galaxy2",
+        "type": "tool",
+        "uuid": "317507da-8dce-401c-84c2-1539fc9a4171",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "TDNA_soft-clipped-R1",
+            "output_name": "outfile",
+            "uuid": "901a9afc-d320-4ae1-8c45-0df867dd998b"
+          }
+        ]
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "infile": {
+            "id": 7,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Text reformatting",
+            "name": "infile"
+          }
+        ],
+        "label": "mapping_TDNA_soft-clipped_R2_reads",
+        "name": "Text reformatting",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 852.8205879722489,
+          "top": 1048.280744001394
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "c41d78ae5fee",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"code\": \"$6 ~ /S/\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.5+galaxy2",
+        "type": "tool",
+        "uuid": "568b56a1-0dc4-4307-a96d-6a383a829c7d",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "TDNA_soft-clipped-R2",
+            "output_name": "outfile",
+            "uuid": "5f1bfcbb-7717-4f62-bf40-fd20e0eac3ac"
+          }
+        ]
+      },
+      "10": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "errors": null,
+        "id": 10,
+        "input_connections": {
+          "infile": {
+            "id": 8,
+            "output_name": "outfile"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Text reformatting",
+            "name": "infile"
+          }
+        ],
+        "label": "soft_clipped_R1_reads_ID",
+        "name": "Text reformatting",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1114.9194613583527,
+          "top": 297.3977306148746
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "c41d78ae5fee",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"code\": \"!/^@/ {print $1}\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.5+galaxy2",
+        "type": "tool",
+        "uuid": "d48ea823-b9f2-4b9d-9553-97ee14bb184e",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "11": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "errors": null,
+        "id": 11,
+        "input_connections": {
+          "infile": {
+            "id": 9,
+            "output_name": "outfile"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Text reformatting",
+            "name": "infile"
+          }
+        ],
+        "label": "soft_clipped_R2_reads_ID",
+        "name": "Text reformatting",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1114.885453925038,
+          "top": 718.6321597901448
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "c41d78ae5fee",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"code\": \"!/^@/ {print $1}\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.5+galaxy2",
+        "type": "tool",
+        "uuid": "c09fc296-1b80-4189-9262-865081492c54",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "12": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_subseq/1.5+galaxy0",
+        "errors": null,
+        "id": 12,
+        "input_connections": {
+          "in_file": {
+            "id": 4,
+            "output_name": "trimmed_reads_single"
+          },
+          "source|name_list": {
+            "id": 10,
+            "output_name": "outfile"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool seqtk_subseq",
+            "name": "in_file"
+          },
+          {
+            "description": "runtime parameter for tool seqtk_subseq",
+            "name": "source"
+          }
+        ],
+        "label": "extract soft_clipped_reads_R1",
+        "name": "seqtk_subseq",
+        "outputs": [
+          {
+            "name": "default",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1387.4728592014285,
+          "top": 179.05697331853747
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_subseq/1.5+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "8511b6d85fc7",
+          "name": "seqtk",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"in_file\": {\"__class__\": \"RuntimeValue\"}, \"l\": \"0\", \"source\": {\"type\": \"name\", \"__current_case__\": 1, \"name_list\": {\"__class__\": \"RuntimeValue\"}}, \"t\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.5+galaxy0",
+        "type": "tool",
+        "uuid": "c6085a1c-14c8-48d4-a22e-ff8d85ca94e5",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "13": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_subseq/1.5+galaxy0",
+        "errors": null,
+        "id": 13,
+        "input_connections": {
+          "in_file": {
+            "id": 5,
+            "output_name": "trimmed_reads_single"
+          },
+          "source|name_list": {
+            "id": 11,
+            "output_name": "outfile"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool seqtk_subseq",
+            "name": "in_file"
+          },
+          {
+            "description": "runtime parameter for tool seqtk_subseq",
+            "name": "source"
+          }
+        ],
+        "label": "extract soft_clipped_reads_R2",
+        "name": "seqtk_subseq",
+        "outputs": [
+          {
+            "name": "default",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1382.293071737399,
+          "top": 883.2546839821755
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_subseq/1.5+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "8511b6d85fc7",
+          "name": "seqtk",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"in_file\": {\"__class__\": \"RuntimeValue\"}, \"l\": \"0\", \"source\": {\"type\": \"name\", \"__current_case__\": 1, \"name_list\": {\"__class__\": \"RuntimeValue\"}}, \"t\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.5+galaxy0",
+        "type": "tool",
+        "uuid": "5b0e7791-16fc-4392-822f-e2ecbcf13a8a",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "14": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "errors": null,
+        "id": 14,
+        "input_connections": {
+          "library|input_1": {
+            "id": 12,
+            "output_name": "default"
+          },
+          "reference_genome|own_file": {
+            "id": 3,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Bowtie2",
+            "name": "library"
+          },
+          {
+            "description": "runtime parameter for tool Bowtie2",
+            "name": "reference_genome"
+          }
+        ],
+        "label": "1_mapping to plant",
+        "name": "Bowtie2",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "bam"
+          }
+        ],
+        "position": {
+          "left": 1773.7385599577417,
+          "top": 175.92198791140697
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "d5ceb9f3c25b",
+          "name": "bowtie2",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"analysis_type\": {\"analysis_type_selector\": \"simple\", \"__current_case__\": 0, \"presets\": \"--fast-local\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"RuntimeValue\"}, \"unaligned_file\": false, \"aligned_file\": false}, \"reference_genome\": {\"source\": \"history\", \"__current_case__\": 1, \"own_file\": {\"__class__\": \"RuntimeValue\"}}, \"rg\": {\"rg_selector\": \"do_not_set\", \"__current_case__\": 3}, \"sam_options\": {\"sam_options_selector\": \"yes\", \"__current_case__\": 0, \"sam_opt\": true, \"no_unal\": false, \"omit_sec_seq\": false, \"sam_no_qname_trunc\": false, \"xeq\": false, \"soft_clipped_unmapped_tlen\": false, \"reorder\": false}, \"save_mapping_stats\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.5.3+galaxy1",
+        "type": "tool",
+        "uuid": "e3fe3642-6f11-470a-998d-e4b54847814e",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "15": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "errors": null,
+        "id": 15,
+        "input_connections": {
+          "library|input_1": {
+            "id": 13,
+            "output_name": "default"
+          },
+          "reference_genome|own_file": {
+            "id": 3,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Bowtie2",
+            "name": "library"
+          },
+          {
+            "description": "runtime parameter for tool Bowtie2",
+            "name": "reference_genome"
+          }
+        ],
+        "label": "2_mapping to plant",
+        "name": "Bowtie2",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "bam"
+          }
+        ],
+        "position": {
+          "left": 1776.8751566374292,
+          "top": 595.8641723596492
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "d5ceb9f3c25b",
+          "name": "bowtie2",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"analysis_type\": {\"analysis_type_selector\": \"simple\", \"__current_case__\": 0, \"presets\": \"--fast-local\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"RuntimeValue\"}, \"unaligned_file\": false, \"aligned_file\": false}, \"reference_genome\": {\"source\": \"history\", \"__current_case__\": 1, \"own_file\": {\"__class__\": \"RuntimeValue\"}}, \"rg\": {\"rg_selector\": \"do_not_set\", \"__current_case__\": 3}, \"sam_options\": {\"sam_options_selector\": \"yes\", \"__current_case__\": 0, \"sam_opt\": true, \"no_unal\": false, \"omit_sec_seq\": false, \"sam_no_qname_trunc\": false, \"xeq\": false, \"soft_clipped_unmapped_tlen\": false, \"reorder\": false}, \"save_mapping_stats\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.5.3+galaxy1",
+        "type": "tool",
+        "uuid": "a4f25c1e-caeb-48f4-9a37-d0cb9071f654",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "16": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "errors": null,
+        "id": 16,
+        "input_connections": {
+          "infile": {
+            "id": 14,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Text reformatting",
+            "name": "infile"
+          }
+        ],
+        "label": "mapping_plant_soft-clipped_R1_reads",
+        "name": "Text reformatting",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 2056.608781088402,
+          "top": 105.46299451685451
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "c41d78ae5fee",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"code\": \"$6 ~ /S/\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.5+galaxy2",
+        "type": "tool",
+        "uuid": "5fa3cf57-a033-451d-838e-d88bb5a9e5d0",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "plant_soft_clipped_R1",
+            "output_name": "outfile",
+            "uuid": "891493d2-29d5-41d0-b031-22a7935dce66"
+          }
+        ]
+      },
+      "17": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "errors": null,
+        "id": 17,
+        "input_connections": {
+          "infile": {
+            "id": 15,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Text reformatting",
+            "name": "infile"
+          }
+        ],
+        "label": "mapping_plant_soft-clipped_R2_reads",
+        "name": "Text reformatting",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 2064.284059475264,
+          "top": 692.1851859089759
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "c41d78ae5fee",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"code\": \"$6 ~ /S/\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.5+galaxy2",
+        "type": "tool",
+        "uuid": "a03a546b-a3f8-4ebf-bd2a-a541e7c8cb7e",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "plant_soft_clipped_R2",
+            "output_name": "outfile",
+            "uuid": "ce56ada6-99aa-45e3-a381-0026b8a8b675"
+          }
+        ]
+      }
+    },
+    "tags": [],
+    "uuid": "10c33ed1-d4f9-4ce7-9145-e29c0b263f13",
+    "version": 3
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "T-DNA detect(map to TDNA,then map to plant genome)",
+      "annotation": "",
+      "format_version": "0.1",
+      "uuid": "10c33ed1-d4f9-4ce7-9145-e29c0b263f13",
+      "version": 3,
+      "tags": [],
+      "creator": [],
+      "license": ""
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "input_1.fq.gz",
+        "annotation": "重测序的原始数据（双端的R1）",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\"], \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 414.84559991233186
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "T-DNA.fa",
+        "annotation": "the sequence of T-DNA(LB_to_RB)",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "position": {
+          "left": 297.2569822333777,
+          "top": 501.11879041538174
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "input_2.fq.gz",
+        "annotation": "重测序的原始数据（双端的R2）",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\"], \"tag\": null}",
+        "position": {
+          "left": 2.129638671875,
+          "top": 598.1326329933866
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "plant genome",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "position": {
+          "left": 1348.472263571023,
+          "top": 474.8687499963679
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "Trim Galore!",
+        "label": "clean_reads_R1",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.10+galaxy0",
+        "tool_version": "0.6.10+galaxy0",
+        "tool_state": "{\"params\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"rrbs\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"singlePaired\": {\"sPaired\": \"single\", \"__current_case__\": 0, \"input_singles\": {\"__class__\": \"RuntimeValue\"}, \"trimming\": {\"trimming_select\": \"\", \"__current_case__\": 0}, \"three_prime_clip_R1\": null}, \"trimming\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 283.2407468818152,
+          "top": 245.7252052103036
+        },
+        "input_connections": {
+          "singlePaired|input_singles": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "trimmed_reads_single",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "Trim Galore!",
+        "label": "clean_reads_R2",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.10+galaxy0",
+        "tool_version": "0.6.10+galaxy0",
+        "tool_state": "{\"params\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"rrbs\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"singlePaired\": {\"sPaired\": \"single\", \"__current_case__\": 0, \"input_singles\": {\"__class__\": \"RuntimeValue\"}, \"trimming\": {\"trimming_select\": \"\", \"__current_case__\": 0}, \"three_prime_clip_R1\": null}, \"trimming\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 261.2269529365027,
+          "top": 696.8825843606942
+        },
+        "input_connections": {
+          "singlePaired|input_singles": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "trimmed_reads_single",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "Bowtie2",
+        "label": "mapping_TDNA_R1",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_version": "2.5.3+galaxy1",
+        "tool_state": "{\"analysis_type\": {\"analysis_type_selector\": \"simple\", \"__current_case__\": 0, \"presets\": \"--fast-local\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"RuntimeValue\"}, \"unaligned_file\": false, \"aligned_file\": false}, \"reference_genome\": {\"source\": \"history\", \"__current_case__\": 1, \"own_file\": {\"__class__\": \"RuntimeValue\"}}, \"rg\": {\"rg_selector\": \"do_not_set\", \"__current_case__\": 3}, \"sam_options\": {\"sam_options_selector\": \"yes\", \"__current_case__\": 0, \"sam_opt\": true, \"no_unal\": false, \"omit_sec_seq\": false, \"sam_no_qname_trunc\": false, \"xeq\": false, \"soft_clipped_unmapped_tlen\": false, \"reorder\": false}, \"save_mapping_stats\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 619.3519091967563,
+          "top": 360.5092787169477
+        },
+        "input_connections": {
+          "library|input_1": {
+            "id": 4,
+            "output_name": "trimmed_reads_single"
+          },
+          "reference_genome|own_file": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "bam"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "Bowtie2",
+        "label": "mapping_TDNA_R2",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_version": "2.5.3+galaxy1",
+        "tool_state": "{\"analysis_type\": {\"analysis_type_selector\": \"simple\", \"__current_case__\": 0, \"presets\": \"--fast-local\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"RuntimeValue\"}, \"unaligned_file\": false, \"aligned_file\": false}, \"reference_genome\": {\"source\": \"history\", \"__current_case__\": 1, \"own_file\": {\"__class__\": \"RuntimeValue\"}}, \"rg\": {\"rg_selector\": \"do_not_set\", \"__current_case__\": 3}, \"sam_options\": {\"sam_options_selector\": \"yes\", \"__current_case__\": 0, \"sam_opt\": true, \"no_unal\": false, \"omit_sec_seq\": false, \"sam_no_qname_trunc\": false, \"xeq\": false, \"soft_clipped_unmapped_tlen\": false, \"reorder\": false}, \"save_mapping_stats\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 612.175988581034,
+          "top": 598.7924354349129
+        },
+        "input_connections": {
+          "library|input_1": {
+            "id": 5,
+            "output_name": "trimmed_reads_single"
+          },
+          "reference_genome|own_file": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "bam"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "Text reformatting",
+        "label": "mapping_TDNA_soft-clipped_R1_reads",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "tool_state": "{\"code\": \"$6 ~ /S/\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 859.5602273708417,
+          "top": 0.0
+        },
+        "input_connections": {
+          "infile": {
+            "id": 6,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "Text reformatting",
+        "label": "mapping_TDNA_soft-clipped_R2_reads",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "tool_state": "{\"code\": \"$6 ~ /S/\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 852.8205879722489,
+          "top": 1048.280744001394
+        },
+        "input_connections": {
+          "infile": {
+            "id": 7,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "10",
+        "type": "tool",
+        "name": "Text reformatting",
+        "label": "soft_clipped_R1_reads_ID",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "tool_state": "{\"code\": \"!/^@/ {print $1}\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1114.9194613583527,
+          "top": 297.3977306148746
+        },
+        "input_connections": {
+          "infile": {
+            "id": 8,
+            "output_name": "outfile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "11",
+        "type": "tool",
+        "name": "Text reformatting",
+        "label": "soft_clipped_R2_reads_ID",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "tool_state": "{\"code\": \"!/^@/ {print $1}\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1114.885453925038,
+          "top": 718.6321597901448
+        },
+        "input_connections": {
+          "infile": {
+            "id": 9,
+            "output_name": "outfile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "12",
+        "type": "tool",
+        "name": "seqtk_subseq",
+        "label": "extract soft_clipped_reads_R1",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_subseq/1.5+galaxy0",
+        "tool_version": "1.5+galaxy0",
+        "tool_state": "{\"in_file\": {\"__class__\": \"RuntimeValue\"}, \"l\": \"0\", \"source\": {\"type\": \"name\", \"__current_case__\": 1, \"name_list\": {\"__class__\": \"RuntimeValue\"}}, \"t\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1387.4728592014285,
+          "top": 179.05697331853747
+        },
+        "input_connections": {
+          "in_file": {
+            "id": 4,
+            "output_name": "trimmed_reads_single"
+          },
+          "source|name_list": {
+            "id": 10,
+            "output_name": "outfile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "default",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "13",
+        "type": "tool",
+        "name": "seqtk_subseq",
+        "label": "extract soft_clipped_reads_R2",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_subseq/1.5+galaxy0",
+        "tool_version": "1.5+galaxy0",
+        "tool_state": "{\"in_file\": {\"__class__\": \"RuntimeValue\"}, \"l\": \"0\", \"source\": {\"type\": \"name\", \"__current_case__\": 1, \"name_list\": {\"__class__\": \"RuntimeValue\"}}, \"t\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1382.293071737399,
+          "top": 883.2546839821755
+        },
+        "input_connections": {
+          "in_file": {
+            "id": 5,
+            "output_name": "trimmed_reads_single"
+          },
+          "source|name_list": {
+            "id": 11,
+            "output_name": "outfile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "default",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "14",
+        "type": "tool",
+        "name": "Bowtie2",
+        "label": "1_mapping to plant",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_version": "2.5.3+galaxy1",
+        "tool_state": "{\"analysis_type\": {\"analysis_type_selector\": \"simple\", \"__current_case__\": 0, \"presets\": \"--fast-local\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"RuntimeValue\"}, \"unaligned_file\": false, \"aligned_file\": false}, \"reference_genome\": {\"source\": \"history\", \"__current_case__\": 1, \"own_file\": {\"__class__\": \"RuntimeValue\"}}, \"rg\": {\"rg_selector\": \"do_not_set\", \"__current_case__\": 3}, \"sam_options\": {\"sam_options_selector\": \"yes\", \"__current_case__\": 0, \"sam_opt\": true, \"no_unal\": false, \"omit_sec_seq\": false, \"sam_no_qname_trunc\": false, \"xeq\": false, \"soft_clipped_unmapped_tlen\": false, \"reorder\": false}, \"save_mapping_stats\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1773.7385599577417,
+          "top": 175.92198791140697
+        },
+        "input_connections": {
+          "library|input_1": {
+            "id": 12,
+            "output_name": "default"
+          },
+          "reference_genome|own_file": {
+            "id": 3,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "bam"
+          }
+        ]
+      },
+      {
+        "step_id": "15",
+        "type": "tool",
+        "name": "Bowtie2",
+        "label": "2_mapping to plant",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_version": "2.5.3+galaxy1",
+        "tool_state": "{\"analysis_type\": {\"analysis_type_selector\": \"simple\", \"__current_case__\": 0, \"presets\": \"--fast-local\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"RuntimeValue\"}, \"unaligned_file\": false, \"aligned_file\": false}, \"reference_genome\": {\"source\": \"history\", \"__current_case__\": 1, \"own_file\": {\"__class__\": \"RuntimeValue\"}}, \"rg\": {\"rg_selector\": \"do_not_set\", \"__current_case__\": 3}, \"sam_options\": {\"sam_options_selector\": \"yes\", \"__current_case__\": 0, \"sam_opt\": true, \"no_unal\": false, \"omit_sec_seq\": false, \"sam_no_qname_trunc\": false, \"xeq\": false, \"soft_clipped_unmapped_tlen\": false, \"reorder\": false}, \"save_mapping_stats\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1776.8751566374292,
+          "top": 595.8641723596492
+        },
+        "input_connections": {
+          "library|input_1": {
+            "id": 13,
+            "output_name": "default"
+          },
+          "reference_genome|own_file": {
+            "id": 3,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "bam"
+          }
+        ]
+      },
+      {
+        "step_id": "16",
+        "type": "tool",
+        "name": "Text reformatting",
+        "label": "mapping_plant_soft-clipped_R1_reads",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "tool_state": "{\"code\": \"$6 ~ /S/\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2056.608781088402,
+          "top": 105.46299451685451
+        },
+        "input_connections": {
+          "infile": {
+            "id": 14,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "17",
+        "type": "tool",
+        "name": "Text reformatting",
+        "label": "mapping_plant_soft-clipped_R2_reads",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "tool_state": "{\"code\": \"$6 ~ /S/\", \"infile\": {\"__class__\": \"RuntimeValue\"}, \"variables\": [], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2064.284059475264,
+          "top": 692.1851859089759
+        },
+        "input_connections": {
+          "infile": {
+            "id": 15,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.10+galaxy0",
+        "tool_version": "0.6.10+galaxy0",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.10+galaxy0",
+        "tool_version": "0.6.10+galaxy0",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_version": "2.5.3+galaxy1",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_version": "2.5.3+galaxy1",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "step_id": "8"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "step_id": "9"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "step_id": "10"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "step_id": "11"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_subseq/1.5+galaxy0",
+        "tool_version": "1.5+galaxy0",
+        "step_id": "12"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/seqtk/seqtk_subseq/1.5+galaxy0",
+        "tool_version": "1.5+galaxy0",
+        "step_id": "13"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_version": "2.5.3+galaxy1",
+        "step_id": "14"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.3+galaxy1",
+        "tool_version": "2.5.3+galaxy1",
+        "step_id": "15"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "step_id": "16"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/9.5+galaxy2",
+        "tool_version": "9.5+galaxy2",
+        "step_id": "17"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "input_1.fq.gz",
+        "annotation": "重测序的原始数据（双端的R1）"
+      },
+      {
+        "step_id": "1",
+        "label": "T-DNA.fa",
+        "annotation": "the sequence of T-DNA(LB_to_RB)"
+      },
+      {
+        "step_id": "2",
+        "label": "input_2.fq.gz",
+        "annotation": "重测序的原始数据（双端的R2）"
+      },
+      {
+        "step_id": "3",
+        "label": "plant genome",
+        "annotation": ""
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "8",
+        "output_name": "outfile",
+        "label": "TDNA_soft-clipped-R1"
+      },
+      {
+        "step_id": "9",
+        "output_name": "outfile",
+        "label": "TDNA_soft-clipped-R2"
+      },
+      {
+        "step_id": "16",
+        "output_name": "outfile",
+        "label": "plant_soft_clipped_R1"
+      },
+      {
+        "step_id": "17",
+        "output_name": "outfile",
+        "label": "plant_soft_clipped_R2"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "4",
+        "to_input": "singlePaired|input_singles"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "singlePaired|input_singles"
+      },
+      {
+        "from_step": 4,
+        "from_output": "trimmed_reads_single",
+        "to_step": "6",
+        "to_input": "library|input_1"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "reference_genome|own_file"
+      },
+      {
+        "from_step": 5,
+        "from_output": "trimmed_reads_single",
+        "to_step": "7",
+        "to_input": "library|input_1"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "reference_genome|own_file"
+      },
+      {
+        "from_step": 6,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 7,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 8,
+        "from_output": "outfile",
+        "to_step": "10",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 9,
+        "from_output": "outfile",
+        "to_step": "11",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 4,
+        "from_output": "trimmed_reads_single",
+        "to_step": "12",
+        "to_input": "in_file"
+      },
+      {
+        "from_step": 10,
+        "from_output": "outfile",
+        "to_step": "12",
+        "to_input": "source|name_list"
+      },
+      {
+        "from_step": 5,
+        "from_output": "trimmed_reads_single",
+        "to_step": "13",
+        "to_input": "in_file"
+      },
+      {
+        "from_step": 11,
+        "from_output": "outfile",
+        "to_step": "13",
+        "to_input": "source|name_list"
+      },
+      {
+        "from_step": 12,
+        "from_output": "default",
+        "to_step": "14",
+        "to_input": "library|input_1"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "14",
+        "to_input": "reference_genome|own_file"
+      },
+      {
+        "from_step": 13,
+        "from_output": "default",
+        "to_step": "15",
+        "to_input": "library|input_1"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "15",
+        "to_input": "reference_genome|own_file"
+      },
+      {
+        "from_step": 14,
+        "from_output": "output",
+        "to_step": "16",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 15,
+        "from_output": "output",
+        "to_step": "17",
+        "to_input": "infile"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:44:13.769663"
+}

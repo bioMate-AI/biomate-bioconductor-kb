@@ -5,7 +5,7 @@ declare module 'express-session' {
     galaxyHistoryId?: string;
     uploadedDatasets?: Array<{
       dataset_id: string;
-      galaxy_dataset_id: string;
+      galaxy_dataset_id?: string;
       name: string;
       description: string;
       file_type: string;
@@ -17,5 +17,6 @@ declare module 'express-session' {
       state: string;
       started_at: string;
     }>;
+    lastActivity?: string;
   }
 }

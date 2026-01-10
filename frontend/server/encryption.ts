@@ -93,8 +93,8 @@ export function encrypt(plaintext: string, password?: string): EncryptedData {
     key = getEncryptionKey();
   }
 
-  // Create cipher
-  const cipher = crypto.createCipheriv(config.algorithm, key, iv);
+  // Create cipher (cast to CipherGCM for getAuthTag)
+  const cipher = crypto.createCipheriv(config.algorithm, key, iv) as crypto.CipherGCM;
 
   // Encrypt data
   const encrypted = Buffer.concat([
@@ -142,8 +142,8 @@ export function decrypt(encryptedData: EncryptedData, password?: string): string
     key = getEncryptionKey();
   }
 
-  // Create decipher
-  const decipher = crypto.createDecipheriv(config.algorithm, key, iv);
+  // Create decipher (cast to DecipherGCM for setAuthTag)
+  const decipher = crypto.createDecipheriv(config.algorithm, key, iv) as crypto.DecipherGCM;
   decipher.setAuthTag(authTag);
 
   // Decrypt data
@@ -205,7 +205,7 @@ export function decryptFields<T extends Record<string, any>>(
   obj: T & { _encrypted?: string[] },
   password?: string
 ): T {
-  const result = { ...obj };
+  const result: Record<string, any> = { ...obj };
   const encryptedFields = obj._encrypted || [];
 
   for (const field of encryptedFields) {
@@ -217,7 +217,7 @@ export function decryptFields<T extends Record<string, any>>(
       try {
         result[field] = JSON.parse(plaintext);
       } catch {
-        result[field] = plaintext as any;
+        result[field] = plaintext;
       }
     }
   }
@@ -225,7 +225,7 @@ export function decryptFields<T extends Record<string, any>>(
   // Remove metadata
   delete result._encrypted;
 
-  return result;
+  return result as T;
 }
 
 /**

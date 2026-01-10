@@ -1,0 +1,797 @@
+{
+  "workflow_id": "8d229c0f58a07ebe",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "8d229c0f58a07ebe",
+    "latest_workflow_id": "c530f66e11226674",
+    "name": "WGS Analysis (Bacteria)",
+    "create_time": "2025-04-19T15:13:03.375083",
+    "update_time": "2025-05-16T14:07:57.516551",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [
+      "bacterial-genomics",
+      "WGS",
+      "Illumina",
+      "workflow",
+      "wgs"
+    ],
+    "latest_workflow_uuid": "b2103466-7161-4b5f-8bc1-c270d4ac6041",
+    "creator_deleted": false,
+    "annotations": [
+      ""
+    ],
+    "url": "/api/workflows/8d229c0f58a07ebe",
+    "owner": "diptachandrapal",
+    "source_metadata": null,
+    "number_of_steps": 5,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "WGS Analysis (Bacteria)",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Trimmomatic",
+            "name": "readtype"
+          },
+          {
+            "description": "runtime parameter for tool Trimmomatic",
+            "name": "readtype"
+          }
+        ],
+        "label": null,
+        "name": "Trimmomatic",
+        "outputs": [
+          {
+            "name": "fastq_out_r1_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r2_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r1_unpaired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r2_unpaired",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 0,
+          "top": 63.24850319830843
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "b9aaed85cbd1",
+          "name": "trimmomatic",
+          "owner": "pjbriggs",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"yes\", \"__current_case__\": 0, \"adapter_type\": {\"standard_or_custom\": \"standard\", \"__current_case__\": 0, \"adapter_fasta\": \"NexteraPE-PE.fa\"}, \"seed_mismatches\": \"2\", \"palindrome_clip_threshold\": \"30\", \"simple_clip_threshold\": \"10\", \"min_adapter_len\": \"8\", \"keep_both_reads\": true}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"LEADING\", \"__current_case__\": 2, \"leading\": \"20\"}}, {\"__index__\": 1, \"operation\": {\"name\": \"TRAILING\", \"__current_case__\": 3, \"trailing\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"pair_of_files\", \"__current_case__\": 1, \"fastq_r1_in\": {\"__class__\": \"ConnectedValue\"}, \"fastq_r2_in\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.39+galaxy2",
+        "type": "tool",
+        "uuid": "094863f6-138f-46fa-82ff-5f72d5344ba7",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_paired_end_interlacer/fastq_paired_end_interlacer/1.2.0.1+galaxy0",
+        "errors": null,
+        "id": 1,
+        "input_connections": {
+          "reads|input1_file": {
+            "id": 0,
+            "output_name": "fastq_out_r1_paired"
+          },
+          "reads|input2_file": {
+            "id": 0,
+            "output_name": "fastq_out_r2_paired"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FASTQ interlacer",
+            "name": "reads"
+          },
+          {
+            "description": "runtime parameter for tool FASTQ interlacer",
+            "name": "reads"
+          }
+        ],
+        "label": null,
+        "name": "FASTQ interlacer",
+        "outputs": [
+          {
+            "name": "outfile_pairs",
+            "type": "input"
+          },
+          {
+            "name": "outfile_singles",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 302.7149460879829,
+          "top": 0
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_paired_end_interlacer/fastq_paired_end_interlacer/1.2.0.1+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "2ccb8dcabddc",
+          "name": "fastq_paired_end_interlacer",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"reads\": {\"reads_selector\": \"paired\", \"__current_case__\": 0, \"input1_file\": {\"__class__\": \"ConnectedValue\"}, \"input2_file\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.2.0.1+galaxy0",
+        "type": "tool",
+        "uuid": "83a94a68-8c1e-4963-bae3-2a2c698e4322",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/nml/spades/spades/4.1.0+galaxy0",
+        "errors": null,
+        "id": 2,
+        "input_connections": {
+          "singlePaired|input1": {
+            "id": 1,
+            "output_name": "outfile_pairs"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool SPAdes",
+            "name": "arf"
+          },
+          {
+            "description": "runtime parameter for tool SPAdes",
+            "name": "arf"
+          },
+          {
+            "description": "runtime parameter for tool SPAdes",
+            "name": "arf"
+          },
+          {
+            "description": "runtime parameter for tool SPAdes",
+            "name": "arf"
+          },
+          {
+            "description": "runtime parameter for tool SPAdes",
+            "name": "arf"
+          },
+          {
+            "description": "runtime parameter for tool SPAdes",
+            "name": "singlePaired"
+          }
+        ],
+        "label": null,
+        "name": "SPAdes",
+        "outputs": [
+          {
+            "name": "out_ag",
+            "type": "fastg"
+          },
+          {
+            "name": "out_ags",
+            "type": "txt"
+          },
+          {
+            "name": "out_cn",
+            "type": "fasta"
+          },
+          {
+            "name": "out_sc",
+            "type": "fasta"
+          }
+        ],
+        "position": {
+          "left": 558.239622423768,
+          "top": 143.66291970121762
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/spades/spades/4.1.0+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "b512435320e3",
+          "name": "spades",
+          "owner": "nml",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"additional_reads\": {\"selector\": \"false\", \"__current_case__\": 1}, \"arf\": {\"nanopore\": {\"__class__\": \"RuntimeValue\"}, \"pacbio\": {\"__class__\": \"RuntimeValue\"}, \"sanger\": {\"__class__\": \"RuntimeValue\"}, \"trusted_contigs\": {\"__class__\": \"RuntimeValue\"}, \"untrusted_contigs\": {\"__class__\": \"RuntimeValue\"}}, \"cov_cond\": {\"cov_cutoff\": \"off\", \"__current_case__\": 0}, \"kmer_cond\": {\"kmer_sel\": \"auto\", \"__current_case__\": 0}, \"mode_sel\": null, \"operation_mode\": \"\", \"optional_output\": [\"ag\", \"ags\", \"cn\", \"sc\"], \"phred_offset\": \"auto\", \"singlePaired\": {\"sPaired\": \"paired_interlaced\", \"__current_case__\": 1, \"input1\": {\"__class__\": \"ConnectedValue\"}, \"type_paired\": \"pe\", \"orientation\": \"fr\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "4.1.0+galaxy0",
+        "type": "tool",
+        "uuid": "43de60ba-324a-407a-8461-85b78672d1a4",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/gtdbtk_classify_wf/gtdbtk_classify_wf/2.4.0+galaxy1",
+        "errors": null,
+        "id": 3,
+        "input_connections": {
+          "input": {
+            "id": 2,
+            "output_name": "out_cn"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "GTDB-Tk Classify genomes",
+        "outputs": [
+          {
+            "name": "output_align",
+            "type": "input"
+          },
+          {
+            "name": "output_identfy",
+            "type": "input"
+          },
+          {
+            "name": "output_classify",
+            "type": "input"
+          },
+          {
+            "name": "output_summary",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 835.3330901745617,
+          "top": 101.85923632452308
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/gtdbtk_classify_wf/gtdbtk_classify_wf/2.4.0+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "c30adf839acd",
+          "name": "gtdbtk_classify_wf",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"advanced\": {\"min_perc_aa\": \"10\", \"force\": false, \"min_af\": \"0.65\", \"output_process_log\": false}, \"gtdbtk_db\": \"full_database_release_220_downloaded_2024-10-19\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.4.0+galaxy1",
+        "type": "tool",
+        "uuid": "75aa5e6d-edce-4563-b1f3-58ef0805f530",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.6+galaxy1",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "input": {
+            "id": 2,
+            "output_name": "out_cn"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Prokka",
+            "name": "proteins"
+          }
+        ],
+        "label": null,
+        "name": "Prokka",
+        "outputs": [
+          {
+            "name": "out_gff",
+            "type": "gff3"
+          },
+          {
+            "name": "out_gbk",
+            "type": "genbank"
+          },
+          {
+            "name": "out_fna",
+            "type": "fasta"
+          },
+          {
+            "name": "out_faa",
+            "type": "fasta"
+          },
+          {
+            "name": "out_ffn",
+            "type": "fasta"
+          },
+          {
+            "name": "out_sqn",
+            "type": "asn1"
+          },
+          {
+            "name": "out_fsa",
+            "type": "fasta"
+          },
+          {
+            "name": "out_tbl",
+            "type": "txt"
+          },
+          {
+            "name": "out_tsv",
+            "type": "tabular"
+          },
+          {
+            "name": "out_err",
+            "type": "txt"
+          },
+          {
+            "name": "out_txt",
+            "type": "txt"
+          },
+          {
+            "name": "out_log",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 941.759099835197,
+          "top": 372.56022650690255
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.6+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "8a22554cdde2",
+          "name": "prokka",
+          "owner": "crs4",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"centre\": \"\", \"compliant\": {\"compliant_select\": \"no\", \"__current_case__\": 0, \"addgenes\": false, \"mincontig\": \"200\"}, \"evalue\": \"1e-06\", \"fast\": false, \"genus\": \"\", \"gffver\": \"3\", \"increment\": \"1\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"kingdom\": {\"kingdom_select\": \"Bacteria\", \"__current_case__\": 1, \"gcode\": \"11\"}, \"locustag\": \"\", \"metagenome\": false, \"norrna\": false, \"notrna\": false, \"outputs\": [\"gff\", \"gbk\", \"fna\", \"faa\", \"ffn\", \"sqn\", \"fsa\", \"tbl\", \"tsv\", \"err\", \"txt\"], \"plasmid\": \"\", \"proteins\": {\"__class__\": \"RuntimeValue\"}, \"rfam\": false, \"species\": \"\", \"strain\": \"\", \"usegenus\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.14.6+galaxy1",
+        "type": "tool",
+        "uuid": "ed429cd6-7363-4144-9b6e-a6b68ec6e314",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "out_fna",
+            "output_name": "out_fna",
+            "uuid": "0f8d5720-9e42-483f-ab7b-da5b666f7528"
+          },
+          {
+            "label": "out_faa",
+            "output_name": "out_faa",
+            "uuid": "048565a7-e262-445a-94a4-2cf753d41d4e"
+          },
+          {
+            "label": "out_tbl",
+            "output_name": "out_tbl",
+            "uuid": "5ea7403f-8b69-4d03-89a1-92a5979e619d"
+          },
+          {
+            "label": "out_sqn",
+            "output_name": "out_sqn",
+            "uuid": "10ae5ebc-e6af-4539-88f9-6fa5e7be5140"
+          },
+          {
+            "label": "out_fsa",
+            "output_name": "out_fsa",
+            "uuid": "3d87d40d-06fe-4d28-8590-a29fbb244755"
+          },
+          {
+            "label": "out_ffn",
+            "output_name": "out_ffn",
+            "uuid": "f47f38b0-f841-48cf-a991-2f35083ea880"
+          },
+          {
+            "label": "out_tsv",
+            "output_name": "out_tsv",
+            "uuid": "46fb2afd-dc1c-47c5-be01-2365382d1744"
+          },
+          {
+            "label": "out_gff",
+            "output_name": "out_gff",
+            "uuid": "910d7202-8986-4334-8ff9-427da5dbbbe7"
+          },
+          {
+            "label": "out_txt",
+            "output_name": "out_txt",
+            "uuid": "bd7eb3a0-4727-49b9-8c93-af56cd73146b"
+          },
+          {
+            "label": "out_log",
+            "output_name": "out_log",
+            "uuid": "aca3522b-9f61-49a2-8834-5159b07ff59f"
+          },
+          {
+            "label": "out_err",
+            "output_name": "out_err",
+            "uuid": "cb4fe009-912f-40bc-bdcc-cc65d2cd0bdc"
+          },
+          {
+            "label": "out_gbk",
+            "output_name": "out_gbk",
+            "uuid": "88d9b1c8-b6d5-4ec8-8be4-3256c598c17a"
+          }
+        ]
+      }
+    },
+    "tags": [
+      "bacterial-genomics",
+      "WGS",
+      "Illumina",
+      "workflow",
+      "wgs"
+    ],
+    "uuid": "b2103466-7161-4b5f-8bc1-c270d4ac6041",
+    "version": 9
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "WGS Analysis (Bacteria)",
+      "annotation": "",
+      "format_version": "0.1",
+      "uuid": "b2103466-7161-4b5f-8bc1-c270d4ac6041",
+      "version": 9,
+      "tags": [
+        "bacterial-genomics",
+        "WGS",
+        "Illumina",
+        "workflow",
+        "wgs"
+      ],
+      "creator": [],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "tool",
+        "name": "Trimmomatic",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_version": "0.39+galaxy2",
+        "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"yes\", \"__current_case__\": 0, \"adapter_type\": {\"standard_or_custom\": \"standard\", \"__current_case__\": 0, \"adapter_fasta\": \"NexteraPE-PE.fa\"}, \"seed_mismatches\": \"2\", \"palindrome_clip_threshold\": \"30\", \"simple_clip_threshold\": \"10\", \"min_adapter_len\": \"8\", \"keep_both_reads\": true}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"LEADING\", \"__current_case__\": 2, \"leading\": \"20\"}}, {\"__index__\": 1, \"operation\": {\"name\": \"TRAILING\", \"__current_case__\": 3, \"trailing\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"pair_of_files\", \"__current_case__\": 1, \"fastq_r1_in\": {\"__class__\": \"ConnectedValue\"}, \"fastq_r2_in\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 0,
+          "top": 63.24850319830843
+        },
+        "input_connections": {},
+        "outputs": [
+          {
+            "name": "fastq_out_r1_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r2_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r1_unpaired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_r2_unpaired",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "1",
+        "type": "tool",
+        "name": "FASTQ interlacer",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_paired_end_interlacer/fastq_paired_end_interlacer/1.2.0.1+galaxy0",
+        "tool_version": "1.2.0.1+galaxy0",
+        "tool_state": "{\"reads\": {\"reads_selector\": \"paired\", \"__current_case__\": 0, \"input1_file\": {\"__class__\": \"ConnectedValue\"}, \"input2_file\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 302.7149460879829,
+          "top": 0
+        },
+        "input_connections": {
+          "reads|input1_file": {
+            "id": 0,
+            "output_name": "fastq_out_r1_paired"
+          },
+          "reads|input2_file": {
+            "id": 0,
+            "output_name": "fastq_out_r2_paired"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile_pairs",
+            "type": "input"
+          },
+          {
+            "name": "outfile_singles",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "2",
+        "type": "tool",
+        "name": "SPAdes",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/spades/spades/4.1.0+galaxy0",
+        "tool_version": "4.1.0+galaxy0",
+        "tool_state": "{\"additional_reads\": {\"selector\": \"false\", \"__current_case__\": 1}, \"arf\": {\"nanopore\": {\"__class__\": \"RuntimeValue\"}, \"pacbio\": {\"__class__\": \"RuntimeValue\"}, \"sanger\": {\"__class__\": \"RuntimeValue\"}, \"trusted_contigs\": {\"__class__\": \"RuntimeValue\"}, \"untrusted_contigs\": {\"__class__\": \"RuntimeValue\"}}, \"cov_cond\": {\"cov_cutoff\": \"off\", \"__current_case__\": 0}, \"kmer_cond\": {\"kmer_sel\": \"auto\", \"__current_case__\": 0}, \"mode_sel\": null, \"operation_mode\": \"\", \"optional_output\": [\"ag\", \"ags\", \"cn\", \"sc\"], \"phred_offset\": \"auto\", \"singlePaired\": {\"sPaired\": \"paired_interlaced\", \"__current_case__\": 1, \"input1\": {\"__class__\": \"ConnectedValue\"}, \"type_paired\": \"pe\", \"orientation\": \"fr\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 558.239622423768,
+          "top": 143.66291970121762
+        },
+        "input_connections": {
+          "singlePaired|input1": {
+            "id": 1,
+            "output_name": "outfile_pairs"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_ag",
+            "type": "fastg"
+          },
+          {
+            "name": "out_ags",
+            "type": "txt"
+          },
+          {
+            "name": "out_cn",
+            "type": "fasta"
+          },
+          {
+            "name": "out_sc",
+            "type": "fasta"
+          }
+        ]
+      },
+      {
+        "step_id": "3",
+        "type": "tool",
+        "name": "GTDB-Tk Classify genomes",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/gtdbtk_classify_wf/gtdbtk_classify_wf/2.4.0+galaxy1",
+        "tool_version": "2.4.0+galaxy1",
+        "tool_state": "{\"advanced\": {\"min_perc_aa\": \"10\", \"force\": false, \"min_af\": \"0.65\", \"output_process_log\": false}, \"gtdbtk_db\": \"full_database_release_220_downloaded_2024-10-19\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 835.3330901745617,
+          "top": 101.85923632452308
+        },
+        "input_connections": {
+          "input": {
+            "id": 2,
+            "output_name": "out_cn"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output_align",
+            "type": "input"
+          },
+          {
+            "name": "output_identfy",
+            "type": "input"
+          },
+          {
+            "name": "output_classify",
+            "type": "input"
+          },
+          {
+            "name": "output_summary",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "Prokka",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.6+galaxy1",
+        "tool_version": "1.14.6+galaxy1",
+        "tool_state": "{\"centre\": \"\", \"compliant\": {\"compliant_select\": \"no\", \"__current_case__\": 0, \"addgenes\": false, \"mincontig\": \"200\"}, \"evalue\": \"1e-06\", \"fast\": false, \"genus\": \"\", \"gffver\": \"3\", \"increment\": \"1\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"kingdom\": {\"kingdom_select\": \"Bacteria\", \"__current_case__\": 1, \"gcode\": \"11\"}, \"locustag\": \"\", \"metagenome\": false, \"norrna\": false, \"notrna\": false, \"outputs\": [\"gff\", \"gbk\", \"fna\", \"faa\", \"ffn\", \"sqn\", \"fsa\", \"tbl\", \"tsv\", \"err\", \"txt\"], \"plasmid\": \"\", \"proteins\": {\"__class__\": \"RuntimeValue\"}, \"rfam\": false, \"species\": \"\", \"strain\": \"\", \"usegenus\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 941.759099835197,
+          "top": 372.56022650690255
+        },
+        "input_connections": {
+          "input": {
+            "id": 2,
+            "output_name": "out_cn"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_gff",
+            "type": "gff3"
+          },
+          {
+            "name": "out_gbk",
+            "type": "genbank"
+          },
+          {
+            "name": "out_fna",
+            "type": "fasta"
+          },
+          {
+            "name": "out_faa",
+            "type": "fasta"
+          },
+          {
+            "name": "out_ffn",
+            "type": "fasta"
+          },
+          {
+            "name": "out_sqn",
+            "type": "asn1"
+          },
+          {
+            "name": "out_fsa",
+            "type": "fasta"
+          },
+          {
+            "name": "out_tbl",
+            "type": "txt"
+          },
+          {
+            "name": "out_tsv",
+            "type": "tabular"
+          },
+          {
+            "name": "out_err",
+            "type": "txt"
+          },
+          {
+            "name": "out_txt",
+            "type": "txt"
+          },
+          {
+            "name": "out_log",
+            "type": "txt"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_version": "0.39+galaxy2",
+        "step_id": "0"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_paired_end_interlacer/fastq_paired_end_interlacer/1.2.0.1+galaxy0",
+        "tool_version": "1.2.0.1+galaxy0",
+        "step_id": "1"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/spades/spades/4.1.0+galaxy0",
+        "tool_version": "4.1.0+galaxy0",
+        "step_id": "2"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/gtdbtk_classify_wf/gtdbtk_classify_wf/2.4.0+galaxy1",
+        "tool_version": "2.4.0+galaxy1",
+        "step_id": "3"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/crs4/prokka/prokka/1.14.6+galaxy1",
+        "tool_version": "1.14.6+galaxy1",
+        "step_id": "4"
+      }
+    ],
+    "inputs": [],
+    "outputs": [
+      {
+        "step_id": "4",
+        "output_name": "out_fna",
+        "label": "out_fna"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_faa",
+        "label": "out_faa"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_tbl",
+        "label": "out_tbl"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_sqn",
+        "label": "out_sqn"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_fsa",
+        "label": "out_fsa"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_ffn",
+        "label": "out_ffn"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_tsv",
+        "label": "out_tsv"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_gff",
+        "label": "out_gff"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_txt",
+        "label": "out_txt"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_log",
+        "label": "out_log"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_err",
+        "label": "out_err"
+      },
+      {
+        "step_id": "4",
+        "output_name": "out_gbk",
+        "label": "out_gbk"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "fastq_out_r1_paired",
+        "to_step": "1",
+        "to_input": "reads|input1_file"
+      },
+      {
+        "from_step": 0,
+        "from_output": "fastq_out_r2_paired",
+        "to_step": "1",
+        "to_input": "reads|input2_file"
+      },
+      {
+        "from_step": 1,
+        "from_output": "outfile_pairs",
+        "to_step": "2",
+        "to_input": "singlePaired|input1"
+      },
+      {
+        "from_step": 2,
+        "from_output": "out_cn",
+        "to_step": "3",
+        "to_input": "input"
+      },
+      {
+        "from_step": 2,
+        "from_output": "out_cn",
+        "to_step": "4",
+        "to_input": "input"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:46:42.631231"
+}

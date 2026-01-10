@@ -1,0 +1,246 @@
+{
+  "workflow_id": "6e44c8c07670c9e0",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "6e44c8c07670c9e0",
+    "latest_workflow_id": "abe4328ef89674b9",
+    "name": "Gene Count by Chromosome (No Pseudogenes)",
+    "create_time": "2025-05-01T16:28:34.669065",
+    "update_time": "2025-05-01T16:29:30.791944",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "0cd63563-0c44-443e-ad27-d01ce9156493",
+    "creator_deleted": false,
+    "annotations": [],
+    "url": "/api/workflows/6e44c8c07670c9e0",
+    "owner": "samjusto11",
+    "source_metadata": null,
+    "number_of_steps": 3,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "name": "Gene Count by Chromosome (No Pseudogenes)",
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "human_genes_partial.tsv"
+          }
+        ],
+        "label": "human_genes_partial.tsv",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 10,
+          "top": 10
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "8dd03b34-6b24-477d-b677-96d6143e36f5",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": "Filter1",
+        "errors": null,
+        "id": 1,
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Filter",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 230,
+          "top": 10
+        },
+        "post_job_actions": {},
+        "tool_id": "Filter1",
+        "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"cond\": \"c5 != 'pseudogene'\", \"header_lines\": \"0\", \"input\": null, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.1",
+        "type": "tool",
+        "uuid": "9845a5dd-adeb-4802-9d04-6ba50c61fc97",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": "Grouping1",
+        "errors": null,
+        "id": 2,
+        "input_connections": {
+          "input1": {
+            "id": 1,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Group",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 450,
+          "top": 10
+        },
+        "post_job_actions": {},
+        "tool_id": "Grouping1",
+        "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"groupcol\": \"1\", \"ignorecase\": false, \"ignorelines\": null, \"input1\": null, \"operations\": [{\"__index__\": 0, \"optype\": \"length\", \"opcol\": \"1\", \"opround\": \"no\", \"opdefault\": null}], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.1.4",
+        "type": "tool",
+        "uuid": "c67b5cb7-d9af-42b8-a3b1-1e7b25b3632d",
+        "when": null,
+        "workflow_outputs": []
+      }
+    },
+    "tags": [],
+    "uuid": "0cd63563-0c44-443e-ad27-d01ce9156493",
+    "version": 0
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "Gene Count by Chromosome (No Pseudogenes)",
+      "annotation": "",
+      "format_version": "0.1",
+      "uuid": "0cd63563-0c44-443e-ad27-d01ce9156493",
+      "version": 0,
+      "tags": [],
+      "creator": [],
+      "license": ""
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "human_genes_partial.tsv",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 10,
+          "top": 10
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "tool",
+        "name": "Filter",
+        "label": null,
+        "annotation": "",
+        "tool_id": "Filter1",
+        "tool_version": "1.1.1",
+        "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"cond\": \"c5 != 'pseudogene'\", \"header_lines\": \"0\", \"input\": null, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 230,
+          "top": 10
+        },
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "2",
+        "type": "tool",
+        "name": "Group",
+        "label": null,
+        "annotation": "",
+        "tool_id": "Grouping1",
+        "tool_version": "2.1.4",
+        "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"groupcol\": \"1\", \"ignorecase\": false, \"ignorelines\": null, \"input1\": null, \"operations\": [{\"__index__\": 0, \"optype\": \"length\", \"opcol\": \"1\", \"opround\": \"no\", \"opdefault\": null}], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 450,
+          "top": 10
+        },
+        "input_connections": {
+          "input1": {
+            "id": 1,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "tabular"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "Filter1",
+        "tool_version": "1.1.1",
+        "step_id": "1"
+      },
+      {
+        "tool_id": "Grouping1",
+        "tool_version": "2.1.4",
+        "step_id": "2"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "human_genes_partial.tsv",
+        "annotation": ""
+      }
+    ],
+    "outputs": [],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "1",
+        "to_input": "input"
+      },
+      {
+        "from_step": 1,
+        "from_output": "out_file1",
+        "to_step": "2",
+        "to_input": "input1"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:47:25.828694"
+}

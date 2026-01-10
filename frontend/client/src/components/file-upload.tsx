@@ -1,37 +1,59 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Upload, File, X, Check, AlertCircle, Loader2 } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Upload, File, X, Check, AlertCircle, Loader2, Link2, Server, Info, HardDrive, Clock, Zap } from "lucide-react"
+
+// Maximum file size: 5GB for local uploads
+// AWS workflows require file upload first, so we constrain to reduce latency
+const MAX_LOCAL_FILE_SIZE_GB = 5
+const MAX_LOCAL_FILE_SIZE_BYTES = MAX_LOCAL_FILE_SIZE_GB * 1024 * 1024 * 1024
 
 interface UploadedFile {
   id: string
   name: string
   size: number
   type: string
-  status: 'uploading' | 'completed' | 'error'
+  status: 'uploading' | 'completed' | 'error' | 'queued'
   progress: number
   datasetId?: string
   error?: string
   description?: string
+  source?: 'local' | 'url' | 'ftp' // Track upload source
 }
 
 interface FileUploadProps {
   accept?: string
   multiple?: boolean
-  maxSize?: number // in MB
+  maxSize?: number // in MB (for backward compatibility, capped at 5GB)
   onUploadComplete?: (files: UploadedFile[]) => void
+  // Resource constraint info
+  availableStorageGB?: number
+  totalUploadedGB?: number
 }
 
 export function FileUpload({
   accept = ".fastq,.fastq.gz,.bam,.sam,.mzML,.mzXML,.csv,.tsv,.txt",
   multiple = true,
-  maxSize = 500, // 500MB default
-  onUploadComplete
+  maxSize = 5000, // 5GB default (capped by MAX_LOCAL_FILE_SIZE_GB)
+  onUploadComplete,
+  availableStorageGB = 50, // Default available storage
+  totalUploadedGB = 0
 }: FileUploadProps) {
+  // Ensure maxSize doesn't exceed 5GB limit
+  const effectiveMaxSize = Math.min(maxSize, MAX_LOCAL_FILE_SIZE_GB * 1024)
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
+  const [isUrlLoading, setIsUrlLoading] = useState(false)
+  const [uploadTab, setUploadTab] = useState<'local' | 'url'>('local')
+  const [urlImportMode, setUrlImportMode] = useState<'immediate' | 'deferred'>('deferred')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const formatFileSize = (bytes: number): string => {
@@ -42,6 +64,11 @@ export function FileUpload({
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
   }
 
+  // Calculate total upload size
+  const currentUploadSizeBytes = files.reduce((sum, f) => sum + f.size, 0)
+  const currentUploadSizeGB = currentUploadSizeBytes / (1024 * 1024 * 1024)
+  const remainingStorageGB = availableStorageGB - totalUploadedGB - currentUploadSizeGB
+
   const handleFileSelect = async (selectedFiles: FileList | null) => {
     if (!selectedFiles) return
 
@@ -50,30 +77,158 @@ export function FileUpload({
       name: file.name,
       size: file.size,
       type: file.type || 'application/octet-stream',
-      status: 'uploading' as const,
+      status: 'queued' as const,
       progress: 0,
+      source: 'local' as const,
     }))
 
-    // Check file sizes
-    const oversizedFiles = newFiles.filter(f => f.size > maxSize * 1024 * 1024)
+    // Check individual file sizes (5GB limit)
+    const oversizedFiles = newFiles.filter(f => f.size > MAX_LOCAL_FILE_SIZE_BYTES)
     if (oversizedFiles.length > 0) {
-      alert(`The following files exceed the ${maxSize}MB limit:\n${oversizedFiles.map(f => f.name).join('\n')}`)
+      // Show helpful error instead of browser alert
+      setFiles(prev => [...prev, ...oversizedFiles.map(f => ({
+        ...f,
+        status: 'error' as const,
+        error: `File exceeds ${MAX_LOCAL_FILE_SIZE_GB}GB limit. Use URL import for large files, or compress/split the file.`
+      }))])
+
+      // Filter out oversized files and continue with valid ones
+      const validFiles = newFiles.filter(f => f.size <= MAX_LOCAL_FILE_SIZE_BYTES)
+      if (validFiles.length === 0) return
+    }
+
+    // Check total storage constraint
+    const validFiles = newFiles.filter(f => f.size <= MAX_LOCAL_FILE_SIZE_BYTES)
+    const totalNewSize = validFiles.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024 * 1024)
+    if (totalNewSize > remainingStorageGB) {
+      setFiles(prev => [...prev, ...validFiles.map(f => ({
+        ...f,
+        status: 'error' as const,
+        error: `Insufficient storage. Available: ${remainingStorageGB.toFixed(2)}GB, Required: ${totalNewSize.toFixed(2)}GB`
+      }))])
       return
     }
 
-    setFiles(prev => [...prev, ...newFiles])
+    setFiles(prev => [...prev, ...validFiles])
 
-    // Upload each file
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const file = selectedFiles[i]
-      const uploadedFile = newFiles[i]
-      await uploadFile(file, uploadedFile)
+    // PARALLEL UPLOADS - Upload all files concurrently (with limit of 3)
+    const filesToUpload = Array.from(selectedFiles).filter(
+      (_, i) => validFiles.some(vf => vf.id === newFiles[i].id)
+    )
+
+    // Parallel upload with concurrency limit
+    const CONCURRENT_UPLOADS = 3
+    const uploadQueue = filesToUpload.map((file, i) => ({
+      file,
+      uploadedFile: validFiles.find(vf => vf.name === file.name)!
+    }))
+
+    // Process in batches
+    for (let i = 0; i < uploadQueue.length; i += CONCURRENT_UPLOADS) {
+      const batch = uploadQueue.slice(i, i + CONCURRENT_UPLOADS)
+      await Promise.all(batch.map(({ file, uploadedFile }) => uploadFile(file, uploadedFile)))
     }
 
-    // Notify parent component
+    // Notify parent component with ALL completed files
     if (onUploadComplete) {
-      const completedFiles = files.filter(f => f.status === 'completed')
-      onUploadComplete(completedFiles)
+      // Use setTimeout to ensure state is updated
+      setTimeout(() => {
+        setFiles(currentFiles => {
+          const completedFiles = currentFiles.filter(f => f.status === 'completed')
+          onUploadComplete(completedFiles)
+          return currentFiles
+        })
+      }, 100)
+    }
+  }
+
+  // URL Import - reference remote files without uploading (Galaxy will fetch)
+  // Supports two modes:
+  // - immediate: Galaxy fetches the file now
+  // - deferred: Galaxy creates a reference, fetches when workflow needs it
+  const handleUrlImport = async () => {
+    if (!urlInput.trim()) return
+
+    const url = urlInput.trim()
+    // Validate URL format
+    try {
+      const parsedUrl = new URL(url)
+      if (!['http:', 'https:', 'ftp:', 's3:'].includes(parsedUrl.protocol)) {
+        throw new Error('Unsupported protocol')
+      }
+    } catch {
+      setFiles(prev => [...prev, {
+        id: `url-${Date.now()}`,
+        name: url,
+        size: 0,
+        type: 'url',
+        status: 'error',
+        progress: 0,
+        source: 'url',
+        error: 'Invalid URL format. Supported: HTTP, HTTPS, FTP, S3 URLs.'
+      }])
+      return
+    }
+
+    setIsUrlLoading(true)
+    const fileName = url.split('/').pop() || 'remote-file'
+
+    const urlFile: UploadedFile = {
+      id: `url-${Date.now()}`,
+      name: fileName,
+      size: 0, // Unknown for URL imports
+      type: 'url',
+      status: 'uploading',
+      progress: 0,
+      source: 'url',
+      description: urlImportMode === 'deferred' ? 'Deferred - will fetch when workflow runs' : undefined,
+    }
+
+    setFiles(prev => [...prev, urlFile])
+
+    try {
+      // Choose endpoint based on import mode
+      const endpoint = urlImportMode === 'deferred'
+        ? '/api/datasets/deferred'
+        : '/api/datasets/import-url'
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, filename: fileName, name: fileName }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || errorData.error || 'URL import failed')
+      }
+
+      const result = await response.json()
+
+      setFiles(prev => prev.map(f =>
+        f.id === urlFile.id
+          ? {
+              ...f,
+              status: 'completed',
+              progress: 100,
+              datasetId: result.dataset_id || result.id,
+              size: result.size || 0,
+              description: urlImportMode === 'deferred'
+                ? 'Deferred - data will be fetched when workflow executes'
+                : undefined
+            }
+          : f
+      ))
+
+      setUrlInput('')
+    } catch (error: any) {
+      setFiles(prev => prev.map(f =>
+        f.id === urlFile.id
+          ? { ...f, status: 'error', error: error.message }
+          : f
+      ))
+    } finally {
+      setIsUrlLoading(false)
     }
   }
 
@@ -172,64 +327,188 @@ export function FileUpload({
               Upload your data files for workflow execution
             </CardDescription>
           </div>
-          {files.length > 0 && (
-            <div className="flex items-center gap-2">
-              {completedCount > 0 && (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  <Check className="w-3 h-3 mr-1" />
-                  {completedCount} completed
-                </Badge>
-              )}
-              {uploadingCount > 0 && (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                  {uploadingCount} uploading
-                </Badge>
-              )}
-              {errorCount > 0 && (
-                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                  <AlertCircle className="w-3 h-3 mr-1" />
-                  {errorCount} failed
-                </Badge>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Storage indicator */}
+            <Badge variant="outline" className="text-xs">
+              <HardDrive className="w-3 h-3 mr-1" />
+              {remainingStorageGB.toFixed(1)}GB available
+            </Badge>
+            {files.length > 0 && (
+              <>
+                {completedCount > 0 && (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <Check className="w-3 h-3 mr-1" />
+                    {completedCount} completed
+                  </Badge>
+                )}
+                {uploadingCount > 0 && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    {uploadingCount} uploading
+                  </Badge>
+                )}
+                {errorCount > 0 && (
+                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                    <AlertCircle className="w-3 h-3 mr-1" />
+                    {errorCount} failed
+                  </Badge>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Drop zone */}
-        <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-            isDragging
-              ? 'border-primary bg-primary/5'
-              : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={handleClick}
-          data-testid="file-upload-drop-zone"
-        >
-          <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-lg font-medium mb-2">
-            {isDragging ? 'Drop files here' : 'Click to upload or drag and drop'}
-          </p>
-          <p className="text-sm text-muted-foreground mb-4">
-            Supported formats: FASTQ, BAM, SAM, mzML, mzXML, CSV, TSV
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Maximum file size: {maxSize}MB {multiple && '• Multiple files allowed'}
-          </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={accept}
-            multiple={multiple}
-            onChange={(e) => handleFileSelect(e.target.files)}
-            className="hidden"
-            data-testid="file-upload-input"
-          />
-        </div>
+        {/* 5GB limit info */}
+        <Alert className="border-blue-200 bg-blue-50/50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-xs text-blue-800">
+            <strong>File size limit: {MAX_LOCAL_FILE_SIZE_GB}GB per file.</strong> For larger files, use URL Import
+            to let Galaxy fetch directly from HTTP/FTP/S3 sources (faster and no upload needed).
+          </AlertDescription>
+        </Alert>
+
+        {/* Upload method tabs */}
+        <Tabs value={uploadTab} onValueChange={(v) => setUploadTab(v as 'local' | 'url')}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="local" className="text-xs">
+              <Upload className="w-3 h-3 mr-1" />
+              Local Upload
+            </TabsTrigger>
+            <TabsTrigger value="url" className="text-xs">
+              <Link2 className="w-3 h-3 mr-1" />
+              URL Import
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Local file upload */}
+          <TabsContent value="local" className="mt-4">
+            <div
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+                isDragging
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={handleClick}
+              data-testid="file-upload-drop-zone"
+            >
+              <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm font-medium mb-1">
+                {isDragging ? 'Drop files here' : 'Click to upload or drag and drop'}
+              </p>
+              <p className="text-xs text-muted-foreground mb-2">
+                FASTQ, BAM, SAM, mzML, mzXML, CSV, TSV, FASTA
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Max {MAX_LOCAL_FILE_SIZE_GB}GB per file {multiple && '• Multiple files (parallel upload)'}
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={accept}
+                multiple={multiple}
+                onChange={(e) => handleFileSelect(e.target.files)}
+                className="hidden"
+                data-testid="file-upload-input"
+              />
+            </div>
+          </TabsContent>
+
+          {/* URL Import */}
+          <TabsContent value="url" className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="url-input" className="text-xs font-medium">
+                Enter file URL (HTTP, HTTPS, FTP, or S3)
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="url-input"
+                  placeholder="https://example.com/data.fastq.gz or ftp://..."
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleUrlImport()}
+                  className="text-sm"
+                />
+                <Button
+                  onClick={handleUrlImport}
+                  disabled={!urlInput.trim() || isUrlLoading}
+                  size="sm"
+                >
+                  {isUrlLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Link2 className="w-4 h-4 mr-1" />
+                      Import
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Import Mode Selection */}
+            <div className="space-y-3">
+              <Label className="text-xs font-medium">Import Mode</Label>
+              <RadioGroup
+                value={urlImportMode}
+                onValueChange={(v) => setUrlImportMode(v as 'immediate' | 'deferred')}
+                className="space-y-2"
+              >
+                <div
+                  className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    urlImportMode === 'deferred' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                  }`}
+                  onClick={() => setUrlImportMode('deferred')}
+                >
+                  <RadioGroupItem value="deferred" id="deferred" className="mt-0.5" />
+                  <div className="flex-1">
+                    <Label htmlFor="deferred" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-blue-500" />
+                      Deferred (Recommended for large files)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Galaxy downloads only when workflow needs the data. Start designing immediately, no waiting.
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      <Badge variant="secondary" className="text-xs">No upfront wait</Badge>
+                      <Badge variant="secondary" className="text-xs">No storage until needed</Badge>
+                      <Badge variant="secondary" className="text-xs">Best for large files</Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    urlImportMode === 'immediate' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                  }`}
+                  onClick={() => setUrlImportMode('immediate')}
+                >
+                  <RadioGroupItem value="immediate" id="immediate" className="mt-0.5" />
+                  <div className="flex-1">
+                    <Label htmlFor="immediate" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-amber-500" />
+                      Immediate Download
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Galaxy fetches the file now. Data available for preview before workflow runs.
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      <Badge variant="outline" className="text-xs">Preview before run</Badge>
+                      <Badge variant="outline" className="text-xs">Better for small files</Badge>
+                    </div>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Supports HTTP/HTTPS, FTP, and S3 URLs. No size limit for Galaxy server-side fetch.
+            </p>
+          </TabsContent>
+        </Tabs>
 
         {/* File list */}
         {files.length > 0 && (

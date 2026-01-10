@@ -1,0 +1,1635 @@
+{
+  "workflow_id": "e1dcdc125122f561",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "e1dcdc125122f561",
+    "latest_workflow_id": "1b1b85818b31cd25",
+    "name": "Nanopore KO Read Alignment",
+    "create_time": "2025-06-07T12:09:34.704872",
+    "update_time": "2025-06-24T21:22:17.223496",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "53310358-d8b2-4e6f-a848-8217ef6efdc2",
+    "creator_deleted": false,
+    "annotations": [
+      "Input = fastq from nanopore sequencing\nfiltlong = Trims reads to desired range\nminimap2 = align to reference fasta\nBAM to SAM = convert results to S"
+    ],
+    "url": "/api/workflows/e1dcdc125122f561",
+    "owner": "jakelmer",
+    "source_metadata": null,
+    "number_of_steps": 19,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "Input = fastq from nanopore sequencing\nfiltlong = Trims reads to desired range\nminimap2 = align to reference fasta\nBAM to SAM = convert results to S",
+    "comments": [
+      {
+        "color": "none",
+        "data": {
+          "size": 2,
+          "text": "Input files and parameters"
+        },
+        "id": 0,
+        "position": [
+          0,
+          0
+        ],
+        "size": [
+          240,
+          100
+        ],
+        "type": "text"
+      },
+      {
+        "color": "none",
+        "data": {
+          "size": 2,
+          "text": "Translate reads and BLAST against WT amino acid sequence"
+        },
+        "id": 6,
+        "position": [
+          2913.189576943622,
+          590.393716963021
+        ],
+        "size": [
+          500,
+          90
+        ],
+        "type": "text"
+      },
+      {
+        "color": "none",
+        "data": {
+          "size": 2,
+          "text": "BLAST nucleotide reads against WT target"
+        },
+        "id": 5,
+        "position": [
+          2490,
+          460
+        ],
+        "size": [
+          380,
+          80
+        ],
+        "type": "text"
+      },
+      {
+        "color": "none",
+        "data": {
+          "size": 2,
+          "text": "Trim reads to target reading frame and eliminate remaining outliers"
+        },
+        "id": 4,
+        "position": [
+          1922.1333618164062,
+          447.3333435058594
+        ],
+        "size": [
+          530,
+          100
+        ],
+        "type": "text"
+      },
+      {
+        "color": "none",
+        "data": {
+          "size": 2,
+          "text": "Create fasta with all reads aligned in sense orientation"
+        },
+        "id": 3,
+        "position": [
+          1000,
+          170
+        ],
+        "size": [
+          820,
+          60
+        ],
+        "type": "text"
+      },
+      {
+        "color": "none",
+        "data": {
+          "size": 2,
+          "text": "Align long reads with minimap"
+        },
+        "id": 2,
+        "position": [
+          662.933349609375,
+          198
+        ],
+        "size": [
+          250,
+          80
+        ],
+        "type": "text"
+      },
+      {
+        "color": "none",
+        "data": {
+          "size": 2,
+          "text": "Filter reads with low quality or too long/short"
+        },
+        "id": 1,
+        "position": [
+          280,
+          30
+        ],
+        "size": [
+          380,
+          130
+        ],
+        "type": "text"
+      }
+    ],
+    "format-version": "0.1",
+    "name": "Nanopore KO Read Alignment",
+    "report": {
+      "markdown": "\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "Upload raw fastq reads as a text file from Plasmidsaurus",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Upload raw fastq reads as a text file from Plasmidsaurus",
+            "name": "fastq file"
+          }
+        ],
+        "label": "fastq file",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 20,
+          "top": 90
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "e4da862e-9181-4ea6-8a18-829e5cc35e72",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "Input max read length (+2% WT amplicon length)"
+          }
+        ],
+        "label": "Input max read length (+2% WT amplicon length)",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 20,
+          "top": 210
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [{\"min\": null, \"max\": null, \"negate\": false, \"type\": \"in_range\"}], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "527bc4ca-a102-4171-a07b-dc71390dae05",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "0a3cdc38-af77-4116-9e77-5167a0e57bbe"
+          }
+        ]
+      },
+      "2": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "Input minimum read length (-10% WT amplicon length)"
+          }
+        ],
+        "label": "Input minimum read length (-10% WT amplicon length)",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 20,
+          "top": 370
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [{\"min\": null, \"max\": null, \"negate\": false, \"type\": \"in_range\"}], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "6497dce8-7ac3-4e9c-b244-7b6b92fbf4f4",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "17f95a52-e863-4e54-96cb-924238b191ba"
+          }
+        ]
+      },
+      "3": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "Input minimum quality score (20, but up to 30)"
+          }
+        ],
+        "label": "Input minimum quality score (20, but up to 30)",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 20,
+          "top": 530
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [{\"min\": null, \"max\": null, \"negate\": false, \"type\": \"in_range\"}], \"parameter_type\": \"float\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "371795ff-dfc7-4244-acab-eec7939852c4",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "c8e00e0a-d586-4e9a-ac3d-f921e6963cc7"
+          }
+        ]
+      },
+      "4": {
+        "annotation": "Upload the expected WT amplicon sequence as a fasta file",
+        "content_id": null,
+        "errors": null,
+        "id": 4,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Upload the expected WT amplicon sequence as a fasta file",
+            "name": "Expected WT Amplicon Sequence"
+          }
+        ],
+        "label": "Expected WT Amplicon Sequence",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 20,
+          "top": 670
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "b25e44df-a5d7-4f59-a6f7-e0aa2e4f6913",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "This sequence and everything upstream of it (on it's 5' end) will be removed from each read in the fasta file.",
+        "content_id": null,
+        "errors": null,
+        "id": 5,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "This sequence and everything upstream of it (on it's 5' end) will be removed from each read in the fasta file.",
+            "name": "5' cutoff for reads"
+          }
+        ],
+        "label": "5' cutoff for reads",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 1570,
+          "top": 800
+        },
+        "tool_id": null,
+        "tool_state": "{\"multiple\": false, \"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "835f455d-ce56-425a-abb9-593e5ffb28e1",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "18dc2de2-6bcf-49a2-b184-1ed5a1de066c"
+          }
+        ]
+      },
+      "6": {
+        "annotation": "This sequence and everything downstream of it (on it's e' end) will be removed from each read in the fasta file.",
+        "content_id": null,
+        "errors": null,
+        "id": 6,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "This sequence and everything downstream of it (on it's e' end) will be removed from each read in the fasta file.",
+            "name": "3' cutoff for reads"
+          }
+        ],
+        "label": "3' cutoff for reads",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 1940,
+          "top": 890
+        },
+        "tool_id": null,
+        "tool_state": "{\"multiple\": false, \"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "adf1ce0b-72da-4770-996f-ef10ad5512ce",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "1d540e71-4255-4536-9d4f-f55984716aff"
+          }
+        ]
+      },
+      "7": {
+        "annotation": "Translate the target DNA sequence, starting at 50-52 bases (...to match the reading frame of the target gene) upstream of the 1st Cas9 cut site and 50-52 bases downstream of the last Cas9 cut site.",
+        "content_id": null,
+        "errors": null,
+        "id": 7,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Translate the target DNA sequence, starting at 50-52 bases (...to match the reading frame of the target gene) upstream of the 1st Cas9 cut site and 50-52 bases downstream of the last Cas9 cut site.",
+            "name": "Translated target (AA sequence in fasta)"
+          }
+        ],
+        "label": "Translated target (AA sequence in fasta)",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 2880,
+          "top": 930
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "0024ee65-693e-4642-b664-4bbed96ef9e4",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "Removes reads that are low quality, too long, or too short.  Requires manual input of min/max length for each amplicon - recommend +2% max length and -10% min length.",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/filtlong/filtlong/0.2.1+galaxy0",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "input_file": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "output_thresholds|max_length": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "output_thresholds|min_length": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "output_thresholds|min_mean_q": {
+            "id": 3,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool filtlong",
+            "name": "external_references"
+          },
+          {
+            "description": "runtime parameter for tool filtlong",
+            "name": "external_references"
+          },
+          {
+            "description": "runtime parameter for tool filtlong",
+            "name": "external_references"
+          },
+          {
+            "description": "runtime parameter for tool filtlong",
+            "name": "output_thresholds"
+          },
+          {
+            "description": "runtime parameter for tool filtlong",
+            "name": "output_thresholds"
+          },
+          {
+            "description": "runtime parameter for tool filtlong",
+            "name": "output_thresholds"
+          }
+        ],
+        "label": "Filter fastq",
+        "name": "filtlong",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "fastqsanger"
+          }
+        ],
+        "position": {
+          "left": 350,
+          "top": 110
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/filtlong/filtlong/0.2.1+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "1f296803dfa3",
+          "name": "filtlong",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"external_references\": {\"assembly\": {\"__class__\": \"ConnectedValue\"}, \"illumina_1\": {\"__class__\": \"RuntimeValue\"}, \"illumina_2\": {\"__class__\": \"RuntimeValue\"}}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"other\": {\"window_size\": \"250\"}, \"output_thresholds\": {\"target_bases\": null, \"keep_percent\": null, \"max_length\": {\"__class__\": \"ConnectedValue\"}, \"min_length\": {\"__class__\": \"ConnectedValue\"}, \"min_mean_q\": {\"__class__\": \"ConnectedValue\"}, \"min_window_q\": null}, \"read_manipulation\": {\"trim\": false, \"split\": null}, \"score_weights\": {\"length_weight\": \"1.0\", \"mean_q_weight\": \"1.0\", \"window_q_weight\": \"1.0\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.2.1+galaxy0",
+        "type": "tool",
+        "uuid": "383ea225-0e93-4e8f-9230-35ea5cb160f1",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/minimap2/minimap2/2.28+galaxy1",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "fastq_input|fastq_input1": {
+            "id": 8,
+            "output_name": "outfile"
+          },
+          "reference_source|ref_file": {
+            "id": 4,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Map with minimap2",
+            "name": "fastq_input"
+          },
+          {
+            "description": "runtime parameter for tool Map with minimap2",
+            "name": "reference_source"
+          }
+        ],
+        "label": "Align trimmed fastq to fasta",
+        "name": "Map with minimap2",
+        "outputs": [
+          {
+            "name": "alignment_output",
+            "type": "bam"
+          }
+        ],
+        "position": {
+          "left": 690,
+          "top": 290
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/minimap2/minimap2/2.28+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "66367287b4e6",
+          "name": "minimap2",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"alignment_options\": {\"splicing\": {\"splice_mode\": \"preset\", \"__current_case__\": 0}, \"A\": null, \"B\": null, \"O\": null, \"O2\": null, \"E\": null, \"E2\": null, \"z\": null, \"z2\": null, \"s\": null, \"no_end_flt\": true}, \"fastq_input\": {\"fastq_input_selector\": \"single\", \"__current_case__\": 0, \"fastq_input1\": {\"__class__\": \"ConnectedValue\"}, \"analysis_type_selector\": null}, \"indexing_options\": {\"H\": false, \"k\": null, \"w\": null, \"I\": null}, \"io_options\": {\"output_format\": \"BAM\", \"Q\": false, \"L\": false, \"K\": null, \"cs\": null, \"c\": false, \"eqx\": false, \"Y\": false}, \"mapping_options\": {\"N\": null, \"F\": null, \"f\": null, \"kmer_ocurrence_interval\": {\"interval\": \"\", \"__current_case__\": 1}, \"min_occ_floor\": null, \"q_occ_frac\": \"0.01\", \"g\": null, \"r\": null, \"n\": null, \"m\": null, \"max_chain_skip\": null, \"max_chain_iter\": null, \"X\": false, \"p\": null, \"mask_len\": null}, \"reference_source\": {\"reference_source_selector\": \"history\", \"__current_case__\": 1, \"ref_file\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.28+galaxy1",
+        "type": "tool",
+        "uuid": "30f28f0f-41d3-4321-af61-9c2d88d840ab",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "10": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_fastx/samtools_fastx/1.20+galaxy2",
+        "errors": null,
+        "id": 10,
+        "input_connections": {
+          "input": {
+            "id": 9,
+            "output_name": "alignment_output"
+          }
+        },
+        "inputs": [],
+        "label": "Isolate reverse reads",
+        "name": "Samtools fastx",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "fasta"
+          }
+        ],
+        "position": {
+          "left": 970,
+          "top": 230
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_fastx/samtools_fastx/1.20+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "b906586a6596",
+          "name": "samtools_fastx",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"copy_arb_tags\": null, \"copy_tags\": false, \"exclusive_filter\": [\"256\", \"2048\"], \"exclusive_filter_all\": null, \"idxout_cond\": {\"idxout_select\": \"no\", \"__current_case__\": 0}, \"inclusive_filter\": [\"16\"], \"input\": {\"__class__\": \"ConnectedValue\"}, \"output_fmt_cond\": {\"output_fmt_select\": \"fasta\", \"__current_case__\": 1}, \"outputs\": \"other\", \"read_numbering\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.20+galaxy2",
+        "type": "tool",
+        "uuid": "c6907311-8607-4a81-baa2-ab3b98b01b02",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "11": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_fastx/samtools_fastx/1.20+galaxy2",
+        "errors": null,
+        "id": 11,
+        "input_connections": {
+          "input": {
+            "id": 9,
+            "output_name": "alignment_output"
+          }
+        },
+        "inputs": [],
+        "label": "Isolate forward reads",
+        "name": "Samtools fastx",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "fasta"
+          }
+        ],
+        "position": {
+          "left": 1110,
+          "top": 480
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_fastx/samtools_fastx/1.20+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "b906586a6596",
+          "name": "samtools_fastx",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"copy_arb_tags\": null, \"copy_tags\": false, \"exclusive_filter\": [\"256\", \"2048\", \"16\"], \"exclusive_filter_all\": null, \"idxout_cond\": {\"idxout_select\": \"no\", \"__current_case__\": 0}, \"inclusive_filter\": null, \"input\": {\"__class__\": \"ConnectedValue\"}, \"output_fmt_cond\": {\"output_fmt_select\": \"fasta\", \"__current_case__\": 1}, \"outputs\": \"other\", \"read_numbering\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.20+galaxy2",
+        "type": "tool",
+        "uuid": "d21a01cd-7879-4261-bd70-2c7aabca9327",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "12": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastx_reverse_complement/cshl_fastx_reverse_complement/1.0.2+galaxy2",
+        "errors": null,
+        "id": 12,
+        "input_connections": {
+          "input": {
+            "id": 10,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "Revcomp of reverse reads",
+        "name": "Reverse-Complement",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1280,
+          "top": 240
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastx_reverse_complement/cshl_fastx_reverse_complement/1.0.2+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "7566b751e769",
+          "name": "fastx_reverse_complement",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.2+galaxy2",
+        "type": "tool",
+        "uuid": "ddfc1e0b-0051-44fe-a02c-fd7317b2e78d",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "13": {
+        "annotation": "",
+        "content_id": "cat1",
+        "errors": null,
+        "id": 13,
+        "input_connections": {
+          "input1": {
+            "id": 12,
+            "output_name": "output"
+          },
+          "queries_0|input2": {
+            "id": 11,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "Rejoin fasta files (all forward)",
+        "name": "Concatenate datasets",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1610,
+          "top": 340
+        },
+        "post_job_actions": {},
+        "tool_id": "cat1",
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"queries\": [{\"__index__\": 0, \"input2\": {\"__class__\": \"ConnectedValue\"}}], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.0",
+        "type": "tool",
+        "uuid": "9fbcb5e5-59ae-42e6-8f40-333581d95e06",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "14": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/5.0+galaxy0",
+        "errors": null,
+        "id": 14,
+        "input_connections": {
+          "library|input_1": {
+            "id": 13,
+            "output_name": "out_file1"
+          },
+          "library|r1|front_adapters_0|adapter_source|adapter": {
+            "id": 5,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Cutadapt",
+            "name": "library"
+          }
+        ],
+        "label": "Trim reads to same frame on 5' end @ -50-52nt from 1st Cas9 cut site",
+        "name": "Cutadapt",
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "fastqsanger"
+          }
+        ],
+        "position": {
+          "left": 1900,
+          "top": 640
+        },
+        "post_job_actions": {
+          "ChangeDatatypeActionout1": {
+            "action_arguments": {
+              "newtype": "fasta"
+            },
+            "action_type": "ChangeDatatypeAction",
+            "output_name": "out1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/5.0+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "c0b2c2e39c9c",
+          "name": "cutadapt",
+          "owner": "lparsons",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adapter_options\": {\"action\": \"trim\", \"error_rate\": \"0.1\", \"no_indels\": false, \"times\": \"1\", \"overlap\": \"3\", \"match_read_wildcards\": false, \"no_match_adapter_wildcards\": true, \"revcomp\": false}, \"filter_options\": {\"discard_trimmed\": false, \"discard_untrimmed\": true, \"minimum_length\": \"1\", \"minimum_length2\": null, \"maximum_length\": null, \"maximum_length2\": null, \"max_n\": null, \"max_expected_errors\": null, \"max_average_error_rate\": null, \"discard_casava\": false, \"pair_filter\": \"any\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"ConnectedValue\"}, \"r1\": {\"adapters\": [], \"front_adapters\": [{\"__index__\": 0, \"adapter_source\": {\"adapter_source_list\": \"user\", \"__current_case__\": 0, \"adapter_name\": \"5primeup\", \"adapter\": {\"__class__\": \"ConnectedValue\"}}, \"single_noindels\": false}], \"anywhere_adapters\": []}}, \"other_trimming_options\": {\"cut\": \"0\", \"cut2\": \"0\", \"quality_cutoff\": \"0\", \"quality_cutoff2\": \"\", \"nextseq_trim\": \"0\", \"trim_n\": false, \"poly_a\": false, \"shorten_options\": {\"shorten_values\": \"False\", \"__current_case__\": 1}, \"shorten_options_r2\": {\"shorten_values_r2\": \"False\", \"__current_case__\": 1}}, \"output_selector\": null, \"read_mod_options\": {\"strip_suffix\": null, \"length_tag\": null, \"rename\": null, \"zero_cap\": false}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "5.0+galaxy0",
+        "type": "tool",
+        "uuid": "05c31b18-ff45-407c-9ea0-92ae624f04a4",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "15": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/5.0+galaxy0",
+        "errors": null,
+        "id": 15,
+        "input_connections": {
+          "library|input_1": {
+            "id": 14,
+            "output_name": "out1"
+          },
+          "library|r1|adapters_0|adapter_source|adapter": {
+            "id": 6,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Cutadapt",
+            "name": "library"
+          }
+        ],
+        "label": "Trim reads on 3' end @ +50-52 nt from 3rd Cas9 cut site",
+        "name": "Cutadapt",
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "fastqsanger"
+          }
+        ],
+        "position": {
+          "left": 2220,
+          "top": 700
+        },
+        "post_job_actions": {
+          "ChangeDatatypeActionout1": {
+            "action_arguments": {
+              "newtype": "fasta"
+            },
+            "action_type": "ChangeDatatypeAction",
+            "output_name": "out1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/5.0+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "c0b2c2e39c9c",
+          "name": "cutadapt",
+          "owner": "lparsons",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adapter_options\": {\"action\": \"trim\", \"error_rate\": \"0.1\", \"no_indels\": false, \"times\": \"1\", \"overlap\": \"3\", \"match_read_wildcards\": false, \"no_match_adapter_wildcards\": true, \"revcomp\": false}, \"filter_options\": {\"discard_trimmed\": false, \"discard_untrimmed\": true, \"minimum_length\": \"1\", \"minimum_length2\": null, \"maximum_length\": null, \"maximum_length2\": null, \"max_n\": null, \"max_expected_errors\": null, \"max_average_error_rate\": null, \"discard_casava\": false, \"pair_filter\": \"any\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"ConnectedValue\"}, \"r1\": {\"adapters\": [{\"__index__\": 0, \"adapter_source\": {\"adapter_source_list\": \"user\", \"__current_case__\": 0, \"adapter_name\": \"3primeup\", \"adapter\": {\"__class__\": \"ConnectedValue\"}}, \"single_noindels\": false}], \"front_adapters\": [], \"anywhere_adapters\": []}}, \"other_trimming_options\": {\"cut\": \"0\", \"cut2\": \"0\", \"quality_cutoff\": \"0\", \"quality_cutoff2\": \"\", \"nextseq_trim\": \"0\", \"trim_n\": false, \"poly_a\": false, \"shorten_options\": {\"shorten_values\": \"False\", \"__current_case__\": 1}, \"shorten_options_r2\": {\"shorten_values_r2\": \"False\", \"__current_case__\": 1}}, \"output_selector\": null, \"read_mod_options\": {\"strip_suffix\": null, \"length_tag\": null, \"rename\": null, \"zero_cap\": false}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "5.0+galaxy0",
+        "type": "tool",
+        "uuid": "ed1c6ee3-946d-4fac-a6b3-491c7bdd5616",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "16": {
+        "annotation": "Note: This step is modified to only report the best alignment for each sequence.  Other alignments probably exist for some reads.",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastn_wrapper/2.16.0+galaxy0",
+        "errors": null,
+        "id": 16,
+        "input_connections": {
+          "db_opts|subject": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "query": {
+            "id": 15,
+            "output_name": "out1"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool NCBI BLAST+ blastn",
+            "name": "db_opts"
+          }
+        ],
+        "label": "BLAST reads against WT target DNA sequence",
+        "name": "NCBI BLAST+ blastn",
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 2610,
+          "top": 560
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastn_wrapper/2.16.0+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "fc35ffc8c548",
+          "name": "ncbi_blast_plus",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"advanced\", \"__current_case__\": 1, \"filter_query\": true, \"strand\": \"-strand both\", \"max_hits\": \"0\", \"max_hsps\": \"1\", \"identity_cutoff\": \"0.0\", \"word_size\": null, \"ungapped\": false, \"parse_deflines\": false, \"adv_optional_id_files_opts\": {\"adv_optional_id_files_opts_selector\": \"none\", \"__current_case__\": 0}, \"qcov_hsp_perc\": \"0.0\", \"window_size\": null, \"gapopen\": null, \"gapextend\": null}, \"blast_type\": \"megablast\", \"db_opts\": {\"db_opts_selector\": \"file\", \"__current_case__\": 2, \"database\": \"\", \"histdb\": \"\", \"subject\": {\"__class__\": \"ConnectedValue\"}}, \"evalue_cutoff\": \"0.001\", \"output\": {\"out_format\": \"ext\", \"__current_case__\": 1}, \"query\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.16.0+galaxy0",
+        "type": "tool",
+        "uuid": "89ee1ab8-9ba7-4665-bee8-929c25f2b14b",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "DNAblast",
+            "output_name": "output1",
+            "uuid": "f8717382-1460-4e94-aea6-f165faa8ea7e"
+          }
+        ]
+      },
+      "17": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/emboss_5/EMBOSS: transeq101/5.0.0",
+        "errors": null,
+        "id": 17,
+        "input_connections": {
+          "input1": {
+            "id": 15,
+            "output_name": "out1"
+          }
+        },
+        "inputs": [],
+        "label": "Translate DNA in fasta to AA to test reading frame",
+        "name": "transeq",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "fasta"
+          }
+        ],
+        "position": {
+          "left": 2910,
+          "top": 740
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/emboss_5/EMBOSS: transeq101/5.0.0",
+        "tool_shed_repository": {
+          "changeset_revision": "ce385837c160",
+          "name": "emboss_5",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"alternative\": \"no\", \"clean\": \"no\", \"frame\": \"1\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"out_format1\": \"fasta\", \"regions\": \"\", \"table\": \"0\", \"trim\": \"no\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "5.0.0",
+        "type": "tool",
+        "uuid": "22c6277b-e48f-4e2a-b3cb-6aed86a63538",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "18": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastp_wrapper/2.16.0+galaxy0",
+        "errors": null,
+        "id": 18,
+        "input_connections": {
+          "db_opts|subject": {
+            "id": 7,
+            "output_name": "output"
+          },
+          "query": {
+            "id": 17,
+            "output_name": "out_file1"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool NCBI BLAST+ blastp",
+            "name": "db_opts"
+          }
+        ],
+        "label": "BLAST translated reads against WT target AA sequence",
+        "name": "NCBI BLAST+ blastp",
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 3210,
+          "top": 730
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastp_wrapper/2.16.0+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "fc35ffc8c548",
+          "name": "ncbi_blast_plus",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"advanced\", \"__current_case__\": 1, \"filter_query\": false, \"matrix_gapcosts\": {\"matrix\": \"\", \"__current_case__\": 0}, \"max_hits\": \"0\", \"max_hsps\": null, \"word_size\": null, \"window_size\": null, \"threshold\": null, \"comp_based_stats\": \"\", \"parse_deflines\": false, \"adv_optional_id_files_opts\": {\"adv_optional_id_files_opts_selector\": \"none\", \"__current_case__\": 0}, \"qcov_hsp_perc\": \"0.0\", \"use_sw_tback\": false}, \"blast_type\": \"blastp\", \"db_opts\": {\"db_opts_selector\": \"file\", \"__current_case__\": 2, \"database\": \"\", \"histdb\": \"\", \"subject\": {\"__class__\": \"ConnectedValue\"}}, \"evalue_cutoff\": \"0.001\", \"output\": {\"out_format\": \"ext\", \"__current_case__\": 1}, \"query\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.16.0+galaxy0",
+        "type": "tool",
+        "uuid": "1d73185c-1b19-4d2c-a74c-7e5c677c3c8b",
+        "when": null,
+        "workflow_outputs": []
+      }
+    },
+    "tags": [],
+    "uuid": "53310358-d8b2-4e6f-a848-8217ef6efdc2",
+    "version": 13
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "Nanopore KO Read Alignment",
+      "annotation": "Input = fastq from nanopore sequencing\nfiltlong = Trims reads to desired range\nminimap2 = align to reference fasta\nBAM to SAM = convert results to S",
+      "format_version": "0.1",
+      "uuid": "53310358-d8b2-4e6f-a848-8217ef6efdc2",
+      "version": 13,
+      "tags": [],
+      "creator": [],
+      "license": ""
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "fastq file",
+        "annotation": "Upload raw fastq reads as a text file from Plasmidsaurus",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 20,
+          "top": 90
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Input max read length (+2% WT amplicon length)",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [{\"min\": null, \"max\": null, \"negate\": false, \"type\": \"in_range\"}], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 20,
+          "top": 210
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Input minimum read length (-10% WT amplicon length)",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [{\"min\": null, \"max\": null, \"negate\": false, \"type\": \"in_range\"}], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 20,
+          "top": 370
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Input minimum quality score (20, but up to 30)",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [{\"min\": null, \"max\": null, \"negate\": false, \"type\": \"in_range\"}], \"parameter_type\": \"float\", \"optional\": false}",
+        "position": {
+          "left": 20,
+          "top": 530
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Expected WT Amplicon Sequence",
+        "annotation": "Upload the expected WT amplicon sequence as a fasta file",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 20,
+          "top": 670
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "5",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "5' cutoff for reads",
+        "annotation": "This sequence and everything upstream of it (on it's 5' end) will be removed from each read in the fasta file.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"multiple\": false, \"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 1570,
+          "top": 800
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "6",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "3' cutoff for reads",
+        "annotation": "This sequence and everything downstream of it (on it's e' end) will be removed from each read in the fasta file.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"multiple\": false, \"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 1940,
+          "top": 890
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "7",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Translated target (AA sequence in fasta)",
+        "annotation": "Translate the target DNA sequence, starting at 50-52 bases (...to match the reading frame of the target gene) upstream of the 1st Cas9 cut site and 50-52 bases downstream of the last Cas9 cut site.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 2880,
+          "top": 930
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "filtlong",
+        "label": "Filter fastq",
+        "annotation": "Removes reads that are low quality, too long, or too short.  Requires manual input of min/max length for each amplicon - recommend +2% max length and -10% min length.",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/filtlong/filtlong/0.2.1+galaxy0",
+        "tool_version": "0.2.1+galaxy0",
+        "tool_state": "{\"external_references\": {\"assembly\": {\"__class__\": \"ConnectedValue\"}, \"illumina_1\": {\"__class__\": \"RuntimeValue\"}, \"illumina_2\": {\"__class__\": \"RuntimeValue\"}}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"other\": {\"window_size\": \"250\"}, \"output_thresholds\": {\"target_bases\": null, \"keep_percent\": null, \"max_length\": {\"__class__\": \"ConnectedValue\"}, \"min_length\": {\"__class__\": \"ConnectedValue\"}, \"min_mean_q\": {\"__class__\": \"ConnectedValue\"}, \"min_window_q\": null}, \"read_manipulation\": {\"trim\": false, \"split\": null}, \"score_weights\": {\"length_weight\": \"1.0\", \"mean_q_weight\": \"1.0\", \"window_q_weight\": \"1.0\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 350,
+          "top": 110
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "output_thresholds|max_length": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "output_thresholds|min_length": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "output_thresholds|min_mean_q": {
+            "id": 3,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "fastqsanger"
+          }
+        ]
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "Map with minimap2",
+        "label": "Align trimmed fastq to fasta",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/minimap2/minimap2/2.28+galaxy1",
+        "tool_version": "2.28+galaxy1",
+        "tool_state": "{\"alignment_options\": {\"splicing\": {\"splice_mode\": \"preset\", \"__current_case__\": 0}, \"A\": null, \"B\": null, \"O\": null, \"O2\": null, \"E\": null, \"E2\": null, \"z\": null, \"z2\": null, \"s\": null, \"no_end_flt\": true}, \"fastq_input\": {\"fastq_input_selector\": \"single\", \"__current_case__\": 0, \"fastq_input1\": {\"__class__\": \"ConnectedValue\"}, \"analysis_type_selector\": null}, \"indexing_options\": {\"H\": false, \"k\": null, \"w\": null, \"I\": null}, \"io_options\": {\"output_format\": \"BAM\", \"Q\": false, \"L\": false, \"K\": null, \"cs\": null, \"c\": false, \"eqx\": false, \"Y\": false}, \"mapping_options\": {\"N\": null, \"F\": null, \"f\": null, \"kmer_ocurrence_interval\": {\"interval\": \"\", \"__current_case__\": 1}, \"min_occ_floor\": null, \"q_occ_frac\": \"0.01\", \"g\": null, \"r\": null, \"n\": null, \"m\": null, \"max_chain_skip\": null, \"max_chain_iter\": null, \"X\": false, \"p\": null, \"mask_len\": null}, \"reference_source\": {\"reference_source_selector\": \"history\", \"__current_case__\": 1, \"ref_file\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 690,
+          "top": 290
+        },
+        "input_connections": {
+          "fastq_input|fastq_input1": {
+            "id": 8,
+            "output_name": "outfile"
+          },
+          "reference_source|ref_file": {
+            "id": 4,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "alignment_output",
+            "type": "bam"
+          }
+        ]
+      },
+      {
+        "step_id": "10",
+        "type": "tool",
+        "name": "Samtools fastx",
+        "label": "Isolate reverse reads",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_fastx/samtools_fastx/1.20+galaxy2",
+        "tool_version": "1.20+galaxy2",
+        "tool_state": "{\"copy_arb_tags\": null, \"copy_tags\": false, \"exclusive_filter\": [\"256\", \"2048\"], \"exclusive_filter_all\": null, \"idxout_cond\": {\"idxout_select\": \"no\", \"__current_case__\": 0}, \"inclusive_filter\": [\"16\"], \"input\": {\"__class__\": \"ConnectedValue\"}, \"output_fmt_cond\": {\"output_fmt_select\": \"fasta\", \"__current_case__\": 1}, \"outputs\": \"other\", \"read_numbering\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 970,
+          "top": 230
+        },
+        "input_connections": {
+          "input": {
+            "id": 9,
+            "output_name": "alignment_output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "fasta"
+          }
+        ]
+      },
+      {
+        "step_id": "11",
+        "type": "tool",
+        "name": "Samtools fastx",
+        "label": "Isolate forward reads",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_fastx/samtools_fastx/1.20+galaxy2",
+        "tool_version": "1.20+galaxy2",
+        "tool_state": "{\"copy_arb_tags\": null, \"copy_tags\": false, \"exclusive_filter\": [\"256\", \"2048\", \"16\"], \"exclusive_filter_all\": null, \"idxout_cond\": {\"idxout_select\": \"no\", \"__current_case__\": 0}, \"inclusive_filter\": null, \"input\": {\"__class__\": \"ConnectedValue\"}, \"output_fmt_cond\": {\"output_fmt_select\": \"fasta\", \"__current_case__\": 1}, \"outputs\": \"other\", \"read_numbering\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1110,
+          "top": 480
+        },
+        "input_connections": {
+          "input": {
+            "id": 9,
+            "output_name": "alignment_output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "fasta"
+          }
+        ]
+      },
+      {
+        "step_id": "12",
+        "type": "tool",
+        "name": "Reverse-Complement",
+        "label": "Revcomp of reverse reads",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastx_reverse_complement/cshl_fastx_reverse_complement/1.0.2+galaxy2",
+        "tool_version": "1.0.2+galaxy2",
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1280,
+          "top": 240
+        },
+        "input_connections": {
+          "input": {
+            "id": 10,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "13",
+        "type": "tool",
+        "name": "Concatenate datasets",
+        "label": "Rejoin fasta files (all forward)",
+        "annotation": "",
+        "tool_id": "cat1",
+        "tool_version": "1.0.0",
+        "tool_state": "{\"input1\": {\"__class__\": \"ConnectedValue\"}, \"queries\": [{\"__index__\": 0, \"input2\": {\"__class__\": \"ConnectedValue\"}}], \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1610,
+          "top": 340
+        },
+        "input_connections": {
+          "input1": {
+            "id": 12,
+            "output_name": "output"
+          },
+          "queries_0|input2": {
+            "id": 11,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "14",
+        "type": "tool",
+        "name": "Cutadapt",
+        "label": "Trim reads to same frame on 5' end @ -50-52nt from 1st Cas9 cut site",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/5.0+galaxy0",
+        "tool_version": "5.0+galaxy0",
+        "tool_state": "{\"adapter_options\": {\"action\": \"trim\", \"error_rate\": \"0.1\", \"no_indels\": false, \"times\": \"1\", \"overlap\": \"3\", \"match_read_wildcards\": false, \"no_match_adapter_wildcards\": true, \"revcomp\": false}, \"filter_options\": {\"discard_trimmed\": false, \"discard_untrimmed\": true, \"minimum_length\": \"1\", \"minimum_length2\": null, \"maximum_length\": null, \"maximum_length2\": null, \"max_n\": null, \"max_expected_errors\": null, \"max_average_error_rate\": null, \"discard_casava\": false, \"pair_filter\": \"any\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"ConnectedValue\"}, \"r1\": {\"adapters\": [], \"front_adapters\": [{\"__index__\": 0, \"adapter_source\": {\"adapter_source_list\": \"user\", \"__current_case__\": 0, \"adapter_name\": \"5primeup\", \"adapter\": {\"__class__\": \"ConnectedValue\"}}, \"single_noindels\": false}], \"anywhere_adapters\": []}}, \"other_trimming_options\": {\"cut\": \"0\", \"cut2\": \"0\", \"quality_cutoff\": \"0\", \"quality_cutoff2\": \"\", \"nextseq_trim\": \"0\", \"trim_n\": false, \"poly_a\": false, \"shorten_options\": {\"shorten_values\": \"False\", \"__current_case__\": 1}, \"shorten_options_r2\": {\"shorten_values_r2\": \"False\", \"__current_case__\": 1}}, \"output_selector\": null, \"read_mod_options\": {\"strip_suffix\": null, \"length_tag\": null, \"rename\": null, \"zero_cap\": false}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1900,
+          "top": 640
+        },
+        "input_connections": {
+          "library|input_1": {
+            "id": 13,
+            "output_name": "out_file1"
+          },
+          "library|r1|front_adapters_0|adapter_source|adapter": {
+            "id": 5,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "fastqsanger"
+          }
+        ]
+      },
+      {
+        "step_id": "15",
+        "type": "tool",
+        "name": "Cutadapt",
+        "label": "Trim reads on 3' end @ +50-52 nt from 3rd Cas9 cut site",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/5.0+galaxy0",
+        "tool_version": "5.0+galaxy0",
+        "tool_state": "{\"adapter_options\": {\"action\": \"trim\", \"error_rate\": \"0.1\", \"no_indels\": false, \"times\": \"1\", \"overlap\": \"3\", \"match_read_wildcards\": false, \"no_match_adapter_wildcards\": true, \"revcomp\": false}, \"filter_options\": {\"discard_trimmed\": false, \"discard_untrimmed\": true, \"minimum_length\": \"1\", \"minimum_length2\": null, \"maximum_length\": null, \"maximum_length2\": null, \"max_n\": null, \"max_expected_errors\": null, \"max_average_error_rate\": null, \"discard_casava\": false, \"pair_filter\": \"any\"}, \"library\": {\"type\": \"single\", \"__current_case__\": 0, \"input_1\": {\"__class__\": \"ConnectedValue\"}, \"r1\": {\"adapters\": [{\"__index__\": 0, \"adapter_source\": {\"adapter_source_list\": \"user\", \"__current_case__\": 0, \"adapter_name\": \"3primeup\", \"adapter\": {\"__class__\": \"ConnectedValue\"}}, \"single_noindels\": false}], \"front_adapters\": [], \"anywhere_adapters\": []}}, \"other_trimming_options\": {\"cut\": \"0\", \"cut2\": \"0\", \"quality_cutoff\": \"0\", \"quality_cutoff2\": \"\", \"nextseq_trim\": \"0\", \"trim_n\": false, \"poly_a\": false, \"shorten_options\": {\"shorten_values\": \"False\", \"__current_case__\": 1}, \"shorten_options_r2\": {\"shorten_values_r2\": \"False\", \"__current_case__\": 1}}, \"output_selector\": null, \"read_mod_options\": {\"strip_suffix\": null, \"length_tag\": null, \"rename\": null, \"zero_cap\": false}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2220,
+          "top": 700
+        },
+        "input_connections": {
+          "library|input_1": {
+            "id": 14,
+            "output_name": "out1"
+          },
+          "library|r1|adapters_0|adapter_source|adapter": {
+            "id": 6,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "fastqsanger"
+          }
+        ]
+      },
+      {
+        "step_id": "16",
+        "type": "tool",
+        "name": "NCBI BLAST+ blastn",
+        "label": "BLAST reads against WT target DNA sequence",
+        "annotation": "Note: This step is modified to only report the best alignment for each sequence.  Other alignments probably exist for some reads.",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastn_wrapper/2.16.0+galaxy0",
+        "tool_version": "2.16.0+galaxy0",
+        "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"advanced\", \"__current_case__\": 1, \"filter_query\": true, \"strand\": \"-strand both\", \"max_hits\": \"0\", \"max_hsps\": \"1\", \"identity_cutoff\": \"0.0\", \"word_size\": null, \"ungapped\": false, \"parse_deflines\": false, \"adv_optional_id_files_opts\": {\"adv_optional_id_files_opts_selector\": \"none\", \"__current_case__\": 0}, \"qcov_hsp_perc\": \"0.0\", \"window_size\": null, \"gapopen\": null, \"gapextend\": null}, \"blast_type\": \"megablast\", \"db_opts\": {\"db_opts_selector\": \"file\", \"__current_case__\": 2, \"database\": \"\", \"histdb\": \"\", \"subject\": {\"__class__\": \"ConnectedValue\"}}, \"evalue_cutoff\": \"0.001\", \"output\": {\"out_format\": \"ext\", \"__current_case__\": 1}, \"query\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2610,
+          "top": 560
+        },
+        "input_connections": {
+          "db_opts|subject": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "query": {
+            "id": 15,
+            "output_name": "out1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "17",
+        "type": "tool",
+        "name": "transeq",
+        "label": "Translate DNA in fasta to AA to test reading frame",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/emboss_5/EMBOSS: transeq101/5.0.0",
+        "tool_version": "5.0.0",
+        "tool_state": "{\"alternative\": \"no\", \"clean\": \"no\", \"frame\": \"1\", \"input1\": {\"__class__\": \"ConnectedValue\"}, \"out_format1\": \"fasta\", \"regions\": \"\", \"table\": \"0\", \"trim\": \"no\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 2910,
+          "top": 740
+        },
+        "input_connections": {
+          "input1": {
+            "id": 15,
+            "output_name": "out1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "fasta"
+          }
+        ]
+      },
+      {
+        "step_id": "18",
+        "type": "tool",
+        "name": "NCBI BLAST+ blastp",
+        "label": "BLAST translated reads against WT target AA sequence",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastp_wrapper/2.16.0+galaxy0",
+        "tool_version": "2.16.0+galaxy0",
+        "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"advanced\", \"__current_case__\": 1, \"filter_query\": false, \"matrix_gapcosts\": {\"matrix\": \"\", \"__current_case__\": 0}, \"max_hits\": \"0\", \"max_hsps\": null, \"word_size\": null, \"window_size\": null, \"threshold\": null, \"comp_based_stats\": \"\", \"parse_deflines\": false, \"adv_optional_id_files_opts\": {\"adv_optional_id_files_opts_selector\": \"none\", \"__current_case__\": 0}, \"qcov_hsp_perc\": \"0.0\", \"use_sw_tback\": false}, \"blast_type\": \"blastp\", \"db_opts\": {\"db_opts_selector\": \"file\", \"__current_case__\": 2, \"database\": \"\", \"histdb\": \"\", \"subject\": {\"__class__\": \"ConnectedValue\"}}, \"evalue_cutoff\": \"0.001\", \"output\": {\"out_format\": \"ext\", \"__current_case__\": 1}, \"query\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 3210,
+          "top": 730
+        },
+        "input_connections": {
+          "db_opts|subject": {
+            "id": 7,
+            "output_name": "output"
+          },
+          "query": {
+            "id": 17,
+            "output_name": "out_file1"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output1",
+            "type": "tabular"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/filtlong/filtlong/0.2.1+galaxy0",
+        "tool_version": "0.2.1+galaxy0",
+        "step_id": "8"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/minimap2/minimap2/2.28+galaxy1",
+        "tool_version": "2.28+galaxy1",
+        "step_id": "9"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_fastx/samtools_fastx/1.20+galaxy2",
+        "tool_version": "1.20+galaxy2",
+        "step_id": "10"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/samtools_fastx/samtools_fastx/1.20+galaxy2",
+        "tool_version": "1.20+galaxy2",
+        "step_id": "11"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastx_reverse_complement/cshl_fastx_reverse_complement/1.0.2+galaxy2",
+        "tool_version": "1.0.2+galaxy2",
+        "step_id": "12"
+      },
+      {
+        "tool_id": "cat1",
+        "tool_version": "1.0.0",
+        "step_id": "13"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/5.0+galaxy0",
+        "tool_version": "5.0+galaxy0",
+        "step_id": "14"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lparsons/cutadapt/cutadapt/5.0+galaxy0",
+        "tool_version": "5.0+galaxy0",
+        "step_id": "15"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastn_wrapper/2.16.0+galaxy0",
+        "tool_version": "2.16.0+galaxy0",
+        "step_id": "16"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/emboss_5/EMBOSS: transeq101/5.0.0",
+        "tool_version": "5.0.0",
+        "step_id": "17"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastp_wrapper/2.16.0+galaxy0",
+        "tool_version": "2.16.0+galaxy0",
+        "step_id": "18"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "fastq file",
+        "annotation": "Upload raw fastq reads as a text file from Plasmidsaurus"
+      },
+      {
+        "step_id": "4",
+        "label": "Expected WT Amplicon Sequence",
+        "annotation": "Upload the expected WT amplicon sequence as a fasta file"
+      },
+      {
+        "step_id": "7",
+        "label": "Translated target (AA sequence in fasta)",
+        "annotation": "Translate the target DNA sequence, starting at 50-52 bases (...to match the reading frame of the target gene) upstream of the 1st Cas9 cut site and 50-52 bases downstream of the last Cas9 cut site."
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "1",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "2",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "3",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "5",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "6",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "16",
+        "output_name": "output1",
+        "label": "DNAblast"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "output_thresholds|max_length"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "output_thresholds|min_length"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "output_thresholds|min_mean_q"
+      },
+      {
+        "from_step": 8,
+        "from_output": "outfile",
+        "to_step": "9",
+        "to_input": "fastq_input|fastq_input1"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "reference_source|ref_file"
+      },
+      {
+        "from_step": 9,
+        "from_output": "alignment_output",
+        "to_step": "10",
+        "to_input": "input"
+      },
+      {
+        "from_step": 9,
+        "from_output": "alignment_output",
+        "to_step": "11",
+        "to_input": "input"
+      },
+      {
+        "from_step": 10,
+        "from_output": "output",
+        "to_step": "12",
+        "to_input": "input"
+      },
+      {
+        "from_step": 12,
+        "from_output": "output",
+        "to_step": "13",
+        "to_input": "input1"
+      },
+      {
+        "from_step": 11,
+        "from_output": "output",
+        "to_step": "13",
+        "to_input": "queries_0|input2"
+      },
+      {
+        "from_step": 13,
+        "from_output": "out_file1",
+        "to_step": "14",
+        "to_input": "library|input_1"
+      },
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "14",
+        "to_input": "library|r1|front_adapters_0|adapter_source|adapter"
+      },
+      {
+        "from_step": 14,
+        "from_output": "out1",
+        "to_step": "15",
+        "to_input": "library|input_1"
+      },
+      {
+        "from_step": 6,
+        "from_output": "output",
+        "to_step": "15",
+        "to_input": "library|r1|adapters_0|adapter_source|adapter"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "16",
+        "to_input": "db_opts|subject"
+      },
+      {
+        "from_step": 15,
+        "from_output": "out1",
+        "to_step": "16",
+        "to_input": "query"
+      },
+      {
+        "from_step": 15,
+        "from_output": "out1",
+        "to_step": "17",
+        "to_input": "input1"
+      },
+      {
+        "from_step": 7,
+        "from_output": "output",
+        "to_step": "18",
+        "to_input": "db_opts|subject"
+      },
+      {
+        "from_step": 17,
+        "from_output": "out_file1",
+        "to_step": "18",
+        "to_input": "query"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:44:50.514924"
+}

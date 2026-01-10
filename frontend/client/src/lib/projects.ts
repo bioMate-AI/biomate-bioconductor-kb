@@ -1,34 +1,227 @@
 import type { Project, CreateProject, ProjectDocument, ChatSession } from '@shared/schema';
 import { chatHistoryService } from './chat-history';
 
-// Project management service
+// API client for memory service
+const memoryAPI = {
+  async getProjects(status?: string): Promise<Project[]> {
+    const url = status ? `/api/memory/projects?status=${status}` : '/api/memory/projects';
+    const res = await fetch(url, { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to fetch projects');
+    return res.json();
+  },
+
+  async getProject(projectId: string): Promise<any> {
+    const res = await fetch(`/api/memory/projects/${projectId}`, { credentials: 'include' });
+    if (!res.ok) throw new Error('Project not found');
+    return res.json();
+  },
+
+  async createProject(data: any): Promise<Project> {
+    const res = await fetch('/api/memory/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create project');
+    return res.json();
+  },
+
+  async updateProject(projectId: string, data: any): Promise<Project> {
+    const res = await fetch(`/api/memory/projects/${projectId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to update project');
+    return res.json();
+  },
+
+  async searchProjects(query: { domain?: string; tags?: string[]; text?: string }): Promise<Project[]> {
+    const params = new URLSearchParams();
+    if (query.domain) params.set('domain', query.domain);
+    if (query.tags) params.set('tags', query.tags.join(','));
+    if (query.text) params.set('text', query.text);
+    const res = await fetch(`/api/memory/projects/search?${params}`, { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to search projects');
+    return res.json();
+  },
+
+  async addKnowledge(projectId: string, data: any): Promise<any> {
+    const res = await fetch(`/api/memory/projects/${projectId}/knowledge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to add knowledge');
+    return res.json();
+  },
+
+  async getEpisodes(projectId: string, query?: { intent?: string; tools?: string }): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (query?.intent) params.set('intent', query.intent);
+    if (query?.tools) params.set('tools', query.tools);
+    const res = await fetch(`/api/memory/projects/${projectId}/episodes?${params}`, { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to get episodes');
+    return res.json();
+  },
+
+  async getProcedures(projectId: string): Promise<any[]> {
+    const res = await fetch(`/api/memory/projects/${projectId}/procedures`, { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to get procedures');
+    return res.json();
+  },
+};
+
+// Project management service with backend sync
 class ProjectService {
   private storageKey = 'biomate-projects';
   private maxProjects = 100; // Keep up to 100 projects
+  private useBackend = false; // Toggle for backend mode
+  private syncPending = false;
 
-  // Get all projects
-  getAllProjects(): Project[] {
+  // Check if we should use backend (authenticated user)
+  private async checkBackendAvailable(): Promise<boolean> {
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  // Enable backend sync
+  async enableBackendSync(): Promise<boolean> {
+    this.useBackend = await this.checkBackendAvailable();
+    if (this.useBackend) {
+      await this.syncToBackend();
+    }
+    return this.useBackend;
+  }
+
+  // Sync local projects to backend (one-time migration)
+  private async syncToBackend(): Promise<void> {
+    if (this.syncPending) return;
+    this.syncPending = true;
+
+    try {
+      const localProjects = this.getLocalProjects();
+      const backendProjects = await memoryAPI.getProjects();
+
+      // Find local projects not in backend
+      const backendIds = new Set(backendProjects.map(p => p.id));
+      const toSync = localProjects.filter(p => !backendIds.has(p.id) && !p.id.startsWith('project-demo-'));
+
+      for (const project of toSync) {
+        try {
+          await memoryAPI.createProject({
+            name: project.name,
+            description: project.description,
+            instructions: project.instructions,
+            category: project.category,
+            tags: project.tags,
+          });
+          console.log(`[ProjectSync] Synced project: ${project.name}`);
+        } catch (error) {
+          console.error(`[ProjectSync] Failed to sync project ${project.name}:`, error);
+        }
+      }
+    } finally {
+      this.syncPending = false;
+    }
+  }
+
+  // Get local projects (localStorage)
+  private getLocalProjects(): Project[] {
     try {
       const stored = localStorage.getItem(this.storageKey);
       if (!stored) return this.getDefaultProjects();
-      const projects = JSON.parse(stored);
-      // Sort by last activity (most recent first)
-      return projects.sort((a: Project, b: Project) => 
-        new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
-      );
-    } catch (error) {
-      console.error('Error loading projects:', error);
+      return JSON.parse(stored);
+    } catch {
       return this.getDefaultProjects();
     }
   }
 
-  // Get a specific project by ID
+  // Get all projects (sync version - uses local cache)
+  getAllProjects(): Project[] {
+    const projects = this.getLocalProjects();
+    // Sort by last activity (most recent first)
+    return projects.sort((a: Project, b: Project) =>
+      new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
+    );
+  }
+
+  // Get all projects (async version - uses backend when available)
+  async getAllProjectsAsync(): Promise<Project[]> {
+    if (this.useBackend) {
+      try {
+        const backendProjects = await memoryAPI.getProjects();
+        // Transform backend format to client format
+        return backendProjects.map(p => this.transformBackendProject(p));
+      } catch (error) {
+        console.error('Backend fetch failed, using local:', error);
+      }
+    }
+    return this.getAllProjects();
+  }
+
+  // Transform backend project to client format
+  private transformBackendProject(backendProject: any): Project {
+    return {
+      id: backendProject.id,
+      name: backendProject.name,
+      description: backendProject.description || '',
+      instructions: backendProject.instructions || backendProject.researchGoal,
+      status: backendProject.status || 'active',
+      category: backendProject.primaryDomain || backendProject.category,
+      tags: backendProject.tags || [],
+      progress: backendProject.progress || 0,
+      createdAt: new Date(backendProject.createdAt),
+      updatedAt: new Date(backendProject.updatedAt),
+      lastActivity: new Date(backendProject.updatedAt),
+      chatSessions: [],
+      documents: [],
+    };
+  }
+
+  // Get a specific project by ID (sync)
   getProject(id: string): Project | null {
     const projects = this.getAllProjects();
     return projects.find(project => project.id === id) || null;
   }
 
-  // Create a new project
+  // Get a specific project by ID with full context (async)
+  async getProjectWithContext(id: string): Promise<{
+    project: Project;
+    knowledge: any[];
+    episodes: any[];
+    procedures: any[];
+    recentWorkflows: any[];
+  } | null> {
+    if (this.useBackend) {
+      try {
+        const context = await memoryAPI.getProject(id);
+        if (context.project) {
+          return {
+            project: this.transformBackendProject(context.project),
+            knowledge: context.knowledge || [],
+            episodes: context.recentEpisodes || [],
+            procedures: context.procedures || [],
+            recentWorkflows: context.recentWorkflows || [],
+          };
+        }
+      } catch (error) {
+        console.error('Failed to get project context:', error);
+      }
+    }
+    // Fallback to local
+    const project = this.getProject(id);
+    return project ? { project, knowledge: [], episodes: [], procedures: [], recentWorkflows: [] } : null;
+  }
+
+  // Create a new project (sync - local only)
   createProject(projectData: CreateProject): Project {
     const newProject: Project = {
       ...projectData,
@@ -55,7 +248,46 @@ class ProjectService {
     return newProject;
   }
 
-  // Update an existing project
+  // Create a new project (async - syncs with backend)
+  async createProjectAsync(projectData: CreateProject & {
+    researchGoal?: string;
+    primaryDomain?: string;
+    organisms?: string[];
+    tissueTypes?: string[];
+    conditions?: string[];
+    dataModalities?: string[];
+  }): Promise<Project> {
+    // Create locally first
+    const localProject = this.createProject(projectData);
+
+    // Sync to backend if available
+    if (this.useBackend) {
+      try {
+        const backendProject = await memoryAPI.createProject({
+          name: projectData.name,
+          description: projectData.description,
+          researchGoal: projectData.researchGoal || projectData.instructions,
+          instructions: projectData.instructions,
+          primaryDomain: projectData.primaryDomain || projectData.category,
+          organisms: projectData.organisms,
+          tissueTypes: projectData.tissueTypes,
+          conditions: projectData.conditions,
+          dataModalities: projectData.dataModalities,
+          category: projectData.category,
+          tags: projectData.tags,
+        });
+        // Update local with backend ID
+        this.updateProject(localProject.id, { id: backendProject.id } as any);
+        return this.transformBackendProject(backendProject);
+      } catch (error) {
+        console.error('Failed to sync project to backend:', error);
+      }
+    }
+
+    return localProject;
+  }
+
+  // Update an existing project (sync)
   updateProject(projectId: string, updates: Partial<Project>): Project | null {
     const projects = this.getAllProjects();
     const projectIndex = projects.findIndex(p => p.id === projectId);
@@ -218,6 +450,75 @@ class ProjectService {
     }
   }
 
+  // ============================================================================
+  // Project Memory Methods (Backend Only)
+  // ============================================================================
+
+  // Add knowledge to a project
+  async addProjectKnowledge(projectId: string, data: {
+    knowledgeType: 'dataset_info' | 'experimental_design' | 'analysis_approach' | 'key_finding' | 'technical_note';
+    title?: string;
+    content: string;
+    source?: 'user_provided' | 'claude_inferred' | 'workflow_result';
+  }): Promise<any | null> {
+    if (!this.useBackend) {
+      console.warn('Backend not available for project knowledge');
+      return null;
+    }
+    try {
+      return await memoryAPI.addKnowledge(projectId, data);
+    } catch (error) {
+      console.error('Failed to add project knowledge:', error);
+      return null;
+    }
+  }
+
+  // Get project episodes (past interactions)
+  async getProjectEpisodes(projectId: string, query?: {
+    intent?: string;
+    tools?: string;
+  }): Promise<any[]> {
+    if (!this.useBackend) return [];
+    try {
+      return await memoryAPI.getEpisodes(projectId, query);
+    } catch (error) {
+      console.error('Failed to get project episodes:', error);
+      return [];
+    }
+  }
+
+  // Get project procedures (learned workflows)
+  async getProjectProcedures(projectId: string): Promise<any[]> {
+    if (!this.useBackend) return [];
+    try {
+      return await memoryAPI.getProcedures(projectId);
+    } catch (error) {
+      console.error('Failed to get project procedures:', error);
+      return [];
+    }
+  }
+
+  // Search projects with advanced filters
+  async searchProjectsAdvanced(query: {
+    domain?: string;
+    tags?: string[];
+    text?: string;
+  }): Promise<Project[]> {
+    if (this.useBackend) {
+      try {
+        const results = await memoryAPI.searchProjects(query);
+        return results.map(p => this.transformBackendProject(p));
+      } catch (error) {
+        console.error('Backend search failed:', error);
+      }
+    }
+    // Fallback to local search
+    if (query.text) {
+      return this.searchProjects(query.text);
+    }
+    return this.getAllProjects();
+  }
+
   private getDefaultProjects(): Project[] {
     // Create some example projects to get users started
     const now = new Date();
@@ -270,3 +571,6 @@ class ProjectService {
 
 // Export singleton instance
 export const projectService = new ProjectService();
+
+// Export memory API for direct access
+export { memoryAPI };

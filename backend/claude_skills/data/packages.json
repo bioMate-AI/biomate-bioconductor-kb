@@ -1,0 +1,161 @@
+{
+  "packages": [
+    {
+      "tool_id": "biomni/package/deepchem",
+      "name": "DeepChem",
+      "category": "Machine Learning",
+      "description": "Deep learning library for drug discovery, materials science, and quantum chemistry. Provides molecular featurizers, graph neural networks, and pre-trained models for property prediction.",
+      "inputs": "{\"task\": {\"type\": \"select\", \"options\": [\"molecular_property\", \"toxicity\", \"solubility\", \"binding_affinity\"]}, \"smiles\": {\"type\": \"text\"}, \"model\": {\"type\": \"select\", \"options\": [\"GraphConv\", \"MPNN\", \"AttentiveFP\", \"ChemBERTa\"]}}",
+      "outputs": "{\"predictions\": \"csv\", \"embeddings\": \"npy\"}",
+      "requirements": "[{\"name\": \"deepchem\", \"type\": \"pip\", \"version\": \">=2.7.0\"}, {\"name\": \"torch\", \"type\": \"pip\"}, {\"name\": \"rdkit\", \"type\": \"pip\"}]",
+      "help_text": "pip install deepchem. GPU recommended for training. Supports TensorFlow and PyTorch backends.",
+      "scientific_context": "Molecular property prediction, ADMET, virtual screening, de novo design",
+      "tags": "[\"deep-learning\", \"drug-discovery\", \"GNN\", \"molecular-ML\"]",
+      "examples": "[\"Predict solubility: dc.molnet.load_delaney()\", \"Toxicity prediction: dc.molnet.load_tox21()\"]"
+    },
+    {
+      "tool_id": "biomni/package/torchdrug",
+      "name": "TorchDrug",
+      "category": "Machine Learning",
+      "description": "PyTorch-based library for drug discovery with graph neural networks. Supports molecular generation, property prediction, and protein representation learning.",
+      "inputs": "{\"task\": {\"type\": \"select\", \"options\": [\"property_prediction\", \"molecule_generation\", \"retrosynthesis\", \"protein_function\"]}, \"input_data\": {\"type\": \"file\"}}",
+      "outputs": "{\"predictions\": \"csv\", \"molecules\": \"sdf\"}",
+      "requirements": "[{\"name\": \"torchdrug\", \"type\": \"pip\"}, {\"name\": \"torch\", \"type\": \"pip\"}, {\"name\": \"torch-scatter\", \"type\": \"pip\"}]",
+      "help_text": "pip install torchdrug. Requires PyTorch 1.8+ and torch-scatter for graph operations.",
+      "scientific_context": "Graph neural networks, molecular generation, retrosynthesis, protein function prediction",
+      "tags": "[\"GNN\", \"pytorch\", \"drug-discovery\", \"generation\"]"
+    },
+    {
+      "tool_id": "biomni/package/torch_geometric",
+      "name": "PyTorch Geometric",
+      "category": "Machine Learning",
+      "description": "Geometric deep learning extension library for PyTorch. Foundation for graph neural networks on molecules, proteins, and biological networks.",
+      "inputs": "{\"graph_data\": {\"type\": \"file\"}, \"model\": {\"type\": \"select\", \"options\": [\"GCN\", \"GAT\", \"GIN\", \"SchNet\", \"DimeNet\"]}}",
+      "outputs": "{\"embeddings\": \"npy\", \"predictions\": \"csv\"}",
+      "requirements": "[{\"name\": \"torch-geometric\", \"type\": \"pip\"}, {\"name\": \"torch\", \"type\": \"pip\"}, {\"name\": \"torch-sparse\", \"type\": \"pip\"}, {\"name\": \"torch-scatter\", \"type\": \"pip\"}]",
+      "help_text": "Install with: pip install torch-geometric. GPU strongly recommended.",
+      "scientific_context": "Graph neural networks, molecular representations, protein structure, network analysis",
+      "tags": "[\"GNN\", \"pytorch\", \"graphs\", \"deep-learning\"]"
+    },
+    {
+      "tool_id": "biomni/package/medchem",
+      "name": "MedChem",
+      "category": "Computational chemistry",
+      "description": "Medicinal chemistry filters and rules for drug-likeness assessment. Implements PAINS, Brenk, NIH, and other structural alert filters.",
+      "inputs": "{\"smiles\": {\"type\": \"text\"}, \"filters\": {\"type\": \"multiselect\", \"options\": [\"PAINS\", \"Brenk\", \"NIH\", \"Dundee\", \"Glaxo\", \"SureChEMBL\"]}}",
+      "outputs": "{\"results\": \"csv\", \"flagged_alerts\": \"json\"}",
+      "requirements": "[{\"name\": \"medchem\", \"type\": \"pip\"}, {\"name\": \"rdkit\", \"type\": \"pip\"}]",
+      "help_text": "pip install medchem. Pure Python with RDKit dependency.",
+      "scientific_context": "Lead optimization, PAINS filtering, structural alerts, drug-likeness",
+      "tags": "[\"medicinal-chemistry\", \"filters\", \"PAINS\", \"drug-likeness\"]"
+    },
+    {
+      "tool_id": "biomni/package/molfeat",
+      "name": "Molfeat",
+      "category": "Computational chemistry",
+      "description": "Unified molecular featurization library. Provides fingerprints, descriptors, and learned representations from multiple backends.",
+      "inputs": "{\"smiles\": {\"type\": \"text\"}, \"featurizer\": {\"type\": \"select\", \"options\": [\"ecfp\", \"fcfp\", \"maccs\", \"mordred\", \"chemberta\", \"mol2vec\"]}}",
+      "outputs": "{\"features\": \"npy\", \"feature_names\": \"json\"}",
+      "requirements": "[{\"name\": \"molfeat\", \"type\": \"pip\"}, {\"name\": \"rdkit\", \"type\": \"pip\"}]",
+      "help_text": "pip install molfeat. Supports RDKit, Mordred, and transformer-based featurizers.",
+      "scientific_context": "Molecular fingerprints, descriptors, QSAR features, ML preprocessing",
+      "tags": "[\"featurization\", \"fingerprints\", \"descriptors\", \"molecular-ML\"]"
+    },
+    {
+      "tool_id": "biomni/package/datamol",
+      "name": "Datamol",
+      "category": "Computational chemistry",
+      "description": "Lightweight molecular manipulation toolkit built on RDKit. Simplifies common cheminformatics operations.",
+      "inputs": "{\"smiles\": {\"type\": \"text\"}, \"operation\": {\"type\": \"select\", \"options\": [\"standardize\", \"sanitize\", \"convert\", \"enumerate_stereoisomers\"]}}",
+      "outputs": "{\"molecules\": \"sdf\", \"smiles\": \"smi\"}",
+      "requirements": "[{\"name\": \"datamol\", \"type\": \"pip\"}, {\"name\": \"rdkit\", \"type\": \"pip\"}]",
+      "help_text": "pip install datamol. Designed for clean, Pythonic molecular manipulation.",
+      "scientific_context": "Molecule standardization, SMILES handling, structure preprocessing",
+      "tags": "[\"cheminformatics\", \"rdkit\", \"molecules\", \"preprocessing\"]"
+    },
+    {
+      "tool_id": "biomni/package/pytdc",
+      "name": "PyTDC",
+      "category": "Data Source",
+      "description": "Therapeutics Data Commons - curated ML-ready datasets for drug discovery including ADMET, DTI, and clinical trial outcomes.",
+      "inputs": "{\"dataset\": {\"type\": \"select\", \"options\": [\"ADMET\", \"DTI\", \"DDI\", \"PPI\", \"Antibody\", \"ClinicalTrial\"]}, \"task\": {\"type\": \"text\"}}",
+      "outputs": "{\"train\": \"csv\", \"valid\": \"csv\", \"test\": \"csv\"}",
+      "requirements": "[{\"name\": \"PyTDC\", \"type\": \"pip\"}]",
+      "help_text": "pip install PyTDC. Provides standardized train/valid/test splits.",
+      "scientific_context": "Benchmark datasets, ADMET prediction, drug-target interaction, model evaluation",
+      "tags": "[\"datasets\", \"benchmarks\", \"drug-discovery\", \"ADMET\"]"
+    },
+    {
+      "tool_id": "biomni/package/gget",
+      "name": "gget",
+      "category": "Data Source",
+      "description": "Efficient gene and protein sequence retrieval from Ensembl, UniProt, NCBI, and PDB with a simple Python/CLI interface.",
+      "inputs": "{\"query\": {\"type\": \"text\"}, \"database\": {\"type\": \"select\", \"options\": [\"ensembl\", \"uniprot\", \"ncbi\", \"pdb\", \"alphafold\"]}, \"species\": {\"type\": \"text\", \"default\": \"human\"}}",
+      "outputs": "{\"sequences\": \"fasta\", \"metadata\": \"json\"}",
+      "requirements": "[{\"name\": \"gget\", \"type\": \"pip\"}]",
+      "help_text": "pip install gget. Simple interface: gget.seq('BRCA1') returns sequences.",
+      "scientific_context": "Sequence retrieval, gene annotation, protein sequences, genomic coordinates",
+      "tags": "[\"sequences\", \"ensembl\", \"uniprot\", \"retrieval\"]"
+    },
+    {
+      "tool_id": "biomni/package/cellxgene_census",
+      "name": "CellxGene Census",
+      "category": "Single Cell",
+      "description": "Access CZI CellxGene Census - largest standardized single-cell RNA-seq data collection with 50M+ cells.",
+      "inputs": "{\"organism\": {\"type\": \"select\", \"options\": [\"homo_sapiens\", \"mus_musculus\"]}, \"tissue\": {\"type\": \"text\", \"optional\": true}, \"cell_type\": {\"type\": \"text\", \"optional\": true}}",
+      "outputs": "{\"adata\": \"h5ad\", \"metadata\": \"csv\"}",
+      "requirements": "[{\"name\": \"cellxgene-census\", \"type\": \"pip\"}, {\"name\": \"tiledbsoma\", \"type\": \"pip\"}]",
+      "help_text": "pip install cellxgene-census. Uses TileDB for efficient slicing of large datasets.",
+      "scientific_context": "Single-cell atlas, cell type annotation, cross-study analysis, reference mapping",
+      "tags": "[\"single-cell\", \"atlas\", \"RNA-seq\", \"cell-types\"]"
+    },
+    {
+      "tool_id": "biomni/package/cobrapy",
+      "name": "COBRApy",
+      "category": "Systems Biology",
+      "description": "Constraint-based metabolic modeling in Python. Flux balance analysis, gene knockouts, and metabolic network reconstruction.",
+      "inputs": "{\"model\": {\"type\": \"file\", \"format\": \"sbml\"}, \"analysis\": {\"type\": \"select\", \"options\": [\"FBA\", \"FVA\", \"gene_knockout\", \"essentiality\"]}}",
+      "outputs": "{\"fluxes\": \"csv\", \"solutions\": \"json\"}",
+      "requirements": "[{\"name\": \"cobra\", \"type\": \"pip\"}, {\"name\": \"optlang\", \"type\": \"pip\"}]",
+      "help_text": "pip install cobra. Supports SBML models from BiGG, KEGG, and custom reconstructions.",
+      "scientific_context": "Flux balance analysis, metabolic engineering, gene essentiality, pathway analysis",
+      "tags": "[\"metabolic-modeling\", \"FBA\", \"systems-biology\", \"fluxes\"]"
+    },
+    {
+      "tool_id": "biomni/package/arboreto",
+      "name": "Arboreto",
+      "category": "Single Cell",
+      "description": "Gene regulatory network inference using tree-based methods (GRNBoost2, GENIE3). Core of SCENIC pipeline.",
+      "inputs": "{\"expression_matrix\": {\"type\": \"file\"}, \"tf_list\": {\"type\": \"file\"}, \"method\": {\"type\": \"select\", \"options\": [\"GRNBoost2\", \"GENIE3\"]}}",
+      "outputs": "{\"network\": \"tsv\", \"regulons\": \"json\"}",
+      "requirements": "[{\"name\": \"arboreto\", \"type\": \"pip\"}, {\"name\": \"dask\", \"type\": \"pip\"}]",
+      "help_text": "pip install arboreto. Uses Dask for distributed computation on large datasets.",
+      "scientific_context": "Gene regulatory networks, transcription factors, SCENIC, network inference",
+      "tags": "[\"GRN\", \"transcription-factors\", \"networks\", \"single-cell\"]"
+    },
+    {
+      "tool_id": "biomni/package/pymc",
+      "name": "PyMC",
+      "category": "Statistics",
+      "description": "Probabilistic programming library for Bayesian statistical modeling and inference using MCMC and variational methods.",
+      "inputs": "{\"model_type\": {\"type\": \"select\", \"options\": [\"regression\", \"hierarchical\", \"time_series\", \"custom\"]}, \"data\": {\"type\": \"file\"}}",
+      "outputs": "{\"trace\": \"netcdf\", \"summary\": \"csv\", \"diagnostics\": \"json\"}",
+      "requirements": "[{\"name\": \"pymc\", \"type\": \"pip\"}, {\"name\": \"arviz\", \"type\": \"pip\"}, {\"name\": \"pytensor\", \"type\": \"pip\"}]",
+      "help_text": "pip install pymc. Version 5+ uses PyTensor backend.",
+      "scientific_context": "Bayesian inference, uncertainty quantification, hierarchical models, MCMC",
+      "tags": "[\"bayesian\", \"statistics\", \"MCMC\", \"inference\"]"
+    },
+    {
+      "tool_id": "biomni/package/pymatgen",
+      "name": "PyMatGen",
+      "category": "Materials science",
+      "description": "Python Materials Genomics library for materials analysis, structure manipulation, and interface to Materials Project.",
+      "inputs": "{\"structure\": {\"type\": \"file\", \"format\": \"cif\"}, \"analysis\": {\"type\": \"select\", \"options\": [\"symmetry\", \"bandgap\", \"stability\", \"surface\"]}}",
+      "outputs": "{\"properties\": \"json\", \"structure\": \"cif\"}",
+      "requirements": "[{\"name\": \"pymatgen\", \"type\": \"pip\"}, {\"name\": \"mp-api\", \"type\": \"pip\"}]",
+      "help_text": "pip install pymatgen. API key needed for Materials Project queries.",
+      "scientific_context": "Crystal structures, electronic properties, phase diagrams, materials discovery",
+      "tags": "[\"materials\", \"crystals\", \"DFT\", \"properties\"]"
+    }
+  ]
+}

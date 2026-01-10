@@ -27,6 +27,13 @@ interface ToolRecommendation {
     name: string;
     category?: string;
     keywords?: string;
+    help_text?: {
+      function_info?: {
+        operation_type?: string;
+        is_primary_function?: boolean;
+        wrapper_function?: string;
+      };
+    };
   };
   relevanceScore: number;
   reasoning: string;

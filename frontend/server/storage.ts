@@ -19,6 +19,7 @@ export interface IStorage {
   // Invocation management
   createInvocation(invocation: Partial<WorkflowInvocation>): Promise<WorkflowInvocation>;
   getInvocation(id: string): Promise<WorkflowInvocation | undefined>;
+  getInvocationByGalaxyId(galaxyInvocationId: string): Promise<WorkflowInvocation | undefined>;
   getInvocations(userId?: string, limit?: number): Promise<WorkflowInvocation[]>;
   updateInvocation(id: string, updates: Partial<WorkflowInvocation>): Promise<WorkflowInvocation | undefined>;
   deleteInvocation(id: string): Promise<boolean>;
@@ -96,6 +97,10 @@ export class MemStorage implements IStorage {
 
   async getInvocation(id: string): Promise<WorkflowInvocation | undefined> {
     return this.invocations.get(id);
+  }
+
+  async getInvocationByGalaxyId(galaxyInvocationId: string): Promise<WorkflowInvocation | undefined> {
+    return Array.from(this.invocations.values()).find(inv => inv.galaxyInvocationId === galaxyInvocationId);
   }
 
   async getInvocations(userId?: string, limit: number = 100): Promise<WorkflowInvocation[]> {

@@ -184,12 +184,13 @@ class WorkflowsManager(sharable.SharableModelManager[model.StoredWorkflow], dele
             message = "show_shared and show_hidden cannot both be specified as true"
             raise exceptions.RequestParameterInvalidException(message)
 
-        filters = [
-            StoredWorkflow.user == trans.user,
-        ]
         user = trans.user
+        filters = []
+        # Only filter by user if we have a valid user instance
+        if user is not None:
+            filters.append(StoredWorkflow.user_id == user.id)
         if user and show_shared:
-            filters.append(StoredWorkflowUserShareAssociation.user == user)
+            filters.append(StoredWorkflowUserShareAssociation.user_id == user.id)
 
         if show_published or user is None and show_published is None:
             filters.append(StoredWorkflow.published == true())
@@ -211,7 +212,8 @@ class WorkflowsManager(sharable.SharableModelManager[model.StoredWorkflow], dele
 
         stmt = stmt.options(joinedload(StoredWorkflow.annotations))
         stmt = stmt.options(latest_workflow_load)
-        stmt = stmt.where(or_(*filters))
+        if filters:
+            stmt = stmt.where(or_(*filters))
         stmt = stmt.where(StoredWorkflow.hidden == (true() if show_hidden else false()))
         if payload.search:
             search_query = payload.search
@@ -276,7 +278,7 @@ class WorkflowsManager(sharable.SharableModelManager[model.StoredWorkflow], dele
             total_matches = None
         if payload.sort_by is None:
             if user:
-                stmt = stmt.order_by(desc(StoredWorkflow.user == user))
+                stmt = stmt.order_by(desc(StoredWorkflow.user_id == user.id))
             stmt = stmt.order_by(desc(StoredWorkflow.update_time))
         else:
             sort_column = getattr(StoredWorkflow, payload.sort_by)
@@ -694,19 +696,34 @@ class WorkflowContentsManager(UsesAnnotations):
         stored.name = workflow.name
         workflow.stored_workflow = stored
         stored.latest_workflow = workflow
-        stored.user = trans.user
+        # Handle BootstrapAdminUser (Pydantic model) vs SQLAlchemy User
+        # BootstrapAdminUser is used when authenticating via bootstrap_admin_api_key
+        # but cannot be assigned to SQLAlchemy relationships (NOT NULL constraint on user_id)
+        if trans.user_is_bootstrap_admin:
+            # Get the first admin user from database to own the workflow
+            # The database has a NOT NULL constraint on user_id so we need a real user
+            admin_user = trans.sa_session.query(model.User).filter(model.User.email == "admin@galaxy.org").first()
+            if not admin_user:
+                # Fallback to first user if no admin@galaxy.org
+                admin_user = trans.sa_session.query(model.User).first()
+            stored.user = admin_user
+        else:
+            stored.user = trans.user
         stored.published = workflow_create_options.publish
         stored.hidden = hidden
-        if data["annotation"]:
+        if data["annotation"] and stored.user:
             annotation = sanitize_html(data["annotation"])
             self.add_item_annotation(trans.sa_session, stored.user, stored, annotation)
         workflow_tags = data.get("tags", [])
-        trans.tag_handler.set_tags_from_list(user=trans.user, item=stored, new_tags_list=workflow_tags)
+        # Use stored.user for tags (admin_user for bootstrap admin, or trans.user otherwise)
+        if workflow_tags and stored.user:
+            trans.tag_handler.set_tags_from_list(user=stored.user, item=stored, new_tags_list=workflow_tags)
 
         # Persist
         trans.sa_session.add(stored)
 
-        if add_to_menu:
+        # Skip menu entry for bootstrap admin (no real user)
+        if add_to_menu and not trans.user_is_bootstrap_admin:
             if trans.user.stored_workflow_menu_entries is None:
                 trans.user.stored_workflow_menu_entries = []
             menuEntry = model.StoredWorkflowMenuEntry()

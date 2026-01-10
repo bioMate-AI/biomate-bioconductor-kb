@@ -169,7 +169,8 @@ class HistoriesService(ServiceBase, ConsumesModelStores, ServesExportStores):
                 message = "Only admins can query all histories"
                 raise glx_exceptions.AdminRequiredException(message)
         else:
-            filters += [model.History.user == current_user]
+            if current_user and hasattr(current_user, 'id') and current_user.id is not None:
+                filters += [model.History.user_id == current_user.id]
         # exclude archived histories
         filters += [model.History.archived == false()]
         # and apply any other filters
@@ -786,8 +787,9 @@ class HistoriesService(ServiceBase, ConsumesModelStores, ServesExportStores):
             raise glx_exceptions.AuthenticationRequired("Only registered users can have or access archived histories.")
 
         filters = self.filters.parse_query_filters(filter_query_params)
+        user = trans.user
         filters += [
-            model.History.user == trans.user,
+            model.History.user_id == user.id if user else model.History.user_id.is_(None),
             model.History.archived == true(),
         ]
         total_matches = self.manager.count(filters=filters) if include_total_matches else None

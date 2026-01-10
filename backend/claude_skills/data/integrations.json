@@ -1,0 +1,76 @@
+{
+  "integrations": [
+    {
+      "tool_id": "biomni/integration/benchling",
+      "name": "Benchling Integration",
+      "category": "Web Services",
+      "description": "Connect to Benchling biotech R&D platform for sample management, sequence design, lab notebook integration, and workflow automation.",
+      "inputs": "{\"action\": {\"type\": \"select\", \"options\": [\"get_sequences\", \"create_entry\", \"list_samples\", \"run_workflow\", \"export_data\"]}, \"entity_id\": {\"type\": \"text\", \"optional\": true}}",
+      "outputs": "{\"data\": \"json\", \"sequences\": \"fasta\", \"samples\": \"csv\"}",
+      "requirements": "[{\"name\": \"benchling-sdk\", \"type\": \"pip\"}, {\"name\": \"requests\", \"type\": \"pip\"}]",
+      "help_text": "Requires Benchling API key. Enterprise feature - contact Benchling for access.",
+      "scientific_context": "LIMS, electronic lab notebook, sample tracking, biotech R&D",
+      "tags": "[\"LIMS\", \"ELN\", \"enterprise\", \"lab-management\"]"
+    },
+    {
+      "tool_id": "biomni/integration/opentrons",
+      "name": "Opentrons Integration",
+      "category": "Web Services",
+      "description": "Interface with Opentrons liquid handling robots. Upload protocols, monitor runs, and integrate automated experiments into workflows.",
+      "inputs": "{\"action\": {\"type\": \"select\", \"options\": [\"upload_protocol\", \"start_run\", \"get_status\", \"list_labware\"]}, \"protocol_file\": {\"type\": \"file\", \"format\": \"py\", \"optional\": true}}",
+      "outputs": "{\"run_status\": \"json\", \"results\": \"csv\"}",
+      "requirements": "[{\"name\": \"opentrons\", \"type\": \"pip\"}, {\"name\": \"requests\", \"type\": \"pip\"}]",
+      "help_text": "Requires Opentrons robot connected to network. Use Opentrons App for initial setup.",
+      "scientific_context": "Lab automation, liquid handling, high-throughput screening, protocol execution",
+      "tags": "[\"automation\", \"robotics\", \"liquid-handling\", \"HTS\"]"
+    },
+    {
+      "tool_id": "biomni/integration/dnanexus",
+      "name": "DNAnexus Integration",
+      "category": "Web Services",
+      "description": "Connect to DNAnexus cloud genomics platform for large-scale data analysis, secure collaboration, and compliance workflows.",
+      "inputs": "{\"action\": {\"type\": \"select\", \"options\": [\"upload_data\", \"run_app\", \"download_results\", \"list_projects\"]}, \"project_id\": {\"type\": \"text\", \"optional\": true}}",
+      "outputs": "{\"job_status\": \"json\", \"results\": \"file\"}",
+      "requirements": "[{\"name\": \"dxpy\", \"type\": \"pip\"}]",
+      "help_text": "Requires DNAnexus account and API token. dx login for authentication.",
+      "scientific_context": "Cloud genomics, HIPAA compliance, large-scale analysis, UK Biobank",
+      "tags": "[\"cloud\", \"genomics\", \"enterprise\", \"compliance\"]"
+    },
+    {
+      "tool_id": "biomni/integration/latchbio",
+      "name": "LatchBio Integration",
+      "category": "Web Services",
+      "description": "Interface with Latch bioinformatics cloud platform. Deploy workflows, manage data, and run analysis pipelines.",
+      "inputs": "{\"action\": {\"type\": \"select\", \"options\": [\"upload_data\", \"run_workflow\", \"get_results\", \"list_workflows\"]}, \"workflow_id\": {\"type\": \"text\", \"optional\": true}}",
+      "outputs": "{\"results\": \"file\", \"logs\": \"json\"}",
+      "requirements": "[{\"name\": \"latch\", \"type\": \"pip\"}]",
+      "help_text": "Requires Latch account. Use latch login for authentication.",
+      "scientific_context": "Cloud bioinformatics, workflow deployment, data management",
+      "tags": "[\"cloud\", \"workflows\", \"bioinformatics\", \"deployment\"]"
+    },
+    {
+      "tool_id": "biomni/integration/omero",
+      "name": "OMERO Integration",
+      "category": "Web Services",
+      "description": "Connect to OMERO imaging data management platform. Access, annotate, and analyze microscopy images.",
+      "inputs": "{\"action\": {\"type\": \"select\", \"options\": [\"get_image\", \"upload_image\", \"add_annotation\", \"run_script\", \"search\"]}, \"image_id\": {\"type\": \"integer\", \"optional\": true}}",
+      "outputs": "{\"image\": \"tiff\", \"metadata\": \"json\", \"annotations\": \"csv\"}",
+      "requirements": "[{\"name\": \"omero-py\", \"type\": \"pip\"}, {\"name\": \"zeroc-ice\", \"type\": \"pip\"}]",
+      "help_text": "Requires OMERO server access. Open source - can be self-hosted.",
+      "scientific_context": "Microscopy, image management, bioimage analysis, data sharing",
+      "tags": "[\"imaging\", \"microscopy\", \"data-management\", \"open-source\"]"
+    },
+    {
+      "tool_id": "biomni/integration/labarchive",
+      "name": "LabArchive Integration",
+      "category": "Web Services",
+      "description": "Connect to LabArchives electronic lab notebook for experiment documentation, data linking, and compliance.",
+      "inputs": "{\"action\": {\"type\": \"select\", \"options\": [\"create_entry\", \"upload_file\", \"get_notebook\", \"search\"]}, \"notebook_id\": {\"type\": \"text\", \"optional\": true}}",
+      "outputs": "{\"entry\": \"json\", \"files\": \"zip\"}",
+      "requirements": "[{\"name\": \"requests\", \"type\": \"pip\"}]",
+      "help_text": "Requires LabArchives account and API access token.",
+      "scientific_context": "Electronic lab notebook, experiment documentation, compliance, data provenance",
+      "tags": "[\"ELN\", \"documentation\", \"compliance\", \"lab-management\"]"
+    }
+  ]
+}

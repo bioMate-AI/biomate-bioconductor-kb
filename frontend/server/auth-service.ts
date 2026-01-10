@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto';
 import { db } from './db';
 import { users } from '../shared/schema';
 import { eq, and } from 'drizzle-orm';
-import type { User } from '../shared/schema';
+import type { User, SafeUser } from '../shared/schema';
 import { emailService } from './email-service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -35,7 +35,7 @@ export interface JWTPayload {
 }
 
 export interface AuthResponse {
-  user: Omit<User, 'password'>;
+  user: SafeUser;
   token: string;
   expiresIn: number;
 }
@@ -162,7 +162,7 @@ export class AuthService {
   /**
    * Check subscription status
    */
-  checkSubscriptionStatus(user: User): {
+  checkSubscriptionStatus(user: SafeUser): {
     active: boolean;
     trialing: boolean;
     trialExpired: boolean;
@@ -352,7 +352,7 @@ export class AuthService {
     };
 
     return jwt.sign(payload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
+      expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
       issuer: 'biomate.com',
       subject: user.id,
     });

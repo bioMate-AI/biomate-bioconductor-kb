@@ -215,8 +215,14 @@ export class GalaxyStatePoller extends EventEmitter {
     }
 
     // Step-level state changes
-    newState.steps.forEach((newStep) => {
-      const oldStep = oldState.steps.find((s) => s.id === newStep.id);
+    // Use getEffectiveStepState to check job state instead of step state
+    newState.steps.forEach((newStep: any) => {
+      const oldStep = oldState.steps.find((s: any) => s.id === newStep.id);
+      const newEffectiveState = this.getEffectiveStepState(newStep);
+      const oldEffectiveState = oldStep ? this.getEffectiveStepState(oldStep) : null;
+
+      // Get job_id from step or from jobs array
+      const jobId = newStep.job_id || (newStep.jobs?.[0]?.id);
 
       if (!oldStep) {
         // New step detected
@@ -226,43 +232,43 @@ export class GalaxyStatePoller extends EventEmitter {
           timestamp: new Date().toISOString(),
           data: {
             step_id: newStep.id,
-            step_state: newStep.state,
-            job_id: newStep.job_id,
+            step_state: newEffectiveState,
+            job_id: jobId,
           },
         });
 
         // Track step start time
-        if (newStep.state === 'running') {
+        if (newEffectiveState === 'running') {
           poller.stepStartTimes.set(newStep.id, Date.now());
         }
-      } else if (oldStep.state !== newStep.state) {
-        // Step state changed
+      } else if (oldEffectiveState !== newEffectiveState) {
+        // Step state changed (using effective state from job)
         this.emitUpdate({
           type: 'step_state',
           invocation_id: newState.id,
           timestamp: new Date().toISOString(),
           data: {
             step_id: newStep.id,
-            step_state: newStep.state,
-            job_id: newStep.job_id,
+            step_state: newEffectiveState,
+            job_id: jobId,
           },
         });
 
         // Track step start time when it starts running
-        if (newStep.state === 'running' && !poller.stepStartTimes.has(newStep.id)) {
+        if (newEffectiveState === 'running' && !poller.stepStartTimes.has(newStep.id)) {
           poller.stepStartTimes.set(newStep.id, Date.now());
         }
 
         // Track completion time when step finishes
-        if ((newStep.state === 'ok' || newStep.state === 'error') && poller.stepStartTimes.has(newStep.id)) {
+        if ((newEffectiveState === 'ok' || newEffectiveState === 'error') && poller.stepStartTimes.has(newStep.id)) {
           const startTime = poller.stepStartTimes.get(newStep.id)!;
           const completionTime = Date.now() - startTime;
           poller.stepCompletionTimes.set(newStep.id, completionTime);
         }
 
         // Fetch and emit job logs for completed/error steps
-        if (newStep.state === 'ok' || newStep.state === 'error') {
-          this.fetchJobLogs(newState.id, newStep.id, newStep.job_id);
+        if (newEffectiveState === 'ok' || newEffectiveState === 'error') {
+          this.fetchJobLogs(newState.id, newStep.id, jobId);
         }
       }
     });
@@ -279,10 +285,11 @@ export class GalaxyStatePoller extends EventEmitter {
     const totalSteps = invocation.steps.length;
     if (totalSteps === 0) return;
 
-    // Count completed steps (ok or error)
-    const completedSteps = invocation.steps.filter(
-      step => step.state === 'ok' || step.state === 'error'
-    ).length;
+    // Count completed steps (ok or error) using effective state from jobs
+    const completedSteps = invocation.steps.filter((step: any) => {
+      const effectiveState = this.getEffectiveStepState(step);
+      return effectiveState === 'ok' || effectiveState === 'error';
+    }).length;
 
     // Calculate progress percentage (0-100)
     const progressPercent = Math.floor((completedSteps / totalSteps) * 100);
@@ -412,8 +419,22 @@ export class GalaxyStatePoller extends EventEmitter {
   }
 
   /**
+   * Get the effective state of a step by checking its jobs
+   * Galaxy step.state can be stale - use jobs[0].state for accuracy
+   */
+  private getEffectiveStepState(step: any): string {
+    // If step has jobs array with job details, use the job state
+    if (step.jobs && step.jobs.length > 0 && step.jobs[0].state) {
+      return step.jobs[0].state;
+    }
+    // Fall back to step.state
+    return step.state;
+  }
+
+  /**
    * Check if workflow invocation is actually complete
    * Galaxy workflows can stay in 'scheduled' state even when all steps are done
+   * We check job state, not step state, for accuracy
    */
   private isWorkflowComplete(invocation: GalaxyWorkflowInvocation): boolean {
     // Terminal states
@@ -421,11 +442,12 @@ export class GalaxyStatePoller extends EventEmitter {
       return true;
     }
 
-    // Check if all steps are complete
+    // Check if all steps are complete by looking at job state
     if (invocation.steps.length > 0) {
-      const allStepsComplete = invocation.steps.every(
-        step => step.state === 'ok' || step.state === 'error'
-      );
+      const allStepsComplete = invocation.steps.every(step => {
+        const effectiveState = this.getEffectiveStepState(step);
+        return effectiveState === 'ok' || effectiveState === 'error';
+      });
       return allStepsComplete;
     }
 

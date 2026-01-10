@@ -2,10 +2,13 @@
 Galaxy AI Assistant API
 
 RESTful API endpoints for the Galaxy AI Assistant functionality.
+Includes citation management, progressive tuning, and benchmark endpoints.
 """
 
 import json
 import logging
+import uuid
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 from fastapi import HTTPException, Path, Query, Depends
@@ -33,6 +36,43 @@ except ImportError as e:
     UserRequest = None
     TaskType = None
     IntentType = None
+
+# Import progressive tuning components
+try:
+    from galaxy.ai.progressive_tuning import (
+        ProgressiveTuningController,
+        TuningConfig,
+        SamplingStrategy,
+        PilotResult,
+        FullRunEstimate
+    )
+    TUNING_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Progressive tuning components not available: {e}")
+    TUNING_AVAILABLE = False
+    ProgressiveTuningController = None
+    TuningConfig = None
+    SamplingStrategy = None
+
+# Import benchmark knowledge components (Added 2025-12-30)
+try:
+    from galaxy.ai.benchmark_knowledge import BenchmarkKnowledgeDB
+    BENCHMARK_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Benchmark knowledge components not available: {e}")
+    BENCHMARK_AVAILABLE = False
+    BenchmarkKnowledgeDB = None
+
+# Import ResearchAgent and SkillLoader (Added 2025-12-30)
+try:
+    from galaxy.ai.agents.research_agent import ResearchAgent, create_research_agent
+    from galaxy.ai.agents.skill_loader import SkillLoader, create_skill_loader
+    RESEARCH_AGENT_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"ResearchAgent components not available: {e}")
+    RESEARCH_AGENT_AVAILABLE = False
+    ResearchAgent = None
+    SkillLoader = None
 
 log = logging.getLogger(__name__)
 
@@ -116,6 +156,110 @@ class AIResponseModel(BaseModel):
     confidence: float
     execution_plan: Optional[str]
     warnings: List[str]
+
+
+# Citation models
+class CitationModel(BaseModel):
+    """Model for tool citations."""
+    tool_id: str = Field(..., description="Tool identifier")
+    tool_name: str = Field(..., description="Tool display name")
+    doi: Optional[str] = Field(None, description="Digital Object Identifier")
+    pmid: Optional[str] = Field(None, description="PubMed ID")
+    title: str = Field(..., description="Citation title")
+    authors: List[str] = Field(default_factory=list, description="Author list")
+    year: Optional[int] = Field(None, description="Publication year")
+    journal: Optional[str] = Field(None, description="Journal name")
+    formatted_apa: str = Field("", description="APA formatted citation")
+    formatted_short: str = Field("", description="Short citation format")
+    formatted_bibtex: str = Field("", description="BibTeX format")
+
+
+class MethodsSectionModel(BaseModel):
+    """Model for auto-generated methods section."""
+    text: str = Field(..., description="Methods section text")
+    style: str = Field("short", description="Citation style used")
+    tools_cited: List[str] = Field(default_factory=list, description="Tools with citations")
+    tools_missing_citations: List[str] = Field(default_factory=list, description="Tools without citations")
+
+
+class ParameterRecommendationModel(BaseModel):
+    """Model for parameter recommendations."""
+    parameter_name: str = Field(..., description="Parameter name")
+    recommended_value: Any = Field(..., description="Recommended value")
+    current_value: Optional[Any] = Field(None, description="Current/default value")
+    confidence: float = Field(0.8, description="Recommendation confidence")
+    source: str = Field("best_practice", description="Source: benchmark, protocol, best_practice")
+    reason: Optional[str] = Field(None, description="Reason for recommendation")
+
+
+# Pilot run models
+class TuningConfigModel(BaseModel):
+    """Model for tuning configuration."""
+    pilot_fraction: float = Field(0.1, ge=0.05, le=0.3, description="Fraction of data for pilot")
+    sampling_strategy: str = Field("stratified", description="Sampling strategy")
+    strata_column: Optional[str] = Field(None, description="Column for stratified sampling")
+    min_pilot_samples: int = Field(3, ge=1, description="Minimum pilot samples")
+    max_pilot_samples: int = Field(50, ge=1, description="Maximum pilot samples")
+
+
+class StartPilotRequest(BaseModel):
+    """Request to start a pilot run."""
+    workflow_id: str = Field(..., description="Workflow ID")
+    total_samples: int = Field(..., description="Total number of samples")
+    config: Optional[TuningConfigModel] = Field(None, description="Tuning configuration")
+    sample_ids: Optional[List[str]] = Field(None, description="Sample IDs if available")
+
+
+class PilotStatusResponse(BaseModel):
+    """Response for pilot run status."""
+    pilot_id: str
+    status: str  # 'pending', 'running', 'complete', 'failed'
+    progress: float = 0.0
+    runtime_seconds: Optional[float] = None
+    peak_memory_gb: Optional[float] = None
+    quality_metrics: Optional[Dict[str, float]] = None
+    error_message: Optional[str] = None
+
+
+class FullRunEstimateResponse(BaseModel):
+    """Response for full run estimation."""
+    estimated_runtime_seconds: float
+    estimated_runtime_display: str
+    estimated_memory_gb: float
+    estimated_cost_usd: Optional[float] = None
+    confidence: float = 0.8
+    scaling_factors: Dict[str, float] = Field(default_factory=dict)
+
+
+class BibTeXExportRequest(BaseModel):
+    """Request to export citations as BibTeX."""
+    workflow_ga: Dict[str, Any] = Field(..., description="Galaxy workflow JSON")
+    include_all: bool = Field(True, description="Include all tools or only cited ones")
+
+
+# Enhanced workflow generation response
+class WorkflowGenerationResponse(BaseModel):
+    """Enhanced response for workflow generation with citations."""
+    success: bool
+    workflow_ga: Optional[Dict[str, Any]] = None
+    source: Optional[str] = None  # template_reuse, template_adapted, from_scratch
+    confidence: float = 0.0
+    message: str = ""
+
+    # Citation fields
+    citations: List[CitationModel] = Field(default_factory=list)
+    methods_section: Optional[MethodsSectionModel] = None
+
+    # Pilot run suggestion
+    pilot_run_suggested: bool = False
+    tuning_config: Optional[TuningConfigModel] = None
+
+    # Parameter recommendations
+    parameter_recommendations: Dict[str, ParameterRecommendationModel] = Field(default_factory=dict)
+
+
+# In-memory storage for pilot runs (would be database in production)
+_pilot_runs: Dict[str, Dict[str, Any]] = {}
 
 
 @router.get(
@@ -454,22 +598,135 @@ def generate_workflow_unified(
         )
 
         if result['success']:
+            # Process citations from the result
+            citations = []
+            raw_citations = result.get('citations', [])
+            for cit_data in raw_citations:
+                citation_info = cit_data.get('citation', {})
+                citations.append(CitationModel(
+                    tool_id=cit_data.get('tool_id', ''),
+                    tool_name=cit_data.get('tool_name', ''),
+                    doi=citation_info.get('doi'),
+                    pmid=citation_info.get('pmid'),
+                    title=citation_info.get('title', ''),
+                    authors=citation_info.get('authors', []),
+                    year=citation_info.get('year'),
+                    journal=citation_info.get('journal'),
+                    formatted_apa=citation_info.get('formatted_apa', ''),
+                    formatted_short=citation_info.get('formatted_short', ''),
+                    formatted_bibtex=citation_info.get('formatted_bibtex', '')
+                ))
+
+            # Build methods section model if available
+            methods_section = None
+            if result.get('methods_section'):
+                methods_section = MethodsSectionModel(
+                    text=result['methods_section'],
+                    style="short",
+                    tools_cited=[c.tool_id for c in citations],
+                    tools_missing_citations=[]  # Could be populated from result
+                )
+
+            # Process parameter recommendations
+            param_recommendations = {}
+            for param_data in result.get('generated_parameters', []):
+                if param_data.get('parameters'):
+                    for param_name, param_value in param_data['parameters'].items():
+                        param_recommendations[f"{param_data['tool_id']}:{param_name}"] = ParameterRecommendationModel(
+                            parameter_name=param_name,
+                            recommended_value=param_value,
+                            confidence=param_data.get('confidence', 0.8),
+                            source="llm_generated",
+                            reason=param_data.get('reasoning', '')
+                        )
+
+            # ============================================================================
+            # Enhanced Pilot Run Suggestion Logic
+            # Considers: dataset count, confidence, tool installation, validation
+            # ============================================================================
+            uploaded_datasets = request.available_datasets or []
+            confidence = result.get('confidence', 0.5)
+            tool_installation = result.get('tool_installation', {})
+            validation = result.get('validation', {})
+
+            # Build pilot suggestion reasons
+            pilot_reasons = []
+
+            # Reason 1: Large dataset count (>20 datasets)
+            if len(uploaded_datasets) > 20:
+                pilot_reasons.append(f"Large dataset count ({len(uploaded_datasets)} datasets)")
+
+            # Reason 2: Tool installation issues
+            failed_tools = tool_installation.get('failed_tools', [])
+            if failed_tools:
+                pilot_reasons.append(f"Missing/failed tools: {', '.join(failed_tools[:3])}")
+
+            # Reason 3: Low confidence workflow generation
+            if confidence < 0.7:
+                pilot_reasons.append(f"Low generation confidence ({confidence:.0%})")
+
+            # Reason 4: Validation warnings or issues
+            validation_warnings = validation.get('warnings', [])
+            validation_issues = validation.get('issues', [])
+            if validation_issues:
+                pilot_reasons.append(f"Validation issues: {len(validation_issues)} found")
+            elif validation_warnings:
+                pilot_reasons.append(f"Validation warnings: {len(validation_warnings)}")
+
+            # Reason 5: Generated from scratch (no template match)
+            if result.get('source') == 'from_scratch':
+                pilot_reasons.append("Workflow generated from scratch (no template match)")
+
+            # Suggest pilot if ANY reason exists
+            pilot_suggested = len(pilot_reasons) > 0
+
+            # Build pilot suggestion message
+            pilot_message = None
+            if pilot_suggested:
+                pilot_message = "Pilot run recommended: " + "; ".join(pilot_reasons)
+                log.info(f"[PilotSuggestion] {pilot_message}")
+
             return {
                 'success': True,
                 'workflow_ga': result['workflow_ga'],
                 'source': result['source'],
-                'confidence': result['confidence'],
+                'confidence': confidence,
                 'template_match_score': result.get('template_match_score', 0.0),
                 'datasets_assigned': result.get('datasets_assigned', False),
                 'generated_parameters': result.get('generated_parameters', []),
                 'message': result.get('message', 'Workflow generated successfully'),
-                'note': f"Generated using {result['source']} strategy"
+                'note': f"Generated using {result['source']} strategy",
+                # Citation fields
+                'citations': [c.model_dump() for c in citations],
+                'methods_section': methods_section.model_dump() if methods_section else None,
+                'parameter_recommendations': {k: v.model_dump() for k, v in param_recommendations.items()},
+                # Enhanced pilot suggestion
+                'pilot_run_suggested': pilot_suggested,
+                'pilot_reasons': pilot_reasons,
+                'pilot_message': pilot_message,
+                'tuning_config': TuningConfigModel().model_dump() if pilot_suggested else None,
+                # Validation info for frontend display
+                'validation': {
+                    'is_valid': validation.get('is_valid', True),
+                    'issues': validation_issues,
+                    'warnings': validation_warnings,
+                    'suggestions': validation.get('suggestions', [])
+                },
+                'tool_installation': {
+                    'success': tool_installation.get('success', True),
+                    'message': tool_installation.get('message', ''),
+                    'failed_tools': failed_tools
+                }
             }
         else:
             return {
                 'success': False,
                 'error': result.get('error', 'Unknown error'),
-                'message': result.get('message', 'Workflow generation failed')
+                'message': result.get('message', 'Workflow generation failed'),
+                'citations': [],
+                'methods_section': None,
+                'parameter_recommendations': {},
+                'pilot_run_suggested': False
             }
 
     except Exception as e:
@@ -499,3 +756,1001 @@ def _workflow_to_dict(workflow_template) -> Dict[str, Any]:
         "outputs": workflow_template.outputs,
         "tags": workflow_template.tags
     }
+
+
+# ============================================================================
+# Multi-Agent Workflow Generation
+# ============================================================================
+
+class WorkflowCorrectionRequest(BaseModel):
+    """Request to submit a user correction for learning."""
+    request_id: str = Field(..., description="Request ID from workflow generation")
+    correction_type: str = Field(..., description="Type: domain, tool_selection, parameters")
+    original_value: Any = Field(..., description="Original suggested value")
+    corrected_value: Any = Field(..., description="User's corrected value")
+    reason: Optional[str] = Field(None, description="Reason for correction")
+
+
+class WorkflowOutcomeRequest(BaseModel):
+    """Request to record workflow execution outcome."""
+    request_id: str = Field(..., description="Request ID from workflow generation")
+    success: bool = Field(..., description="Whether workflow executed successfully")
+    user_kept: bool = Field(True, description="Whether user kept/used the workflow")
+    rating: Optional[int] = Field(None, ge=1, le=5, description="User rating 1-5")
+
+
+@router.post(
+    "/api/ai_assistant/generate_workflow_multi_agent",
+    summary="Generate workflow using multi-agent system with LLM-enhanced routing."
+)
+def generate_workflow_multi_agent(
+    request: AIRequestModel,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Generate workflow using multi-agent system with LLM-enhanced routing.
+
+    This endpoint uses a 3-agent architecture:
+    1. EnhancedDomainRouter - Routes with hybrid keyword + LLM approach
+    2. DomainSpecialists - Parallel domain-specific recommendations
+    3. WorkflowAssembler - Synthesizes and validates workflow
+
+    Features:
+    - LLM-enhanced routing for ambiguous queries
+    - User pattern personalization
+    - Full audit trail for all generations
+    - Learning from corrections and outcomes
+
+    Returns request_id for submitting corrections/outcomes.
+    """
+    import sys
+    print("[DEBUG] generate_workflow_multi_agent endpoint called", file=sys.stderr, flush=True)
+
+    ai_assistant = get_ai_assistant(trans)
+    if not ai_assistant:
+        raise HTTPException(status_code=503, detail="AI Assistant not available")
+
+    try:
+        # Extract uploaded dataset IDs if provided
+        uploaded_datasets = None
+        if request.available_datasets:
+            uploaded_datasets = [ds.get('id') for ds in request.available_datasets if ds.get('id')]
+
+        # Generate session ID for audit tracking
+        session_id = request.context.get('session_id') if request.context else None
+
+        # Generate workflow using multi-agent system with auditing
+        result = ai_assistant.generate_workflow_multi_agent(
+            user_intent=request.request_text,
+            user_id=str(trans.user.id) if trans.user else None,
+            session_id=session_id,
+            uploaded_datasets=uploaded_datasets
+        )
+
+        if result['success']:
+            return {
+                'success': True,
+                'workflow_ga': result['workflow_ga'],
+                'source': result['source'],
+                'confidence': result['confidence'],
+                'message': result.get('message', 'Workflow generated successfully'),
+                'timing': result.get('timing', {}),
+                'domain_sources': result.get('domain_sources', []),
+                'citations': result.get('citations', []),
+                'validation': result.get('validation', {}),
+                'note': f"Generated using multi-agent system ({', '.join(result.get('domain_sources', []))})",
+                # Audit and learning fields
+                'request_id': result.get('request_id'),
+                'audit_id': result.get('audit_id'),
+                'routing_method': result.get('routing_method', 'keyword')
+            }
+        else:
+            return {
+                'success': False,
+                'error': result.get('error', 'Unknown error'),
+                'message': 'Multi-agent workflow generation failed',
+                'timing': result.get('timing', {}),
+                'request_id': result.get('request_id'),
+                'audit_id': result.get('audit_id')
+            }
+
+    except Exception as e:
+        log.error(f"Error in multi-agent workflow generation: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating workflow: {str(e)}")
+
+
+# ============================================================================
+# Correction and Learning Endpoints
+# ============================================================================
+
+@router.post(
+    "/api/ai_assistant/workflow/{request_id}/correction",
+    summary="Submit user correction for learning."
+)
+def submit_workflow_correction(
+    request_id: str = Path(..., description="Request ID from workflow generation"),
+    correction: WorkflowCorrectionRequest = ...,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Submit a user correction for learning.
+
+    This records the correction and triggers learning:
+    - Domain corrections update user preferences and router keywords
+    - Tool corrections update tool preferences
+    - Parameter corrections are stored for batch learning
+
+    Args:
+        request_id: Request ID from generate_workflow_multi_agent
+        correction: Correction details (type, original, corrected values)
+
+    Returns:
+        Dict with correction and learning results
+    """
+    ai_assistant = get_ai_assistant(trans)
+    if not ai_assistant:
+        raise HTTPException(status_code=503, detail="AI Assistant not available")
+
+    try:
+        user_id = str(trans.user.id) if trans.user else None
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Authentication required for corrections")
+
+        result = ai_assistant.record_workflow_correction(
+            request_id=request_id,
+            user_id=user_id,
+            correction_type=correction.correction_type,
+            original_value=correction.original_value,
+            corrected_value=correction.corrected_value,
+            reason=correction.reason
+        )
+
+        return {
+            'success': result.get('recorded', False) or result.get('learned', False),
+            'recorded': result.get('recorded', False),
+            'learned': result.get('learned', False),
+            'actions': result.get('actions', []),
+            'message': 'Correction recorded and learning applied' if result.get('learned') else 'Correction recorded'
+        }
+
+    except Exception as e:
+        log.error(f"Error recording correction: {e}")
+        raise HTTPException(status_code=500, detail=f"Error recording correction: {str(e)}")
+
+
+@router.post(
+    "/api/ai_assistant/workflow/{request_id}/outcome",
+    summary="Record workflow execution outcome."
+)
+def record_workflow_outcome(
+    request_id: str = Path(..., description="Request ID from workflow generation"),
+    outcome: WorkflowOutcomeRequest = ...,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Record workflow execution outcome for learning.
+
+    This records whether the workflow:
+    - Executed successfully
+    - Was kept/used by the user
+    - User rating (optional)
+
+    Positive outcomes reinforce domain preferences.
+    Negative outcomes are tracked for analysis.
+
+    Args:
+        request_id: Request ID from generate_workflow_multi_agent
+        outcome: Outcome details
+
+    Returns:
+        Dict with learning results
+    """
+    ai_assistant = get_ai_assistant(trans)
+    if not ai_assistant:
+        raise HTTPException(status_code=503, detail="AI Assistant not available")
+
+    try:
+        user_id = str(trans.user.id) if trans.user else None
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Authentication required")
+
+        result = ai_assistant.record_workflow_outcome(
+            request_id=request_id,
+            user_id=user_id,
+            success=outcome.success,
+            user_kept=outcome.user_kept,
+            rating=outcome.rating
+        )
+
+        return {
+            'success': True,
+            'learned': result.get('learned', False),
+            'actions': result.get('actions', []),
+            'message': 'Outcome recorded'
+        }
+
+    except Exception as e:
+        log.error(f"Error recording outcome: {e}")
+        raise HTTPException(status_code=500, detail=f"Error recording outcome: {str(e)}")
+
+
+# ============================================================================
+# Audit Endpoints
+# ============================================================================
+
+@router.get(
+    "/api/ai_assistant/audit/history",
+    summary="Get workflow generation history."
+)
+def get_audit_history(
+    limit: int = Query(50, ge=1, le=200, description="Max records to return"),
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Get user's workflow generation history.
+
+    Returns a list of audit records for the authenticated user,
+    including query text, routing decisions, success/failure, and timing.
+
+    Args:
+        limit: Maximum number of records to return (default 50)
+
+    Returns:
+        Dict with audit history
+    """
+    ai_assistant = get_ai_assistant(trans)
+    if not ai_assistant:
+        raise HTTPException(status_code=503, detail="AI Assistant not available")
+
+    try:
+        user_id = str(trans.user.id) if trans.user else None
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Authentication required")
+
+        history = ai_assistant.get_workflow_audit_history(user_id, limit)
+
+        return {
+            'success': True,
+            'user_id': user_id,
+            'count': len(history),
+            'history': history
+        }
+
+    except Exception as e:
+        log.error(f"Error fetching audit history: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching history: {str(e)}")
+
+
+@router.get(
+    "/api/ai_assistant/audit/statistics",
+    summary="Get workflow generation statistics."
+)
+def get_audit_statistics(
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Get workflow generation statistics.
+
+    Returns statistics about:
+    - Total generations
+    - Success/failure rates
+    - Routing method distribution
+    - Average latencies
+    - Domain distribution
+
+    For authenticated users, returns personal statistics.
+    For admins, can access global statistics.
+
+    Returns:
+        Dict with audit statistics
+    """
+    ai_assistant = get_ai_assistant(trans)
+    if not ai_assistant:
+        raise HTTPException(status_code=503, detail="AI Assistant not available")
+
+    try:
+        user_id = str(trans.user.id) if trans.user else None
+
+        # Get user-specific statistics
+        stats = ai_assistant.get_workflow_audit_statistics(user_id)
+
+        return {
+            'success': True,
+            'user_id': user_id,
+            'statistics': stats
+        }
+
+    except Exception as e:
+        log.error(f"Error fetching statistics: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching statistics: {str(e)}")
+
+
+# ============================================================================
+# Pilot Run Endpoints
+# ============================================================================
+
+@router.post(
+    "/api/ai_assistant/pilot/start",
+    summary="Start a pilot run for parameter tuning."
+)
+def start_pilot_run(
+    request: StartPilotRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Start a pilot run on a subset of data.
+
+    This runs the workflow on a small sample to:
+    - Estimate full run time and resources
+    - Tune parameters before full execution
+    - Validate workflow before committing to full analysis
+    """
+    if not TUNING_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Progressive tuning components not available"
+        )
+
+    try:
+        # Generate pilot ID
+        pilot_id = f"pilot_{uuid.uuid4().hex[:12]}"
+
+        # Convert config model to TuningConfig
+        config = None
+        if request.config:
+            config = TuningConfig(
+                pilot_fraction=request.config.pilot_fraction,
+                min_pilot_samples=request.config.min_pilot_samples,
+                max_pilot_samples=request.config.max_pilot_samples,
+                sampling_strategy=SamplingStrategy(request.config.sampling_strategy),
+                strata_column=request.config.strata_column
+            )
+        else:
+            config = TuningConfig()
+
+        # Calculate pilot size
+        controller = ProgressiveTuningController(config=config)
+        pilot_size = controller.calculate_pilot_size(request.total_samples)
+
+        # Store pilot run info (in production, use database)
+        _pilot_runs[pilot_id] = {
+            "pilot_id": pilot_id,
+            "workflow_id": request.workflow_id,
+            "status": "pending",
+            "progress": 0.0,
+            "total_samples": request.total_samples,
+            "pilot_size": pilot_size,
+            "config": config.to_dict(),
+            "started_at": None,
+            "completed_at": None,
+            "metrics": None,
+            "error_message": None
+        }
+
+        # In production, this would queue the actual pilot run
+        # For now, simulate starting
+        _pilot_runs[pilot_id]["status"] = "running"
+        _pilot_runs[pilot_id]["started_at"] = datetime.now().isoformat()
+
+        return {
+            "pilot_id": pilot_id,
+            "status": "running",
+            "pilot_size": pilot_size,
+            "message": f"Pilot run started with {pilot_size} samples",
+            "config": config.to_dict()
+        }
+
+    except Exception as e:
+        log.error(f"Error starting pilot run: {e}")
+        raise HTTPException(status_code=500, detail=f"Error starting pilot: {str(e)}")
+
+
+@router.get(
+    "/api/ai_assistant/pilot/{pilot_id}/status",
+    summary="Get pilot run status."
+)
+def get_pilot_status(
+    pilot_id: str = Path(..., description="Pilot run ID"),
+    trans: ProvidesUserContext = DependsOnTrans
+) -> PilotStatusResponse:
+    """Get the current status of a pilot run."""
+
+    if pilot_id not in _pilot_runs:
+        raise HTTPException(status_code=404, detail=f"Pilot run {pilot_id} not found")
+
+    pilot_data = _pilot_runs[pilot_id]
+
+    return PilotStatusResponse(
+        pilot_id=pilot_id,
+        status=pilot_data["status"],
+        progress=pilot_data.get("progress", 0.0),
+        runtime_seconds=pilot_data.get("runtime_seconds"),
+        peak_memory_gb=pilot_data.get("peak_memory_gb"),
+        quality_metrics=pilot_data.get("quality_metrics"),
+        error_message=pilot_data.get("error_message")
+    )
+
+
+@router.get(
+    "/api/ai_assistant/pilot/{pilot_id}/estimate",
+    summary="Get full run estimate from pilot results."
+)
+def get_full_run_estimate(
+    pilot_id: str = Path(..., description="Pilot run ID"),
+    cost_per_hour_usd: float = Query(0.50, description="Cost per compute hour"),
+    trans: ProvidesUserContext = DependsOnTrans
+) -> FullRunEstimateResponse:
+    """
+    Get estimated resources for full run based on pilot results.
+
+    Returns:
+    - Estimated runtime
+    - Estimated memory
+    - Estimated cost
+    - Confidence level
+    """
+    if not TUNING_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Progressive tuning components not available"
+        )
+
+    if pilot_id not in _pilot_runs:
+        raise HTTPException(status_code=404, detail=f"Pilot run {pilot_id} not found")
+
+    pilot_data = _pilot_runs[pilot_id]
+
+    if pilot_data["status"] != "complete":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Pilot run not complete. Status: {pilot_data['status']}"
+        )
+
+    try:
+        # Create a simple object with pilot metrics for estimation
+        class SimplePilotResult:
+            def __init__(self, data):
+                self.runtime_seconds = data.get("runtime_seconds", 60.0)
+                self.samples_used = data.get("pilot_size", 10)
+                self.peak_memory_gb = data.get("peak_memory_gb", 4.0)
+
+        pilot_result = SimplePilotResult(pilot_data)
+        full_size = pilot_data["total_samples"]
+
+        # Use controller to estimate
+        controller = ProgressiveTuningController()
+        estimate = controller.estimate_full_run(
+            pilot_result=pilot_result,
+            full_size=full_size,
+            cost_per_hour_usd=cost_per_hour_usd
+        )
+
+        return FullRunEstimateResponse(
+            estimated_runtime_seconds=estimate["estimated_runtime_seconds"],
+            estimated_runtime_display=estimate["estimated_runtime_display"],
+            estimated_memory_gb=estimate["estimated_memory_gb"],
+            estimated_cost_usd=estimate.get("estimated_cost_usd"),
+            confidence=estimate.get("confidence", 0.8),
+            scaling_factors=estimate.get("scaling_factors", {})
+        )
+
+    except Exception as e:
+        log.error(f"Error estimating full run: {e}")
+        raise HTTPException(status_code=500, detail=f"Error estimating: {str(e)}")
+
+
+# ============================================================================
+# Citation Export Endpoints
+# ============================================================================
+
+@router.post(
+    "/api/ai_assistant/citations/export",
+    summary="Export workflow citations as BibTeX."
+)
+def export_citations_bibtex(
+    request: BibTeXExportRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Export all tool citations from a workflow as BibTeX format.
+
+    This allows users to easily add citations to their publications.
+    """
+    try:
+        from galaxy.ai.methods_generator import MethodsSectionGenerator
+        from galaxy.ai.tool_knowledge_provider import get_tool_knowledge_provider
+
+        knowledge_provider = get_tool_knowledge_provider()
+        if not knowledge_provider:
+            return {
+                "success": False,
+                "error": "Tool knowledge provider not available",
+                "bibtex": ""
+            }
+
+        generator = MethodsSectionGenerator(knowledge_provider)
+        bibtex = generator.generate_bibtex(request.workflow_ga)
+
+        # Also get summary
+        summary = generator.get_citations_summary(request.workflow_ga)
+
+        return {
+            "success": True,
+            "bibtex": bibtex,
+            "total_tools": summary["total_steps"],
+            "tools_with_citations": summary["steps_with_citations"],
+            "missing_citations": summary["missing_citations"]
+        }
+
+    except Exception as e:
+        log.error(f"Error exporting citations: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "bibtex": ""
+        }
+
+
+@router.post(
+    "/api/ai_assistant/citations/methods",
+    summary="Generate methods section text."
+)
+def generate_methods_section(
+    request: BibTeXExportRequest,
+    style: str = Query("short", description="Citation style: short, apa, numbered"),
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Generate publication-ready methods section from workflow.
+
+    Automatically describes each tool with proper citations.
+    """
+    try:
+        from galaxy.ai.methods_generator import MethodsSectionGenerator
+        from galaxy.ai.tool_knowledge_provider import get_tool_knowledge_provider
+
+        knowledge_provider = get_tool_knowledge_provider()
+        if not knowledge_provider:
+            return {
+                "success": False,
+                "error": "Tool knowledge provider not available",
+                "methods_text": ""
+            }
+
+        generator = MethodsSectionGenerator(knowledge_provider)
+        methods_text = generator.generate(
+            workflow=request.workflow_ga,
+            citation_style=style,
+            include_parameters=True,
+            include_versions=True
+        )
+
+        summary = generator.get_citations_summary(request.workflow_ga)
+
+        return {
+            "success": True,
+            "methods_text": methods_text,
+            "style": style,
+            "tools_cited": [c["tool"] for c in summary["citations"]],
+            "tools_missing_citations": summary["missing_citations"]
+        }
+
+    except Exception as e:
+        log.error(f"Error generating methods section: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "methods_text": ""
+        }
+
+
+# ============================================================================
+# Benchmark Endpoints (Updated 2025-12-30 - Connected to BenchmarkKnowledgeDB)
+# ============================================================================
+
+# Pydantic models for benchmark API
+class BenchmarkQueryRequest(BaseModel):
+    """Request model for benchmark queries."""
+    query: str = Field(..., description="Natural language query about tool performance")
+    constraints: Dict[str, Any] = Field(default_factory=dict, description="Context constraints")
+    top_k: int = Field(default=5, description="Number of results to return")
+
+
+class ToolComparisonRequest(BaseModel):
+    """Request model for tool comparison."""
+    tool_a: str = Field(..., description="First tool name")
+    tool_b: str = Field(..., description="Second tool name")
+    task: Optional[str] = Field(None, description="Task context for comparison")
+
+
+@router.get(
+    "/api/ai_assistant/benchmarks/{scenario}",
+    summary="Get benchmark results for a scenario."
+)
+def get_benchmark_results(
+    scenario: str = Path(..., description="Benchmark scenario name"),
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Get benchmark comparison results for tools/parameters.
+
+    Available scenarios:
+    - rna_seq_alignment: RNA-seq read alignment tool comparison
+    - variant_calling: Variant calling tool comparison
+    - single_cell_integration: Single-cell batch integration comparison
+    - differential_expression: Differential expression analysis comparison
+    """
+    try:
+        # Try to use BenchmarkKnowledgeDB first (primary source)
+        if BENCHMARK_AVAILABLE and BenchmarkKnowledgeDB:
+            try:
+                benchmark_db = BenchmarkKnowledgeDB()
+
+                # Query the benchmark database with the scenario as search term
+                results = benchmark_db.query_semantic(scenario, top_k=10)
+
+                if results:
+                    tools_compared = []
+                    metrics = {}
+                    recommendations = []
+
+                    for result in results:
+                        tool_name = result.get('tool_name', '')
+                        if tool_name and tool_name not in tools_compared:
+                            tools_compared.append(tool_name)
+
+                        # Collect metrics
+                        if result.get('metric_name') and result.get('metric_value'):
+                            key = f"{tool_name}_{result['metric_name']}"
+                            metrics[key] = {
+                                'tool': tool_name,
+                                'metric': result['metric_name'],
+                                'value': result['metric_value'],
+                                'rank': result.get('rank')
+                            }
+
+                        # Get recommendations from decision rules
+                        if result.get('evidence_text'):
+                            recommendations.append({
+                                'tool': tool_name,
+                                'evidence': result['evidence_text'],
+                                'doi': result.get('doi')
+                            })
+
+                    return {
+                        "scenario": scenario,
+                        "available": True,
+                        "tools_compared": tools_compared,
+                        "metrics": metrics,
+                        "recommendations": recommendations[:5],
+                        "source": "benchmark_knowledge_db"
+                    }
+            except Exception as db_err:
+                log.warning(f"BenchmarkKnowledgeDB query failed: {db_err}")
+
+        # Fallback to test harness
+        try:
+            from galaxy.ai.test_harness import load_benchmark_results
+            results = load_benchmark_results(scenario)
+            if results:
+                return {
+                    "scenario": scenario,
+                    "available": True,
+                    "tools_compared": results.get("tools", []),
+                    "metrics": results.get("metrics", {}),
+                    "recommendations": results.get("recommendations", []),
+                    "last_run": results.get("timestamp"),
+                    "source": "test_harness"
+                }
+        except ImportError:
+            pass
+
+        # No data available
+        return {
+            "scenario": scenario,
+            "available": False,
+            "message": "No benchmark data available for this scenario",
+            "tools_compared": [],
+            "metrics": {},
+            "recommendations": []
+        }
+
+    except Exception as e:
+        log.error(f"Error fetching benchmarks: {e}")
+        return {
+            "scenario": scenario,
+            "available": False,
+            "error": str(e)
+        }
+
+
+@router.post(
+    "/api/ai_assistant/benchmark_query",
+    summary="Query benchmarks with natural language."
+)
+def query_benchmarks(
+    request: BenchmarkQueryRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Query benchmark knowledge with natural language.
+
+    Example queries:
+    - "best RNA-seq aligner"
+    - "fastest variant caller for WGS"
+    - "memory-efficient single-cell integration"
+    """
+    try:
+        if not BENCHMARK_AVAILABLE or not BenchmarkKnowledgeDB:
+            return {
+                "success": False,
+                "error": "Benchmark knowledge system not available"
+            }
+
+        benchmark_db = BenchmarkKnowledgeDB()
+
+        # Use semantic query
+        results = benchmark_db.query_semantic(request.query, top_k=request.top_k)
+
+        if not results:
+            return {
+                "success": True,
+                "query": request.query,
+                "results": [],
+                "message": "No matching benchmarks found"
+            }
+
+        # Get the best tool
+        best_result = results[0] if results else None
+        best_tool = best_result.get('tool_name') if best_result else None
+
+        # Format results
+        formatted_results = []
+        for result in results:
+            formatted_results.append({
+                "tool": result.get('tool_name'),
+                "rank": result.get('rank'),
+                "metric": result.get('metric_name'),
+                "value": result.get('metric_value'),
+                "evidence": result.get('evidence_text'),
+                "study": result.get('study_name'),
+                "doi": result.get('doi')
+            })
+
+        # Check for context-aware recommendations
+        recommendation = None
+        if request.constraints:
+            rec = benchmark_db.get_recommendation_for_condition(
+                condition_type=list(request.constraints.keys())[0] if request.constraints else None,
+                condition_value=list(request.constraints.values())[0] if request.constraints else None
+            )
+            if rec:
+                recommendation = {
+                    "tool": rec.get('tool_name'),
+                    "reason": rec.get('recommendation_text'),
+                    "condition": request.constraints
+                }
+
+        return {
+            "success": True,
+            "query": request.query,
+            "best_tool": best_tool,
+            "evidence": best_result.get('evidence_text') if best_result else None,
+            "results": formatted_results,
+            "recommendation": recommendation
+        }
+
+    except Exception as e:
+        log.error(f"Error querying benchmarks: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.post(
+    "/api/ai_assistant/tool_comparison",
+    summary="Compare two tools with benchmark evidence."
+)
+def compare_tools(
+    request: ToolComparisonRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Compare two tools using benchmark evidence.
+
+    Returns winner, detailed comparison, and supporting evidence.
+    """
+    try:
+        if not BENCHMARK_AVAILABLE or not BenchmarkKnowledgeDB:
+            return {
+                "success": False,
+                "error": "Benchmark knowledge system not available"
+            }
+
+        benchmark_db = BenchmarkKnowledgeDB()
+
+        # Use the compare_tools method from BenchmarkKnowledgeDB
+        comparison = benchmark_db.compare_tools(request.tool_a, request.tool_b, request.task)
+
+        if not comparison:
+            return {
+                "success": True,
+                "tool_a": request.tool_a,
+                "tool_b": request.tool_b,
+                "comparison_available": False,
+                "message": f"No benchmark data available comparing {request.tool_a} and {request.tool_b}"
+            }
+
+        return {
+            "success": True,
+            "tool_a": request.tool_a,
+            "tool_b": request.tool_b,
+            "comparison_available": True,
+            "winner": comparison.get('winner'),
+            "comparison": comparison.get('comparison', {}),
+            "evidence_text": comparison.get('evidence_text'),
+            "studies": comparison.get('studies', []),
+            "recommendation": comparison.get('recommendation')
+        }
+
+    except Exception as e:
+        log.error(f"Error comparing tools: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+# ============================================================================
+# Research Agent Endpoints (Added 2025-12-30)
+# ============================================================================
+
+class ResearchQueryRequest(BaseModel):
+    """Request model for research queries."""
+    query: str = Field(..., description="Research question to answer")
+    context: Dict[str, Any] = Field(default_factory=dict, description="Optional context")
+    include_citations: bool = Field(default=True, description="Include literature citations")
+    include_benchmark_evidence: bool = Field(default=True, description="Include benchmark evidence")
+    max_citations: int = Field(default=5, description="Maximum number of citations")
+
+
+@router.post(
+    "/api/ai_assistant/research_query",
+    summary="Answer research questions with literature-backed evidence."
+)
+def answer_research_query(
+    request: ResearchQueryRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Answer a research question with literature-backed evidence.
+
+    Uses the ResearchAgent to:
+    - Analyze the question and extract key concepts
+    - Search benchmark knowledge for tool comparisons
+    - Load relevant scientific skills for guidance
+    - Synthesize an evidence-based response
+
+    Example queries:
+    - "What's the best alignment algorithm for long-read RNA-seq?"
+    - "How does STAR compare to HISAT2 for RNA-seq alignment?"
+    - "What are the best practices for single-cell RNA-seq normalization?"
+    """
+    try:
+        if not RESEARCH_AGENT_AVAILABLE:
+            # Fall back to benchmark query if ResearchAgent not available
+            if BENCHMARK_AVAILABLE and BenchmarkKnowledgeDB:
+                benchmark_db = BenchmarkKnowledgeDB()
+                results = benchmark_db.query_semantic(request.query, top_k=5)
+
+                if results:
+                    best_result = results[0]
+                    return {
+                        "success": True,
+                        "query": request.query,
+                        "answer": best_result.get('evidence_text', 'No detailed answer available.'),
+                        "citations": [],
+                        "benchmark_evidence": {
+                            "best_tool": best_result.get('tool_name'),
+                            "results": results
+                        },
+                        "confidence": 0.7,
+                        "source": "benchmark_fallback"
+                    }
+
+            return {
+                "success": False,
+                "error": "Research agent not available"
+            }
+
+        # Create ResearchAgent
+        research_agent = create_research_agent()
+
+        # Answer the question synchronously
+        response = research_agent.answer_question_sync(
+            question=request.query,
+            context=request.context,
+            include_citations=request.include_citations,
+            include_benchmark_evidence=request.include_benchmark_evidence
+        )
+
+        # Format citations for JSON
+        citations_json = []
+        for citation in response.citations:
+            citations_json.append({
+                "title": citation.title,
+                "authors": citation.authors,
+                "year": citation.year,
+                "journal": citation.journal,
+                "doi": citation.doi,
+                "pmid": citation.pmid
+            })
+
+        return {
+            "success": True,
+            "query": request.query,
+            "answer": response.answer,
+            "citations": citations_json,
+            "benchmark_evidence": response.benchmark_evidence,
+            "confidence": response.confidence,
+            "follow_up_questions": response.follow_up_questions,
+            "methods_used": response.methods_used,
+            "source": "research_agent"
+        }
+
+    except Exception as e:
+        log.error(f"Error answering research query: {e}")
+        return {
+            "success": False,
+            "query": request.query,
+            "error": str(e)
+        }
+
+
+@router.get(
+    "/api/ai_assistant/skills/available",
+    summary="Get list of available scientific skills."
+)
+def get_available_skills(
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Get list of available claude-scientific-skills.
+
+    Returns skills organized by category:
+    - scientific-databases: PubMed, UniProt, ChEMBL, etc.
+    - scientific-thinking: hypothesis-generation, peer-review, etc.
+    - scientific-packages: scanpy, biopython, rdkit, etc.
+    """
+    try:
+        if not RESEARCH_AGENT_AVAILABLE or not SkillLoader:
+            return {
+                "available": False,
+                "message": "SkillLoader not available"
+            }
+
+        skill_loader = create_skill_loader()
+        skills = skill_loader.get_available_skills()
+        categories = skill_loader.get_skill_categories()
+
+        return {
+            "available": True,
+            "total_skills": len(skills),
+            "categories": categories,
+            "skills": [
+                {
+                    "name": s.name,
+                    "description": s.description,
+                    "path": s.path
+                }
+                for s in skills
+            ]
+        }
+
+    except Exception as e:
+        log.error(f"Error getting available skills: {e}")
+        return {
+            "available": False,
+            "error": str(e)
+        }

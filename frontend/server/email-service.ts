@@ -59,7 +59,7 @@ class EmailService {
       },
     };
 
-    this.transporter = nodemailer.createTransporter(config);
+    this.transporter = nodemailer.createTransport(config);
     console.log('[EmailService] Email transporter initialized');
   }
 

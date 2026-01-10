@@ -1,0 +1,175 @@
+
+================================================================================
+  BIOMNI AI AGENT E2E TEST SUITE
+  Testing: Single Tools, Subworkflows, Workflows with Embeddings
+================================================================================
+
+[SETUP] Registration
+    Waiting for registration form to load...
+    Registration form loaded
+Registered: biomni_test_1766091669@biomate.test
+
+================================================================================
+  SCENARIO 1: Single Tool - Database Query (query_uniprot)
+  Type: single_tool | Domain: database
+================================================================================
+
+[Initial Request]
+Researcher: I need to look up information about the BRCA1 protein from UniProt.
+Can you help me query the databa...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 9.0s
+Workflow generated! Clicking Run/Execute...
+    Waiting for workflow execution...
+    Execution error detected after 0.0s
+
+Result: FAIL (Turns: 1)
+
+================================================================================
+  SCENARIO 2: Single Tool - Genomics (gene_set_enrichment_analysis)
+  Type: single_tool | Domain: genomics
+================================================================================
+
+[Initial Request]
+Researcher: I have a list of differentially expressed genes from my RNA-seq experiment.
+Can you run gene set enr...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 13.0s
+Workflow generated! Clicking Run/Execute...
+    Waiting for workflow execution...
+    Execution completed after 0.0s
+SUCCESS: Workflow executed with output!
+
+Result: PASS (Turns: 1)
+
+================================================================================
+  SCENARIO 3: Single Tool - Molecular Biology (design_primers)
+  Type: single_tool | Domain: molecular_biology
+================================================================================
+
+[Initial Request]
+Researcher: I need to design PCR primers for amplifying a gene region.
+Here is my target sequence: ATGCGATCGATCG...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 10.0s
+Workflow generated! Clicking Run/Execute...
+    Waiting for workflow execution...
+    Execution error detected after 0.0s
+
+Result: FAIL (Turns: 1)
+
+================================================================================
+  SCENARIO 4: Single Tool - Bioimaging (segment_cells)
+  Type: single_tool | Domain: bioimaging
+================================================================================
+
+[Initial Request]
+Researcher: I have fluorescence microscopy images of DAPI-stained cells.
+I need to segment individual cells/nucl...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 13.1s
+Workflow generated! Clicking Run/Execute...
+    Waiting for workflow execution...
+    Execution error detected after 0.0s
+
+Result: FAIL (Turns: 1)
+
+================================================================================
+  SCENARIO 5: Single Tool - Pharmacology (predict_drug_target_interactions)
+  Type: single_tool | Domain: pharmacology
+================================================================================
+
+[Initial Request]
+Researcher: I want to predict drug-target interactions for aspirin.
+The SMILES structure is: CC(=O)OC1=CC=CC=C1C...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 15.1s
+Workflow generated! Clicking Run/Execute...
+    Waiting for workflow execution...
+    Execution error detected after 0.0s
+
+Result: FAIL (Turns: 1)
+
+================================================================================
+  SCENARIO 6: Subworkflow - scRNA Cell Type Annotation
+  Type: subworkflow | Domain: genomics
+================================================================================
+
+[Initial Request]
+Researcher: I have single-cell RNA-seq data that needs cell type annotation.
+I have an annotated reference h5ad ...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 19.1s
+Workflow generated! Clicking Run/Execute...
+    Waiting for workflow execution...
+    Execution completed after 0.0s
+SUCCESS: Workflow executed with output!
+
+Result: PASS (Turns: 1)
+
+================================================================================
+  SCENARIO 7: Workflow - Batch Image Registration (Progressive)
+  Type: workflow_embedded | Domain: bioimaging
+================================================================================
+
+[Initial Request]
+Researcher: I have a batch of microscopy images that need to be aligned to a reference image.
+Can you create a c...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 14.1s
+Workflow generated! Clicking Run/Execute...
+    Waiting for workflow execution...
+    Execution completed after 0.0s
+SUCCESS: Workflow executed with output!
+
+Result: PASS (Turns: 1)
+
+================================================================================
+  SCENARIO 8: Workflow - PCR Analysis with Primer Design
+  Type: workflow_embedded | Domain: molecular_biology
+================================================================================
+
+[Initial Request]
+Researcher: I need a complete PCR analysis workflow.
+Given my template DNA sequence, I want to:
+1. Design forwar...
+
+[Turn 1] Waiting for BioMate response...
+    Waiting for AI response to complete...
+    AI response completed after 12.1s
+Workflow generated! Clicking Run/Execute...
+    Waiting for workflow execution...
+    Execution error detected after 0.0s
+
+Result: FAIL (Turns: 1)
+
+================================================================================
+  TEST SUMMARY
+================================================================================
+  [FAIL] Single Tool - Database Query (query_uniprot) (single_tool, 1 turns) - Workflow execution failed
+  [PASS] Single Tool - Genomics (gene_set_enrichment_analysis) (single_tool, 1 turns)
+  [FAIL] Single Tool - Molecular Biology (design_primers) (single_tool, 1 turns) - Workflow execution failed
+  [FAIL] Single Tool - Bioimaging (segment_cells) (single_tool, 1 turns) - Workflow execution failed
+  [FAIL] Single Tool - Pharmacology (predict_drug_target_interactions) (single_tool, 1 turns) - Workflow execution failed
+  [PASS] Subworkflow - scRNA Cell Type Annotation (subworkflow, 1 turns)
+  [PASS] Workflow - Batch Image Registration (Progressive) (workflow_embedded, 1 turns)
+  [FAIL] Workflow - PCR Analysis with Primer Design (workflow_embedded, 1 turns) - Workflow execution failed
+
+Total: 3/8 scenarios passed
+Screenshots saved to: /home/yzhang/biomate/Biomni/biomni_galaxy/tests/screenshots
+================================================================================
+

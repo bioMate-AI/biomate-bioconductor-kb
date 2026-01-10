@@ -37,6 +37,11 @@ export const users = pgTable("users", {
   // Metadata
   termsAcceptedAt: timestamp("terms_accepted_at"),
   marketingEmailsOptIn: boolean("marketing_emails_opt_in").default(false),
+
+  // Galaxy integration (preserve existing data)
+  galaxyUserId: text("galaxy_user_id"),
+  galaxyApiKey: text("galaxy_api_key"),
+  galaxyUsername: text("galaxy_username"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -51,6 +56,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Explicit type for user without password (for API responses)
+export type SafeUser = Omit<User, 'password'>;
 
 // Dataset configuration schema for workflow inputs/outputs
 export const datasetConfigSchema = z.object({
@@ -108,7 +116,7 @@ export const messageSchema = z.object({
   datasets: z.array(datasetConfigSchema).optional(),
   // Thinking mode support
   thinking_content: z.string().optional(), // AI's reasoning process
-  thinking_level: z.enum(["none", "brief", "detailed"]).optional().default("none"),
+  thinking_level: z.enum(["none", "brief", "detailed"]).optional(), // Optional - defaults to "none" when not provided
   metadata: z.record(z.any()).optional() // Additional metadata (e.g., workflow data, tools)
 });
 
@@ -123,7 +131,9 @@ export const chatSessionSchema = z.object({
   messages: z.array(messageSchema),
   workflows: z.array(workflowStepSchema).optional(),
   datasets: z.array(datasetConfigSchema).optional(),
-  status: z.enum(["active", "archived"]).default("active")
+  status: z.enum(["active", "archived"]).default("active"),
+  // Token tracking for context management
+  totalTokens: z.number().optional()
 });
 
 export type ChatSession = z.infer<typeof chatSessionSchema>;
@@ -346,3 +356,244 @@ export const createInvocationSchema = workflowInvocationSchema.pick({
 });
 
 export type CreateInvocation = z.infer<typeof createInvocationSchema>;
+
+// ============================================================================
+// Citation & Methods Section Schemas
+// ============================================================================
+
+// Citation schema for tool references
+export const citationSchema = z.object({
+  tool_id: z.string(),
+  tool_name: z.string(),
+  doi: z.string().optional(),
+  pmid: z.string().optional(),
+  title: z.string(),
+  authors: z.array(z.string()).default([]),
+  year: z.number().optional(),
+  journal: z.string().optional(),
+  formatted_apa: z.string().default(""),
+  formatted_short: z.string().default(""),
+  formatted_bibtex: z.string().default(""),
+});
+
+export type Citation = z.infer<typeof citationSchema>;
+
+// Methods section schema for auto-generated publication text
+export const methodsSectionSchema = z.object({
+  text: z.string(),
+  style: z.enum(["short", "apa", "numbered"]).default("short"),
+  tools_cited: z.array(z.string()).default([]),
+  tools_missing_citations: z.array(z.string()).default([]),
+});
+
+export type MethodsSection = z.infer<typeof methodsSectionSchema>;
+
+// ============================================================================
+// Progressive Tuning & Pilot Run Schemas
+// ============================================================================
+
+// Tuning configuration for pilot runs
+export const tuningConfigSchema = z.object({
+  pilot_fraction: z.number().min(0.05).max(0.3).default(0.1),
+  sampling_strategy: z.enum(["random", "stratified", "first_n", "representative"]).default("stratified"),
+  strata_column: z.string().optional(),
+  min_pilot_samples: z.number().min(1).default(3),
+  max_pilot_samples: z.number().min(1).default(50),
+});
+
+export type TuningConfig = z.infer<typeof tuningConfigSchema>;
+
+// Pilot run result schema
+export const pilotResultSchema = z.object({
+  pilot_id: z.string(),
+  status: z.enum(["pending", "running", "complete", "failed"]),
+  progress: z.number().min(0).max(100).default(0),
+  runtime_seconds: z.number().optional(),
+  peak_memory_gb: z.number().optional(),
+  quality_metrics: z.record(z.number()).optional(),
+  error_message: z.string().optional(),
+});
+
+export type PilotResult = z.infer<typeof pilotResultSchema>;
+
+// Full run estimate schema
+export const fullRunEstimateSchema = z.object({
+  estimated_runtime_seconds: z.number(),
+  estimated_runtime_display: z.string(),
+  estimated_memory_gb: z.number(),
+  estimated_cost_usd: z.number().optional(),
+  confidence: z.number().min(0).max(1).default(0.8),
+  scaling_factors: z.record(z.number()).default({}),
+});
+
+export type FullRunEstimate = z.infer<typeof fullRunEstimateSchema>;
+
+// ============================================================================
+// Parameter Recommendation Schemas
+// ============================================================================
+
+// Parameter recommendation from best practices or optimization
+export const parameterRecommendationSchema = z.object({
+  parameter_name: z.string(),
+  recommended_value: z.any(),
+  current_value: z.any().optional(),
+  confidence: z.number().min(0).max(1).default(0.8),
+  source: z.enum(["benchmark", "protocol", "best_practice", "llm_generated"]).default("best_practice"),
+  reason: z.string().optional(),
+});
+
+export type ParameterRecommendation = z.infer<typeof parameterRecommendationSchema>;
+
+// ============================================================================
+// Enhanced Workflow Generation Response Schema
+// ============================================================================
+
+// Enhanced workflow generation response with citations and tuning
+export const workflowGenerationResponseSchema = z.object({
+  success: z.boolean(),
+  workflow_ga: z.any().optional(),
+  source: z.enum(["template_reuse", "template_adapted", "from_scratch"]).optional(),
+  confidence: z.number().default(0),
+  message: z.string().default(""),
+
+  // Citation fields
+  citations: z.array(citationSchema).default([]),
+  methods_section: methodsSectionSchema.optional(),
+
+  // Pilot run suggestion
+  pilot_run_suggested: z.boolean().default(false),
+  tuning_config: tuningConfigSchema.optional(),
+
+  // Parameter recommendations (keyed by "tool_id:param_name")
+  parameter_recommendations: z.record(parameterRecommendationSchema).default({}),
+});
+
+export type WorkflowGenerationResponse = z.infer<typeof workflowGenerationResponseSchema>;
+
+// ============================================================================
+// Benchmark Result Schema
+// ============================================================================
+
+// Benchmark comparison result
+export const benchmarkResultSchema = z.object({
+  scenario: z.string(),
+  available: z.boolean(),
+  tools_compared: z.array(z.string()).default([]),
+  metrics: z.record(z.any()).default({}),
+  recommendations: z.array(z.string()).default([]),
+  last_run: z.string().optional(),
+  message: z.string().optional(),
+  error: z.string().optional(),
+});
+
+export type BenchmarkResult = z.infer<typeof benchmarkResultSchema>;
+
+// ============================================================================
+// Audit Log Schema - For Regulatory Compliance & Auditability
+// ============================================================================
+
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  // Who
+  userId: text("user_id"), // null for unauthenticated actions
+  sessionId: text("session_id"),
+
+  // What
+  action: text("action").notNull(), // e.g., "workflow.execute", "dataset.upload", "auth.login"
+  resourceType: text("resource_type"), // e.g., "workflow", "dataset", "project"
+  resourceId: text("resource_id"),
+
+  // Details
+  details: text("details"), // JSON stringified additional context
+  reasoning: text("reasoning"), // AI decision reasoning (for workflow generation)
+
+  // When
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+
+  // Context
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+
+  // Result
+  status: text("status").default("success"), // "success", "failure", "error"
+  errorMessage: text("error_message"),
+
+  // Duration tracking
+  durationMs: text("duration_ms"),
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).pick({
+  userId: true,
+  sessionId: true,
+  action: true,
+  resourceType: true,
+  resourceId: true,
+  details: true,
+  reasoning: true,
+  ipAddress: true,
+  userAgent: true,
+  status: true,
+  errorMessage: true,
+  durationMs: true,
+});
+
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+
+// Zod schema for audit log validation
+export const auditLogSchema = z.object({
+  id: z.string(),
+  userId: z.string().nullable().optional(),
+  sessionId: z.string().nullable().optional(),
+  action: z.string(),
+  resourceType: z.string().nullable().optional(),
+  resourceId: z.string().nullable().optional(),
+  details: z.string().nullable().optional(),
+  reasoning: z.string().nullable().optional(),
+  timestamp: z.coerce.date(),
+  ipAddress: z.string().nullable().optional(),
+  userAgent: z.string().nullable().optional(),
+  status: z.enum(["success", "failure", "error"]).default("success"),
+  errorMessage: z.string().nullable().optional(),
+  durationMs: z.string().nullable().optional(),
+});
+
+export type AuditLogEntry = z.infer<typeof auditLogSchema>;
+
+// ============================================================================
+// Workflow Execution User Tracking Schema
+// ============================================================================
+
+export const workflowExecutions = pgTable("workflow_executions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  // Ownership
+  userId: text("user_id").notNull(),
+  projectId: text("project_id"),
+
+  // Galaxy references
+  galaxyInvocationId: text("galaxy_invocation_id").notNull(),
+  galaxyWorkflowId: text("galaxy_workflow_id"),
+  galaxyHistoryId: text("galaxy_history_id"),
+
+  // Workflow details
+  workflowName: text("workflow_name"),
+  workflowDefinition: text("workflow_definition"), // JSON stringified .ga
+
+  // Status tracking
+  status: text("status").default("new"), // new, queued, running, ok, error
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+
+  // Error tracking
+  errorMessage: text("error_message"),
+
+  // Metadata
+  totalSteps: text("total_steps"),
+  completedSteps: text("completed_steps"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type WorkflowExecution = typeof workflowExecutions.$inferSelect;

@@ -25,7 +25,33 @@ from .workflow_search_rag import WorkflowSearchRAG
 from .galaxy_workflow_generator import GalaxyWorkflowGenerator
 from .workflow_dataset_selector import WorkflowDatasetSelector
 from .biomni_dataset_rag import BioMNIDatasetRAG
+from .benchmark_knowledge import BenchmarkKnowledgeDB
 import logging
+
+# Import new agents (Added 2025-12-30)
+try:
+    from .agents.unified_intent_router import UnifiedIntentRouter, UserIntent, create_intent_router
+    from .agents.research_agent import ResearchAgent, create_research_agent
+    from .agents.skill_loader import SkillLoader, create_skill_loader
+    INTENT_ROUTER_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Intent router components not available: {e}")
+    INTENT_ROUTER_AVAILABLE = False
+    UnifiedIntentRouter = None
+    UserIntent = None
+    ResearchAgent = None
+    SkillLoader = None
+
+# Import agentic memory and literature clients (Added 2025-12-30)
+try:
+    from .memory import AgenticMemoryService, get_memory_service
+    from .agents.literature_clients import UnifiedLiteratureClient, create_literature_client
+    MEMORY_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Memory/literature components not available: {e}")
+    MEMORY_AVAILABLE = False
+    AgenticMemoryService = None
+    UnifiedLiteratureClient = None
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +81,13 @@ class AIAssistant:
         self._tool_indexer = None
         self._tool_discovery = None
         self._dataset_rag = None
+        self._agent_orchestrator = None  # Multi-agent system
+        self._benchmark_db = None  # Benchmark knowledge for tool recommendations
+        self._intent_router = None  # UnifiedIntentRouter for intent classification
+        self._research_agent = None  # ResearchAgent for literature-backed Q&A
+        self._skill_loader = None  # SkillLoader for claude-scientific-skills
+        self._agentic_memory = None  # AgenticMemoryService for long-term memory
+        self._literature_client = None  # UnifiedLiteratureClient for citation retrieval
 
         log.info("AIAssistant initialized (lightweight mode)")
         log.info(f"  - Template library: {len(self.workflow_search.templates)} templates")
@@ -63,6 +96,24 @@ class AIAssistant:
         self._tool_cache = {}
         self._workflow_cache = {}
         self._tools_indexed = False  # Lazy loading flag for tool indexing
+
+    def _normalize_tool_id(self, tool_id: str) -> str:
+        """
+        Normalize tool ID to match Galaxy's loaded tool format.
+
+        The AI database stores tool IDs with slashes (biomni/database/query_uniprot)
+        but Galaxy loads tools with underscores (biomni_database_query_uniprot).
+
+        Args:
+            tool_id: Tool ID from AI database (may use slashes or underscores)
+
+        Returns:
+            Normalized tool ID using underscores
+        """
+        if tool_id.startswith('biomni/'):
+            # Convert biomni/X/Y to biomni_X_Y
+            return tool_id.replace('/', '_')
+        return tool_id
 
     # Lazy-loaded properties
     @property
@@ -144,6 +195,981 @@ class AIAssistant:
             self._dataset_rag = BioMNIDatasetRAG()
             log.info("BioMNIDatasetRAG loaded on-demand")
         return self._dataset_rag
+
+    @property
+    def benchmark_db(self):
+        """Lazy-load BenchmarkKnowledgeDB for tool recommendations."""
+        if self._benchmark_db is None:
+            self._benchmark_db = BenchmarkKnowledgeDB(enable_semantic=True)
+            log.info("BenchmarkKnowledgeDB loaded on-demand")
+        return self._benchmark_db
+
+    @property
+    def intent_router(self):
+        """Lazy-load UnifiedIntentRouter for intent classification."""
+        if self._intent_router is None and INTENT_ROUTER_AVAILABLE:
+            self._intent_router = create_intent_router()
+            log.info("UnifiedIntentRouter loaded on-demand")
+        return self._intent_router
+
+    @property
+    def skill_loader(self):
+        """Lazy-load SkillLoader for claude-scientific-skills."""
+        if self._skill_loader is None and INTENT_ROUTER_AVAILABLE:
+            self._skill_loader = create_skill_loader()
+            log.info("SkillLoader loaded on-demand")
+        return self._skill_loader
+
+    @property
+    def research_agent(self):
+        """Lazy-load ResearchAgent for literature-backed Q&A."""
+        if self._research_agent is None and INTENT_ROUTER_AVAILABLE:
+            self._research_agent = create_research_agent(
+                skill_loader=self.skill_loader,
+                benchmark_db=self.benchmark_db,
+                literature_client=self.literature_client
+            )
+            log.info("ResearchAgent loaded on-demand")
+        return self._research_agent
+
+    @property
+    def agentic_memory(self):
+        """Lazy-load AgenticMemoryService for long-term memory persistence."""
+        if self._agentic_memory is None and MEMORY_AVAILABLE:
+            self._agentic_memory = get_memory_service()
+            log.info("AgenticMemoryService loaded on-demand")
+        return self._agentic_memory
+
+    @property
+    def literature_client(self):
+        """Lazy-load UnifiedLiteratureClient for literature search."""
+        if self._literature_client is None and MEMORY_AVAILABLE:
+            self._literature_client = create_literature_client()
+            log.info("UnifiedLiteratureClient loaded on-demand")
+        return self._literature_client
+
+    # =========================================================================
+    # UNIFIED INTENT ROUTING API (Added 2025-12-30)
+    # =========================================================================
+
+    def classify_intent(
+        self,
+        query: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Classify the intent of a user query.
+
+        Routes to appropriate handler:
+        - workflow_generation → AgentOrchestrator
+        - research_question → ResearchAgent
+        - result_comparison → ResearchAgent + BenchmarkKnowledge
+        - tool_search → UnifiedToolSearch
+        - benchmark_query → BenchmarkKnowledgeDB (direct)
+
+        Args:
+            query: User's query text
+            context: Optional context (previous messages, domain, etc.)
+
+        Returns:
+            Dict with:
+            - intent: Primary intent type
+            - confidence: Classification confidence
+            - handler: Recommended handler
+            - requires_workflow: Whether workflow generation is needed
+            - requires_literature: Whether literature search is needed
+            - requires_benchmark: Whether benchmark data is needed
+            - entities: Extracted entities (tools, analysis types, etc.)
+        """
+        if not INTENT_ROUTER_AVAILABLE or not self.intent_router:
+            # Fallback to simple keyword detection
+            return self._simple_intent_classify(query)
+
+        classification = self.intent_router.classify(query, context)
+
+        return {
+            "intent": classification.primary_intent.value,
+            "confidence": classification.confidence,
+            "handler": self.intent_router.get_handler_for_intent(classification.primary_intent),
+            "secondary_intents": [i.value for i in classification.secondary_intents],
+            "requires_workflow": classification.requires_workflow,
+            "requires_literature": classification.requires_literature,
+            "requires_benchmark": classification.requires_benchmark,
+            "entities": classification.extracted_entities,
+            "routing_method": classification.routing_method
+        }
+
+    def _simple_intent_classify(self, query: str) -> Dict[str, Any]:
+        """Simple keyword-based intent classification as fallback."""
+        query_lower = query.lower()
+
+        # Simple rules
+        if any(w in query_lower for w in ['workflow', 'pipeline', 'run analysis', 'process']):
+            intent = 'workflow_generation'
+            handler = 'agent_orchestrator'
+        elif any(w in query_lower for w in ['compare', 'vs', 'better', 'best']):
+            intent = 'result_comparison'
+            handler = 'research_agent'
+        elif any(w in query_lower for w in ['benchmark', 'performance']):
+            intent = 'benchmark_query'
+            handler = 'benchmark_knowledge'
+        elif any(w in query_lower for w in ['find tool', 'search tool', 'available tools']):
+            intent = 'tool_search'
+            handler = 'unified_tool_search'
+        else:
+            intent = 'research_question'
+            handler = 'research_agent'
+
+        return {
+            "intent": intent,
+            "confidence": 0.6,
+            "handler": handler,
+            "secondary_intents": [],
+            "requires_workflow": intent == 'workflow_generation',
+            "requires_literature": intent in ['research_question', 'result_comparison'],
+            "requires_benchmark": intent in ['result_comparison', 'benchmark_query'],
+            "entities": {},
+            "routing_method": "simple_fallback"
+        }
+
+    async def route_and_handle(
+        self,
+        query: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Route a query to the appropriate handler and execute.
+
+        This is the main entry point for the unified AI assistant that
+        automatically determines intent and routes to the right component.
+
+        Args:
+            query: User's query text
+            context: Optional context
+
+        Returns:
+            Response from the appropriate handler
+        """
+        # Step 1: Classify intent
+        classification = self.classify_intent(query, context)
+
+        # Step 2: Route to handler
+        handler = classification.get('handler', 'research_agent')
+        intent = classification.get('intent', 'research_question')
+
+        try:
+            if handler == 'agent_orchestrator':
+                # Workflow generation
+                return await self._handle_workflow_generation(query, context)
+
+            elif handler == 'research_agent':
+                # Research questions, comparisons, conclusions
+                return await self._handle_research_query(query, classification, context)
+
+            elif handler == 'benchmark_knowledge':
+                # Direct benchmark queries
+                return self._handle_benchmark_query(query)
+
+            elif handler == 'unified_tool_search':
+                # Tool search
+                return self._handle_tool_search(query, context)
+
+            else:
+                # Default to research agent
+                return await self._handle_research_query(query, classification, context)
+
+        except Exception as e:
+            log.error(f"Error handling query: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "intent": intent,
+                "handler": handler
+            }
+
+    async def _handle_workflow_generation(
+        self,
+        query: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Handle workflow generation requests."""
+        # Use the existing generate_workflow_unified method
+        datasets = context.get('datasets', []) if context else []
+        result = self.generate_workflow_unified(query, available_datasets=datasets)
+        return {
+            "success": result.get('success', False),
+            "handler": "agent_orchestrator",
+            "workflow": result.get('workflow_ga'),
+            "source": result.get('source'),
+            "confidence": result.get('confidence'),
+            "message": result.get('message')
+        }
+
+    async def _handle_research_query(
+        self,
+        query: str,
+        classification: Dict[str, Any],
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Handle research questions using ResearchAgent."""
+        if not self.research_agent:
+            # Fallback to benchmark query
+            return self._handle_benchmark_query(query)
+
+        response = self.research_agent.answer_question_sync(
+            question=query,
+            context=context,
+            include_citations=True,
+            include_benchmark_evidence=classification.get('requires_benchmark', True)
+        )
+
+        return {
+            "success": not response.error,
+            "handler": "research_agent",
+            "answer": response.answer,
+            "citations": [
+                {"title": c.title, "doi": c.doi, "year": c.year}
+                for c in response.citations
+            ],
+            "benchmark_evidence": response.benchmark_evidence,
+            "confidence": response.confidence,
+            "follow_up_questions": response.follow_up_questions
+        }
+
+    def _handle_benchmark_query(self, query: str) -> Dict[str, Any]:
+        """Handle direct benchmark queries."""
+        result = self.query_benchmark(query, top_k=5)
+        return {
+            "success": True,
+            "handler": "benchmark_knowledge",
+            "best_tool": result.get('best_tool'),
+            "evidence": result.get('evidence'),
+            "results": result.get('results', [])
+        }
+
+    def _handle_tool_search(
+        self,
+        query: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Handle tool search requests."""
+        # Use existing tool search
+        tools = self.workflow_search.search_tools(query, limit=10)
+        return {
+            "success": True,
+            "handler": "unified_tool_search",
+            "tools": tools,
+            "count": len(tools)
+        }
+
+    # =========================================================================
+    # AGENTIC MEMORY API (For Session Context and Learning)
+    # =========================================================================
+
+    def initialize_session(
+        self,
+        user_id: str,
+        project_id: Optional[str] = None,
+        session_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Initialize session context using agentic memory.
+
+        Retrieves user preferences, project context, and learned patterns
+        to personalize the AI assistant's behavior for this session.
+
+        Args:
+            user_id: User identifier
+            project_id: Optional project identifier
+            session_id: Optional session ID (generated if not provided)
+
+        Returns:
+            Dict with:
+            - session_id: Session identifier
+            - user_preferences: User's learned preferences
+            - project_context: Project-specific context
+            - recent_episodes: Recent relevant interactions
+            - learned_workflows: Reusable workflow patterns
+        """
+        if not MEMORY_AVAILABLE or not self.agentic_memory:
+            return {
+                'session_id': session_id or str(uuid.uuid4()),
+                'user_preferences': {},
+                'project_context': {},
+                'recent_episodes': [],
+                'learned_workflows': []
+            }
+
+        try:
+            # Initialize session context from memory service
+            context = self.agentic_memory.initialize_session_context(
+                user_id=user_id,
+                project_id=project_id
+            )
+
+            # Add session_id
+            context['session_id'] = session_id or str(uuid.uuid4())
+
+            log.info(f"Session initialized for user {user_id}, project {project_id}")
+            return context
+
+        except Exception as e:
+            log.warning(f"Failed to initialize session context: {e}")
+            return {
+                'session_id': session_id or str(uuid.uuid4()),
+                'user_preferences': {},
+                'project_context': {},
+                'recent_episodes': [],
+                'learned_workflows': []
+            }
+
+    def record_interaction(
+        self,
+        project_id: str,
+        session_id: str,
+        user_input: str,
+        agent_response: str,
+        tool_calls: Optional[List[Dict]] = None,
+        outcome: Optional[Dict] = None,
+        metadata: Optional[Dict] = None,
+        workflow_generated: bool = False,
+        workflow_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Record an interaction for learning and episodic memory.
+
+        Stores the interaction, extracts learnable patterns, and updates
+        episodic memory for future context retrieval.
+
+        Args:
+            project_id: Project identifier
+            session_id: Session identifier
+            user_input: User's input text
+            agent_response: AI's response
+            tool_calls: Optional list of tool calls made
+            outcome: Optional outcome information (success, error, etc.)
+            metadata: Optional additional metadata
+            workflow_generated: Whether a workflow was generated
+            workflow_id: Optional workflow ID if generated
+
+        Returns:
+            Dict with:
+            - message_id: Stored message ID
+            - episode_id: Episode ID if applicable
+            - patterns_learned: Any patterns extracted
+        """
+        if not MEMORY_AVAILABLE or not self.agentic_memory:
+            return {
+                'message_id': None,
+                'episode_id': None,
+                'patterns_learned': []
+            }
+
+        try:
+            # Map to AgenticMemoryService's parameter names
+            result = self.agentic_memory.record_interaction(
+                project_id=project_id,
+                session_id=session_id,
+                user_query=user_input,  # Map user_input -> user_query
+                assistant_response=agent_response,  # Map agent_response -> assistant_response
+                tools_used=tool_calls,  # Map tool_calls -> tools_used
+                workflow_generated=workflow_generated,
+                workflow_id=workflow_id
+            )
+
+            return result
+
+        except Exception as e:
+            log.warning(f"Failed to record interaction: {e}")
+            return {
+                'message_id': None,
+                'episode_id': None,
+                'patterns_learned': []
+            }
+
+    def learn_from_outcome(
+        self,
+        episode_id: int,
+        success: bool,
+        reflection: Optional[Dict] = None
+    ) -> Dict[str, Any]:
+        """
+        Learn from an episode outcome.
+
+        Updates the episode with outcome information and extracts
+        procedural patterns for future use.
+
+        Args:
+            episode_id: Episode identifier
+            success: Whether the episode was successful
+            reflection: Optional reflection/analysis
+
+        Returns:
+            Dict with learning results
+        """
+        if not MEMORY_AVAILABLE or not self.agentic_memory:
+            return {'success': False, 'reason': 'Memory service not available'}
+
+        try:
+            self.agentic_memory.learn_from_outcome(
+                episode_id=episode_id,
+                success=success,
+                reflection=reflection
+            )
+
+            return {'success': True}
+
+        except Exception as e:
+            log.warning(f"Failed to learn from outcome: {e}")
+            return {'success': False, 'reason': str(e)}
+
+    async def search_literature(
+        self,
+        query: str,
+        max_results: int = 10,
+        sources: Optional[List[str]] = None,
+        recent_years: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Search scientific literature using the UnifiedLiteratureClient.
+
+        Args:
+            query: Search query
+            max_results: Maximum results to return
+            sources: Optional list of sources ("pubmed", "arxiv", "semantic_scholar")
+            recent_years: Limit to papers from recent N years
+
+        Returns:
+            List of citation dictionaries
+        """
+        if not MEMORY_AVAILABLE or not self.literature_client:
+            return []
+
+        try:
+            citations = await self.literature_client.search_bioinformatics(
+                query=query,
+                max_results=max_results,
+                recent_years=recent_years
+            )
+
+            return [c.to_dict() for c in citations]
+
+        except Exception as e:
+            log.warning(f"Literature search failed: {e}")
+            return []
+
+    def search_literature_sync(
+        self,
+        query: str,
+        max_results: int = 10,
+        sources: Optional[List[str]] = None,
+        recent_years: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Synchronous wrapper for search_literature."""
+        import asyncio
+
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        return loop.run_until_complete(
+            self.search_literature(
+                query=query,
+                max_results=max_results,
+                sources=sources,
+                recent_years=recent_years
+            )
+        )
+
+    # =========================================================================
+    # BENCHMARK KNOWLEDGE API (For ResearchAgent and Workflow Generation)
+    # =========================================================================
+
+    def query_benchmark(
+        self,
+        query: str,
+        top_k: int = 5,
+        include_evidence: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Query benchmark knowledge with natural language.
+
+        USE CASE: ResearchAgent answering "What's the best tool for X?"
+
+        Args:
+            query: Natural language query (e.g., "best RNA-seq aligner")
+            top_k: Number of results
+            include_evidence: Whether to include citation evidence
+
+        Returns:
+            Dict with:
+            - results: List of benchmark matches with rankings
+            - best_tool: Top recommended tool (if applicable)
+            - evidence: Human-readable evidence with citations
+
+        Example:
+            >>> ai.query_benchmark("What's the best tool for variant calling?")
+            {'best_tool': 'DeepVariant', 'evidence': 'Based on GIAB benchmark...'}
+        """
+        results = self.benchmark_db.query_semantic(query, top_k=top_k)
+
+        if not results:
+            return {
+                'success': False,
+                'message': 'No benchmark data found for this query',
+                'results': []
+            }
+
+        # Find best tool recommendation
+        best_tool = None
+        evidence_text = None
+
+        for r in results:
+            if r.get('type') == 'task' and r.get('best_tool'):
+                best_tool = r['best_tool']
+                evidence_text = r.get('evidence', '')
+                break
+            elif r.get('type') == 'rule' and r.get('recommended_tools'):
+                best_tool = r['recommended_tools'][0] if r['recommended_tools'] else None
+                evidence_text = r.get('reason', '')
+                break
+
+        return {
+            'success': True,
+            'best_tool': best_tool,
+            'evidence': evidence_text,
+            'results': results,
+            'source': 'benchmark_knowledge'
+        }
+
+    def get_benchmark_evidence_for_tool(
+        self,
+        tool_name: str,
+        task_id: str = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get benchmark evidence for a specific tool.
+
+        USE CASE: Show users why a tool was recommended.
+
+        Args:
+            tool_name: Tool name (benchmark name or Galaxy ID)
+            task_id: Optional specific task
+
+        Returns:
+            Dict with benchmark evidence including citations
+        """
+        # First try as benchmark tool name
+        evidence = self.benchmark_db.get_tool_evidence_for_galaxy_id(tool_name)
+        if evidence:
+            return evidence
+
+        # Try direct performance lookup
+        results = self.benchmark_db.get_tool_performance(tool_name)
+        if results:
+            best = min(results, key=lambda x: x.get('rank', 999))
+            return {
+                'tool_name': tool_name,
+                'task': best['task_name'],
+                'rank': best['rank'],
+                'metric': best['metric'],
+                'score': best['score'],
+                'benchmark_paper': best['benchmark_paper'],
+                'doi': best['doi'],
+                'evidence_text': self.benchmark_db.generate_evidence_text(tool_name, task_id)
+            }
+
+        return None
+
+    def get_benchmark_informed_tool_selection(
+        self,
+        task_description: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Get tool recommendation based on benchmarks for workflow generation.
+
+        USE CASE: Workflow generator selecting best tool for a step.
+
+        Args:
+            task_description: What the workflow step needs to do
+            context: Optional context (data_size, compute constraints, etc.)
+
+        Returns:
+            Dict with:
+            - recommended_tool: Best tool name
+            - galaxy_tool_id: Galaxy tool ID (if mapping exists)
+            - alternatives: Other good options
+            - evidence: Why this tool is recommended
+            - confidence: How confident the recommendation is
+
+        Example:
+            >>> ai.get_benchmark_informed_tool_selection(
+            ...     "align RNA-seq reads to reference genome",
+            ...     context={'memory_limited': True}
+            ... )
+            {'recommended_tool': 'HISAT2', 'galaxy_tool_id': 'hisat2', ...}
+        """
+        # Query benchmarks
+        results = self.benchmark_db.query_semantic(task_description, top_k=3)
+
+        if not results:
+            return {
+                'success': False,
+                'message': 'No benchmark data for this task type'
+            }
+
+        # Check context for decision rules
+        if context:
+            # Check for memory constraints
+            if context.get('memory_limited'):
+                rules = self.benchmark_db.get_recommendation_for_condition('compute', 'limited_memory')
+                if rules:
+                    rule = rules[0]
+                    tool_name = rule['recommended_tools'][0] if rule['recommended_tools'] else None
+                    return {
+                        'success': True,
+                        'recommended_tool': tool_name,
+                        'galaxy_tool_id': self.benchmark_db.get_galaxy_tool_id(tool_name) if tool_name else None,
+                        'alternatives': rule['recommended_tools'][1:] if len(rule['recommended_tools']) > 1 else [],
+                        'evidence': rule['reason'],
+                        'confidence': 0.9,
+                        'source': 'decision_rule'
+                    }
+
+            # Check for speed priority
+            if context.get('speed_priority'):
+                rules = self.benchmark_db.get_recommendation_for_condition('compute', 'speed_priority')
+                if rules:
+                    rule = rules[0]
+                    tool_name = rule['recommended_tools'][0] if rule['recommended_tools'] else None
+                    return {
+                        'success': True,
+                        'recommended_tool': tool_name,
+                        'galaxy_tool_id': self.benchmark_db.get_galaxy_tool_id(tool_name) if tool_name else None,
+                        'alternatives': rule['recommended_tools'][1:] if len(rule['recommended_tools']) > 1 else [],
+                        'evidence': rule['reason'],
+                        'confidence': 0.85,
+                        'source': 'decision_rule'
+                    }
+
+        # Get best tool from task rankings
+        for r in results:
+            if r.get('type') == 'task' and r.get('rankings'):
+                rankings = r['rankings']
+                best = rankings[0] if rankings else None
+                if best:
+                    tool_name = best['tool_name']
+                    return {
+                        'success': True,
+                        'recommended_tool': tool_name,
+                        'galaxy_tool_id': self.benchmark_db.get_galaxy_tool_id(tool_name),
+                        'alternatives': [r['tool_name'] for r in rankings[1:3]] if len(rankings) > 1 else [],
+                        'evidence': self.benchmark_db.generate_evidence_text(tool_name, r.get('task_id')),
+                        'confidence': r.get('similarity', 0.7),
+                        'source': 'benchmark_ranking'
+                    }
+
+        return {
+            'success': False,
+            'message': 'Could not determine best tool from benchmarks'
+        }
+
+    def compare_tools_for_task(
+        self,
+        tool_a: str,
+        tool_b: str,
+        task_id: str = None
+    ) -> Dict[str, Any]:
+        """
+        Compare two tools based on benchmark data.
+
+        USE CASE: Help users decide between tools.
+
+        Args:
+            tool_a: First tool name
+            tool_b: Second tool name
+            task_id: Optional specific task
+
+        Returns:
+            Comparison with winner and evidence
+        """
+        comparison = self.benchmark_db.compare_tools(tool_a, tool_b, task_id)
+        evidence = self.benchmark_db.generate_comparison_evidence(tool_a, tool_b, task_id)
+
+        return {
+            'tool_a': tool_a,
+            'tool_b': tool_b,
+            'winner': comparison['summary']['overall_winner'],
+            'comparisons': comparison['comparisons'],
+            'summary': comparison['summary'],
+            'evidence_text': evidence
+        }
+
+    @property
+    def agent_orchestrator(self):
+        """Lazy-load AgentOrchestrator for multi-agent workflow generation with auditing."""
+        if self._agent_orchestrator is None:
+            from .agents import create_agent_orchestrator
+            from .llm_client import LLMClient
+
+            llm_client = LLMClient(self.config)
+
+            # Use factory function which initializes all services
+            self._agent_orchestrator = create_agent_orchestrator(
+                llm_client=llm_client,
+                config=self.config,
+                enable_audit=True,
+                enable_learning=True,
+                use_enhanced_routing=True
+            )
+            log.info("AgentOrchestrator loaded on-demand with LLM routing, auditing, and learning")
+        return self._agent_orchestrator
+
+    def generate_workflow_multi_agent(
+        self,
+        user_intent: str,
+        user_id: Optional[str] = None,
+        user_context: Optional[Dict[str, Any]] = None,
+        session_id: Optional[str] = None,
+        uploaded_datasets: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate workflow using multi-agent system with LLM-enhanced routing.
+
+        This is an alternative to generate_workflow_unified() that uses:
+        1. EnhancedDomainRouter - Routes with hybrid keyword + LLM approach
+        2. DomainSpecialists - Parallel domain-specific recommendations
+        3. WorkflowAssembler - Synthesizes and validates workflow
+
+        Features:
+        - LLM-enhanced routing for ambiguous queries
+        - User pattern personalization
+        - Full audit trail for all generations
+        - Learning from corrections and outcomes
+
+        Args:
+            user_intent: Natural language description of workflow goal
+            user_id: Optional user ID for personalization
+            user_context: Optional pre-loaded user context
+            session_id: Optional session ID for audit tracking
+            uploaded_datasets: Optional list of user-uploaded dataset IDs
+
+        Returns:
+            Dictionary containing:
+            - success: bool
+            - workflow_ga: Galaxy .ga JSON (if successful)
+            - source: 'multi_agent'
+            - confidence: float (0-1)
+            - message: str
+            - timing: Dict of timing info
+            - domain_sources: List of domains consulted
+            - request_id: str (for corrections/audit)
+            - audit_id: int (for tracking)
+            - routing_method: str ('keyword', 'llm', or 'hybrid')
+        """
+        log.info(f"[MultiAgentWorkflowGeneration] Starting for intent: {user_intent}")
+
+        try:
+            # Run multi-agent orchestration with auditing
+            result = self.agent_orchestrator.generate_workflow(
+                query=user_intent,
+                user_id=user_id,
+                user_context=user_context,
+                session_id=session_id,
+                parallel=True
+            )
+
+            if not result.success:
+                return {
+                    'success': False,
+                    'error': result.error,
+                    'source': 'multi_agent',
+                    'timing': result.timing,
+                    'request_id': result.request_id,
+                    'audit_id': result.audit_id
+                }
+
+            workflow = result.workflow
+
+            # Convert assembled workflow to Galaxy .ga format
+            workflow_ga = self._build_workflow_ga_from_multi_agent(
+                workflow,
+                user_intent,
+                uploaded_datasets
+            )
+
+            # Collect citations
+            citations = [
+                {
+                    'tool_id': c.tool_id,
+                    'tool_name': c.tool_name,
+                    'doi': c.doi,
+                    'pmid': c.pmid,
+                    'title': c.title
+                }
+                for c in workflow.citations
+            ]
+
+            # Get routing method from result
+            routing_method = getattr(result.routing, 'routing_method', 'keyword')
+
+            return {
+                'success': True,
+                'workflow_ga': workflow_ga,
+                'source': 'multi_agent',
+                'confidence': workflow.confidence,
+                'message': f"Generated workflow with {len(workflow.workflow_steps)} steps "
+                          f"using domains: {', '.join(workflow.domain_sources)}",
+                'timing': result.timing,
+                'domain_sources': workflow.domain_sources,
+                'citations': citations,
+                'validation': {
+                    'is_valid': workflow.validation.is_valid if workflow.validation else True,
+                    'issues': workflow.validation.issues if workflow.validation else [],
+                    'warnings': workflow.validation.warnings if workflow.validation else [],
+                    'suggestions': workflow.validation.suggestions if workflow.validation else []
+                },
+                # Audit and learning fields
+                'request_id': result.request_id,
+                'audit_id': result.audit_id,
+                'routing_method': routing_method
+            }
+
+        except Exception as e:
+            log.error(f"[MultiAgentWorkflowGeneration] Failed: {e}", exc_info=True)
+            return {
+                'success': False,
+                'error': str(e),
+                'source': 'multi_agent'
+            }
+
+    def record_workflow_correction(
+        self,
+        request_id: str,
+        user_id: str,
+        correction_type: str,
+        original_value: Any,
+        corrected_value: Any,
+        reason: str = None
+    ) -> Dict[str, Any]:
+        """
+        Record a user correction for learning.
+
+        Args:
+            request_id: Request ID from generate_workflow_multi_agent
+            user_id: User who made the correction
+            correction_type: Type ('domain', 'tool_selection', 'parameters')
+            original_value: Original suggested value
+            corrected_value: User's corrected value
+            reason: Optional reason for correction
+
+        Returns:
+            Dict with correction and learning results
+        """
+        return self.agent_orchestrator.record_correction(
+            request_id=request_id,
+            user_id=user_id,
+            correction_type=correction_type,
+            original_value=original_value,
+            corrected_value=corrected_value,
+            reason=reason
+        )
+
+    def record_workflow_outcome(
+        self,
+        request_id: str,
+        user_id: str,
+        success: bool,
+        user_kept: bool = True,
+        rating: int = None
+    ) -> Dict[str, Any]:
+        """
+        Record workflow execution outcome for learning.
+
+        Args:
+            request_id: Request ID from generate_workflow_multi_agent
+            user_id: User ID
+            success: Whether workflow executed successfully
+            user_kept: Whether user kept/used the workflow
+            rating: User rating (1-5) if provided
+
+        Returns:
+            Dict with learning results
+        """
+        return self.agent_orchestrator.record_workflow_outcome(
+            request_id=request_id,
+            user_id=user_id,
+            success=success,
+            user_kept=user_kept,
+            rating=rating
+        )
+
+    def get_workflow_audit_history(
+        self,
+        user_id: str,
+        limit: int = 50
+    ) -> List[Dict]:
+        """
+        Get user's workflow generation history.
+
+        Args:
+            user_id: User ID
+            limit: Max records to return
+
+        Returns:
+            List of audit records
+        """
+        return self.agent_orchestrator.get_audit_history(user_id, limit)
+
+    def get_workflow_audit_statistics(self, user_id: str = None) -> Dict[str, Any]:
+        """
+        Get workflow generation statistics.
+
+        Args:
+            user_id: Optional user ID to filter
+
+        Returns:
+            Audit statistics
+        """
+        return self.agent_orchestrator.get_audit_statistics(user_id)
+
+    def _build_workflow_ga_from_multi_agent(
+        self,
+        workflow,
+        user_intent: str,
+        uploaded_datasets: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Build Galaxy .ga workflow JSON from multi-agent assembled workflow."""
+        steps = {}
+
+        for i, step in enumerate(workflow.workflow_steps):
+            tool_id = self._normalize_tool_id(step.tool_id)
+
+            steps[str(i)] = {
+                "id": i,
+                "type": "tool",
+                "tool_id": tool_id,
+                "name": step.tool_name,
+                "annotation": step.description,
+                "tool_state": "{}",
+                "inputs": [],
+                "outputs": [],
+                "position": {"left": 100 + i * 200, "top": 100}
+            }
+
+        workflow_ga = {
+            "a_galaxy_workflow": "true",
+            "format-version": "0.1",
+            "name": f"Multi-Agent Workflow: {user_intent[:50]}",
+            "annotation": f"Generated by multi-agent system. Domains: {', '.join(workflow.domain_sources)}",
+            "tags": ["multi-agent", "ai-generated"] + workflow.domain_sources,
+            "steps": steps
+        }
+
+        return workflow_ga
 
     def process_request(self, user_request: UserRequest) -> AIResponse:
         """Process a complete user research request and generate AI response."""
@@ -494,7 +1520,8 @@ class AIAssistant:
         # Convert template steps to Galaxy .ga format
         for i, step in enumerate(workflow_steps):
             step_id = str(i)
-            tool_id = step.get('tool_id', 'unknown')
+            # Normalize tool ID from AI database format (slashes) to Galaxy format (underscores)
+            tool_id = self._normalize_tool_id(step.get('tool_id', 'unknown'))
 
             ga_workflow['steps'][step_id] = {
                 'id': i,
@@ -760,8 +1787,9 @@ class AIAssistant:
                     if isinstance(step_data, dict):
                         # Handle both old and new step formats
                         step_id = step_data.get('id', step_data.get('step_number', len(steps) + 1))
-                        tool_id = step_data.get('tool_id', 'unknown')
-                        
+                        # Normalize tool ID from AI database format (slashes) to Galaxy format (underscores)
+                        tool_id = self._normalize_tool_id(step_data.get('tool_id', 'unknown'))
+
                         step = WorkflowStep(
                             step_id=step_id,
                             tool_id=tool_id,

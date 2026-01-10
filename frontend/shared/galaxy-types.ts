@@ -22,6 +22,7 @@ export interface GalaxyTool {
   install_status?: 'installed' | 'not_installed' | 'installing' | 'failed';
   install_date?: string;
   rank?: number; // BM25 relevance score from full-text search
+  keywords?: string;
 }
 
 export interface ToolSearchResponse {
@@ -96,6 +97,7 @@ export interface BioMNIDataset {
   name: string;
   description: string;
   category: 'metabolomics' | 'proteomics' | 'genomics' | 'clinical' | 'pathways' | 'pharmacology' | 'other';
+  type?: string;
   format: string;
   size_mb: number;
   rows?: number;
@@ -120,6 +122,7 @@ export interface DatasetSearchRequest {
 }
 
 export interface DatasetSearchResponse {
+  success?: boolean;
   query: string;
   count: number;
   datasets: BioMNIDataset[];
@@ -195,6 +198,7 @@ export interface GalaxyJob {
   stderr?: string;
   stdout?: string;
   traceback?: string;
+  outputs?: Record<string, any>;
 }
 
 export interface GalaxyInvocationStep {
@@ -431,6 +435,7 @@ export interface WorkflowGenerationResponse {
   >;
   missing_tools?: string[];
   execution_time_ms?: number;
+  generated_parameters?: Record<string, Record<string, any>>; // Tool parameters keyed by tool_id
 }
 
 // ============================================================================

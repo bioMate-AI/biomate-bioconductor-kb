@@ -1,0 +1,744 @@
+{
+  "workflow_id": "7114515b82c5f62a",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "7114515b82c5f62a",
+    "latest_workflow_id": "51f1942adde0f07f",
+    "name": "trimmomatic",
+    "create_time": "2025-03-29T16:36:40.730473",
+    "update_time": "2025-04-24T16:05:08.151573",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "aa631894-0a15-46d5-a4e3-332df8521297",
+    "creator_deleted": false,
+    "annotations": [],
+    "url": "/api/workflows/7114515b82c5f62a",
+    "owner": "enrique_ant",
+    "source_metadata": null,
+    "number_of_steps": 9,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "name": "trimmomatic",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [],
+        "label": null,
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 61.66013243001311,
+          "top": 0.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "74aa5d64-3b3d-4c4a-99ab-adcd9fa6cb94",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [],
+        "label": null,
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 44.2578125,
+          "top": 175.6249728306833
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "88adf800-6551-42f5-a81a-502ee350d736",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [],
+        "label": null,
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 0.0,
+          "top": 420.3710665806833
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "e5f5a6f6-6662-4c62-bb90-6b68409fe4b8",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "errors": null,
+        "id": 3,
+        "input_connections": {
+          "readtype|fastq_pair": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Trimmomatic",
+            "name": "readtype"
+          }
+        ],
+        "label": null,
+        "name": "Trimmomatic",
+        "outputs": [
+          {
+            "name": "fastq_out_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_unpaired",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 396.4062261800131,
+          "top": 14.00390625
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "b9aaed85cbd1",
+          "name": "trimmomatic",
+          "owner": "pjbriggs",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"no\", \"__current_case__\": 1}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"SLIDINGWINDOW\", \"__current_case__\": 0, \"window_size\": \"4\", \"required_quality\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"collection\", \"__current_case__\": 2, \"fastq_pair\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.39+galaxy2",
+        "type": "tool",
+        "uuid": "b9b489ed-280c-4e59-a2ce-1e783857f5e7",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "readtype|fastq_pair": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Trimmomatic",
+            "name": "readtype"
+          }
+        ],
+        "label": null,
+        "name": "Trimmomatic",
+        "outputs": [
+          {
+            "name": "fastq_out_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_unpaired",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 379.0564041458457,
+          "top": 250.22375613805565
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "b9aaed85cbd1",
+          "name": "trimmomatic",
+          "owner": "pjbriggs",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"no\", \"__current_case__\": 1}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"SLIDINGWINDOW\", \"__current_case__\": 0, \"window_size\": \"4\", \"required_quality\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"collection\", \"__current_case__\": 2, \"fastq_pair\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.39+galaxy2",
+        "type": "tool",
+        "uuid": "6245fffa-9c69-4581-b62a-99a33614d589",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "readtype|fastq_pair": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Trimmomatic",
+            "name": "readtype"
+          }
+        ],
+        "label": null,
+        "name": "Trimmomatic",
+        "outputs": [
+          {
+            "name": "fastq_out_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_unpaired",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 400.4999811081196,
+          "top": 485.91186859105153
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "b9aaed85cbd1",
+          "name": "trimmomatic",
+          "owner": "pjbriggs",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"no\", \"__current_case__\": 1}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"SLIDINGWINDOW\", \"__current_case__\": 0, \"window_size\": \"4\", \"required_quality\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"collection\", \"__current_case__\": 2, \"fastq_pair\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.39+galaxy2",
+        "type": "tool",
+        "uuid": "f96cf415-e015-4934-ac49-21dda4461418",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "input_file": {
+            "id": 3,
+            "output_name": "fastq_out_paired"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "adapters"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "contaminants"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "input_file"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "limits"
+          }
+        ],
+        "label": null,
+        "name": "FastQC",
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 737.6562261800132,
+          "top": 74.00390625
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "2c64fded1286",
+          "name": "fastqc",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"RuntimeValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.74+galaxy1",
+        "type": "tool",
+        "uuid": "f0afe2cf-1e0d-44fa-96af-5abb0ee8ea1c",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "input_file": {
+            "id": 4,
+            "output_name": "fastq_out_paired"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "adapters"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "contaminants"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "input_file"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "limits"
+          }
+        ],
+        "label": null,
+        "name": "FastQC",
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 739.7998343618119,
+          "top": 374.8881810703428
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "2c64fded1286",
+          "name": "fastqc",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"RuntimeValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.74+galaxy1",
+        "type": "tool",
+        "uuid": "3f9e28be-61f2-4dee-989e-32371bbfd8be",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "input_file": {
+            "id": 5,
+            "output_name": "fastq_out_paired"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "adapters"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "contaminants"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "input_file"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "limits"
+          }
+        ],
+        "label": null,
+        "name": "FastQC",
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 754.5186009693782,
+          "top": 662.2005787494851
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "2c64fded1286",
+          "name": "fastqc",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"RuntimeValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.74+galaxy1",
+        "type": "tool",
+        "uuid": "ebcfbb32-888c-4eee-9dfc-4d78f0803a9c",
+        "when": null,
+        "workflow_outputs": []
+      }
+    },
+    "tags": [],
+    "uuid": "aa631894-0a15-46d5-a4e3-332df8521297",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "trimmomatic",
+      "annotation": "",
+      "format_version": "0.1",
+      "uuid": "aa631894-0a15-46d5-a4e3-332df8521297",
+      "version": 1,
+      "tags": [],
+      "creator": [],
+      "license": ""
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+        "position": {
+          "left": 61.66013243001311,
+          "top": 0.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+        "position": {
+          "left": 44.2578125,
+          "top": 175.6249728306833
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+        "position": {
+          "left": 0.0,
+          "top": 420.3710665806833
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "tool",
+        "name": "Trimmomatic",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_version": "0.39+galaxy2",
+        "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"no\", \"__current_case__\": 1}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"SLIDINGWINDOW\", \"__current_case__\": 0, \"window_size\": \"4\", \"required_quality\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"collection\", \"__current_case__\": 2, \"fastq_pair\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 396.4062261800131,
+          "top": 14.00390625
+        },
+        "input_connections": {
+          "readtype|fastq_pair": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "fastq_out_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_unpaired",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "Trimmomatic",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_version": "0.39+galaxy2",
+        "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"no\", \"__current_case__\": 1}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"SLIDINGWINDOW\", \"__current_case__\": 0, \"window_size\": \"4\", \"required_quality\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"collection\", \"__current_case__\": 2, \"fastq_pair\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 379.0564041458457,
+          "top": 250.22375613805565
+        },
+        "input_connections": {
+          "readtype|fastq_pair": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "fastq_out_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_unpaired",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "Trimmomatic",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_version": "0.39+galaxy2",
+        "tool_state": "{\"illuminaclip\": {\"do_illuminaclip\": \"no\", \"__current_case__\": 1}, \"operations\": [{\"__index__\": 0, \"operation\": {\"name\": \"SLIDINGWINDOW\", \"__current_case__\": 0, \"window_size\": \"4\", \"required_quality\": \"20\"}}], \"output_err\": false, \"output_logs\": false, \"quality_score\": null, \"readtype\": {\"single_or_paired\": \"collection\", \"__current_case__\": 2, \"fastq_pair\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 400.4999811081196,
+          "top": 485.91186859105153
+        },
+        "input_connections": {
+          "readtype|fastq_pair": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "fastq_out_paired",
+            "type": "input"
+          },
+          {
+            "name": "fastq_out_unpaired",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "FastQC",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"RuntimeValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 737.6562261800132,
+          "top": 74.00390625
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 3,
+            "output_name": "fastq_out_paired"
+          }
+        },
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "FastQC",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"RuntimeValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 739.7998343618119,
+          "top": 374.8881810703428
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 4,
+            "output_name": "fastq_out_paired"
+          }
+        },
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "FastQC",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"RuntimeValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"RuntimeValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 754.5186009693782,
+          "top": 662.2005787494851
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 5,
+            "output_name": "fastq_out_paired"
+          }
+        },
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_version": "0.39+galaxy2",
+        "step_id": "3"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_version": "0.39+galaxy2",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic/0.39+galaxy2",
+        "tool_version": "0.39+galaxy2",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "step_id": "8"
+      }
+    ],
+    "inputs": [],
+    "outputs": [],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "3",
+        "to_input": "readtype|fastq_pair"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "4",
+        "to_input": "readtype|fastq_pair"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "readtype|fastq_pair"
+      },
+      {
+        "from_step": 3,
+        "from_output": "fastq_out_paired",
+        "to_step": "6",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 4,
+        "from_output": "fastq_out_paired",
+        "to_step": "7",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 5,
+        "from_output": "fastq_out_paired",
+        "to_step": "8",
+        "to_input": "input_file"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T22:13:28.315854"
+}

@@ -23,7 +23,7 @@ def test_claude_api():
         # 测试配置（请替换为您的真实API密钥）
         test_config = AIConfig({
             'llm_provider': 'anthropic',
-            'llm_model': 'claude-3-5-sonnet-20241022',
+            'llm_model': 'claude-sonnet-4-5',
             'llm_api_key': 'sk-ant-your-api-key-here',  # 替换为您的Claude API密钥
         })
         

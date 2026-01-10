@@ -1,0 +1,872 @@
+{
+  "workflow_id": "43cea919ebf9d978",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "43cea919ebf9d978",
+    "latest_workflow_id": "f639273a9ea36b5b",
+    "name": "Hi-C_fastqToPairs_hic (release v0.1)",
+    "create_time": "2023-02-23T00:11:33.528523",
+    "update_time": "2025-04-25T14:11:14.362900",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [
+      "Hi-C"
+    ],
+    "latest_workflow_uuid": "edfafd3e-895c-4283-be0a-ebc5b0fb8dc8",
+    "creator_deleted": false,
+    "annotations": [
+      "This workflow take as input a collection of paired fastq. It uses HiCUP to go from fastq to validPair file. First truncate the fastq using the cutting sequence to guess the fill-in. Then map the truncated fastq. Then asign to fragment and filter the self-ligated and dandling ends or internal (it can also filter for the size). Then it removes the duplicates. Convert the output to be compatible with juicebox or cooler. Finally filter for mapping quality"
+    ],
+    "url": "/api/workflows/43cea919ebf9d978",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 9,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "This workflow take as input a collection of paired fastq. It uses HiCUP to go from fastq to validPair file. First truncate the fastq using the cutting sequence to guess the fill-in. Then map the truncated fastq. Then asign to fragment and filter the self-ligated and dandling ends or internal (it can also filter for the size). Then it removes the duplicates. Convert the output to be compatible with juicebox or cooler. Finally filter for mapping quality",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-1964-4960",
+        "name": "Lucille Delisle"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "Hi-C_fastqToPairs_hic (release v0.1)",
+    "steps": {
+      "0": {
+        "annotation": "Should be a paired collection with Hi-C fastqs",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Should be a paired collection with Hi-C fastqs",
+            "name": "PE fastq input"
+          }
+        ],
+        "label": "PE fastq input",
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 0.0,
+          "top": 12.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "db6d8da4-83ae-4674-907b-165a729ae82a",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "d7bbdab9-8bd6-4d6c-a535-fd57235872f8"
+          }
+        ]
+      },
+      "1": {
+        "annotation": "use the bowtie2 indexes to display choices",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "use the bowtie2 indexes to display choices",
+            "name": "genome name"
+          }
+        ],
+        "label": "genome name",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 39.0,
+          "top": 82.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "73f9f211-eddf-4d17-af05-08e9db76ad31",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "c19ba3b7-6bc5-4449-923c-13e47634b180"
+          }
+        ]
+      },
+      "2": {
+        "annotation": "Restriction enzyme used e.g. A^GATCT,BglII. Some Hi-C protocols may use several enzymes. To specify several enzymes, use the ':' to separate them e.g. A^GATCT,BglII:A^AGCTT,HindIII:^GATC,DpnII. HiCUP accomodates N in restriction enzyme: e.g. :A^ANCTT",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Restriction enzyme used e.g. A^GATCT,BglII. Some Hi-C protocols may use several enzymes. To specify several enzymes, use the ':' to separate them e.g. A^GATCT,BglII:A^AGCTT,HindIII:^GATC,DpnII. HiCUP accomodates N in restriction enzyme: e.g. :A^ANCTT",
+            "name": "Restriction enzyme"
+          }
+        ],
+        "label": "Restriction enzyme",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 58.0,
+          "top": 155.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "b43c65e9-e48f-4552-9339-41a36327475d",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "240dd13e-1786-407f-98d9-1f62a5d6d966"
+          }
+        ]
+      },
+      "3": {
+        "annotation": "Hi-C protocol did NOT include a fill-in of sticky ends prior to re-ligation and therefore reads shall be truncated at the restriction site sequence",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Hi-C protocol did NOT include a fill-in of sticky ends prior to re-ligation and therefore reads shall be truncated at the restriction site sequence",
+            "name": "No fill-in"
+          }
+        ],
+        "label": "No fill-in",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 97.5,
+          "top": 248.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "4ac3e51e-47a7-46e5-91c7-55bf1df09a29",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "8b7c52c9-83a2-404b-9417-eddf5ba2624d"
+          }
+        ]
+      },
+      "4": {
+        "annotation": "can be set to 0 for no filtering",
+        "content_id": null,
+        "errors": null,
+        "id": 4,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "can be set to 0 for no filtering",
+            "name": "minimum MAPQ"
+          }
+        ],
+        "label": "minimum MAPQ",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 131.0,
+          "top": 320.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "7001b847-36b4-445b-922d-93a19bd3a014",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "1a9be866-0364-4e78-99a6-70e830a5ae41"
+          }
+        ]
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup_hicup/hicup_hicup/0.8.3+galaxy0",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "advanced_options|nofill": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "genome": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "library|input_1": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "re1": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "reference_genome|index": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Hicup Pipeline",
+            "name": "advanced_options"
+          },
+          {
+            "description": "runtime parameter for tool Hicup Pipeline",
+            "name": "library"
+          },
+          {
+            "description": "runtime parameter for tool Hicup Pipeline",
+            "name": "reference_genome"
+          }
+        ],
+        "label": "HiCUP",
+        "name": "Hicup Pipeline",
+        "outputs": [
+          {
+            "name": "intermediate_results",
+            "type": "input"
+          },
+          {
+            "name": "hicup_results",
+            "type": "html"
+          },
+          {
+            "name": "hicup_report",
+            "type": "tabular"
+          },
+          {
+            "name": "dataset_hicup",
+            "type": "qname_sorted.bam"
+          },
+          {
+            "name": "digester_file",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 356.5,
+          "top": 0.0
+        },
+        "post_job_actions": {
+          "HideDatasetActiondataset_hicup": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "dataset_hicup"
+          },
+          "HideDatasetActiondigester_file": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "digester_file"
+          },
+          "HideDatasetActionintermediate_results": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "intermediate_results"
+          },
+          "RenameDatasetActionhicup_report": {
+            "action_arguments": {
+              "newname": "HiCUP report (tabular)"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "hicup_report"
+          },
+          "RenameDatasetActionhicup_results": {
+            "action_arguments": {
+              "newname": "HiCUP report (HTML)"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "hicup_results"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup_hicup/hicup_hicup/0.8.3+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "852e1fac4802",
+          "name": "hicup_hicup",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"advanced_options\": {\"re2\": \"\", \"longest\": \"\", \"shortest\": \"\", \"nofill\": {\"__class__\": \"ConnectedValue\"}}, \"genome\": {\"__class__\": \"ConnectedValue\"}, \"library\": {\"type\": \"paired_collection\", \"__current_case__\": 1, \"input_1\": {\"__class__\": \"ConnectedValue\"}}, \"re1\": {\"__class__\": \"ConnectedValue\"}, \"reference_genome\": {\"source\": \"indexed\", \"__current_case__\": 0, \"index\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": null,
+        "type": "tool",
+        "uuid": "c4d00011-f55c-45e6-bc87-07b8bb818f36",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "HiCUP report (HTML)",
+            "output_name": "hicup_results",
+            "uuid": "262b59c4-031f-467f-8cf0-c2ea57ce1532"
+          },
+          {
+            "label": "HiCUP report (tabular)",
+            "output_name": "hicup_report",
+            "uuid": "75235a04-fdfb-417e-9f15-2121d346b61b"
+          }
+        ]
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "components_3|param_type|component_value": {
+            "id": 4,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "build filtering rule for MAPQ",
+        "name": "Compose text parameter value",
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ],
+        "position": {
+          "left": 746.5,
+          "top": 392.5
+        },
+        "post_job_actions": {
+          "HideDatasetActionout1": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "out1"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_shed_repository": {
+          "changeset_revision": "e188c9826e0f",
+          "name": "compose_text_param",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"(c10>=\"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"integer\", \"__current_case__\": 1, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 2, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \") and (c11>=\"}}, {\"__index__\": 3, \"param_type\": {\"select_param_type\": \"integer\", \"__current_case__\": 1, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 4, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \")\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": null,
+        "type": "tool",
+        "uuid": "f748a677-a0bc-43f5-91f3-c505ca4a0002",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup2juicer/hicup2juicer/0.8.3+galaxy0",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "input_file": {
+            "id": 5,
+            "output_name": "dataset_hicup"
+          }
+        },
+        "inputs": [],
+        "label": "valid pairs in juicebox format",
+        "name": "Hicup to juicer converter",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 637.5,
+          "top": 197.5
+        },
+        "post_job_actions": {
+          "RenameDatasetActionoutput": {
+            "action_arguments": {
+              "newname": "valid pairs in juicebox format"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "output"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup2juicer/hicup2juicer/0.8.3+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "f8cb84c49623",
+          "name": "hicup2juicer",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": null,
+        "type": "tool",
+        "uuid": "8f880066-c8c6-4a19-ab48-7d03e7e3f941",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "valid pairs in juicebox format",
+            "output_name": "output",
+            "uuid": "0ee85397-9f51-4311-994f-e87749957154"
+          }
+        ]
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "Filter1",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "cond": {
+            "id": 6,
+            "output_name": "out1"
+          },
+          "input": {
+            "id": 7,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "valid pairs in juicebox format MAPQ filtered",
+        "name": "Filter",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1041.0,
+          "top": 304.5
+        },
+        "post_job_actions": {
+          "RenameDatasetActionout_file1": {
+            "action_arguments": {
+              "newname": "valid pairs in juicebox format MAPQ filtered"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "out_file1"
+          }
+        },
+        "tool_id": "Filter1",
+        "tool_state": "{\"cond\": {\"__class__\": \"ConnectedValue\"}, \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": null,
+        "type": "tool",
+        "uuid": "544efa8d-dd67-4fe3-8674-97d5ad036887",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "valid pairs in juicebox format MAPQ filtered",
+            "output_name": "out_file1",
+            "uuid": "0de238d6-3039-4024-a777-3ae3510c1250"
+          }
+        ]
+      }
+    },
+    "tags": [
+      "Hi-C"
+    ],
+    "uuid": "edfafd3e-895c-4283-be0a-ebc5b0fb8dc8",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "Hi-C_fastqToPairs_hic (release v0.1)",
+      "annotation": "This workflow take as input a collection of paired fastq. It uses HiCUP to go from fastq to validPair file. First truncate the fastq using the cutting sequence to guess the fill-in. Then map the truncated fastq. Then asign to fragment and filter the self-ligated and dandling ends or internal (it can also filter for the size). Then it removes the duplicates. Convert the output to be compatible with juicebox or cooler. Finally filter for mapping quality",
+      "format_version": "0.1",
+      "uuid": "edfafd3e-895c-4283-be0a-ebc5b0fb8dc8",
+      "version": 1,
+      "tags": [
+        "Hi-C"
+      ],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-1964-4960",
+          "name": "Lucille Delisle"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": "PE fastq input",
+        "annotation": "Should be a paired collection with Hi-C fastqs",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+        "position": {
+          "left": 0.0,
+          "top": 12.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "genome name",
+        "annotation": "use the bowtie2 indexes to display choices",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 39.0,
+          "top": 82.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Restriction enzyme",
+        "annotation": "Restriction enzyme used e.g. A^GATCT,BglII. Some Hi-C protocols may use several enzymes. To specify several enzymes, use the ':' to separate them e.g. A^GATCT,BglII:A^AGCTT,HindIII:^GATC,DpnII. HiCUP accomodates N in restriction enzyme: e.g. :A^ANCTT",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 58.0,
+          "top": 155.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "No fill-in",
+        "annotation": "Hi-C protocol did NOT include a fill-in of sticky ends prior to re-ligation and therefore reads shall be truncated at the restriction site sequence",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "position": {
+          "left": 97.5,
+          "top": 248.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "minimum MAPQ",
+        "annotation": "can be set to 0 for no filtering",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 131.0,
+          "top": 320.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "Hicup Pipeline",
+        "label": "HiCUP",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup_hicup/hicup_hicup/0.8.3+galaxy0",
+        "tool_version": null,
+        "tool_state": "{\"advanced_options\": {\"re2\": \"\", \"longest\": \"\", \"shortest\": \"\", \"nofill\": {\"__class__\": \"ConnectedValue\"}}, \"genome\": {\"__class__\": \"ConnectedValue\"}, \"library\": {\"type\": \"paired_collection\", \"__current_case__\": 1, \"input_1\": {\"__class__\": \"ConnectedValue\"}}, \"re1\": {\"__class__\": \"ConnectedValue\"}, \"reference_genome\": {\"source\": \"indexed\", \"__current_case__\": 0, \"index\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 356.5,
+          "top": 0.0
+        },
+        "input_connections": {
+          "advanced_options|nofill": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "genome": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "library|input_1": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "re1": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "reference_genome|index": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "intermediate_results",
+            "type": "input"
+          },
+          {
+            "name": "hicup_results",
+            "type": "html"
+          },
+          {
+            "name": "hicup_report",
+            "type": "tabular"
+          },
+          {
+            "name": "dataset_hicup",
+            "type": "qname_sorted.bam"
+          },
+          {
+            "name": "digester_file",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "Compose text parameter value",
+        "label": "build filtering rule for MAPQ",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": null,
+        "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"(c10>=\"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"integer\", \"__current_case__\": 1, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 2, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \") and (c11>=\"}}, {\"__index__\": 3, \"param_type\": {\"select_param_type\": \"integer\", \"__current_case__\": 1, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 4, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \")\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 746.5,
+          "top": 392.5
+        },
+        "input_connections": {
+          "components_1|param_type|component_value": {
+            "id": 4,
+            "output_name": "output"
+          },
+          "components_3|param_type|component_value": {
+            "id": 4,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out1",
+            "type": "expression.json"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "Hicup to juicer converter",
+        "label": "valid pairs in juicebox format",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup2juicer/hicup2juicer/0.8.3+galaxy0",
+        "tool_version": null,
+        "tool_state": "{\"input_file\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 637.5,
+          "top": 197.5
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 5,
+            "output_name": "dataset_hicup"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "Filter",
+        "label": "valid pairs in juicebox format MAPQ filtered",
+        "annotation": "",
+        "tool_id": "Filter1",
+        "tool_version": null,
+        "tool_state": "{\"cond\": {\"__class__\": \"ConnectedValue\"}, \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1041.0,
+          "top": 304.5
+        },
+        "input_connections": {
+          "cond": {
+            "id": 6,
+            "output_name": "out1"
+          },
+          "input": {
+            "id": 7,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup_hicup/hicup_hicup/0.8.3+galaxy0",
+        "tool_version": null,
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+        "tool_version": null,
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup2juicer/hicup2juicer/0.8.3+galaxy0",
+        "tool_version": null,
+        "step_id": "7"
+      },
+      {
+        "tool_id": "Filter1",
+        "tool_version": null,
+        "step_id": "8"
+      }
+    ],
+    "inputs": [],
+    "outputs": [
+      {
+        "step_id": "0",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "1",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "2",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "3",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "4",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "5",
+        "output_name": "hicup_results",
+        "label": "HiCUP report (HTML)"
+      },
+      {
+        "step_id": "5",
+        "output_name": "hicup_report",
+        "label": "HiCUP report (tabular)"
+      },
+      {
+        "step_id": "7",
+        "output_name": "output",
+        "label": "valid pairs in juicebox format"
+      },
+      {
+        "step_id": "8",
+        "output_name": "out_file1",
+        "label": "valid pairs in juicebox format MAPQ filtered"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "advanced_options|nofill"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "genome"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "library|input_1"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "re1"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "reference_genome|index"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "components_1|param_type|component_value"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "components_3|param_type|component_value"
+      },
+      {
+        "from_step": 5,
+        "from_output": "dataset_hicup",
+        "to_step": "7",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 6,
+        "from_output": "out1",
+        "to_step": "8",
+        "to_input": "cond"
+      },
+      {
+        "from_step": 7,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "input"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:49:21.173917"
+}

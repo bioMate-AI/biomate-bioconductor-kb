@@ -1,0 +1,52 @@
+{
+  "databases": [
+    {
+      "tool_id": "biomni/database/query_cosmic",
+      "name": "Query Cosmic",
+      "category": "Data Source",
+      "description": "Query COSMIC (Catalogue of Somatic Mutations in Cancer) database for somatic mutations, Cancer Gene Census, mutational signatures, and gene fusions in cancer research.",
+      "inputs": "{\"query_type\": {\"type\": \"select\", \"options\": [\"mutations\", \"gene_census\", \"signatures\", \"fusions\", \"resistance\"]}, \"gene\": {\"type\": \"text\", \"optional\": true}, \"cancer_type\": {\"type\": \"text\", \"optional\": true}, \"assembly\": {\"type\": \"select\", \"options\": [\"GRCh38\", \"GRCh37\"], \"default\": \"GRCh38\"}}",
+      "outputs": "{\"mutations\": \"tsv\", \"vcf\": \"vcf\", \"gene_census\": \"csv\"}",
+      "requirements": "[{\"name\": \"requests\", \"type\": \"pip\"}, {\"name\": \"pandas\", \"type\": \"pip\"}]",
+      "help_text": "Requires COSMIC account (free for academic users). Register at https://cancer.sanger.ac.uk/cosmic/register",
+      "scientific_context": "Cancer genomics, precision oncology, somatic mutation analysis, drug resistance research",
+      "tags": "[\"cancer\", \"mutations\", \"oncology\", \"somatic\"]"
+    },
+    {
+      "tool_id": "biomni/database/query_clinpgx",
+      "name": "Query ClinPGx",
+      "category": "Data Source",
+      "description": "Query ClinPGx database for pharmacogenomics annotations linking genetic variants to drug response phenotypes.",
+      "inputs": "{\"gene\": {\"type\": \"text\"}, \"drug\": {\"type\": \"text\", \"optional\": true}, \"variant\": {\"type\": \"text\", \"optional\": true}}",
+      "outputs": "{\"annotations\": \"json\", \"table\": \"tsv\"}",
+      "requirements": "[{\"name\": \"requests\", \"type\": \"pip\"}, {\"name\": \"pandas\", \"type\": \"pip\"}]",
+      "help_text": "No authentication required. Data from PharmGKB and CPIC guidelines.",
+      "scientific_context": "Pharmacogenomics, drug metabolism, personalized medicine, clinical genetics",
+      "tags": "[\"pharmacogenomics\", \"drug-response\", \"clinical\", \"variants\"]"
+    },
+    {
+      "tool_id": "biomni/database/query_uspto",
+      "name": "Query USPTO",
+      "category": "Data Source",
+      "description": "Search USPTO patent database for chemical compounds, drug patents, and biotechnology intellectual property.",
+      "inputs": "{\"query\": {\"type\": \"text\"}, \"search_type\": {\"type\": \"select\", \"options\": [\"keyword\", \"patent_number\", \"assignee\", \"chemical\"]}, \"date_range\": {\"type\": \"text\", \"optional\": true}}",
+      "outputs": "{\"patents\": \"json\", \"summary\": \"csv\"}",
+      "requirements": "[{\"name\": \"requests\", \"type\": \"pip\"}, {\"name\": \"pandas\", \"type\": \"pip\"}]",
+      "help_text": "Uses USPTO Open Data Portal API. No authentication required for basic queries.",
+      "scientific_context": "Drug discovery, intellectual property, freedom-to-operate analysis, competitive intelligence",
+      "tags": "[\"patents\", \"IP\", \"drug-discovery\", \"chemicals\"]"
+    },
+    {
+      "tool_id": "biomni/database/query_zinc",
+      "name": "Query ZINC",
+      "category": "Data Source",
+      "description": "Query ZINC database of commercially available compounds for virtual screening and drug discovery.",
+      "inputs": "{\"query_type\": {\"type\": \"select\", \"options\": [\"smiles\", \"substructure\", \"similarity\", \"property_filter\"]}, \"smiles\": {\"type\": \"text\", \"optional\": true}, \"mw_range\": {\"type\": \"text\", \"optional\": true}, \"logp_range\": {\"type\": \"text\", \"optional\": true}}",
+      "outputs": "{\"compounds\": \"sdf\", \"table\": \"csv\", \"smiles\": \"smi\"}",
+      "requirements": "[{\"name\": \"requests\", \"type\": \"pip\"}, {\"name\": \"pandas\", \"type\": \"pip\"}, {\"name\": \"rdkit\", \"type\": \"pip\"}]",
+      "help_text": "Access 750M+ purchasable compounds. Subset downloads available without authentication.",
+      "scientific_context": "Virtual screening, lead discovery, compound libraries, drug-like properties",
+      "tags": "[\"compounds\", \"virtual-screening\", \"drug-discovery\", \"chemicals\"]"
+    }
+  ]
+}

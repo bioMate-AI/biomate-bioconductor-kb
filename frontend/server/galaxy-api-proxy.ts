@@ -20,10 +20,12 @@ import type {
   GalaxyWorkflowInvocation,
   GalaxyJob,
   GalaxyAPIError,
+  WorkflowGenerationRequest,
+  WorkflowGenerationResponse,
 } from '../shared/galaxy-types';
 
 export class GalaxyAPIProxy {
-  private client: AxiosInstance;
+  public client: AxiosInstance;
   private galaxyUrl: string;
   private apiKey?: string;
 
@@ -221,12 +223,53 @@ export class GalaxyAPIProxy {
   }
 
   /**
+   * Normalize tool ID from AI database format to Galaxy format.
+   * AI database uses: biomni/database/query_uniprot
+   * Galaxy uses: biomni_database_query_uniprot
+   */
+  private normalizeToolId(toolId: string): string {
+    if (toolId.startsWith('biomni/')) {
+      return toolId.replace(/\//g, '_');
+    }
+    return toolId;
+  }
+
+  /**
+   * Normalize all tool IDs in workflow steps.
+   * Converts biomni/x/y format to biomni_x_y format that Galaxy expects.
+   */
+  private normalizeWorkflowToolIds(workflow: any): any {
+    if (!workflow?.steps) return workflow;
+
+    const normalizedWorkflow = { ...workflow };
+    const normalizedSteps: Record<string, any> = {};
+
+    for (const [stepId, step] of Object.entries(workflow.steps as Record<string, any>)) {
+      const normalizedStep = { ...step };
+      if (normalizedStep.tool_id) {
+        const originalId = normalizedStep.tool_id;
+        normalizedStep.tool_id = this.normalizeToolId(normalizedStep.tool_id);
+        if (originalId !== normalizedStep.tool_id) {
+          console.log(`[GalaxyAPIProxy] Normalized tool_id: ${originalId} -> ${normalizedStep.tool_id}`);
+        }
+      }
+      normalizedSteps[stepId] = normalizedStep;
+    }
+
+    normalizedWorkflow.steps = normalizedSteps;
+    return normalizedWorkflow;
+  }
+
+  /**
    * Create new workflow
    * Maps to Galaxy's native POST /api/workflows
    */
   async createWorkflow(workflow: Partial<GalaxyWorkflow>): Promise<GalaxyWorkflow> {
+    // Normalize tool IDs before sending to Galaxy
+    const normalizedWorkflow = this.normalizeWorkflowToolIds(workflow);
+
     const response = await this.client.post<GalaxyWorkflow>('/api/workflows', {
-      workflow: workflow
+      workflow: normalizedWorkflow
     });
     return response.data;
   }
@@ -254,6 +297,10 @@ export class GalaxyAPIProxy {
       {
         inputs,
         parameters,
+        // Allow workflow invocation even when tool_state has upgrade messages.
+        // This is needed because AI-generated workflows may not have all parameters
+        // explicitly set, relying on Galaxy's default values.
+        allow_tool_state_corrections: true,
       }
     );
     return response.data;
@@ -262,10 +309,11 @@ export class GalaxyAPIProxy {
   /**
    * Get workflow invocation status
    * Maps to Galaxy's native GET /api/workflows/{workflow_id}/invocations/{invocation_id}
+   * Includes step_details=true to get job state information
    */
   async getInvocation(workflowId: string, invocationId: string): Promise<GalaxyWorkflowInvocation> {
     const response = await this.client.get<GalaxyWorkflowInvocation>(
-      `/api/workflows/${workflowId}/invocations/${invocationId}`
+      `/api/workflows/${workflowId}/invocations/${invocationId}?step_details=true`
     );
     return response.data;
   }
@@ -371,6 +419,39 @@ export class GalaxyAPIProxy {
   }
 
   /**
+   * Upload a dataset from a URL - Galaxy fetches the file directly
+   * This is faster for large files as no browser upload is required
+   * Supports HTTP, HTTPS, FTP, and S3 URLs
+   */
+  async uploadFromUrl(url: string, historyId: string, fileName?: string): Promise<string> {
+    console.log(`[GalaxyAPIProxy] Uploading from URL: ${url} to history ${historyId}`);
+
+    // Galaxy's paste/fetch upload API
+    // Uses the same endpoint as regular uploads but with 'paste' target
+    const response = await this.client.post(
+      `/api/histories/${historyId}/contents`,
+      {
+        type: 'file',
+        source: 'url',
+        url: url,
+        name: fileName || url.split('/').pop() || 'imported-file',
+        file_type: 'auto',
+        space_to_tab: false,
+        to_posix_lines: true,
+      }
+    );
+
+    // Galaxy may return the dataset ID directly or in a job structure
+    if (response.data.id) {
+      return response.data.id;
+    }
+    if (response.data.outputs && response.data.outputs.length > 0) {
+      return response.data.outputs[0].id;
+    }
+    throw new Error('No dataset ID returned from URL import');
+  }
+
+  /**
    * Get datasets in a history
    */
   async getHistoryDatasets(historyId: string): Promise<any[]> {
@@ -395,7 +476,15 @@ export class GalaxyAPIProxy {
    */
   async getJobOutputs(jobId: string): Promise<any[]> {
     const job = await this.getJob(jobId);
-    return job.outputs || [];
+    // outputs can be an array or a Record - convert to array if needed
+    const outputs = job.outputs;
+    if (Array.isArray(outputs)) {
+      return outputs;
+    }
+    if (outputs && typeof outputs === 'object') {
+      return Object.values(outputs);
+    }
+    return [];
   }
 
   // ============================================================================
@@ -445,6 +534,47 @@ export class GalaxyAPIProxy {
       return {
         success: false,
         error: error.message || 'Workflow generation failed',
+      };
+    }
+  }
+
+  /**
+   * Generate workflow using multi-agent system (Python backend)
+   * Maps to /api/ai_assistant/generate_workflow_multi_agent
+   *
+   * Uses 3-agent architecture:
+   * 1. DomainRouter - Routes to domains (NO LLM, fast)
+   * 2. DomainSpecialists - Parallel domain-specific recommendations
+   * 3. WorkflowAssembler - Synthesizes and validates workflow
+   */
+  async generateWorkflowMultiAgent(request: WorkflowGenerationRequest): Promise<WorkflowGenerationResponse> {
+    try {
+      const backendRequest = {
+        request_text: request.user_intent,
+        available_datasets: request.datasets || [],
+        context: {},
+        constraints: {}
+      };
+
+      console.log('[GalaxyAPIProxy] Calling multi-agent AI endpoint');
+      console.log('[GalaxyAPIProxy] User intent:', request.user_intent);
+
+      const response = await this.client.post<WorkflowGenerationResponse>(
+        '/api/ai_assistant/generate_workflow_multi_agent',
+        backendRequest
+      );
+
+      console.log('[GalaxyAPIProxy] Multi-agent workflow generated');
+      console.log('[GalaxyAPIProxy] Source:', response.data.source);
+      console.log('[GalaxyAPIProxy] Confidence:', response.data.confidence);
+      console.log('[GalaxyAPIProxy] Domain sources:', (response.data as any).domain_sources);
+
+      return response.data;
+    } catch (error: any) {
+      console.error('[GalaxyAPIProxy] Multi-agent workflow generation failed:', error.message);
+      return {
+        success: false,
+        error: error.message || 'Multi-agent workflow generation failed',
       };
     }
   }
@@ -513,6 +643,384 @@ export class GalaxyAPIProxy {
     } catch (error) {
       return false;
     }
+  }
+
+  // ============================================================================
+  // Advanced Galaxy Capabilities
+  // ============================================================================
+
+  // --- Workflow Reports ---
+
+  /**
+   * Get workflow report (auto-generated analysis summary)
+   * Galaxy can generate markdown reports from workflow invocations
+   * Reports include: step outputs, visualizations, parameters used
+   */
+  async getWorkflowReport(workflowId: string, invocationId: string, format: 'markdown' | 'html' = 'markdown'): Promise<{
+    report: string;
+    format: string;
+    generated_at: string;
+  }> {
+    console.log(`[GalaxyAPIProxy] Getting workflow report for invocation ${invocationId}`);
+
+    const response = await this.client.get(
+      `/api/workflows/${workflowId}/invocations/${invocationId}/report`,
+      {
+        params: { format },
+        headers: { 'Accept': format === 'html' ? 'text/html' : 'text/markdown' }
+      }
+    );
+
+    return {
+      report: typeof response.data === 'string' ? response.data : JSON.stringify(response.data),
+      format,
+      generated_at: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Configure workflow to generate reports
+   * Sets up report template in workflow definition
+   */
+  async configureWorkflowReport(workflowId: string, reportConfig: {
+    title?: string;
+    include_outputs?: boolean;
+    include_parameters?: boolean;
+    include_visualizations?: boolean;
+    custom_sections?: Array<{ name: string; markdown: string }>;
+  }): Promise<any> {
+    const response = await this.client.put(
+      `/api/workflows/${workflowId}`,
+      {
+        report: {
+          markdown: this.generateReportTemplate(reportConfig),
+        }
+      }
+    );
+    return response.data;
+  }
+
+  private generateReportTemplate(config: {
+    title?: string;
+    include_outputs?: boolean;
+    include_parameters?: boolean;
+    include_visualizations?: boolean;
+    custom_sections?: Array<{ name: string; markdown: string }>;
+  }): string {
+    let template = `# ${config.title || 'Workflow Analysis Report'}\n\n`;
+
+    if (config.include_parameters !== false) {
+      template += `## Parameters Used\n\n\`\`\`galaxy\nworkflow_parameters()\n\`\`\`\n\n`;
+    }
+
+    if (config.include_outputs !== false) {
+      template += `## Outputs\n\n\`\`\`galaxy\nworkflow_outputs()\n\`\`\`\n\n`;
+    }
+
+    if (config.include_visualizations !== false) {
+      template += `## Visualizations\n\n\`\`\`galaxy\nworkflow_visualizations()\n\`\`\`\n\n`;
+    }
+
+    if (config.custom_sections) {
+      for (const section of config.custom_sections) {
+        template += `## ${section.name}\n\n${section.markdown}\n\n`;
+      }
+    }
+
+    return template;
+  }
+
+  // --- Dataset Collections ---
+
+  /**
+   * Create a dataset collection (list, paired, list:paired)
+   * Enables batch processing of multiple files as a single input
+   *
+   * @param historyId - History to create collection in
+   * @param name - Collection name
+   * @param collectionType - 'list', 'paired', or 'list:paired'
+   * @param elements - Dataset IDs to include
+   */
+  async createDatasetCollection(
+    historyId: string,
+    name: string,
+    collectionType: 'list' | 'paired' | 'list:paired',
+    elements: Array<{
+      id: string;
+      name?: string;
+      src?: 'hda' | 'ldda' | 'hdca';
+    }>
+  ): Promise<{
+    id: string;
+    name: string;
+    collection_type: string;
+    element_count: number;
+  }> {
+    console.log(`[GalaxyAPIProxy] Creating ${collectionType} collection with ${elements.length} elements`);
+
+    const elementIdentifiers = elements.map((el, idx) => ({
+      id: el.id,
+      name: el.name || `element_${idx}`,
+      src: el.src || 'hda',
+    }));
+
+    const response = await this.client.post(
+      `/api/histories/${historyId}/contents`,
+      {
+        type: 'dataset_collection',
+        name,
+        collection_type: collectionType,
+        element_identifiers: elementIdentifiers,
+      }
+    );
+
+    return {
+      id: response.data.id,
+      name: response.data.name,
+      collection_type: response.data.collection_type,
+      element_count: response.data.element_count || elements.length,
+    };
+  }
+
+  /**
+   * Create paired collection from forward/reverse reads
+   * Automatically pairs files based on naming conventions (_R1/_R2, _1/_2, etc.)
+   */
+  async createPairedCollection(
+    historyId: string,
+    name: string,
+    forwardReads: Array<{ id: string; name: string }>,
+    reverseReads: Array<{ id: string; name: string }>
+  ): Promise<{
+    id: string;
+    name: string;
+    pairs: number;
+  }> {
+    console.log(`[GalaxyAPIProxy] Creating paired collection with ${forwardReads.length} pairs`);
+
+    if (forwardReads.length !== reverseReads.length) {
+      throw new Error('Forward and reverse read counts must match');
+    }
+
+    const pairs = forwardReads.map((fwd, idx) => ({
+      collection_type: 'paired',
+      src: 'new_collection',
+      name: fwd.name.replace(/_R1|_1|\.R1|\.1/, ''),
+      element_identifiers: [
+        { id: fwd.id, name: 'forward', src: 'hda' },
+        { id: reverseReads[idx].id, name: 'reverse', src: 'hda' },
+      ],
+    }));
+
+    const response = await this.client.post(
+      `/api/histories/${historyId}/contents`,
+      {
+        type: 'dataset_collection',
+        name,
+        collection_type: 'list:paired',
+        element_identifiers: pairs,
+      }
+    );
+
+    return {
+      id: response.data.id,
+      name: response.data.name,
+      pairs: forwardReads.length,
+    };
+  }
+
+  /**
+   * Auto-pair datasets in history based on naming patterns
+   * Discovers matching R1/R2 or _1/_2 patterns automatically
+   */
+  async autoPairDatasets(historyId: string): Promise<{
+    paired: Array<{ forward: string; reverse: string; name: string }>;
+    unpaired: string[];
+  }> {
+    const datasets = await this.getHistoryDatasets(historyId);
+
+    const paired: Array<{ forward: string; reverse: string; name: string }> = [];
+    const used = new Set<string>();
+
+    // Common paired-end patterns
+    const forwardPatterns = [/_R1/, /_1(?=\.)/, /\.R1/, /\.1(?=\.)/];
+    const reversePatterns = [/_R2/, /_2(?=\.)/, /\.R2/, /\.2(?=\.)/];
+
+    for (const dataset of datasets) {
+      if (used.has(dataset.id)) continue;
+
+      for (let i = 0; i < forwardPatterns.length; i++) {
+        if (forwardPatterns[i].test(dataset.name)) {
+          // This is a forward read, find its pair
+          const reverseName = dataset.name
+            .replace(forwardPatterns[i], reversePatterns[i].source.replace(/[\\()]/g, ''));
+
+          const reverseDataset = datasets.find(
+            d => d.name === reverseName ||
+                 d.name.replace(reversePatterns[i], '') === dataset.name.replace(forwardPatterns[i], '')
+          );
+
+          if (reverseDataset && !used.has(reverseDataset.id)) {
+            paired.push({
+              forward: dataset.id,
+              reverse: reverseDataset.id,
+              name: dataset.name.replace(forwardPatterns[i], ''),
+            });
+            used.add(dataset.id);
+            used.add(reverseDataset.id);
+            break;
+          }
+        }
+      }
+    }
+
+    const unpaired = datasets
+      .filter(d => !used.has(d.id))
+      .map(d => d.id);
+
+    return { paired, unpaired };
+  }
+
+  // --- Deferred Datasets ---
+
+  /**
+   * Create a deferred dataset (URL reference without immediate download)
+   * Galaxy will fetch the data only when needed during workflow execution
+   * Useful for large files or external databases
+   */
+  async createDeferredDataset(
+    historyId: string,
+    url: string,
+    name?: string,
+    fileType?: string
+  ): Promise<{
+    id: string;
+    state: string;
+    deferred: boolean;
+  }> {
+    console.log(`[GalaxyAPIProxy] Creating deferred dataset from URL: ${url}`);
+
+    const response = await this.client.post(
+      `/api/histories/${historyId}/contents`,
+      {
+        type: 'file',
+        source: 'url',
+        url: url,
+        name: name || url.split('/').pop() || 'deferred-dataset',
+        file_type: fileType || 'auto',
+        deferred: true, // Key flag - don't fetch until needed
+      }
+    );
+
+    return {
+      id: response.data.id,
+      state: response.data.state || 'deferred',
+      deferred: true,
+    };
+  }
+
+  /**
+   * Materialize a deferred dataset (trigger actual download)
+   * Call this when you need the data to be available
+   */
+  async materializeDeferredDataset(datasetId: string): Promise<{
+    id: string;
+    state: string;
+    size?: number;
+  }> {
+    console.log(`[GalaxyAPIProxy] Materializing deferred dataset: ${datasetId}`);
+
+    const response = await this.client.put(
+      `/api/datasets/${datasetId}`,
+      { action: 'materialize' }
+    );
+
+    return {
+      id: response.data.id,
+      state: response.data.state,
+      size: response.data.file_size,
+    };
+  }
+
+  // --- Interactive Tools ---
+
+  /**
+   * Launch an interactive tool (Jupyter, RStudio, etc.)
+   * Returns entry point URL for the interactive session
+   */
+  async launchInteractiveTool(
+    toolId: string,
+    historyId: string,
+    inputs?: Record<string, any>
+  ): Promise<{
+    job_id: string;
+    entry_point_url?: string;
+    state: string;
+  }> {
+    console.log(`[GalaxyAPIProxy] Launching interactive tool: ${toolId}`);
+
+    const response = await this.client.post('/api/tools', {
+      tool_id: toolId,
+      history_id: historyId,
+      inputs: inputs || {},
+    });
+
+    // Interactive tools may return entry point URL
+    return {
+      job_id: response.data.id || response.data.jobs?.[0]?.id,
+      entry_point_url: response.data.entry_point_url,
+      state: response.data.state || 'queued',
+    };
+  }
+
+  /**
+   * Get active interactive tool sessions
+   */
+  async getActiveInteractiveSessions(): Promise<Array<{
+    job_id: string;
+    tool_id: string;
+    entry_point_url: string;
+    created: string;
+  }>> {
+    const response = await this.client.get('/api/entry_points?active=true');
+    return response.data;
+  }
+
+  // --- Workflow Subworkflows ---
+
+  /**
+   * Extract a subworkflow from a larger workflow
+   * Useful for creating reusable components
+   */
+  async extractSubworkflow(
+    workflowId: string,
+    stepIds: number[],
+    name: string
+  ): Promise<{ id: string; name: string }> {
+    console.log(`[GalaxyAPIProxy] Extracting subworkflow from steps: ${stepIds.join(', ')}`);
+
+    const workflow = await this.getWorkflow(workflowId);
+
+    // Extract specified steps
+    const subSteps: Record<string, any> = {};
+    let newStepId = 0;
+
+    for (const stepId of stepIds) {
+      if (workflow.steps && workflow.steps[stepId]) {
+        subSteps[newStepId] = { ...workflow.steps[stepId], id: newStepId };
+        newStepId++;
+      }
+    }
+
+    // Create new workflow with extracted steps
+    const subWorkflow = {
+      name,
+      steps: subSteps,
+      annotation: `Extracted from workflow ${workflowId}`,
+    };
+
+    const response = await this.client.post('/api/workflows', { workflow: subWorkflow });
+    return { id: response.data.id, name };
   }
 }
 

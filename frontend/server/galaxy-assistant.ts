@@ -20,7 +20,7 @@ import type {
   BioMNIDataset,
   WorkflowGenerationRequest,
   WorkflowGenerationResponse,
-} from '../../shared/galaxy-types';
+} from '../shared/galaxy-types';
 
 export interface GalaxyAssistantOptions {
   anthropicApiKey: string;
@@ -107,22 +107,41 @@ export class GalaxyAssistant {
     const intent = await this.analyzeIntent(message, context);
     console.log('[GalaxyAssistant] Intent analysis:', intent);
 
-    // Step 2: Search for relevant tools (with user patterns)
+    // Steps 2 & 3: Search for tools and datasets IN PARALLEL
+    // These are independent operations that can run concurrently
     let recommendedTools: ToolRecommendation[] = [];
+    let recommendedDatasets: DatasetRecommendation[] = [];
     let toolSearchUsed = false;
+    let datasetRAGUsed = false;
+
+    const searchPromises: Promise<void>[] = [];
+
     if (intent.needsToolSearch) {
-      recommendedTools = await this.searchRelevantTools(message, intent.keywords, context.userId);
-      toolSearchUsed = true;
-      console.log(`[GalaxyAssistant] Found ${recommendedTools.length} relevant tools`);
+      searchPromises.push(
+        this.searchRelevantTools(message, intent.keywords, context.userId)
+          .then(tools => {
+            recommendedTools = tools;
+            toolSearchUsed = true;
+            console.log(`[GalaxyAssistant] Found ${tools.length} relevant tools`);
+          })
+      );
     }
 
-    // Step 3: Search for relevant datasets
-    let recommendedDatasets: DatasetRecommendation[] = [];
-    let datasetRAGUsed = false;
     if (intent.needsDatasets) {
-      recommendedDatasets = await this.searchRelevantDatasets(message, intent.keywords);
-      datasetRAGUsed = true;
-      console.log(`[GalaxyAssistant] Found ${recommendedDatasets.length} relevant datasets`);
+      searchPromises.push(
+        this.searchRelevantDatasets(message, intent.keywords)
+          .then(datasets => {
+            recommendedDatasets = datasets;
+            datasetRAGUsed = true;
+            console.log(`[GalaxyAssistant] Found ${datasets.length} relevant datasets`);
+          })
+      );
+    }
+
+    // Wait for all parallel searches to complete
+    if (searchPromises.length > 0) {
+      await Promise.all(searchPromises);
+      console.log('[GalaxyAssistant] Parallel search completed');
     }
 
     // Step 4: Determine if workflow generation is needed

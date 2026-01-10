@@ -154,7 +154,7 @@ RUN micromamba run -n biotools pip install --no-cache-dir \
 # Literature & web
 RUN micromamba run -n biotools pip install --no-cache-dir \
     arxiv PyPDF2 beautifulsoup4 \
-    anthropic langchain langchain-core || true
+    anthropic langchain langchain-core langchain-anthropic langchain-ollama || true
 
 # ML/Deep Learning
 RUN micromamba run -n biotools pip install --no-cache-dir \

@@ -1,0 +1,977 @@
+{
+  "workflow_id": "3edd2957ecd26d6c",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "3edd2957ecd26d6c",
+    "latest_workflow_id": "e2148ba3dc57970e",
+    "name": "Mass spectrometry: GCMS with metaMS (release v0.1)",
+    "create_time": "2024-10-31T00:14:22.862274",
+    "update_time": "2025-04-25T14:08:21.982122",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [
+      "metabolomics",
+      "MS",
+      "workflow4metabolomics",
+      "GC-MS",
+      "GTN",
+      "metaMS"
+    ],
+    "latest_workflow_uuid": "8ebd8921-ab82-41f8-a363-9d56af1f0ad0",
+    "creator_deleted": false,
+    "annotations": [
+      "This workflow is composed with the XCMS tool R package (Smith, C.A. 2006) able to extract and the metaMS R package (Wehrens, R 2014) for the field of untargeted metabolomics. \n\nhttps://training.galaxyproject.org/training-material/topics/metabolomics/tutorials/gcms/tutorial.html"
+    ],
+    "url": "/api/workflows/3edd2957ecd26d6c",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 9,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "This workflow is composed with the XCMS tool R package (Smith, C.A. 2006) able to extract and the metaMS R package (Wehrens, R 2014) for the field of untargeted metabolomics. \n\nhttps://training.galaxyproject.org/training-material/topics/metabolomics/tutorials/gcms/tutorial.html",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Organization",
+        "image": "https://raw.githubusercontent.com/workflow4metabolomics/workflow4metabolomics/master/images/logo/logo_w4m-0.1-black-orange.png",
+        "name": "workflow4metabolomics",
+        "url": "https://workflow4metabolomics.org/"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "Mass spectrometry: GCMS with metaMS (release v0.1)",
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "Mass-spectrometry Dataset Collection"
+          }
+        ],
+        "label": "Mass-spectrometry Dataset Collection",
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 15,
+          "top": 101
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "2b8859b3-09e3-474c-8186-0efbb85017d8",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "sampleMetadata"
+          }
+        ],
+        "label": "sampleMetadata",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 314
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "7810d15a-6f66-40c4-a7cd-c5d34846a344",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/msnbase_readmsdata/msnbase_readmsdata/2.16.1+galaxy2",
+        "errors": null,
+        "id": 2,
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool MSnbase readMSData",
+            "name": "input"
+          }
+        ],
+        "label": null,
+        "name": "MSnbase readMSData",
+        "outputs": [
+          {
+            "name": "xsetRData",
+            "type": "rdata.msnbase.raw"
+          }
+        ],
+        "position": {
+          "left": 295,
+          "top": 80
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/msnbase_readmsdata/msnbase_readmsdata/2.16.1+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "6de175c1f6ef",
+          "name": "msnbase_readmsdata",
+          "owner": "lecorguille",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input\": {\"__class__\": \"RuntimeValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.16.1+galaxy2",
+        "type": "tool",
+        "uuid": "bde8cf76-9dc8-4222-8958-1227870eb0ba",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_xcmsset/abims_xcms_xcmsSet/3.12.0+galaxy0",
+        "errors": null,
+        "id": 3,
+        "input_connections": {
+          "image": {
+            "id": 2,
+            "output_name": "xsetRData"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "xcms findChromPeaks (xcmsSet)",
+        "outputs": [
+          {
+            "name": "xsetRData",
+            "type": "rdata.xcms.findchrompeaks"
+          },
+          {
+            "name": "log",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 575,
+          "top": 311
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_xcmsset/abims_xcms_xcmsSet/3.12.0+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "b02d1992a43a",
+          "name": "xcms_xcmsset",
+          "owner": "lecorguille",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"file_load_section\": {\"file_load_conditional\": {\"file_load_select\": \"no\", \"__current_case__\": 0}}, \"filterSection\": {\"filterAcquisitionNum\": \"\", \"filterRt\": \"\", \"filterMz\": \"\"}, \"image\": {\"__class__\": \"ConnectedValue\"}, \"methods\": {\"method\": \"MatchedFilter\", \"__current_case__\": 1, \"fwhm\": \"5\", \"binSize\": \"0.5\", \"MatchedFilterAdv\": {\"impute_cond\": {\"impute\": \"none\", \"__current_case__\": 0}, \"sigma\": null, \"max\": \"500\", \"snthresh\": \"2\", \"steps\": \"2\", \"mzdiff\": \"0.5\", \"peaklist\": false}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "3.12.0+galaxy0",
+        "type": "tool",
+        "uuid": "8cbb571b-1481-4e88-8907-0d424431da57",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_plot_chromatogram/xcms_plot_chromatogram/3.12.0+galaxy0",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "images": {
+            "id": 3,
+            "output_name": "xsetRData"
+          },
+          "sampleMetadata": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "xcms plot chromatogram",
+        "outputs": [
+          {
+            "name": "ticsPdf",
+            "type": "pdf"
+          },
+          {
+            "name": "bpisPdf",
+            "type": "pdf"
+          }
+        ],
+        "position": {
+          "left": 915,
+          "top": 0
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_plot_chromatogram/xcms_plot_chromatogram/3.12.0+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "024974037c4e",
+          "name": "xcms_plot_chromatogram",
+          "owner": "lecorguille",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"rdata.xcms.findchrompeaks\", \"chromInfo\": \"/shared/ifbstor1/galaxy/mutable-config/tool-data/shared/ucsc/chrom/?.len\", \"file_load_section\": {\"file_load_conditional\": {\"file_load_select\": \"no\", \"__current_case__\": 0}}, \"images\": {\"__class__\": \"ConnectedValue\"}, \"sampleMetadata\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "3.12.0+galaxy0",
+        "type": "tool",
+        "uuid": "cbb6bd8c-fb21-41c2-858f-03e02c88aff7",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "bpisPdf",
+            "uuid": "b694a22f-b168-4f30-a747-411d80a41bda"
+          },
+          {
+            "label": null,
+            "output_name": "ticsPdf",
+            "uuid": "7e65d226-3ab8-4d82-8ab5-010f4d5a7be8"
+          }
+        ]
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_merge/xcms_merge/3.12.0+galaxy0",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "images": {
+            "id": 3,
+            "output_name": "xsetRData"
+          },
+          "sampleMetadata": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "xcms findChromPeaks Merger",
+        "outputs": [
+          {
+            "name": "xsetRData",
+            "type": "rdata.xcms.findchrompeaks"
+          }
+        ],
+        "position": {
+          "left": 861,
+          "top": 521
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_merge/xcms_merge/3.12.0+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "5bd125a3f3b0",
+          "name": "xcms_merge",
+          "owner": "lecorguille",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"rdata.xcms.findchrompeaks\", \"chromInfo\": \"/shared/ifbstor1/galaxy/mutable-config/tool-data/shared/ucsc/chrom/?.len\", \"file_load_section\": {\"file_load_conditional\": {\"file_load_select\": \"no\", \"__current_case__\": 0}}, \"images\": {\"__class__\": \"ConnectedValue\"}, \"sampleMetadata\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "3.12.0+galaxy0",
+        "type": "tool",
+        "uuid": "9efb6ae3-14c9-489d-925b-15963a5ff343",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/yguitton/metams_rungc/metams_runGC/3.0.0+metaMS1.24.0-galaxy0",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "input": {
+            "id": 5,
+            "output_name": "xsetRData"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "metaMS.runGC",
+        "outputs": [
+          {
+            "name": "peaktable",
+            "type": "tabular"
+          },
+          {
+            "name": "sampleMetadata",
+            "type": "tabular"
+          },
+          {
+            "name": "variableMetadata",
+            "type": "tabular"
+          },
+          {
+            "name": "dataMatrix",
+            "type": "tabular"
+          },
+          {
+            "name": "peakspectra",
+            "type": "txt"
+          },
+          {
+            "name": "rungcRData",
+            "type": "rdata"
+          }
+        ],
+        "position": {
+          "left": 1140,
+          "top": 202
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/yguitton/metams_rungc/metams_runGC/3.0.0+metaMS1.24.0-galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "93508ea69eb5",
+          "name": "metams_rungc",
+          "owner": "yguitton",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"options_rifilter\": {\"option\": \"false\", \"__current_case__\": 1}, \"settings\": {\"setting\": \"usersettings\", \"__current_case__\": 1, \"options_rtrange\": {\"option\": \"hide\", \"__current_case__\": 1}, \"rtdiff\": \"0.05\", \"minfeat\": \"5\", \"simthreshold\": \"0.7\", \"minclassfraction\": \"0.5\", \"minclasssize\": \"3\", \"options_db\": {\"option\": \"hide\", \"__current_case__\": 1}, \"options_ri\": {\"option\": \"hide\", \"__current_case__\": 1}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "3.0.0+metaMS1.24.0-galaxy0",
+        "type": "tool",
+        "uuid": "d3f52f93-349a-4af0-8ef3-a40cf57620a1",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "peaktable",
+            "uuid": "ce2b2204-c57a-4c6b-be55-e849047986cd"
+          },
+          {
+            "label": "metaMS.runGC dataMatrix",
+            "output_name": "dataMatrix",
+            "uuid": "3266d6a0-0676-42d5-8f74-a71a65fa59f3"
+          }
+        ]
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/ethevenot/checkformat/checkFormat/3.0.0",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "dataMatrix_in": {
+            "id": 6,
+            "output_name": "dataMatrix"
+          },
+          "sampleMetadata_in": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "variableMetadata_in": {
+            "id": 6,
+            "output_name": "variableMetadata"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Check Format",
+        "outputs": [
+          {
+            "name": "dataMatrix_out",
+            "type": "tabular"
+          },
+          {
+            "name": "sampleMetadata_out",
+            "type": "tabular"
+          },
+          {
+            "name": "variableMetadata_out",
+            "type": "tabular"
+          },
+          {
+            "name": "information",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 1496,
+          "top": 281
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/ethevenot/checkformat/checkFormat/3.0.0",
+        "tool_shed_repository": {
+          "changeset_revision": "e7c5811ec12f",
+          "name": "checkformat",
+          "owner": "ethevenot",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"dataMatrix_in\": {\"__class__\": \"ConnectedValue\"}, \"makeNameL\": \"FALSE\", \"sampleMetadata_in\": {\"__class__\": \"ConnectedValue\"}, \"variableMetadata_in\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "3.0.0",
+        "type": "tool",
+        "uuid": "25d0ffab-58bc-4085-8750-58e951f192dd",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/ethevenot/multivariate/Multivariate/2.3.10",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "dataMatrix_in": {
+            "id": 7,
+            "output_name": "dataMatrix_out"
+          },
+          "sampleMetadata_in": {
+            "id": 7,
+            "output_name": "sampleMetadata_out"
+          },
+          "variableMetadata_in": {
+            "id": 7,
+            "output_name": "variableMetadata_out"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Multivariate",
+        "outputs": [
+          {
+            "name": "sampleMetadata_out",
+            "type": "tabular"
+          },
+          {
+            "name": "variableMetadata_out",
+            "type": "tabular"
+          },
+          {
+            "name": "figure",
+            "type": "pdf"
+          },
+          {
+            "name": "information",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 1827,
+          "top": 293
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/ethevenot/multivariate/Multivariate/2.3.10",
+        "tool_shed_repository": {
+          "changeset_revision": "5526f8258e8a",
+          "name": "multivariate",
+          "owner": "ethevenot",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"advCpt\": {\"opcC\": \"full\", \"__current_case__\": 1, \"scaleC\": \"standard\", \"permI\": \"20\", \"log10L\": \"FALSE\", \"algoC\": \"default\", \"crossvalI\": \"3\"}, \"advGph\": {\"opgC\": \"full\", \"__current_case__\": 1, \"typeC\": \"summary\", \"parMahalC\": \"NA\", \"parAsColC\": \"class\", \"parLabVc\": \"none\", \"parPc1I\": \"1\", \"parPc2I\": \"2\", \"parCexN\": \"0.8\"}, \"dataMatrix_in\": {\"__class__\": \"ConnectedValue\"}, \"orthoI\": \"0\", \"predI\": \"NA\", \"respC\": \"none\", \"sampleMetadata_in\": {\"__class__\": \"ConnectedValue\"}, \"save_rdata\": false, \"testL\": \"FALSE\", \"variableMetadata_in\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.3.10",
+        "type": "tool",
+        "uuid": "0bdb3ca0-1d64-4487-911a-cd04415b37e0",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Multivariate variableMetadata",
+            "output_name": "variableMetadata_out",
+            "uuid": "313fccc4-3874-45f8-a4bc-c71c6861a38b"
+          },
+          {
+            "label": "Multivariate sampleMetadata",
+            "output_name": "sampleMetadata_out",
+            "uuid": "086b01c2-eb7f-4fd6-b2bf-c05e3e5ae04c"
+          }
+        ]
+      }
+    },
+    "tags": [
+      "metabolomics",
+      "MS",
+      "workflow4metabolomics",
+      "GC-MS",
+      "GTN",
+      "metaMS"
+    ],
+    "uuid": "8ebd8921-ab82-41f8-a363-9d56af1f0ad0",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "Mass spectrometry: GCMS with metaMS (release v0.1)",
+      "annotation": "This workflow is composed with the XCMS tool R package (Smith, C.A. 2006) able to extract and the metaMS R package (Wehrens, R 2014) for the field of untargeted metabolomics. \n\nhttps://training.galaxyproject.org/training-material/topics/metabolomics/tutorials/gcms/tutorial.html",
+      "format_version": "0.1",
+      "uuid": "8ebd8921-ab82-41f8-a363-9d56af1f0ad0",
+      "version": 1,
+      "tags": [
+        "metabolomics",
+        "MS",
+        "workflow4metabolomics",
+        "GC-MS",
+        "GTN",
+        "metaMS"
+      ],
+      "creator": [
+        {
+          "class": "Organization",
+          "image": "https://raw.githubusercontent.com/workflow4metabolomics/workflow4metabolomics/master/images/logo/logo_w4m-0.1-black-orange.png",
+          "name": "workflow4metabolomics",
+          "url": "https://workflow4metabolomics.org/"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": "Mass-spectrometry Dataset Collection",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+        "position": {
+          "left": 15,
+          "top": 101
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "sampleMetadata",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 314
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "tool",
+        "name": "MSnbase readMSData",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/msnbase_readmsdata/msnbase_readmsdata/2.16.1+galaxy2",
+        "tool_version": "2.16.1+galaxy2",
+        "tool_state": "{\"input\": {\"__class__\": \"RuntimeValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 295,
+          "top": 80
+        },
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "xsetRData",
+            "type": "rdata.msnbase.raw"
+          }
+        ]
+      },
+      {
+        "step_id": "3",
+        "type": "tool",
+        "name": "xcms findChromPeaks (xcmsSet)",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_xcmsset/abims_xcms_xcmsSet/3.12.0+galaxy0",
+        "tool_version": "3.12.0+galaxy0",
+        "tool_state": "{\"file_load_section\": {\"file_load_conditional\": {\"file_load_select\": \"no\", \"__current_case__\": 0}}, \"filterSection\": {\"filterAcquisitionNum\": \"\", \"filterRt\": \"\", \"filterMz\": \"\"}, \"image\": {\"__class__\": \"ConnectedValue\"}, \"methods\": {\"method\": \"MatchedFilter\", \"__current_case__\": 1, \"fwhm\": \"5\", \"binSize\": \"0.5\", \"MatchedFilterAdv\": {\"impute_cond\": {\"impute\": \"none\", \"__current_case__\": 0}, \"sigma\": null, \"max\": \"500\", \"snthresh\": \"2\", \"steps\": \"2\", \"mzdiff\": \"0.5\", \"peaklist\": false}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 575,
+          "top": 311
+        },
+        "input_connections": {
+          "image": {
+            "id": 2,
+            "output_name": "xsetRData"
+          }
+        },
+        "outputs": [
+          {
+            "name": "xsetRData",
+            "type": "rdata.xcms.findchrompeaks"
+          },
+          {
+            "name": "log",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "xcms plot chromatogram",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_plot_chromatogram/xcms_plot_chromatogram/3.12.0+galaxy0",
+        "tool_version": "3.12.0+galaxy0",
+        "tool_state": "{\"__input_ext\": \"rdata.xcms.findchrompeaks\", \"chromInfo\": \"/shared/ifbstor1/galaxy/mutable-config/tool-data/shared/ucsc/chrom/?.len\", \"file_load_section\": {\"file_load_conditional\": {\"file_load_select\": \"no\", \"__current_case__\": 0}}, \"images\": {\"__class__\": \"ConnectedValue\"}, \"sampleMetadata\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 915,
+          "top": 0
+        },
+        "input_connections": {
+          "images": {
+            "id": 3,
+            "output_name": "xsetRData"
+          },
+          "sampleMetadata": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "ticsPdf",
+            "type": "pdf"
+          },
+          {
+            "name": "bpisPdf",
+            "type": "pdf"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "xcms findChromPeaks Merger",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_merge/xcms_merge/3.12.0+galaxy0",
+        "tool_version": "3.12.0+galaxy0",
+        "tool_state": "{\"__input_ext\": \"rdata.xcms.findchrompeaks\", \"chromInfo\": \"/shared/ifbstor1/galaxy/mutable-config/tool-data/shared/ucsc/chrom/?.len\", \"file_load_section\": {\"file_load_conditional\": {\"file_load_select\": \"no\", \"__current_case__\": 0}}, \"images\": {\"__class__\": \"ConnectedValue\"}, \"sampleMetadata\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 861,
+          "top": 521
+        },
+        "input_connections": {
+          "images": {
+            "id": 3,
+            "output_name": "xsetRData"
+          },
+          "sampleMetadata": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "xsetRData",
+            "type": "rdata.xcms.findchrompeaks"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "metaMS.runGC",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/yguitton/metams_rungc/metams_runGC/3.0.0+metaMS1.24.0-galaxy0",
+        "tool_version": "3.0.0+metaMS1.24.0-galaxy0",
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"options_rifilter\": {\"option\": \"false\", \"__current_case__\": 1}, \"settings\": {\"setting\": \"usersettings\", \"__current_case__\": 1, \"options_rtrange\": {\"option\": \"hide\", \"__current_case__\": 1}, \"rtdiff\": \"0.05\", \"minfeat\": \"5\", \"simthreshold\": \"0.7\", \"minclassfraction\": \"0.5\", \"minclasssize\": \"3\", \"options_db\": {\"option\": \"hide\", \"__current_case__\": 1}, \"options_ri\": {\"option\": \"hide\", \"__current_case__\": 1}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1140,
+          "top": 202
+        },
+        "input_connections": {
+          "input": {
+            "id": 5,
+            "output_name": "xsetRData"
+          }
+        },
+        "outputs": [
+          {
+            "name": "peaktable",
+            "type": "tabular"
+          },
+          {
+            "name": "sampleMetadata",
+            "type": "tabular"
+          },
+          {
+            "name": "variableMetadata",
+            "type": "tabular"
+          },
+          {
+            "name": "dataMatrix",
+            "type": "tabular"
+          },
+          {
+            "name": "peakspectra",
+            "type": "txt"
+          },
+          {
+            "name": "rungcRData",
+            "type": "rdata"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "Check Format",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/ethevenot/checkformat/checkFormat/3.0.0",
+        "tool_version": "3.0.0",
+        "tool_state": "{\"dataMatrix_in\": {\"__class__\": \"ConnectedValue\"}, \"makeNameL\": \"FALSE\", \"sampleMetadata_in\": {\"__class__\": \"ConnectedValue\"}, \"variableMetadata_in\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1496,
+          "top": 281
+        },
+        "input_connections": {
+          "dataMatrix_in": {
+            "id": 6,
+            "output_name": "dataMatrix"
+          },
+          "sampleMetadata_in": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "variableMetadata_in": {
+            "id": 6,
+            "output_name": "variableMetadata"
+          }
+        },
+        "outputs": [
+          {
+            "name": "dataMatrix_out",
+            "type": "tabular"
+          },
+          {
+            "name": "sampleMetadata_out",
+            "type": "tabular"
+          },
+          {
+            "name": "variableMetadata_out",
+            "type": "tabular"
+          },
+          {
+            "name": "information",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "Multivariate",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/ethevenot/multivariate/Multivariate/2.3.10",
+        "tool_version": "2.3.10",
+        "tool_state": "{\"advCpt\": {\"opcC\": \"full\", \"__current_case__\": 1, \"scaleC\": \"standard\", \"permI\": \"20\", \"log10L\": \"FALSE\", \"algoC\": \"default\", \"crossvalI\": \"3\"}, \"advGph\": {\"opgC\": \"full\", \"__current_case__\": 1, \"typeC\": \"summary\", \"parMahalC\": \"NA\", \"parAsColC\": \"class\", \"parLabVc\": \"none\", \"parPc1I\": \"1\", \"parPc2I\": \"2\", \"parCexN\": \"0.8\"}, \"dataMatrix_in\": {\"__class__\": \"ConnectedValue\"}, \"orthoI\": \"0\", \"predI\": \"NA\", \"respC\": \"none\", \"sampleMetadata_in\": {\"__class__\": \"ConnectedValue\"}, \"save_rdata\": false, \"testL\": \"FALSE\", \"variableMetadata_in\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1827,
+          "top": 293
+        },
+        "input_connections": {
+          "dataMatrix_in": {
+            "id": 7,
+            "output_name": "dataMatrix_out"
+          },
+          "sampleMetadata_in": {
+            "id": 7,
+            "output_name": "sampleMetadata_out"
+          },
+          "variableMetadata_in": {
+            "id": 7,
+            "output_name": "variableMetadata_out"
+          }
+        },
+        "outputs": [
+          {
+            "name": "sampleMetadata_out",
+            "type": "tabular"
+          },
+          {
+            "name": "variableMetadata_out",
+            "type": "tabular"
+          },
+          {
+            "name": "figure",
+            "type": "pdf"
+          },
+          {
+            "name": "information",
+            "type": "txt"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/msnbase_readmsdata/msnbase_readmsdata/2.16.1+galaxy2",
+        "tool_version": "2.16.1+galaxy2",
+        "step_id": "2"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_xcmsset/abims_xcms_xcmsSet/3.12.0+galaxy0",
+        "tool_version": "3.12.0+galaxy0",
+        "step_id": "3"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_plot_chromatogram/xcms_plot_chromatogram/3.12.0+galaxy0",
+        "tool_version": "3.12.0+galaxy0",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lecorguille/xcms_merge/xcms_merge/3.12.0+galaxy0",
+        "tool_version": "3.12.0+galaxy0",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/yguitton/metams_rungc/metams_runGC/3.0.0+metaMS1.24.0-galaxy0",
+        "tool_version": "3.0.0+metaMS1.24.0-galaxy0",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/ethevenot/checkformat/checkFormat/3.0.0",
+        "tool_version": "3.0.0",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/ethevenot/multivariate/Multivariate/2.3.10",
+        "tool_version": "2.3.10",
+        "step_id": "8"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "1",
+        "label": "sampleMetadata",
+        "annotation": ""
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "4",
+        "output_name": "bpisPdf",
+        "label": null
+      },
+      {
+        "step_id": "4",
+        "output_name": "ticsPdf",
+        "label": null
+      },
+      {
+        "step_id": "6",
+        "output_name": "peaktable",
+        "label": null
+      },
+      {
+        "step_id": "6",
+        "output_name": "dataMatrix",
+        "label": "metaMS.runGC dataMatrix"
+      },
+      {
+        "step_id": "8",
+        "output_name": "variableMetadata_out",
+        "label": "Multivariate variableMetadata"
+      },
+      {
+        "step_id": "8",
+        "output_name": "sampleMetadata_out",
+        "label": "Multivariate sampleMetadata"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "2",
+        "to_input": "input"
+      },
+      {
+        "from_step": 2,
+        "from_output": "xsetRData",
+        "to_step": "3",
+        "to_input": "image"
+      },
+      {
+        "from_step": 3,
+        "from_output": "xsetRData",
+        "to_step": "4",
+        "to_input": "images"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "4",
+        "to_input": "sampleMetadata"
+      },
+      {
+        "from_step": 3,
+        "from_output": "xsetRData",
+        "to_step": "5",
+        "to_input": "images"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "sampleMetadata"
+      },
+      {
+        "from_step": 5,
+        "from_output": "xsetRData",
+        "to_step": "6",
+        "to_input": "input"
+      },
+      {
+        "from_step": 6,
+        "from_output": "dataMatrix",
+        "to_step": "7",
+        "to_input": "dataMatrix_in"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "sampleMetadata_in"
+      },
+      {
+        "from_step": 6,
+        "from_output": "variableMetadata",
+        "to_step": "7",
+        "to_input": "variableMetadata_in"
+      },
+      {
+        "from_step": 7,
+        "from_output": "dataMatrix_out",
+        "to_step": "8",
+        "to_input": "dataMatrix_in"
+      },
+      {
+        "from_step": 7,
+        "from_output": "sampleMetadata_out",
+        "to_step": "8",
+        "to_input": "sampleMetadata_in"
+      },
+      {
+        "from_step": 7,
+        "from_output": "variableMetadata_out",
+        "to_step": "8",
+        "to_input": "variableMetadata_in"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T22:08:39.477548"
+}

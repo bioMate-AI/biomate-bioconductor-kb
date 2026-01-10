@@ -1,12 +1,12 @@
 import type { Request, Response, NextFunction } from 'express';
 import { authService } from './auth-service';
-import type { User } from '../shared/schema';
+import type { SafeUser } from '../shared/schema';
 
 // Extend Express Request type to include user
 declare global {
   namespace Express {
     interface Request {
-      user?: Omit<User, 'password'>;
+      user?: SafeUser;
     }
   }
 }

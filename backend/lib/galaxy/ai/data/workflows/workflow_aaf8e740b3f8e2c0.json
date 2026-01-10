@@ -1,0 +1,1290 @@
+{
+  "workflow_id": "aaf8e740b3f8e2c0",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "aaf8e740b3f8e2c0",
+    "latest_workflow_id": "02bb78c1533b6a3a",
+    "name": "amr_gene_detection (release v1.1.4)",
+    "create_time": "2024-10-17T00:14:00.365112",
+    "update_time": "2025-04-25T14:08:23.900383",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [
+      "fasta",
+      "Genomics",
+      "ABRomics",
+      "antibiotic-resistance",
+      "antimicrobial-resistance-genes",
+      "antimicrobialresistance",
+      "bacterial-genomics",
+      "AMR",
+      "AMR-detection"
+    ],
+    "latest_workflow_uuid": "a5af34bc-f1db-4ed4-a97c-a9f1b00481e3",
+    "creator_deleted": false,
+    "annotations": [
+      "Antimicrobial resistance gene detection from assembled bacterial genomes"
+    ],
+    "url": "/api/workflows/aaf8e740b3f8e2c0",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 9,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "Antimicrobial resistance gene detection from assembled bacterial genomes",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "email": "mailto:abromics-support@groupes.france-bioinformatique.fr",
+        "name": "ABRomics"
+      },
+      {
+        "class": "Organization",
+        "name": "abromics-consortium",
+        "url": "https://www.abromics.fr/"
+      },
+      {
+        "alternateName": "pimarin",
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-8304-138X",
+        "name": "Pierre Marin"
+      },
+      {
+        "alternateName": "clsiguret",
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-8304-138X",
+        "name": "Clea Siguret"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "GPL-3.0-or-later",
+    "name": "amr_gene_detection (release v1.1.4)",
+    "steps": {
+      "0": {
+        "annotation": "Can be any fasta file.",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Can be any fasta file.",
+            "name": "Input sequence fasta"
+          }
+        ],
+        "label": "Input sequence fasta",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 2.4727149882562167,
+          "top": 677.1068397845053
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "dd31170c-d5f4-4120-bee7-750c5d9499f9",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "Select the database to identify resistance-associated point mutations with AMRFinderPlus.",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Select the database to identify resistance-associated point mutations with AMRFinderPlus.",
+            "name": "Select a taxonomy group point mutation"
+          }
+        ],
+        "label": "Select a taxonomy group point mutation",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 6.398714988256147,
+          "top": 785.1080080587546
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "9ddfc2d7-2a9c-422e-b40f-10eb7896a41a",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "7c07df66-66dd-4a8a-b7ae-0d2233feefee"
+          }
+        ]
+      },
+      "2": {
+        "annotation": "Select the database to identify AMR genes with AMRFinderPlus.",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Select the database to identify AMR genes with AMRFinderPlus.",
+            "name": "Select a AMR genes detection database"
+          }
+        ],
+        "label": "Select a AMR genes detection database",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 1031.8311633489975
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "b0166554-9bc4-40a7-8942-024b9a9da614",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "ebf0c2df-9640-4f2d-8fb8-31465d97a1f9"
+          }
+        ]
+      },
+      "3": {
+        "annotation": "Select the database to identify virulence genes with ABRicate..",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Select the database to identify virulence genes with ABRicate..",
+            "name": "Select a virulence genes detection database"
+          }
+        ],
+        "label": "Select a virulence genes detection database",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 2.0333251953125,
+          "top": 1166.9166870117188
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "576d8c5d-6bc6-4b38-a6ad-3b53e44863f6",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": null,
+            "output_name": "output",
+            "uuid": "7ef227c9-606c-4412-a6a5-bba2e039469e"
+          }
+        ]
+      },
+      "4": {
+        "annotation": "staramr_amr_genes",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/nml/staramr/staramr_search/0.10.0+galaxy1",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "genomes": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "staramr_amr_genes",
+        "name": "staramr",
+        "outputs": [
+          {
+            "name": "blast_hits",
+            "type": "input"
+          },
+          {
+            "name": "mlst",
+            "type": "tabular"
+          },
+          {
+            "name": "summary",
+            "type": "tabular"
+          },
+          {
+            "name": "detailed_summary",
+            "type": "tabular"
+          },
+          {
+            "name": "resfinder",
+            "type": "tabular"
+          },
+          {
+            "name": "plasmidfinder",
+            "type": "tabular"
+          },
+          {
+            "name": "settings",
+            "type": "txt"
+          },
+          {
+            "name": "excel",
+            "type": "xlsx"
+          }
+        ],
+        "position": {
+          "left": 496.9350972460573,
+          "top": 0
+        },
+        "post_job_actions": {
+          "RenameDatasetActionblast_hits": {
+            "action_arguments": {
+              "newname": "staramr_blast_hits"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "blast_hits"
+          },
+          "RenameDatasetActiondetailed_summary": {
+            "action_arguments": {
+              "newname": "staramr_detailed_summary"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "detailed_summary"
+          },
+          "RenameDatasetActionexcel": {
+            "action_arguments": {
+              "newname": "staramr_excel_report"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "excel"
+          },
+          "RenameDatasetActionmlst": {
+            "action_arguments": {
+              "newname": "staramr_mlst_report"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "mlst"
+          },
+          "RenameDatasetActionplasmidfinder": {
+            "action_arguments": {
+              "newname": "staramr_plasmidfinder_report"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "plasmidfinder"
+          },
+          "RenameDatasetActionresfinder": {
+            "action_arguments": {
+              "newname": "staramr_resfinder_report"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "resfinder"
+          },
+          "RenameDatasetActionsettings": {
+            "action_arguments": {
+              "newname": "staramr_settings"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "settings"
+          },
+          "RenameDatasetActionsummary": {
+            "action_arguments": {
+              "newname": "staramr_summary"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "summary"
+          },
+          "TagDatasetActionblast_hits": {
+            "action_arguments": {
+              "tags": "staramr_blast_hits"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "blast_hits"
+          },
+          "TagDatasetActiondetailed_summary": {
+            "action_arguments": {
+              "tags": "staramr_detailed_summary"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "detailed_summary"
+          },
+          "TagDatasetActionexcel": {
+            "action_arguments": {
+              "tags": "staramr_excel_report"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "excel"
+          },
+          "TagDatasetActionmlst": {
+            "action_arguments": {
+              "tags": "staramr_mlst_report"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "mlst"
+          },
+          "TagDatasetActionplasmidfinder": {
+            "action_arguments": {
+              "tags": "staramr_plasmidfinder_report"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "plasmidfinder"
+          },
+          "TagDatasetActionresfinder": {
+            "action_arguments": {
+              "tags": "staramr_resfinder_report"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "resfinder"
+          },
+          "TagDatasetActionsettings": {
+            "action_arguments": {
+              "tags": "staramr_settings"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "settings"
+          },
+          "TagDatasetActionsummary": {
+            "action_arguments": {
+              "tags": "staramr_summary"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "summary"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/staramr/staramr_search/0.10.0+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "3b22de20bd4b",
+          "name": "staramr",
+          "owner": "nml",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"advanced\": {\"pid_threshold\": \"90.0\", \"plength_resfinder\": \"60.0\", \"plength_pointfinder\": \"95.0\", \"plength_plasmidfinder\": \"60.0\", \"genome_size_lower_bound\": \"4000000\", \"genome_size_upper_bound\": \"6000000\", \"minimum_N50_value\": \"10000\", \"minimum_contig_length\": \"300\", \"unacceptable_number_contigs\": \"1000\", \"report_all_blast\": false, \"exclude_negatives\": false, \"exclude_resistance_phenotypes\": false, \"mlst_scheme\": \"auto\", \"exclude_genes\": {\"exclude_genes_condition\": \"default\", \"__current_case__\": 0}, \"complex_mutations\": {\"complex_mutations_condition\": \"default\", \"__current_case__\": 0}, \"plasmidfinder_type\": \"include_all\"}, \"genomes\": {\"__class__\": \"ConnectedValue\"}, \"pointfinder_db\": {\"use_pointfinder\": \"disabled\", \"__current_case__\": 0}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.10.0+galaxy1",
+        "type": "tool",
+        "uuid": "2f291051-b0b3-45a3-a929-e193be2b5e64",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "staramr_excel_report",
+            "output_name": "excel",
+            "uuid": "27a504f0-38d9-41de-bab5-58826fdc85e1"
+          },
+          {
+            "label": "staramr_mlst_report",
+            "output_name": "mlst",
+            "uuid": "8fde37a3-0c8e-4317-b2ca-0d032ad88d11"
+          },
+          {
+            "label": "staramr_resfinder_report",
+            "output_name": "resfinder",
+            "uuid": "428d39c5-d5fa-4b9e-b7d8-e009b6cddf38"
+          },
+          {
+            "label": "staramr_settings",
+            "output_name": "settings",
+            "uuid": "8f65a64d-0ae0-4839-a0a6-534f9a11d716"
+          },
+          {
+            "label": "staramr_blast_hits",
+            "output_name": "blast_hits",
+            "uuid": "e0df1e9b-0c5e-4e3c-8fa7-766abd294fc0"
+          },
+          {
+            "label": "staramr_summary",
+            "output_name": "summary",
+            "uuid": "3ac7aca8-29f0-467f-82d9-6a3f7d3d981b"
+          },
+          {
+            "label": "staramr_detailed_summary",
+            "output_name": "detailed_summary",
+            "uuid": "ad066f7c-a920-499f-8e28-d0259eedc0f1"
+          },
+          {
+            "label": "staramr_plasmidfinder_report",
+            "output_name": "plasmidfinder",
+            "uuid": "d575ad3c-98b0-47b4-9143-ac0c36d36ca8"
+          }
+        ]
+      },
+      "5": {
+        "annotation": "amrfinderplus_point_mutation",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/amrfinderplus/amrfinderplus/3.12.8+galaxy0",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "input_option|amrfinder_db_select": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "input_option|input_mode|nucleotide_input": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "organism_options|organism_conditionnal|organism": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool AMRFinderPlus",
+            "name": "input_option"
+          }
+        ],
+        "label": "amrfinderplus_point_mutation",
+        "name": "AMRFinderPlus",
+        "outputs": [
+          {
+            "name": "amrfinderplus_report",
+            "type": "tabular"
+          },
+          {
+            "name": "mutation_all_report",
+            "type": "tabular"
+          },
+          {
+            "name": "nucleotide_output",
+            "type": "fasta"
+          }
+        ],
+        "position": {
+          "left": 641.3405290986273,
+          "top": 837.2197586407639
+        },
+        "post_job_actions": {
+          "TagDatasetActionamrfinderplus_report": {
+            "action_arguments": {
+              "tags": "amrfinderplus_report"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "amrfinderplus_report"
+          },
+          "TagDatasetActionmutation_all_report": {
+            "action_arguments": {
+              "tags": "amrfinderplus_mutation"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "mutation_all_report"
+          },
+          "TagDatasetActionnucleotide_output": {
+            "action_arguments": {
+              "tags": "amrfinderplus_nucleotide"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "nucleotide_output"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/amrfinderplus/amrfinderplus/3.12.8+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "7844dbe4f8e2",
+          "name": "amrfinderplus",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"input_option\": {\"amrfinder_db_select\": {\"__class__\": \"ConnectedValue\"}, \"input_mode\": {\"input_select\": \"nucleotide\", \"__current_case__\": 0, \"nucleotide_input\": {\"__class__\": \"ConnectedValue\"}, \"nucleotide_flank5_size\": \"0\"}}, \"options\": {\"ident_min\": \"-1.0\", \"coverage_min\": \"0.5\", \"translation_table\": \"11\", \"plus\": true, \"report_all_equal\": true, \"print_node\": true, \"name\": null}, \"organism_options\": {\"organism_conditionnal\": {\"organism_select\": \"add_organism\", \"__current_case__\": 0, \"organism\": {\"__class__\": \"ConnectedValue\"}, \"mutation_all\": true, \"report_common\": true}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "3.12.8+galaxy0",
+        "type": "tool",
+        "uuid": "e58748d9-d08b-43af-b4e7-5b772b945322",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "amrfinderplus_nucleotide",
+            "output_name": "nucleotide_output",
+            "uuid": "43de1277-f70a-4cbe-8b71-a44cdb3c6705"
+          },
+          {
+            "label": "amrfinderplus_mutation",
+            "output_name": "mutation_all_report",
+            "uuid": "acfaad2e-5867-4985-85b8-16c5d64492d1"
+          },
+          {
+            "label": "amrfinderplus_report",
+            "output_name": "amrfinderplus_report",
+            "uuid": "fb07b28e-392b-4096-8cdd-6385f0a04190"
+          }
+        ]
+      },
+      "6": {
+        "annotation": "abricate_virulence",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/abricate/abricate/1.0.1",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "adv|db": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "file_input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool ABRicate",
+            "name": "adv"
+          }
+        ],
+        "label": "abricate_virulence",
+        "name": "ABRicate",
+        "outputs": [
+          {
+            "name": "report",
+            "type": "tabular"
+          }
+        ],
+        "position": {
+          "left": 885.033177397046,
+          "top": 342.096138386568
+        },
+        "post_job_actions": {
+          "RenameDatasetActionreport": {
+            "action_arguments": {
+              "newname": "abricate_virulence_report"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "report"
+          },
+          "TagDatasetActionreport": {
+            "action_arguments": {
+              "tags": "abricate_virulence_report"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "report"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/abricate/abricate/1.0.1",
+        "tool_shed_repository": {
+          "changeset_revision": "c2ef298da409",
+          "name": "abricate",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adv\": {\"db\": {\"__class__\": \"ConnectedValue\"}, \"no_header\": false, \"min_dna_id\": \"80.0\", \"min_cov\": \"80.0\"}, \"file_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.1",
+        "type": "tool",
+        "uuid": "2a0796a7-1061-44d2-82b9-075ec1a0f469",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "abricate_virulence_report",
+            "output_name": "report",
+            "uuid": "99b32f4b-21f8-4ef0-ac8b-e13f3620b888"
+          }
+        ]
+      },
+      "7": {
+        "annotation": "ToolDistillator extracts results from tools and creates a JSON file for each tool",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator/tooldistillator/0.9.1+galaxy0",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "tool_section|tools_0|select_tool|input": {
+            "id": 6,
+            "output_name": "report"
+          },
+          "tool_section|tools_0|select_tool|reference_database_version": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "tool_section|tools_1|select_tool|input": {
+            "id": 4,
+            "output_name": "resfinder"
+          },
+          "tool_section|tools_1|select_tool|mlst_file_path": {
+            "id": 4,
+            "output_name": "mlst"
+          },
+          "tool_section|tools_1|select_tool|setting_file_path": {
+            "id": 4,
+            "output_name": "settings"
+          },
+          "tool_section|tools_2|select_tool|input": {
+            "id": 5,
+            "output_name": "amrfinderplus_report"
+          },
+          "tool_section|tools_2|select_tool|nucleotide_sequence_path": {
+            "id": 5,
+            "output_name": "nucleotide_output"
+          },
+          "tool_section|tools_2|select_tool|point_mutation_report_path": {
+            "id": 5,
+            "output_name": "mutation_all_report"
+          },
+          "tool_section|tools_2|select_tool|reference_database_version": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": "ToolDistillator",
+        "name": "ToolDistillator",
+        "outputs": [
+          {
+            "name": "output_json",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1138.6692404030955,
+          "top": 584.9586737297199
+        },
+        "post_job_actions": {
+          "RenameDatasetActionoutput_json": {
+            "action_arguments": {
+              "newname": "tooldistillator_results"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "output_json"
+          },
+          "TagDatasetActionoutput_json": {
+            "action_arguments": {
+              "tags": "tooldistillator_results"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "output_json"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator/tooldistillator/0.9.1+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "8d6686664021",
+          "name": "tooldistillator",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"log\": false, \"tool_section\": {\"tools\": [{\"__index__\": 0, \"select_tool\": {\"tool_list\": \"abricate\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"analysis_software_version\": \"1.0.1\", \"reference_database_version\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"select_tool\": {\"tool_list\": \"staramr\", \"__current_case__\": 20, \"input\": {\"__class__\": \"ConnectedValue\"}, \"mlst_file_path\": {\"__class__\": \"ConnectedValue\"}, \"plasmidfinder_file_path\": {\"__class__\": \"RuntimeValue\"}, \"pointfinder_file_path\": {\"__class__\": \"RuntimeValue\"}, \"setting_file_path\": {\"__class__\": \"ConnectedValue\"}, \"analysis_software_version\": \"0.10.0\", \"reference_database_version\": null}}, {\"__index__\": 2, \"select_tool\": {\"tool_list\": \"amrfinderplus\", \"__current_case__\": 1, \"input\": {\"__class__\": \"ConnectedValue\"}, \"point_mutation_report_path\": {\"__class__\": \"ConnectedValue\"}, \"nucleotide_sequence_path\": {\"__class__\": \"ConnectedValue\"}, \"analysis_software_version\": \"3.12.8\", \"reference_database_version\": {\"__class__\": \"ConnectedValue\"}}}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.9.1+galaxy0",
+        "type": "tool",
+        "uuid": "55d2aee6-45c8-42e3-8c6c-dcdf20b739c9",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "tooldistillator_results",
+            "output_name": "output_json",
+            "uuid": "dfb6ee99-723c-452b-9d0b-a126a4dfde7a"
+          }
+        ]
+      },
+      "8": {
+        "annotation": "ToolDistillator summarize groups all JSON file into a unique JSON file",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator_summarize/tooldistillator_summarize/0.9.1+galaxy0",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "summarize_data": {
+            "id": 7,
+            "output_name": "output_json"
+          }
+        },
+        "inputs": [],
+        "label": "ToolDistillator summarize",
+        "name": "ToolDistillator Summarize",
+        "outputs": [
+          {
+            "name": "summary_json",
+            "type": "json"
+          }
+        ],
+        "position": {
+          "left": 1510.406873337906,
+          "top": 835.1044439315301
+        },
+        "post_job_actions": {
+          "RenameDatasetActionsummary_json": {
+            "action_arguments": {
+              "newname": "tooldistillator_summarize"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "summary_json"
+          },
+          "TagDatasetActionsummary_json": {
+            "action_arguments": {
+              "tags": "tooldistillator_summarize"
+            },
+            "action_type": "TagDatasetAction",
+            "output_name": "summary_json"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator_summarize/tooldistillator_summarize/0.9.1+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "f3233d395549",
+          "name": "tooldistillator_summarize",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"summarize_data\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.9.1+galaxy0",
+        "type": "tool",
+        "uuid": "b761f9b8-326e-4df3-9683-d109f7e209db",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "tooldistillator_summarize",
+            "output_name": "summary_json",
+            "uuid": "18eed560-8ed8-4417-80ee-cca1b6ff933e"
+          }
+        ]
+      }
+    },
+    "tags": [
+      "fasta",
+      "Genomics",
+      "ABRomics",
+      "antibiotic-resistance",
+      "antimicrobial-resistance-genes",
+      "antimicrobialresistance",
+      "bacterial-genomics",
+      "AMR",
+      "AMR-detection"
+    ],
+    "uuid": "a5af34bc-f1db-4ed4-a97c-a9f1b00481e3",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "amr_gene_detection (release v1.1.4)",
+      "annotation": "Antimicrobial resistance gene detection from assembled bacterial genomes",
+      "format_version": "0.1",
+      "uuid": "a5af34bc-f1db-4ed4-a97c-a9f1b00481e3",
+      "version": 1,
+      "tags": [
+        "fasta",
+        "Genomics",
+        "ABRomics",
+        "antibiotic-resistance",
+        "antimicrobial-resistance-genes",
+        "antimicrobialresistance",
+        "bacterial-genomics",
+        "AMR",
+        "AMR-detection"
+      ],
+      "creator": [
+        {
+          "class": "Person",
+          "email": "mailto:abromics-support@groupes.france-bioinformatique.fr",
+          "name": "ABRomics"
+        },
+        {
+          "class": "Organization",
+          "name": "abromics-consortium",
+          "url": "https://www.abromics.fr/"
+        },
+        {
+          "alternateName": "pimarin",
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-8304-138X",
+          "name": "Pierre Marin"
+        },
+        {
+          "alternateName": "clsiguret",
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-8304-138X",
+          "name": "Clea Siguret"
+        }
+      ],
+      "license": "GPL-3.0-or-later"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Input sequence fasta",
+        "annotation": "Can be any fasta file.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "position": {
+          "left": 2.4727149882562167,
+          "top": 677.1068397845053
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Select a taxonomy group point mutation",
+        "annotation": "Select the database to identify resistance-associated point mutations with AMRFinderPlus.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 6.398714988256147,
+          "top": 785.1080080587546
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Select a AMR genes detection database",
+        "annotation": "Select the database to identify AMR genes with AMRFinderPlus.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 0,
+          "top": 1031.8311633489975
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Select a virulence genes detection database",
+        "annotation": "Select the database to identify virulence genes with ABRicate..",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 2.0333251953125,
+          "top": 1166.9166870117188
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "staramr",
+        "label": "staramr_amr_genes",
+        "annotation": "staramr_amr_genes",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/staramr/staramr_search/0.10.0+galaxy1",
+        "tool_version": "0.10.0+galaxy1",
+        "tool_state": "{\"advanced\": {\"pid_threshold\": \"90.0\", \"plength_resfinder\": \"60.0\", \"plength_pointfinder\": \"95.0\", \"plength_plasmidfinder\": \"60.0\", \"genome_size_lower_bound\": \"4000000\", \"genome_size_upper_bound\": \"6000000\", \"minimum_N50_value\": \"10000\", \"minimum_contig_length\": \"300\", \"unacceptable_number_contigs\": \"1000\", \"report_all_blast\": false, \"exclude_negatives\": false, \"exclude_resistance_phenotypes\": false, \"mlst_scheme\": \"auto\", \"exclude_genes\": {\"exclude_genes_condition\": \"default\", \"__current_case__\": 0}, \"complex_mutations\": {\"complex_mutations_condition\": \"default\", \"__current_case__\": 0}, \"plasmidfinder_type\": \"include_all\"}, \"genomes\": {\"__class__\": \"ConnectedValue\"}, \"pointfinder_db\": {\"use_pointfinder\": \"disabled\", \"__current_case__\": 0}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 496.9350972460573,
+          "top": 0
+        },
+        "input_connections": {
+          "genomes": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "blast_hits",
+            "type": "input"
+          },
+          {
+            "name": "mlst",
+            "type": "tabular"
+          },
+          {
+            "name": "summary",
+            "type": "tabular"
+          },
+          {
+            "name": "detailed_summary",
+            "type": "tabular"
+          },
+          {
+            "name": "resfinder",
+            "type": "tabular"
+          },
+          {
+            "name": "plasmidfinder",
+            "type": "tabular"
+          },
+          {
+            "name": "settings",
+            "type": "txt"
+          },
+          {
+            "name": "excel",
+            "type": "xlsx"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "AMRFinderPlus",
+        "label": "amrfinderplus_point_mutation",
+        "annotation": "amrfinderplus_point_mutation",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/amrfinderplus/amrfinderplus/3.12.8+galaxy0",
+        "tool_version": "3.12.8+galaxy0",
+        "tool_state": "{\"input_option\": {\"amrfinder_db_select\": {\"__class__\": \"ConnectedValue\"}, \"input_mode\": {\"input_select\": \"nucleotide\", \"__current_case__\": 0, \"nucleotide_input\": {\"__class__\": \"ConnectedValue\"}, \"nucleotide_flank5_size\": \"0\"}}, \"options\": {\"ident_min\": \"-1.0\", \"coverage_min\": \"0.5\", \"translation_table\": \"11\", \"plus\": true, \"report_all_equal\": true, \"print_node\": true, \"name\": null}, \"organism_options\": {\"organism_conditionnal\": {\"organism_select\": \"add_organism\", \"__current_case__\": 0, \"organism\": {\"__class__\": \"ConnectedValue\"}, \"mutation_all\": true, \"report_common\": true}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 641.3405290986273,
+          "top": 837.2197586407639
+        },
+        "input_connections": {
+          "input_option|amrfinder_db_select": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "input_option|input_mode|nucleotide_input": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "organism_options|organism_conditionnal|organism": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "amrfinderplus_report",
+            "type": "tabular"
+          },
+          {
+            "name": "mutation_all_report",
+            "type": "tabular"
+          },
+          {
+            "name": "nucleotide_output",
+            "type": "fasta"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "ABRicate",
+        "label": "abricate_virulence",
+        "annotation": "abricate_virulence",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/abricate/abricate/1.0.1",
+        "tool_version": "1.0.1",
+        "tool_state": "{\"adv\": {\"db\": {\"__class__\": \"ConnectedValue\"}, \"no_header\": false, \"min_dna_id\": \"80.0\", \"min_cov\": \"80.0\"}, \"file_input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 885.033177397046,
+          "top": 342.096138386568
+        },
+        "input_connections": {
+          "adv|db": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "file_input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "report",
+            "type": "tabular"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "ToolDistillator",
+        "label": "ToolDistillator",
+        "annotation": "ToolDistillator extracts results from tools and creates a JSON file for each tool",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator/tooldistillator/0.9.1+galaxy0",
+        "tool_version": "0.9.1+galaxy0",
+        "tool_state": "{\"log\": false, \"tool_section\": {\"tools\": [{\"__index__\": 0, \"select_tool\": {\"tool_list\": \"abricate\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"analysis_software_version\": \"1.0.1\", \"reference_database_version\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"select_tool\": {\"tool_list\": \"staramr\", \"__current_case__\": 20, \"input\": {\"__class__\": \"ConnectedValue\"}, \"mlst_file_path\": {\"__class__\": \"ConnectedValue\"}, \"plasmidfinder_file_path\": {\"__class__\": \"RuntimeValue\"}, \"pointfinder_file_path\": {\"__class__\": \"RuntimeValue\"}, \"setting_file_path\": {\"__class__\": \"ConnectedValue\"}, \"analysis_software_version\": \"0.10.0\", \"reference_database_version\": null}}, {\"__index__\": 2, \"select_tool\": {\"tool_list\": \"amrfinderplus\", \"__current_case__\": 1, \"input\": {\"__class__\": \"ConnectedValue\"}, \"point_mutation_report_path\": {\"__class__\": \"ConnectedValue\"}, \"nucleotide_sequence_path\": {\"__class__\": \"ConnectedValue\"}, \"analysis_software_version\": \"3.12.8\", \"reference_database_version\": {\"__class__\": \"ConnectedValue\"}}}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1138.6692404030955,
+          "top": 584.9586737297199
+        },
+        "input_connections": {
+          "tool_section|tools_0|select_tool|input": {
+            "id": 6,
+            "output_name": "report"
+          },
+          "tool_section|tools_0|select_tool|reference_database_version": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "tool_section|tools_1|select_tool|input": {
+            "id": 4,
+            "output_name": "resfinder"
+          },
+          "tool_section|tools_1|select_tool|mlst_file_path": {
+            "id": 4,
+            "output_name": "mlst"
+          },
+          "tool_section|tools_1|select_tool|setting_file_path": {
+            "id": 4,
+            "output_name": "settings"
+          },
+          "tool_section|tools_2|select_tool|input": {
+            "id": 5,
+            "output_name": "amrfinderplus_report"
+          },
+          "tool_section|tools_2|select_tool|nucleotide_sequence_path": {
+            "id": 5,
+            "output_name": "nucleotide_output"
+          },
+          "tool_section|tools_2|select_tool|point_mutation_report_path": {
+            "id": 5,
+            "output_name": "mutation_all_report"
+          },
+          "tool_section|tools_2|select_tool|reference_database_version": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output_json",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "ToolDistillator Summarize",
+        "label": "ToolDistillator summarize",
+        "annotation": "ToolDistillator summarize groups all JSON file into a unique JSON file",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator_summarize/tooldistillator_summarize/0.9.1+galaxy0",
+        "tool_version": "0.9.1+galaxy0",
+        "tool_state": "{\"summarize_data\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1510.406873337906,
+          "top": 835.1044439315301
+        },
+        "input_connections": {
+          "summarize_data": {
+            "id": 7,
+            "output_name": "output_json"
+          }
+        },
+        "outputs": [
+          {
+            "name": "summary_json",
+            "type": "json"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/staramr/staramr_search/0.10.0+galaxy1",
+        "tool_version": "0.10.0+galaxy1",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/amrfinderplus/amrfinderplus/3.12.8+galaxy0",
+        "tool_version": "3.12.8+galaxy0",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/abricate/abricate/1.0.1",
+        "tool_version": "1.0.1",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator/tooldistillator/0.9.1+galaxy0",
+        "tool_version": "0.9.1+galaxy0",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/tooldistillator_summarize/tooldistillator_summarize/0.9.1+galaxy0",
+        "tool_version": "0.9.1+galaxy0",
+        "step_id": "8"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "Input sequence fasta",
+        "annotation": "Can be any fasta file."
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "1",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "2",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "3",
+        "output_name": "output",
+        "label": null
+      },
+      {
+        "step_id": "4",
+        "output_name": "excel",
+        "label": "staramr_excel_report"
+      },
+      {
+        "step_id": "4",
+        "output_name": "mlst",
+        "label": "staramr_mlst_report"
+      },
+      {
+        "step_id": "4",
+        "output_name": "resfinder",
+        "label": "staramr_resfinder_report"
+      },
+      {
+        "step_id": "4",
+        "output_name": "settings",
+        "label": "staramr_settings"
+      },
+      {
+        "step_id": "4",
+        "output_name": "blast_hits",
+        "label": "staramr_blast_hits"
+      },
+      {
+        "step_id": "4",
+        "output_name": "summary",
+        "label": "staramr_summary"
+      },
+      {
+        "step_id": "4",
+        "output_name": "detailed_summary",
+        "label": "staramr_detailed_summary"
+      },
+      {
+        "step_id": "4",
+        "output_name": "plasmidfinder",
+        "label": "staramr_plasmidfinder_report"
+      },
+      {
+        "step_id": "5",
+        "output_name": "nucleotide_output",
+        "label": "amrfinderplus_nucleotide"
+      },
+      {
+        "step_id": "5",
+        "output_name": "mutation_all_report",
+        "label": "amrfinderplus_mutation"
+      },
+      {
+        "step_id": "5",
+        "output_name": "amrfinderplus_report",
+        "label": "amrfinderplus_report"
+      },
+      {
+        "step_id": "6",
+        "output_name": "report",
+        "label": "abricate_virulence_report"
+      },
+      {
+        "step_id": "7",
+        "output_name": "output_json",
+        "label": "tooldistillator_results"
+      },
+      {
+        "step_id": "8",
+        "output_name": "summary_json",
+        "label": "tooldistillator_summarize"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "4",
+        "to_input": "genomes"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "input_option|amrfinder_db_select"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "input_option|input_mode|nucleotide_input"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "organism_options|organism_conditionnal|organism"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "adv|db"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "file_input"
+      },
+      {
+        "from_step": 6,
+        "from_output": "report",
+        "to_step": "7",
+        "to_input": "tool_section|tools_0|select_tool|input"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "tool_section|tools_0|select_tool|reference_database_version"
+      },
+      {
+        "from_step": 4,
+        "from_output": "resfinder",
+        "to_step": "7",
+        "to_input": "tool_section|tools_1|select_tool|input"
+      },
+      {
+        "from_step": 4,
+        "from_output": "mlst",
+        "to_step": "7",
+        "to_input": "tool_section|tools_1|select_tool|mlst_file_path"
+      },
+      {
+        "from_step": 4,
+        "from_output": "settings",
+        "to_step": "7",
+        "to_input": "tool_section|tools_1|select_tool|setting_file_path"
+      },
+      {
+        "from_step": 5,
+        "from_output": "amrfinderplus_report",
+        "to_step": "7",
+        "to_input": "tool_section|tools_2|select_tool|input"
+      },
+      {
+        "from_step": 5,
+        "from_output": "nucleotide_output",
+        "to_step": "7",
+        "to_input": "tool_section|tools_2|select_tool|nucleotide_sequence_path"
+      },
+      {
+        "from_step": 5,
+        "from_output": "mutation_all_report",
+        "to_step": "7",
+        "to_input": "tool_section|tools_2|select_tool|point_mutation_report_path"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "tool_section|tools_2|select_tool|reference_database_version"
+      },
+      {
+        "from_step": 7,
+        "from_output": "output_json",
+        "to_step": "8",
+        "to_input": "summarize_data"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T22:08:30.699604"
+}

@@ -28,15 +28,19 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Info, Loader2 } from "lucide-react"
+import { Info, Loader2, Lightbulb } from "lucide-react"
 import { getSimpleToolName } from "@/lib/utils"
 import { type WorkflowStep } from "./workflow-step"
+import { InlineRecommendation } from "./parameter-recommendation-badge"
+import type { ParameterRecommendation } from "@shared/schema"
 
 interface ParameterDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   step: WorkflowStep | null
   onSave: (stepId: string, parameters: Record<string, any>) => void
+  // Parameter recommendations keyed by "tool_id:param_name"
+  recommendations?: Record<string, ParameterRecommendation>
 }
 
 interface Parameter {
@@ -80,10 +84,38 @@ export function ParameterDialog({
   onOpenChange,
   step,
   onSave,
+  recommendations = {},
 }: ParameterDialogProps) {
   const [parameters, setParameters] = useState<Record<string, any>>({})
   const [parameterSchema, setParameterSchema] = useState<Parameter[]>([])
   const [loading, setLoading] = useState(false)
+  const [appliedRecs, setAppliedRecs] = useState<Set<string>>(new Set())
+
+  // Get recommendation for a parameter
+  const getRecommendation = (paramName: string): ParameterRecommendation | undefined => {
+    const key = step?.tool ? `${step.tool}:${paramName}` : paramName
+    return recommendations[key] || recommendations[paramName]
+  }
+
+  // Apply a recommendation
+  const applyRecommendation = (paramName: string, value: any) => {
+    handleChange(paramName, value)
+    setAppliedRecs(prev => new Set(prev).add(paramName))
+  }
+
+  // Apply all recommendations
+  const applyAllRecommendations = () => {
+    parameterSchema.forEach(param => {
+      const rec = getRecommendation(param.name)
+      if (rec) {
+        handleChange(param.name, rec.recommended_value)
+        setAppliedRecs(prev => new Set(prev).add(param.name))
+      }
+    })
+  }
+
+  // Count available recommendations
+  const recommendationCount = parameterSchema.filter(p => getRecommendation(p.name)).length
 
   // Fetch or build parameter schema when step changes
   useEffect(() => {
@@ -176,9 +208,22 @@ export function ParameterDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Configure Step
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              Configure Step
+            </DialogTitle>
+            {recommendationCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={applyAllRecommendations}
+              >
+                <Lightbulb className="h-3 w-3 mr-1" />
+                Apply All ({recommendationCount})
+              </Button>
+            )}
+          </div>
           <DialogDescription>
             {step.title || getSimpleToolName(step.tool)}
           </DialogDescription>
@@ -208,6 +253,9 @@ export function ParameterDialog({
                       param={param}
                       value={parameters[param.name]}
                       onChange={(value) => handleChange(param.name, value)}
+                      recommendation={getRecommendation(param.name)}
+                      onApplyRecommendation={(value) => applyRecommendation(param.name, value)}
+                      isRecommendationApplied={appliedRecs.has(param.name)}
                     />
                   ))}
                 </>
@@ -226,6 +274,9 @@ export function ParameterDialog({
                       param={param}
                       value={parameters[param.name]}
                       onChange={(value) => handleChange(param.name, value)}
+                      recommendation={getRecommendation(param.name)}
+                      onApplyRecommendation={(value) => applyRecommendation(param.name, value)}
+                      isRecommendationApplied={appliedRecs.has(param.name)}
                     />
                   ))}
                 </>
@@ -251,11 +302,17 @@ export function ParameterDialog({
 function ParameterInput({
   param,
   value,
-  onChange
+  onChange,
+  recommendation,
+  onApplyRecommendation,
+  isRecommendationApplied = false
 }: {
   param: Parameter
   value: any
   onChange: (value: any) => void
+  recommendation?: ParameterRecommendation
+  onApplyRecommendation?: (value: any) => void
+  isRecommendationApplied?: boolean
 }) {
   return (
     <div className="space-y-1.5">
@@ -263,14 +320,23 @@ function ParameterInput({
         <Label htmlFor={param.name} className="text-sm">
           {param.name}
         </Label>
-        {param.description && (
-          <div className="group relative">
-            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-            <div className="absolute right-0 top-5 w-56 p-2 bg-popover border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-xs">
-              {param.description}
+        <div className="flex items-center gap-2">
+          {recommendation && (
+            <InlineRecommendation
+              recommendation={recommendation}
+              onApply={onApplyRecommendation}
+              isApplied={isRecommendationApplied}
+            />
+          )}
+          {param.description && (
+            <div className="group relative">
+              <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+              <div className="absolute right-0 top-5 w-56 p-2 bg-popover border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-xs">
+                {param.description}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {param.type === 'text' && (

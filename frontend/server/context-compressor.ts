@@ -9,7 +9,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import type { Message } from '../../shared/schema';
+import type { Message } from '../shared/schema';
 
 export interface CompressionOptions {
   keepRecentCount?: number;  // Number of recent messages to keep (default: 3)

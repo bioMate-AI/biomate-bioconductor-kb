@@ -1,0 +1,1130 @@
+{
+  "workflow_id": "9865fee6c68fc201",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "9865fee6c68fc201",
+    "latest_workflow_id": "d6eb94ea19ff77cf",
+    "name": "MetaProSIP OpenMS 2.8 (release v0.1)",
+    "create_time": "2024-03-28T00:11:00.687488",
+    "update_time": "2025-04-25T14:10:34.589579",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "342b76d3-4f43-42d6-b6a9-8bfd8dcdd3d0",
+    "creator_deleted": false,
+    "annotations": [
+      "Automated inference of stable isotope incorporation rates in proteins for functional metaproteomics "
+    ],
+    "url": "/api/workflows/9865fee6c68fc201",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 14,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "Automated inference of stable isotope incorporation rates in proteins for functional metaproteomics ",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "0000-0003-3763-0797",
+        "name": "Matthias Bernt"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "MetaProSIP OpenMS 2.8 (release v0.1)",
+    "steps": {
+      "0": {
+        "annotation": "mgf, ms2, mzml or mzxml datasets",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "mgf, ms2, mzml or mzxml datasets",
+            "name": "Centroided LC-MS datasets"
+          }
+        ],
+        "label": "Centroided LC-MS datasets",
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 7.076599011515327,
+          "top": 129.1847085591696
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "93778df2-dd56-4746-a50b-7b95728e884a",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "A protein sequence database in FASTA format",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "A protein sequence database in FASTA format",
+            "name": "Fasta Database"
+          }
+        ],
+        "label": "Fasta Database",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 5.760014806230345,
+          "top": 246.36005905656776
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\"}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "20cfd8a6-6535-4d9f-a7ff-d1f73b972965",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "passed to\n\n- MSGF+ -precursor_mass_tolerance\n- MetaProSIP -mz_tolerance_ppm",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "passed to\n\n- MSGF+ -precursor_mass_tolerance\n- MetaProSIP -mz_tolerance_ppm",
+            "name": "Precursor monoisotopic mass tolerance (ppm)"
+          }
+        ],
+        "label": "Precursor monoisotopic mass tolerance (ppm)",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 9.126262562065165,
+          "top": 661.3959437836211
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "45047a24-f295-4e07-89a0-0fc54298a2a5",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "used for the MSGF+ search",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "used for the MSGF+ search",
+            "name": "Fixed modifications"
+          }
+        ],
+        "label": "Fixed modifications",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 10.008971181763343,
+          "top": 802.6437324919638
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "6d9bf5b9-8232-41e9-bfab-b4e311a9d8d6",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "used for the MSGF+ search",
+        "content_id": null,
+        "errors": null,
+        "id": 4,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "used for the MSGF+ search",
+            "name": "Variable modifications"
+          }
+        ],
+        "label": "Variable modifications",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 6.208847840341662,
+          "top": 928.9752741457733
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "ff924707-b316-4ac1-aeeb-8804b925dddd",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "Used for MetaProSIP (single letter code)",
+        "content_id": null,
+        "errors": null,
+        "id": 5,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Used for MetaProSIP (single letter code)",
+            "name": "Labeled element"
+          }
+        ],
+        "label": "Labeled element",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 1053.3020245946063
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "deb60437-af2f-49e4-a5e7-3251f2e8dd1e",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "__SORTLIST__",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Sort collection",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 283.10891498997137,
+          "top": 113.17633490829857
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutput": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output"
+          }
+        },
+        "tool_id": "__SORTLIST__",
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"sort_type\": {\"sort_type\": \"alpha\", \"__current_case__\": 0}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.0",
+        "type": "tool",
+        "uuid": "061ecda4-e7dc-4309-8496-3e2fe7cf3060",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_decoydatabase/DecoyDatabase/2.8+galaxy0",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "in_cond|in": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool DecoyDatabase",
+            "name": "in_cond"
+          }
+        ],
+        "label": null,
+        "name": "DecoyDatabase",
+        "outputs": [
+          {
+            "name": "out",
+            "type": "fasta"
+          }
+        ],
+        "position": {
+          "left": 259.8666687011719,
+          "top": 444.29214961038565
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_decoydatabase/DecoyDatabase/2.8+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "25529df60a81",
+          "name": "openms_decoydatabase",
+          "owner": "galaxyp",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"Decoy\": {\"non_shuffle_pattern\": \"\", \"keepPeptideNTerm\": true, \"keepPeptideCTerm\": true}, \"OPTIONAL_OUTPUTS\": null, \"adv_opts\": {\"shuffle_max_attempts\": \"30\", \"shuffle_sequence_identity_threshold\": \"0.5\", \"seed\": \"1\", \"force\": false, \"test\": \"False\"}, \"decoy_string\": \"DECOY_\", \"decoy_string_position\": \"prefix\", \"enzyme\": \"Trypsin\", \"in_cond\": {\"in_select\": \"no\", \"__current_case__\": 0, \"in\": {\"__class__\": \"ConnectedValue\"}}, \"method\": \"reverse\", \"only_decoy\": false, \"type\": \"protein\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.8+galaxy0",
+        "type": "tool",
+        "uuid": "56a8ee13-ff6b-4d76-a2ff-da6de4cb6f2c",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_featurefindermultiplex/FeatureFinderMultiplex/2.8+galaxy0",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "in": {
+            "id": 6,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "FeatureFinderMultiplex",
+        "outputs": [
+          {
+            "name": "out",
+            "type": "featurexml"
+          }
+        ],
+        "position": {
+          "left": 889.1042176446133,
+          "top": 0.0
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_featurefindermultiplex/FeatureFinderMultiplex/2.8+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "9876bda3ec53",
+          "name": "openms_featurefindermultiplex",
+          "owner": "galaxyp",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"OPTIONAL_OUTPUTS\": [\"out_FLAG\"], \"adv_opts\": {\"force\": false, \"test\": \"False\"}, \"algorithm\": {\"labels\": \"\", \"charge\": \"1:4\", \"isotopes_per_peptide\": \"3:6\", \"rt_typical\": \"40.0\", \"rt_band\": \"0.0\", \"rt_min\": \"2.0\", \"mz_tolerance\": \"6.0\", \"mz_unit\": \"ppm\", \"intensity_cutoff\": \"1000.0\", \"peptide_similarity\": \"0.5\", \"averagine_similarity\": \"0.4\", \"averagine_similarity_scaling\": \"0.95\", \"missed_cleavages\": \"0\", \"spectrum_type\": \"automatic\", \"averagine_type\": \"peptide\", \"knock_out\": false}, \"in\": {\"__class__\": \"ConnectedValue\"}, \"labels\": {\"Arg6\": \"6.0201290268\", \"Arg10\": \"10.0082686\", \"Lys4\": \"4.0251069836\", \"Lys6\": \"6.0201290268\", \"Lys8\": \"8.0141988132\", \"Leu3\": \"3.01883\", \"Dimethyl0\": \"28.0313\", \"Dimethyl4\": \"32.056407\", \"Dimethyl6\": \"34.063117\", \"Dimethyl8\": \"36.07567\", \"ICPL0\": \"105.021464\", \"ICPL4\": \"109.046571\", \"ICPL6\": \"111.041593\", \"ICPL10\": \"115.0667\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.8+galaxy0",
+        "type": "tool",
+        "uuid": "f72ba490-0194-432a-9cdf-77fac7207ca8",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_msgfplusadapter/MSGFPlusAdapter/2.8+galaxy0",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "database": {
+            "id": 7,
+            "output_name": "out"
+          },
+          "fixed_modifications": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "in": {
+            "id": 6,
+            "output_name": "output"
+          },
+          "precursor_mass_tolerance": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "variable_modifications": {
+            "id": 4,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool MSGFPlusAdapter",
+            "name": "conf"
+          }
+        ],
+        "label": null,
+        "name": "MSGFPlusAdapter",
+        "outputs": [
+          {
+            "name": "out",
+            "type": "idxml"
+          }
+        ],
+        "position": {
+          "left": 563.0759987411635,
+          "top": 291.24336246769883
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_msgfplusadapter/MSGFPlusAdapter/2.8+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "f5ec766d80cf",
+          "name": "openms_msgfplusadapter",
+          "owner": "galaxyp",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"OPTIONAL_OUTPUTS\": [\"out_FLAG\"], \"PeptideIndexing\": {\"decoy_string\": \"\", \"decoy_string_position\": \"prefix\", \"missing_decoy_action\": \"warn\", \"write_protein_sequence\": false, \"write_protein_description\": false, \"keep_unreferenced_proteins\": false, \"unmatched_action\": \"error\", \"aaa_max\": \"3\", \"mismatches_max\": \"0\", \"IL_equivalent\": false, \"enzyme\": {\"name\": \"auto\", \"specificity\": \"auto\"}}, \"add_features\": true, \"adv_opts\": {\"add_decoys\": false, \"legacy_conversion\": false, \"force\": false, \"test\": \"False\"}, \"conf\": {\"__class__\": \"RuntimeValue\"}, \"database\": {\"__class__\": \"ConnectedValue\"}, \"enzyme\": \"Trypsin/P\", \"fixed_modifications\": {\"__class__\": \"ConnectedValue\"}, \"fragment_method\": \"from_spectrum\", \"in\": {\"__class__\": \"ConnectedValue\"}, \"instrument\": \"low_res\", \"isotope_error_range\": \"0,1\", \"matches_per_spec\": \"1\", \"max_missed_cleavages\": \"-1\", \"max_mods\": \"2\", \"max_peptide_length\": \"40\", \"max_precursor_charge\": \"3\", \"min_peptide_length\": \"6\", \"min_precursor_charge\": \"2\", \"precursor_error_units\": \"ppm\", \"precursor_mass_tolerance\": {\"__class__\": \"ConnectedValue\"}, \"protocol\": \"automatic\", \"reindex\": true, \"tasks\": \"0\", \"tryptic\": \"fully\", \"variable_modifications\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.8+galaxy0",
+        "type": "tool",
+        "uuid": "fa61d088-b96f-4efc-8e71-9648286144d6",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "10": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_peptideindexer/PeptideIndexer/2.8+galaxy0",
+        "errors": null,
+        "id": 10,
+        "input_connections": {
+          "fasta": {
+            "id": 7,
+            "output_name": "out"
+          },
+          "in": {
+            "id": 9,
+            "output_name": "out"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "PeptideIndexer",
+        "outputs": [
+          {
+            "name": "out",
+            "type": "idxml"
+          }
+        ],
+        "position": {
+          "left": 856.0592678761781,
+          "top": 466.70716390817233
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_peptideindexer/PeptideIndexer/2.8+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "d6aca689dd48",
+          "name": "openms_peptideindexer",
+          "owner": "galaxyp",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"IL_equivalent\": false, \"OPTIONAL_OUTPUTS\": null, \"aaa_max\": \"3\", \"adv_opts\": {\"force\": false, \"test\": \"False\"}, \"decoy_string\": \"\", \"decoy_string_position\": \"prefix\", \"enzyme\": {\"name\": \"auto\", \"specificity\": \"auto\"}, \"fasta\": {\"__class__\": \"ConnectedValue\"}, \"in\": {\"__class__\": \"ConnectedValue\"}, \"keep_unreferenced_proteins\": false, \"mismatches_max\": \"0\", \"missing_decoy_action\": \"error\", \"unmatched_action\": \"error\", \"write_protein_description\": false, \"write_protein_sequence\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.8+galaxy0",
+        "type": "tool",
+        "uuid": "b655e1f8-f991-4cd8-aea2-bdcf99e4cdfa",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "11": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_falsediscoveryrate/FalseDiscoveryRate/2.8+galaxy0",
+        "errors": null,
+        "id": 11,
+        "input_connections": {
+          "in": {
+            "id": 10,
+            "output_name": "out"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "FalseDiscoveryRate",
+        "outputs": [
+          {
+            "name": "out",
+            "type": "idxml"
+          }
+        ],
+        "position": {
+          "left": 1145.676234466169,
+          "top": 737.5180702002503
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_falsediscoveryrate/FalseDiscoveryRate/2.8+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "6ccbf9a2072c",
+          "name": "openms_falsediscoveryrate",
+          "owner": "galaxyp",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"FDR\": {\"PSM\": \"1.0\", \"protein\": \"1.0\", \"cleanup\": {\"remove_proteins_without_psms\": true, \"remove_psms_without_proteins\": true, \"remove_spectra_without_psms\": true}}, \"OPTIONAL_OUTPUTS\": null, \"PSM\": true, \"adv_opts\": {\"force\": false, \"test\": \"False\"}, \"algorithm\": {\"no_qvalues\": false, \"use_all_hits\": false, \"split_charge_variants\": false, \"treat_runs_separately\": false, \"add_decoy_peptides\": false, \"add_decoy_proteins\": false, \"conservative\": true}, \"in\": {\"__class__\": \"ConnectedValue\"}, \"protein\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.8+galaxy0",
+        "type": "tool",
+        "uuid": "d86c19ad-7c9d-4d84-b113-16be4e9e527b",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "12": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_idmapper/IDMapper/2.8+galaxy0",
+        "errors": null,
+        "id": 12,
+        "input_connections": {
+          "id": {
+            "id": 11,
+            "output_name": "out"
+          },
+          "in": {
+            "id": 8,
+            "output_name": "out"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool IDMapper",
+            "name": "spectra"
+          }
+        ],
+        "label": null,
+        "name": "IDMapper",
+        "outputs": [
+          {
+            "name": "out",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1393.1927501192213,
+          "top": 333.20925115710634
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_idmapper/IDMapper/2.8+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "adca857b4884",
+          "name": "openms_idmapper",
+          "owner": "galaxyp",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"OPTIONAL_OUTPUTS\": null, \"adv_opts\": {\"ignore_charge\": false, \"force\": false, \"test\": \"False\"}, \"consensus\": {\"use_subelements\": false, \"annotate_ids_with_subelements\": false}, \"feature\": {\"use_centroid_rt\": false, \"use_centroid_mz\": true}, \"id\": {\"__class__\": \"ConnectedValue\"}, \"in\": {\"__class__\": \"ConnectedValue\"}, \"mz_measure\": \"ppm\", \"mz_reference\": \"peptide\", \"mz_tolerance\": \"20.0\", \"rt_tolerance\": \"5.0\", \"spectra\": {\"_in\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.8+galaxy0",
+        "type": "tool",
+        "uuid": "1199eed7-fb62-41fc-a5ca-0bea6b4e1485",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "13": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_metaprosip/MetaProSIP/2.8+galaxy0",
+        "errors": null,
+        "id": 13,
+        "input_connections": {
+          "in_fasta": {
+            "id": 7,
+            "output_name": "out"
+          },
+          "in_featureXML": {
+            "id": 12,
+            "output_name": "out"
+          },
+          "in_mzML": {
+            "id": 6,
+            "output_name": "output"
+          },
+          "labeling_element": {
+            "id": 5,
+            "output_name": "output"
+          },
+          "mz_tolerance_ppm": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "MetaProSIP",
+        "outputs": [
+          {
+            "name": "out_csv",
+            "type": "csv"
+          },
+          {
+            "name": "out_peptide_centric_csv",
+            "type": "csv"
+          }
+        ],
+        "position": {
+          "left": 1666.1430646529957,
+          "top": 602.8082753835706
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_metaprosip/MetaProSIP/2.8+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "819ed5aae76f",
+          "name": "openms_metaprosip",
+          "owner": "galaxyp",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"OPTIONAL_OUTPUTS\": null, \"adv_opts\": {\"min_correlation_distance_to_averagine\": \"-1.0\", \"pattern_15N_TIC_threshold\": \"0.95\", \"pattern_13C_TIC_threshold\": \"0.95\", \"pattern_2H_TIC_threshold\": \"0.95\", \"pattern_18O_TIC_threshold\": \"0.95\", \"heatmap_bins\": \"20\", \"observed_peak_fraction\": \"0.5\", \"min_consecutive_isotopes\": \"2\", \"score_plot_yaxis_min\": \"0.0\", \"collect_method\": \"correlation_maximum\", \"lowRIA_correlation_threshold\": \"-1.0\", \"force\": false, \"test\": \"False\"}, \"cluster\": false, \"correlation_threshold\": \"0.7\", \"decomposition_threshold\": \"0.7\", \"filter_monoisotopic\": false, \"in_fasta\": {\"__class__\": \"ConnectedValue\"}, \"in_featureXML\": {\"__class__\": \"ConnectedValue\"}, \"in_mzML\": {\"__class__\": \"ConnectedValue\"}, \"intensity_threshold\": \"10.0\", \"labeling_element\": {\"__class__\": \"ConnectedValue\"}, \"mz_tolerance_ppm\": {\"__class__\": \"ConnectedValue\"}, \"plot_extension\": \"png\", \"qc_output_directory\": \"\", \"report_natural_peptides\": false, \"rt_tolerance_s\": \"30.0\", \"use_averagine_ids\": false, \"use_unassigned_ids\": false, \"weight_merge_window\": \"5.0\", \"xic_threshold\": \"0.7\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.8+galaxy0",
+        "type": "tool",
+        "uuid": "4b0425a4-24d1-4589-a21d-3e8920491b9d",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Peptide centric result",
+            "output_name": "out_peptide_centric_csv",
+            "uuid": "78f74b2a-9d09-45e4-be4c-74aaf68a43de"
+          },
+          {
+            "label": "Feature fitting result",
+            "output_name": "out_csv",
+            "uuid": "1c049f81-0a27-4460-80c7-ba3dff84ceae"
+          }
+        ]
+      }
+    },
+    "tags": [],
+    "uuid": "342b76d3-4f43-42d6-b6a9-8bfd8dcdd3d0",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "MetaProSIP OpenMS 2.8 (release v0.1)",
+      "annotation": "Automated inference of stable isotope incorporation rates in proteins for functional metaproteomics ",
+      "format_version": "0.1",
+      "uuid": "342b76d3-4f43-42d6-b6a9-8bfd8dcdd3d0",
+      "version": 1,
+      "tags": [],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "0000-0003-3763-0797",
+          "name": "Matthias Bernt"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": "Centroided LC-MS datasets",
+        "annotation": "mgf, ms2, mzml or mzxml datasets",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list\", \"fields\": null}",
+        "position": {
+          "left": 7.076599011515327,
+          "top": 129.1847085591696
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Fasta Database",
+        "annotation": "A protein sequence database in FASTA format",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\"}",
+        "position": {
+          "left": 5.760014806230345,
+          "top": 246.36005905656776
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Precursor monoisotopic mass tolerance (ppm)",
+        "annotation": "passed to\n\n- MSGF+ -precursor_mass_tolerance\n- MetaProSIP -mz_tolerance_ppm",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"float\", \"optional\": false}",
+        "position": {
+          "left": 9.126262562065165,
+          "top": 661.3959437836211
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Fixed modifications",
+        "annotation": "used for the MSGF+ search",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 10.008971181763343,
+          "top": 802.6437324919638
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Variable modifications",
+        "annotation": "used for the MSGF+ search",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 6.208847840341662,
+          "top": 928.9752741457733
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "5",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Labeled element",
+        "annotation": "Used for MetaProSIP (single letter code)",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 0,
+          "top": 1053.3020245946063
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "Sort collection",
+        "label": null,
+        "annotation": "",
+        "tool_id": "__SORTLIST__",
+        "tool_version": "1.0.0",
+        "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"sort_type\": {\"sort_type\": \"alpha\", \"__current_case__\": 0}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 283.10891498997137,
+          "top": 113.17633490829857
+        },
+        "input_connections": {
+          "input": {
+            "id": 0,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "DecoyDatabase",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_decoydatabase/DecoyDatabase/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "tool_state": "{\"Decoy\": {\"non_shuffle_pattern\": \"\", \"keepPeptideNTerm\": true, \"keepPeptideCTerm\": true}, \"OPTIONAL_OUTPUTS\": null, \"adv_opts\": {\"shuffle_max_attempts\": \"30\", \"shuffle_sequence_identity_threshold\": \"0.5\", \"seed\": \"1\", \"force\": false, \"test\": \"False\"}, \"decoy_string\": \"DECOY_\", \"decoy_string_position\": \"prefix\", \"enzyme\": \"Trypsin\", \"in_cond\": {\"in_select\": \"no\", \"__current_case__\": 0, \"in\": {\"__class__\": \"ConnectedValue\"}}, \"method\": \"reverse\", \"only_decoy\": false, \"type\": \"protein\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 259.8666687011719,
+          "top": 444.29214961038565
+        },
+        "input_connections": {
+          "in_cond|in": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out",
+            "type": "fasta"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "FeatureFinderMultiplex",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_featurefindermultiplex/FeatureFinderMultiplex/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "tool_state": "{\"OPTIONAL_OUTPUTS\": [\"out_FLAG\"], \"adv_opts\": {\"force\": false, \"test\": \"False\"}, \"algorithm\": {\"labels\": \"\", \"charge\": \"1:4\", \"isotopes_per_peptide\": \"3:6\", \"rt_typical\": \"40.0\", \"rt_band\": \"0.0\", \"rt_min\": \"2.0\", \"mz_tolerance\": \"6.0\", \"mz_unit\": \"ppm\", \"intensity_cutoff\": \"1000.0\", \"peptide_similarity\": \"0.5\", \"averagine_similarity\": \"0.4\", \"averagine_similarity_scaling\": \"0.95\", \"missed_cleavages\": \"0\", \"spectrum_type\": \"automatic\", \"averagine_type\": \"peptide\", \"knock_out\": false}, \"in\": {\"__class__\": \"ConnectedValue\"}, \"labels\": {\"Arg6\": \"6.0201290268\", \"Arg10\": \"10.0082686\", \"Lys4\": \"4.0251069836\", \"Lys6\": \"6.0201290268\", \"Lys8\": \"8.0141988132\", \"Leu3\": \"3.01883\", \"Dimethyl0\": \"28.0313\", \"Dimethyl4\": \"32.056407\", \"Dimethyl6\": \"34.063117\", \"Dimethyl8\": \"36.07567\", \"ICPL0\": \"105.021464\", \"ICPL4\": \"109.046571\", \"ICPL6\": \"111.041593\", \"ICPL10\": \"115.0667\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 889.1042176446133,
+          "top": 0.0
+        },
+        "input_connections": {
+          "in": {
+            "id": 6,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out",
+            "type": "featurexml"
+          }
+        ]
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "MSGFPlusAdapter",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_msgfplusadapter/MSGFPlusAdapter/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "tool_state": "{\"OPTIONAL_OUTPUTS\": [\"out_FLAG\"], \"PeptideIndexing\": {\"decoy_string\": \"\", \"decoy_string_position\": \"prefix\", \"missing_decoy_action\": \"warn\", \"write_protein_sequence\": false, \"write_protein_description\": false, \"keep_unreferenced_proteins\": false, \"unmatched_action\": \"error\", \"aaa_max\": \"3\", \"mismatches_max\": \"0\", \"IL_equivalent\": false, \"enzyme\": {\"name\": \"auto\", \"specificity\": \"auto\"}}, \"add_features\": true, \"adv_opts\": {\"add_decoys\": false, \"legacy_conversion\": false, \"force\": false, \"test\": \"False\"}, \"conf\": {\"__class__\": \"RuntimeValue\"}, \"database\": {\"__class__\": \"ConnectedValue\"}, \"enzyme\": \"Trypsin/P\", \"fixed_modifications\": {\"__class__\": \"ConnectedValue\"}, \"fragment_method\": \"from_spectrum\", \"in\": {\"__class__\": \"ConnectedValue\"}, \"instrument\": \"low_res\", \"isotope_error_range\": \"0,1\", \"matches_per_spec\": \"1\", \"max_missed_cleavages\": \"-1\", \"max_mods\": \"2\", \"max_peptide_length\": \"40\", \"max_precursor_charge\": \"3\", \"min_peptide_length\": \"6\", \"min_precursor_charge\": \"2\", \"precursor_error_units\": \"ppm\", \"precursor_mass_tolerance\": {\"__class__\": \"ConnectedValue\"}, \"protocol\": \"automatic\", \"reindex\": true, \"tasks\": \"0\", \"tryptic\": \"fully\", \"variable_modifications\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 563.0759987411635,
+          "top": 291.24336246769883
+        },
+        "input_connections": {
+          "database": {
+            "id": 7,
+            "output_name": "out"
+          },
+          "fixed_modifications": {
+            "id": 3,
+            "output_name": "output"
+          },
+          "in": {
+            "id": 6,
+            "output_name": "output"
+          },
+          "precursor_mass_tolerance": {
+            "id": 2,
+            "output_name": "output"
+          },
+          "variable_modifications": {
+            "id": 4,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out",
+            "type": "idxml"
+          }
+        ]
+      },
+      {
+        "step_id": "10",
+        "type": "tool",
+        "name": "PeptideIndexer",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_peptideindexer/PeptideIndexer/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "tool_state": "{\"IL_equivalent\": false, \"OPTIONAL_OUTPUTS\": null, \"aaa_max\": \"3\", \"adv_opts\": {\"force\": false, \"test\": \"False\"}, \"decoy_string\": \"\", \"decoy_string_position\": \"prefix\", \"enzyme\": {\"name\": \"auto\", \"specificity\": \"auto\"}, \"fasta\": {\"__class__\": \"ConnectedValue\"}, \"in\": {\"__class__\": \"ConnectedValue\"}, \"keep_unreferenced_proteins\": false, \"mismatches_max\": \"0\", \"missing_decoy_action\": \"error\", \"unmatched_action\": \"error\", \"write_protein_description\": false, \"write_protein_sequence\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 856.0592678761781,
+          "top": 466.70716390817233
+        },
+        "input_connections": {
+          "fasta": {
+            "id": 7,
+            "output_name": "out"
+          },
+          "in": {
+            "id": 9,
+            "output_name": "out"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out",
+            "type": "idxml"
+          }
+        ]
+      },
+      {
+        "step_id": "11",
+        "type": "tool",
+        "name": "FalseDiscoveryRate",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_falsediscoveryrate/FalseDiscoveryRate/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "tool_state": "{\"FDR\": {\"PSM\": \"1.0\", \"protein\": \"1.0\", \"cleanup\": {\"remove_proteins_without_psms\": true, \"remove_psms_without_proteins\": true, \"remove_spectra_without_psms\": true}}, \"OPTIONAL_OUTPUTS\": null, \"PSM\": true, \"adv_opts\": {\"force\": false, \"test\": \"False\"}, \"algorithm\": {\"no_qvalues\": false, \"use_all_hits\": false, \"split_charge_variants\": false, \"treat_runs_separately\": false, \"add_decoy_peptides\": false, \"add_decoy_proteins\": false, \"conservative\": true}, \"in\": {\"__class__\": \"ConnectedValue\"}, \"protein\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1145.676234466169,
+          "top": 737.5180702002503
+        },
+        "input_connections": {
+          "in": {
+            "id": 10,
+            "output_name": "out"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out",
+            "type": "idxml"
+          }
+        ]
+      },
+      {
+        "step_id": "12",
+        "type": "tool",
+        "name": "IDMapper",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_idmapper/IDMapper/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "tool_state": "{\"OPTIONAL_OUTPUTS\": null, \"adv_opts\": {\"ignore_charge\": false, \"force\": false, \"test\": \"False\"}, \"consensus\": {\"use_subelements\": false, \"annotate_ids_with_subelements\": false}, \"feature\": {\"use_centroid_rt\": false, \"use_centroid_mz\": true}, \"id\": {\"__class__\": \"ConnectedValue\"}, \"in\": {\"__class__\": \"ConnectedValue\"}, \"mz_measure\": \"ppm\", \"mz_reference\": \"peptide\", \"mz_tolerance\": \"20.0\", \"rt_tolerance\": \"5.0\", \"spectra\": {\"_in\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1393.1927501192213,
+          "top": 333.20925115710634
+        },
+        "input_connections": {
+          "id": {
+            "id": 11,
+            "output_name": "out"
+          },
+          "in": {
+            "id": 8,
+            "output_name": "out"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "13",
+        "type": "tool",
+        "name": "MetaProSIP",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_metaprosip/MetaProSIP/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "tool_state": "{\"OPTIONAL_OUTPUTS\": null, \"adv_opts\": {\"min_correlation_distance_to_averagine\": \"-1.0\", \"pattern_15N_TIC_threshold\": \"0.95\", \"pattern_13C_TIC_threshold\": \"0.95\", \"pattern_2H_TIC_threshold\": \"0.95\", \"pattern_18O_TIC_threshold\": \"0.95\", \"heatmap_bins\": \"20\", \"observed_peak_fraction\": \"0.5\", \"min_consecutive_isotopes\": \"2\", \"score_plot_yaxis_min\": \"0.0\", \"collect_method\": \"correlation_maximum\", \"lowRIA_correlation_threshold\": \"-1.0\", \"force\": false, \"test\": \"False\"}, \"cluster\": false, \"correlation_threshold\": \"0.7\", \"decomposition_threshold\": \"0.7\", \"filter_monoisotopic\": false, \"in_fasta\": {\"__class__\": \"ConnectedValue\"}, \"in_featureXML\": {\"__class__\": \"ConnectedValue\"}, \"in_mzML\": {\"__class__\": \"ConnectedValue\"}, \"intensity_threshold\": \"10.0\", \"labeling_element\": {\"__class__\": \"ConnectedValue\"}, \"mz_tolerance_ppm\": {\"__class__\": \"ConnectedValue\"}, \"plot_extension\": \"png\", \"qc_output_directory\": \"\", \"report_natural_peptides\": false, \"rt_tolerance_s\": \"30.0\", \"use_averagine_ids\": false, \"use_unassigned_ids\": false, \"weight_merge_window\": \"5.0\", \"xic_threshold\": \"0.7\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1666.1430646529957,
+          "top": 602.8082753835706
+        },
+        "input_connections": {
+          "in_fasta": {
+            "id": 7,
+            "output_name": "out"
+          },
+          "in_featureXML": {
+            "id": 12,
+            "output_name": "out"
+          },
+          "in_mzML": {
+            "id": 6,
+            "output_name": "output"
+          },
+          "labeling_element": {
+            "id": 5,
+            "output_name": "output"
+          },
+          "mz_tolerance_ppm": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_csv",
+            "type": "csv"
+          },
+          {
+            "name": "out_peptide_centric_csv",
+            "type": "csv"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "__SORTLIST__",
+        "tool_version": "1.0.0",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_decoydatabase/DecoyDatabase/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_featurefindermultiplex/FeatureFinderMultiplex/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "step_id": "8"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_msgfplusadapter/MSGFPlusAdapter/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "step_id": "9"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_peptideindexer/PeptideIndexer/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "step_id": "10"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_falsediscoveryrate/FalseDiscoveryRate/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "step_id": "11"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_idmapper/IDMapper/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "step_id": "12"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/galaxyp/openms_metaprosip/MetaProSIP/2.8+galaxy0",
+        "tool_version": "2.8+galaxy0",
+        "step_id": "13"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "1",
+        "label": "Fasta Database",
+        "annotation": "A protein sequence database in FASTA format"
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "13",
+        "output_name": "out_peptide_centric_csv",
+        "label": "Peptide centric result"
+      },
+      {
+        "step_id": "13",
+        "output_name": "out_csv",
+        "label": "Feature fitting result"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "input"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "7",
+        "to_input": "in_cond|in"
+      },
+      {
+        "from_step": 6,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "in"
+      },
+      {
+        "from_step": 7,
+        "from_output": "out",
+        "to_step": "9",
+        "to_input": "database"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "fixed_modifications"
+      },
+      {
+        "from_step": 6,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "in"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "precursor_mass_tolerance"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "variable_modifications"
+      },
+      {
+        "from_step": 7,
+        "from_output": "out",
+        "to_step": "10",
+        "to_input": "fasta"
+      },
+      {
+        "from_step": 9,
+        "from_output": "out",
+        "to_step": "10",
+        "to_input": "in"
+      },
+      {
+        "from_step": 10,
+        "from_output": "out",
+        "to_step": "11",
+        "to_input": "in"
+      },
+      {
+        "from_step": 11,
+        "from_output": "out",
+        "to_step": "12",
+        "to_input": "id"
+      },
+      {
+        "from_step": 8,
+        "from_output": "out",
+        "to_step": "12",
+        "to_input": "in"
+      },
+      {
+        "from_step": 7,
+        "from_output": "out",
+        "to_step": "13",
+        "to_input": "in_fasta"
+      },
+      {
+        "from_step": 12,
+        "from_output": "out",
+        "to_step": "13",
+        "to_input": "in_featureXML"
+      },
+      {
+        "from_step": 6,
+        "from_output": "output",
+        "to_step": "13",
+        "to_input": "in_mzML"
+      },
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "13",
+        "to_input": "labeling_element"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "13",
+        "to_input": "mz_tolerance_ppm"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:53:14.336647"
+}

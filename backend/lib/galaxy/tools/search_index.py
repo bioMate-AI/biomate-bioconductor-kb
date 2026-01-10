@@ -81,12 +81,13 @@ class ToolSearchIndex:
         query = query.replace('-', ' ')
 
         with self._get_cursor() as cursor:
+            # Use tool_id for JOIN (not rowid) since FTS5 rowids don't match tools.id
             if category:
                 sql = '''
                     SELECT t.*,
                            bm25(tools_fts) as rank
                     FROM tools t
-                    JOIN tools_fts fts ON t.id = fts.rowid
+                    JOIN tools_fts fts ON t.tool_id = fts.tool_id
                     WHERE tools_fts MATCH ? AND t.category = ?
                     ORDER BY rank
                     LIMIT ?
@@ -97,7 +98,7 @@ class ToolSearchIndex:
                     SELECT t.*,
                            bm25(tools_fts) as rank
                     FROM tools t
-                    JOIN tools_fts fts ON t.id = fts.rowid
+                    JOIN tools_fts fts ON t.tool_id = fts.tool_id
                     WHERE tools_fts MATCH ?
                     ORDER BY rank
                     LIMIT ?

@@ -36,6 +36,7 @@ export function getSecurityConfig(): SecurityConfig {
     enableCSRF: isProd,
     corsOrigins: process.env.CORS_ORIGINS?.split(',') || [
       isProd ? 'https://biomate.ai' : 'http://localhost:5173',
+      'http://localhost:5000', // E2E test origin
     ],
     forceHTTPS: isProd,
     sessionTimeout: 15, // HIPAA requirement: 15-minute inactivity timeout

@@ -7,11 +7,13 @@ import { GalaxyRecommendations } from "./galaxy-recommendations"
 import { ChatOutputAttachments } from "./chat-output-attachments"
 import { ThinkingDisplay } from "./thinking-display"
 import { WorkflowArtifact } from "./workflow-artifact"
+import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba2b.png"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
 
 // Use the shared Message type for consistency
-export type { Message } from '@shared/schema'
+import type { Message } from '@shared/schema'
+export type { Message }
 
 interface ChatMessageProps {
   message: Message
@@ -20,7 +22,7 @@ interface ChatMessageProps {
   onCreateWorkflow?: () => void
   onToolClick?: (tool: any) => void
   onDatasetClick?: (dataset: any) => void
-  onRunWorkflow?: () => void
+  onRunWorkflow?: (workflow: any, steps: any[]) => void
   onStopWorkflow?: () => void
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   isWorkflowRunning?: boolean
@@ -90,6 +92,33 @@ export function ChatMessage({
             />
           )}
 
+          {/* Benchmark Evidence - Shows validated tool comparisons */}
+          {!isUser && message.metadata?.benchmark_evidence && (
+            <BenchmarkEvidence
+              benchmarkData={message.metadata.benchmark_evidence}
+              onToolClick={(toolName, galaxyToolId) => {
+                if (onToolClick && galaxyToolId) {
+                  onToolClick({ tool: { tool_id: galaxyToolId, name: toolName }, relevanceScore: 1, reasoning: 'From benchmark' })
+                }
+              }}
+              className="mt-3"
+            />
+          )}
+
+          {/* Research Response - Shows answer with citations and evidence */}
+          {!isUser && message.metadata?.type === 'research_response' && message.metadata?.research_response && (
+            <ResearchResponseDisplay
+              response={message.metadata.research_response}
+              onFollowUpClick={(question) => console.log('Follow-up:', question)}
+              onToolClick={(toolName, galaxyToolId) => {
+                if (onToolClick && galaxyToolId) {
+                  onToolClick({ tool: { tool_id: galaxyToolId, name: toolName }, relevanceScore: 1, reasoning: 'From research' })
+                }
+              }}
+              className="mt-3"
+            />
+          )}
+
           {/* Workflow Artifact - Interactive inline workflow display */}
           {!isUser && message.metadata?.type === 'workflow' && message.metadata?.workflow && (
             <WorkflowArtifact
@@ -102,6 +131,18 @@ export function ChatMessage({
               isRunning={isWorkflowRunning}
               progress={workflowProgress}
               className="mt-2"
+              // Citation and pilot run props from workflow generation
+              citations={message.metadata.citations || []}
+              methodsSection={message.metadata.methods_section}
+              pilotRunSuggested={message.metadata.pilot_run_suggested || false}
+              pilotReasons={message.metadata.pilot_reasons || []}
+              pilotMessage={message.metadata.pilot_message}
+              totalSamples={message.metadata.total_samples || 0}
+              tuningConfig={message.metadata.tuning_config}
+              parameterRecommendations={message.metadata.parameter_recommendations || {}}
+              // Validation info for transparency
+              validationIssues={message.metadata.validation?.issues || []}
+              validationWarnings={message.metadata.validation?.warnings || []}
             />
           )}
 

@@ -1,0 +1,556 @@
+{
+  "workflow_id": "7f02a9ab182a8f94",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "7f02a9ab182a8f94",
+    "latest_workflow_id": "8d0f8a2114a1ed96",
+    "name": " Katies History",
+    "create_time": "2025-05-13T15:39:00.201050",
+    "update_time": "2025-05-13T15:46:38.428748",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "d399ef97-6171-4f79-ad7a-6ccb3e0b5113",
+    "creator_deleted": false,
+    "annotations": [],
+    "url": "/api/workflows/7f02a9ab182a8f94",
+    "owner": "katieblinn04",
+    "source_metadata": null,
+    "number_of_steps": 7,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "name": " Katies History",
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "Exons"
+          }
+        ],
+        "label": "Exons",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 10,
+          "top": 10
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "c661aa60-0a35-4a37-9d9a-7c8ef5727383",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "Repeats"
+          }
+        ],
+        "label": "Repeats",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 10,
+          "top": 130
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "9a04e775-8ad6-4473-a564-40cc27c62dac",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_intersectbed/2.31.1+galaxy0",
+        "errors": null,
+        "id": 2,
+        "input_connections": {
+          "inputA": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "reduce_or_iterate|inputB": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "bedtools Intersect intervals",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 230,
+          "top": 10
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_intersectbed/2.31.1+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "2892111d91f8",
+          "name": "bedtools",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"input\", \"__workflow_invocation_uuid__\": \"d973f50a300e11f09bd2005056bcc964\", \"bed\": false, \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"count\": false, \"fraction_cond\": {\"fraction_select\": \"default\", \"__current_case__\": 0}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"loc\", \"__current_case__\": 0, \"genome\": null}, \"header\": false, \"inputA\": null, \"invert\": false, \"once\": false, \"overlap_mode\": [\"-wb\"], \"reduce_or_iterate\": {\"reduce_or_iterate_selector\": \"iterate\", \"__current_case__\": 0, \"inputB\": null}, \"sorted\": false, \"split\": false, \"strand\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.31.1+galaxy0",
+        "type": "tool",
+        "uuid": "109c90d9-1db4-4282-addb-a1504893a06e",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/datamash_ops/datamash_ops/1.8+galaxy0",
+        "errors": null,
+        "id": 3,
+        "input_connections": {
+          "in_file": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Datamash",
+        "outputs": [
+          {
+            "name": "out_file",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 450,
+          "top": 10
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/datamash_ops/datamash_ops/1.8+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "4c07ddedc198",
+          "name": "datamash_ops",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"input\", \"__workflow_invocation_uuid__\": \"d973f50a300e11f09bd2005056bcc964\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"grouping\": \"4\", \"header_in\": false, \"header_out\": false, \"ignore_case\": false, \"in_file\": null, \"narm\": false, \"need_sort\": false, \"operations\": [{\"__index__\": 0, \"op_name\": \"countunique\", \"op_column\": \"10\"}], \"print_full_line\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.8+galaxy0",
+        "type": "tool",
+        "uuid": "4316847e-5070-4a95-97d3-66bf63036c6a",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sort_header_tool/9.5+galaxy0",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "infile": {
+            "id": 3,
+            "output_name": "out_file"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Sort",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 670,
+          "top": 10
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sort_header_tool/9.5+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "6073bb457ec0",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"input\", \"__workflow_invocation_uuid__\": \"d973f50a300e11f09bd2005056bcc964\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"header\": \"0\", \"ignore_case\": false, \"infile\": null, \"sortkeys\": [{\"__index__\": 0, \"column\": \"2\", \"order\": \"r\", \"style\": \"n\"}], \"unique\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.5+galaxy0",
+        "type": "tool",
+        "uuid": "ee7341f3-7437-4954-b36c-042929e32734",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_head_tool/9.5+galaxy0",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "infile": {
+            "id": 4,
+            "output_name": "outfile"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Select first",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 890,
+          "top": 10
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_head_tool/9.5+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "6073bb457ec0",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"__input_ext\": \"input\", \"__workflow_invocation_uuid__\": \"d973f50a300e11f09bd2005056bcc964\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"complement\": \"\", \"count\": \"5\", \"infile\": null, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "9.5+galaxy0",
+        "type": "tool",
+        "uuid": "f9425866-2bc7-459e-8001-e492518303f1",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "comp1",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "input1": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "input2": {
+            "id": 5,
+            "output_name": "outfile"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Compare two Datasets",
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 1110,
+          "top": 10
+        },
+        "post_job_actions": {},
+        "tool_id": "comp1",
+        "tool_state": "{\"__input_ext\": \"interval\", \"__workflow_invocation_uuid__\": \"d973f50a300e11f09bd2005056bcc964\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"field1\": \"4\", \"field2\": \"1\", \"input1\": null, \"input2\": null, \"mode\": \"N\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.0.2",
+        "type": "tool",
+        "uuid": "c45ab996-81e1-4750-b01b-10211560d244",
+        "when": null,
+        "workflow_outputs": []
+      }
+    },
+    "tags": [],
+    "uuid": "d399ef97-6171-4f79-ad7a-6ccb3e0b5113",
+    "version": 0
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": " Katies History",
+      "annotation": "",
+      "format_version": "0.1",
+      "uuid": "d399ef97-6171-4f79-ad7a-6ccb3e0b5113",
+      "version": 0,
+      "tags": [],
+      "creator": [],
+      "license": ""
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Exons",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 10,
+          "top": 10
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "Repeats",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": null}",
+        "position": {
+          "left": 10,
+          "top": 130
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "tool",
+        "name": "bedtools Intersect intervals",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_intersectbed/2.31.1+galaxy0",
+        "tool_version": "2.31.1+galaxy0",
+        "tool_state": "{\"__input_ext\": \"input\", \"__workflow_invocation_uuid__\": \"d973f50a300e11f09bd2005056bcc964\", \"bed\": false, \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"count\": false, \"fraction_cond\": {\"fraction_select\": \"default\", \"__current_case__\": 0}, \"genome_file_opts\": {\"genome_file_opts_selector\": \"loc\", \"__current_case__\": 0, \"genome\": null}, \"header\": false, \"inputA\": null, \"invert\": false, \"once\": false, \"overlap_mode\": [\"-wb\"], \"reduce_or_iterate\": {\"reduce_or_iterate_selector\": \"iterate\", \"__current_case__\": 0, \"inputB\": null}, \"sorted\": false, \"split\": false, \"strand\": \"\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 230,
+          "top": 10
+        },
+        "input_connections": {
+          "inputA": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "reduce_or_iterate|inputB": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "3",
+        "type": "tool",
+        "name": "Datamash",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/datamash_ops/datamash_ops/1.8+galaxy0",
+        "tool_version": "1.8+galaxy0",
+        "tool_state": "{\"__input_ext\": \"input\", \"__workflow_invocation_uuid__\": \"d973f50a300e11f09bd2005056bcc964\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"grouping\": \"4\", \"header_in\": false, \"header_out\": false, \"ignore_case\": false, \"in_file\": null, \"narm\": false, \"need_sort\": false, \"operations\": [{\"__index__\": 0, \"op_name\": \"countunique\", \"op_column\": \"10\"}], \"print_full_line\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 450,
+          "top": 10
+        },
+        "input_connections": {
+          "in_file": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "Sort",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sort_header_tool/9.5+galaxy0",
+        "tool_version": "9.5+galaxy0",
+        "tool_state": "{\"__input_ext\": \"input\", \"__workflow_invocation_uuid__\": \"d973f50a300e11f09bd2005056bcc964\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"header\": \"0\", \"ignore_case\": false, \"infile\": null, \"sortkeys\": [{\"__index__\": 0, \"column\": \"2\", \"order\": \"r\", \"style\": \"n\"}], \"unique\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 670,
+          "top": 10
+        },
+        "input_connections": {
+          "infile": {
+            "id": 3,
+            "output_name": "out_file"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "Select first",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_head_tool/9.5+galaxy0",
+        "tool_version": "9.5+galaxy0",
+        "tool_state": "{\"__input_ext\": \"input\", \"__workflow_invocation_uuid__\": \"d973f50a300e11f09bd2005056bcc964\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"complement\": \"\", \"count\": \"5\", \"infile\": null, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 890,
+          "top": 10
+        },
+        "input_connections": {
+          "infile": {
+            "id": 4,
+            "output_name": "outfile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "Compare two Datasets",
+        "label": null,
+        "annotation": "",
+        "tool_id": "comp1",
+        "tool_version": "1.0.2",
+        "tool_state": "{\"__input_ext\": \"interval\", \"__workflow_invocation_uuid__\": \"d973f50a300e11f09bd2005056bcc964\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"field1\": \"4\", \"field2\": \"1\", \"input1\": null, \"input2\": null, \"mode\": \"N\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1110,
+          "top": 10
+        },
+        "input_connections": {
+          "input1": {
+            "id": 1,
+            "output_name": "output"
+          },
+          "input2": {
+            "id": 5,
+            "output_name": "outfile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "out_file1",
+            "type": "input"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bedtools/bedtools_intersectbed/2.31.1+galaxy0",
+        "tool_version": "2.31.1+galaxy0",
+        "step_id": "2"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/datamash_ops/datamash_ops/1.8+galaxy0",
+        "tool_version": "1.8+galaxy0",
+        "step_id": "3"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_sort_header_tool/9.5+galaxy0",
+        "tool_version": "9.5+galaxy0",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_head_tool/9.5+galaxy0",
+        "tool_version": "9.5+galaxy0",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "comp1",
+        "tool_version": "1.0.2",
+        "step_id": "6"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "Exons",
+        "annotation": ""
+      },
+      {
+        "step_id": "1",
+        "label": "Repeats",
+        "annotation": ""
+      }
+    ],
+    "outputs": [],
+    "connections": [
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "2",
+        "to_input": "inputA"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "2",
+        "to_input": "reduce_or_iterate|inputB"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "3",
+        "to_input": "in_file"
+      },
+      {
+        "from_step": 3,
+        "from_output": "out_file",
+        "to_step": "4",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 4,
+        "from_output": "outfile",
+        "to_step": "5",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "6",
+        "to_input": "input1"
+      },
+      {
+        "from_step": 5,
+        "from_output": "outfile",
+        "to_step": "6",
+        "to_input": "input2"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:46:59.234529"
+}

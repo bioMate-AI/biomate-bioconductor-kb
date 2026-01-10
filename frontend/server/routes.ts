@@ -11,6 +11,8 @@ import { WorkflowSSEManager } from "./workflow-sse";
 import { GalaxyAssistant } from "./galaxy-assistant";
 import { parameterRepository } from "./parameter-repository";
 import { workflowRepository } from "./workflow-repository";
+import { memoryService } from "./memory-repository";
+import { createMemoryIntegration, getMemoryIntegration, type MemoryEnhancedContext } from "./memory-integration";
 import { datasetValidator } from "./dataset-validator";
 import { getContextCompressor } from "./context-compressor";
 import multer from "multer";
@@ -32,6 +34,7 @@ import {
 import passport from "passport";
 import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
+import { auditService, auditMiddleware } from "./audit-service";
 
 // Initialize OpenAI (optional for development)
 const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
@@ -46,13 +49,37 @@ const galaxyAPIProxy = galaxyAPIBackend; // Alias for consistency
 const galaxyPoller = createPoller(galaxyAPIBackend, { pollInterval: 2000 });
 const sseManager = new WorkflowSSEManager(galaxyPoller);
 
+// Listen for workflow completion to update bioMate invocation records
+galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; state: string }) => {
+  try {
+    const invocation = await storage.getInvocationByGalaxyId(data.invocation_id);
+    if (invocation) {
+      await storage.updateInvocation(invocation.id, {
+        status: data.state === 'ok' || data.state === 'scheduled' ? 'ok' : 'error',
+        completedAt: new Date(),
+        completedSteps: invocation.totalSteps,
+      });
+      console.log(`[WorkflowComplete] Updated bioMate invocation ${invocation.id} to completed`);
+    }
+  } catch (error) {
+    console.error('[WorkflowComplete] Failed to update invocation:', error);
+  }
+});
+
 // Initialize Galaxy Assistant (hybrid intelligence with Claude Sonnet 4.5)
 const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   galaxyAPIProxy,
 }) : null;
 
+// Initialize memory integration if Galaxy Assistant is available
+const memoryIntegration = galaxyAssistant ? createMemoryIntegration(galaxyAssistant) : null;
+
 // Configure multer for file uploads
+// AWS workflows require file upload first, so we constrain to 5GB to reduce latency
+const MAX_FILE_SIZE_GB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_GB * 1024 * 1024 * 1024; // 5GB
+
 const uploadDir = path.join(process.cwd(), 'data', 'uploads');
 const upload = multer({
   storage: multer.diskStorage({
@@ -68,7 +95,26 @@ const upload = multer({
     },
   }),
   limits: {
-    fileSize: 500 * 1024 * 1024, // 500MB max file size
+    fileSize: MAX_FILE_SIZE_BYTES, // 5GB max file size per file
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept common bioinformatics formats
+    const allowedExtensions = [
+      '.fastq', '.fastq.gz', '.fq', '.fq.gz',
+      '.bam', '.sam', '.cram',
+      '.mzml', '.mzxml', '.mgf',
+      '.csv', '.tsv', '.txt', '.tab',
+      '.fasta', '.fa', '.fna', '.fas',
+      '.vcf', '.vcf.gz', '.bed', '.gff', '.gtf',
+      '.h5ad', '.h5', '.hdf5', '.loom',
+      '.json', '.xml'
+    ];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedExtensions.some(allowed => file.originalname.toLowerCase().endsWith(allowed))) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type not supported. Allowed: ${allowedExtensions.join(', ')}`));
+    }
   },
 });
 
@@ -89,6 +135,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[Server] Seeding example workflow templates...');
     await workflowRepository.seedExamples();
   }
+
+  // Apply audit middleware for API routes (excludes health and SSE)
+  app.use('/api', auditMiddleware({
+    excludePaths: ['/api/health', '/api/workflow/sse'],
+    logBody: false, // Don't log request bodies by default (privacy)
+  }));
 
   // Health check
   app.get("/api/health", (req, res) => {
@@ -158,6 +210,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check subscription status
       const subscriptionStatus = authService.checkSubscriptionStatus(result.user);
 
+      // Log successful login
+      await auditService.logAuth(
+        'login',
+        result.user.id,
+        req.ip || req.socket.remoteAddress || 'unknown',
+        req.headers['user-agent'] || 'unknown',
+        true
+      );
+
       res.json({
         success: true,
         user: result.user,
@@ -166,6 +227,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[Auth] Login error:', error);
+
+      // Log failed login
+      await auditService.logAuth(
+        'login',
+        null,
+        req.ip || req.socket.remoteAddress || 'unknown',
+        req.headers['user-agent'] || 'unknown',
+        false,
+        error.message
+      );
 
       if (error.message === 'TRIAL_EXPIRED') {
         return res.status(403).json({
@@ -183,7 +254,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Logout
-  app.post("/api/auth/logout", (req, res) => {
+  app.post("/api/auth/logout", async (req, res) => {
+    // Log logout
+    const userId = (req as any).user?.id || null;
+    await auditService.logAuth(
+      'logout',
+      userId,
+      req.ip || req.socket.remoteAddress || 'unknown',
+      req.headers['user-agent'] || 'unknown',
+      true
+    );
+
     res.clearCookie('biomate_token');
     res.json({ success: true, message: 'Logged out successfully' });
   });
@@ -669,7 +750,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Stripe webhook handler
   app.post("/api/payments/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
-    const signature = req.headers['stripe-signature'];
+    const signatureHeader = req.headers['stripe-signature'];
+    const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
 
     if (!signature) {
       return res.status(400).send('Missing stripe-signature header');
@@ -872,6 +954,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // URL Import API - Galaxy fetches file from URL (no size limit, faster for large files)
+  // Leverages Galaxy's built-in URL fetching capabilities (HTTP, FTP, S3)
+  app.post("/api/datasets/import-url", async (req, res) => {
+    try {
+      const { url, filename } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Validate URL format
+      try {
+        const parsedUrl = new URL(url);
+        if (!['http:', 'https:', 'ftp:', 's3:'].includes(parsedUrl.protocol)) {
+          return res.status(400).json({
+            error: "Unsupported protocol. Use HTTP, HTTPS, FTP, or S3 URLs."
+          });
+        }
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      console.log(`[URLImport] Importing from URL: ${url}`);
+
+      // Get or create Galaxy history
+      let historyId = req.session?.galaxyHistoryId as string | undefined;
+      if (!historyId) {
+        try {
+          const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
+          historyId = await galaxyAPIProxy.createHistory(sessionName);
+          if (req.session) {
+            req.session.galaxyHistoryId = historyId;
+          }
+          console.log(`[URLImport] Created new Galaxy history: ${historyId}`);
+        } catch (error: any) {
+          console.error(`[URLImport] Failed to create Galaxy history:`, error.message);
+          return res.status(500).json({
+            error: 'GalaxyError',
+            message: 'Failed to create Galaxy history for URL import'
+          });
+        }
+      }
+
+      // Use Galaxy's URL fetch capability
+      try {
+        const datasetId = uuidv4();
+        const galaxyDatasetId = await galaxyAPIProxy.uploadFromUrl(
+          url,
+          historyId,
+          filename || url.split('/').pop() || 'imported-file'
+        );
+
+        console.log(`[URLImport] Galaxy dataset created: ${galaxyDatasetId}`);
+
+        // Store in session (URL imports have additional metadata)
+        if (req.session) {
+          if (!req.session.uploadedDatasets) {
+            req.session.uploadedDatasets = [];
+          }
+          req.session.uploadedDatasets.push({
+            dataset_id: datasetId,
+            galaxy_dataset_id: galaxyDatasetId,
+            name: filename || url.split('/').pop() || 'imported-file',
+            description: `Imported from URL: ${url}`,
+            file_type: 'auto',
+            file_size: 0, // Size unknown until Galaxy fetches it
+          });
+        }
+
+        res.json({
+          dataset_id: datasetId,
+          galaxy_dataset_id: galaxyDatasetId,
+          galaxy_history_id: historyId,
+          name: filename || url.split('/').pop(),
+          source: 'url',
+          source_url: url,
+          uploaded_at: new Date().toISOString(),
+        });
+      } catch (error: any) {
+        console.error(`[URLImport] Galaxy URL import failed:`, error.message);
+        res.status(500).json({
+          error: 'URLImportError',
+          message: error.message || 'Failed to import file from URL'
+        });
+      }
+    } catch (error: any) {
+      console.error("[URLImport] Error:", error);
+      res.status(500).json({
+        error: 'URLImportError',
+        message: error.message || 'URL import failed',
+      });
+    }
+  });
+
+  // Storage/Resource Check API - Check available resources before execution
+  app.get("/api/resources/status", async (req, res) => {
+    try {
+      // Calculate storage usage from session uploads
+      const uploadedDatasets = req.session?.uploadedDatasets || [];
+      const totalUploadedBytes = uploadedDatasets.reduce(
+        (sum: number, d: any) => sum + (d.file_size || 0), 0
+      );
+
+      // Check local disk space (upload directory)
+      let availableDiskGB = 50; // Default fallback
+      try {
+        const stats = await fs.statfs(uploadDir);
+        availableDiskGB = (stats.bsize * stats.bavail) / (1024 * 1024 * 1024);
+      } catch {
+        console.warn('[Resources] Could not check disk space');
+      }
+
+      // Return resource status
+      res.json({
+        storage: {
+          uploaded_gb: totalUploadedBytes / (1024 * 1024 * 1024),
+          available_gb: availableDiskGB,
+          max_file_size_gb: MAX_FILE_SIZE_GB,
+          dataset_count: uploadedDatasets.length,
+        },
+        limits: {
+          max_local_file_size_gb: MAX_FILE_SIZE_GB,
+          max_concurrent_uploads: 3,
+          max_concurrent_workflows: 5,
+        },
+        recommendations: {
+          use_url_import_above_gb: 2,
+          use_ftp_above_gb: 5,
+        }
+      });
+    } catch (error: any) {
+      console.error("[Resources] Status check failed:", error);
+      res.status(500).json({
+        error: 'ResourceCheckError',
+        message: error.message || 'Failed to check resource status',
+      });
+    }
+  });
+
   // Dataset Validation API - AI-powered analysis
   app.post("/api/datasets/validate", async (req, res) => {
     try {
@@ -976,7 +1197,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const job = await galaxyAPIProxy.getJob(jobInfo.job_id);
 
       // Update session with latest state
-      req.session.workflowJobs[step_id].state = job.state;
+      if (req.session?.workflowJobs?.[step_id]) {
+        req.session.workflowJobs[step_id].state = job.state;
+      }
 
       res.json({
         step_id,
@@ -1046,14 +1269,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  /**
+   * Pre-execution validation endpoint
+   * Checks workflow for critical issues before allowing execution
+   */
+  app.post("/api/workflow/validate-before-execute", authenticateToken, async (req, res) => {
+    try {
+      const { workflow_ga, validation, tool_installation, pilot_run_suggested, pilot_reasons } = req.body;
+
+      const blockers: string[] = [];
+      const warnings: string[] = [];
+
+      // Check for critical tool installation failures
+      if (tool_installation && !tool_installation.success) {
+        const failedTools = tool_installation.failed_tools || [];
+        if (failedTools.length > 0) {
+          blockers.push(`Missing tools that could not be installed: ${failedTools.join(', ')}`);
+        }
+      }
+
+      // Check for critical validation issues
+      if (validation) {
+        const issues = validation.issues || [];
+        // Issues are considered blockers
+        for (const issue of issues) {
+          blockers.push(`Validation issue: ${issue}`);
+        }
+
+        // Warnings are non-blocking but should be shown
+        const validationWarnings = validation.warnings || [];
+        warnings.push(...validationWarnings);
+      }
+
+      // Check if workflow has required steps
+      if (workflow_ga) {
+        const steps = workflow_ga.steps || {};
+        const stepCount = Object.keys(steps).length;
+        if (stepCount === 0) {
+          blockers.push('Workflow has no steps defined');
+        }
+      }
+
+      // Log validation check
+      await auditService.log({
+        userId: req.user?.id,
+        action: 'workflow.validate_before_execute',
+        resourceType: 'workflow',
+        details: {
+          blockersCount: blockers.length,
+          warningsCount: warnings.length,
+          pilotSuggested: pilot_run_suggested,
+        },
+        status: blockers.length > 0 ? 'failure' : 'success',
+      });
+
+      // Return validation result
+      res.json({
+        canExecute: blockers.length === 0,
+        blockers,
+        warnings,
+        pilotRunSuggested: pilot_run_suggested,
+        pilotReasons: pilot_reasons || [],
+        recommendation: blockers.length > 0
+          ? 'Please resolve the blocking issues before execution'
+          : pilot_run_suggested
+          ? 'Consider running a pilot test first to validate parameters'
+          : 'Workflow is ready for execution',
+      });
+    } catch (error: any) {
+      console.error('[ValidateBeforeExecute] Error:', error);
+      res.status(500).json({ error: 'Validation check failed', message: error.message });
+    }
+  });
+
   app.post("/api/galaxy/workflows/invoke", async (req, res) => {
     try {
-      const { workflow_id, inputs, parameters } = req.body;
+      const {
+        workflow_id,
+        inputs,
+        parameters,
+        history_id,
+        new_history_name,
+        // New: optional validation bypass (for advanced users)
+        skip_validation,
+        // New: validation info from workflow generation
+        validation,
+        tool_installation
+      } = req.body;
+
       if (!workflow_id) {
         return res.status(400).json({ error: "workflow_id is required" });
       }
 
-      const invocation = await galaxyAPIBackend.invokeWorkflow(workflow_id, inputs, parameters);
+      // Pre-execution validation (unless explicitly skipped)
+      if (!skip_validation) {
+        // Check for critical blockers
+        const blockers: string[] = [];
+
+        // Check tool installation
+        if (tool_installation && !tool_installation.success) {
+          const failedTools = tool_installation.failed_tools || [];
+          if (failedTools.length > 0) {
+            blockers.push(`Missing tools: ${failedTools.join(', ')}`);
+          }
+        }
+
+        // Check validation issues
+        if (validation && validation.issues && validation.issues.length > 0) {
+          blockers.push(...validation.issues.map((i: string) => `Validation: ${i}`));
+        }
+
+        // Block execution if there are critical issues
+        if (blockers.length > 0) {
+          console.warn('[InvokeWorkflow] Blocked due to validation issues:', blockers);
+          return res.status(400).json({
+            error: 'VALIDATION_FAILED',
+            message: 'Workflow has critical issues that must be resolved before execution',
+            blockers,
+            suggestion: 'Fix the issues or run a pilot test first. Use skip_validation=true to force execution.',
+          });
+        }
+      }
+
+      // Merge history parameters with other parameters
+      const invokeParams = {
+        ...parameters,
+        // If history_id provided, use it; otherwise create a new history
+        ...(history_id ? { history_id } : { new_history_name: new_history_name || `bioMate Workflow Run ${new Date().toISOString()}` })
+      };
+
+      console.log('[InvokeWorkflow] Invoking workflow:', workflow_id, 'with params:', invokeParams);
+
+      const invocation = await galaxyAPIBackend.invokeWorkflow(workflow_id, inputs, invokeParams);
+
+      // Log successful invocation
+      await auditService.logWorkflowExecutionStart(
+        (req as any).user?.id || null,
+        invocation.id,
+        workflow_id,
+        invocation.history_id
+      );
+
       res.json(invocation);
     } catch (error: any) {
       console.error("Workflow invocation error:", error);
@@ -1154,7 +1510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Server-Sent Events (SSE) for Real-Time Workflow Updates
   // ============================================================================
 
-  app.get("/api/galaxy/workflows/sse/:invocationId", (req, res) => {
+  app.get("/api/galaxy/workflows/sse/:workflowId/:invocationId", (req, res) => {
     sseManager.handleConnection(req, res);
   });
 
@@ -1175,8 +1531,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('[Chat API] Processing message with Galaxy Assistant:', message);
 
-      // Process message with Galaxy Assistant (hybrid intelligence)
-      const assistantResponse = await galaxyAssistant.processMessage(message, context || {});
+      // Check if memory integration should be used
+      const useMemory = memoryIntegration && (context?.memorySessionId || context?.projectId);
+      let assistantResponse;
+      let episodeId: number | undefined;
+
+      if (useMemory) {
+        // Process with memory enhancement
+        console.log('[Chat API] Using memory-enhanced processing');
+        const memoryResponse = await memoryIntegration!.processWithMemory(message, context as MemoryEnhancedContext);
+        assistantResponse = memoryResponse;
+        episodeId = memoryResponse.episodeId;
+      } else {
+        // Standard processing without memory
+        assistantResponse = await galaxyAssistant.processMessage(message, context || {});
+      }
 
       console.log('[Chat API] Galaxy Assistant response:', {
         toolSearchUsed: assistantResponse.sources.toolSearchUsed,
@@ -1185,6 +1554,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         thinkingUsed: assistantResponse.sources.thinkingUsed,
         toolsFound: assistantResponse.recommendedTools?.length || 0,
         datasetsFound: assistantResponse.recommendedDatasets?.length || 0,
+        memoryUsed: useMemory,
+        episodeId,
       });
 
       // Format response for frontend
@@ -1197,12 +1568,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         thinking_content: assistantResponse.thinking_content,
         thinking_level: assistantResponse.thinking_level,
 
+        // Memory tracking
+        episodeId,
+
         // Additional metadata for UI enhancement
         metadata: {
           recommendedTools: assistantResponse.recommendedTools,
           recommendedDatasets: assistantResponse.recommendedDatasets,
           workflowSuggestion: assistantResponse.workflowSuggestion,
           sources: assistantResponse.sources,
+          memoryUsed: useMemory,
         },
       });
 
@@ -1312,6 +1687,265 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         error: 'WorkflowGenerationError',
         message: error.message || 'Workflow generation failed',
+      });
+    }
+  });
+
+  // ============================================================================
+  // AI Assistant - Pilot Run API (Added 2025-12-30)
+  // ============================================================================
+
+  // Start a pilot run for parameter tuning
+  app.post("/api/ai_assistant/pilot/start", async (req, res) => {
+    try {
+      const { workflow_id, total_samples, config } = req.body;
+
+      if (!workflow_id) {
+        return res.status(400).json({ error: "workflow_id is required" });
+      }
+
+      console.log('[Pilot API] Starting pilot run for workflow:', workflow_id);
+
+      // Proxy to Galaxy backend
+      const response = await galaxyAPIProxy.client.post('/api/ai_assistant/pilot/start', {
+        workflow_id,
+        total_samples: total_samples || 100,
+        config: config || {},
+      });
+
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[Pilot API] Error starting pilot:", error);
+      res.status(500).json({
+        success: false,
+        error: 'PilotStartError',
+        message: error.message || 'Failed to start pilot run',
+      });
+    }
+  });
+
+  // Get pilot run status
+  app.get("/api/ai_assistant/pilot/:pilotId/status", async (req, res) => {
+    try {
+      const { pilotId } = req.params;
+
+      console.log('[Pilot API] Getting status for pilot:', pilotId);
+
+      const response = await galaxyAPIProxy.client.get(`/api/ai_assistant/pilot/${pilotId}/status`);
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[Pilot API] Error getting pilot status:", error);
+      res.status(500).json({
+        success: false,
+        error: 'PilotStatusError',
+        message: error.message || 'Failed to get pilot status',
+      });
+    }
+  });
+
+  // Get full run estimate from pilot results
+  app.get("/api/ai_assistant/pilot/:pilotId/estimate", async (req, res) => {
+    try {
+      const { pilotId } = req.params;
+
+      console.log('[Pilot API] Getting estimate for pilot:', pilotId);
+
+      const response = await galaxyAPIProxy.client.get(`/api/ai_assistant/pilot/${pilotId}/estimate`);
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[Pilot API] Error getting pilot estimate:", error);
+      res.status(500).json({
+        success: false,
+        error: 'PilotEstimateError',
+        message: error.message || 'Failed to get pilot estimate',
+      });
+    }
+  });
+
+  // ============================================================================
+  // AI Assistant - Citation API (Added 2025-12-30)
+  // ============================================================================
+
+  // Export citations as BibTeX
+  app.post("/api/ai_assistant/citations/export", async (req, res) => {
+    try {
+      const { workflow_ga, include_all } = req.body;
+
+      if (!workflow_ga) {
+        return res.status(400).json({ error: "workflow_ga is required" });
+      }
+
+      console.log('[Citation API] Exporting citations for workflow');
+
+      const response = await galaxyAPIProxy.client.post('/api/ai_assistant/citations/export', {
+        workflow_ga,
+        include_all: include_all ?? true,
+      });
+
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[Citation API] Error exporting citations:", error);
+      res.status(500).json({
+        success: false,
+        error: 'CitationExportError',
+        message: error.message || 'Failed to export citations',
+      });
+    }
+  });
+
+  // Generate methods section text
+  app.post("/api/ai_assistant/citations/methods", async (req, res) => {
+    try {
+      const { workflow_ga, style } = req.body;
+
+      if (!workflow_ga) {
+        return res.status(400).json({ error: "workflow_ga is required" });
+      }
+
+      console.log('[Citation API] Generating methods section, style:', style);
+
+      const response = await galaxyAPIProxy.client.post('/api/ai_assistant/citations/methods', {
+        workflow_ga,
+        style: style || 'apa',
+      });
+
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[Citation API] Error generating methods:", error);
+      res.status(500).json({
+        success: false,
+        error: 'MethodsGenerationError',
+        message: error.message || 'Failed to generate methods section',
+      });
+    }
+  });
+
+  // ============================================================================
+  // AI Assistant - Benchmark API (Added 2025-12-30)
+  // ============================================================================
+
+  // Get benchmark results for a scenario
+  app.get("/api/ai_assistant/benchmarks/:scenario", async (req, res) => {
+    try {
+      const { scenario } = req.params;
+
+      console.log('[Benchmark API] Getting benchmarks for scenario:', scenario);
+
+      const response = await galaxyAPIProxy.client.get(`/api/ai_assistant/benchmarks/${encodeURIComponent(scenario)}`);
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[Benchmark API] Error getting benchmarks:", error);
+      res.status(500).json({
+        available: false,
+        error: 'BenchmarkQueryError',
+        message: error.message || 'Failed to get benchmark results',
+      });
+    }
+  });
+
+  // Query benchmarks with natural language (NEW)
+  app.post("/api/ai_assistant/benchmark_query", async (req, res) => {
+    try {
+      const { query, constraints, top_k } = req.body;
+
+      if (!query) {
+        return res.status(400).json({ error: "query is required" });
+      }
+
+      console.log('[Benchmark API] Querying benchmarks:', query);
+
+      const response = await galaxyAPIProxy.client.post('/api/ai_assistant/benchmark_query', {
+        query,
+        constraints: constraints || {},
+        top_k: top_k || 5,
+      });
+
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[Benchmark API] Error querying benchmarks:", error);
+      res.status(500).json({
+        success: false,
+        error: 'BenchmarkQueryError',
+        message: error.message || 'Failed to query benchmarks',
+      });
+    }
+  });
+
+  // Compare tools with benchmark evidence (NEW)
+  app.post("/api/ai_assistant/tool_comparison", async (req, res) => {
+    try {
+      const { tool_a, tool_b, task } = req.body;
+
+      if (!tool_a || !tool_b) {
+        return res.status(400).json({ error: "tool_a and tool_b are required" });
+      }
+
+      console.log('[Benchmark API] Comparing tools:', tool_a, 'vs', tool_b);
+
+      const response = await galaxyAPIProxy.client.post('/api/ai_assistant/tool_comparison', {
+        tool_a,
+        tool_b,
+        task: task || null,
+      });
+
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[Benchmark API] Error comparing tools:", error);
+      res.status(500).json({
+        success: false,
+        error: 'ToolComparisonError',
+        message: error.message || 'Failed to compare tools',
+      });
+    }
+  });
+
+  // ============================================================================
+  // AI Assistant - Research Query API (Added 2025-12-30)
+  // ============================================================================
+
+  // Answer research questions with literature-backed evidence
+  app.post("/api/ai_assistant/research_query", async (req, res) => {
+    try {
+      const { query, context, include_citations, include_benchmark_evidence, max_citations } = req.body;
+
+      if (!query) {
+        return res.status(400).json({ error: "query is required" });
+      }
+
+      console.log('[Research API] Answering research question:', query);
+
+      const response = await galaxyAPIProxy.client.post('/api/ai_assistant/research_query', {
+        query,
+        context: context || {},
+        include_citations: include_citations ?? true,
+        include_benchmark_evidence: include_benchmark_evidence ?? true,
+        max_citations: max_citations || 5,
+      });
+
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[Research API] Error answering research query:", error);
+      res.status(500).json({
+        success: false,
+        error: 'ResearchQueryError',
+        message: error.message || 'Failed to answer research question',
+      });
+    }
+  });
+
+  // Get available scientific skills
+  app.get("/api/ai_assistant/skills/available", async (req, res) => {
+    try {
+      console.log('[Skills API] Getting available skills');
+
+      const response = await galaxyAPIProxy.client.get('/api/ai_assistant/skills/available');
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("[Skills API] Error getting skills:", error);
+      res.status(500).json({
+        available: false,
+        error: 'SkillsQueryError',
+        message: error.message || 'Failed to get available skills',
       });
     }
   });
@@ -1508,6 +2142,530 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('[API] Get validated workflow templates failed:', error);
       res.status(500).json({error: 'Failed to get validated templates', message: error.message});
+    }
+  });
+
+
+  // ============================================================================
+  // Long-Term Memory API
+  // ============================================================================
+
+  // Get or create user profile with LTM context
+  app.get("/api/memory/user", authenticateToken, async (req, res) => {
+    try {
+      const userContext = await memoryService.users.loadUserContext(req.user!.id);
+      res.json(userContext);
+    } catch (error: any) {
+      console.error('[API] Load user context failed:', error);
+      res.status(500).json({ error: 'Failed to load user context', message: error.message });
+    }
+  });
+
+  // Update user preferences
+  app.post("/api/memory/user/preferences", authenticateToken, async (req, res) => {
+    try {
+      const { preferenceType, preferenceKey, preferenceValue, context, learnedFrom } = req.body;
+      const preference = await memoryService.users.recordPreference({
+        userId: req.user!.id,
+        preferenceType,
+        preferenceKey,
+        preferenceValue,
+        context,
+        learnedFrom,
+      });
+      res.json(preference);
+    } catch (error: any) {
+      console.error('[API] Record preference failed:', error);
+      res.status(500).json({ error: 'Failed to record preference', message: error.message });
+    }
+  });
+
+  // Record a correction
+  app.post("/api/memory/user/corrections", authenticateToken, async (req, res) => {
+    try {
+      const { sessionId, projectId, suggestedApproach, correctedApproach, workflowContext, userExplanation } = req.body;
+      const correction = await memoryService.users.recordCorrection({
+        userId: req.user!.id,
+        sessionId,
+        projectId,
+        suggestedApproach,
+        correctedApproach,
+        workflowContext,
+        userExplanation,
+      });
+      res.json(correction);
+    } catch (error: any) {
+      console.error('[API] Record correction failed:', error);
+      res.status(500).json({ error: 'Failed to record correction', message: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Project Memory API
+  // ============================================================================
+
+  // Get all projects for user
+  app.get("/api/memory/projects", authenticateToken, async (req, res) => {
+    try {
+      const { status } = req.query;
+      const projects = await memoryService.projects.getUserProjects(
+        req.user!.id,
+        status as 'active' | 'archived' | 'completed' | undefined
+      );
+      res.json(projects);
+    } catch (error: any) {
+      console.error('[API] Get projects failed:', error);
+      res.status(500).json({ error: 'Failed to get projects', message: error.message });
+    }
+  });
+
+  // Create a new project
+  app.post("/api/memory/projects", authenticateToken, async (req, res) => {
+    try {
+      const { name, description, researchGoal, instructions, primaryDomain, organisms, tissueTypes, conditions, dataModalities, category, tags } = req.body;
+      const project = await memoryService.projects.createProject({
+        userId: req.user!.id,
+        name,
+        description,
+        researchGoal,
+        instructions,
+        primaryDomain,
+        organisms,
+        tissueTypes,
+        conditions,
+        dataModalities,
+        category,
+        tags,
+      });
+      res.json(project);
+    } catch (error: any) {
+      console.error('[API] Create project failed:', error);
+      res.status(500).json({ error: 'Failed to create project', message: error.message });
+    }
+  });
+
+  // Get project with full context
+  app.get("/api/memory/projects/:projectId", authenticateToken, async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const projectContext = await memoryService.projects.loadProjectContext(projectId);
+      if (!projectContext.project) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+      res.json(projectContext);
+    } catch (error: any) {
+      console.error('[API] Get project context failed:', error);
+      res.status(500).json({ error: 'Failed to get project context', message: error.message });
+    }
+  });
+
+  // Update project
+  app.put("/api/memory/projects/:projectId", authenticateToken, async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const project = await memoryService.projects.updateProject(projectId, req.body);
+      res.json(project);
+    } catch (error: any) {
+      console.error('[API] Update project failed:', error);
+      res.status(500).json({ error: 'Failed to update project', message: error.message });
+    }
+  });
+
+  // Add project knowledge
+  app.post("/api/memory/projects/:projectId/knowledge", authenticateToken, async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const { knowledgeType, title, content, source, relatedWorkflows, relatedSessions } = req.body;
+      const knowledge = await memoryService.projects.addProjectKnowledge({
+        projectId,
+        knowledgeType,
+        title,
+        content,
+        source,
+        relatedWorkflows,
+        relatedSessions,
+      });
+      res.json(knowledge);
+    } catch (error: any) {
+      console.error('[API] Add project knowledge failed:', error);
+      res.status(500).json({ error: 'Failed to add knowledge', message: error.message });
+    }
+  });
+
+  // Search projects
+  app.get("/api/memory/projects/search", authenticateToken, async (req, res) => {
+    try {
+      const { domain, tags, text } = req.query;
+      const projects = await memoryService.projects.searchProjects(req.user!.id, {
+        domain: domain as string | undefined,
+        tags: tags ? (tags as string).split(',') : undefined,
+        text: text as string | undefined,
+      });
+      res.json(projects);
+    } catch (error: any) {
+      console.error('[API] Search projects failed:', error);
+      res.status(500).json({ error: 'Failed to search projects', message: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Session Memory API
+  // ============================================================================
+
+  // Initialize a new session
+  app.post("/api/memory/sessions", authenticateToken, async (req, res) => {
+    try {
+      const { projectId } = req.body;
+      const result = await memoryService.initializeSession(req.user!.id, projectId);
+      res.json(result);
+    } catch (error: any) {
+      console.error('[API] Initialize session failed:', error);
+      res.status(500).json({ error: 'Failed to initialize session', message: error.message });
+    }
+  });
+
+  // Get session
+  app.get("/api/memory/sessions/:sessionId", authenticateToken, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const session = await memoryService.sessions.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      const messages = await memoryService.sessions.getSessionMessages(sessionId);
+      res.json({ session, messages });
+    } catch (error: any) {
+      console.error('[API] Get session failed:', error);
+      res.status(500).json({ error: 'Failed to get session', message: error.message });
+    }
+  });
+
+  // End session with summary
+  app.put("/api/memory/sessions/:sessionId/end", authenticateToken, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { summary, keyDecisions } = req.body;
+      const session = await memoryService.endSessionWithSummary(sessionId, summary, keyDecisions);
+      res.json(session);
+    } catch (error: any) {
+      console.error('[API] End session failed:', error);
+      res.status(500).json({ error: 'Failed to end session', message: error.message });
+    }
+  });
+
+  // Get recent sessions
+  app.get("/api/memory/sessions", authenticateToken, async (req, res) => {
+    try {
+      const { limit } = req.query;
+      const sessions = await memoryService.sessions.getRecentSessions(
+        req.user!.id,
+        limit ? parseInt(limit as string) : 10
+      );
+      res.json(sessions);
+    } catch (error: any) {
+      console.error('[API] Get recent sessions failed:', error);
+      res.status(500).json({ error: 'Failed to get sessions', message: error.message });
+    }
+  });
+
+  // Record interaction (message + episode)
+  app.post("/api/memory/interactions", authenticateToken, async (req, res) => {
+    try {
+      const { sessionId, projectId, userMessage, assistantResponse, userIntent, toolsUsed, workflowGenerated, workflowId } = req.body;
+      const result = await memoryService.recordInteraction({
+        sessionId,
+        projectId,
+        userMessage,
+        assistantResponse,
+        userIntent,
+        toolsUsed,
+        workflowGenerated,
+        workflowId,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error('[API] Record interaction failed:', error);
+      res.status(500).json({ error: 'Failed to record interaction', message: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Memory Sync API - Bidirectional sync between frontend localStorage and backend
+  // ============================================================================
+
+  /**
+   * Sync frontend localStorage state with backend memory
+   * Implements conflict resolution with "last write wins" strategy
+   */
+  app.post("/api/memory/sync", authenticateToken, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { chatSessions, userSettings, lastSyncTimestamp } = req.body;
+
+      const syncResult = {
+        success: true,
+        synced: {
+          chatSessions: 0,
+          preferences: 0,
+        },
+        conflicts: [] as Array<{ type: string; id: string; resolution: string }>,
+        serverTimestamp: new Date().toISOString(),
+      };
+
+      // Sync chat sessions to backend memory
+      if (chatSessions && Array.isArray(chatSessions)) {
+        for (const session of chatSessions) {
+          try {
+            // Check if session exists in backend
+            const existingSession = await memoryService.sessions.getSession(session.id);
+
+            if (!existingSession) {
+              // Create new session in backend
+              await memoryService.sessions.createSession({
+                id: session.id,
+                userId,
+                projectId: session.projectId,
+              });
+              syncResult.synced.chatSessions++;
+            } else {
+              // Conflict resolution: compare timestamps
+              const frontendUpdated = new Date(session.lastActivity);
+              const backendUpdated = existingSession.startedAt || new Date(0);
+
+              if (frontendUpdated > backendUpdated) {
+                // Frontend is newer - would update backend (not implemented yet)
+                syncResult.conflicts.push({
+                  type: 'chatSession',
+                  id: session.id,
+                  resolution: 'frontend_newer_accepted',
+                });
+              } else {
+                syncResult.conflicts.push({
+                  type: 'chatSession',
+                  id: session.id,
+                  resolution: 'backend_newer_kept',
+                });
+              }
+            }
+          } catch (sessionError) {
+            console.error(`[MemorySync] Failed to sync session ${session.id}:`, sessionError);
+          }
+        }
+      }
+
+      // Sync user settings/preferences
+      if (userSettings && typeof userSettings === 'object') {
+        try {
+          // Convert user settings to preferences
+          for (const [key, value] of Object.entries(userSettings)) {
+            if (key === 'id' || key === 'userId' || key === 'updatedAt') continue;
+
+            await memoryService.users.recordPreference({
+              userId,
+              preferenceType: 'user_setting',
+              preferenceKey: key,
+              preferenceValue: JSON.stringify(value),
+              context: { source: 'frontend_sync' },
+              learnedFrom: 'user_explicit',
+            });
+            syncResult.synced.preferences++;
+          }
+        } catch (prefError) {
+          console.error('[MemorySync] Failed to sync preferences:', prefError);
+        }
+      }
+
+      // Log sync event for audit
+      await auditService.log({
+        userId,
+        action: 'memory.sync',
+        resourceType: 'memory',
+        details: {
+          chatSessionsSynced: syncResult.synced.chatSessions,
+          preferencesSynced: syncResult.synced.preferences,
+          conflictsCount: syncResult.conflicts.length,
+        },
+        status: 'success',
+      });
+
+      res.json(syncResult);
+    } catch (error: any) {
+      console.error('[API] Memory sync failed:', error);
+      res.status(500).json({ error: 'Memory sync failed', message: error.message });
+    }
+  });
+
+  /**
+   * Get backend memory state for frontend sync
+   * Returns user context, projects, and recent sessions
+   */
+  app.get("/api/memory/sync", authenticateToken, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+
+      // Load user context from backend
+      const userContext = await memoryService.users.loadUserContext(userId);
+
+      // Load user's projects
+      const projects = await memoryService.projects.getUserProjects(userId, 'active');
+
+      // Load recent sessions
+      const recentSessions = await memoryService.sessions.getRecentSessions(userId, 20);
+
+      // Convert preferences to user settings format
+      const userSettings: Record<string, any> = {};
+      for (const pref of userContext.preferences) {
+        if (pref.preferenceType === 'user_setting') {
+          try {
+            userSettings[pref.preferenceKey] = JSON.parse(pref.preferenceValue as string);
+          } catch {
+            userSettings[pref.preferenceKey] = pref.preferenceValue;
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        serverTimestamp: new Date().toISOString(),
+        data: {
+          user: userContext.user,
+          userSettings,
+          projects,
+          recentSessions,
+          stats: userContext.stats,
+        },
+      });
+    } catch (error: any) {
+      console.error('[API] Get sync state failed:', error);
+      res.status(500).json({ error: 'Get sync state failed', message: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Episodic Memory API
+  // ============================================================================
+
+  // Get similar episodes for a project
+  app.get("/api/memory/projects/:projectId/episodes", authenticateToken, async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const { intent, tools, limit } = req.query;
+      const episodes = await memoryService.episodes.getSimilarEpisodes(projectId, {
+        intent: intent as string | undefined,
+        toolsUsed: tools ? (tools as string).split(',') : undefined,
+        limit: limit ? parseInt(limit as string) : 10,
+      });
+      res.json(episodes);
+    } catch (error: any) {
+      console.error('[API] Get episodes failed:', error);
+      res.status(500).json({ error: 'Failed to get episodes', message: error.message });
+    }
+  });
+
+  // Update episode outcome
+  app.put("/api/memory/episodes/:episodeId/outcome", authenticateToken, async (req, res) => {
+    try {
+      const { episodeId } = req.params;
+      const { success, errorType, errorMessage, whatWorked, whatFailed, lessonsLearned } = req.body;
+      const episode = await memoryService.episodes.updateEpisodeOutcome(parseInt(episodeId), {
+        success,
+        errorType,
+        errorMessage,
+        whatWorked,
+        whatFailed,
+        lessonsLearned,
+      });
+      res.json(episode);
+    } catch (error: any) {
+      console.error('[API] Update episode outcome failed:', error);
+      res.status(500).json({ error: 'Failed to update episode', message: error.message });
+    }
+  });
+
+  // Consolidate episodes into patterns
+  app.post("/api/memory/projects/:projectId/consolidate", authenticateToken, async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const result = await memoryService.episodes.consolidateEpisodes(projectId);
+      res.json(result);
+    } catch (error: any) {
+      console.error('[API] Consolidate episodes failed:', error);
+      res.status(500).json({ error: 'Failed to consolidate episodes', message: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Procedural Memory API
+  // ============================================================================
+
+  // Get procedures for a project
+  app.get("/api/memory/projects/:projectId/procedures", authenticateToken, async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const { minSuccessRate } = req.query;
+      const procedures = await memoryService.procedures.getReliableProcedures(
+        projectId,
+        minSuccessRate ? parseFloat(minSuccessRate as string) : 0.7
+      );
+      res.json(procedures);
+    } catch (error: any) {
+      console.error('[API] Get procedures failed:', error);
+      res.status(500).json({ error: 'Failed to get procedures', message: error.message });
+    }
+  });
+
+  // Find matching procedures for a trigger
+  app.get("/api/memory/projects/:projectId/procedures/match", authenticateToken, async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const { trigger } = req.query;
+      if (!trigger) {
+        return res.status(400).json({ error: 'trigger query parameter required' });
+      }
+      const procedures = await memoryService.procedures.findMatchingProcedures(
+        projectId,
+        trigger as string
+      );
+      res.json(procedures);
+    } catch (error: any) {
+      console.error('[API] Find matching procedures failed:', error);
+      res.status(500).json({ error: 'Failed to find procedures', message: error.message });
+    }
+  });
+
+  // Create a procedure
+  app.post("/api/memory/projects/:projectId/procedures", authenticateToken, async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const { name, triggerPattern, description, steps, preconditions, postconditions, applicableDomains, learnedFrom } = req.body;
+      const procedure = await memoryService.procedures.createProcedure({
+        projectId,
+        name,
+        triggerPattern,
+        description,
+        steps,
+        preconditions,
+        postconditions,
+        applicableDomains,
+        learnedFrom,
+      });
+      res.json(procedure);
+    } catch (error: any) {
+      console.error('[API] Create procedure failed:', error);
+      res.status(500).json({ error: 'Failed to create procedure', message: error.message });
+    }
+  });
+
+  // Record procedure usage
+  app.post("/api/memory/procedures/:procedureId/usage", authenticateToken, async (req, res) => {
+    try {
+      const { procedureId } = req.params;
+      const { success } = req.body;
+      const procedure = await memoryService.procedures.recordUsage(parseInt(procedureId), success);
+      res.json(procedure);
+    } catch (error: any) {
+      console.error('[API] Record procedure usage failed:', error);
+      res.status(500).json({ error: 'Failed to record usage', message: error.message });
     }
   });
 
@@ -1838,6 +2996,328 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
+
+  // ============================================================================
+  // Advanced Galaxy Capabilities API
+  // ============================================================================
+
+  // --- Workflow Reports ---
+
+  // Get workflow report (auto-generated analysis summary)
+  app.get("/api/invocations/:id/report", async (req, res) => {
+    try {
+      const { format } = req.query;
+      const invocation = await storage.getInvocation(req.params.id);
+
+      if (!invocation) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+
+      if (!invocation.galaxyWorkflowId || !invocation.galaxyInvocationId) {
+        return res.status(400).json({
+          error: "Galaxy workflow/invocation ID not available",
+          message: "This invocation may not have been executed on Galaxy"
+        });
+      }
+
+      const report = await galaxyAPIProxy.getWorkflowReport(
+        invocation.galaxyWorkflowId,
+        invocation.galaxyInvocationId,
+        (format as 'markdown' | 'html') || 'markdown'
+      );
+
+      res.json(report);
+    } catch (error: any) {
+      console.error("[WorkflowReport] Error generating report:", error);
+      res.status(500).json({
+        error: 'ReportGenerationError',
+        message: error.message || 'Failed to generate workflow report',
+      });
+    }
+  });
+
+  // --- Dataset Collections ---
+
+  // Create a dataset collection for batch processing
+  app.post("/api/collections", async (req, res) => {
+    try {
+      const { name, collection_type, elements } = req.body;
+
+      if (!name || !collection_type || !elements || !Array.isArray(elements)) {
+        return res.status(400).json({
+          error: "name, collection_type, and elements[] are required"
+        });
+      }
+
+      // Get Galaxy history from session
+      let historyId = req.session?.galaxyHistoryId as string | undefined;
+      if (!historyId) {
+        const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
+        historyId = await galaxyAPIProxy.createHistory(sessionName);
+        if (req.session) {
+          req.session.galaxyHistoryId = historyId;
+        }
+      }
+
+      const collection = await galaxyAPIProxy.createDatasetCollection(
+        historyId,
+        name,
+        collection_type as 'list' | 'paired' | 'list:paired',
+        elements
+      );
+
+      res.json({
+        ...collection,
+        galaxy_history_id: historyId,
+        message: `Collection '${name}' created with ${collection.element_count} elements`
+      });
+    } catch (error: any) {
+      console.error("[Collections] Error creating collection:", error);
+      res.status(500).json({
+        error: 'CollectionCreationError',
+        message: error.message || 'Failed to create dataset collection',
+      });
+    }
+  });
+
+  // Auto-pair datasets (discovers R1/R2 patterns automatically)
+  app.post("/api/collections/auto-pair", async (req, res) => {
+    try {
+      const historyId = req.session?.galaxyHistoryId as string | undefined;
+
+      if (!historyId) {
+        return res.status(400).json({
+          error: "No Galaxy history found. Please upload datasets first."
+        });
+      }
+
+      const result = await galaxyAPIProxy.autoPairDatasets(historyId);
+
+      res.json({
+        ...result,
+        message: `Found ${result.paired.length} paired datasets, ${result.unpaired.length} unpaired`
+      });
+    } catch (error: any) {
+      console.error("[Collections] Error auto-pairing:", error);
+      res.status(500).json({
+        error: 'AutoPairingError',
+        message: error.message || 'Failed to auto-pair datasets',
+      });
+    }
+  });
+
+  // Create paired collection from auto-paired results
+  app.post("/api/collections/create-paired", async (req, res) => {
+    try {
+      const { name, pairs } = req.body;
+
+      if (!name || !pairs || !Array.isArray(pairs)) {
+        return res.status(400).json({
+          error: "name and pairs[] are required"
+        });
+      }
+
+      const historyId = req.session?.galaxyHistoryId as string | undefined;
+      if (!historyId) {
+        return res.status(400).json({
+          error: "No Galaxy history found. Please upload datasets first."
+        });
+      }
+
+      // Get dataset names for proper pairing
+      const datasets = await galaxyAPIProxy.getHistoryDatasets(historyId);
+      const datasetMap = new Map(datasets.map((d: any) => [d.id, d.name]));
+
+      const forwardReads = pairs.map((p: any) => ({
+        id: p.forward,
+        name: datasetMap.get(p.forward) || p.name || 'forward'
+      }));
+      const reverseReads = pairs.map((p: any) => ({
+        id: p.reverse,
+        name: datasetMap.get(p.reverse) || p.name || 'reverse'
+      }));
+
+      const collection = await galaxyAPIProxy.createPairedCollection(
+        historyId,
+        name,
+        forwardReads,
+        reverseReads
+      );
+
+      res.json({
+        ...collection,
+        galaxy_history_id: historyId,
+        message: `Paired collection '${name}' created with ${collection.pairs} pairs`
+      });
+    } catch (error: any) {
+      console.error("[Collections] Error creating paired collection:", error);
+      res.status(500).json({
+        error: 'PairedCollectionError',
+        message: error.message || 'Failed to create paired collection',
+      });
+    }
+  });
+
+  // --- Deferred Datasets (Lazy URL Fetching) ---
+
+  // Create deferred dataset from URL (no immediate download)
+  app.post("/api/datasets/deferred", async (req, res) => {
+    try {
+      const { url, name, file_type } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Validate URL format
+      try {
+        const parsedUrl = new URL(url);
+        if (!['http:', 'https:', 'ftp:', 's3:'].includes(parsedUrl.protocol)) {
+          return res.status(400).json({
+            error: "Unsupported protocol. Use HTTP, HTTPS, FTP, or S3 URLs."
+          });
+        }
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      // Get or create Galaxy history
+      let historyId = req.session?.galaxyHistoryId as string | undefined;
+      if (!historyId) {
+        const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
+        historyId = await galaxyAPIProxy.createHistory(sessionName);
+        if (req.session) {
+          req.session.galaxyHistoryId = historyId;
+        }
+      }
+
+      const dataset = await galaxyAPIProxy.createDeferredDataset(
+        historyId,
+        url,
+        name,
+        file_type
+      );
+
+      res.json({
+        ...dataset,
+        galaxy_history_id: historyId,
+        source_url: url,
+        message: `Deferred dataset created. Data will be fetched when workflow executes.`
+      });
+    } catch (error: any) {
+      console.error("[DeferredDataset] Error creating:", error);
+      res.status(500).json({
+        error: 'DeferredDatasetError',
+        message: error.message || 'Failed to create deferred dataset',
+      });
+    }
+  });
+
+  // Materialize a deferred dataset (trigger actual download)
+  app.post("/api/datasets/:id/materialize", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const result = await galaxyAPIProxy.materializeDeferredDataset(id);
+
+      res.json({
+        ...result,
+        message: `Dataset materialization started. State: ${result.state}`
+      });
+    } catch (error: any) {
+      console.error("[DeferredDataset] Error materializing:", error);
+      res.status(500).json({
+        error: 'MaterializationError',
+        message: error.message || 'Failed to materialize deferred dataset',
+      });
+    }
+  });
+
+  // --- Interactive Tools ---
+
+  // Launch an interactive tool (Jupyter, RStudio, etc.)
+  app.post("/api/interactive/launch", authenticateToken, async (req, res) => {
+    try {
+      const { tool_id, inputs } = req.body;
+
+      if (!tool_id) {
+        return res.status(400).json({ error: "tool_id is required" });
+      }
+
+      // Get Galaxy history from session
+      let historyId = req.session?.galaxyHistoryId as string | undefined;
+      if (!historyId) {
+        const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
+        historyId = await galaxyAPIProxy.createHistory(sessionName);
+        if (req.session) {
+          req.session.galaxyHistoryId = historyId;
+        }
+      }
+
+      const result = await galaxyAPIProxy.launchInteractiveTool(
+        tool_id,
+        historyId,
+        inputs
+      );
+
+      res.json({
+        ...result,
+        message: `Interactive tool launched. ${result.entry_point_url ? 'Access URL provided.' : 'Waiting for session.'}`
+      });
+    } catch (error: any) {
+      console.error("[Interactive] Error launching:", error);
+      res.status(500).json({
+        error: 'InteractiveLaunchError',
+        message: error.message || 'Failed to launch interactive tool',
+      });
+    }
+  });
+
+  // Get active interactive sessions
+  app.get("/api/interactive/sessions", authenticateToken, async (req, res) => {
+    try {
+      const sessions = await galaxyAPIProxy.getActiveInteractiveSessions();
+      res.json({ sessions, count: sessions.length });
+    } catch (error: any) {
+      console.error("[Interactive] Error getting sessions:", error);
+      res.status(500).json({
+        error: 'SessionsError',
+        message: error.message || 'Failed to get interactive sessions',
+      });
+    }
+  });
+
+  // --- Workflow Subworkflows ---
+
+  // Extract subworkflow from existing workflow
+  app.post("/api/workflows/:id/extract-subworkflow", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { step_ids, name } = req.body;
+
+      if (!step_ids || !Array.isArray(step_ids) || step_ids.length === 0) {
+        return res.status(400).json({ error: "step_ids[] is required and must not be empty" });
+      }
+
+      if (!name) {
+        return res.status(400).json({ error: "name is required for the subworkflow" });
+      }
+
+      const subworkflow = await galaxyAPIProxy.extractSubworkflow(id, step_ids, name);
+
+      res.json({
+        ...subworkflow,
+        message: `Subworkflow '${name}' extracted with ${step_ids.length} steps`
+      });
+    } catch (error: any) {
+      console.error("[Subworkflow] Error extracting:", error);
+      res.status(500).json({
+        error: 'SubworkflowExtractionError',
+        message: error.message || 'Failed to extract subworkflow',
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -1,0 +1,2768 @@
+{
+  "workflow_id": "1d19cf599e1d4a0f",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "1d19cf599e1d4a0f",
+    "latest_workflow_id": "720c7d8cdb2e727e",
+    "name": "scRNA-seq_preprocessing_10X_cellPlex (release v0.1)",
+    "create_time": "2023-12-28T00:10:34.331391",
+    "update_time": "2025-04-25T14:10:42.725922",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [
+      "name:single-cell"
+    ],
+    "latest_workflow_uuid": "8b521dc8-db7b-4eaf-b6c3-967492f70472",
+    "creator_deleted": false,
+    "annotations": [
+      "This workflow processes the CMO fastqs with CITE-seq-Count and include the translation step required for cellPlex processing. In parallel it processes the Gene Expresion fastqs with STARsolo, filter cells with DropletUtils and reformat all outputs to be easily used by the function 'Read10X' from Seurat."
+    ],
+    "url": "/api/workflows/1d19cf599e1d4a0f",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 14,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "This workflow processes the CMO fastqs with CITE-seq-Count and include the translation step required for cellPlex processing. In parallel it processes the Gene Expresion fastqs with STARsolo, filter cells with DropletUtils and reformat all outputs to be easily used by the function 'Read10X' from Seurat.",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-1964-4960",
+        "name": "Lucille Delisle"
+      },
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-4181-2676",
+        "name": "Mehmet Tekman"
+      },
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-2799-424X",
+        "name": "Hans-Rudolf Hotz"
+      },
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-6833-9049",
+        "name": "Daniel Blankenberg"
+      },
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-8170-8806",
+        "name": "Wendi Bacon"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "scRNA-seq_preprocessing_10X_cellPlex (release v0.1)",
+    "steps": {
+      "0": {
+        "annotation": "reads containing genes",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "reads containing genes",
+            "name": "fastq PE collection GEX"
+          }
+        ],
+        "label": "fastq PE collection GEX",
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 0.0
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list:paired\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "a274e33d-a09f-4db1-88c4-119f37aa1428",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "Choose your reference genome",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Choose your reference genome",
+            "name": "reference genome"
+          }
+        ],
+        "label": "reference genome",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 32.183349609375,
+          "top": 99.48333740234375
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "74f2480e-2d11-4cc8-b04d-eade7c355e3f",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "Gene annotations",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Gene annotations",
+            "name": "gtf"
+          }
+        ],
+        "label": "gtf",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 67.95001220703125,
+          "top": 209.95001220703125
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\"}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "585dac25-2b18-41bb-b5ba-f6ee492a00e3",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "Available at https://zenodo.org/record/3457880/files/3M-february-2018.txt.gz",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Available at https://zenodo.org/record/3457880/files/3M-february-2018.txt.gz",
+            "name": "cellranger_barcodes_3M-february-2018.txt"
+          }
+        ],
+        "label": "cellranger_barcodes_3M-february-2018.txt",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 111,
+          "top": 281.48333740234375
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\"}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "0528f954-9c8c-4b00-beec-d576cf151fb2",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "Barcode Size is same size of the Read",
+        "content_id": null,
+        "errors": null,
+        "id": 4,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Barcode Size is same size of the Read",
+            "name": "Barcode Size is same size of the Read"
+          }
+        ],
+        "label": "Barcode Size is same size of the Read",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 146,
+          "top": 394.66668701171875
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "2f0b3848-f3c9-435e-8320-8f18263ae411",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "reads containing CMO",
+        "content_id": null,
+        "errors": null,
+        "id": 5,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "reads containing CMO",
+            "name": "fastq PE collection CMO"
+          }
+        ],
+        "label": "fastq PE collection CMO",
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 237.68331909179688,
+          "top": 493.57719175292976
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list:paired\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "1b9d5de9-5a84-471d-aede-41d9dc0a6dea",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "csv: first column is the sequence and second column is the name",
+        "content_id": null,
+        "errors": null,
+        "id": 6,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "csv: first column is the sequence and second column is the name",
+            "name": "sample name and CMO sequence collection"
+          }
+        ],
+        "label": "sample name and CMO sequence collection",
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 264.6833190917969,
+          "top": 593.5771917529298
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"csv\"], \"tag\": \"\", \"collection_type\": \"list\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "007fda4a-6850-451d-86a7-a7002b4d2e30",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "Used by CITE-seq-Count, does not really seem to impact result. You can use 24000.",
+        "content_id": null,
+        "errors": null,
+        "id": 7,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Used by CITE-seq-Count, does not really seem to impact result. You can use 24000.",
+            "name": "Number of expected cells"
+          }
+        ],
+        "label": "Number of expected cells",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 306.2167053222656,
+          "top": 705.6105169482423
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "30e7b354-ec31-4681-b706-df3c18d98441",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "id": 8,
+        "input_connections": {
+          "Barcode Size is same size of the Read": {
+            "id": 4,
+            "input_subworkflow_step_id": 4,
+            "output_name": "output"
+          },
+          "cellranger_barcodes_3M-february-2018.txt": {
+            "id": 3,
+            "input_subworkflow_step_id": 3,
+            "output_name": "output"
+          },
+          "fastq PE collection": {
+            "id": 0,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output"
+          },
+          "gtf": {
+            "id": 2,
+            "input_subworkflow_step_id": 2,
+            "output_name": "output"
+          },
+          "reference genome": {
+            "id": 1,
+            "input_subworkflow_step_id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "",
+            "name": "process GEX reads"
+          }
+        ],
+        "label": "process GEX reads",
+        "name": "scRNA-seq_preprocessing_10X_v3_Bundle",
+        "outputs": [],
+        "position": {
+          "left": 651.7833251953125,
+          "top": 121.58331298828125
+        },
+        "subworkflow": {
+          "a_galaxy_workflow": "true",
+          "annotation": "",
+          "comments": [],
+          "creator": [
+            {
+              "class": "Person",
+              "identifier": "https://orcid.org/0000-0002-1964-4960",
+              "name": "Lucille Delisle"
+            },
+            {
+              "class": "Person",
+              "identifier": "https://orcid.org/0000-0002-4181-2676",
+              "name": "Mehmet Tekman"
+            },
+            {
+              "class": "Person",
+              "identifier": "https://orcid.org/0000-0002-2799-424X",
+              "name": "Hans-Rudolf Hotz"
+            },
+            {
+              "class": "Person",
+              "identifier": "https://orcid.org/0000-0002-6833-9049",
+              "name": "Daniel Blankenberg"
+            },
+            {
+              "class": "Person",
+              "identifier": "https://orcid.org/0000-0002-8170-8806",
+              "name": "Wendi Bacon"
+            }
+          ],
+          "format-version": "0.1",
+          "license": "MIT",
+          "name": "scRNA-seq_preprocessing_10X_v3_Bundle",
+          "steps": {
+            "0": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 0,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "fastq PE collection"
+                }
+              ],
+              "label": "fastq PE collection",
+              "name": "Input dataset collection",
+              "outputs": [],
+              "position": {
+                "left": 0.0,
+                "top": 0
+              },
+              "tool_id": null,
+              "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list:paired\", \"fields\": null}",
+              "tool_version": null,
+              "type": "data_collection_input",
+              "uuid": "06435de2-c62e-43f4-bf72-fb07d075e5a7",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "1": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 1,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "reference genome"
+                }
+              ],
+              "label": "reference genome",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 58.94316181636054,
+                "top": 104
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "5226f2bd-c2b2-4292-998c-ba2670820e53",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "2": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 2,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "gtf"
+                }
+              ],
+              "label": "gtf",
+              "name": "Input dataset",
+              "outputs": [],
+              "position": {
+                "left": 121.00981220698554,
+                "top": 197
+              },
+              "tool_id": null,
+              "tool_state": "{\"optional\": false, \"tag\": \"\"}",
+              "tool_version": null,
+              "type": "data_input",
+              "uuid": "aad766c2-f395-479a-91a7-6bae024d530d",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "3": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 3,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "cellranger_barcodes_3M-february-2018.txt"
+                }
+              ],
+              "label": "cellranger_barcodes_3M-february-2018.txt",
+              "name": "Input dataset",
+              "outputs": [],
+              "position": {
+                "left": 194.97648701167304,
+                "top": 293
+              },
+              "tool_id": null,
+              "tool_state": "{\"optional\": false, \"tag\": \"\"}",
+              "tool_version": null,
+              "type": "data_input",
+              "uuid": "e5b171bb-e667-4374-beda-c851335f8423",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "4": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 4,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Barcode Size is same size of the Read"
+                }
+              ],
+              "label": "Barcode Size is same size of the Read",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 260.683349609375,
+                "top": 414.5
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "1c2232ed-726c-4398-b99f-015a6cb719af",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "5": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/rna_starsolo/rna_starsolo/2.7.10b+galaxy3",
+              "errors": null,
+              "id": 5,
+              "input_connections": {
+                "refGenomeSource|GTFconditional|genomeDir": {
+                  "id": 1,
+                  "output_name": "output"
+                },
+                "refGenomeSource|GTFconditional|sjdbGTFfile": {
+                  "id": 2,
+                  "output_name": "output"
+                },
+                "sc|input_types|input_collection": {
+                  "id": 0,
+                  "output_name": "output"
+                },
+                "sc|soloBarcodeReadLength": {
+                  "id": 4,
+                  "output_name": "output"
+                },
+                "sc|soloCBwhitelist": {
+                  "id": 3,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool RNA STARSolo",
+                  "name": "sc"
+                },
+                {
+                  "description": "runtime parameter for tool RNA STARSolo",
+                  "name": "sc"
+                }
+              ],
+              "label": null,
+              "name": "RNA STARSolo",
+              "outputs": [
+                {
+                  "name": "output_log",
+                  "type": "txt"
+                },
+                {
+                  "name": "output_genes",
+                  "type": "tsv"
+                },
+                {
+                  "name": "output_barcodes",
+                  "type": "tsv"
+                },
+                {
+                  "name": "output_matrix",
+                  "type": "mtx"
+                },
+                {
+                  "name": "output_BAM",
+                  "type": "bam"
+                },
+                {
+                  "name": "output_stats",
+                  "type": "txt"
+                },
+                {
+                  "name": "reads_per_gene",
+                  "type": "tabular"
+                }
+              ],
+              "position": {
+                "left": 568.7432106444855,
+                "top": 374
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutput_BAM": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output_BAM"
+                },
+                "HideDatasetActionoutput_barcodes": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output_barcodes"
+                },
+                "HideDatasetActionoutput_genes": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output_genes"
+                },
+                "HideDatasetActionoutput_log": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output_log"
+                },
+                "HideDatasetActionoutput_matrix": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output_matrix"
+                },
+                "HideDatasetActionoutput_stats": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output_stats"
+                },
+                "HideDatasetActionreads_per_gene": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "reads_per_gene"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/rna_starsolo/rna_starsolo/2.7.10b+galaxy3",
+              "tool_shed_repository": {
+                "changeset_revision": "13022c3d3076",
+                "name": "rna_starsolo",
+                "owner": "iuc",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"outWig\": {\"outWigType\": \"None\", \"__current_case__\": 0, \"outWigStrand\": \"false\"}, \"refGenomeSource\": {\"geneSource\": \"indexed\", \"__current_case__\": 0, \"GTFconditional\": {\"GTFselect\": \"without-gtf-with-gtf\", \"__current_case__\": 1, \"genomeDir\": {\"__class__\": \"ConnectedValue\"}, \"sjdbGTFfile\": {\"__class__\": \"RuntimeValue\"}, \"sjdbOverhang\": \"100\"}}, \"sc\": {\"solo_type\": \"CB_UMI_Simple\", \"__current_case__\": 0, \"input_types\": {\"use\": \"list_paired\", \"__current_case__\": 1, \"input_collection\": {\"__class__\": \"RuntimeValue\"}}, \"soloCBwhitelist\": {\"__class__\": \"RuntimeValue\"}, \"params\": {\"chemistry\": \"Cv3\", \"__current_case__\": 1}, \"soloBarcodeReadLength\": {\"__class__\": \"ConnectedValue\"}, \"umidedup\": {\"soloUMIdedup\": \"1MM_CR\", \"__current_case__\": 4, \"soloUMIfiltering\": \"-\"}, \"soloCBmatchWLtype\": \"1MM_multi\"}, \"solo\": {\"soloStrand\": \"Forward\", \"soloFeatures\": \"Gene\", \"filter\": {\"filter_type\": \"no_filter\", \"__current_case__\": 3, \"output_raw\": \"true\"}, \"soloOutFormatFeaturesGeneField3\": \"Gene Expression\", \"outSAMattributes\": [\"NH\", \"HI\", \"AS\", \"nM\", \"GX\", \"GN\", \"CB\", \"UB\"], \"quantModeGene\": true, \"outSAMunmapped\": false, \"outSAMmapqUnique\": \"60\", \"junction_limits\": {\"limitOutSJoneRead\": \"1000\", \"limitOutSJcollapsed\": \"1000000\", \"limitSjdbInsertNsj\": \"1000000\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "2.7.10b+galaxy3",
+              "type": "tool",
+              "uuid": "8ff4caa4-5fdb-4d1c-871c-520abce1a324",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "6": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.11+galaxy1",
+              "errors": null,
+              "id": 6,
+              "input_connections": {
+                "results_0|software_cond|output_0|type|input": {
+                  "id": 5,
+                  "output_name": "output_log"
+                },
+                "results_0|software_cond|output_1|type|input": {
+                  "id": 5,
+                  "output_name": "reads_per_gene"
+                }
+              },
+              "inputs": [],
+              "label": "multiQC",
+              "name": "MultiQC",
+              "outputs": [
+                {
+                  "name": "stats",
+                  "type": "input"
+                },
+                {
+                  "name": "html_report",
+                  "type": "html"
+                }
+              ],
+              "position": {
+                "left": 848.0098122069855,
+                "top": 366.98333740234375
+              },
+              "post_job_actions": {
+                "HideDatasetActionstats": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "stats"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/multiqc/multiqc/1.11+galaxy1",
+              "tool_shed_repository": {
+                "changeset_revision": "abfd8a6544d7",
+                "name": "multiqc",
+                "owner": "iuc",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"comment\": \"\", \"export\": false, \"flat\": false, \"results\": [{\"__index__\": 0, \"software_cond\": {\"software\": \"star\", \"__current_case__\": 28, \"output\": [{\"__index__\": 0, \"type\": {\"type\": \"log\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 1, \"type\": {\"type\": \"genecounts\", \"__current_case__\": 1, \"input\": {\"__class__\": \"ConnectedValue\"}}}]}}], \"saveLog\": false, \"title\": \"\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.11+galaxy1",
+              "type": "tool",
+              "uuid": "3c5cd761-40cb-4574-bd40-4bba8b406466",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "MultiQC on input dataset(s): Webpage",
+                  "output_name": "html_report",
+                  "uuid": "e3e1169d-5255-4958-855f-4941daeeef56"
+                }
+              ]
+            },
+            "7": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/dropletutils/dropletutils/1.10.0+galaxy2",
+              "errors": null,
+              "id": 7,
+              "input_connections": {
+                "tenx_format|input": {
+                  "id": 5,
+                  "output_name": "output_matrix"
+                },
+                "tenx_format|input_barcodes": {
+                  "id": 5,
+                  "output_name": "output_barcodes"
+                },
+                "tenx_format|input_genes": {
+                  "id": 5,
+                  "output_name": "output_genes"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool DropletUtils",
+                  "name": "tenx_format"
+                },
+                {
+                  "description": "runtime parameter for tool DropletUtils",
+                  "name": "tenx_format"
+                },
+                {
+                  "description": "runtime parameter for tool DropletUtils",
+                  "name": "tenx_format"
+                }
+              ],
+              "label": "filter cells",
+              "name": "DropletUtils",
+              "outputs": [
+                {
+                  "name": "barcodes_out",
+                  "type": "tsv"
+                },
+                {
+                  "name": "genes_out",
+                  "type": "tsv"
+                },
+                {
+                  "name": "matrix_out",
+                  "type": "mtx"
+                },
+                {
+                  "name": "plot",
+                  "type": "png"
+                },
+                {
+                  "name": "table",
+                  "type": "tsv"
+                }
+              ],
+              "position": {
+                "left": 848.0098122069855,
+                "top": 640.9833374023438
+              },
+              "post_job_actions": {
+                "HideDatasetActionbarcodes_out": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "barcodes_out"
+                },
+                "HideDatasetActiongenes_out": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "genes_out"
+                },
+                "HideDatasetActionmatrix_out": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "matrix_out"
+                },
+                "HideDatasetActionplot": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "plot"
+                },
+                "HideDatasetActiontable": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "table"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/dropletutils/dropletutils/1.10.0+galaxy2",
+              "tool_shed_repository": {
+                "changeset_revision": "a9caad671439",
+                "name": "dropletutils",
+                "owner": "iuc",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"operation\": {\"use\": \"filter\", \"__current_case__\": 0, \"method\": {\"use\": \"emptydrops\", \"__current_case__\": 1, \"lower\": \"100\", \"fdr_thresh\": \"0.01\"}, \"outformat\": \"directory\"}, \"seed\": \"100\", \"tenx_format\": {\"use\": \"directory\", \"__current_case__\": 0, \"input\": {\"__class__\": \"ConnectedValue\"}, \"input_genes\": {\"__class__\": \"ConnectedValue\"}, \"input_barcodes\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.10.0+galaxy2",
+              "type": "tool",
+              "uuid": "fbd76bb1-6e1b-441c-b521-4e021f629a67",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "8": {
+              "annotation": "",
+              "id": 8,
+              "input_connections": {
+                "STARsolo Barcodes": {
+                  "id": 7,
+                  "input_subworkflow_step_id": 1,
+                  "output_name": "barcodes_out"
+                },
+                "STARsolo Genes": {
+                  "id": 7,
+                  "input_subworkflow_step_id": 0,
+                  "output_name": "genes_out"
+                },
+                "STARsolo Matrix Gene Counts": {
+                  "id": 7,
+                  "input_subworkflow_step_id": 2,
+                  "output_name": "matrix_out"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Re-organize STAR-solo output"
+                }
+              ],
+              "label": "Re-organize STAR-solo output",
+              "name": "Re-organize-STAR-solo-output",
+              "outputs": [],
+              "position": {
+                "left": 1125.976487011673,
+                "top": 774
+              },
+              "subworkflow": {
+                "a_galaxy_workflow": "true",
+                "annotation": "",
+                "comments": [],
+                "creator": [
+                  {
+                    "class": "Person",
+                    "identifier": "https://orcid.org/0000-0002-1964-4960",
+                    "name": "Lucille Delisle"
+                  }
+                ],
+                "format-version": "0.1",
+                "license": "MIT",
+                "name": "Re-organize-STAR-solo-output",
+                "steps": {
+                  "0": {
+                    "annotation": "",
+                    "content_id": null,
+                    "errors": null,
+                    "id": 0,
+                    "input_connections": {},
+                    "inputs": [
+                      {
+                        "description": "",
+                        "name": "STARsolo Genes"
+                      }
+                    ],
+                    "label": "STARsolo Genes",
+                    "name": "Input dataset collection",
+                    "outputs": [],
+                    "position": {
+                      "left": 0,
+                      "top": 0
+                    },
+                    "tool_id": null,
+                    "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+                    "tool_version": null,
+                    "type": "data_collection_input",
+                    "uuid": "77be0d43-0bdf-4632-87cc-1e35d3114b37",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "1": {
+                    "annotation": "",
+                    "content_id": null,
+                    "errors": null,
+                    "id": 1,
+                    "input_connections": {},
+                    "inputs": [
+                      {
+                        "description": "",
+                        "name": "STARsolo Barcodes"
+                      }
+                    ],
+                    "label": "STARsolo Barcodes",
+                    "name": "Input dataset collection",
+                    "outputs": [],
+                    "position": {
+                      "left": 23,
+                      "top": 126
+                    },
+                    "tool_id": null,
+                    "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+                    "tool_version": null,
+                    "type": "data_collection_input",
+                    "uuid": "e09ce647-e3c4-4795-808c-9991eba05025",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "2": {
+                    "annotation": "",
+                    "content_id": null,
+                    "errors": null,
+                    "id": 2,
+                    "input_connections": {},
+                    "inputs": [
+                      {
+                        "description": "",
+                        "name": "STARsolo Matrix Gene Counts"
+                      }
+                    ],
+                    "label": "STARsolo Matrix Gene Counts",
+                    "name": "Input dataset collection",
+                    "outputs": [],
+                    "position": {
+                      "left": 84,
+                      "top": 249
+                    },
+                    "tool_id": null,
+                    "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+                    "tool_version": null,
+                    "type": "data_collection_input",
+                    "uuid": "92f344aa-a805-4dff-a37c-7dd22186a1c9",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "3": {
+                    "annotation": "",
+                    "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/collection_element_identifiers/collection_element_identifiers/0.0.2",
+                    "errors": null,
+                    "id": 3,
+                    "input_connections": {
+                      "input_collection": {
+                        "id": 2,
+                        "output_name": "output"
+                      }
+                    },
+                    "inputs": [],
+                    "label": null,
+                    "name": "Extract element identifiers",
+                    "outputs": [
+                      {
+                        "name": "output",
+                        "type": "txt"
+                      }
+                    ],
+                    "position": {
+                      "left": 337,
+                      "top": 438
+                    },
+                    "post_job_actions": {
+                      "HideDatasetActionoutput": {
+                        "action_arguments": {},
+                        "action_type": "HideDatasetAction",
+                        "output_name": "output"
+                      }
+                    },
+                    "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/collection_element_identifiers/collection_element_identifiers/0.0.2",
+                    "tool_shed_repository": {
+                      "changeset_revision": "d3c07d270a50",
+                      "name": "collection_element_identifiers",
+                      "owner": "iuc",
+                      "tool_shed": "toolshed.g2.bx.psu.edu"
+                    },
+                    "tool_state": "{\"__input_ext\": \"tsv\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"input_collection\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+                    "tool_version": "0.0.2",
+                    "type": "tool",
+                    "uuid": "804a3fad-2239-4ee1-92f4-6d4f16c31f2f",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "4": {
+                    "annotation": "",
+                    "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+                    "errors": null,
+                    "id": 4,
+                    "input_connections": {
+                      "infile": {
+                        "id": 3,
+                        "output_name": "output"
+                      }
+                    },
+                    "inputs": [
+                      {
+                        "description": "runtime parameter for tool Replace Text",
+                        "name": "infile"
+                      }
+                    ],
+                    "label": null,
+                    "name": "Replace Text",
+                    "outputs": [
+                      {
+                        "name": "outfile",
+                        "type": "input"
+                      }
+                    ],
+                    "position": {
+                      "left": 579,
+                      "top": 63
+                    },
+                    "post_job_actions": {
+                      "HideDatasetActionoutfile": {
+                        "action_arguments": {},
+                        "action_type": "HideDatasetAction",
+                        "output_name": "outfile"
+                      }
+                    },
+                    "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+                    "tool_shed_repository": {
+                      "changeset_revision": "ddf54b12c295",
+                      "name": "text_processing",
+                      "owner": "bgruening",
+                      "tool_shed": "toolshed.g2.bx.psu.edu"
+                    },
+                    "tool_state": "{\"infile\": {\"__class__\": \"RuntimeValue\"}, \"replacements\": [{\"__index__\": 0, \"find_pattern\": \"(.*)\", \"replace_pattern\": \"\\\\1_genes\"}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+                    "tool_version": "1.1.2",
+                    "type": "tool",
+                    "uuid": "ad42db9e-28d7-432c-ac8e-48cb045be3c3",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "5": {
+                    "annotation": "",
+                    "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+                    "errors": null,
+                    "id": 5,
+                    "input_connections": {
+                      "infile": {
+                        "id": 3,
+                        "output_name": "output"
+                      }
+                    },
+                    "inputs": [
+                      {
+                        "description": "runtime parameter for tool Replace Text",
+                        "name": "infile"
+                      }
+                    ],
+                    "label": null,
+                    "name": "Replace Text",
+                    "outputs": [
+                      {
+                        "name": "outfile",
+                        "type": "input"
+                      }
+                    ],
+                    "position": {
+                      "left": 584,
+                      "top": 205
+                    },
+                    "post_job_actions": {
+                      "HideDatasetActionoutfile": {
+                        "action_arguments": {},
+                        "action_type": "HideDatasetAction",
+                        "output_name": "outfile"
+                      }
+                    },
+                    "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+                    "tool_shed_repository": {
+                      "changeset_revision": "ddf54b12c295",
+                      "name": "text_processing",
+                      "owner": "bgruening",
+                      "tool_shed": "toolshed.g2.bx.psu.edu"
+                    },
+                    "tool_state": "{\"infile\": {\"__class__\": \"RuntimeValue\"}, \"replacements\": [{\"__index__\": 0, \"find_pattern\": \"(.*)\", \"replace_pattern\": \"\\\\1_barcodes\"}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+                    "tool_version": "1.1.2",
+                    "type": "tool",
+                    "uuid": "0d1518ea-d5dd-4bcf-8ddf-ec9b5339e3c5",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "6": {
+                    "annotation": "",
+                    "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+                    "errors": null,
+                    "id": 6,
+                    "input_connections": {
+                      "infile": {
+                        "id": 3,
+                        "output_name": "output"
+                      }
+                    },
+                    "inputs": [],
+                    "label": null,
+                    "name": "Replace Text",
+                    "outputs": [
+                      {
+                        "name": "outfile",
+                        "type": "input"
+                      }
+                    ],
+                    "position": {
+                      "left": 581,
+                      "top": 383
+                    },
+                    "post_job_actions": {
+                      "HideDatasetActionoutfile": {
+                        "action_arguments": {},
+                        "action_type": "HideDatasetAction",
+                        "output_name": "outfile"
+                      }
+                    },
+                    "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+                    "tool_shed_repository": {
+                      "changeset_revision": "ddf54b12c295",
+                      "name": "text_processing",
+                      "owner": "bgruening",
+                      "tool_shed": "toolshed.g2.bx.psu.edu"
+                    },
+                    "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"replacements\": [{\"__index__\": 0, \"find_pattern\": \"(.*)\", \"replace_pattern\": \"\\\\1_matrix\"}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+                    "tool_version": "1.1.2",
+                    "type": "tool",
+                    "uuid": "7845ac75-1e9b-4688-87eb-b2794d16d187",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "7": {
+                    "annotation": "",
+                    "content_id": "__RELABEL_FROM_FILE__",
+                    "errors": null,
+                    "id": 7,
+                    "input_connections": {
+                      "how|labels": {
+                        "id": 4,
+                        "output_name": "outfile"
+                      },
+                      "input": {
+                        "id": 0,
+                        "output_name": "output"
+                      }
+                    },
+                    "inputs": [
+                      {
+                        "description": "runtime parameter for tool Relabel identifiers",
+                        "name": "how"
+                      },
+                      {
+                        "description": "runtime parameter for tool Relabel identifiers",
+                        "name": "input"
+                      }
+                    ],
+                    "label": null,
+                    "name": "Relabel identifiers",
+                    "outputs": [
+                      {
+                        "name": "output",
+                        "type": "input"
+                      }
+                    ],
+                    "position": {
+                      "left": 829,
+                      "top": 58
+                    },
+                    "post_job_actions": {
+                      "HideDatasetActionoutput": {
+                        "action_arguments": {},
+                        "action_type": "HideDatasetAction",
+                        "output_name": "output"
+                      }
+                    },
+                    "tool_id": "__RELABEL_FROM_FILE__",
+                    "tool_state": "{\"how\": {\"how_select\": \"txt\", \"__current_case__\": 0, \"labels\": {\"__class__\": \"RuntimeValue\"}, \"strict\": false}, \"input\": {\"__class__\": \"RuntimeValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+                    "tool_version": "1.0.0",
+                    "type": "tool",
+                    "uuid": "cb2d3391-30ff-4244-9b8f-e42cb7ecb60a",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "8": {
+                    "annotation": "",
+                    "content_id": "__RELABEL_FROM_FILE__",
+                    "errors": null,
+                    "id": 8,
+                    "input_connections": {
+                      "how|labels": {
+                        "id": 5,
+                        "output_name": "outfile"
+                      },
+                      "input": {
+                        "id": 1,
+                        "output_name": "output"
+                      }
+                    },
+                    "inputs": [
+                      {
+                        "description": "runtime parameter for tool Relabel identifiers",
+                        "name": "how"
+                      }
+                    ],
+                    "label": null,
+                    "name": "Relabel identifiers",
+                    "outputs": [
+                      {
+                        "name": "output",
+                        "type": "input"
+                      }
+                    ],
+                    "position": {
+                      "left": 827,
+                      "top": 213
+                    },
+                    "post_job_actions": {
+                      "HideDatasetActionoutput": {
+                        "action_arguments": {},
+                        "action_type": "HideDatasetAction",
+                        "output_name": "output"
+                      }
+                    },
+                    "tool_id": "__RELABEL_FROM_FILE__",
+                    "tool_state": "{\"how\": {\"how_select\": \"txt\", \"__current_case__\": 0, \"labels\": {\"__class__\": \"ConnectedValue\"}, \"strict\": false}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+                    "tool_version": "1.0.0",
+                    "type": "tool",
+                    "uuid": "2207b69a-6e63-465c-b85e-4fd5eebc9cf7",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "9": {
+                    "annotation": "",
+                    "content_id": "__RELABEL_FROM_FILE__",
+                    "errors": null,
+                    "id": 9,
+                    "input_connections": {
+                      "how|labels": {
+                        "id": 6,
+                        "output_name": "outfile"
+                      },
+                      "input": {
+                        "id": 2,
+                        "output_name": "output"
+                      }
+                    },
+                    "inputs": [
+                      {
+                        "description": "runtime parameter for tool Relabel identifiers",
+                        "name": "how"
+                      }
+                    ],
+                    "label": null,
+                    "name": "Relabel identifiers",
+                    "outputs": [
+                      {
+                        "name": "output",
+                        "type": "input"
+                      }
+                    ],
+                    "position": {
+                      "left": 823,
+                      "top": 364
+                    },
+                    "post_job_actions": {
+                      "HideDatasetActionoutput": {
+                        "action_arguments": {},
+                        "action_type": "HideDatasetAction",
+                        "output_name": "output"
+                      }
+                    },
+                    "tool_id": "__RELABEL_FROM_FILE__",
+                    "tool_state": "{\"how\": {\"how_select\": \"txt\", \"__current_case__\": 0, \"labels\": {\"__class__\": \"ConnectedValue\"}, \"strict\": false}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+                    "tool_version": "1.0.0",
+                    "type": "tool",
+                    "uuid": "abb71a35-2559-468b-9c25-ad256c1daa1d",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "10": {
+                    "annotation": "",
+                    "content_id": "__MERGE_COLLECTION__",
+                    "errors": null,
+                    "id": 10,
+                    "input_connections": {
+                      "inputs_0|input": {
+                        "id": 9,
+                        "output_name": "output"
+                      },
+                      "inputs_1|input": {
+                        "id": 8,
+                        "output_name": "output"
+                      },
+                      "inputs_2|input": {
+                        "id": 7,
+                        "output_name": "output"
+                      }
+                    },
+                    "inputs": [],
+                    "label": null,
+                    "name": "Merge collections",
+                    "outputs": [
+                      {
+                        "name": "output",
+                        "type": "input"
+                      }
+                    ],
+                    "position": {
+                      "left": 1064,
+                      "top": 128
+                    },
+                    "post_job_actions": {
+                      "HideDatasetActionoutput": {
+                        "action_arguments": {},
+                        "action_type": "HideDatasetAction",
+                        "output_name": "output"
+                      }
+                    },
+                    "tool_id": "__MERGE_COLLECTION__",
+                    "tool_state": "{\"advanced\": {\"conflict\": {\"duplicate_options\": \"keep_first\", \"__current_case__\": 3}}, \"inputs\": [{\"__index__\": 0, \"input\": {\"__class__\": \"RuntimeValue\"}}, {\"__index__\": 1, \"input\": {\"__class__\": \"RuntimeValue\"}}, {\"__index__\": 2, \"input\": {\"__class__\": \"RuntimeValue\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+                    "tool_version": "1.0.0",
+                    "type": "tool",
+                    "uuid": "7a4715ba-fdc9-4487-a9c5-3ea445dc89e8",
+                    "when": null,
+                    "workflow_outputs": []
+                  },
+                  "11": {
+                    "annotation": "",
+                    "content_id": "__APPLY_RULES__",
+                    "errors": null,
+                    "id": 11,
+                    "input_connections": {
+                      "input": {
+                        "id": 10,
+                        "output_name": "output"
+                      }
+                    },
+                    "inputs": [
+                      {
+                        "description": "runtime parameter for tool Apply rules",
+                        "name": "input"
+                      }
+                    ],
+                    "label": null,
+                    "name": "Apply rules",
+                    "outputs": [
+                      {
+                        "name": "output",
+                        "type": "input"
+                      }
+                    ],
+                    "position": {
+                      "left": 1284,
+                      "top": 128
+                    },
+                    "post_job_actions": {
+                      "RenameDatasetActionoutput": {
+                        "action_arguments": {
+                          "newname": "All matrices in cell-ranger format"
+                        },
+                        "action_type": "RenameDatasetAction",
+                        "output_name": "output"
+                      }
+                    },
+                    "tool_id": "__APPLY_RULES__",
+                    "tool_state": "{\"input\": {\"__class__\": \"RuntimeValue\"}, \"rules\": {\"mapping\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"columns\": [1, 2], \"connectable\": true, \"editing\": false, \"is_workflow\": false, \"type\": \"list_identifiers\"}], \"rules\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier0\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"expression\": \"(.*)_(.*)\", \"group_count\": null, \"is_workflow\": false, \"replacement\": \"\\\\1\", \"target_column\": 0, \"type\": \"add_column_regex\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"expression\": \"(.*)_(.*)\", \"group_count\": null, \"is_workflow\": false, \"replacement\": \"\\\\2\", \"target_column\": 0, \"type\": \"add_column_regex\", \"warn\": null}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+                    "tool_version": "1.1.0",
+                    "type": "tool",
+                    "uuid": "fdb7856f-128c-4889-8ec8-958dd30804a4",
+                    "when": null,
+                    "workflow_outputs": [
+                      {
+                        "label": "STARsolo cell ranger-like output",
+                        "output_name": "output",
+                        "uuid": "5426669d-d5b6-4dd0-a191-38304e57153b"
+                      }
+                    ]
+                  }
+                },
+                "tags": [],
+                "uuid": "3bf5cd70-c01f-4a95-bf34-23a349719908"
+              },
+              "tool_id": null,
+              "type": "subworkflow",
+              "uuid": "6e5353b9-a868-428e-8e55-98b21d2ee826",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "Seurat input for gene expression (filtered)",
+                  "output_name": "STARsolo cell ranger-like output",
+                  "uuid": "2fcbeeee-e12f-4041-a4ce-71bbb248090c"
+                }
+              ]
+            }
+          },
+          "tags": [],
+          "uuid": "8e30fbac-b342-435c-b01e-861765dc8d8e"
+        },
+        "tool_id": null,
+        "type": "subworkflow",
+        "uuid": "527963a9-3906-4eb6-97d6-6f9e0683ab04",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "MultiQC_STARsolo",
+            "output_name": "MultiQC on input dataset(s): Webpage",
+            "uuid": "a3efe0fb-39bf-4b32-95a1-13b3eca1e56a"
+          },
+          {
+            "label": "Seurat input for gene expression (filtered)",
+            "output_name": "Seurat input for gene expression (filtered)",
+            "uuid": "a891635f-4eb9-4437-88e1-00382878490c"
+          }
+        ]
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/cite_seq_count/cite_seq_count/1.4.4+galaxy0",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "expected_cells": {
+            "id": 7,
+            "output_name": "output"
+          },
+          "input_types|input_collection": {
+            "id": 5,
+            "output_name": "output"
+          },
+          "tags": {
+            "id": 6,
+            "output_name": "output"
+          },
+          "whitelist": {
+            "id": 3,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool CITE-seq-Count",
+            "name": "input_types"
+          }
+        ],
+        "label": null,
+        "name": "CITE-seq-Count",
+        "outputs": [
+          {
+            "name": "report",
+            "type": "yaml"
+          },
+          {
+            "name": "output_features",
+            "type": "tsv"
+          },
+          {
+            "name": "output_barcodes",
+            "type": "tsv"
+          },
+          {
+            "name": "output_matrix",
+            "type": "mtx"
+          },
+          {
+            "name": "output_features_filtered",
+            "type": "tsv"
+          },
+          {
+            "name": "output_barcodes_filtered",
+            "type": "tsv"
+          },
+          {
+            "name": "output_matrix_filtered",
+            "type": "mtx"
+          }
+        ],
+        "position": {
+          "left": 667.6833801269531,
+          "top": 481.593854350586
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutput_barcodes": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output_barcodes"
+          },
+          "HideDatasetActionoutput_barcodes_filtered": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output_barcodes_filtered"
+          },
+          "HideDatasetActionoutput_features": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output_features"
+          },
+          "HideDatasetActionoutput_features_filtered": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output_features_filtered"
+          },
+          "HideDatasetActionoutput_matrix": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output_matrix"
+          },
+          "HideDatasetActionoutput_matrix_filtered": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "output_matrix_filtered"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cite_seq_count/cite_seq_count/1.4.4+galaxy0",
+        "tool_shed_repository": {
+          "changeset_revision": "3df3d1b51110",
+          "name": "cite_seq_count",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"bc_collapsing_dist\": \"1\", \"dense\": false, \"expected_cells\": {\"__class__\": \"ConnectedValue\"}, \"first_n\": \"0\", \"input_types\": {\"use\": \"list_paired\", \"__current_case__\": 1, \"input_collection\": {\"__class__\": \"ConnectedValue\"}}, \"max_error\": \"2\", \"no_umi_correction\": false, \"params\": {\"chemistry\": \"v3\", \"__current_case__\": 1}, \"sliding_window\": false, \"start_trim\": \"0\", \"tags\": {\"__class__\": \"ConnectedValue\"}, \"umi_collapsing_dist\": \"2\", \"unmapped\": {\"output\": \"false\", \"__current_case__\": 0}, \"whitelist\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.4.4+galaxy0",
+        "type": "tool",
+        "uuid": "b61e4117-4840-461f-8fa1-c4bf2aa11ca5",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "CITE-seq-Count report",
+            "output_name": "report",
+            "uuid": "32b53a86-a578-4266-b781-c7f503c13f47"
+          }
+        ]
+      },
+      "10": {
+        "annotation": "",
+        "content_id": "pick_value",
+        "errors": null,
+        "id": 10,
+        "input_connections": {
+          "style_cond|type_cond|pick_from_0|value": {
+            "id": 8,
+            "output_name": "Seurat input for gene expression (filtered)"
+          }
+        },
+        "inputs": [],
+        "label": "Rename STAR-solo output",
+        "name": "Pick parameter value",
+        "outputs": [
+          {
+            "name": "data_param",
+            "type": "data"
+          }
+        ],
+        "position": {
+          "left": 1380.7500305175781,
+          "top": 364.6771978564454
+        },
+        "post_job_actions": {
+          "RenameDatasetActiondata_param": {
+            "action_arguments": {
+              "newname": "Seurat input for gene expression (filtered)"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "data_param"
+          }
+        },
+        "tool_id": "pick_value",
+        "tool_state": "{\"style_cond\": {\"pick_style\": \"first\", \"__current_case__\": 0, \"type_cond\": {\"param_type\": \"data\", \"__current_case__\": 4, \"pick_from\": [{\"__index__\": 0, \"value\": {\"__class__\": \"ConnectedValue\"}}]}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.0",
+        "type": "tool",
+        "uuid": "1fb3d33e-3ff0-4d90-9907-2ee9f1885642",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Renamed Seurat input for gene expression (filtered)",
+            "output_name": "data_param",
+            "uuid": "b3f5d0df-575a-4699-b450-52ce41e78364"
+          }
+        ]
+      },
+      "11": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/1.1.2",
+        "errors": null,
+        "id": 11,
+        "input_connections": {
+          "infile": {
+            "id": 9,
+            "output_name": "output_barcodes_filtered"
+          }
+        },
+        "inputs": [],
+        "label": "translate 10x barcode v2 to 10x barcode v1",
+        "name": "Text reformatting",
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 928.6666564941406,
+          "top": 654.5771917529298
+        },
+        "post_job_actions": {
+          "HideDatasetActionoutfile": {
+            "action_arguments": {},
+            "action_type": "HideDatasetAction",
+            "output_name": "outfile"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/1.1.2",
+        "tool_shed_repository": {
+          "changeset_revision": "ddf54b12c295",
+          "name": "text_processing",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"code\": \"{split($1,a,\\\"\\\"); a[8]=a[8]==\\\"A\\\"?\\\"T\\\":a[8]==\\\"T\\\"?\\\"A\\\":a[8]==\\\"C\\\"?\\\"G\\\":\\\"C\\\"; a[9]=a[9]==\\\"A\\\"?\\\"T\\\":a[9]==\\\"T\\\"?\\\"A\\\":a[9]==\\\"C\\\"?\\\"G\\\":\\\"C\\\"; print a[1]a[2]a[3]a[4]a[5]a[6]a[7]a[8]a[9]a[10]a[11]a[12]a[13]a[14]a[15]a[16]}\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "1.1.2",
+        "type": "tool",
+        "uuid": "26e68c40-6751-4423-8f4b-c70bc40b68f2",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "12": {
+        "annotation": "",
+        "id": 12,
+        "input_connections": {
+          "STARsolo Barcodes": {
+            "id": 11,
+            "input_subworkflow_step_id": 1,
+            "output_name": "outfile"
+          },
+          "STARsolo Genes": {
+            "id": 9,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output_features_filtered"
+          },
+          "STARsolo Matrix Gene Counts": {
+            "id": 9,
+            "input_subworkflow_step_id": 2,
+            "output_name": "output_matrix_filtered"
+          }
+        },
+        "inputs": [
+          {
+            "description": "",
+            "name": "Re-organize CITE-seq-Count output"
+          }
+        ],
+        "label": "Re-organize CITE-seq-Count output",
+        "name": "Re-organize-STAR-solo-output",
+        "outputs": [],
+        "position": {
+          "left": 1173.6666564941406,
+          "top": 750.6105169482423
+        },
+        "subworkflow": {
+          "a_galaxy_workflow": "true",
+          "annotation": "",
+          "comments": [],
+          "creator": [
+            {
+              "class": "Person",
+              "identifier": "https://orcid.org/0000-0002-1964-4960",
+              "name": "Lucille Delisle"
+            }
+          ],
+          "format-version": "0.1",
+          "license": "MIT",
+          "name": "Re-organize-STAR-solo-output",
+          "steps": {
+            "0": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 0,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "STARsolo Genes"
+                }
+              ],
+              "label": "STARsolo Genes",
+              "name": "Input dataset collection",
+              "outputs": [],
+              "position": {
+                "left": 0,
+                "top": 0
+              },
+              "tool_id": null,
+              "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+              "tool_version": null,
+              "type": "data_collection_input",
+              "uuid": "5f609de9-da44-45a3-b739-938c1fefab7f",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "1": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 1,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "STARsolo Barcodes"
+                }
+              ],
+              "label": "STARsolo Barcodes",
+              "name": "Input dataset collection",
+              "outputs": [],
+              "position": {
+                "left": 23,
+                "top": 126
+              },
+              "tool_id": null,
+              "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+              "tool_version": null,
+              "type": "data_collection_input",
+              "uuid": "51839b35-d03e-4adc-bf79-79686fa58f6e",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "2": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 2,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "STARsolo Matrix Gene Counts"
+                }
+              ],
+              "label": "STARsolo Matrix Gene Counts",
+              "name": "Input dataset collection",
+              "outputs": [],
+              "position": {
+                "left": 84,
+                "top": 249
+              },
+              "tool_id": null,
+              "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+              "tool_version": null,
+              "type": "data_collection_input",
+              "uuid": "8619644c-cb95-4711-9661-1083ce82113a",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "3": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/collection_element_identifiers/collection_element_identifiers/0.0.2",
+              "errors": null,
+              "id": 3,
+              "input_connections": {
+                "input_collection": {
+                  "id": 2,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "Extract element identifiers",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "txt"
+                }
+              ],
+              "position": {
+                "left": 337,
+                "top": 438
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutput": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/collection_element_identifiers/collection_element_identifiers/0.0.2",
+              "tool_shed_repository": {
+                "changeset_revision": "d3c07d270a50",
+                "name": "collection_element_identifiers",
+                "owner": "iuc",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"__input_ext\": \"tsv\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"input_collection\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "0.0.2",
+              "type": "tool",
+              "uuid": "df732106-aaa7-46f8-9b6a-bbc61108c925",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "4": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+              "errors": null,
+              "id": 4,
+              "input_connections": {
+                "infile": {
+                  "id": 3,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool Replace Text",
+                  "name": "infile"
+                }
+              ],
+              "label": null,
+              "name": "Replace Text",
+              "outputs": [
+                {
+                  "name": "outfile",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 579,
+                "top": 63
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutfile": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "outfile"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+              "tool_shed_repository": {
+                "changeset_revision": "ddf54b12c295",
+                "name": "text_processing",
+                "owner": "bgruening",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"infile\": {\"__class__\": \"RuntimeValue\"}, \"replacements\": [{\"__index__\": 0, \"find_pattern\": \"(.*)\", \"replace_pattern\": \"\\\\1_genes\"}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.1.2",
+              "type": "tool",
+              "uuid": "ef74eb2b-e102-4c55-9794-20767c481f9b",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "5": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+              "errors": null,
+              "id": 5,
+              "input_connections": {
+                "infile": {
+                  "id": 3,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool Replace Text",
+                  "name": "infile"
+                }
+              ],
+              "label": null,
+              "name": "Replace Text",
+              "outputs": [
+                {
+                  "name": "outfile",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 584,
+                "top": 205
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutfile": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "outfile"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+              "tool_shed_repository": {
+                "changeset_revision": "ddf54b12c295",
+                "name": "text_processing",
+                "owner": "bgruening",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"infile\": {\"__class__\": \"RuntimeValue\"}, \"replacements\": [{\"__index__\": 0, \"find_pattern\": \"(.*)\", \"replace_pattern\": \"\\\\1_barcodes\"}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.1.2",
+              "type": "tool",
+              "uuid": "30fe7552-aefb-44d7-bbf1-3b19802bb2ca",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "6": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+              "errors": null,
+              "id": 6,
+              "input_connections": {
+                "infile": {
+                  "id": 3,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "Replace Text",
+              "outputs": [
+                {
+                  "name": "outfile",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 581,
+                "top": 383
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutfile": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "outfile"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_replace_in_line/1.1.2",
+              "tool_shed_repository": {
+                "changeset_revision": "ddf54b12c295",
+                "name": "text_processing",
+                "owner": "bgruening",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"__input_ext\": \"tabular\", \"chromInfo\": \"/cvmfs/data.galaxyproject.org/managed/len/ucsc/?.len\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"replacements\": [{\"__index__\": 0, \"find_pattern\": \"(.*)\", \"replace_pattern\": \"\\\\1_matrix\"}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.1.2",
+              "type": "tool",
+              "uuid": "b058f612-8fc9-4cbd-9d8c-631abd2c3d17",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "7": {
+              "annotation": "",
+              "content_id": "__RELABEL_FROM_FILE__",
+              "errors": null,
+              "id": 7,
+              "input_connections": {
+                "how|labels": {
+                  "id": 4,
+                  "output_name": "outfile"
+                },
+                "input": {
+                  "id": 0,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool Relabel identifiers",
+                  "name": "how"
+                },
+                {
+                  "description": "runtime parameter for tool Relabel identifiers",
+                  "name": "input"
+                }
+              ],
+              "label": null,
+              "name": "Relabel identifiers",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 829,
+                "top": 58
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutput": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "__RELABEL_FROM_FILE__",
+              "tool_state": "{\"how\": {\"how_select\": \"txt\", \"__current_case__\": 0, \"labels\": {\"__class__\": \"RuntimeValue\"}, \"strict\": false}, \"input\": {\"__class__\": \"RuntimeValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.0.0",
+              "type": "tool",
+              "uuid": "5b197732-c172-424d-8f27-2ad5df1a8f6b",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "8": {
+              "annotation": "",
+              "content_id": "__RELABEL_FROM_FILE__",
+              "errors": null,
+              "id": 8,
+              "input_connections": {
+                "how|labels": {
+                  "id": 5,
+                  "output_name": "outfile"
+                },
+                "input": {
+                  "id": 1,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool Relabel identifiers",
+                  "name": "how"
+                }
+              ],
+              "label": null,
+              "name": "Relabel identifiers",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 827,
+                "top": 213
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutput": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "__RELABEL_FROM_FILE__",
+              "tool_state": "{\"how\": {\"how_select\": \"txt\", \"__current_case__\": 0, \"labels\": {\"__class__\": \"ConnectedValue\"}, \"strict\": false}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.0.0",
+              "type": "tool",
+              "uuid": "05612230-d901-4ef8-bfee-d4833250f333",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "9": {
+              "annotation": "",
+              "content_id": "__RELABEL_FROM_FILE__",
+              "errors": null,
+              "id": 9,
+              "input_connections": {
+                "how|labels": {
+                  "id": 6,
+                  "output_name": "outfile"
+                },
+                "input": {
+                  "id": 2,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool Relabel identifiers",
+                  "name": "how"
+                }
+              ],
+              "label": null,
+              "name": "Relabel identifiers",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 823,
+                "top": 364
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutput": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "__RELABEL_FROM_FILE__",
+              "tool_state": "{\"how\": {\"how_select\": \"txt\", \"__current_case__\": 0, \"labels\": {\"__class__\": \"ConnectedValue\"}, \"strict\": false}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.0.0",
+              "type": "tool",
+              "uuid": "035667ec-ba70-433b-b77c-827627349e08",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "10": {
+              "annotation": "",
+              "content_id": "__MERGE_COLLECTION__",
+              "errors": null,
+              "id": 10,
+              "input_connections": {
+                "inputs_0|input": {
+                  "id": 9,
+                  "output_name": "output"
+                },
+                "inputs_1|input": {
+                  "id": 8,
+                  "output_name": "output"
+                },
+                "inputs_2|input": {
+                  "id": 7,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [],
+              "label": null,
+              "name": "Merge collections",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 1064,
+                "top": 128
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutput": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "__MERGE_COLLECTION__",
+              "tool_state": "{\"advanced\": {\"conflict\": {\"duplicate_options\": \"keep_first\", \"__current_case__\": 3}}, \"inputs\": [{\"__index__\": 0, \"input\": {\"__class__\": \"RuntimeValue\"}}, {\"__index__\": 1, \"input\": {\"__class__\": \"RuntimeValue\"}}, {\"__index__\": 2, \"input\": {\"__class__\": \"RuntimeValue\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.0.0",
+              "type": "tool",
+              "uuid": "b8505c12-bbfd-407d-b31b-eec82fe7880b",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "11": {
+              "annotation": "",
+              "content_id": "__APPLY_RULES__",
+              "errors": null,
+              "id": 11,
+              "input_connections": {
+                "input": {
+                  "id": 10,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool Apply rules",
+                  "name": "input"
+                }
+              ],
+              "label": null,
+              "name": "Apply rules",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 1284,
+                "top": 128
+              },
+              "post_job_actions": {
+                "RenameDatasetActionoutput": {
+                  "action_arguments": {
+                    "newname": "All matrices in cell-ranger format"
+                  },
+                  "action_type": "RenameDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "__APPLY_RULES__",
+              "tool_state": "{\"input\": {\"__class__\": \"RuntimeValue\"}, \"rules\": {\"mapping\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"columns\": [1, 2], \"connectable\": true, \"editing\": false, \"is_workflow\": false, \"type\": \"list_identifiers\"}], \"rules\": [{\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"is_workflow\": false, \"type\": \"add_column_metadata\", \"value\": \"identifier0\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"expression\": \"(.*)_(.*)\", \"group_count\": null, \"is_workflow\": false, \"replacement\": \"\\\\1\", \"target_column\": 0, \"type\": \"add_column_regex\", \"warn\": null}, {\"collapsible_value\": {\"__class__\": \"RuntimeValue\"}, \"connectable\": true, \"error\": null, \"expression\": \"(.*)_(.*)\", \"group_count\": null, \"is_workflow\": false, \"replacement\": \"\\\\2\", \"target_column\": 0, \"type\": \"add_column_regex\", \"warn\": null}]}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": "1.1.0",
+              "type": "tool",
+              "uuid": "0e6726ef-fb50-4dfc-9b53-7d1450ac0e34",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "STARsolo cell ranger-like output",
+                  "output_name": "output",
+                  "uuid": "a49c3efd-8add-4397-be58-4b03994b8f06"
+                }
+              ]
+            }
+          },
+          "tags": [],
+          "uuid": "a501abae-8813-4661-a1b2-ee03468a85b1"
+        },
+        "tool_id": null,
+        "type": "subworkflow",
+        "uuid": "370e76e9-5753-45bd-8a6b-5d0a28c09f54",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Seurat input for CMO (UMI)",
+            "output_name": "STARsolo cell ranger-like output",
+            "uuid": "3769c36f-24c5-4236-b228-0db1e059a33f"
+          }
+        ]
+      },
+      "13": {
+        "annotation": "",
+        "content_id": "pick_value",
+        "errors": null,
+        "id": 13,
+        "input_connections": {
+          "style_cond|type_cond|pick_from_0|value": {
+            "id": 12,
+            "output_name": "STARsolo cell ranger-like output"
+          }
+        },
+        "inputs": [],
+        "label": "rename CITE-seq output",
+        "name": "Pick parameter value",
+        "outputs": [
+          {
+            "name": "data_param",
+            "type": "data"
+          }
+        ],
+        "position": {
+          "left": 1450.6999816894531,
+          "top": 841.5938543505861
+        },
+        "post_job_actions": {
+          "RenameDatasetActiondata_param": {
+            "action_arguments": {
+              "newname": "Seurat input for CMO (UMI)"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "data_param"
+          }
+        },
+        "tool_id": "pick_value",
+        "tool_state": "{\"style_cond\": {\"pick_style\": \"first\", \"__current_case__\": 0, \"type_cond\": {\"param_type\": \"data\", \"__current_case__\": 4, \"pick_from\": [{\"__index__\": 0, \"value\": {\"__class__\": \"ConnectedValue\"}}]}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.1.0",
+        "type": "tool",
+        "uuid": "aafb78ff-c094-4d64-bcfa-4441e3def627",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "Renamed Seurat input for CMO (UMI)",
+            "output_name": "data_param",
+            "uuid": "dcf34156-5b2c-44a8-b05b-e459f6023fb6"
+          }
+        ]
+      }
+    },
+    "tags": [
+      "name:single-cell"
+    ],
+    "uuid": "8b521dc8-db7b-4eaf-b6c3-967492f70472",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "scRNA-seq_preprocessing_10X_cellPlex (release v0.1)",
+      "annotation": "This workflow processes the CMO fastqs with CITE-seq-Count and include the translation step required for cellPlex processing. In parallel it processes the Gene Expresion fastqs with STARsolo, filter cells with DropletUtils and reformat all outputs to be easily used by the function 'Read10X' from Seurat.",
+      "format_version": "0.1",
+      "uuid": "8b521dc8-db7b-4eaf-b6c3-967492f70472",
+      "version": 1,
+      "tags": [
+        "name:single-cell"
+      ],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-1964-4960",
+          "name": "Lucille Delisle"
+        },
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-4181-2676",
+          "name": "Mehmet Tekman"
+        },
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-2799-424X",
+          "name": "Hans-Rudolf Hotz"
+        },
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-6833-9049",
+          "name": "Daniel Blankenberg"
+        },
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-8170-8806",
+          "name": "Wendi Bacon"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": "fastq PE collection GEX",
+        "annotation": "reads containing genes",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list:paired\", \"fields\": null}",
+        "position": {
+          "left": 0,
+          "top": 0.0
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "reference genome",
+        "annotation": "Choose your reference genome",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 32.183349609375,
+          "top": 99.48333740234375
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "gtf",
+        "annotation": "Gene annotations",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\"}",
+        "position": {
+          "left": 67.95001220703125,
+          "top": 209.95001220703125
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "cellranger_barcodes_3M-february-2018.txt",
+        "annotation": "Available at https://zenodo.org/record/3457880/files/3M-february-2018.txt.gz",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\"}",
+        "position": {
+          "left": 111,
+          "top": 281.48333740234375
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Barcode Size is same size of the Read",
+        "annotation": "Barcode Size is same size of the Read",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "position": {
+          "left": 146,
+          "top": 394.66668701171875
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "5",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": "fastq PE collection CMO",
+        "annotation": "reads containing CMO",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list:paired\", \"fields\": null}",
+        "position": {
+          "left": 237.68331909179688,
+          "top": 493.57719175292976
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "6",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": "sample name and CMO sequence collection",
+        "annotation": "csv: first column is the sequence and second column is the name",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"csv\"], \"tag\": \"\", \"collection_type\": \"list\", \"fields\": null}",
+        "position": {
+          "left": 264.6833190917969,
+          "top": 593.5771917529298
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "7",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Number of expected cells",
+        "annotation": "Used by CITE-seq-Count, does not really seem to impact result. You can use 24000.",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 306.2167053222656,
+          "top": 705.6105169482423
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "8",
+        "type": "subworkflow",
+        "name": "scRNA-seq_preprocessing_10X_v3_Bundle",
+        "label": "process GEX reads",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": "",
+        "tool_state": "",
+        "position": {
+          "left": 651.7833251953125,
+          "top": 121.58331298828125
+        },
+        "input_connections": {
+          "Barcode Size is same size of the Read": {
+            "id": 4,
+            "input_subworkflow_step_id": 4,
+            "output_name": "output"
+          },
+          "cellranger_barcodes_3M-february-2018.txt": {
+            "id": 3,
+            "input_subworkflow_step_id": 3,
+            "output_name": "output"
+          },
+          "fastq PE collection": {
+            "id": 0,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output"
+          },
+          "gtf": {
+            "id": 2,
+            "input_subworkflow_step_id": 2,
+            "output_name": "output"
+          },
+          "reference genome": {
+            "id": 1,
+            "input_subworkflow_step_id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": []
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "CITE-seq-Count",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cite_seq_count/cite_seq_count/1.4.4+galaxy0",
+        "tool_version": "1.4.4+galaxy0",
+        "tool_state": "{\"bc_collapsing_dist\": \"1\", \"dense\": false, \"expected_cells\": {\"__class__\": \"ConnectedValue\"}, \"first_n\": \"0\", \"input_types\": {\"use\": \"list_paired\", \"__current_case__\": 1, \"input_collection\": {\"__class__\": \"ConnectedValue\"}}, \"max_error\": \"2\", \"no_umi_correction\": false, \"params\": {\"chemistry\": \"v3\", \"__current_case__\": 1}, \"sliding_window\": false, \"start_trim\": \"0\", \"tags\": {\"__class__\": \"ConnectedValue\"}, \"umi_collapsing_dist\": \"2\", \"unmapped\": {\"output\": \"false\", \"__current_case__\": 0}, \"whitelist\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 667.6833801269531,
+          "top": 481.593854350586
+        },
+        "input_connections": {
+          "expected_cells": {
+            "id": 7,
+            "output_name": "output"
+          },
+          "input_types|input_collection": {
+            "id": 5,
+            "output_name": "output"
+          },
+          "tags": {
+            "id": 6,
+            "output_name": "output"
+          },
+          "whitelist": {
+            "id": 3,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "report",
+            "type": "yaml"
+          },
+          {
+            "name": "output_features",
+            "type": "tsv"
+          },
+          {
+            "name": "output_barcodes",
+            "type": "tsv"
+          },
+          {
+            "name": "output_matrix",
+            "type": "mtx"
+          },
+          {
+            "name": "output_features_filtered",
+            "type": "tsv"
+          },
+          {
+            "name": "output_barcodes_filtered",
+            "type": "tsv"
+          },
+          {
+            "name": "output_matrix_filtered",
+            "type": "mtx"
+          }
+        ]
+      },
+      {
+        "step_id": "10",
+        "type": "tool",
+        "name": "Pick parameter value",
+        "label": "Rename STAR-solo output",
+        "annotation": "",
+        "tool_id": "pick_value",
+        "tool_version": "0.1.0",
+        "tool_state": "{\"style_cond\": {\"pick_style\": \"first\", \"__current_case__\": 0, \"type_cond\": {\"param_type\": \"data\", \"__current_case__\": 4, \"pick_from\": [{\"__index__\": 0, \"value\": {\"__class__\": \"ConnectedValue\"}}]}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1380.7500305175781,
+          "top": 364.6771978564454
+        },
+        "input_connections": {
+          "style_cond|type_cond|pick_from_0|value": {
+            "id": 8,
+            "output_name": "Seurat input for gene expression (filtered)"
+          }
+        },
+        "outputs": [
+          {
+            "name": "data_param",
+            "type": "data"
+          }
+        ]
+      },
+      {
+        "step_id": "11",
+        "type": "tool",
+        "name": "Text reformatting",
+        "label": "translate 10x barcode v2 to 10x barcode v1",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/1.1.2",
+        "tool_version": "1.1.2",
+        "tool_state": "{\"code\": \"{split($1,a,\\\"\\\"); a[8]=a[8]==\\\"A\\\"?\\\"T\\\":a[8]==\\\"T\\\"?\\\"A\\\":a[8]==\\\"C\\\"?\\\"G\\\":\\\"C\\\"; a[9]=a[9]==\\\"A\\\"?\\\"T\\\":a[9]==\\\"T\\\"?\\\"A\\\":a[9]==\\\"C\\\"?\\\"G\\\":\\\"C\\\"; print a[1]a[2]a[3]a[4]a[5]a[6]a[7]a[8]a[9]a[10]a[11]a[12]a[13]a[14]a[15]a[16]}\", \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 928.6666564941406,
+          "top": 654.5771917529298
+        },
+        "input_connections": {
+          "infile": {
+            "id": 9,
+            "output_name": "output_barcodes_filtered"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outfile",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "12",
+        "type": "subworkflow",
+        "name": "Re-organize-STAR-solo-output",
+        "label": "Re-organize CITE-seq-Count output",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": "",
+        "tool_state": "",
+        "position": {
+          "left": 1173.6666564941406,
+          "top": 750.6105169482423
+        },
+        "input_connections": {
+          "STARsolo Barcodes": {
+            "id": 11,
+            "input_subworkflow_step_id": 1,
+            "output_name": "outfile"
+          },
+          "STARsolo Genes": {
+            "id": 9,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output_features_filtered"
+          },
+          "STARsolo Matrix Gene Counts": {
+            "id": 9,
+            "input_subworkflow_step_id": 2,
+            "output_name": "output_matrix_filtered"
+          }
+        },
+        "outputs": []
+      },
+      {
+        "step_id": "13",
+        "type": "tool",
+        "name": "Pick parameter value",
+        "label": "rename CITE-seq output",
+        "annotation": "",
+        "tool_id": "pick_value",
+        "tool_version": "0.1.0",
+        "tool_state": "{\"style_cond\": {\"pick_style\": \"first\", \"__current_case__\": 0, \"type_cond\": {\"param_type\": \"data\", \"__current_case__\": 4, \"pick_from\": [{\"__index__\": 0, \"value\": {\"__class__\": \"ConnectedValue\"}}]}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1450.6999816894531,
+          "top": 841.5938543505861
+        },
+        "input_connections": {
+          "style_cond|type_cond|pick_from_0|value": {
+            "id": 12,
+            "output_name": "STARsolo cell ranger-like output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "data_param",
+            "type": "data"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/cite_seq_count/cite_seq_count/1.4.4+galaxy0",
+        "tool_version": "1.4.4+galaxy0",
+        "step_id": "9"
+      },
+      {
+        "tool_id": "pick_value",
+        "tool_version": "0.1.0",
+        "step_id": "10"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/text_processing/tp_awk_tool/1.1.2",
+        "tool_version": "1.1.2",
+        "step_id": "11"
+      },
+      {
+        "tool_id": "pick_value",
+        "tool_version": "0.1.0",
+        "step_id": "13"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "2",
+        "label": "gtf",
+        "annotation": "Gene annotations"
+      },
+      {
+        "step_id": "3",
+        "label": "cellranger_barcodes_3M-february-2018.txt",
+        "annotation": "Available at https://zenodo.org/record/3457880/files/3M-february-2018.txt.gz"
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "8",
+        "output_name": "MultiQC on input dataset(s): Webpage",
+        "label": "MultiQC_STARsolo"
+      },
+      {
+        "step_id": "8",
+        "output_name": "Seurat input for gene expression (filtered)",
+        "label": "Seurat input for gene expression (filtered)"
+      },
+      {
+        "step_id": "9",
+        "output_name": "report",
+        "label": "CITE-seq-Count report"
+      },
+      {
+        "step_id": "10",
+        "output_name": "data_param",
+        "label": "Renamed Seurat input for gene expression (filtered)"
+      },
+      {
+        "step_id": "12",
+        "output_name": "STARsolo cell ranger-like output",
+        "label": "Seurat input for CMO (UMI)"
+      },
+      {
+        "step_id": "13",
+        "output_name": "data_param",
+        "label": "Renamed Seurat input for CMO (UMI)"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "Barcode Size is same size of the Read"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "cellranger_barcodes_3M-february-2018.txt"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "fastq PE collection"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "gtf"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "reference genome"
+      },
+      {
+        "from_step": 7,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "expected_cells"
+      },
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "input_types|input_collection"
+      },
+      {
+        "from_step": 6,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "tags"
+      },
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "whitelist"
+      },
+      {
+        "from_step": 8,
+        "from_output": "Seurat input for gene expression (filtered)",
+        "to_step": "10",
+        "to_input": "style_cond|type_cond|pick_from_0|value"
+      },
+      {
+        "from_step": 9,
+        "from_output": "output_barcodes_filtered",
+        "to_step": "11",
+        "to_input": "infile"
+      },
+      {
+        "from_step": 11,
+        "from_output": "outfile",
+        "to_step": "12",
+        "to_input": "STARsolo Barcodes"
+      },
+      {
+        "from_step": 9,
+        "from_output": "output_features_filtered",
+        "to_step": "12",
+        "to_input": "STARsolo Genes"
+      },
+      {
+        "from_step": 9,
+        "from_output": "output_matrix_filtered",
+        "to_step": "12",
+        "to_input": "STARsolo Matrix Gene Counts"
+      },
+      {
+        "from_step": 12,
+        "from_output": "STARsolo cell ranger-like output",
+        "to_step": "13",
+        "to_input": "style_cond|type_cond|pick_from_0|value"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:52:27.809725"
+}

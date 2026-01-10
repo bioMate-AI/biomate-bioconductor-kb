@@ -1,0 +1,219 @@
+<?xml version="1.0"?>
+<!--
+Galaxy Cloud Executor - Global Job Configuration
+=================================================
+
+这是 Galaxy Cloud Executor 的全局作业配置文件模板。
+
+使用方法：
+1. 复制此文件到你的 Galaxy 配置目录：
+   cp config/job_conf.xml.sample $GALAXY_ROOT/config/job_conf.xml
+
+2. 根据你的云环境修改配置
+
+3. 重启 Galaxy
+
+配置说明见: JOB_CONFIG_GUIDE.md
+-->
+<job_conf>
+    <!-- ==========================================
+         Plugins（作业运行器插件）
+         ========================================== -->
+    <plugins workers="4">
+        <!-- 本地执行器（默认） -->
+        <plugin id="local" type="runner" load="galaxy.jobs.runners.local:LocalJobRunner"/>
+
+        <!-- Galaxy Cloud 执行器 -->
+        <plugin id="galaxy_cloud" type="runner" load="galaxy_cloud.galaxy_workflow.galaxy_job_runner:GalaxyCloudJobRunner">
+            <!-- 云配置文件路径 -->
+            <param id="cloud_config_file">config/aws_cloud_config.yaml</param>
+
+            <!-- 默认云提供商 -->
+            <param id="default_provider">aws</param>
+
+            <!-- 最大并行作业数 -->
+            <param id="max_parallel_jobs">10</param>
+
+            <!-- 作业超时（秒） -->
+            <param id="job_timeout">3600</param>
+
+            <!-- 作业监控间隔（秒） -->
+            <param id="monitor_interval">30</param>
+        </plugin>
+
+        <!-- Kubernetes 执行器（可选） -->
+        <plugin id="k8s" type="runner" load="galaxy.jobs.runners.kubernetes:KubernetesJobRunner">
+            <param id="k8s_config_path">~/.kube/config</param>
+            <param id="k8s_namespace">galaxy-jobs</param>
+        </plugin>
+    </plugins>
+
+    <!-- ==========================================
+         Destinations（作业目标）
+         ========================================== -->
+    <destinations default="local">
+        <!-- 本地执行 -->
+        <destination id="local" runner="local"/>
+
+        <!-- ==========================================
+             AWS Cloud Destinations
+             ========================================== -->
+
+        <!-- AWS: 默认配置 -->
+        <destination id="aws_default" runner="galaxy_cloud">
+            <param id="provider">aws</param>
+            <param id="cpus">1</param>
+            <param id="memory_mb">2048</param>
+            <param id="disk_gb">20</param>
+        </destination>
+
+        <!-- AWS: 小型作业（< 1 GB RAM） -->
+        <destination id="aws_small" runner="galaxy_cloud">
+            <param id="provider">aws</param>
+            <param id="cpus">1</param>
+            <param id="memory_mb">1024</param>
+            <param id="disk_gb">10</param>
+            <param id="spot_allocation">spot</param>  <!-- 使用 Spot 实例节省成本 -->
+        </destination>
+
+        <!-- AWS: 中型作业（1-4 GB RAM） -->
+        <destination id="aws_medium" runner="galaxy_cloud">
+            <param id="provider">aws</param>
+            <param id="cpus">2</param>
+            <param id="memory_mb">4096</param>
+            <param id="disk_gb">50</param>
+            <param id="spot_allocation">spot</param>
+        </destination>
+
+        <!-- AWS: 大型作业（4-16 GB RAM） -->
+        <destination id="aws_large" runner="galaxy_cloud">
+            <param id="provider">aws</param>
+            <param id="cpus">4</param>
+            <param id="memory_mb">16384</param>
+            <param id="disk_gb">100</param>
+            <param id="spot_allocation">onDemand</param>  <!-- 大型作业使用按需实例 -->
+        </destination>
+
+        <!-- AWS: 超大型作业（> 16 GB RAM） -->
+        <destination id="aws_xlarge" runner="galaxy_cloud">
+            <param id="provider">aws</param>
+            <param id="cpus">8</param>
+            <param id="memory_mb">32768</param>
+            <param id="disk_gb">200</param>
+            <param id="spot_allocation">onDemand</param>
+        </destination>
+
+        <!-- AWS: GPU 作业 -->
+        <destination id="aws_gpu" runner="galaxy_cloud">
+            <param id="provider">aws</param>
+            <param id="cpus">4</param>
+            <param id="memory_mb">16384</param>
+            <param id="disk_gb">100</param>
+            <param id="gpu">1</param>
+            <param id="spot_allocation">spot</param>
+        </destination>
+
+        <!-- ==========================================
+             Kubernetes Destinations（可选）
+             ========================================== -->
+
+        <!-- Kubernetes: 默认配置 -->
+        <destination id="k8s_default" runner="k8s">
+            <param id="docker_enabled">true</param>
+            <param id="requests_cpu">1</param>
+            <param id="requests_memory">2Gi</param>
+            <param id="limits_cpu">2</param>
+            <param id="limits_memory">4Gi</param>
+        </destination>
+    </destinations>
+
+    <!-- ==========================================
+         Tools（工具到目标的映射）
+         ========================================== -->
+    <tools>
+        <!-- ==========================================
+             生物信息学工具 → AWS Cloud
+             ========================================== -->
+
+        <!-- FastQC（质量控制）→ 小型 -->
+        <tool id="toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc" destination="aws_small"/>
+
+        <!-- Trimmomatic（序列修剪）→ 中型 -->
+        <tool id="toolshed.g2.bx.psu.edu/repos/pjbriggs/trimmomatic/trimmomatic" destination="aws_medium"/>
+
+        <!-- BWA（序列比对）→ 大型 -->
+        <tool id="toolshed.g2.bx.psu.edu/repos/devteam/bwa/bwa_mem" destination="aws_large"/>
+        <tool id="toolshed.g2.bx.psu.edu/repos/devteam/bwa/bwa" destination="aws_large"/>
+
+        <!-- GATK（变异检测）→ 超大型 -->
+        <tool id="toolshed.g2.bx.psu.edu/repos/devteam/gatk4/gatk4" destination="aws_xlarge"/>
+
+        <!-- DeepVariant（深度学习变异检测）→ GPU -->
+        <tool id="deepvariant" destination="aws_gpu"/>
+
+        <!-- ==========================================
+             按工具类型路由
+             ========================================== -->
+
+        <!-- 所有比对工具 → 大型 -->
+        <tool id=".*aligner.*" destination="aws_large" runner_type="regex"/>
+
+        <!-- 所有装配工具 → 超大型 -->
+        <tool id=".*assembl.*" destination="aws_xlarge" runner_type="regex"/>
+
+        <!-- 默认：小型工具使用本地执行 -->
+        <!-- 默认配置在 destinations 中的 default 属性指定 -->
+    </tools>
+
+    <!-- ==========================================
+         Limits（资源限制）
+         ========================================== -->
+    <limits>
+        <!-- 全局并发限制 -->
+        <limit type="registered_user_concurrent_jobs">10</limit>
+        <limit type="anonymous_user_concurrent_jobs">1</limit>
+        <limit type="destination_user_concurrent_jobs" id="aws_default">5</limit>
+        <limit type="destination_user_concurrent_jobs" id="aws_large">2</limit>
+        <limit type="destination_user_concurrent_jobs" id="aws_xlarge">1</limit>
+
+        <!-- 总并发作业数限制 -->
+        <limit type="concurrent_jobs" id="local">4</limit>
+        <limit type="concurrent_jobs" id="aws_default">20</limit>
+        <limit type="concurrent_jobs" id="aws_large">10</limit>
+        <limit type="concurrent_jobs" id="aws_xlarge">5</limit>
+    </limits>
+
+    <!-- ==========================================
+         Resources（动态资源分配）
+         ========================================== -->
+    <resources default="default">
+        <!-- 默认资源组 -->
+        <group id="default">aws_default</group>
+
+        <!-- 小型任务资源组 -->
+        <group id="small">aws_small,local</group>
+
+        <!-- 中型任务资源组 -->
+        <group id="medium">aws_medium,aws_default</group>
+
+        <!-- 大型任务资源组 -->
+        <group id="large">aws_large,aws_medium</group>
+
+        <!-- 超大型任务资源组 -->
+        <group id="xlarge">aws_xlarge,aws_large</group>
+    </resources>
+
+    <!-- ==========================================
+         Environment（环境变量）
+         ========================================== -->
+    <env>
+        <!-- AWS 配置 -->
+        <env id="AWS_DEFAULT_REGION">us-east-1</env>
+
+        <!-- Galaxy Cloud 执行器配置 -->
+        <env id="GALAXY_CLOUD_ENABLED">true</env>
+
+        <!-- 临时目录 -->
+        <env id="TMPDIR">/tmp</env>
+    </env>
+</job_conf>

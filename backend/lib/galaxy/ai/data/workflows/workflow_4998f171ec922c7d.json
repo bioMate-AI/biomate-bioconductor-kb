@@ -1,0 +1,1704 @@
+{
+  "workflow_id": "4998f171ec922c7d",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "4998f171ec922c7d",
+    "latest_workflow_id": "9253c2514863d4e6",
+    "name": "Hi-C_fastqToCool_hicup_c (release v0.2.1)",
+    "create_time": "2023-09-07T00:09:43.706242",
+    "update_time": "2025-04-25T14:11:12.253896",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [
+      "Hi-C"
+    ],
+    "latest_workflow_uuid": "d75c4714-b3b9-45d6-8301-2b70a674753b",
+    "creator_deleted": false,
+    "annotations": [
+      "This workflow takes as input a collection of paired fastq. It uses HiCUP to go from fastq to validPair file using the middle of the fragment as coordinates. The pairs are filtered for MAPQ and sorted by cooler to generate a tabix dataset. Cooler is used to generate a balanced cool file to the desired resolution."
+    ],
+    "url": "/api/workflows/4998f171ec922c7d",
+    "owner": "iwc",
+    "source_metadata": null,
+    "number_of_steps": 12,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "This workflow takes as input a collection of paired fastq. It uses HiCUP to go from fastq to validPair file using the middle of the fragment as coordinates. The pairs are filtered for MAPQ and sorted by cooler to generate a tabix dataset. Cooler is used to generate a balanced cool file to the desired resolution.",
+    "comments": [],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "https://orcid.org/0000-0002-1964-4960",
+        "name": "Lucille Delisle"
+      }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "Hi-C_fastqToCool_hicup_c (release v0.2.1)",
+    "steps": {
+      "0": {
+        "annotation": "Should be a paired collection with Hi-C fastqs",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Should be a paired collection with Hi-C fastqs",
+            "name": "PE fastq input"
+          }
+        ],
+        "label": "PE fastq input",
+        "name": "Input dataset collection",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 101.53334045410156
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list:paired\", \"fields\": null}",
+        "tool_version": null,
+        "type": "data_collection_input",
+        "uuid": "f3bd624d-9b69-40fc-b1df-8eb1ef312850",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "only use genome ids which have bowtie2 indexes",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "only use genome ids which have bowtie2 indexes",
+            "name": "genome name"
+          }
+        ],
+        "label": "genome name",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 39.01666259765625,
+          "top": 171.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "05e20775-dcef-43ab-8076-fb187136f65b",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "Restriction enzyme used e.g. A^GATCT,BglII. Some Hi-C protocols may use several enzymes. To specify several enzymes, use the ':' to separate them e.g. A^GATCT,BglII:A^AGCTT,HindIII:^GATC,DpnII. HiCUP accomodates N in restriction enzyme: e.g. :A^ANCTT",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Restriction enzyme used e.g. A^GATCT,BglII. Some Hi-C protocols may use several enzymes. To specify several enzymes, use the ':' to separate them e.g. A^GATCT,BglII:A^AGCTT,HindIII:^GATC,DpnII. HiCUP accomodates N in restriction enzyme: e.g. :A^ANCTT",
+            "name": "Restriction enzyme"
+          }
+        ],
+        "label": "Restriction enzyme",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 71.98333740234375,
+          "top": 246.5
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "762796d3-c831-48ce-ad5b-ce2e4027fbf4",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "Hi-C protocol did NOT include a fill-in of sticky ends prior to re-ligation and therefore reads shall be truncated at the restriction site sequence",
+        "content_id": null,
+        "errors": null,
+        "id": 3,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Hi-C protocol did NOT include a fill-in of sticky ends prior to re-ligation and therefore reads shall be truncated at the restriction site sequence",
+            "name": "No fill-in"
+          }
+        ],
+        "label": "No fill-in",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 98.433349609375,
+          "top": 332
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "11345205-035e-467c-901a-15e2d2346299",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "4": {
+        "annotation": "can be set to 0 for no filtering",
+        "content_id": null,
+        "errors": null,
+        "id": 4,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "can be set to 0 for no filtering",
+            "name": "minimum MAPQ"
+          }
+        ],
+        "label": "minimum MAPQ",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 143.9666748046875,
+          "top": 401.5333251953125
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "a2d3a486-f0ed-4f02-a641-5e9f03eff9ac",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "5": {
+        "annotation": "For example 10000 for 10kb",
+        "content_id": null,
+        "errors": null,
+        "id": 5,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "For example 10000 for 10kb",
+            "name": "Bin size in bp"
+          }
+        ],
+        "label": "Bin size in bp",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 186,
+          "top": 491.0333251953125
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "8189a993-d528-42dc-842d-29e6acddae1e",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "6": {
+        "annotation": "Nothing means genome-wide, '--cis-only' means only Cis interactions, '--trans-only' means only Trans interactions",
+        "content_id": null,
+        "errors": null,
+        "id": 6,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "Nothing means genome-wide, '--cis-only' means only Cis interactions, '--trans-only' means only Trans interactions",
+            "name": "Interactions to consider to calculate weights in normalization step"
+          }
+        ],
+        "label": "Interactions to consider to calculate weights in normalization step",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 216.9666748046875,
+          "top": 558.25
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"restrictions\": [\"\", \"--cis-only\", \"--trans-only\"], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "98f676ca-52df-4a03-8dd9-9ff5e387585b",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "7": {
+        "annotation": "You can use your region of interest or a region known for high level of insulation for example HoxD locus:\nhg19: chr2:175,689,620-178,604,461\nhg38: chr2:174,692,032-177,585,317\nmm10: chr2:73,779,626-75,669,724\nmm39: ",
+        "content_id": null,
+        "errors": null,
+        "id": 7,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "You can use your region of interest or a region known for high level of insulation for example HoxD locus:\nhg19: chr2:175,689,620-178,604,461\nhg38: chr2:174,692,032-177,585,317\nmm10: chr2:73,779,626-75,669,724\nmm39: ",
+            "name": "region for matrix plotting"
+          }
+        ],
+        "label": "region for matrix plotting",
+        "name": "Input parameter",
+        "outputs": [],
+        "position": {
+          "left": 282,
+          "top": 710
+        },
+        "tool_id": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "tool_version": null,
+        "type": "parameter_input",
+        "uuid": "6329673b-0c83-4a75-a9d2-a63fd491ddee",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "8": {
+        "annotation": "",
+        "id": 8,
+        "input_connections": {
+          "No fill-in": {
+            "id": 3,
+            "input_subworkflow_step_id": 3,
+            "output_name": "output"
+          },
+          "PE fastq input": {
+            "id": 0,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output"
+          },
+          "Restriction enzyme": {
+            "id": 2,
+            "input_subworkflow_step_id": 2,
+            "output_name": "output"
+          },
+          "genome name": {
+            "id": 1,
+            "input_subworkflow_step_id": 1,
+            "output_name": "output"
+          },
+          "minimum MAPQ": {
+            "id": 4,
+            "input_subworkflow_step_id": 4,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Hi-C_fastqToPairs_hicup",
+        "outputs": [],
+        "position": {
+          "left": 489.01666259765625,
+          "top": 0
+        },
+        "subworkflow": {
+          "a_galaxy_workflow": "true",
+          "annotation": "",
+          "comments": [],
+          "creator": [
+            {
+              "class": "Person",
+              "identifier": "https://orcid.org/0000-0002-1964-4960",
+              "name": "Lucille Delisle"
+            }
+          ],
+          "format-version": "0.1",
+          "license": "MIT",
+          "name": "Hi-C_fastqToPairs_hicup",
+          "steps": {
+            "0": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 0,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "PE fastq input"
+                }
+              ],
+              "label": "PE fastq input",
+              "name": "Input dataset collection",
+              "outputs": [],
+              "position": {
+                "left": 0,
+                "top": 12.5
+              },
+              "tool_id": null,
+              "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list:paired\", \"fields\": null}",
+              "tool_version": null,
+              "type": "data_collection_input",
+              "uuid": "849950c7-9027-42a7-bb66-adc159cfff2a",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "1": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 1,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "genome name"
+                }
+              ],
+              "label": "genome name",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 39,
+                "top": 82.5
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "b18f8472-f402-4aa0-a08e-84fc030114c4",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "2": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 2,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Restriction enzyme"
+                }
+              ],
+              "label": "Restriction enzyme",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 58,
+                "top": 155.5
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "87128da4-57d9-4fd5-b02c-dd0816674738",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "3": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 3,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "No fill-in"
+                }
+              ],
+              "label": "No fill-in",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 97.5,
+                "top": 248.5
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "7be5fbdd-5ef3-484b-9a39-181e1b01c53f",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "4": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 4,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "minimum MAPQ"
+                }
+              ],
+              "label": "minimum MAPQ",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 131,
+                "top": 320.5
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "a9c86a14-405a-4a4f-9e0f-50f0e5b274dc",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "5": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup_hicup/hicup_hicup/0.9.2+galaxy0",
+              "errors": null,
+              "id": 5,
+              "input_connections": {
+                "advanced_options|nofill": {
+                  "id": 3,
+                  "output_name": "output"
+                },
+                "genome": {
+                  "id": 1,
+                  "output_name": "output"
+                },
+                "library|input_1": {
+                  "id": 0,
+                  "output_name": "output"
+                },
+                "re1": {
+                  "id": 2,
+                  "output_name": "output"
+                },
+                "reference_genome|index": {
+                  "id": 1,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool Hicup Pipeline",
+                  "name": "advanced_options"
+                },
+                {
+                  "description": "runtime parameter for tool Hicup Pipeline",
+                  "name": "library"
+                },
+                {
+                  "description": "runtime parameter for tool Hicup Pipeline",
+                  "name": "reference_genome"
+                }
+              ],
+              "label": "HiCUP",
+              "name": "Hicup Pipeline",
+              "outputs": [
+                {
+                  "name": "intermediate_results",
+                  "type": "input"
+                },
+                {
+                  "name": "hicup_results",
+                  "type": "html"
+                },
+                {
+                  "name": "hicup_report",
+                  "type": "tabular"
+                },
+                {
+                  "name": "dataset_hicup",
+                  "type": "qname_sorted.bam"
+                },
+                {
+                  "name": "digester_file",
+                  "type": "tabular"
+                }
+              ],
+              "position": {
+                "left": 356.5,
+                "top": 0
+              },
+              "post_job_actions": {
+                "HideDatasetActiondataset_hicup": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "dataset_hicup"
+                },
+                "HideDatasetActiondigester_file": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "digester_file"
+                },
+                "HideDatasetActionintermediate_results": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "intermediate_results"
+                },
+                "RenameDatasetActionhicup_report": {
+                  "action_arguments": {
+                    "newname": "HiCUP report (tabular)"
+                  },
+                  "action_type": "RenameDatasetAction",
+                  "output_name": "hicup_report"
+                },
+                "RenameDatasetActionhicup_results": {
+                  "action_arguments": {
+                    "newname": "HiCUP report (HTML)"
+                  },
+                  "action_type": "RenameDatasetAction",
+                  "output_name": "hicup_results"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup_hicup/hicup_hicup/0.9.2+galaxy0",
+              "tool_shed_repository": {
+                "changeset_revision": "68fb19094f84",
+                "name": "hicup_hicup",
+                "owner": "bgruening",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"advanced_options\": {\"re2\": \"\", \"longest\": \"\", \"shortest\": \"\", \"nofill\": {\"__class__\": \"ConnectedValue\"}}, \"genome\": {\"__class__\": \"ConnectedValue\"}, \"library\": {\"type\": \"paired_collection\", \"__current_case__\": 1, \"input_1\": {\"__class__\": \"ConnectedValue\"}}, \"re1\": {\"__class__\": \"ConnectedValue\"}, \"reference_genome\": {\"source\": \"indexed\", \"__current_case__\": 0, \"index\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": null,
+              "type": "tool",
+              "uuid": "d85863ce-397f-4d3e-a839-2f911eb07620",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "HiCUP report (HTML)",
+                  "output_name": "hicup_results",
+                  "uuid": "3d977be6-cee1-46af-92bf-f467e0c7a1c2"
+                },
+                {
+                  "label": "HiCUP report (tabular)",
+                  "output_name": "hicup_report",
+                  "uuid": "e088963a-7277-4741-b907-7d1499014153"
+                }
+              ]
+            },
+            "6": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+              "errors": null,
+              "id": 6,
+              "input_connections": {
+                "components_1|param_type|component_value": {
+                  "id": 4,
+                  "output_name": "output"
+                },
+                "components_3|param_type|component_value": {
+                  "id": 4,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [],
+              "label": "build filtering rule for MAPQ",
+              "name": "Compose text parameter value",
+              "outputs": [
+                {
+                  "name": "out1",
+                  "type": "expression.json"
+                }
+              ],
+              "position": {
+                "left": 746.5,
+                "top": 392.5
+              },
+              "post_job_actions": {
+                "HideDatasetActionout1": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "out1"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/compose_text_param/compose_text_param/0.1.1",
+              "tool_shed_repository": {
+                "changeset_revision": "e188c9826e0f",
+                "name": "compose_text_param",
+                "owner": "iuc",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"components\": [{\"__index__\": 0, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \"(c10>=\"}}, {\"__index__\": 1, \"param_type\": {\"select_param_type\": \"integer\", \"__current_case__\": 1, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 2, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \") and (c11>=\"}}, {\"__index__\": 3, \"param_type\": {\"select_param_type\": \"integer\", \"__current_case__\": 1, \"component_value\": {\"__class__\": \"ConnectedValue\"}}}, {\"__index__\": 4, \"param_type\": {\"select_param_type\": \"text\", \"__current_case__\": 0, \"component_value\": \")\"}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": null,
+              "type": "tool",
+              "uuid": "515c06ef-7c6a-43c6-ad6e-f3b4f6bbcc0c",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "7": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup2juicer/hicup2juicer/0.9.2+galaxy0",
+              "errors": null,
+              "id": 7,
+              "input_connections": {
+                "digester|digester_file": {
+                  "id": 5,
+                  "output_name": "digester_file"
+                },
+                "input_file": {
+                  "id": 5,
+                  "output_name": "dataset_hicup"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool Hicup to juicer converter",
+                  "name": "digester"
+                },
+                {
+                  "description": "runtime parameter for tool Hicup to juicer converter",
+                  "name": "input_file"
+                }
+              ],
+              "label": "valid pairs in juicebox format",
+              "name": "Hicup to juicer converter",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "tabular"
+                }
+              ],
+              "position": {
+                "left": 637.5,
+                "top": 197.5
+              },
+              "post_job_actions": {
+                "RenameDatasetActionoutput": {
+                  "action_arguments": {
+                    "newname": "valid pairs in juicebox format"
+                  },
+                  "action_type": "RenameDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/hicup2juicer/hicup2juicer/0.9.2+galaxy0",
+              "tool_shed_repository": {
+                "changeset_revision": "b4e7244246e2",
+                "name": "hicup2juicer",
+                "owner": "bgruening",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"digester\": {\"provide_digester\": \"yes\", \"__current_case__\": 0, \"digester_file\": {\"__class__\": \"RuntimeValue\"}, \"usemid\": true}, \"input_file\": {\"__class__\": \"RuntimeValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": null,
+              "type": "tool",
+              "uuid": "0b5819e6-75ae-42ee-a79e-80ca7c2363d5",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "valid pairs in juicebox format",
+                  "output_name": "output",
+                  "uuid": "e3a6c3f1-fd8d-4309-b550-fbb7cec84e24"
+                }
+              ]
+            },
+            "8": {
+              "annotation": "",
+              "content_id": "Filter1",
+              "errors": null,
+              "id": 8,
+              "input_connections": {
+                "cond": {
+                  "id": 6,
+                  "output_name": "out1"
+                },
+                "input": {
+                  "id": 7,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [],
+              "label": "valid pairs in juicebox format MAPQ filtered",
+              "name": "Filter",
+              "outputs": [
+                {
+                  "name": "out_file1",
+                  "type": "input"
+                }
+              ],
+              "position": {
+                "left": 1041,
+                "top": 304.5
+              },
+              "post_job_actions": {
+                "RenameDatasetActionout_file1": {
+                  "action_arguments": {
+                    "newname": "valid pairs in juicebox format MAPQ filtered"
+                  },
+                  "action_type": "RenameDatasetAction",
+                  "output_name": "out_file1"
+                }
+              },
+              "tool_id": "Filter1",
+              "tool_state": "{\"cond\": {\"__class__\": \"ConnectedValue\"}, \"header_lines\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": null,
+              "type": "tool",
+              "uuid": "0a7625db-79b0-4925-96d7-4b0a9dc1e020",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "valid pairs in juicebox format MAPQ filtered",
+                  "output_name": "out_file1",
+                  "uuid": "a71d2b3a-5333-4f61-85c8-565b5e3f2534"
+                }
+              ]
+            }
+          },
+          "tags": [],
+          "uuid": "2e5ac57f-9cd3-44c9-b258-c33b0afe8806"
+        },
+        "tool_id": null,
+        "type": "subworkflow",
+        "uuid": "949cac57-391d-48ef-af29-f634658c8332",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "valid pairs in juicebox format",
+            "output_name": "valid pairs in juicebox format",
+            "uuid": "a8b72e17-911f-4971-b7a9-7c1b5ef669ef"
+          },
+          {
+            "label": "HiCUP report (html)",
+            "output_name": "HiCUP report (HTML)",
+            "uuid": "b2c04424-b89a-4384-9a0b-995bff5a1971"
+          },
+          {
+            "label": "HiCUP report (txt)",
+            "output_name": "HiCUP report (tabular)",
+            "uuid": "ef639282-a333-4af5-bcfa-bf8cf8ecb2d9"
+          },
+          {
+            "label": "valid pairs in juicebox format MAPQ filtered",
+            "output_name": "valid pairs in juicebox format MAPQ filtered",
+            "uuid": "7091202c-0f00-4117-843e-d5f5c3e4a6b8"
+          }
+        ]
+      },
+      "9": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_csort_tabix/cooler_csort_tabix/0.8.11+galaxy1",
+        "errors": null,
+        "id": 9,
+        "input_connections": {
+          "input": {
+            "id": 8,
+            "output_name": "valid pairs in juicebox format"
+          },
+          "size_source|fasta_cached": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool cooler csort with tabix",
+            "name": "size_source"
+          }
+        ],
+        "label": "Sort pairs and index",
+        "name": "cooler csort with tabix",
+        "outputs": [
+          {
+            "name": "output",
+            "type": "interval_tabix.gz"
+          }
+        ],
+        "position": {
+          "left": 742.0333251953125,
+          "top": 367.5
+        },
+        "post_job_actions": {
+          "ChangeDatatypeActionoutput": {
+            "action_arguments": {
+              "newtype": "juicer_medium_tabix.gz"
+            },
+            "action_type": "ChangeDatatypeAction",
+            "output_name": "output"
+          },
+          "RenameDatasetActionoutput": {
+            "action_arguments": {
+              "newname": "valid pairs filtered and sorted"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "output"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_csort_tabix/cooler_csort_tabix/0.8.11+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "d56db0e1555d",
+          "name": "cooler_csort_tabix",
+          "owner": "lldelisle",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"format_sel\": {\"format\": \"juicer_medium\", \"__current_case__\": 0}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"size_source\": {\"size_source_selector\": \"cached\", \"__current_case__\": 0, \"fasta_cached\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": null,
+        "type": "tool",
+        "uuid": "295c8b07-b363-4c2c-9d7b-4168a5bcea8b",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "valid pairs filtered and sorted",
+            "output_name": "output",
+            "uuid": "f8d43802-8994-4963-ac6d-8e033d1cd6e5"
+          }
+        ]
+      },
+      "10": {
+        "annotation": "",
+        "id": 10,
+        "input_connections": {
+          "Bin size in bp": {
+            "id": 5,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output"
+          },
+          "Interactions to consider to calculate weights in normalization step": {
+            "id": 6,
+            "input_subworkflow_step_id": 3,
+            "output_name": "output"
+          },
+          "Juicer Medium Tabix with validPairs": {
+            "id": 9,
+            "input_subworkflow_step_id": 2,
+            "output_name": "output"
+          },
+          "genome name": {
+            "id": 1,
+            "input_subworkflow_step_id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "Hi-C_juicermediumtabixToCool_cooler",
+        "outputs": [],
+        "position": {
+          "left": 1002.0166015625,
+          "top": 441.5
+        },
+        "subworkflow": {
+          "a_galaxy_workflow": "true",
+          "annotation": "",
+          "comments": [],
+          "creator": [
+            {
+              "class": "Person",
+              "identifier": "https://orcid.org/0000-0002-1964-4960",
+              "name": "Lucille Delisle"
+            }
+          ],
+          "format-version": "0.1",
+          "license": "MIT",
+          "name": "Hi-C_juicermediumtabixToCool_cooler",
+          "steps": {
+            "0": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 0,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Bin size in bp"
+                }
+              ],
+              "label": "Bin size in bp",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 0,
+                "top": 33.5
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "6b3dbeb0-ea12-409f-a20e-98ba5179af16",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": null,
+                  "output_name": "output",
+                  "uuid": "a112a6cf-1638-40d4-8744-aa3f146c4dd3"
+                }
+              ]
+            },
+            "1": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 1,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "genome name"
+                }
+              ],
+              "label": "genome name",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 46,
+                "top": 123.5
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "8e8a1ca1-ba72-4ee3-96c7-25121dcb0228",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": null,
+                  "output_name": "output",
+                  "uuid": "5f06cbf0-f2e3-4359-b48b-b2fd9777dd94"
+                }
+              ]
+            },
+            "2": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 2,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Juicer Medium Tabix with validPairs"
+                }
+              ],
+              "label": "Juicer Medium Tabix with validPairs",
+              "name": "Input dataset collection",
+              "outputs": [],
+              "position": {
+                "left": 129.25,
+                "top": 208.25
+              },
+              "tool_id": null,
+              "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list\", \"fields\": null}",
+              "tool_version": null,
+              "type": "data_collection_input",
+              "uuid": "e236687e-18f6-45b0-af46-49bf1197f9a1",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "3": {
+              "annotation": "",
+              "content_id": null,
+              "errors": null,
+              "id": 3,
+              "input_connections": {},
+              "inputs": [
+                {
+                  "description": "",
+                  "name": "Interactions to consider to calculate weights in normalization step"
+                }
+              ],
+              "label": "Interactions to consider to calculate weights in normalization step",
+              "name": "Input parameter",
+              "outputs": [],
+              "position": {
+                "left": 221,
+                "top": 309.75
+              },
+              "tool_id": null,
+              "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+              "tool_version": null,
+              "type": "parameter_input",
+              "uuid": "a643f2d9-9398-480b-91a8-4a9c9550e0ad",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": null,
+                  "output_name": "output",
+                  "uuid": "ad21910e-5f5c-40dc-8cad-44e08fd86493"
+                }
+              ]
+            },
+            "4": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_makebins/cooler_makebins/0.8.11+galaxy0",
+              "errors": null,
+              "id": 4,
+              "input_connections": {
+                "binsize": {
+                  "id": 0,
+                  "output_name": "output"
+                },
+                "size_source|fasta_cached": {
+                  "id": 1,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool cooler_makebins",
+                  "name": "size_source"
+                }
+              ],
+              "label": "make bed with bins",
+              "name": "cooler_makebins",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "bed"
+                }
+              ],
+              "position": {
+                "left": 489.25,
+                "top": 0
+              },
+              "post_job_actions": {
+                "HideDatasetActionoutput": {
+                  "action_arguments": {},
+                  "action_type": "HideDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_makebins/cooler_makebins/0.8.11+galaxy0",
+              "tool_shed_repository": {
+                "changeset_revision": "c3dc51297bf8",
+                "name": "cooler_makebins",
+                "owner": "lldelisle",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"binsize\": {\"__class__\": \"ConnectedValue\"}, \"size_source\": {\"size_source_selector\": \"cached\", \"__current_case__\": 0, \"fasta_cached\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": null,
+              "type": "tool",
+              "uuid": "0008d7ff-e3b6-4aa5-8609-ee17ab336a52",
+              "when": null,
+              "workflow_outputs": []
+            },
+            "5": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_cload_tabix/cooler_cload_tabix/0.8.11+galaxy1",
+              "errors": null,
+              "id": 5,
+              "input_connections": {
+                "assembly": {
+                  "id": 1,
+                  "output_name": "output"
+                },
+                "format_sel|input_pairs": {
+                  "id": 2,
+                  "output_name": "output"
+                },
+                "input_bed": {
+                  "id": 4,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool cooler_cload_tabix",
+                  "name": "format_sel"
+                }
+              ],
+              "label": "Load pairs in matrix",
+              "name": "cooler_cload_tabix",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "cool"
+                }
+              ],
+              "position": {
+                "left": 762.25,
+                "top": 58
+              },
+              "post_job_actions": {
+                "RenameDatasetActionoutput": {
+                  "action_arguments": {
+                    "newname": "matrix with raw values"
+                  },
+                  "action_type": "RenameDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_cload_tabix/cooler_cload_tabix/0.8.11+galaxy1",
+              "tool_shed_repository": {
+                "changeset_revision": "3ff6eeca667e",
+                "name": "cooler_cload_tabix",
+                "owner": "lldelisle",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"assembly\": {\"__class__\": \"ConnectedValue\"}, \"format_sel\": {\"format\": \"juicer_medium\", \"__current_case__\": 0, \"input_pairs\": {\"__class__\": \"ConnectedValue\"}}, \"input_bed\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": null,
+              "type": "tool",
+              "uuid": "75709f9f-2a33-4e83-ad69-d29b9c61df5d",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "matrix with raw values",
+                  "output_name": "output",
+                  "uuid": "cc78e262-245f-4a9b-b820-fb80c3aa5ec6"
+                }
+              ]
+            },
+            "6": {
+              "annotation": "",
+              "content_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_balance/cooler_balance/0.8.11+galaxy0",
+              "errors": null,
+              "id": 6,
+              "input_connections": {
+                "cistrans": {
+                  "id": 3,
+                  "output_name": "output"
+                },
+                "input": {
+                  "id": 5,
+                  "output_name": "output"
+                }
+              },
+              "inputs": [
+                {
+                  "description": "runtime parameter for tool cooler_balance",
+                  "name": "blacklist"
+                }
+              ],
+              "label": "ICE normalization",
+              "name": "cooler_balance",
+              "outputs": [
+                {
+                  "name": "output",
+                  "type": "cool"
+                }
+              ],
+              "position": {
+                "left": 991.25,
+                "top": 254.5
+              },
+              "post_job_actions": {
+                "RenameDatasetActionoutput": {
+                  "action_arguments": {
+                    "newname": "matrix with iced values"
+                  },
+                  "action_type": "RenameDatasetAction",
+                  "output_name": "output"
+                }
+              },
+              "tool_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_balance/cooler_balance/0.8.11+galaxy0",
+              "tool_shed_repository": {
+                "changeset_revision": "8f71aaf6e59d",
+                "name": "cooler_balance",
+                "owner": "lldelisle",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+              },
+              "tool_state": "{\"blacklist\": {\"__class__\": \"RuntimeValue\"}, \"cistrans\": {\"__class__\": \"ConnectedValue\"}, \"convergencepolicy\": \"error\", \"ignorediags\": \"2\", \"ignoredist\": \"0\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"madmax\": \"5\", \"maxiters\": \"200\", \"mincount\": \"0\", \"minnnz\": \"10\", \"name\": \"weight\", \"tol\": \"1e-05\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+              "tool_version": null,
+              "type": "tool",
+              "uuid": "e88fe439-d994-4267-bc12-9be5785cc319",
+              "when": null,
+              "workflow_outputs": [
+                {
+                  "label": "matrix with iced values",
+                  "output_name": "output",
+                  "uuid": "96e7bd28-edee-46d0-b3a1-2deba2f826a4"
+                }
+              ]
+            }
+          },
+          "tags": [],
+          "uuid": "e63446a1-00f5-4bd3-b3f3-02e2e7e5c7ec"
+        },
+        "tool_id": null,
+        "type": "subworkflow",
+        "uuid": "512d4740-5107-4ddb-b978-2cb05e5febf0",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "matrix with iced values",
+            "output_name": "matrix with iced values",
+            "uuid": "248a6992-2c47-4ec7-92b2-5532b2f333f6"
+          },
+          {
+            "label": "matrix with raw values",
+            "output_name": "matrix with raw values",
+            "uuid": "b0dfa46a-39b0-4595-a5b4-f01cc6b0d4d1"
+          }
+        ]
+      },
+      "11": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/pygenometracks/pygenomeTracks/3.8+galaxy2",
+        "errors": null,
+        "id": 11,
+        "input_connections": {
+          "region": {
+            "id": 7,
+            "output_name": "output"
+          },
+          "tracks_0|track_file_style_conditional|matrix_h5_cooler_multiple": {
+            "id": 10,
+            "output_name": "matrix with iced values"
+          }
+        },
+        "inputs": [],
+        "label": "final plot",
+        "name": "pyGenomeTracks",
+        "outputs": [
+          {
+            "name": "outFileName",
+            "type": "png"
+          }
+        ],
+        "position": {
+          "left": 1295,
+          "top": 693
+        },
+        "post_job_actions": {
+          "RenameDatasetActionoutFileName": {
+            "action_arguments": {
+              "newname": "plot with pyGenomeTracks"
+            },
+            "action_type": "RenameDatasetAction",
+            "output_name": "outFileName"
+          }
+        },
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pygenometracks/pygenomeTracks/3.8+galaxy2",
+        "tool_shed_repository": {
+          "changeset_revision": "59fd173ac850",
+          "name": "pygenometracks",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"global_args\": {\"title\": \"\", \"fontsize\": \"12\", \"dpi\": \"72\", \"width\": \"40.0\", \"plotWidth\": null, \"height\": null, \"trackLabelFraction\": \"0.05\", \"trackLabelHAlign\": \"left\", \"decreasingXAxis\": false}, \"image_file_format\": \"png\", \"region\": {\"__class__\": \"ConnectedValue\"}, \"tracks\": [{\"__index__\": 0, \"track_file_style_conditional\": {\"track_file_style_selector\": \"hic_matrix_option\", \"__current_case__\": 0, \"title\": \"\", \"matrix_h5_cooler_multiple\": {\"__class__\": \"ConnectedValue\"}, \"colormap\": \"RdYlBu_r\", \"min_value\": null, \"max_value\": null, \"depth\": \"8000000\", \"transform\": \"no\", \"height_matrix\": null, \"show_masked_bins\": false, \"boundaries_file\": {\"__class__\": \"RuntimeValue\"}, \"scale_factor\": \"1.0\", \"rasterize\": true, \"invert_orientation\": false, \"spacer_height\": null}}, {\"__index__\": 1, \"track_file_style_conditional\": {\"track_file_style_selector\": \"xaxis_option\", \"__current_case__\": 13, \"title\": \"\", \"fontsize\": null, \"xaxis_where\": \"bottom\", \"spacer_height\": null}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "tool_version": null,
+        "type": "tool",
+        "uuid": "33eb4cd7-300c-42e2-8548-ae352a854661",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "plot with pyGenomeTracks",
+            "output_name": "outFileName",
+            "uuid": "ad8dda5e-5c96-495d-8f46-4405122bac01"
+          }
+        ]
+      }
+    },
+    "tags": [
+      "Hi-C"
+    ],
+    "uuid": "d75c4714-b3b9-45d6-8301-2b70a674753b",
+    "version": 1
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "Hi-C_fastqToCool_hicup_c (release v0.2.1)",
+      "annotation": "This workflow takes as input a collection of paired fastq. It uses HiCUP to go from fastq to validPair file using the middle of the fragment as coordinates. The pairs are filtered for MAPQ and sorted by cooler to generate a tabix dataset. Cooler is used to generate a balanced cool file to the desired resolution.",
+      "format_version": "0.1",
+      "uuid": "d75c4714-b3b9-45d6-8301-2b70a674753b",
+      "version": 1,
+      "tags": [
+        "Hi-C"
+      ],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "https://orcid.org/0000-0002-1964-4960",
+          "name": "Lucille Delisle"
+        }
+      ],
+      "license": "MIT"
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_collection_input",
+        "name": "Input dataset collection",
+        "label": "PE fastq input",
+        "annotation": "Should be a paired collection with Hi-C fastqs",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"tag\": \"\", \"collection_type\": \"list:paired\", \"fields\": null}",
+        "position": {
+          "left": 0,
+          "top": 101.53334045410156
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "genome name",
+        "annotation": "only use genome ids which have bowtie2 indexes",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictOnConnections\": true, \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 39.01666259765625,
+          "top": 171.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Restriction enzyme",
+        "annotation": "Restriction enzyme used e.g. A^GATCT,BglII. Some Hi-C protocols may use several enzymes. To specify several enzymes, use the ':' to separate them e.g. A^GATCT,BglII:A^AGCTT,HindIII:^GATC,DpnII. HiCUP accomodates N in restriction enzyme: e.g. :A^ANCTT",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 71.98333740234375,
+          "top": 246.5
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "No fill-in",
+        "annotation": "Hi-C protocol did NOT include a fill-in of sticky ends prior to re-ligation and therefore reads shall be truncated at the restriction site sequence",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"boolean\", \"optional\": false}",
+        "position": {
+          "left": 98.433349609375,
+          "top": 332
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "4",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "minimum MAPQ",
+        "annotation": "can be set to 0 for no filtering",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 143.9666748046875,
+          "top": 401.5333251953125
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "5",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Bin size in bp",
+        "annotation": "For example 10000 for 10kb",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"integer\", \"optional\": false}",
+        "position": {
+          "left": 186,
+          "top": 491.0333251953125
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "6",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "Interactions to consider to calculate weights in normalization step",
+        "annotation": "Nothing means genome-wide, '--cis-only' means only Cis interactions, '--trans-only' means only Trans interactions",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"restrictions\": [\"\", \"--cis-only\", \"--trans-only\"], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 216.9666748046875,
+          "top": 558.25
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "7",
+        "type": "parameter_input",
+        "name": "Input parameter",
+        "label": "region for matrix plotting",
+        "annotation": "You can use your region of interest or a region known for high level of insulation for example HoxD locus:\nhg19: chr2:175,689,620-178,604,461\nhg38: chr2:174,692,032-177,585,317\nmm10: chr2:73,779,626-75,669,724\nmm39: ",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"validators\": [], \"parameter_type\": \"text\", \"optional\": false}",
+        "position": {
+          "left": 282,
+          "top": 710
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "8",
+        "type": "subworkflow",
+        "name": "Hi-C_fastqToPairs_hicup",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": "",
+        "tool_state": "",
+        "position": {
+          "left": 489.01666259765625,
+          "top": 0
+        },
+        "input_connections": {
+          "No fill-in": {
+            "id": 3,
+            "input_subworkflow_step_id": 3,
+            "output_name": "output"
+          },
+          "PE fastq input": {
+            "id": 0,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output"
+          },
+          "Restriction enzyme": {
+            "id": 2,
+            "input_subworkflow_step_id": 2,
+            "output_name": "output"
+          },
+          "genome name": {
+            "id": 1,
+            "input_subworkflow_step_id": 1,
+            "output_name": "output"
+          },
+          "minimum MAPQ": {
+            "id": 4,
+            "input_subworkflow_step_id": 4,
+            "output_name": "output"
+          }
+        },
+        "outputs": []
+      },
+      {
+        "step_id": "9",
+        "type": "tool",
+        "name": "cooler csort with tabix",
+        "label": "Sort pairs and index",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_csort_tabix/cooler_csort_tabix/0.8.11+galaxy1",
+        "tool_version": null,
+        "tool_state": "{\"format_sel\": {\"format\": \"juicer_medium\", \"__current_case__\": 0}, \"input\": {\"__class__\": \"ConnectedValue\"}, \"size_source\": {\"size_source_selector\": \"cached\", \"__current_case__\": 0, \"fasta_cached\": {\"__class__\": \"ConnectedValue\"}}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 742.0333251953125,
+          "top": 367.5
+        },
+        "input_connections": {
+          "input": {
+            "id": 8,
+            "output_name": "valid pairs in juicebox format"
+          },
+          "size_source|fasta_cached": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output",
+            "type": "interval_tabix.gz"
+          }
+        ]
+      },
+      {
+        "step_id": "10",
+        "type": "subworkflow",
+        "name": "Hi-C_juicermediumtabixToCool_cooler",
+        "label": null,
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": "",
+        "tool_state": "",
+        "position": {
+          "left": 1002.0166015625,
+          "top": 441.5
+        },
+        "input_connections": {
+          "Bin size in bp": {
+            "id": 5,
+            "input_subworkflow_step_id": 0,
+            "output_name": "output"
+          },
+          "Interactions to consider to calculate weights in normalization step": {
+            "id": 6,
+            "input_subworkflow_step_id": 3,
+            "output_name": "output"
+          },
+          "Juicer Medium Tabix with validPairs": {
+            "id": 9,
+            "input_subworkflow_step_id": 2,
+            "output_name": "output"
+          },
+          "genome name": {
+            "id": 1,
+            "input_subworkflow_step_id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": []
+      },
+      {
+        "step_id": "11",
+        "type": "tool",
+        "name": "pyGenomeTracks",
+        "label": "final plot",
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pygenometracks/pygenomeTracks/3.8+galaxy2",
+        "tool_version": null,
+        "tool_state": "{\"global_args\": {\"title\": \"\", \"fontsize\": \"12\", \"dpi\": \"72\", \"width\": \"40.0\", \"plotWidth\": null, \"height\": null, \"trackLabelFraction\": \"0.05\", \"trackLabelHAlign\": \"left\", \"decreasingXAxis\": false}, \"image_file_format\": \"png\", \"region\": {\"__class__\": \"ConnectedValue\"}, \"tracks\": [{\"__index__\": 0, \"track_file_style_conditional\": {\"track_file_style_selector\": \"hic_matrix_option\", \"__current_case__\": 0, \"title\": \"\", \"matrix_h5_cooler_multiple\": {\"__class__\": \"ConnectedValue\"}, \"colormap\": \"RdYlBu_r\", \"min_value\": null, \"max_value\": null, \"depth\": \"8000000\", \"transform\": \"no\", \"height_matrix\": null, \"show_masked_bins\": false, \"boundaries_file\": {\"__class__\": \"RuntimeValue\"}, \"scale_factor\": \"1.0\", \"rasterize\": true, \"invert_orientation\": false, \"spacer_height\": null}}, {\"__index__\": 1, \"track_file_style_conditional\": {\"track_file_style_selector\": \"xaxis_option\", \"__current_case__\": 13, \"title\": \"\", \"fontsize\": null, \"xaxis_where\": \"bottom\", \"spacer_height\": null}}], \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1295,
+          "top": 693
+        },
+        "input_connections": {
+          "region": {
+            "id": 7,
+            "output_name": "output"
+          },
+          "tracks_0|track_file_style_conditional|matrix_h5_cooler_multiple": {
+            "id": 10,
+            "output_name": "matrix with iced values"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outFileName",
+            "type": "png"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/lldelisle/cooler_csort_tabix/cooler_csort_tabix/0.8.11+galaxy1",
+        "tool_version": null,
+        "step_id": "9"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/pygenometracks/pygenomeTracks/3.8+galaxy2",
+        "tool_version": null,
+        "step_id": "11"
+      }
+    ],
+    "inputs": [],
+    "outputs": [
+      {
+        "step_id": "8",
+        "output_name": "valid pairs in juicebox format",
+        "label": "valid pairs in juicebox format"
+      },
+      {
+        "step_id": "8",
+        "output_name": "HiCUP report (HTML)",
+        "label": "HiCUP report (html)"
+      },
+      {
+        "step_id": "8",
+        "output_name": "HiCUP report (tabular)",
+        "label": "HiCUP report (txt)"
+      },
+      {
+        "step_id": "8",
+        "output_name": "valid pairs in juicebox format MAPQ filtered",
+        "label": "valid pairs in juicebox format MAPQ filtered"
+      },
+      {
+        "step_id": "9",
+        "output_name": "output",
+        "label": "valid pairs filtered and sorted"
+      },
+      {
+        "step_id": "10",
+        "output_name": "matrix with iced values",
+        "label": "matrix with iced values"
+      },
+      {
+        "step_id": "10",
+        "output_name": "matrix with raw values",
+        "label": "matrix with raw values"
+      },
+      {
+        "step_id": "11",
+        "output_name": "outFileName",
+        "label": "plot with pyGenomeTracks"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 3,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "No fill-in"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "PE fastq input"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "Restriction enzyme"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "genome name"
+      },
+      {
+        "from_step": 4,
+        "from_output": "output",
+        "to_step": "8",
+        "to_input": "minimum MAPQ"
+      },
+      {
+        "from_step": 8,
+        "from_output": "valid pairs in juicebox format",
+        "to_step": "9",
+        "to_input": "input"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "9",
+        "to_input": "size_source|fasta_cached"
+      },
+      {
+        "from_step": 5,
+        "from_output": "output",
+        "to_step": "10",
+        "to_input": "Bin size in bp"
+      },
+      {
+        "from_step": 6,
+        "from_output": "output",
+        "to_step": "10",
+        "to_input": "Interactions to consider to calculate weights in normalization step"
+      },
+      {
+        "from_step": 9,
+        "from_output": "output",
+        "to_step": "10",
+        "to_input": "Juicer Medium Tabix with validPairs"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "10",
+        "to_input": "genome name"
+      },
+      {
+        "from_step": 7,
+        "from_output": "output",
+        "to_step": "11",
+        "to_input": "region"
+      },
+      {
+        "from_step": 10,
+        "from_output": "matrix with iced values",
+        "to_step": "11",
+        "to_input": "tracks_0|track_file_style_conditional|matrix_h5_cooler_multiple"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:49:31.004551"
+}

@@ -1,0 +1,172 @@
+# ============================================================
+# Galaxy Cloud Executor 配置
+#
+# 将这段配置添加到你的 config/job_conf.yml 中
+# ============================================================
+
+# 1. 在 runners 部分添加云执行插件
+runners:
+  # ... 保留现有的 local, drmaa, slurm 等配置 ...
+
+  # 添加云执行 runner
+  galaxy_cloud:
+    load: galaxy_cloud.galaxy_workflow.galaxy_job_runner:GalaxyCloudJobRunner
+    workers: 16
+    # 云配置文件路径
+    cloud_config_file: config/aws_cloud_config.yaml
+    # 默认使用的云提供商
+    default_provider: aws
+
+# 2. 在 execution.environments 部分添加云执行目标
+execution:
+  default: local  # 保持默认为本地执行
+
+  environments:
+    # ... 保留现有的 local, docker_local, pbs 等配置 ...
+
+    # ========== 云执行环境配置 ==========
+
+    # 云执行 - 默认配置（适合大多数工具）
+    cloud_default:
+      runner: galaxy_cloud
+      provider: aws
+      queue_name: galaxy-cloud-queue
+      # 默认资源配置
+      vcpus: 2
+      memory_mb: 4096
+      # 日志和元数据
+      embed_metadata_in_job: false  # 云执行时在本地计算元数据
+
+    # 云执行 - 小型任务（快速工具，低资源需求）
+    cloud_small:
+      runner: galaxy_cloud
+      provider: aws
+      queue_name: galaxy-cloud-queue
+      vcpus: 1
+      memory_mb: 2048
+      # 适合: FastQC, SAMtools flagstat, 等
+
+    # 云执行 - 中型任务（标准生物信息学工具）
+    cloud_medium:
+      runner: galaxy_cloud
+      provider: aws
+      queue_name: galaxy-cloud-queue
+      vcpus: 4
+      memory_mb: 8192
+      # 适合: BWA, Bowtie2, HISAT2, 等
+
+    # 云执行 - 大型任务（计算密集型工具）
+    cloud_large:
+      runner: galaxy_cloud
+      provider: aws
+      queue_name: galaxy-cloud-queue
+      vcpus: 8
+      memory_mb: 16384
+      # 适合: GATK, DeepVariant, 大型组装, 等
+
+    # 云执行 - 超大型任务（极高资源需求）
+    cloud_xlarge:
+      runner: galaxy_cloud
+      provider: aws
+      queue_name: galaxy-cloud-queue
+      vcpus: 16
+      memory_mb: 32768
+      # 适合: 全基因组分析, 大型变异检测, 等
+
+    # 云执行 - 带容器支持（如果工具需要特定容器）
+    cloud_docker:
+      runner: galaxy_cloud
+      provider: aws
+      queue_name: galaxy-cloud-queue
+      vcpus: 2
+      memory_mb: 4096
+      docker_enabled: true
+      # Galaxy 会自动解析工具的容器需求
+
+# 3. 在 tools 部分配置特定工具使用云执行
+tools:
+  # ... 保留现有的工具配置 ...
+
+  # ========== 云执行工具映射 ==========
+
+  # 质量控制工具 - 小型云执行
+  - id: toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.73+galaxy0
+    environment: cloud_small
+
+  - id: toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy0
+    environment: cloud_small
+
+  # SAMtools 工具 - 小型云执行
+  - id: toolshed.g2.bx.psu.edu/repos/devteam/samtools_flagstat/samtools_flagstat/2.0.5
+    environment: cloud_small
+
+  - id: toolshed.g2.bx.psu.edu/repos/devteam/samtools_stats/samtools_stats/2.0.5
+    environment: cloud_small
+
+  # 比对工具 - 中型云执行
+  - id: toolshed.g2.bx.psu.edu/repos/devteam/bwa/bwa_mem/0.7.17.2
+    environment: cloud_medium
+
+  - id: toolshed.g2.bx.psu.edu/repos/devteam/bowtie2/bowtie2/2.5.0+galaxy0
+    environment: cloud_medium
+
+  - id: toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.2.1+galaxy1
+    environment: cloud_medium
+
+  # 变异检测工具 - 大型云执行
+  - id: toolshed.g2.bx.psu.edu/repos/iuc/gatk4_haplotypecaller/gatk4_haplotypecaller/4.4.0.0
+    environment: cloud_large
+
+  - id: toolshed.g2.bx.psu.edu/repos/iuc/deepvariant/deepvariant/1.4.0
+    environment: cloud_large
+
+  # 如果想让所有工具默认使用云执行（谨慎使用）
+  # - class: default
+  #   environment: cloud_default
+
+  # 保持本地执行的工具类别（必须）
+  - class: local
+    environment: local
+
+  - class: requires_galaxy
+    environment: local
+
+# 4. 可选：添加资源限制
+limits:
+  # ... 保留现有的限制配置 ...
+
+  # 云执行的并发限制
+  - type: environment_user_concurrent_jobs
+    id: cloud_default
+    value: 10  # 每个用户最多同时运行10个云作业
+
+  - type: environment_user_concurrent_jobs
+    id: cloud_small
+    value: 20  # 小型任务可以更多并发
+
+  - type: environment_total_concurrent_jobs
+    id: cloud_default
+    value: 100  # 所有用户总共最多100个云作业
+
+  # 云执行的时间限制
+  - type: walltime
+    value: '48:00:00'  # 云作业最长运行48小时
+
+# ============================================================
+# 使用说明
+# ============================================================
+#
+# 1. 将上面的配置合并到你的 config/job_conf.yml 中
+#    - runners 部分添加 galaxy_cloud
+#    - execution.environments 部分添加 cloud_* 目标
+#    - tools 部分添加工具映射
+#
+# 2. 确保 config/aws_cloud_config.yaml 已正确配置
+#
+# 3. 重启 Galaxy:
+#    sh run.sh --restart
+#
+# 4. 查看日志确认加载成功:
+#    tail -f galaxy.log | grep -i cloud
+#
+# ============================================================

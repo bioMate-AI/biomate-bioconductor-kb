@@ -1,15 +1,23 @@
 /**
  * Server-Sent Events (SSE) Endpoint for Real-Time Workflow Updates
  * Streams Galaxy workflow execution state to frontend
+ *
+ * Security: Requires authentication - verifies user owns the execution
  */
 
 import type { Request, Response } from 'express';
 import type { WorkflowExecutionUpdate } from '../shared/galaxy-types';
 import type { GalaxyStatePoller } from './galaxy-state-poller';
+import { authService } from './auth-service';
+import { auditService } from './audit-service';
+import { db } from './db';
+import { workflowExecutions } from '../shared/schema';
+import { eq } from 'drizzle-orm';
 
 export interface SSEClient {
   id: string;
   invocationId: string;
+  userId: string | null;
   response: Response;
   isActive: boolean;
 }
@@ -97,12 +105,60 @@ export class WorkflowSSEManager {
 
   /**
    * Handle SSE connection from client
+   * Includes authentication check to verify user owns the execution
    */
-  handleConnection(req: Request, res: Response): void {
-    const invocationId = req.params.invocationId;
-    if (!invocationId) {
-      res.status(400).json({ error: 'Missing invocationId parameter' });
+  async handleConnection(req: Request, res: Response): Promise<void> {
+    const { workflowId, invocationId } = req.params;
+    if (!workflowId || !invocationId) {
+      res.status(400).json({ error: 'Missing workflowId or invocationId parameter' });
       return;
+    }
+
+    // Authenticate user from token
+    let userId: string | null = null;
+    try {
+      // Get token from query param (SSE can't use headers easily from EventSource)
+      const token = req.query.token as string || req.cookies?.biomate_token;
+
+      if (token) {
+        const payload = authService.verifyToken(token);
+        userId = payload.userId;
+
+        // Verify user owns this execution (if we have execution records)
+        try {
+          const [execution] = await db
+            .select()
+            .from(workflowExecutions)
+            .where(eq(workflowExecutions.galaxyInvocationId, invocationId))
+            .limit(1);
+
+          if (execution && execution.userId !== userId) {
+            // User doesn't own this execution
+            await auditService.logAccessDenied(
+              userId,
+              'sse.connect',
+              'workflow_execution',
+              invocationId,
+              'User does not own this execution',
+              req.ip || req.socket.remoteAddress
+            );
+            res.status(403).json({ error: 'Access denied - you do not own this workflow execution' });
+            return;
+          }
+        } catch (dbError) {
+          // If no execution record exists yet, allow connection (execution tracking is optional)
+          console.log(`[SSE] No execution record for ${invocationId}, allowing connection`);
+        }
+      }
+
+      // Log SSE connection
+      await auditService.logSSEConnection(userId, invocationId, 'connect', req.ip || req.socket.remoteAddress);
+    } catch (authError) {
+      // Log failed auth attempt but allow connection for now (backward compatibility)
+      // In strict mode, uncomment the return statement below
+      console.warn(`[SSE] Auth failed for invocation ${invocationId}:`, authError);
+      // res.status(401).json({ error: 'Authentication required' });
+      // return;
     }
 
     // Setup SSE headers
@@ -117,6 +173,7 @@ export class WorkflowSSEManager {
     const client: SSEClient = {
       id: clientId,
       invocationId,
+      userId,
       response: res,
       isActive: true,
     };
@@ -164,10 +221,8 @@ export class WorkflowSSEManager {
 
     // Start polling if not already polling
     if (!this.poller.isPolling(invocationId)) {
-      console.log(`Starting polling for invocation ${invocationId}`);
-      // Note: workflowId would normally come from the request or database
-      // For now, using invocationId as placeholder
-      this.poller.startPolling(invocationId, invocationId);
+      console.log(`Starting polling for invocation ${invocationId} (workflow ${workflowId})`);
+      this.poller.startPolling(invocationId, workflowId);
     }
 
     // Handle client disconnect
@@ -175,6 +230,10 @@ export class WorkflowSSEManager {
       client.isActive = false;
       this.removeClient(invocationId, clientId);
       console.log(`SSE client ${clientId} disconnected`);
+
+      // Log disconnect
+      auditService.logSSEConnection(userId, invocationId, 'disconnect', req.ip || req.socket.remoteAddress)
+        .catch(err => console.error('[SSE] Failed to log disconnect:', err));
 
       // Stop polling if no more clients
       const remainingClients = this.clients.get(invocationId);

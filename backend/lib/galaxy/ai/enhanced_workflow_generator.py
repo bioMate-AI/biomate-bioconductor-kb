@@ -78,6 +78,24 @@ class EnhancedWorkflowGenerator:
             log.info("GalaxyToolRAG initialized on-demand")
         return self._tool_rag
 
+    def _normalize_tool_id(self, tool_id: str) -> str:
+        """
+        Normalize tool ID to match Galaxy's loaded tool format.
+
+        The AI database stores tool IDs with slashes (biomni/database/query_uniprot)
+        but Galaxy loads tools with underscores (biomni_database_query_uniprot).
+
+        Args:
+            tool_id: Tool ID from AI database (may use slashes or underscores)
+
+        Returns:
+            Normalized tool ID using underscores
+        """
+        if tool_id.startswith('biomni/'):
+            # Convert biomni/X/Y to biomni_X_Y
+            return tool_id.replace('/', '_')
+        return tool_id
+
     def generate_workflow(self, user_request: UserRequest, auto_install_tools: bool = True) -> Dict[str, Any]:
         """Generate workflow using the best available strategy."""
 
@@ -236,10 +254,12 @@ class EnhancedWorkflowGenerator:
         
         # Convert template steps to Galaxy workflow format
         for step_info in template["workflow_steps"]:
+            # Normalize tool ID from AI database format (slashes) to Galaxy format (underscores)
+            normalized_tool_id = self._normalize_tool_id(step_info["tool_id"])
             workflow_step = {
                 "id": step_info["step"],
                 "type": "tool",
-                "tool_id": step_info["tool_id"],
+                "tool_id": normalized_tool_id,
                 "annotation": step_info["description"],
                 "input_connections": {},
                 "inputs": {},
@@ -514,10 +534,12 @@ class EnhancedWorkflowGenerator:
                     # This is a valid step-to-step connection
                     valid_connections[input_name] = connection
             
+            # Normalize tool ID from AI database format (slashes) to Galaxy format (underscores)
+            normalized_tool_id = self._normalize_tool_id(step.tool_id)
             galaxy_workflow['steps'][str(step.step_id)] = {
                 'id': step.step_id,
                 'type': 'tool',
-                'tool_id': step.tool_id,
+                'tool_id': normalized_tool_id,
                 'tool_version': step.tool_version,
                 'annotation': step.annotation,
                 'input_connections': valid_connections,

@@ -1,0 +1,928 @@
+{
+  "workflow_id": "2f21358621337cf2",
+  "metadata": {
+    "model_class": "StoredWorkflow",
+    "id": "2f21358621337cf2",
+    "latest_workflow_id": "f9dd9b8b9506c7b7",
+    "name": "FASTQ-2-VCF-WORKFLOW!",
+    "create_time": "2025-03-27T09:49:20.137817",
+    "update_time": "2025-05-01T18:45:56.732008",
+    "published": true,
+    "importable": true,
+    "deleted": false,
+    "hidden": false,
+    "tags": [],
+    "latest_workflow_uuid": "6b5d542d-93a3-40ba-bdd6-4db7db75c0cb",
+    "creator_deleted": false,
+    "annotations": [
+      "This is a workflow used to convert FASTQ files to VCF"
+    ],
+    "url": "/api/workflows/2f21358621337cf2",
+    "owner": "varshitha",
+    "source_metadata": null,
+    "number_of_steps": 9,
+    "show_in_tool_panel": false
+  },
+  "workflow_json": {
+    "a_galaxy_workflow": "true",
+    "annotation": "This is a workflow used to convert FASTQ files to VCF",
+    "comments": [
+      {
+        "color": "pink",
+        "data": {
+          "line": [
+            [
+              0,
+              0
+            ]
+          ],
+          "thickness": 5
+        },
+        "id": 1,
+        "position": [
+          -541.6394492559454,
+          2490.7954312569977
+        ],
+        "size": [
+          0,
+          0
+        ],
+        "type": "freehand"
+      },
+      {
+        "color": "none",
+        "data": {
+          "line": [
+            [
+              0,
+              0
+            ]
+          ],
+          "thickness": 5
+        },
+        "id": 0,
+        "position": [
+          -647.2394492559453,
+          2427.6305544113343
+        ],
+        "size": [
+          0,
+          0
+        ],
+        "type": "freehand"
+      }
+    ],
+    "creator": [
+      {
+        "class": "Person",
+        "identifier": "",
+        "name": "Varshitha"
+      }
+    ],
+    "format-version": "0.1",
+    "name": "FASTQ-2-VCF-WORKFLOW!",
+    "report": {
+      "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+      "0": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 0,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "SAMPLE 1 INPUT"
+          }
+        ],
+        "label": "SAMPLE 1 INPUT",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 2.3866760861891407,
+          "top": 225.0587247436665
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "7f1e2dc3-33fc-4f5d-8603-da87f52de9b0",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "1": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 1,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "SAMPLE 2 INPUT"
+          }
+        ],
+        "label": "SAMPLE 2 INPUT",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 0,
+          "top": 395.47843954629593
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "b2d01261-07a9-41fc-a996-fa5a205b2be7",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "2": {
+        "annotation": "",
+        "content_id": null,
+        "errors": null,
+        "id": 2,
+        "input_connections": {},
+        "inputs": [
+          {
+            "description": "",
+            "name": "REFERENCE GENOME"
+          }
+        ],
+        "label": "REFERENCE GENOME",
+        "name": "Input dataset",
+        "outputs": [],
+        "position": {
+          "left": 400.11669921875,
+          "top": 300.9833679199219
+        },
+        "tool_id": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "tool_version": null,
+        "type": "data_input",
+        "uuid": "ac1eebdb-1c52-4c5e-9a9e-5e3ddae97014",
+        "when": null,
+        "workflow_outputs": []
+      },
+      "3": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "errors": null,
+        "id": 3,
+        "input_connections": {
+          "input_file": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "limits": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "adapters"
+          },
+          {
+            "description": "runtime parameter for tool FastQC",
+            "name": "contaminants"
+          }
+        ],
+        "label": null,
+        "name": "FastQC",
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ],
+        "position": {
+          "left": 399.33838831005994,
+          "top": 0
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "2c64fded1286",
+          "name": "fastqc",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"ConnectedValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.74+galaxy1",
+        "type": "tool",
+        "uuid": "2468c10d-a183-4735-91c2-9a559d87a04f",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "text_file",
+            "output_name": "text_file",
+            "uuid": "a4efe1e4-086e-4831-a480-f2469c1f7b1e"
+          },
+          {
+            "label": "html_file",
+            "output_name": "html_file",
+            "uuid": "65193119-381c-4fea-bab8-977168188bcb"
+          }
+        ]
+      },
+      "4": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.7+galaxy1",
+        "errors": null,
+        "id": 4,
+        "input_connections": {
+          "singlePaired|input_mate1": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "singlePaired|input_mate2": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool Trim Galore!",
+            "name": "singlePaired"
+          },
+          {
+            "description": "runtime parameter for tool Trim Galore!",
+            "name": "singlePaired"
+          }
+        ],
+        "label": null,
+        "name": "Trim Galore!",
+        "outputs": [
+          {
+            "name": "trimmed_reads_pair1",
+            "type": "input"
+          },
+          {
+            "name": "trimmed_reads_pair2",
+            "type": "input"
+          }
+        ],
+        "position": {
+          "left": 457.66883379740585,
+          "top": 597.6415495997287
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.7+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "eefb644655a5",
+          "name": "trim_galore",
+          "owner": "bgruening",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"params\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"rrbs\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"singlePaired\": {\"sPaired\": \"paired\", \"__current_case__\": 1, \"input_mate1\": {\"__class__\": \"ConnectedValue\"}, \"input_mate2\": {\"__class__\": \"ConnectedValue\"}, \"trimming\": {\"trimming_select\": \"\", \"__current_case__\": 0}, \"trim1\": false, \"three_prime_clip_R1\": null, \"three_prime_clip_R2\": null}, \"trimming\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "0.6.7+galaxy1",
+        "type": "tool",
+        "uuid": "07f63c69-11cc-4a6f-b123-44b95ac2c3bc",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "trimmed_reads_pair2",
+            "output_name": "trimmed_reads_pair2",
+            "uuid": "a93fb083-5f73-42af-8c21-3cbc995fefe5"
+          },
+          {
+            "label": "trimmed_reads_pair1",
+            "output_name": "trimmed_reads_pair1",
+            "uuid": "54326cb0-70a5-4c3c-b6ce-ac2879c39726"
+          }
+        ]
+      },
+      "5": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwa_mem2/bwa_mem2/2.2.1+galaxy4",
+        "errors": null,
+        "id": 5,
+        "input_connections": {
+          "fastq_input|fastq_input1": {
+            "id": 4,
+            "output_name": "trimmed_reads_pair1"
+          },
+          "fastq_input|fastq_input2": {
+            "id": 4,
+            "output_name": "trimmed_reads_pair2"
+          },
+          "reference_source|ref_file": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool BWA-MEM2",
+            "name": "fastq_input"
+          },
+          {
+            "description": "runtime parameter for tool BWA-MEM2",
+            "name": "fastq_input"
+          },
+          {
+            "description": "runtime parameter for tool BWA-MEM2",
+            "name": "reference_source"
+          }
+        ],
+        "label": null,
+        "name": "BWA-MEM2",
+        "outputs": [
+          {
+            "name": "bam_output",
+            "type": "bam"
+          }
+        ],
+        "position": {
+          "left": 799.7822041800528,
+          "top": 400.0651549996006
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwa_mem2/bwa_mem2/2.2.1+galaxy4",
+        "tool_shed_repository": {
+          "changeset_revision": "bec6ba059ded",
+          "name": "bwa_mem2",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"analysis_type\": {\"analysis_type_selector\": \"illumina\", \"__current_case__\": 0}, \"fastq_input\": {\"fastq_input_selector\": \"paired\", \"__current_case__\": 0, \"fastq_input1\": {\"__class__\": \"RuntimeValue\"}, \"fastq_input2\": {\"__class__\": \"RuntimeValue\"}, \"iset_stats\": null}, \"output_sort\": \"coordinate\", \"reference_source\": {\"reference_source_selector\": \"history\", \"__current_case__\": 1, \"ref_file\": {\"__class__\": \"RuntimeValue\"}}, \"rg\": {\"rg_selector\": \"do_not_set\", \"__current_case__\": 3}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "2.2.1+galaxy4",
+        "type": "tool",
+        "uuid": "8c6828e6-32f6-4683-bf22-718b595ff583",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "bam_output",
+            "output_name": "bam_output",
+            "uuid": "c50d8daf-b60c-438b-9bc0-ad989f4fe784"
+          }
+        ]
+      },
+      "6": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_SortSam/3.1.1.0",
+        "errors": null,
+        "id": 6,
+        "input_connections": {
+          "inputFile": {
+            "id": 5,
+            "output_name": "bam_output"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "SortSam",
+        "outputs": [
+          {
+            "name": "outFile",
+            "type": "bam"
+          }
+        ],
+        "position": {
+          "left": 1138.2796088295738,
+          "top": 301.36591837392166
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_SortSam/3.1.1.0",
+        "tool_shed_repository": {
+          "changeset_revision": "3f254c5ced1d",
+          "name": "picard",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"inputFile\": {\"__class__\": \"ConnectedValue\"}, \"sort_order\": \"coordinate\", \"validation_stringency\": \"LENIENT\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "3.1.1.0",
+        "type": "tool",
+        "uuid": "a54a6c23-0ca7-4f3e-a150-ae861cc690e1",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "outFile",
+            "output_name": "outFile",
+            "uuid": "15b83037-a5b6-4fcd-94cd-d7dcc90a0ae7"
+          }
+        ]
+      },
+      "7": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MarkDuplicates/3.1.1.0",
+        "errors": null,
+        "id": 7,
+        "input_connections": {
+          "inputFile": {
+            "id": 6,
+            "output_name": "outFile"
+          }
+        },
+        "inputs": [],
+        "label": null,
+        "name": "MarkDuplicates",
+        "outputs": [
+          {
+            "name": "metrics_file",
+            "type": "txt"
+          },
+          {
+            "name": "outFile",
+            "type": "bam"
+          }
+        ],
+        "position": {
+          "left": 1497.2507667152972,
+          "top": 202.45074802915744
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MarkDuplicates/3.1.1.0",
+        "tool_shed_repository": {
+          "changeset_revision": "3f254c5ced1d",
+          "name": "picard",
+          "owner": "devteam",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"assume_sorted\": true, \"barcode_tag\": null, \"comments\": [], \"duplicate_scoring_strategy\": \"SUM_OF_BASE_QUALITIES\", \"inputFile\": {\"__class__\": \"ConnectedValue\"}, \"optical_duplicate_pixel_distance\": \"100\", \"read_name_regex\": \"\", \"remove_duplicates\": false, \"validation_stringency\": \"LENIENT\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "3.1.1.0",
+        "type": "tool",
+        "uuid": "3bdd3e7a-e5dd-4cb0-ac07-6ce1a6cd8065",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "outFile",
+            "output_name": "outFile",
+            "uuid": "01702b15-437e-4543-9618-2df0635c01c8"
+          }
+        ]
+      },
+      "8": {
+        "annotation": "",
+        "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/gatk4_mutect2/gatk4_mutect2/4.1.7.0+galaxy1",
+        "errors": null,
+        "id": 8,
+        "input_connections": {
+          "mode|tumor": {
+            "id": 7,
+            "output_name": "outFile"
+          }
+        },
+        "inputs": [
+          {
+            "description": "runtime parameter for tool GATK4 Mutect2",
+            "name": "mode"
+          },
+          {
+            "description": "runtime parameter for tool GATK4 Mutect2",
+            "name": "reference_source"
+          }
+        ],
+        "label": null,
+        "name": "GATK4 Mutect2",
+        "outputs": [
+          {
+            "name": "output_vcf_bgzip",
+            "type": "vcf_bgzip"
+          }
+        ],
+        "position": {
+          "left": 1800.8018175814032,
+          "top": 203.64935479572628
+        },
+        "post_job_actions": {},
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/gatk4_mutect2/gatk4_mutect2/4.1.7.0+galaxy1",
+        "tool_shed_repository": {
+          "changeset_revision": "53ce8be43212",
+          "name": "gatk4_mutect2",
+          "owner": "iuc",
+          "tool_shed": "toolshed.g2.bx.psu.edu"
+        },
+        "tool_state": "{\"advanced\": {\"advanced_parameters\": \"no\", \"__current_case__\": 1}, \"gzipped_output\": true, \"mode\": {\"mode_parameters\": \"tumor_only\", \"__current_case__\": 0, \"tumor\": {\"__class__\": \"ConnectedValue\"}}, \"optional\": {\"optional_parameters\": \"no\", \"__current_case__\": 1}, \"outputs\": {\"output_parameters\": \"no\", \"__current_case__\": 1}, \"reference_source\": {\"reference_source_selector\": \"history\", \"__current_case__\": 1, \"reference_sequence\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "tool_version": "4.1.7.0+galaxy1",
+        "type": "tool",
+        "uuid": "d4c191e6-f1cd-4f4c-8f30-55932e3c88fe",
+        "when": null,
+        "workflow_outputs": [
+          {
+            "label": "output_vcf_bgzip",
+            "output_name": "output_vcf_bgzip",
+            "uuid": "29234dbb-0410-4e0f-b39e-e688fadafb7a"
+          }
+        ]
+      }
+    },
+    "tags": [],
+    "uuid": "6b5d542d-93a3-40ba-bdd6-4db7db75c0cb",
+    "version": 38
+  },
+  "extracted_details": {
+    "basic_info": {
+      "name": "FASTQ-2-VCF-WORKFLOW!",
+      "annotation": "This is a workflow used to convert FASTQ files to VCF",
+      "format_version": "0.1",
+      "uuid": "6b5d542d-93a3-40ba-bdd6-4db7db75c0cb",
+      "version": 38,
+      "tags": [],
+      "creator": [
+        {
+          "class": "Person",
+          "identifier": "",
+          "name": "Varshitha"
+        }
+      ],
+      "license": ""
+    },
+    "steps": [
+      {
+        "step_id": "0",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "SAMPLE 1 INPUT",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\"], \"tag\": null}",
+        "position": {
+          "left": 2.3866760861891407,
+          "top": 225.0587247436665
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "1",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "SAMPLE 2 INPUT",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fastqsanger.gz\"], \"tag\": null}",
+        "position": {
+          "left": 0,
+          "top": 395.47843954629593
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "2",
+        "type": "data_input",
+        "name": "Input dataset",
+        "label": "REFERENCE GENOME",
+        "annotation": "",
+        "tool_id": null,
+        "tool_version": null,
+        "tool_state": "{\"optional\": false, \"format\": [\"fasta\"], \"tag\": null}",
+        "position": {
+          "left": 400.11669921875,
+          "top": 300.9833679199219
+        },
+        "input_connections": {},
+        "outputs": []
+      },
+      {
+        "step_id": "3",
+        "type": "tool",
+        "name": "FastQC",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "tool_state": "{\"adapters\": {\"__class__\": \"RuntimeValue\"}, \"contaminants\": {\"__class__\": \"RuntimeValue\"}, \"input_file\": {\"__class__\": \"ConnectedValue\"}, \"kmers\": \"7\", \"limits\": {\"__class__\": \"ConnectedValue\"}, \"min_length\": null, \"nogroup\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 399.33838831005994,
+          "top": 0
+        },
+        "input_connections": {
+          "input_file": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "limits": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "html_file",
+            "type": "html"
+          },
+          {
+            "name": "text_file",
+            "type": "txt"
+          }
+        ]
+      },
+      {
+        "step_id": "4",
+        "type": "tool",
+        "name": "Trim Galore!",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.7+galaxy1",
+        "tool_version": "0.6.7+galaxy1",
+        "tool_state": "{\"params\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"rrbs\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"singlePaired\": {\"sPaired\": \"paired\", \"__current_case__\": 1, \"input_mate1\": {\"__class__\": \"ConnectedValue\"}, \"input_mate2\": {\"__class__\": \"ConnectedValue\"}, \"trimming\": {\"trimming_select\": \"\", \"__current_case__\": 0}, \"trim1\": false, \"three_prime_clip_R1\": null, \"three_prime_clip_R2\": null}, \"trimming\": {\"settingsType\": \"default\", \"__current_case__\": 0}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 457.66883379740585,
+          "top": 597.6415495997287
+        },
+        "input_connections": {
+          "singlePaired|input_mate1": {
+            "id": 0,
+            "output_name": "output"
+          },
+          "singlePaired|input_mate2": {
+            "id": 1,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "trimmed_reads_pair1",
+            "type": "input"
+          },
+          {
+            "name": "trimmed_reads_pair2",
+            "type": "input"
+          }
+        ]
+      },
+      {
+        "step_id": "5",
+        "type": "tool",
+        "name": "BWA-MEM2",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwa_mem2/bwa_mem2/2.2.1+galaxy4",
+        "tool_version": "2.2.1+galaxy4",
+        "tool_state": "{\"analysis_type\": {\"analysis_type_selector\": \"illumina\", \"__current_case__\": 0}, \"fastq_input\": {\"fastq_input_selector\": \"paired\", \"__current_case__\": 0, \"fastq_input1\": {\"__class__\": \"RuntimeValue\"}, \"fastq_input2\": {\"__class__\": \"RuntimeValue\"}, \"iset_stats\": null}, \"output_sort\": \"coordinate\", \"reference_source\": {\"reference_source_selector\": \"history\", \"__current_case__\": 1, \"ref_file\": {\"__class__\": \"RuntimeValue\"}}, \"rg\": {\"rg_selector\": \"do_not_set\", \"__current_case__\": 3}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 799.7822041800528,
+          "top": 400.0651549996006
+        },
+        "input_connections": {
+          "fastq_input|fastq_input1": {
+            "id": 4,
+            "output_name": "trimmed_reads_pair1"
+          },
+          "fastq_input|fastq_input2": {
+            "id": 4,
+            "output_name": "trimmed_reads_pair2"
+          },
+          "reference_source|ref_file": {
+            "id": 2,
+            "output_name": "output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "bam_output",
+            "type": "bam"
+          }
+        ]
+      },
+      {
+        "step_id": "6",
+        "type": "tool",
+        "name": "SortSam",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_SortSam/3.1.1.0",
+        "tool_version": "3.1.1.0",
+        "tool_state": "{\"inputFile\": {\"__class__\": \"ConnectedValue\"}, \"sort_order\": \"coordinate\", \"validation_stringency\": \"LENIENT\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1138.2796088295738,
+          "top": 301.36591837392166
+        },
+        "input_connections": {
+          "inputFile": {
+            "id": 5,
+            "output_name": "bam_output"
+          }
+        },
+        "outputs": [
+          {
+            "name": "outFile",
+            "type": "bam"
+          }
+        ]
+      },
+      {
+        "step_id": "7",
+        "type": "tool",
+        "name": "MarkDuplicates",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MarkDuplicates/3.1.1.0",
+        "tool_version": "3.1.1.0",
+        "tool_state": "{\"assume_sorted\": true, \"barcode_tag\": null, \"comments\": [], \"duplicate_scoring_strategy\": \"SUM_OF_BASE_QUALITIES\", \"inputFile\": {\"__class__\": \"ConnectedValue\"}, \"optical_duplicate_pixel_distance\": \"100\", \"read_name_regex\": \"\", \"remove_duplicates\": false, \"validation_stringency\": \"LENIENT\", \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1497.2507667152972,
+          "top": 202.45074802915744
+        },
+        "input_connections": {
+          "inputFile": {
+            "id": 6,
+            "output_name": "outFile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "metrics_file",
+            "type": "txt"
+          },
+          {
+            "name": "outFile",
+            "type": "bam"
+          }
+        ]
+      },
+      {
+        "step_id": "8",
+        "type": "tool",
+        "name": "GATK4 Mutect2",
+        "label": null,
+        "annotation": "",
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/gatk4_mutect2/gatk4_mutect2/4.1.7.0+galaxy1",
+        "tool_version": "4.1.7.0+galaxy1",
+        "tool_state": "{\"advanced\": {\"advanced_parameters\": \"no\", \"__current_case__\": 1}, \"gzipped_output\": true, \"mode\": {\"mode_parameters\": \"tumor_only\", \"__current_case__\": 0, \"tumor\": {\"__class__\": \"ConnectedValue\"}}, \"optional\": {\"optional_parameters\": \"no\", \"__current_case__\": 1}, \"outputs\": {\"output_parameters\": \"no\", \"__current_case__\": 1}, \"reference_source\": {\"reference_source_selector\": \"history\", \"__current_case__\": 1, \"reference_sequence\": {\"__class__\": \"RuntimeValue\"}}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+        "position": {
+          "left": 1800.8018175814032,
+          "top": 203.64935479572628
+        },
+        "input_connections": {
+          "mode|tumor": {
+            "id": 7,
+            "output_name": "outFile"
+          }
+        },
+        "outputs": [
+          {
+            "name": "output_vcf_bgzip",
+            "type": "vcf_bgzip"
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.74+galaxy1",
+        "tool_version": "0.74+galaxy1",
+        "step_id": "3"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/bgruening/trim_galore/trim_galore/0.6.7+galaxy1",
+        "tool_version": "0.6.7+galaxy1",
+        "step_id": "4"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/bwa_mem2/bwa_mem2/2.2.1+galaxy4",
+        "tool_version": "2.2.1+galaxy4",
+        "step_id": "5"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_SortSam/3.1.1.0",
+        "tool_version": "3.1.1.0",
+        "step_id": "6"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_MarkDuplicates/3.1.1.0",
+        "tool_version": "3.1.1.0",
+        "step_id": "7"
+      },
+      {
+        "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/gatk4_mutect2/gatk4_mutect2/4.1.7.0+galaxy1",
+        "tool_version": "4.1.7.0+galaxy1",
+        "step_id": "8"
+      }
+    ],
+    "inputs": [
+      {
+        "step_id": "0",
+        "label": "SAMPLE 1 INPUT",
+        "annotation": ""
+      },
+      {
+        "step_id": "1",
+        "label": "SAMPLE 2 INPUT",
+        "annotation": ""
+      },
+      {
+        "step_id": "2",
+        "label": "REFERENCE GENOME",
+        "annotation": ""
+      }
+    ],
+    "outputs": [
+      {
+        "step_id": "3",
+        "output_name": "text_file",
+        "label": "text_file"
+      },
+      {
+        "step_id": "3",
+        "output_name": "html_file",
+        "label": "html_file"
+      },
+      {
+        "step_id": "4",
+        "output_name": "trimmed_reads_pair2",
+        "label": "trimmed_reads_pair2"
+      },
+      {
+        "step_id": "4",
+        "output_name": "trimmed_reads_pair1",
+        "label": "trimmed_reads_pair1"
+      },
+      {
+        "step_id": "5",
+        "output_name": "bam_output",
+        "label": "bam_output"
+      },
+      {
+        "step_id": "6",
+        "output_name": "outFile",
+        "label": "outFile"
+      },
+      {
+        "step_id": "7",
+        "output_name": "outFile",
+        "label": "outFile"
+      },
+      {
+        "step_id": "8",
+        "output_name": "output_vcf_bgzip",
+        "label": "output_vcf_bgzip"
+      }
+    ],
+    "connections": [
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "3",
+        "to_input": "input_file"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "3",
+        "to_input": "limits"
+      },
+      {
+        "from_step": 0,
+        "from_output": "output",
+        "to_step": "4",
+        "to_input": "singlePaired|input_mate1"
+      },
+      {
+        "from_step": 1,
+        "from_output": "output",
+        "to_step": "4",
+        "to_input": "singlePaired|input_mate2"
+      },
+      {
+        "from_step": 4,
+        "from_output": "trimmed_reads_pair1",
+        "to_step": "5",
+        "to_input": "fastq_input|fastq_input1"
+      },
+      {
+        "from_step": 4,
+        "from_output": "trimmed_reads_pair2",
+        "to_step": "5",
+        "to_input": "fastq_input|fastq_input2"
+      },
+      {
+        "from_step": 2,
+        "from_output": "output",
+        "to_step": "5",
+        "to_input": "reference_source|ref_file"
+      },
+      {
+        "from_step": 5,
+        "from_output": "bam_output",
+        "to_step": "6",
+        "to_input": "inputFile"
+      },
+      {
+        "from_step": 6,
+        "from_output": "outFile",
+        "to_step": "7",
+        "to_input": "inputFile"
+      },
+      {
+        "from_step": 7,
+        "from_output": "outFile",
+        "to_step": "8",
+        "to_input": "mode|tumor"
+      }
+    ]
+  },
+  "crawl_time": "2025-08-21T21:47:24.447541"
+}

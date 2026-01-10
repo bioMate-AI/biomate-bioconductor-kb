@@ -385,7 +385,7 @@ def main():
             if arg_name in ['data_lake_path', 'config']:
                 continue
             if arg_name == 'llm':
-                call_args.append('llm="claude-3-5-sonnet-20241022"')
+                call_args.append('llm="claude-sonnet-4-5"')
             else:
                 call_args.append(f"{arg_name}=args.{arg_name}")
 
