@@ -1,0 +1,83 @@
+Dec-04 10:42:34.918 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/pharmacology/query_drug_labels.nf -preview
+Dec-04 10:42:34.977 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Dec-04 10:42:35.034 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Dec-04 10:42:35.046 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Dec-04 10:42:35.047 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Dec-04 10:42:35.049 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Dec-04 10:42:35.057 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Dec-04 10:42:35.132 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Dec-04 10:42:35.133 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Dec-04 10:42:35.133 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Dec-04 10:42:35.144 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Dec-04 10:42:35.150 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@65bcf7c2] - activable => nextflow.secret.LocalSecretsProvider@65bcf7c2
+Dec-04 10:42:35.157 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Dec-04 10:42:35.165 [main] DEBUG nextflow.cli.CmdRun - * PREVIEW * null [sharp_gutenberg] DSL2 - revision: cc032db27c
+Dec-04 10:42:35.207 [main] DEBUG nextflow.Session - Session UUID: 6d3bdea5-43fe-4363-8145-b93e03d134bc
+Dec-04 10:42:35.208 [main] DEBUG nextflow.Session - Run name: sharp_gutenberg
+Dec-04 10:42:35.208 [main] DEBUG nextflow.Session - Executor pool size: 20
+Dec-04 10:42:35.213 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Dec-04 10:42:35.217 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Dec-04 10:42:35.230 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 875724@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (2.6 GB) - Swap: 16 GB (16 GB)
+Dec-04 10:42:35.244 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/pharmacology/work [ext2/ext3]
+Dec-04 10:42:35.244 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/pharmacology/bin
+Dec-04 10:42:35.251 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Dec-04 10:42:35.258 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Dec-04 10:42:35.260 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Dec-04 10:42:35.282 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Dec-04 10:42:35.288 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Dec-04 10:42:35.335 [main] DEBUG nextflow.Session - Session start
+Dec-04 10:42:35.524 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+Dec-04 10:42:35.533 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+Dec-04 10:42:35.544 [main] ERROR nextflow.cli.Launcher - Script compilation error
+- file : /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/pharmacology/query_drug_labels.nf
+- cause: Invalid workflow output block @ line 68, column 5.
+       output(query_drug_labels.out.results)
+       ^
+
+1 error
+
+nextflow.exception.ScriptCompilationException: Script compilation error
+- file : /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/pharmacology/query_drug_labels.nf
+- cause: Invalid workflow output block @ line 68, column 5.
+       output(query_drug_labels.out.results)
+       ^
+
+1 error
+
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse0(ScriptLoaderV1.groovy:204)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse(ScriptLoaderV1.groovy:215)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse(ScriptLoaderV1.groovy)
+	at nextflow.script.ScriptRunner.parseScript(ScriptRunner.groovy:232)
+	at nextflow.script.ScriptRunner.execute(ScriptRunner.groovy:137)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:428)
+	at nextflow.cli.Launcher.run(Launcher.groovy:515)
+	at nextflow.cli.Launcher.main(Launcher.groovy:675)
+Caused by: org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:
+Script_da7156263e0e1b45: 68: Invalid workflow output block @ line 68, column 5.
+       output(query_drug_labels.out.results)
+       ^
+
+1 error
+
+	at org.codehaus.groovy.control.ErrorCollector.failIfErrors(ErrorCollector.java:292)
+	at org.codehaus.groovy.control.CompilationUnit$IPrimaryClassNodeOperation.doPhaseOperation(CompilationUnit.java:948)
+	at org.codehaus.groovy.control.CompilationUnit.processPhaseOperations(CompilationUnit.java:660)
+	at org.codehaus.groovy.control.CompilationUnit.compile(CompilationUnit.java:634)
+	at groovy.lang.GroovyClassLoader.doParseClass(GroovyClassLoader.java:365)
+	at groovy.lang.GroovyClassLoader.lambda$parseClass$2(GroovyClassLoader.java:314)
+	at org.codehaus.groovy.runtime.memoize.StampedCommonCache.compute(StampedCommonCache.java:163)
+	at org.codehaus.groovy.runtime.memoize.StampedCommonCache.getAndPut(StampedCommonCache.java:154)
+	at groovy.lang.GroovyClassLoader.parseClass(GroovyClassLoader.java:314)
+	at groovy.lang.GroovyShell.parseClass(GroovyShell.java:572)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:585)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:639)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:643)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse0(ScriptLoaderV1.groovy:183)
+	... 7 common frames omitted

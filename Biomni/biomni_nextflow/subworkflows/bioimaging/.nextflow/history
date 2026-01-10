@@ -1,0 +1,4 @@
+2025-12-04 10:37:41	1.3s	distracted_coulomb	OK	af6d41dd0401836f284569cbf61c2a79	0da1534f-843c-4471-b83a-9d78f5abc4c5	nextflow run /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/bioimaging/batch_register_images.nf -preview
+2025-12-04 10:37:43	-	sharp_babbage	-	028da66b076e8a6ebe2192973fccca40	d9a8df58-230c-44fe-95fa-875370dcccc2	nextflow run /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/bioimaging/quick_deformable_registration.nf -preview
+2025-12-04 10:37:45	-	insane_easley	-	092b20865bf3b992ef44cd42c167290b	b3c63196-9840-4199-a423-45146001f3bc	nextflow run /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/bioimaging/quick_affine_registration.nf -preview
+2025-12-04 10:37:46	-	tiny_easley	-	e37a48eb51680b0dc9fe5d76d0a54e2d	9dba8d20-c8a8-4f94-8de0-036eb896c1c4	nextflow run /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/bioimaging/quick_rigid_registration.nf -preview

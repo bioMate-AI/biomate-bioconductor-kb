@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<tool id="biomni_database_query_pdb_identifiers" name="Biomni: Query Pdb Identifiers" version="1.0.0">
+    <description>Retrieve detailed data and/or download files for PDB identifiers.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.database import query_pdb_identifiers
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = query_pdb_identifiers(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --identifiers '$identifiers'
+#if $return_type
+    --return_type '$return_type'
+#end if
+#if $download
+    --download '$download'
+#end if
+#if $attributes
+    --attributes '$attributes'
+#end if
+]]></command>
+    <inputs>
+        <param name="identifiers" type="text" label="Identifiers" help=""  />
+        <param name="return_type" type="text" label="Return Type" help="" value="entry" optional="true"/>
+        <param name="download" type="text" label="Download" help="" value="False" optional="true"/>
+        <param name="attributes" type="text" label="Attributes" help=""  optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Query Pdb Identifiers**
+
+Retrieve detailed data and/or download files for PDB identifiers.
+
+Parameters
+----------
+identifiers (list): List of PDB identifiers (from query_pdb)
+return_type (str): Type of results: "entry", "assembly", "polymer_entity", etc.
+download (bool): Whether to download PDB structure files
+attributes (list, optional): List of specific attributes to retrieve
+
+Returns
+-------
+dict: Dictionary containing the detailed data and file paths if downloaded
+
+Example:
+- Search and then get details:
+    results = query_pdb("Find structures of human insulin")
+    details = get_pdb_details(results["identifiers"], download=True)
+
+**Domain**: database
+**Function**: query_pdb_identifiers
+]]></help>
+</tool>

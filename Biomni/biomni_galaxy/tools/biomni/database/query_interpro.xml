@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<tool id="biomni_database_query_interpro" name="Biomni: Query Interpro" version="1.0.0">
+    <description>Query the InterPro REST API using natural language or a direct endpoint.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.database import query_interpro
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = query_interpro(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    #if $prompt
+    --prompt '$prompt'
+#end if
+#if $endpoint
+    --endpoint '$endpoint'
+#end if
+#if $max_results
+    --max_results '$max_results'
+#end if
+]]></command>
+    <inputs>
+        <param name="prompt" type="text" label="Prompt" help=""  optional="true"/>
+        <param name="endpoint" type="text" label="Endpoint" help="or "https://www.ebi.ac.uk/interpro/api/entry/interpro/IPR023411")"  optional="true"/>
+        <param name="max_results" type="text" label="Max Results" help="" value="3" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Query Interpro**
+
+Query the InterPro REST API using natural language or a direct endpoint.
+
+Parameters
+----------
+prompt (str, required): Natural language query about protein domains or families
+endpoint (str, optional): Direct endpoint path or full URL (e.g., "/entry/interpro/IPR023411"
+                         or "https://www.ebi.ac.uk/interpro/api/entry/interpro/IPR023411")
+max_results (int): Maximum number of results to return per page
+
+Returns
+-------
+dict: Dictionary containing both the query information and the InterPro API results
+
+Examples
+--------
+- Natural language: query_interpro("Find information about kinase domains in InterPro")
+- Direct endpoint: query_interpro(endpoint="/entry/interpro/IPR023411")
+
+**Domain**: database
+**Function**: query_interpro
+]]></help>
+</tool>

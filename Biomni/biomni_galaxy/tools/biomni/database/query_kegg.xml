@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<tool id="biomni_database_query_kegg" name="Biomni: Query Kegg" version="1.0.0">
+    <description>Take a natural language prompt and convert it to a structured KEGG API query.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.database import query_kegg
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = query_kegg(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    --prompt '$prompt'
+#if $endpoint
+    --endpoint '$endpoint'
+#end if
+#if $verbose
+    --verbose '$verbose'
+#end if
+]]></command>
+    <inputs>
+        <param name="prompt" type="text" label="Prompt" help=""  />
+        <param name="endpoint" type="text" label="Endpoint" help=""  optional="true"/>
+        <param name="verbose" type="text" label="Verbose" help="" value="True" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Query Kegg**
+
+Take a natural language prompt and convert it to a structured KEGG API query.
+
+Parameters
+----------
+prompt (str): Natural language query about KEGG data (e.g., "Find human pathways related to glycolysis")
+endpoint (str, optional): Direct KEGG API endpoint to query
+verbose (bool): Whether to print verbose output
+
+Returns
+-------
+dict: Dictionary containing both the structured query and the KEGG results
+
+**Domain**: database
+**Function**: query_kegg
+]]></help>
+</tool>

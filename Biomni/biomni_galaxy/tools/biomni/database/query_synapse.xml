@@ -1,0 +1,131 @@
+<?xml version="1.0"?>
+<tool id="biomni_database_query_synapse" name="Biomni: Query Synapse" version="1.0.0">
+    <description>Query Synapse REST API for biomedical datasets and files.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.database import query_synapse
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = query_synapse(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    #if $prompt
+    --prompt '$prompt'
+#end if
+#if $query_term
+    --query_term '$query_term'
+#end if
+#if $return_fields
+    --return_fields '$return_fields'
+#end if
+#if $max_results
+    --max_results '$max_results'
+#end if
+#if $query_type
+    --query_type '$query_type'
+#end if
+#if $verbose
+    --verbose
+#end if
+]]></command>
+    <inputs>
+        <param name="prompt" type="text" label="Prompt" help="Natural language query about biomedical data (e.g., "Find drug screening datasets")"  optional="true"/>
+        <param name="query_term" type="text" label="Query Term" help="as a list, they are combined with AND logic (more terms = more restrictive). Start with 1-2 most relevant search terms."  optional="true"/>
+        <param name="return_fields" type="text" label="Return Fields" help="Fields to return in results. Default: ["name", "node_type", "description"]"  optional="true"/>
+        <param name="max_results" type="integer" label="Max Results" help="Use up to 50 if extensive results are desired for comprehensive analysis." value="20" optional="true"/>
+        <param name="query_type" type="text" label="Query Type" help="Type of entity to search for ("dataset", "file", "folder")" value="dataset" optional="true"/>
+        <param name="verbose" type="boolean" truevalue="true" falsevalue="false" label="Verbose" help="Whether to return full API response or formatted results" checked="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Query Synapse**
+
+Query Synapse REST API for biomedical datasets and files.
+
+Synapse is a platform for sharing and analyzing biomedical data, particularly
+genomics and clinical research datasets. Supports optional authentication via
+SYNAPSE_AUTH_TOKEN environment variable for access to private datasets.
+
+Parameters
+----------
+prompt : str, optional
+    Natural language query about biomedical data (e.g., "Find drug screening datasets")
+query_term : str or list of str, optional
+    Specific search terms for Synapse search. When multiple terms are provided
+    as a list, they are combined with AND logic (more terms = more restrictive). Start with 1-2 most relevant search terms.
+return_fields : list of str, optional
+    Fields to return in results. Default: ["name", "node_type", "description"]
+max_results : int, default 20
+    Maximum number of results to return. Default 20 is optimal for most searches.
+    Use up to 50 if extensive results are desired for comprehensive analysis.
+query_type : str, default "dataset"
+    Type of entity to search for ("dataset", "file", "folder")
+verbose : bool, default True
+    Whether to return full API response or formatted results
+
+Returns
+-------
+dict
+    Dictionary containing query information and Synapse API results
+
+Notes
+-----
+Authentication is optional but recommended for access to private datasets.
+Set SYNAPSE_AUTH_TOKEN environment variable with your Synapse personal access token
+to enable authenticated requests.
+
+Examples
+--------
+# Natural language
+query_synapse(prompt="Find drug screening datasets")
+
+# Direct search (AND logic - finds datasets with both "cancer" AND "genomics")
+query_synapse(query_term=["cancer", "genomics"], max_results=10)
+
+# Extensive search
+query_synapse(query_term="alzheimer", max_results=50)
+
+**Domain**: database
+**Function**: query_synapse
+]]></help>
+</tool>

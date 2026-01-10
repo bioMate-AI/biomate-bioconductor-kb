@@ -1,0 +1,3 @@
+2025-12-04 10:37:36	-	small_magritte	-	b2af41d0dff0bc841ab831f6338c09be	1c9d11af-4f23-4859-b3c8-87c58291502b	nextflow run /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/biophysics/analyze_cell_morphology_and_cytoskeleton.nf -preview
+2025-12-04 10:37:38	-	distraught_linnaeus	-	7afc60144c1f71496a5b4f9fc1d57c48	d0180ec1-f535-4632-a58b-b873ea24d566	nextflow run /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/biophysics/predict_protein_disorder_regions.nf -preview
+2025-12-04 10:37:39	-	gloomy_curie	-	41801afa7e7a930000227bba77d7f4f2	af112adf-c684-402d-ab7f-7af82a456a15	nextflow run /home/yzhang/biomate/Biomni/biomni_nextflow/subworkflows/biophysics/analyze_tissue_deformation_flow.nf -preview

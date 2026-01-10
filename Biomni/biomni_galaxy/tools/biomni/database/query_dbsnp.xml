@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<tool id="biomni_database_query_dbsnp" name="Biomni: Query Dbsnp" version="1.0.0">
+    <description>Query the NCBI dbSNP database using natural language or a direct search term.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.database import query_dbsnp
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = query_dbsnp(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    #if $prompt
+    --prompt '$prompt'
+#end if
+#if $search_term
+    --search_term '$search_term'
+#end if
+#if $max_results
+    --max_results '$max_results'
+#end if
+]]></command>
+    <inputs>
+        <param name="prompt" type="text" label="Prompt" help=""  optional="true"/>
+        <param name="search_term" type="text" label="Search Term" help=""  optional="true"/>
+        <param name="max_results" type="text" label="Max Results" help="" value="3" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Query Dbsnp**
+
+Query the NCBI dbSNP database using natural language or a direct search term.
+
+Parameters
+----------
+prompt (str, required): Natural language query about genetic variants/SNPs
+search_term (str, optional): Direct search term in dbSNP syntax
+max_results (int): Maximum number of results to return
+
+Returns
+-------
+dict: Dictionary containing the query results or error information
+
+Examples
+--------
+- Natural language: query_dbsnp("Find pathogenic variants in BRCA1")
+- Direct search: query_dbsnp(search_term="BRCA1[Gene Name] AND pathogenic[Clinical Significance]")
+
+**Domain**: database
+**Function**: query_dbsnp
+]]></help>
+</tool>

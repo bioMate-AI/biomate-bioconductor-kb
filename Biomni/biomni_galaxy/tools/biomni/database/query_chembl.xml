@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<tool id="biomni_database_query_chembl" name="Biomni: Query Chembl" version="1.0.0">
+    <description>Query the ChEMBL REST API using natural language, direct endpoint, or specific identifiers.</description>
+    <requirements>
+        <container type="docker">biomate/biomni-tools:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+python -c "
+import sys
+import json
+from biomni.tool.database import query_chembl
+
+# Parse arguments
+args = {}
+i = 1
+while i < len(sys.argv):
+    if sys.argv[i].startswith('--'):
+        key = sys.argv[i][2:]
+        if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
+            val = sys.argv[i + 1]
+            # Type conversion
+            if val.lower() == 'true': val = True
+            elif val.lower() == 'false': val = False
+            else:
+                try: val = int(val)
+                except:
+                    try: val = float(val)
+                    except: pass
+            args[key] = val
+            i += 2
+        else:
+            args[key] = True
+            i += 1
+    else:
+        i += 1
+
+# Call function
+result = query_chembl(**args)
+
+# Write output
+output_path = args.get('output', '/dev/stdout')
+with open(output_path, 'w') as f:
+    if isinstance(result, str):
+        f.write(result)
+    elif isinstance(result, (dict, list)):
+        json.dump(result, f, indent=2, default=str)
+    else:
+        f.write(str(result))
+" --output '$output'
+    #if $prompt
+    --prompt '$prompt'
+#end if
+#if $endpoint
+    --endpoint '$endpoint'
+#end if
+#if $chembl_id
+    --chembl_id '$chembl_id'
+#end if
+#if $smiles
+    --smiles '$smiles'
+#end if
+#if $molecule_name
+    --molecule_name '$molecule_name'
+#end if
+#if $max_results
+    --max_results '$max_results'
+#end if
+#if $verbose
+    --verbose '$verbose'
+#end if
+]]></command>
+    <inputs>
+        <param name="prompt" type="text" label="Prompt" help=""  optional="true"/>
+        <param name="endpoint" type="text" label="Endpoint" help=""  optional="true"/>
+        <param name="chembl_id" type="text" label="Chembl Id" help=""  optional="true"/>
+        <param name="smiles" type="text" label="Smiles" help=""  optional="true"/>
+        <param name="molecule_name" type="text" label="Molecule Name" help=""  optional="true"/>
+        <param name="max_results" type="text" label="Max Results" help="" value="20" optional="true"/>
+        <param name="verbose" type="text" label="Verbose" help="" value="True" optional="true"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
+    </outputs>
+    <help><![CDATA[
+**Biomni: Query Chembl**
+
+Query the ChEMBL REST API using natural language, direct endpoint, or specific identifiers.
+Parameters
+----------
+prompt (str, optional): Natural language query about bioactivity data
+endpoint (str, optional): Direct ChEMBL API endpoint to query
+chembl_id (str, optional): Specific ChEMBL ID to query (e.g., 'CHEMBL25')
+smiles (str, optional): SMILES string for similarity/substructure search
+molecule_name (str, optional): Molecule name for lookup
+max_results (int): Maximum number of results to return
+verbose (bool): Whether to return detailed results
+Returns
+-------
+dict: Dictionary containing the query results or error information
+Examples
+--------
+- Natural language: query_chembl("Find approved drugs with kinase activity")
+- Direct endpoint: query_chembl(endpoint="molecule?max_phase=4")
+- ChEMBL ID: query_chembl(chembl_id="CHEMBL25")
+- SMILES similarity: query_chembl(smiles="CC(=O)OC1=CC=CC=C1C(=O)O", similarity_cutoff=80)
+- Molecule name: query_chembl(molecule_name="aspirin")
+
+**Domain**: database
+**Function**: query_chembl
+]]></help>
+</tool>
