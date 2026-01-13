@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="api-endpoints-map" name="API Endpoints Map">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate API Endpoints Map" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== AI Assistant API ==================== -->
+        <mxCell id="ai-api" value="AI Assistant API (/api/ai/*)" style="swimlane;fillColor=#E3F2FD;strokeColor=#1976D2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="420" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai-chat" value="POST /api/ai/chat" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="ai-api">
+          <mxGeometry x="20" y="40" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ai-chat-desc" value="Send message to AI assistant&#xa;Body: {message, history[], project_id}&#xa;Returns: {response, workflow?}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ai-api">
+          <mxGeometry x="210" y="35" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai-stream" value="GET /api/ai/stream" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="ai-api">
+          <mxGeometry x="20" y="100" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ai-stream-desc" value="SSE stream for responses&#xa;Params: session_id&#xa;Returns: SSE events" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ai-api">
+          <mxGeometry x="210" y="95" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai-generate" value="POST /api/ai/generate-workflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="ai-api">
+          <mxGeometry x="20" y="160" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ai-generate-desc" value="Generate workflow from NL&#xa;Body: {description, tools[]}&#xa;Returns: {workflow_json}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ai-api">
+          <mxGeometry x="210" y="155" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai-query" value="POST /api/ai/query-database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="ai-api">
+          <mxGeometry x="20" y="220" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ai-query-desc" value="Query biological database&#xa;Body: {query, database}&#xa;Returns: {results[], source}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ai-api">
+          <mxGeometry x="210" y="215" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Workflow API ==================== -->
+        <mxCell id="workflow-api" value="Workflow API (/api/workflows/*)" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="480" y="80" width="420" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-list" value="GET /api/workflows" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="workflow-api">
+          <mxGeometry x="20" y="40" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-list-desc" value="List all workflows&#xa;Params: ?limit, ?offset&#xa;Returns: {workflows[], total}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="workflow-api">
+          <mxGeometry x="210" y="35" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-get" value="GET /api/workflows/:id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="workflow-api">
+          <mxGeometry x="20" y="100" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-get-desc" value="Get workflow by ID&#xa;Returns: {workflow_json}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="workflow-api">
+          <mxGeometry x="210" y="95" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-create" value="POST /api/workflows" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CDDC39;strokeColor=#AFB42B;fontColor=#333333;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="workflow-api">
+          <mxGeometry x="20" y="150" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-create-desc" value="Create new workflow&#xa;Body: {name, steps[], params}&#xa;Returns: {id, created_at}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="workflow-api">
+          <mxGeometry x="210" y="145" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-run" value="POST /api/workflows/:id/run" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="workflow-api">
+          <mxGeometry x="20" y="210" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-run-desc" value="Execute workflow&#xa;Body: {inputs, history_id}&#xa;Returns: {invocation_id}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="workflow-api">
+          <mxGeometry x="210" y="205" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== History API ==================== -->
+        <mxCell id="history-api" value="History API (/api/histories/*)" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="920" y="80" width="420" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hist-list" value="GET /api/histories" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="history-api">
+          <mxGeometry x="20" y="40" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hist-list-desc" value="List user histories&#xa;Returns: {histories[]}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="history-api">
+          <mxGeometry x="210" y="35" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hist-get" value="GET /api/histories/:id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="history-api">
+          <mxGeometry x="20" y="90" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hist-get-desc" value="Get history with datasets&#xa;Returns: {history, datasets[]}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="history-api">
+          <mxGeometry x="210" y="85" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hist-create" value="POST /api/histories" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEB3B;strokeColor=#FBC02D;fontColor=#333333;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="history-api">
+          <mxGeometry x="20" y="140" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hist-create-desc" value="Create new history&#xa;Body: {name}&#xa;Returns: {id}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="history-api">
+          <mxGeometry x="210" y="135" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hist-upload" value="POST /api/histories/:id/upload" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF5722;strokeColor=#E64A19;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="history-api">
+          <mxGeometry x="20" y="200" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hist-upload-desc" value="Upload file to history&#xa;Body: multipart/form-data&#xa;Returns: {dataset_id}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="history-api">
+          <mxGeometry x="210" y="195" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Tools API ==================== -->
+        <mxCell id="tools-api" value="Tools API (/api/tools/*)" style="swimlane;fillColor=#F3E5F5;strokeColor=#9C27B0;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="420" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-list" value="GET /api/tools" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="tools-api">
+          <mxGeometry x="20" y="40" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-list-desc" value="List available tools&#xa;Params: ?category&#xa;Returns: {tools[]}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="tools-api">
+          <mxGeometry x="210" y="35" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-get" value="GET /api/tools/:id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#673AB7;strokeColor=#512DA8;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="tools-api">
+          <mxGeometry x="20" y="100" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-get-desc" value="Get tool details&#xa;Returns: {tool, params[]}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="tools-api">
+          <mxGeometry x="210" y="95" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-run" value="POST /api/tools/:id/run" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3F51B5;strokeColor=#303F9F;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="tools-api">
+          <mxGeometry x="20" y="150" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-run-desc" value="Execute tool&#xa;Body: {inputs, history_id}&#xa;Returns: {job_id}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="tools-api">
+          <mxGeometry x="210" y="145" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Jobs API ==================== -->
+        <mxCell id="jobs-api" value="Jobs API (/api/jobs/*)" style="swimlane;fillColor=#E1F5FE;strokeColor=#03A9F4;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="480" y="380" width="420" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-status" value="GET /api/jobs/:id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="jobs-api">
+          <mxGeometry x="20" y="40" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="job-status-desc" value="Get job status&#xa;Returns: {state, outputs[]}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="jobs-api">
+          <mxGeometry x="210" y="35" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-cancel" value="DELETE /api/jobs/:id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="jobs-api">
+          <mxGeometry x="20" y="90" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="job-cancel-desc" value="Cancel running job&#xa;Returns: {success}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="jobs-api">
+          <mxGeometry x="210" y="85" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-stream" value="GET /api/jobs/:id/stream" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="jobs-api">
+          <mxGeometry x="20" y="140" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="job-stream-desc" value="SSE job progress stream&#xa;Returns: SSE events" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="jobs-api">
+          <mxGeometry x="210" y="135" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== SSE Events ==================== -->
+        <mxCell id="sse-api" value="SSE Event Streams" style="swimlane;fillColor=#FCE4EC;strokeColor=#E91E63;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="920" y="380" width="420" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-workflow" value="GET /api/sse/workflow/:id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="sse-api">
+          <mxGeometry x="20" y="40" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sse-workflow-desc" value="Workflow execution events&#xa;Events: step_start, step_complete,&#xa;error, workflow_complete" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="sse-api">
+          <mxGeometry x="230" y="35" width="170" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-chat" value="GET /api/sse/chat/:session" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F06292;strokeColor=#D81B60;fontColor=#FFFFFF;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="sse-api">
+          <mxGeometry x="20" y="100" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sse-chat-desc" value="AI chat response stream&#xa;Events: token, complete,&#xa;artifact, error" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="sse-api">
+          <mxGeometry x="230" y="95" width="170" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-job" value="GET /api/sse/job/:id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F48FB1;strokeColor=#EC407A;fontColor=#333333;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="sse-api">
+          <mxGeometry x="20" y="160" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sse-job-desc" value="Job progress events&#xa;Events: progress, output,&#xa;complete, error" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="sse-api">
+          <mxGeometry x="230" y="155" width="170" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Authentication ==================== -->
+        <mxCell id="auth-section" value="Authentication &amp; Authorization" style="swimlane;fillColor=#FFEBEE;strokeColor=#D32F2F;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="620" width="640" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth-header" value="Authorization: Bearer &lt;jwt_token&gt;" style="text;html=1;strokeColor=#D32F2F;fillColor=#FFCDD2;align=center;verticalAlign=middle;fontSize=11;fontFamily=monospace;rounded=1;" vertex="1" parent="auth-section">
+          <mxGeometry x="20" y="35" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth-galaxy" value="X-Galaxy-API-Key: &lt;api_key&gt;" style="text;html=1;strokeColor=#D32F2F;fillColor=#FFCDD2;align=center;verticalAlign=middle;fontSize=11;fontFamily=monospace;rounded=1;" vertex="1" parent="auth-section">
+          <mxGeometry x="340" y="35" width="280" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth-desc" value="Authentication Methods:&#xa;• JWT tokens (frontend sessions)&#xa;• Galaxy API keys (programmatic access)&#xa;• Session cookies (browser)&#xa;&#xa;All endpoints require authentication except /api/health" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;rounded=1;" vertex="1" parent="auth-section">
+          <mxGeometry x="20" y="70" width="600" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Response Format ==================== -->
+        <mxCell id="response-section" value="Response Format" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="700" y="620" width="640" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="response-success" value="Success (200)&#xa;{&#xa;  &quot;data&quot;: {...},&#xa;  &quot;meta&quot;: {&quot;timestamp&quot;: ...}&#xa;}" style="text;html=1;strokeColor=#4CAF50;fillColor=#C8E6C9;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="response-section">
+          <mxGeometry x="20" y="35" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="response-error" value="Error (4xx/5xx)&#xa;{&#xa;  &quot;error&quot;: &quot;message&quot;,&#xa;  &quot;code&quot;: &quot;ERROR_CODE&quot;,&#xa;  &quot;details&quot;: {...}&#xa;}" style="text;html=1;strokeColor=#F44336;fillColor=#FFCDD2;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="response-section">
+          <mxGeometry x="220" y="35" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="response-sse" value="SSE Event&#xa;event: event_type&#xa;data: {&quot;payload&quot;: ...}&#xa;&#xa;event: complete&#xa;data: {&quot;result&quot;: ...}" style="text;html=1;strokeColor=#03A9F4;fillColor=#B3E5FC;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="response-section">
+          <mxGeometry x="420" y="35" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Legend ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="700" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-get" value="GET" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="30" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-post" value="POST" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="80" y="30" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-delete" value="DELETE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="140" y="30" width="60" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-sse" value="SSE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="210" y="30" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-desc" value="Description" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=center;verticalAlign=middle;fontSize=10;rounded=1;" vertex="1" parent="legend">
+          <mxGeometry x="270" y="30" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-base" value="Base URL: https://api.biomate.io/v1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="legend">
+          <mxGeometry x="380" y="35" width="250" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -259,6 +259,15 @@ Respond in JSON format:
         .replace(/\s*`+\s*$/g, '')             // Remove trailing backticks and whitespace
         .trim();
 
+      // Try to extract JSON object if there's extra text around it
+      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        resultText = jsonMatch[0];
+      }
+
+      // Remove any remaining backticks that might be inside string values
+      resultText = resultText.replace(/`/g, "'");
+
       const result = JSON.parse(resultText);
 
       return {
@@ -298,29 +307,47 @@ Respond in JSON format:
       }
 
       // Build search query from keywords
-      // Note: FTS5 doesn't support 'OR' operator in query string
-      // Using space-separated keywords (FTS5 treats as AND, giving more precise results)
-      const query = keywords.join(' ');
-      console.log('[GalaxyAssistant] Tool search query:', query);
+      // Try progressively simpler queries until we get results
+      let toolSearchResponse: any = { tools: [] };
+      let successfulQuery = '';
 
-      // Search Galaxy tool index (increased limit to 100 for better coverage)
-      const toolSearchResponse = await this.galaxyAPI.searchTools(query, undefined, 100);
+      // Try different query strategies: full query -> first 3 keywords -> first keyword
+      const queriesToTry = [
+        keywords.slice(0, 3).join(' '),  // First 3 keywords
+        keywords[0],                       // Just first keyword
+        keywords.join(' '),                // All keywords (least likely to match)
+      ];
 
-      console.log('[GalaxyAssistant] Raw Galaxy API response:', {
-        count: toolSearchResponse.count,
-        toolsReturned: toolSearchResponse.tools?.length || 0,
-        query: toolSearchResponse.query,
-        tools: toolSearchResponse.tools?.slice(0, 5).map(t => ({
-          tool_id: t.tool_id,
-          name: t.name,
-          category: t.category
-        })) || []
-      });
+      for (const query of queriesToTry) {
+        if (!query) continue;
+        console.log('[GalaxyAssistant] Tool search query:', query);
+
+        // Search Galaxy tool index
+        toolSearchResponse = await this.galaxyAPI.searchTools(query, undefined, 100);
+
+        console.log('[GalaxyAssistant] Raw Galaxy API response:', {
+          count: toolSearchResponse.count,
+          toolsReturned: toolSearchResponse.tools?.length || 0,
+          query: toolSearchResponse.query,
+          tools: toolSearchResponse.tools?.slice(0, 5).map((t: any) => ({
+            tool_id: t.tool_id,
+            name: t.name,
+            category: t.category
+          })) || []
+        });
+
+        if (toolSearchResponse.tools && toolSearchResponse.tools.length > 0) {
+          successfulQuery = query;
+          break;
+        }
+      }
 
       if (!toolSearchResponse.tools || toolSearchResponse.tools.length === 0) {
-        console.log('[GalaxyAssistant] No tools returned from Galaxy API');
+        console.log('[GalaxyAssistant] No tools returned from any search query');
         return [];
       }
+
+      console.log(`[GalaxyAssistant] Found tools with query: "${successfulQuery}"`);
 
       // Use LLM to rank tools by relevance (with user context)
       const rankedTools = await this.rankToolsByRelevance(
@@ -507,7 +534,8 @@ Respond in JSON format:
       intent.type === 'workflow_generation' ||
       triggerWords.some((word) => message.toLowerCase().includes(word));
 
-    const hasEnoughTools = recommendedTools.length >= 2;
+    // Allow single-tool workflows for simple queries (database lookups, etc.)
+    const hasEnoughTools = recommendedTools.length >= 1;
 
     return {
       shouldGenerate: hasWorkflowIntent && hasEnoughTools,
@@ -516,7 +544,7 @@ Respond in JSON format:
       reasoning: hasWorkflowIntent
         ? hasEnoughTools
           ? 'User requested workflow and relevant tools were found'
-          : 'User requested workflow but insufficient tools found'
+          : 'User requested workflow but no tools found'
         : 'No explicit workflow request detected',
     };
   }

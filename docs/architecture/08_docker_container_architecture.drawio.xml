@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="docker-container-architecture" name="Docker Container Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Docker Container Architecture (biomate/biotools:arm64)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Container Structure ==================== -->
+        <mxCell id="container-box" value="biomate/biotools:arm64 Container Image" style="swimlane;fillColor=#E3F2FD;strokeColor=#1976D2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="700" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- Base Image -->
+        <mxCell id="base-image" value="Base: ubuntu:22.04-arm64" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="container-box">
+          <mxGeometry x="20" y="620" width="660" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- System Layer -->
+        <mxCell id="system-layer" value="System Dependencies" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=11;" vertex="1" parent="container-box">
+          <mxGeometry x="20" y="530" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sys-deps" value="build-essential | cmake | git | curl | wget | zlib1g-dev | libbz2-dev | liblzma-dev | libncurses5-dev | libcurl4-openssl-dev | libssl-dev | libffi-dev | python3.11 | python3-pip | openjdk-17-jre | r-base" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontFamily=monospace;" vertex="1" parent="system-layer">
+          <mxGeometry x="10" y="30" width="640" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Python Layer -->
+        <mxCell id="python-layer" value="Python Environment (3.11)" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=11;" vertex="1" parent="container-box">
+          <mxGeometry x="20" y="400" width="660" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="py-bio" value="BioPython&#xa;RDKit&#xa;Scanpy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="python-layer">
+          <mxGeometry x="20" y="35" width="80" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="py-ml" value="PyTorch&#xa;TensorFlow&#xa;scikit-learn" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="python-layer">
+          <mxGeometry x="110" y="35" width="80" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="py-data" value="NumPy&#xa;Pandas&#xa;SciPy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CDDC39;strokeColor=#AFB42B;fontColor=#333333;fontSize=9;" vertex="1" parent="python-layer">
+          <mxGeometry x="200" y="35" width="80" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="py-viz" value="Matplotlib&#xa;Seaborn&#xa;Plotly" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEB3B;strokeColor=#FBC02D;fontColor=#333333;fontSize=9;" vertex="1" parent="python-layer">
+          <mxGeometry x="290" y="35" width="80" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="py-api" value="requests&#xa;aiohttp&#xa;langchain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=9;" vertex="1" parent="python-layer">
+          <mxGeometry x="380" y="35" width="80" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="py-other" value="pysam&#xa;HTSeq&#xa;MACS2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="python-layer">
+          <mxGeometry x="470" y="35" width="80" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="py-more" value="+50 more&#xa;packages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF5722;strokeColor=#E64A19;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="python-layer">
+          <mxGeometry x="560" y="35" width="80" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Bioinformatics Tools Layer -->
+        <mxCell id="bio-tools" value="Bioinformatics Tools" style="swimlane;fillColor=#E1F5FE;strokeColor=#03A9F4;fontStyle=1;fontSize=11;" vertex="1" parent="container-box">
+          <mxGeometry x="20" y="180" width="660" height="210" as="geometry" />
+        </mxCell>
+
+        <!-- Aligners -->
+        <mxCell id="aligners" value="Aligners" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="bio-tools">
+          <mxGeometry x="20" y="30" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="aligner-list" value="BWA | HISAT2 | STAR | Bowtie2 | minimap2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="bio-tools">
+          <mxGeometry x="20" y="50" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Quantification -->
+        <mxCell id="quant" value="Quantification" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="bio-tools">
+          <mxGeometry x="20" y="80" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="quant-list" value="featureCounts | HTSeq | Salmon | kallisto" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="bio-tools">
+          <mxGeometry x="20" y="100" width="250" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Variant Calling -->
+        <mxCell id="variant" value="Variant Calling" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="bio-tools">
+          <mxGeometry x="340" y="30" width="90" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="variant-list" value="GATK | bcftools | FreeBayes | DeepVariant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#009688;strokeColor=#00796B;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="bio-tools">
+          <mxGeometry x="340" y="50" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Structure -->
+        <mxCell id="structure" value="Structure" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="bio-tools">
+          <mxGeometry x="340" y="80" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="structure-list" value="AutoDock Vina | PyMOL | RDKit | OpenBabel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="bio-tools">
+          <mxGeometry x="340" y="100" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- QC & Utilities -->
+        <mxCell id="qc" value="QC &amp; Utils" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="bio-tools">
+          <mxGeometry x="20" y="130" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="qc-list" value="FastQC | MultiQC | samtools | bedtools | BLAST+" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="bio-tools">
+          <mxGeometry x="20" y="150" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ML/DL -->
+        <mxCell id="ml" value="ML/DL Models" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="bio-tools">
+          <mxGeometry x="340" y="130" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ml-list" value="ESM | nnU-Net | AlphaFold (lite) | DeepSeek" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="bio-tools">
+          <mxGeometry x="340" y="150" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Tool Count -->
+        <mxCell id="tool-count" value="Total: 100+ pre-installed tools optimized for ARM64" style="text;html=1;strokeColor=#03A9F4;fillColor=#B3E5FC;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;rounded=1;" vertex="1" parent="bio-tools">
+          <mxGeometry x="150" y="180" width="360" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Application Layer -->
+        <mxCell id="app-layer" value="BioMate Application Layer" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=11;" vertex="1" parent="container-box">
+          <mxGeometry x="20" y="40" width="660" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="galaxy-core" value="Galaxy Core&#xa;(Workflow Engine)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="app-layer">
+          <mxGeometry x="20" y="35" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="biomni-tools" value="Biomni Tools&#xa;(200+ wrappers)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="app-layer">
+          <mxGeometry x="160" y="35" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ai-module" value="AI Assistant&#xa;Module" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="app-layer">
+          <mxGeometry x="300" y="35" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="db-engine" value="DB Query&#xa;Engine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#673AB7;strokeColor=#512DA8;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="app-layer">
+          <mxGeometry x="420" y="35" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="schema-files" value="Schema Files&#xa;(33 .pkl)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3F51B5;strokeColor=#303F9F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="app-layer">
+          <mxGeometry x="540" y="35" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="app-config" value="Config: galaxy.yml, job_conf.yml, tool_conf.xml" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="app-layer">
+          <mxGeometry x="100" y="95" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Volume Mounts ==================== -->
+        <mxCell id="volumes-section" value="Volume Mounts" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="80" width="600" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vol-data" value="/data&#xa;(User Data)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="volumes-section">
+          <mxGeometry x="20" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-galaxy" value="/galaxy&#xa;(Galaxy Files)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="volumes-section">
+          <mxGeometry x="140" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-database" value="/database&#xa;(Galaxy DB)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#CDDC39;strokeColor=#AFB42B;fontColor=#333333;fontSize=10;" vertex="1" parent="volumes-section">
+          <mxGeometry x="260" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-tools" value="/tools&#xa;(Custom Tools)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFEB3B;strokeColor=#FBC02D;fontColor=#333333;fontSize=10;" vertex="1" parent="volumes-section">
+          <mxGeometry x="380" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-config" value="/config&#xa;(Configuration)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=10;" vertex="1" parent="volumes-section">
+          <mxGeometry x="500" y="40" width="80" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vol-desc" value="Host: ./data:/data | ./galaxy:/galaxy | ./database:/database | ./tools:/tools | ./config:/config" style="text;html=1;strokeColor=#4CAF50;fillColor=#C8E6C9;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="volumes-section">
+          <mxGeometry x="20" y="130" width="560" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Environment Variables ==================== -->
+        <mxCell id="env-section" value="Environment Variables" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="300" width="600" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="env-vars" value="GALAXY_CONFIG_FILE=/config/galaxy.yml&#xa;GALAXY_ROOT=/galaxy&#xa;DATABASE_CONNECTION=postgresql://user:pass@db:5432/galaxy&#xa;LLM_PROVIDER=ollama&#xa;OLLAMA_HOST=ollama:11434&#xa;ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}&#xa;CUDA_VISIBLE_DEVICES=0  # GPU passthrough&#xa;NUMBA_CACHE_DIR=/tmp/numba_cache" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="env-section">
+          <mxGeometry x="20" y="35" width="560" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Exposed Ports ==================== -->
+        <mxCell id="ports-section" value="Exposed Ports" style="swimlane;fillColor=#E1F5FE;strokeColor=#03A9F4;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="500" width="300" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="port-8080" value="8080&#xa;Galaxy Web" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="ports-section">
+          <mxGeometry x="20" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="port-8081" value="8081&#xa;Galaxy API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="ports-section">
+          <mxGeometry x="110" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="port-9090" value="9090&#xa;Metrics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#009688;strokeColor=#00796B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="ports-section">
+          <mxGeometry x="200" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ports-note" value="All ports configurable via environment" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="ports-section">
+          <mxGeometry x="20" y="100" width="260" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== GPU Support ==================== -->
+        <mxCell id="gpu-section" value="GPU Support (Optional)" style="swimlane;fillColor=#F3E5F5;strokeColor=#9C27B0;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="500" width="280" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="gpu-info" value="NVIDIA GPU passthrough:&#xa;--gpus all&#xa;--runtime=nvidia&#xa;&#xa;Supports: CUDA 12.x&#xa;Tested: A100, V100, RTX 3090" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;rounded=1;" vertex="1" parent="gpu-section">
+          <mxGeometry x="20" y="35" width="240" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Build Commands ==================== -->
+        <mxCell id="build-section" value="Build &amp; Run Commands" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="660" width="600" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="build-cmds" value="# Build&#xa;docker build -t biomate/biotools:arm64 .&#xa;&#xa;# Run&#xa;docker run -d -p 8080:8080 -v ./data:/data --gpus all biomate/biotools:arm64&#xa;&#xa;# Docker Compose (recommended)&#xa;docker-compose up -d" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="build-section">
+          <mxGeometry x="20" y="30" width="560" height="80" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

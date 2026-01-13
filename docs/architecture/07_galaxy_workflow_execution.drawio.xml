@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="galaxy-workflow-execution" name="Galaxy Workflow Execution">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Galaxy Workflow Execution Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Workflow Definition ==================== -->
+        <mxCell id="workflow-def" value="Workflow Definition Structure" style="swimlane;fillColor=#E3F2FD;strokeColor=#1976D2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="760" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-json" value="Workflow JSON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="workflow-def">
+          <mxGeometry x="20" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-json-content" value="{&#xa;  &quot;name&quot;: &quot;RNA-seq Analysis&quot;,&#xa;  &quot;steps&quot;: {&#xa;    &quot;0&quot;: {input_data},&#xa;    &quot;1&quot;: {tool: &quot;fastqc&quot;},&#xa;    &quot;2&quot;: {tool: &quot;hisat2&quot;},&#xa;    ...&#xa;  },&#xa;  &quot;connections&quot;: [...]&#xa;}" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="workflow-def">
+          <mxGeometry x="20" y="100" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-steps" value="Workflow Steps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="workflow-def">
+          <mxGeometry x="220" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step-types" value="Step Types:&#xa;• Input Dataset&#xa;• Tool Execution&#xa;• Subworkflow&#xa;• Pause/Wait&#xa;• Parameter Input" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="workflow-def">
+          <mxGeometry x="220" y="100" width="120" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-connections" value="Connections" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="workflow-def">
+          <mxGeometry x="360" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="conn-desc" value="• Input → Output mapping&#xa;• Data dependencies&#xa;• Parameter passing&#xa;• Conditional routing" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="workflow-def">
+          <mxGeometry x="360" y="100" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf-params" value="Parameters" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="workflow-def">
+          <mxGeometry x="520" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="params-desc" value="• Tool parameters&#xa;• Runtime settings&#xa;• Default values&#xa;• User overrides" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="workflow-def">
+          <mxGeometry x="520" y="100" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Execution Pipeline ==================== -->
+        <mxCell id="exec-pipeline" value="Workflow Execution Pipeline" style="swimlane;fillColor=#E8F5E9;strokeColor=#388E3C;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="1520" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- Pipeline Steps -->
+        <mxCell id="ep-submit" value="1. Submit&#xa;Workflow" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="20" y="50" width="90" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-parse" value="2. Parse &amp;&#xa;Validate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="140" y="55" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-schedule" value="3. Dependency&#xa;Analysis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#673AB7;strokeColor=#512DA8;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="260" y="55" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-queue" value="4. Job Queue&#xa;(Step by Step)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3F51B5;strokeColor=#303F9F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="380" y="55" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-runner" value="5. Job Runner&#xa;Selection" style="rhombus;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="510" y="45" width="90" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-docker" value="6. Docker&#xa;Container" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="630" y="55" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-execute" value="7. Tool&#xa;Execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="750" y="55" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-output" value="8. Output&#xa;Dataset" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#009688;strokeColor=#00796B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="870" y="55" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-history" value="9. History&#xa;Storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="990" y="55" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep-complete" value="10. Complete" style="ellipse;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="1110" y="50" width="90" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="ep-a1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="exec-pipeline" source="ep-submit" target="ep-parse">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ep-a2" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="exec-pipeline" source="ep-parse" target="ep-schedule">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ep-a3" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="exec-pipeline" source="ep-schedule" target="ep-queue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ep-a4" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="exec-pipeline" source="ep-queue" target="ep-runner">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ep-a5" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="exec-pipeline" source="ep-runner" target="ep-docker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ep-a6" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="exec-pipeline" source="ep-docker" target="ep-execute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ep-a7" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="exec-pipeline" source="ep-execute" target="ep-output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ep-a8" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="exec-pipeline" source="ep-output" target="ep-history">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ep-a9" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="exec-pipeline" source="ep-history" target="ep-complete">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Loop back for next step -->
+        <mxCell id="ep-loop" value="Next Step" style="endArrow=classic;html=1;strokeColor=#FF9800;strokeWidth=2;dashed=1;curved=1;" edge="1" parent="exec-pipeline">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1015" y="115" as="sourcePoint" />
+            <mxPoint x="430" y="115" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="720" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Job Runners Box -->
+        <mxCell id="runners-box" value="Job Runners" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="exec-pipeline">
+          <mxGeometry x="1230" y="30" width="270" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="runner-local" value="Local Docker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="runners-box">
+          <mxGeometry x="10" y="30" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="runner-slurm" value="SLURM HPC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="runners-box">
+          <mxGeometry x="100" y="30" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="runner-aws" value="AWS ECS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="runners-box">
+          <mxGeometry x="10" y="75" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="runner-k8s" value="Kubernetes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="runners-box">
+          <mxGeometry x="100" y="75" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="runner-pulsar" value="Pulsar&#xa;(Remote)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="runners-box">
+          <mxGeometry x="190" y="50" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Job Scheduling ==================== -->
+        <mxCell id="job-scheduling" value="Job Scheduling &amp; Docker Execution" style="swimlane;fillColor=#FFF3E0;strokeColor=#E65100;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="820" y="80" width="740" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-queue" value="Job Queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="job-scheduling">
+          <mxGeometry x="20" y="40" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="queue-desc" value="• FIFO ordering&#xa;• Priority support&#xa;• Resource limits&#xa;• Dependency tracking" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="job-scheduling">
+          <mxGeometry x="20" y="100" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-handler" value="Job Handler" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E65100;strokeColor=#BF360C;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="job-scheduling">
+          <mxGeometry x="160" y="40" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="handler-desc" value="• State management&#xa;• Error recovery&#xa;• Retry logic&#xa;• Timeout handling" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="job-scheduling">
+          <mxGeometry x="160" y="100" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="docker-exec" value="Docker Execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="job-scheduling">
+          <mxGeometry x="300" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="docker-desc" value="• Container creation&#xa;• Volume mounting&#xa;• Environment vars&#xa;• Resource limits&#xa;• Cleanup" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="job-scheduling">
+          <mxGeometry x="300" y="100" width="120" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-states" value="Job States" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="job-scheduling">
+          <mxGeometry x="450" y="35" width="270" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-new" value="new" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9E9E9E;strokeColor=#757575;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="job-states">
+          <mxGeometry x="10" y="30" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-queued" value="queued" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=9;" vertex="1" parent="job-states">
+          <mxGeometry x="70" y="30" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-running" value="running" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="job-states">
+          <mxGeometry x="130" y="30" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-ok" value="ok" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="job-states">
+          <mxGeometry x="190" y="30" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-error" value="error" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="job-states">
+          <mxGeometry x="10" y="65" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-paused" value="paused" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="job-states">
+          <mxGeometry x="70" y="65" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-deleted" value="deleted" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="job-states">
+          <mxGeometry x="130" y="65" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="state-arrows" value="new→queued→running→ok/error" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="job-states">
+          <mxGeometry x="20" y="100" width="220" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== History & Dataset Management ==================== -->
+        <mxCell id="history-mgmt" value="History &amp; Dataset Management" style="swimlane;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="760" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="history" value="History" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="history-mgmt">
+          <mxGeometry x="20" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="history-desc" value="• Workflow runs&#xa;• Job outputs&#xa;• User sessions&#xa;• Shareable" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="history-mgmt">
+          <mxGeometry x="20" y="120" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dataset" value="Dataset" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#673AB7;strokeColor=#512DA8;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="history-mgmt">
+          <mxGeometry x="150" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dataset-desc" value="• File storage&#xa;• Metadata&#xa;• Provenance&#xa;• Format info" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="history-mgmt">
+          <mxGeometry x="150" y="120" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dataset-collection" value="Dataset&#xa;Collection" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#3F51B5;strokeColor=#303F9F;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="history-mgmt">
+          <mxGeometry x="280" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="collection-desc" value="• Lists of datasets&#xa;• Paired data&#xa;• Batch processing" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="history-mgmt">
+          <mxGeometry x="280" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-config" value="Storage Configuration" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="history-mgmt">
+          <mxGeometry x="410" y="35" width="330" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-local" value="Local Filesystem&#xa;(Default)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="storage-config">
+          <mxGeometry x="10" y="30" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-s3" value="AWS S3&#xa;(Object Store)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="storage-config">
+          <mxGeometry x="120" y="30" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-nfs" value="NFS/Lustre&#xa;(HPC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="storage-config">
+          <mxGeometry x="230" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-path" value="Path: /galaxy/database/files/&#xa;Quota: Per user/group configurable&#xa;Cleanup: Configurable retention" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="storage-config">
+          <mxGeometry x="10" y="85" width="300" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Workflow Example ==================== -->
+        <mxCell id="workflow-example" value="Example: RNA-seq Workflow" style="swimlane;fillColor=#E1F5FE;strokeColor=#0288D1;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="820" y="500" width="740" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow Steps -->
+        <mxCell id="ex-input" value="Input&#xa;FASTQ" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="workflow-example">
+          <mxGeometry x="20" y="60" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex-qc" value="FastQC&#xa;(QC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="workflow-example">
+          <mxGeometry x="120" y="65" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex-trim" value="Trimmo-&#xa;matic" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="workflow-example">
+          <mxGeometry x="220" y="65" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex-align" value="HISAT2&#xa;(Align)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="workflow-example">
+          <mxGeometry x="320" y="65" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex-count" value="featureC&#xa;ounts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="workflow-example">
+          <mxGeometry x="420" y="65" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex-de" value="DESeq2&#xa;(DE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="workflow-example">
+          <mxGeometry x="520" y="65" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex-output" value="Results&#xa;(HTML/TSV)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="workflow-example">
+          <mxGeometry x="620" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="ex-a1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="workflow-example" source="ex-input" target="ex-qc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ex-a2" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="workflow-example" source="ex-qc" target="ex-trim">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ex-a3" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="workflow-example" source="ex-trim" target="ex-align">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ex-a4" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="workflow-example" source="ex-align" target="ex-count">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ex-a5" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="workflow-example" source="ex-count" target="ex-de">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ex-a6" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="workflow-example" source="ex-de" target="ex-output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Parallel branch -->
+        <mxCell id="ex-multiqc" value="MultiQC&#xa;(Report)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="workflow-example">
+          <mxGeometry x="120" y="130" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex-branch" value="" style="endArrow=classic;html=1;strokeColor=#607D8B;strokeWidth=2;dashed=1;" edge="1" parent="workflow-example" source="ex-qc" target="ex-multiqc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex-desc" value="6 steps • Parallel QC • ~30 min runtime" style="text;html=1;strokeColor=#0288D1;fillColor=#B3E5FC;align=center;verticalAlign=middle;fontSize=10;rounded=1;" vertex="1" parent="workflow-example">
+          <mxGeometry x="240" y="150" width="200" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Configuration Files ==================== -->
+        <mxCell id="config-files" value="Configuration Files" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="480" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="config-list" value="job_conf.yml:&#xa;  runners:&#xa;    local_runner:&#xa;      workers: 4&#xa;    slurm_runner:&#xa;      nativeSpecification: &quot;--mem=8G&quot;&#xa;  destinations:&#xa;    docker_local:&#xa;      container: biomate/biotools&#xa;    slurm_hpc:&#xa;      runner: slurm" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;fontFamily=monospace;" vertex="1" parent="config-files">
+          <mxGeometry x="10" y="30" width="220" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="config-list2" value="galaxy.yml:&#xa;  job_working_directory: /data/jobs&#xa;  outputs_to_working_dir: true&#xa;  retry_job_output_collection: 3&#xa;  cleanup_job: onsuccess&#xa;  container_resolvers:&#xa;    - type: explicit&#xa;    - type: mulled" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;fontFamily=monospace;" vertex="1" parent="config-files">
+          <mxGeometry x="240" y="30" width="230" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Legend ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="540" y="720" width="700" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-input" value="Input/Output" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="25" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-tool" value="Tool Step" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="100" y="30" width="60" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-decision" value="Decision" style="rhombus;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="170" y="25" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-storage" value="Storage" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="240" y="25" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-state-ok" value="OK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="310" y="30" width="40" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-state-run" value="Running" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="360" y="30" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-state-err" value="Error" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="420" y="30" width="40" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-flow" value="Flow" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="470" y="35" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-flow-line" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="legend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="45" as="sourcePoint" />
+            <mxPoint x="560" y="45" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="leg-loop" value="Loop" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="570" y="35" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-loop-line" value="" style="endArrow=classic;html=1;strokeColor=#FF9800;strokeWidth=2;dashed=1;" edge="1" parent="legend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="45" as="sourcePoint" />
+            <mxPoint x="660" y="45" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

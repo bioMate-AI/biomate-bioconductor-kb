@@ -65,6 +65,13 @@ class Tool:
     edam_topics: List[str] = None
     citations: List[str] = None
     tool_type: Optional[str] = None  # "data_source", "data_source_async", "default", etc.
+    # Rich metadata from database for LLM-informed parameter generation
+    parameters: List[Dict[str, Any]] = None  # Parameter definitions: name, type, help, default
+    help_text: Dict[str, Any] = None  # what_it_does, how_to_use, examples, function_info
+    examples: List[str] = None  # Usage examples
+    usage_guide: Optional[str] = None  # How to use the tool
+    scientific_context: Dict[str, Any] = None  # omics_applicability, tool_selection, guidance
+    category: Optional[str] = None  # Tool category (Data Source, Analysis, etc.)
 
     def __post_init__(self):
         if self.edam_operations is None:
@@ -73,9 +80,32 @@ class Tool:
             self.edam_topics = []
         if self.citations is None:
             self.citations = []
+        if self.parameters is None:
+            self.parameters = []
+        if self.examples is None:
+            self.examples = []
         # Auto-detect tool type if not specified
         if self.tool_type is None:
             self.tool_type = self._detect_tool_type()
+
+    def get_parameter_schema_for_llm(self) -> str:
+        """Format parameters for LLM consumption."""
+        if not self.parameters:
+            return "No parameter information available."
+
+        lines = ["Available Parameters:"]
+        for param in self.parameters:
+            name = param.get('name', 'unknown')
+            ptype = param.get('type', 'unknown')
+            help_text = param.get('help', '')
+            optional = param.get('optional', False)
+            default = param.get('default')
+
+            opt_str = "optional" if optional else "required"
+            default_str = f", default={default}" if default is not None else ""
+            lines.append(f"  - {name} ({ptype}, {opt_str}{default_str}): {help_text}")
+
+        return "\n".join(lines)
 
     def _detect_tool_type(self) -> str:
         """Auto-detect tool type based on tool_id."""

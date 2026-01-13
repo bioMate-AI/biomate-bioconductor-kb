@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="hybrid-cloud-local" name="Hybrid Cloud-Local Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Hybrid Cloud-Local Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Control Plane ==================== -->
+        <mxCell id="control-plane" value="BioMate Control Plane" style="swimlane;fillColor=#E3F2FD;strokeColor=#2196F3;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="600" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="router" value="Workload&#xa;Router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="control-plane">
+          <mxGeometry x="20" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="classifier" value="Job&#xa;Classifier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="control-plane">
+          <mxGeometry x="120" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="scheduler" value="Hybrid&#xa;Scheduler" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="control-plane">
+          <mxGeometry x="220" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-mgr" value="Data Locality&#xa;Manager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#009688;strokeColor=#00796B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="control-plane">
+          <mxGeometry x="320" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="failover" value="Failover&#xa;Controller" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="control-plane">
+          <mxGeometry x="420" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cost-opt" value="Cost&#xa;Optimizer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="control-plane">
+          <mxGeometry x="520" y="40" width="60" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="control-note" value="Intelligent routing based on: cost, latency, data locality, compliance, resource availability" style="text;html=1;strokeColor=#2196F3;fillColor=#E3F2FD;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="control-plane">
+          <mxGeometry x="20" y="105" width="560" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Cloud Environment (AWS) ==================== -->
+        <mxCell id="cloud-env" value="Cloud Environment (AWS)" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="500" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ecs" value="ECS Cluster" style="swimlane;fillColor=#FFE0B2;strokeColor=#F57C00;fontStyle=1;fontSize=11;" vertex="1" parent="cloud-env">
+          <mxGeometry x="20" y="35" width="220" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="fargate" value="Fargate&#xa;Tasks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="ecs">
+          <mxGeometry x="15" y="30" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="spot" value="Spot&#xa;Instances" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=9;" vertex="1" parent="ecs">
+          <mxGeometry x="85" y="30" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gpu-cloud" value="GPU&#xa;(p4d)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="ecs">
+          <mxGeometry x="155" y="30" width="50" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auto-scale" value="Auto-scaling: 0-100 tasks" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=8;fontColor=#666666;" vertex="1" parent="ecs">
+          <mxGeometry x="15" y="80" width="190" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cloud-storage" value="Cloud Storage" style="swimlane;fillColor=#FFECB3;strokeColor=#FFC107;fontStyle=1;fontSize=11;" vertex="1" parent="cloud-env">
+          <mxGeometry x="260" y="35" width="220" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3" value="S3&#xa;(Data)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=9;" vertex="1" parent="cloud-storage">
+          <mxGeometry x="20" y="30" width="55" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rds" value="RDS&#xa;(DB)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#FFEB3B;strokeColor=#FBC02D;fontColor=#333333;fontSize=9;" vertex="1" parent="cloud-storage">
+          <mxGeometry x="85" y="30" width="55" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="efs" value="EFS&#xa;(Shared)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="cloud-storage">
+          <mxGeometry x="150" y="30" width="55" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cloud-services" value="Services: Bedrock (Claude), Lambda, SQS, CloudWatch, Secrets Manager" style="text;html=1;strokeColor=#FF9800;fillColor=#FFF8E1;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="cloud-env">
+          <mxGeometry x="20" y="170" width="460" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cloud-best" value="Best for: Burst capacity, GPU workloads, public databases, global access" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;fontStyle=2;" vertex="1" parent="cloud-env">
+          <mxGeometry x="20" y="205" width="460" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cloud-cost" value="Cost: $0.05-$3/vCPU-hour | Data egress: $0.09/GB" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#FF5722;fontStyle=1;" vertex="1" parent="cloud-env">
+          <mxGeometry x="20" y="230" width="460" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Local/HPC Environment ==================== -->
+        <mxCell id="local-env" value="Local/HPC Environment" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="560" y="260" width="500" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurm" value="SLURM Cluster" style="swimlane;fillColor=#C8E6C9;strokeColor=#388E3C;fontStyle=1;fontSize=11;" vertex="1" parent="local-env">
+          <mxGeometry x="20" y="35" width="220" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="compute-nodes" value="Compute&#xa;Nodes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="slurm">
+          <mxGeometry x="15" y="30" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="highmem-nodes" value="High-Mem&#xa;Nodes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="slurm">
+          <mxGeometry x="85" y="30" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gpu-local" value="GPU&#xa;Nodes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="slurm">
+          <mxGeometry x="155" y="30" width="50" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurm-cap" value="Capacity: 1000+ cores, 10TB+ RAM" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=8;fontColor=#666666;" vertex="1" parent="slurm">
+          <mxGeometry x="15" y="80" width="190" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="local-storage" value="Local Storage" style="swimlane;fillColor=#DCEDC8;strokeColor=#8BC34A;fontStyle=1;fontSize=11;" vertex="1" parent="local-env">
+          <mxGeometry x="260" y="35" width="220" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lustre" value="Lustre&#xa;(Parallel FS)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="local-storage">
+          <mxGeometry x="20" y="30" width="55" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="postgres" value="PostgreSQL&#xa;(Local DB)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="local-storage">
+          <mxGeometry x="85" y="30" width="55" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="nfs" value="NFS&#xa;(Shared)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#CDDC39;strokeColor=#AFB42B;fontColor=#333333;fontSize=9;" vertex="1" parent="local-storage">
+          <mxGeometry x="150" y="30" width="55" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="local-services" value="Services: Ollama (Local LLM), DRMAA, Module Environment, Singularity" style="text;html=1;strokeColor=#4CAF50;fillColor=#F1F8E9;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="local-env">
+          <mxGeometry x="20" y="170" width="460" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="local-best" value="Best for: Sensitive data, large datasets, sustained workloads, compliance" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;fontStyle=2;" vertex="1" parent="local-env">
+          <mxGeometry x="20" y="205" width="460" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="local-cost" value="Cost: Fixed infrastructure | No data transfer costs" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#4CAF50;fontStyle=1;" vertex="1" parent="local-env">
+          <mxGeometry x="20" y="230" width="460" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Secure Tunnel ==================== -->
+        <mxCell id="tunnel" value="Secure Hybrid Connection" style="swimlane;fillColor=#FCE4EC;strokeColor=#E91E63;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="1020" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vpn" value="Site-to-Site&#xa;VPN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="tunnel">
+          <mxGeometry x="40" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="direct-connect" value="AWS Direct&#xa;Connect" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="tunnel">
+          <mxGeometry x="160" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ssh-tunnel" value="SSH&#xa;Tunneling" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF5722;strokeColor=#E64A19;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="tunnel">
+          <mxGeometry x="280" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-sync" value="Data Sync&#xa;(rsync/rclone)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="tunnel">
+          <mxGeometry x="400" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api-gateway" value="API Gateway&#xa;(REST/gRPC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=10;" vertex="1" parent="tunnel">
+          <mxGeometry x="520" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mq" value="Message Queue&#xa;(RabbitMQ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="tunnel">
+          <mxGeometry x="640" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="secrets" value="HashiCorp&#xa;Vault" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="tunnel">
+          <mxGeometry x="760" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cert-mgr" value="Cert&#xa;Manager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3F51B5;strokeColor=#303F9F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="tunnel">
+          <mxGeometry x="880" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Routing Decision Matrix ==================== -->
+        <mxCell id="routing" value="Workload Routing Decision Matrix" style="swimlane;fillColor=#E8EAF6;strokeColor=#3F51B5;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="400" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="routing-table" value="Workload Type          → Route&#xa;───────────────────────────────&#xa;Sensitive/PHI data     → Local HPC&#xa;Large datasets (&gt;100GB)→ Local HPC&#xa;GPU-intensive (AI/ML)  → Cloud GPU&#xa;Burst/unpredictable    → Cloud Spot&#xa;Real-time/low-latency  → Local&#xa;Cost-optimized         → Dynamic" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;fontFamily=Courier New;" vertex="1" parent="routing">
+          <mxGeometry x="10" y="25" width="380" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Data Flow Diagram ==================== -->
+        <mxCell id="data-flow" value="Hybrid Data Flow" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="700" width="700" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df-user" value="User&#xa;Request" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="data-flow">
+          <mxGeometry x="20" y="35" width="60" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df-classify" value="Classify &amp;&#xa;Route" style="rhombus;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="data-flow">
+          <mxGeometry x="110" y="30" width="70" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df-cloud" value="Cloud&#xa;Execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="data-flow">
+          <mxGeometry x="220" y="15" width="70" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df-local" value="Local&#xa;Execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="data-flow">
+          <mxGeometry x="220" y="65" width="70" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df-sync" value="Result&#xa;Sync" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="data-flow">
+          <mxGeometry x="330" y="35" width="60" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df-aggregate" value="Aggregate&#xa;&amp; Cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="data-flow">
+          <mxGeometry x="430" y="35" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df-result" value="Return&#xa;Result" style="ellipse;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="data-flow">
+          <mxGeometry x="540" y="35" width="60" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Flow arrows -->
+        <mxCell id="dfa1" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="data-flow" source="df-user" target="df-classify">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfa2" value="" style="endArrow=classic;html=1;strokeColor=#FF9800;" edge="1" parent="data-flow" source="df-classify" target="df-cloud">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfa3" value="" style="endArrow=classic;html=1;strokeColor=#4CAF50;" edge="1" parent="data-flow" source="df-classify" target="df-local">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfa4" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="data-flow" source="df-cloud" target="df-sync">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfa5" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="data-flow" source="df-local" target="df-sync">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfa6" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="data-flow" source="df-sync" target="df-aggregate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfa7" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="data-flow" source="df-aggregate" target="df-result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Benefits Box ==================== -->
+        <mxCell id="benefits" value="Hybrid Architecture Benefits" style="swimlane;fillColor=#E0F7FA;strokeColor=#00BCD4;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="700" width="300" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="benefits-list" value="1. Cost optimization (cloud burst, local sustained)&#xa;2. Data sovereignty &amp; compliance (HIPAA, GDPR)&#xa;3. No vendor lock-in (portable workloads)&#xa;4. High availability (failover between envs)&#xa;5. Performance (data locality optimization)&#xa;6. Scale (virtually unlimited with cloud)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;" vertex="1" parent="benefits">
+          <mxGeometry x="10" y="25" width="280" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Connection Arrows between main sections -->
+        <mxCell id="arr-control-cloud" value="Deploy" style="endArrow=classic;html=1;strokeColor=#FF9800;strokeWidth=2;dashed=1;" edge="1" parent="1" source="control-plane" target="cloud-env">
+          <mxGeometry x="-0.3" y="-10" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arr-control-local" value="Deploy" style="endArrow=classic;html=1;strokeColor=#4CAF50;strokeWidth=2;dashed=1;" edge="1" parent="1" source="control-plane" target="local-env">
+          <mxGeometry x="-0.3" y="10" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arr-cloud-tunnel" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#E91E63;strokeWidth=2;" edge="1" parent="1" source="cloud-env" target="tunnel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arr-local-tunnel" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#E91E63;strokeWidth=2;" edge="1" parent="1" source="local-env" target="tunnel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

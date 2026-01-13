@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="infrastructure-abstraction-layer" name="Infrastructure Abstraction Layer">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Infrastructure Abstraction Layer" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Layer Diagram ==================== -->
+        <mxCell id="layer-diagram" value="" style="swimlane;startSize=0;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1520" height="400" as="geometry" />
+        </mxCell>
+
+        <!-- Application Layer -->
+        <mxCell id="app-layer" value="BioMate Application Layer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="200" y="10" width="1100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Abstraction API Layer -->
+        <mxCell id="api-layer" value="Infrastructure Abstraction API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="200" y="80" width="1100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Adapter Layer -->
+        <mxCell id="adapter-layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontSize=12;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="200" y="150" width="1100" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="adapter-title" value="Provider Adapters" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="200" y="155" width="1100" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="compute-adapter" value="Compute&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="220" y="180" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-adapter" value="Storage&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="340" y="180" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="network-adapter" value="Network&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="460" y="180" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="queue-adapter" value="Queue&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="580" y="180" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="secrets-adapter" value="Secrets&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="700" y="180" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="logging-adapter" value="Logging&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="820" y="180" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="monitoring-adapter" value="Monitoring&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="940" y="180" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="container-adapter" value="Container&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="1060" y="180" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Provider Layer -->
+        <mxCell id="provider-layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0E0E0;strokeColor=#9E9E9E;fontSize=12;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="200" y="250" width="1100" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="provider-title" value="Infrastructure Providers" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="200" y="255" width="1100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- AWS -->
+        <mxCell id="aws-provider" value="AWS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9900;strokeColor=#CC7A00;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="220" y="285" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-services" value="EC2 | ECS | S3 | RDS&#xa;Lambda | SQS | Secrets&#xa;CloudWatch | VPC" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#FFFFFF;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="220" y="315" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- GCP -->
+        <mxCell id="gcp-provider" value="Google Cloud" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4285F4;strokeColor=#3367D6;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="420" y="285" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="gcp-services" value="GCE | GKE | Cloud Storage&#xa;Cloud SQL | Cloud Functions&#xa;Pub/Sub | Secret Manager" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#FFFFFF;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="420" y="315" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Azure -->
+        <mxCell id="azure-provider" value="Microsoft Azure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;strokeColor=#005A9E;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="620" y="285" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="azure-services" value="VMs | AKS | Blob Storage&#xa;Azure SQL | Functions&#xa;Service Bus | Key Vault" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#FFFFFF;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="620" y="315" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- SLURM -->
+        <mxCell id="slurm-provider" value="SLURM HPC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="820" y="285" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="slurm-services" value="sbatch | squeue | scancel&#xa;NFS/Lustre | Module System&#xa;GPU Partitions | Quotas" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#FFFFFF;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="820" y="315" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Local -->
+        <mxCell id="local-provider" value="Local (Docker)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="1020" y="285" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="local-services" value="Docker | Docker Compose&#xa;Local Filesystem | SQLite&#xa;Systemd | Nginx" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#FFFFFF;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="1020" y="315" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows from adapters to providers -->
+        <mxCell id="arrow-down" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;entryX=0.5;entryY=0;" edge="1" parent="layer-diagram" source="adapter-layer" target="provider-layer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Labels -->
+        <mxCell id="label-app" value="Application Code" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="60" y="20" width="120" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="label-api" value="Unified API" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="60" y="90" width="120" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="label-adapter" value="Adapters" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="60" y="175" width="120" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="label-provider" value="Providers" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="layer-diagram">
+          <mxGeometry x="60" y="305" width="120" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Adapter Interface Details ==================== -->
+        <mxCell id="adapter-details" value="Adapter Interface Definitions" style="swimlane;fillColor=#E1F5FE;strokeColor=#0288D1;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="760" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="compute-interface" value="ComputeAdapter Interface" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="adapter-details">
+          <mxGeometry x="20" y="35" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="compute-methods" value="class ComputeAdapter:&#xa;  def create_instance(specs)&#xa;  def terminate_instance(id)&#xa;  def list_instances()&#xa;  def get_status(id)&#xa;  def scale_up(count)&#xa;  def scale_down(count)&#xa;  def execute_job(job)&#xa;  def get_logs(job_id)" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="compute-interface">
+          <mxGeometry x="10" y="25" width="200" height="165" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-interface" value="StorageAdapter Interface" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="adapter-details">
+          <mxGeometry x="260" y="35" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-methods" value="class StorageAdapter:&#xa;  def upload(path, data)&#xa;  def download(path)&#xa;  def delete(path)&#xa;  def list(prefix)&#xa;  def get_url(path, expiry)&#xa;  def copy(src, dst)&#xa;  def move(src, dst)&#xa;  def get_size(path)" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="storage-interface">
+          <mxGeometry x="10" y="25" width="200" height="165" as="geometry" />
+        </mxCell>
+
+        <mxCell id="queue-interface" value="QueueAdapter Interface" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="adapter-details">
+          <mxGeometry x="500" y="35" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="queue-methods" value="class QueueAdapter:&#xa;  def submit_job(job)&#xa;  def get_job_status(id)&#xa;  def cancel_job(id)&#xa;  def list_jobs(filter)&#xa;  def get_queue_depth()&#xa;  def set_priority(id, p)&#xa;  def retry_job(id)&#xa;  def get_result(id)" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="queue-interface">
+          <mxGeometry x="10" y="25" width="200" height="165" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Configuration Management ==================== -->
+        <mxCell id="config-mgmt" value="Configuration &amp; Secrets Management" style="swimlane;fillColor=#FFF3E0;strokeColor=#E65100;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="820" y="500" width="740" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="env-config" value="Environment Detection" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="config-mgmt">
+          <mxGeometry x="20" y="35" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="env-detect-code" value="def detect_environment():&#xa;  if os.getenv('AWS_REGION'):&#xa;    return 'aws'&#xa;  if os.getenv('GCP_PROJECT'):&#xa;    return 'gcp'&#xa;  if os.path.exists('/slurm'):&#xa;    return 'slurm'&#xa;  if docker_available():&#xa;    return 'local'&#xa;  raise UnknownEnvironment()" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="env-config">
+          <mxGeometry x="10" y="25" width="200" height="165" as="geometry" />
+        </mxCell>
+
+        <mxCell id="secrets-config" value="Secrets Sources" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="config-mgmt">
+          <mxGeometry x="260" y="35" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="secrets-list" value="Priority Order:&#xa;&#xa;1. Environment Variables&#xa;2. AWS Secrets Manager&#xa;3. HashiCorp Vault&#xa;4. GCP Secret Manager&#xa;5. Azure Key Vault&#xa;6. Local .env file&#xa;7. Config file (encrypted)" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="secrets-config">
+          <mxGeometry x="10" y="25" width="200" height="165" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iac-config" value="Infrastructure as Code" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="config-mgmt">
+          <mxGeometry x="500" y="35" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="iac-files" value="deploy/&#xa;├── terraform/&#xa;│   ├── aws/&#xa;│   ├── gcp/&#xa;│   └── azure/&#xa;├── pulumi/&#xa;├── ansible/&#xa;│   └── playbooks/&#xa;└── docker-compose/&#xa;    ├── dev.yml&#xa;    └── prod.yml" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="iac-config">
+          <mxGeometry x="10" y="25" width="200" height="165" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Usage Flow ==================== -->
+        <mxCell id="usage-flow" value="Usage Flow: Environment-Agnostic Code" style="swimlane;fillColor=#E8F5E9;strokeColor=#388E3C;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="780" width="1520" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uf-code" value="App Code&#xa;(Generic API)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="usage-flow">
+          <mxGeometry x="40" y="60" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uf-factory" value="Adapter&#xa;Factory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="usage-flow">
+          <mxGeometry x="180" y="60" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uf-detect" value="Env&#xa;Detection" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="usage-flow">
+          <mxGeometry x="320" y="50" width="80" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uf-aws" value="AWS&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9900;strokeColor=#CC7A00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="usage-flow">
+          <mxGeometry x="450" y="30" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uf-gcp" value="GCP&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4285F4;strokeColor=#3367D6;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="usage-flow">
+          <mxGeometry x="450" y="75" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uf-local" value="Local&#xa;Adapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="usage-flow">
+          <mxGeometry x="450" y="120" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uf-execute" value="Execute on&#xa;Provider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="usage-flow">
+          <mxGeometry x="580" y="60" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uf-result" value="Result&#xa;(Uniform Format)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="usage-flow">
+          <mxGeometry x="730" y="55" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="uf-a1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="usage-flow" source="uf-code" target="uf-factory">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uf-a2" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="usage-flow" source="uf-factory" target="uf-detect">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uf-a3" value="" style="endArrow=classic;html=1;strokeColor=#FF9900;strokeWidth=2;" edge="1" parent="usage-flow" source="uf-detect" target="uf-aws">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uf-a4" value="" style="endArrow=classic;html=1;strokeColor=#4285F4;strokeWidth=2;" edge="1" parent="usage-flow" source="uf-detect" target="uf-gcp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uf-a5" value="" style="endArrow=classic;html=1;strokeColor=#9C27B0;strokeWidth=2;" edge="1" parent="usage-flow" source="uf-detect" target="uf-local">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uf-a6" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="usage-flow" source="uf-aws" target="uf-execute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uf-a7" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="usage-flow" source="uf-gcp" target="uf-execute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uf-a8" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="usage-flow" source="uf-local" target="uf-execute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uf-a9" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="usage-flow" source="uf-execute" target="uf-result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Example Code -->
+        <mxCell id="example-code" value="Example Usage" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="usage-flow">
+          <mxGeometry x="880" y="20" width="600" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="code-sample" value="# Environment-agnostic code&#xa;from biomate.infra import get_compute_adapter, get_storage_adapter&#xa;&#xa;compute = get_compute_adapter()  # Auto-detects: AWS/GCP/SLURM/Local&#xa;storage = get_storage_adapter()&#xa;&#xa;# Same code works everywhere&#xa;job_id = compute.execute_job(workflow_spec)&#xa;status = compute.get_status(job_id)&#xa;storage.upload('/results/output.csv', data)" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="example-code">
+          <mxGeometry x="10" y="25" width="580" height="105" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

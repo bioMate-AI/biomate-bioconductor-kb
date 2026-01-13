@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="multi-environment-infrastructure" name="Multi-Environment Infrastructure">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Multi-Environment Infrastructure" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Deployment Abstraction Layer ==================== -->
+        <mxCell id="abstraction-layer" value="Deployment Abstraction Layer" style="swimlane;fillColor=#E3F2FD;strokeColor=#1976D2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1520" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="biomate-app" value="BioMate Application" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="abstraction-layer">
+          <mxGeometry x="40" y="35" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-scheduler" value="Job Scheduler&#xa;(Unified API)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="abstraction-layer">
+          <mxGeometry x="240" y="35" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="resource-mgr" value="Resource Manager&#xa;(Auto-scaling)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="abstraction-layer">
+          <mxGeometry x="400" y="35" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-mgr" value="Storage Manager&#xa;(Multi-backend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="abstraction-layer">
+          <mxGeometry x="560" y="35" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="env-detector" value="Environment&#xa;Detector" style="rhombus;whiteSpace=wrap;html=1;fillColor=#E74C3C;strokeColor=#C0392B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="abstraction-layer">
+          <mxGeometry x="720" y="25" width="90" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="config-mgr" value="Config Manager&#xa;(IaC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="abstraction-layer">
+          <mxGeometry x="850" y="35" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="secrets-mgr" value="Secrets Manager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="abstraction-layer">
+          <mxGeometry x="1010" y="35" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Environment Options ==================== -->
+        <mxCell id="env-options" value="Supported Deployment Environments" style="swimlane;fillColor=#E8F5E9;strokeColor=#388E3C;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="1520" height="280" as="geometry" />
+        </mxCell>
+
+        <!-- Local Server -->
+        <mxCell id="local-env" value="Local Single Server" style="swimlane;fillColor=#C8E6C9;strokeColor=#4CAF50;fontStyle=1;fontSize=12;" vertex="1" parent="env-options">
+          <mxGeometry x="20" y="40" width="280" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="local-icon" value="" style="shape=mxgraph.cisco.servers.standard_host;html=1;pointerEvents=1;dashed=0;fillColor=#4CAF50;strokeColor=#388E3C;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="local-env">
+          <mxGeometry x="20" y="35" width="50" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="local-desc" value="• Docker Compose deployment&#xa;• All-in-one configuration&#xa;• SQLite/PostgreSQL&#xa;• Ollama LLM (local)&#xa;• Development &amp; small labs&#xa;• Easy setup &amp; maintenance" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="local-env">
+          <mxGeometry x="80" y="30" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="local-resources" value="CPU: 4-16 cores | RAM: 16-64GB&#xa;GPU: Optional (CUDA)" style="text;html=1;strokeColor=#4CAF50;fillColor=#E8F5E9;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="local-env">
+          <mxGeometry x="20" y="130" width="240" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="local-use" value="Best for: Development, Testing, Small Teams" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fontColor=#666666;" vertex="1" parent="local-env">
+          <mxGeometry x="20" y="170" width="240" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- AWS -->
+        <mxCell id="aws-env" value="AWS Cloud" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=12;" vertex="1" parent="env-options">
+          <mxGeometry x="320" y="40" width="280" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-icon" value="" style="outlineConnect=0;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;shape=mxgraph.aws3.cloud;fillColor=#F58536;gradientColor=none;" vertex="1" parent="aws-env">
+          <mxGeometry x="20" y="30" width="50" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-desc" value="• EC2 for Galaxy server&#xa;• ECS/Fargate for tools&#xa;• S3 for data storage&#xa;• RDS for database&#xa;• Lambda for serverless&#xa;• Auto-scaling enabled" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="aws-env">
+          <mxGeometry x="80" y="30" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-resources" value="Scalable: t3.medium to p4d.24xlarge&#xa;GPU: NVIDIA A10G, V100, A100" style="text;html=1;strokeColor=#FF9800;fillColor=#FFF3E0;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="aws-env">
+          <mxGeometry x="20" y="130" width="240" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-use" value="Best for: Production, Scalability, Global" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fontColor=#666666;" vertex="1" parent="aws-env">
+          <mxGeometry x="20" y="170" width="240" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- SLURM HPC -->
+        <mxCell id="slurm-env" value="SLURM HPC Cluster" style="swimlane;fillColor=#E3F2FD;strokeColor=#2196F3;fontStyle=1;fontSize=12;" vertex="1" parent="env-options">
+          <mxGeometry x="620" y="40" width="280" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurm-icon" value="" style="shape=mxgraph.cisco.servers.server_farm;html=1;pointerEvents=1;dashed=0;fillColor=#2196F3;strokeColor=#1565C0;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="slurm-env">
+          <mxGeometry x="20" y="35" width="50" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurm-desc" value="• Job submission via sbatch&#xa;• Resource allocation&#xa;• Queue management&#xa;• Shared filesystem (NFS/Lustre)&#xa;• Module system integration&#xa;• GPU partitions" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="slurm-env">
+          <mxGeometry x="80" y="30" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurm-resources" value="Massive: 100s-1000s of nodes&#xa;GPU: A100, V100, RTX clusters" style="text;html=1;strokeColor=#2196F3;fillColor=#E3F2FD;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="slurm-env">
+          <mxGeometry x="20" y="130" width="240" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurm-use" value="Best for: Large-scale HPC, Universities" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fontColor=#666666;" vertex="1" parent="slurm-env">
+          <mxGeometry x="20" y="170" width="240" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Other Cloud (GCP/Azure) -->
+        <mxCell id="other-env" value="Other Cloud (GCP/Azure)" style="swimlane;fillColor=#FCE4EC;strokeColor=#E91E63;fontStyle=1;fontSize=12;" vertex="1" parent="env-options">
+          <mxGeometry x="920" y="40" width="280" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gcp-icon" value="" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="other-env">
+          <mxGeometry x="20" y="30" width="50" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="other-desc" value="Google Cloud Platform:&#xa;• GKE for containers&#xa;• Cloud Storage&#xa;• Cloud SQL&#xa;&#xa;Microsoft Azure:&#xa;• AKS for containers&#xa;• Blob Storage" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="other-env">
+          <mxGeometry x="80" y="25" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="other-resources" value="Similar to AWS capabilities&#xa;Provider-specific optimizations" style="text;html=1;strokeColor=#E91E63;fillColor=#FCE4EC;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="other-env">
+          <mxGeometry x="20" y="130" width="240" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="other-use" value="Best for: Existing cloud investments" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fontColor=#666666;" vertex="1" parent="other-env">
+          <mxGeometry x="20" y="170" width="240" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Hybrid -->
+        <mxCell id="hybrid-env" value="Hybrid (Local + Cloud)" style="swimlane;fillColor=#F3E5F5;strokeColor=#9C27B0;fontStyle=1;fontSize=12;" vertex="1" parent="env-options">
+          <mxGeometry x="1220" y="40" width="280" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hybrid-icon" value="" style="html=1;verticalLabelPosition=bottom;align=center;labelBackgroundColor=#ffffff;verticalAlign=top;strokeWidth=2;strokeColor=#9C27B0;shadow=0;dashed=0;shape=mxgraph.ios7.icons.data;fillColor=#9C27B0;" vertex="1" parent="hybrid-env">
+          <mxGeometry x="25" y="35" width="40" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hybrid-desc" value="• Local for sensitive data&#xa;• Cloud burst for compute&#xa;• Secure tunnel (VPN/SSH)&#xa;• Cost optimization&#xa;• Data locality aware&#xa;• Failover support" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="hybrid-env">
+          <mxGeometry x="80" y="30" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hybrid-resources" value="Flexible: Best of both worlds&#xa;Dynamic workload distribution" style="text;html=1;strokeColor=#9C27B0;fillColor=#F3E5F5;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="hybrid-env">
+          <mxGeometry x="20" y="130" width="240" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hybrid-use" value="Best for: Compliance + Scalability" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fontColor=#666666;" vertex="1" parent="hybrid-env">
+          <mxGeometry x="20" y="170" width="240" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Job Routing Flow ==================== -->
+        <mxCell id="job-flow" value="Job Routing &amp; Execution Flow" style="swimlane;fillColor=#FFF3E0;strokeColor=#E65100;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="1520" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-request" value="Job Request" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="30" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-classify" value="Workload&#xa;Classifier" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="150" y="50" width="90" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-local" value="Local&#xa;Queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="290" y="30" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-cloud" value="Cloud&#xa;Queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="290" y="90" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-hpc" value="HPC&#xa;Queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="290" y="140" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-runner-local" value="Docker&#xa;Runner" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="420" y="30" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-runner-cloud" value="ECS/K8s&#xa;Runner" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="420" y="90" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-runner-hpc" value="SLURM&#xa;Runner" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="420" y="140" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-execute" value="Tool&#xa;Execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="550" y="75" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-result" value="Result&#xa;Collection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="680" y="75" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-storage" value="Storage&#xa;(Local/S3/NFS)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="job-flow">
+          <mxGeometry x="810" y="65" width="90" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jf-complete" value="Complete" style="ellipse;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="950" y="65" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="jf-a1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="job-flow" source="jf-request" target="jf-classify">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a2" value="" style="endArrow=classic;html=1;strokeColor=#4CAF50;strokeWidth=2;" edge="1" parent="job-flow" source="jf-classify" target="jf-local">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a3" value="" style="endArrow=classic;html=1;strokeColor=#FF9800;strokeWidth=2;" edge="1" parent="job-flow" source="jf-classify" target="jf-cloud">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a4" value="" style="endArrow=classic;html=1;strokeColor=#2196F3;strokeWidth=2;" edge="1" parent="job-flow" source="jf-classify" target="jf-hpc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a5" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="job-flow" source="jf-local" target="jf-runner-local">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a6" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="job-flow" source="jf-cloud" target="jf-runner-cloud">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a7" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="job-flow" source="jf-hpc" target="jf-runner-hpc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a8" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="job-flow" source="jf-runner-local" target="jf-execute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a9" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="job-flow" source="jf-runner-cloud" target="jf-execute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a10" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="job-flow" source="jf-runner-hpc" target="jf-execute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a11" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="job-flow" source="jf-execute" target="jf-result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a12" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="job-flow" source="jf-result" target="jf-storage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jf-a13" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="job-flow" source="jf-storage" target="jf-complete">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Classification Criteria -->
+        <mxCell id="classify-criteria" value="Classification Criteria" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="job-flow">
+          <mxGeometry x="1080" y="20" width="420" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="criteria-list" value="Factor               | Local        | Cloud        | HPC&#xa;─────────────────────────────────────────────────────&#xa;Data Size            | &lt;10GB        | 10-100GB     | &gt;100GB&#xa;Compute Time         | &lt;1hr         | 1-24hr       | &gt;24hr&#xa;GPU Required         | Optional     | Yes          | Multi-GPU&#xa;Compliance           | Sensitive    | Non-sensitive| Research&#xa;Cost Priority        | Free         | Pay-per-use  | Allocated" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="classify-criteria">
+          <mxGeometry x="10" y="25" width="400" height="105" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Resource Provisioning ==================== -->
+        <mxCell id="provisioning" value="Resource Provisioning Strategies" style="swimlane;fillColor=#E1F5FE;strokeColor=#0288D1;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="760" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prov-static" value="Static Provisioning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="provisioning">
+          <mxGeometry x="20" y="40" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="prov-static-desc" value="• Fixed resource allocation&#xa;• Predictable performance&#xa;• Best for steady workloads&#xa;• Lower cost variability" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="provisioning">
+          <mxGeometry x="20" y="90" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prov-auto" value="Auto-scaling" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="provisioning">
+          <mxGeometry x="180" y="40" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="prov-auto-desc" value="• Dynamic scaling&#xa;• CPU/Memory triggers&#xa;• Min/Max bounds&#xa;• Cost-performance balance" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="provisioning">
+          <mxGeometry x="180" y="90" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prov-spot" value="Spot/Preemptible" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#009688;strokeColor=#00796B;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="provisioning">
+          <mxGeometry x="340" y="40" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="prov-spot-desc" value="• 70-90% cost savings&#xa;• Interruptible workloads&#xa;• Checkpointing required&#xa;• Batch processing ideal" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="provisioning">
+          <mxGeometry x="340" y="90" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prov-reserved" value="Reserved/Committed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="provisioning">
+          <mxGeometry x="500" y="40" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="prov-reserved-desc" value="• Discounted pricing&#xa;• 1-3 year commitment&#xa;• Guaranteed capacity&#xa;• Production workloads" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="provisioning">
+          <mxGeometry x="500" y="90" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Service Discovery ==================== -->
+        <mxCell id="service-discovery" value="Service Discovery &amp; Configuration" style="swimlane;fillColor=#FFEBEE;strokeColor=#D32F2F;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="820" y="720" width="740" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sd-consul" value="Service Registry&#xa;(Consul/etcd)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="service-discovery">
+          <mxGeometry x="20" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sd-dns" value="DNS-based&#xa;Discovery" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="service-discovery">
+          <mxGeometry x="160" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sd-k8s" value="K8s Service&#xa;Discovery" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="service-discovery">
+          <mxGeometry x="300" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="config-terraform" value="Infrastructure as Code" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=10;" vertex="1" parent="service-discovery">
+          <mxGeometry x="450" y="30" width="270" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iac-terraform" value="Terraform" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7B42BC;strokeColor=#5C2D91;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="config-terraform">
+          <mxGeometry x="20" y="30" width="70" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iac-pulumi" value="Pulumi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="config-terraform">
+          <mxGeometry x="100" y="30" width="70" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iac-ansible" value="Ansible" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1A1918;strokeColor=#000000;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="config-terraform">
+          <mxGeometry x="180" y="30" width="70" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iac-desc" value="• Version controlled infra&#xa;• Reproducible deployments&#xa;• Multi-cloud support&#xa;• Automated provisioning" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="config-terraform">
+          <mxGeometry x="20" y="75" width="230" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sd-health" value="Health Checks &amp; Monitoring" style="text;html=1;strokeColor=#D32F2F;fillColor=#FFCDD2;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;rounded=1;" vertex="1" parent="service-discovery">
+          <mxGeometry x="20" y="110" width="200" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sd-health-desc" value="• Liveness/Readiness probes&#xa;• Auto-recovery&#xa;• Alert notifications" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;" vertex="1" parent="service-discovery">
+          <mxGeometry x="20" y="140" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Legend ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="940" width="800" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-local" value="Local" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="30" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-aws" value="AWS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="80" y="30" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-hpc" value="HPC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="140" y="30" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-hybrid" value="Hybrid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="200" y="30" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-decision" value="Decision" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="260" y="20" width="60" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-storage" value="Storage" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="330" y="22" width="60" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-endpoint" value="Start/End" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="400" y="25" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-flow" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="legend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="45" as="sourcePoint" />
+            <mxPoint x="540" y="45" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg-flow-label" value="Flow" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="550" y="35" width="30" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-env-color" value="" style="endArrow=classic;html=1;strokeColor=#4CAF50;strokeWidth=3;" edge="1" parent="legend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="45" as="sourcePoint" />
+            <mxPoint x="660" y="45" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg-env-label" value="Env-specific" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="670" y="35" width="70" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

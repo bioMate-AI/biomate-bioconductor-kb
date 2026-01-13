@@ -13,6 +13,7 @@ import { auditService } from './audit-service';
 import { db } from './db';
 import { workflowExecutions } from '../shared/schema';
 import { eq } from 'drizzle-orm';
+import { storage } from './storage';
 
 export interface SSEClient {
   id: string;
@@ -39,13 +40,42 @@ export class WorkflowSSEManager {
    */
   private setupPollerListeners(): void {
     // Workflow-level state changes
-    this.poller.on('workflow_state', (update: WorkflowExecutionUpdate) => {
+    this.poller.on('workflow_state', async (update: WorkflowExecutionUpdate) => {
       this.broadcastToClients(update.invocation_id, update);
+
+      // Update local invocation record
+      try {
+        const data = update.data as any;
+        await storage.updateInvocation(update.invocation_id, {
+          status: data.workflow_state || 'running',
+          updatedAt: new Date(),
+        });
+      } catch (e) {
+        console.warn('[SSE] Failed to update local invocation:', e);
+      }
     });
 
     // Step-level state changes
-    this.poller.on('step_state', (update: WorkflowExecutionUpdate) => {
+    this.poller.on('step_state', async (update: WorkflowExecutionUpdate) => {
       this.broadcastToClients(update.invocation_id, update);
+
+      // Update local invocation record with step progress
+      try {
+        const data = update.data as any;
+        if (data.step_state === 'ok' || data.step_state === 'completed') {
+          // Increment completed steps
+          const invocation = await storage.getInvocation(update.invocation_id);
+          if (invocation) {
+            await storage.updateInvocation(update.invocation_id, {
+              completedSteps: (invocation.completedSteps || 0) + 1,
+              currentStepName: data.step_label || data.tool_id,
+              updatedAt: new Date(),
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[SSE] Failed to update step progress:', e);
+      }
     });
 
     // Job logs
@@ -64,7 +94,7 @@ export class WorkflowSSEManager {
     });
 
     // Workflow completed
-    this.poller.on('workflow_completed', (data: { invocation_id: string; state: string }) => {
+    this.poller.on('workflow_completed', async (data: { invocation_id: string; state: string }) => {
       const update: WorkflowExecutionUpdate = {
         type: 'workflow_state',
         invocation_id: data.invocation_id,
@@ -72,6 +102,17 @@ export class WorkflowSSEManager {
         data: { workflow_state: data.state as any },
       };
       this.broadcastToClients(data.invocation_id, update);
+
+      // Update local invocation record with completed state
+      try {
+        await storage.updateInvocation(data.invocation_id, {
+          status: data.state === 'scheduled' ? 'ok' : data.state,
+          updatedAt: new Date(),
+        });
+        console.log('[SSE] Workflow completed, updated local record:', data.invocation_id);
+      } catch (e) {
+        console.warn('[SSE] Failed to update completion status:', e);
+      }
 
       // Close all clients after completion
       setTimeout(() => {

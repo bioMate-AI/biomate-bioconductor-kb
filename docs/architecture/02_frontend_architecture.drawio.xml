@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="frontend-architecture" name="Frontend Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Frontend Architecture (React + TypeScript)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== UI Components Layer ==================== -->
+        <mxCell id="ui-layer" value="UI Components Layer (React)" style="swimlane;fillColor=#E3F2FD;strokeColor=#1976D2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1520" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- Main Chat Interface -->
+        <mxCell id="chat-interface" value="ChatInterface&#xa;(chat-interface.tsx)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="ui-layer">
+          <mxGeometry x="40" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-desc" value="- Message input/output&#xa;- Conversation history&#xa;- Streaming responses&#xa;- File attachments" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ui-layer">
+          <mxGeometry x="40" y="110" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Chat Message -->
+        <mxCell id="chat-message" value="ChatMessage&#xa;(chat-message.tsx)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="ui-layer">
+          <mxGeometry x="220" y="40" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-msg-desc" value="- User/AI messages&#xa;- Markdown rendering&#xa;- Code syntax highlight&#xa;- Copy functionality" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ui-layer">
+          <mxGeometry x="220" y="110" width="150" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Chat with Artifacts -->
+        <mxCell id="chat-artifacts" value="ChatWithArtifacts&#xa;(chat-with-artifacts.tsx)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="ui-layer">
+          <mxGeometry x="390" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="artifacts-desc" value="- Inline artifacts&#xa;- Workflow preview&#xa;- Interactive charts&#xa;- Result displays" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ui-layer">
+          <mxGeometry x="390" y="110" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow Artifact -->
+        <mxCell id="workflow-artifact" value="WorkflowArtifact&#xa;(workflow-artifact.tsx)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="ui-layer">
+          <mxGeometry x="570" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-desc" value="- Workflow visualization&#xa;- Step status indicators&#xa;- Execution progress&#xa;- Run/Stop controls" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ui-layer">
+          <mxGeometry x="570" y="110" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Parameter Dialog -->
+        <mxCell id="param-dialog" value="ParameterDialog&#xa;(parameter-dialog.tsx)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E74C3C;strokeColor=#C0392B;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="ui-layer">
+          <mxGeometry x="750" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="param-desc" value="- Dynamic form gen&#xa;- Input validation&#xa;- File upload support&#xa;- Default values" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ui-layer">
+          <mxGeometry x="750" y="110" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Navigation/Layout -->
+        <mxCell id="nav-layout" value="Navigation &amp; Layout&#xa;Components" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="ui-layer">
+          <mxGeometry x="930" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="nav-desc" value="- Sidebar navigation&#xa;- Project selector&#xa;- Theme toggle&#xa;- User menu" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ui-layer">
+          <mxGeometry x="930" y="110" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- UI Library -->
+        <mxCell id="ui-library" value="UI Library&#xa;(shadcn/ui + Tailwind)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="ui-layer">
+          <mxGeometry x="1090" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ui-lib-desc" value="- Buttons, Forms&#xa;- Dialogs, Modals&#xa;- Toast notifications&#xa;- Responsive design" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ui-layer">
+          <mxGeometry x="1090" y="110" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== State Management Layer ==================== -->
+        <mxCell id="state-layer" value="State Management (React Hooks + Context)" style="swimlane;fillColor=#E8F5E9;strokeColor=#388E3C;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="1520" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Workflow Execution Hook -->
+        <mxCell id="workflow-hook" value="useWorkflowExecution&#xa;(useWorkflowExecution.ts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="state-layer">
+          <mxGeometry x="40" y="40" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-hook-desc" value="- Workflow state management&#xa;- Execution control (run/stop)&#xa;- Status tracking&#xa;- Error handling" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="state-layer">
+          <mxGeometry x="40" y="100" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Chat State -->
+        <mxCell id="chat-state" value="useChatState&#xa;(Conversation Context)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="state-layer">
+          <mxGeometry x="240" y="40" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="chat-state-desc" value="- Message history&#xa;- Streaming state&#xa;- Input buffer" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="state-layer">
+          <mxGeometry x="240" y="100" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Project Context -->
+        <mxCell id="project-context" value="ProjectContext&#xa;(projects.ts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CDDC39;strokeColor=#AFB42B;fontColor=#333333;fontSize=11;" vertex="1" parent="state-layer">
+          <mxGeometry x="420" y="40" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="project-desc" value="- Active project&#xa;- Project list&#xa;- CRUD operations" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="state-layer">
+          <mxGeometry x="420" y="100" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Theme Context -->
+        <mxCell id="theme-context" value="ThemeContext&#xa;(Dark/Light Mode)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEB3B;strokeColor=#FBC02D;fontColor=#333333;fontSize=11;" vertex="1" parent="state-layer">
+          <mxGeometry x="600" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Auth Context -->
+        <mxCell id="auth-context" value="AuthContext&#xa;(User Session)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="state-layer">
+          <mxGeometry x="760" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Query Cache -->
+        <mxCell id="query-cache" value="React Query Cache&#xa;(TanStack Query)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="state-layer">
+          <mxGeometry x="920" y="40" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="query-desc" value="- API data caching&#xa;- Optimistic updates&#xa;- Refetch strategies" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="state-layer">
+          <mxGeometry x="920" y="100" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== API Communication Layer ==================== -->
+        <mxCell id="api-layer" value="API Communication Layer" style="swimlane;fillColor=#FFF3E0;strokeColor=#E65100;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="1520" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- REST API Client -->
+        <mxCell id="rest-client" value="REST API Client&#xa;(fetch / axios)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="api-layer">
+          <mxGeometry x="40" y="40" width="150" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rest-endpoints" value="Endpoints:&#xa;• /api/ai/chat&#xa;• /api/workflows&#xa;• /api/histories&#xa;• /api/tools" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="api-layer">
+          <mxGeometry x="40" y="100" width="150" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- SSE Handler -->
+        <mxCell id="sse-handler" value="SSE Handler&#xa;(EventSource)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="api-layer">
+          <mxGeometry x="210" y="40" width="150" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-events" value="Events:&#xa;• workflow_status&#xa;• job_progress&#xa;• stream_response" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="api-layer">
+          <mxGeometry x="210" y="100" width="150" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy Proxy -->
+        <mxCell id="galaxy-proxy-fe" value="Galaxy API Proxy&#xa;(galaxy-api-proxy.ts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="api-layer">
+          <mxGeometry x="380" y="40" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="proxy-desc" value="• Tool listing&#xa;• Workflow CRUD&#xa;• Job management" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="api-layer">
+          <mxGeometry x="380" y="100" width="160" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- WebSocket (optional) -->
+        <mxCell id="websocket" value="WebSocket&#xa;(Future: Real-time)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=12;dashed=1;" vertex="1" parent="api-layer">
+          <mxGeometry x="560" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Error Handler -->
+        <mxCell id="error-handler" value="Error Handler&#xa;(Toast Notifications)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="api-layer">
+          <mxGeometry x="720" y="40" width="150" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Request Interceptor -->
+        <mxCell id="interceptor" value="Request Interceptor&#xa;(Auth Headers)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="api-layer">
+          <mxGeometry x="890" y="40" width="150" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Data Flow ==================== -->
+        <mxCell id="data-flow" value="Data Flow" style="swimlane;fillColor=#FCE4EC;strokeColor=#C2185B;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="680" width="760" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- Flow Diagram -->
+        <mxCell id="flow-user" value="User&#xa;Action" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="data-flow">
+          <mxGeometry x="20" y="60" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-component" value="React&#xa;Component" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="data-flow">
+          <mxGeometry x="110" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-hook" value="Custom&#xa;Hook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="data-flow">
+          <mxGeometry x="210" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-api" value="API&#xa;Call" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="data-flow">
+          <mxGeometry x="310" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-backend" value="Backend&#xa;Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="data-flow">
+          <mxGeometry x="410" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-sse" value="SSE&#xa;Event" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="data-flow">
+          <mxGeometry x="510" y="60" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-state" value="State&#xa;Update" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="data-flow">
+          <mxGeometry x="600" y="60" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-render" value="Re-render&#xa;UI" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="data-flow">
+          <mxGeometry x="690" y="60" width="60" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Flow Arrows -->
+        <mxCell id="arrow1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="data-flow" source="flow-user" target="flow-component">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="data-flow" source="flow-component" target="flow-hook">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="data-flow" source="flow-hook" target="flow-api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow4" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="data-flow" source="flow-api" target="flow-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow5" value="" style="endArrow=classic;html=1;strokeColor=#F44336;strokeWidth=2;dashed=1;" edge="1" parent="data-flow" source="flow-backend" target="flow-sse">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow6" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="data-flow" source="flow-sse" target="flow-state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow7" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="data-flow" source="flow-state" target="flow-render">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- SSE Label -->
+        <mxCell id="sse-label" value="Server-Sent Events (Real-time)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#F44336;fontStyle=2;" vertex="1" parent="data-flow">
+          <mxGeometry x="420" y="120" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- State Flow -->
+        <mxCell id="state-flow-label" value="Unidirectional Data Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#333333;" vertex="1" parent="data-flow">
+          <mxGeometry x="300" y="150" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== File Structure ==================== -->
+        <mxCell id="file-structure" value="File Structure (frontend/client/src/)" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="820" y="680" width="360" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="files" value="components/&#xa;  ├── chat-interface.tsx&#xa;  ├── chat-message.tsx&#xa;  ├── chat-with-artifacts.tsx&#xa;  ├── workflow-artifact.tsx&#xa;  └── parameter-dialog.tsx&#xa;hooks/&#xa;  └── useWorkflowExecution.ts&#xa;lib/&#xa;  └── projects.ts&#xa;styles/&#xa;  └── globals.css (Tailwind)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=10;fontFamily=monospace;" vertex="1" parent="file-structure">
+          <mxGeometry x="10" y="30" width="340" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Build & Tools ==================== -->
+        <mxCell id="build-tools" value="Build &amp; Development Tools" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="680" width="360" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vite" value="Vite&#xa;(Build Tool)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#646CFF;strokeColor=#5258CC;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="build-tools">
+          <mxGeometry x="20" y="40" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="typescript" value="TypeScript&#xa;(Type Safety)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3178C6;strokeColor=#2563A8;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="build-tools">
+          <mxGeometry x="130" y="40" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eslint" value="ESLint&#xa;(Linting)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4B32C3;strokeColor=#3C289C;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="build-tools">
+          <mxGeometry x="240" y="40" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tailwind" value="Tailwind CSS&#xa;(Styling)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#06B6D4;strokeColor=#0891B2;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="build-tools">
+          <mxGeometry x="20" y="100" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="drizzle" value="Drizzle ORM&#xa;(DB Schema)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C5F74F;strokeColor=#9EC63F;fontColor=#333333;fontSize=11;" vertex="1" parent="build-tools">
+          <mxGeometry x="130" y="100" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="playwright" value="Playwright&#xa;(E2E Tests)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2EAD33;strokeColor=#248A29;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="build-tools">
+          <mxGeometry x="240" y="100" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="npm-scripts" value="npm scripts: dev, build, test, lint" style="text;html=1;strokeColor=#9E9E9E;fillColor=#FFFFFF;align=center;verticalAlign=middle;fontSize=10;rounded=1;" vertex="1" parent="build-tools">
+          <mxGeometry x="20" y="155" width="320" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Legend ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="900" width="700" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-component" value="UI Component" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="30" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-hook" value="State/Hook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="110" y="30" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-api" value="API Layer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="200" y="30" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-sse" value="SSE/Real-time" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="290" y="30" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-user" value="User Action" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="380" y="25" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-sync" value="Sync" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="460" y="30" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-sync-line" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="legend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="40" as="sourcePoint" />
+            <mxPoint x="550" y="40" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="legend-async" value="Async" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="560" y="30" width="35" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-async-line" value="" style="endArrow=classic;html=1;strokeColor=#F44336;strokeWidth=2;dashed=1;" edge="1" parent="legend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="40" as="sourcePoint" />
+            <mxPoint x="660" y="40" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,382 @@
+<mxfile host="app.diagrams.net" modified="2026-01-12T12:00:00.000Z" agent="BioMate Documentation" version="21.0.0" type="device">
+  <diagram id="auto-update-pipeline" name="Auto-Update Pipeline Architecture">
+    <mxGraphModel dx="1800" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Auto-Update Pipeline Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="560" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Daily automated tool discovery, validation, and blog generation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=2;fontColor=#666666;" parent="1" vertex="1">
+          <mxGeometry x="560" y="55" width="500" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Cron Trigger -->
+        <mxCell id="cron-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="40" y="90" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-title" value="Daily Trigger" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#7B1FA2;" parent="1" vertex="1">
+          <mxGeometry x="40" y="95" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-icon" value="" style="shape=clock;whiteSpace=wrap;html=1;fillColor=#CE93D8;strokeColor=#7B1FA2;" parent="1" vertex="1">
+          <mxGeometry x="100" y="125" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-schedule" value="2 AM UTC Daily&#xa;daily_update.sh" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#6A1B9A;" parent="1" vertex="1">
+          <mxGeometry x="60" y="170" width="120" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Stage 1: Detection -->
+        <mxCell id="stage1-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="280" y="90" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="stage1-title" value="Stage 1: DETECT" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#1976D2;" parent="1" vertex="1">
+          <mxGeometry x="280" y="95" width="220" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage1-github" value="GitHub API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1976D2;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="300" y="130" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="stage1-topics" value="55+ Topics&#xa;(genomics, rna-seq,&#xa;proteomics...)" style="text;html=1;strokeColor=#1976D2;fillColor=#BBDEFB;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#0D47A1;" parent="1" vertex="1">
+          <mxGeometry x="395" y="125" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="stage1-scoring" value="Quality Scoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1976D2;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="300" y="175" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="stage1-factors" value="7 Factors:&#xa;Stars, CI/CD, Docs,&#xa;Container, Paper..." style="text;html=1;strokeColor=#1976D2;fillColor=#BBDEFB;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#0D47A1;" parent="1" vertex="1">
+          <mxGeometry x="395" y="170" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="stage1-classify" value="Classification" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1976D2;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="300" y="220" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="stage1-thresholds" value=">0.8: Auto-add&#xa;0.5-0.8: Review&#xa;<0.5: Reject" style="text;html=1;strokeColor=#1976D2;fillColor=#BBDEFB;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#0D47A1;" parent="1" vertex="1">
+          <mxGeometry x="395" y="215" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="stage1-file" value="detect_github_tools.py" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontStyle=2;fontColor=#1565C0;" parent="1" vertex="1">
+          <mxGeometry x="280" y="260" width="220" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Stage 2: Fetch -->
+        <mxCell id="stage2-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="540" y="90" width="180" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="stage2-title" value="Stage 2: FETCH" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#388E3C;" parent="1" vertex="1">
+          <mxGeometry x="540" y="95" width="180" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage2-readme" value="README.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="560" y="130" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage2-install" value="Installation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="640" y="130" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage2-usage" value="Usage/Examples" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="560" y="165" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage2-deps" value="Dependencies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="640" y="165" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage2-docker" value="Dockerfile" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="560" y="200" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage2-cli" value="CLI Help" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="640" y="200" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage2-rate" value="Success: 95%" style="text;html=1;strokeColor=#388E3C;fillColor=#C8E6C9;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#1B5E20;" parent="1" vertex="1">
+          <mxGeometry x="575" y="235" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="stage2-file" value="documentation_fetcher.py" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontStyle=2;fontColor=#2E7D32;" parent="1" vertex="1">
+          <mxGeometry x="540" y="260" width="180" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Stage 3: Generate -->
+        <mxCell id="stage3-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="760" y="90" width="180" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="stage3-title" value="Stage 3: GENERATE" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#F57C00;" parent="1" vertex="1">
+          <mxGeometry x="760" y="95" width="180" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage3-xml" value="Galaxy XML&#xa;Wrapper" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="800" y="130" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="stage3-content" value="• Tool ID/Name/Version&#xa;• Command template&#xa;• Input/Output params&#xa;• Help text&#xa;• Container info" style="text;html=1;strokeColor=#F57C00;fillColor=#FFE0B2;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#E65100;" parent="1" vertex="1">
+          <mxGeometry x="780" y="180" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="stage3-file" value="galaxy_wrapper_generator.py" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontStyle=2;fontColor=#E65100;" parent="1" vertex="1">
+          <mxGeometry x="760" y="260" width="180" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Stage 4: Validate -->
+        <mxCell id="stage4-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F7FA;strokeColor=#00838F;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="980" y="90" width="180" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="stage4-title" value="Stage 4: VALIDATE" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#00838F;" parent="1" vertex="1">
+          <mxGeometry x="980" y="95" width="180" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage4-checks" value="Validation Checks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#00838F;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="1020" y="130" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="stage4-list" value="✓ XML syntax&#xa;✓ Required elements&#xa;✓ Command structure&#xa;✓ Container access&#xa;✓ Parameter usage" style="text;html=1;strokeColor=#00838F;fillColor=#B2EBF2;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#006064;" parent="1" vertex="1">
+          <mxGeometry x="1000" y="170" width="140" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="stage4-file" value="validate_wrapper.py" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontStyle=2;fontColor=#006064;" parent="1" vertex="1">
+          <mxGeometry x="980" y="260" width="180" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Stage 5: Test (Optional) -->
+        <mxCell id="stage5-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#607D8B;strokeWidth=2;strokeDasharray=3 3;" parent="1" vertex="1">
+          <mxGeometry x="1200" y="90" width="140" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="stage5-title" value="Stage 5: TEST" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#607D8B;" parent="1" vertex="1">
+          <mxGeometry x="1200" y="95" width="140" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage5-docker" value="Docker&#xa;Execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#90A4AE;strokeColor=#607D8B;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="1225" y="130" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="stage5-note" value="Optional&#xa;(requires containers)" style="text;html=1;strokeColor=#607D8B;fillColor=#CFD8DC;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#455A64;" parent="1" vertex="1">
+          <mxGeometry x="1215" y="180" width="110" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="stage5-file" value="test_tool_execution.py" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontStyle=2;fontColor=#455A64;" parent="1" vertex="1">
+          <mxGeometry x="1200" y="260" width="140" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Stage 6: Integrate -->
+        <mxCell id="stage6-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#D32F2F;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="1380" y="90" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="stage6-title" value="Stage 6: INTEGRATE" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#D32F2F;" parent="1" vertex="1">
+          <mxGeometry x="1380" y="95" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stage6-db" value="galaxy_ai_tools.db" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1440" y="125" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="stage6-features" value="• 38+ metadata fields&#xa;• Duplication detection&#xa;• Citation extraction&#xa;• Embedding generation" style="text;html=1;strokeColor=#D32F2F;fillColor=#FFCDD2;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#B71C1C;" parent="1" vertex="1">
+          <mxGeometry x="1400" y="185" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="stage6-file" value="integrate_tools.py" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontStyle=2;fontColor=#C62828;" parent="1" vertex="1">
+          <mxGeometry x="1380" y="260" width="200" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows between stages -->
+        <mxCell id="arrow-cron-stage1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7B1FA2;" parent="1" source="cron-section" target="stage1-section" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-stage1-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#1976D2;" parent="1" source="stage1-section" target="stage2-section" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-stage2-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#388E3C;" parent="1" source="stage2-section" target="stage3-section" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-stage3-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#F57C00;" parent="1" source="stage3-section" target="stage4-section" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-stage4-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#00838F;dashed=1;" parent="1" source="stage4-section" target="stage5-section" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-stage5-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#607D8B;dashed=1;" parent="1" source="stage5-section" target="stage6-section" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Blog Generation Section -->
+        <mxCell id="blog-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C2185B;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="40" y="340" width="700" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="blog-title" value="Blog Generation Pipeline" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#C2185B;" parent="1" vertex="1">
+          <mxGeometry x="40" y="345" width="700" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Blog Stage 1: Evaluate -->
+        <mxCell id="blog1-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8BBD9;strokeColor=#C2185B;" parent="1" vertex="1">
+          <mxGeometry x="60" y="385" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="blog1-title" value="AI Evaluation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="60" y="390" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="blog1-model" value="Claude Haiku 4.5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="80" y="415" width="110" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="blog1-criteria" value="Blog-Worthy:&#xa;✓ Specific tools&#xa;✓ Novel models&#xa;✓ Clear bio focus&#xa;✗ General libraries&#xa;✗ Utilities" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="70" y="445" width="130" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Blog Stage 2: Generate -->
+        <mxCell id="blog2-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8BBD9;strokeColor=#C2185B;" parent="1" vertex="1">
+          <mxGeometry x="240" y="385" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="blog2-title" value="Blog Generation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="240" y="390" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="blog2-content" value="• Tool introduction&#xa;• Bio relevance&#xa;• Input/Output&#xa;• Workflow links&#xa;• Try Now button&#xa;• GitHub badges" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="260" y="415" width="110" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="blog2-output" value="Markdown (.md)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="260" y="505" width="110" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Blog Stage 3: Review -->
+        <mxCell id="blog3-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8BBD9;strokeColor=#C2185B;" parent="1" vertex="1">
+          <mxGeometry x="420" y="385" width="150" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="blog3-title" value="Iterative Review" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="420" y="390" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="blog3-agent" value="Review Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="445" y="415" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="blog3-loop" value="Review → Improve&#xa;↓&#xa;Until score >= 0.85&#xa;or max 5 iterations" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="435" y="450" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Blog Stage 4: Publish -->
+        <mxCell id="blog4-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8BBD9;strokeColor=#C2185B;" parent="1" vertex="1">
+          <mxGeometry x="600" y="385" width="120" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="blog4-title" value="Output" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="600" y="390" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="blog4-posts" value="blog_posts/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="615" y="420" width="90" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="blog4-review" value="review/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="615" y="455" width="90" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="blog4-json" value="evaluation_results.json" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="615" y="485" width="90" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Blog arrows -->
+        <mxCell id="blog-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#C2185B;" parent="1" source="blog1-box" target="blog2-box" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="blog-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#C2185B;" parent="1" source="blog2-box" target="blog3-box" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="blog-arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#C2185B;" parent="1" source="blog3-box" target="blog4-box" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Connection from main pipeline to blog -->
+        <mxCell id="pipeline-blog-arrow" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#D32F2F;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="stage6-section" target="blog-section" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1480" y="310" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="1480" y="320" />
+              <mxPoint x="760" y="320" />
+              <mxPoint x="760" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pipeline-blog-label" value="High quality tools" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#D32F2F;" parent="pipeline-blog-arrow" vertex="1" connectable="0">
+          <mxGeometry x="-0.5" relative="1" as="geometry"><mxPoint x="45" y="-10" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Monitoring Section -->
+        <mxCell id="monitor-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F9A825;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="780" y="340" width="280" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-title" value="Monitoring & Health" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#F9A825;" parent="1" vertex="1">
+          <mxGeometry x="780" y="345" width="280" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="monitor-logs" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;" parent="1" vertex="1">
+          <mxGeometry x="800" y="380" width="110" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-logs-title" value="Logs" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#F57F17;" parent="1" vertex="1">
+          <mxGeometry x="800" y="385" width="110" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-logs-content" value="logs/daily/&#xa;daily_run_*.log&#xa;Retention: 30 days" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#F57F17;" parent="1" vertex="1">
+          <mxGeometry x="800" y="400" width="110" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="monitor-reports" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;" parent="1" vertex="1">
+          <mxGeometry x="930" y="380" width="110" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-reports-title" value="Reports" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#F57F17;" parent="1" vertex="1">
+          <mxGeometry x="930" y="385" width="110" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-reports-content" value="reports/daily/&#xa;summary_*.json&#xa;Retention: 90 days" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#F57F17;" parent="1" vertex="1">
+          <mxGeometry x="930" y="400" width="110" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="monitor-alerts" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;" parent="1" vertex="1">
+          <mxGeometry x="800" y="470" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-alerts-title" value="Health Alerts" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#F57F17;" parent="1" vertex="1">
+          <mxGeometry x="800" y="475" width="240" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-alerts-content" value="✓ Healthy: Ran <24h, DB accessible&#xa;⚠ Warning: No run >30h&#xa;✗ Critical: No run >48h, DB error" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#F57F17;" parent="1" vertex="1">
+          <mxGeometry x="810" y="495" width="220" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Storage Section -->
+        <mxCell id="storage-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0E0E0;strokeColor=#616161;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="1100" y="340" width="240" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-title" value="Storage & Backups" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#616161;" parent="1" vertex="1">
+          <mxGeometry x="1100" y="345" width="240" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-db" value="galaxy_ai_tools.db" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#757575;strokeColor=#616161;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1120" y="385" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-backups" value="backups/*.db.gz&#xa;Retention: 7 days" style="text;html=1;strokeColor=#616161;fillColor=#BDBDBD;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#424242;" parent="1" vertex="1">
+          <mxGeometry x="1225" y="395" width="100" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-wrappers" value="data/wrappers/*.xml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#757575;strokeColor=#616161;fontColor=#ffffff;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="1120" y="450" width="90" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-discoveries" value="data/discoveries/*.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#757575;strokeColor=#616161;fontColor=#ffffff;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="1225" y="450" width="100" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-stats" value="Pipeline Stats:&#xa;• 2-4 tools/min&#xa;• $0.003-0.004/tool&#xa;• 100-200 tools/day" style="text;html=1;strokeColor=#616161;fillColor=#BDBDBD;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#424242;" parent="1" vertex="1">
+          <mxGeometry x="1120" y="490" width="205" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Integration Points -->
+        <mxCell id="integration-section" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3F51B5;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="1380" y="340" width="200" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="integration-title" value="Integration Points" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#3F51B5;" parent="1" vertex="1">
+          <mxGeometry x="1380" y="345" width="200" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="int-github" value="GitHub API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5C6BC0;strokeColor=#3F51B5;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1405" y="380" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="int-github-desc" value="Detection" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontColor=#3F51B5;" parent="1" vertex="1">
+          <mxGeometry x="1480" y="380" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="int-claude" value="Claude AI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5C6BC0;strokeColor=#3F51B5;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1405" y="415" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="int-claude-desc" value="Evaluation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontColor=#3F51B5;" parent="1" vertex="1">
+          <mxGeometry x="1480" y="415" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="int-galaxy" value="Galaxy DB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5C6BC0;strokeColor=#3F51B5;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1405" y="450" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="int-galaxy-desc" value="Storage" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontColor=#3F51B5;" parent="1" vertex="1">
+          <mxGeometry x="1480" y="450" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="int-search" value="Tool Index" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5C6BC0;strokeColor=#3F51B5;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1405" y="485" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="int-search-desc" value="Embeddings" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontColor=#3F51B5;" parent="1" vertex="1">
+          <mxGeometry x="1480" y="485" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="int-frontend" value="Frontend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5C6BC0;strokeColor=#3F51B5;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1405" y="520" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="int-frontend-desc" value="Blog Posts" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontColor=#3F51B5;" parent="1" vertex="1">
+          <mxGeometry x="1480" y="520" width="80" height="25" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

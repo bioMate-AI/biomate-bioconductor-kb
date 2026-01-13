@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="llm-integration-architecture" name="LLM Integration Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate LLM Integration Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Dual LLM Support ==================== -->
+        <mxCell id="dual-llm" value="Dual LLM Support" style="swimlane;fillColor=#E3F2FD;strokeColor=#1976D2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="720" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- Ollama Local -->
+        <mxCell id="ollama-box" value="Ollama (Local LLM)" style="swimlane;fillColor=#E8F5E9;strokeColor=#388E3C;fontStyle=1;fontSize=12;" vertex="1" parent="dual-llm">
+          <mxGeometry x="20" y="35" width="320" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ollama-server" value="Ollama Server&#xa;localhost:11434" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="ollama-box">
+          <mxGeometry x="20" y="35" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ollama-models" value="Available Models:&#xa;• Llama 3.1 (8B, 70B)&#xa;• Mistral (7B)&#xa;• CodeLlama&#xa;• DeepSeek Coder" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="ollama-box">
+          <mxGeometry x="160" y="30" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ollama-benefits" value="Benefits: Free, Private, No API limits" style="text;html=1;strokeColor=#388E3C;fillColor=#C8E6C9;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="ollama-box">
+          <mxGeometry x="20" y="120" width="280" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Anthropic Cloud -->
+        <mxCell id="anthropic-box" value="Anthropic (Cloud LLM)" style="swimlane;fillColor=#FFF3E0;strokeColor=#E65100;fontStyle=1;fontSize=12;" vertex="1" parent="dual-llm">
+          <mxGeometry x="360" y="35" width="340" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="anthropic-api" value="Anthropic API&#xa;api.anthropic.com" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="anthropic-box">
+          <mxGeometry x="20" y="35" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="anthropic-models" value="Available Models:&#xa;• Claude 3.5 Sonnet&#xa;• Claude 3.5 Haiku&#xa;• Claude 3 Opus&#xa;• Claude Instant" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="anthropic-box">
+          <mxGeometry x="170" y="30" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="anthropic-benefits" value="Benefits: Best quality, Large context (200K)" style="text;html=1;strokeColor=#E65100;fillColor=#FFE0B2;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="anthropic-box">
+          <mxGeometry x="20" y="120" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== LLM Client Abstraction ==================== -->
+        <mxCell id="llm-client-layer" value="LLM Client Abstraction (llm_client.py)" style="swimlane;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="780" y="80" width="780" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="llm-client-class" value="LLMClient Class" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="llm-client-layer">
+          <mxGeometry x="20" y="40" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="client-methods" value="Methods:&#xa;• generate(prompt, params)&#xa;• stream(prompt, callback)&#xa;• get_embedding(text)&#xa;• count_tokens(text)" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="llm-client-layer">
+          <mxGeometry x="20" y="100" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="provider-switch" value="Provider Switch&#xa;(Config-based)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#673AB7;strokeColor=#512DA8;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="llm-client-layer">
+          <mxGeometry x="200" y="45" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ollama-adapter" value="OllamaAdapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="llm-client-layer">
+          <mxGeometry x="340" y="35" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="anthropic-adapter" value="AnthropicAdapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="llm-client-layer">
+          <mxGeometry x="340" y="90" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- LangChain Integration -->
+        <mxCell id="langchain" value="LangChain Integration" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=11;" vertex="1" parent="llm-client-layer">
+          <mxGeometry x="490" y="35" width="270" height="165" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lc-chat" value="ChatModel&#xa;(Unified Interface)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="langchain">
+          <mxGeometry x="20" y="30" width="110" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lc-prompts" value="PromptTemplate&#xa;(Schema Injection)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="langchain">
+          <mxGeometry x="140" y="30" width="110" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lc-output" value="OutputParser&#xa;(JSON/Structured)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="langchain">
+          <mxGeometry x="20" y="80" width="110" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lc-memory" value="ConversationMemory&#xa;(Context Tracking)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="langchain">
+          <mxGeometry x="140" y="80" width="110" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="switch-ollama" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="llm-client-layer" source="provider-switch" target="ollama-adapter">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="switch-anthropic" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="llm-client-layer" source="provider-switch" target="anthropic-adapter">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Query Generation Flow ==================== -->
+        <mxCell id="query-gen-flow" value="Query Generation with Schema Injection" style="swimlane;fillColor=#E8F5E9;strokeColor=#388E3C;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="1520" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- Flow Steps -->
+        <mxCell id="qg-input" value="Natural Language&#xa;Query" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="query-gen-flow">
+          <mxGeometry x="20" y="60" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qg-schema" value="Load Schema&#xa;(.pkl file)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="query-gen-flow">
+          <mxGeometry x="150" y="65" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qg-prompt" value="Build Prompt&#xa;with Schema" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="query-gen-flow">
+          <mxGeometry x="280" y="65" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qg-llm" value="LLM&#xa;Generate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;fontStyle=1;" vertex="1" parent="query-gen-flow">
+          <mxGeometry x="410" y="65" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qg-parse" value="Parse JSON&#xa;Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="query-gen-flow">
+          <mxGeometry x="540" y="65" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qg-validate" value="Validate&#xa;Against Schema" style="rhombus;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="query-gen-flow">
+          <mxGeometry x="670" y="55" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qg-execute" value="Execute&#xa;API Query" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="query-gen-flow">
+          <mxGeometry x="810" y="65" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qg-result" value="Result" style="ellipse;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="query-gen-flow">
+          <mxGeometry x="940" y="60" width="80" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Retry Loop -->
+        <mxCell id="qg-retry" value="Retry with&#xa;Feedback" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="query-gen-flow">
+          <mxGeometry x="680" y="140" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="qg-arr1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="query-gen-flow" source="qg-input" target="qg-schema">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="qg-arr2" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="query-gen-flow" source="qg-schema" target="qg-prompt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="qg-arr3" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="query-gen-flow" source="qg-prompt" target="qg-llm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="qg-arr4" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="query-gen-flow" source="qg-llm" target="qg-parse">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="qg-arr5" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="query-gen-flow" source="qg-parse" target="qg-validate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="qg-arr6" value="Valid" style="endArrow=classic;html=1;strokeColor=#4CAF50;strokeWidth=2;" edge="1" parent="query-gen-flow" source="qg-validate" target="qg-execute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="qg-arr7" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="query-gen-flow" source="qg-execute" target="qg-result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="qg-arr8" value="Invalid" style="endArrow=classic;html=1;strokeColor=#F44336;strokeWidth=2;dashed=1;" edge="1" parent="query-gen-flow" source="qg-validate" target="qg-retry">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="qg-arr9" value="" style="endArrow=classic;html=1;strokeColor=#F44336;strokeWidth=2;dashed=1;curved=1;" edge="1" parent="query-gen-flow" source="qg-retry" target="qg-llm">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Prompt Template Example -->
+        <mxCell id="prompt-example" value="Prompt Template Example" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=11;" vertex="1" parent="query-gen-flow">
+          <mxGeometry x="1050" y="30" width="450" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prompt-text" value="You are a database query assistant.&#xa;&#xa;Database: {database_name}&#xa;Schema: {schema_json}&#xa;Available Endpoints: {endpoints}&#xa;&#xa;User Query: {user_query}&#xa;&#xa;Generate a valid API query as JSON:&#xa;{&quot;endpoint&quot;: &quot;...&quot;, &quot;params&quot;: {...}}" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="prompt-example">
+          <mxGeometry x="10" y="25" width="430" height="115" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Use Cases ==================== -->
+        <mxCell id="use-cases" value="LLM Use Cases in BioMate" style="swimlane;fillColor=#FFF3E0;strokeColor=#E65100;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="760" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc-query" value="Database Query&#xa;Generation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="use-cases">
+          <mxGeometry x="20" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-query-desc" value="• Natural language to API&#xa;• Schema-aware queries&#xa;• Multi-DB support" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="use-cases">
+          <mxGeometry x="20" y="100" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc-workflow" value="Workflow&#xa;Generation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="use-cases">
+          <mxGeometry x="160" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-workflow-desc" value="• NL to Galaxy workflow&#xa;• Tool selection&#xa;• Parameter inference" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="use-cases">
+          <mxGeometry x="160" y="100" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc-chat" value="Conversational&#xa;Assistant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="use-cases">
+          <mxGeometry x="300" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-chat-desc" value="• Q&amp;A about biology&#xa;• Result interpretation&#xa;• Guidance &amp; help" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="use-cases">
+          <mxGeometry x="300" y="100" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc-code" value="Code &amp; Analysis&#xa;Generation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="use-cases">
+          <mxGeometry x="440" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-code-desc" value="• Python scripts&#xa;• Statistical analysis&#xa;• Data visualization" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="use-cases">
+          <mxGeometry x="440" y="100" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc-summarize" value="Result&#xa;Summarization" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="use-cases">
+          <mxGeometry x="580" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-summarize-desc" value="• Analysis reports&#xa;• Key findings&#xa;• Recommendations" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="use-cases">
+          <mxGeometry x="580" y="100" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Configuration ==================== -->
+        <mxCell id="config-section" value="Configuration &amp; Settings" style="swimlane;fillColor=#E1F5FE;strokeColor=#0288D1;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="820" y="540" width="740" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="env-vars" value="Environment Variables" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=11;" vertex="1" parent="config-section">
+          <mxGeometry x="20" y="35" width="220" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="env-list" value="LLM_PROVIDER=ollama|anthropic&#xa;OLLAMA_HOST=localhost:11434&#xa;ANTHROPIC_API_KEY=sk-...&#xa;LLM_MODEL=claude-3-5-sonnet&#xa;LLM_TEMPERATURE=0.1&#xa;LLM_MAX_TOKENS=4096&#xa;LLM_TIMEOUT=60" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="env-vars">
+          <mxGeometry x="10" y="25" width="200" height="115" as="geometry" />
+        </mxCell>
+
+        <mxCell id="model-params" value="Model Parameters" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=11;" vertex="1" parent="config-section">
+          <mxGeometry x="260" y="35" width="220" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="params-list" value="temperature: 0.0 - 1.0&#xa;max_tokens: 256 - 8192&#xa;top_p: 0.1 - 1.0&#xa;frequency_penalty: 0.0 - 2.0&#xa;presence_penalty: 0.0 - 2.0&#xa;stop_sequences: [...]" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;fontFamily=monospace;rounded=1;" vertex="1" parent="model-params">
+          <mxGeometry x="10" y="25" width="200" height="115" as="geometry" />
+        </mxCell>
+
+        <mxCell id="fallback-config" value="Fallback &amp; Retry" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=11;" vertex="1" parent="config-section">
+          <mxGeometry x="500" y="35" width="220" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="fallback-list" value="Primary: Anthropic Claude&#xa;Fallback: Ollama Local&#xa;&#xa;Retry attempts: 3&#xa;Backoff: exponential&#xa;Timeout per attempt: 30s&#xa;&#xa;On failure: cache lookup" style="text;html=1;strokeColor=none;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="fallback-config">
+          <mxGeometry x="10" y="25" width="200" height="115" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Architecture Diagram ==================== -->
+        <mxCell id="arch-diagram" value="System Integration" style="swimlane;fillColor=#FCE4EC;strokeColor=#C2185B;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="760" width="1520" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- Components -->
+        <mxCell id="arch-user" value="User" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="40" y="60" width="40" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-frontend" value="Frontend&#xa;(React)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="120" y="65" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-api" value="API Layer&#xa;(Node.js)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="240" y="65" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-ai" value="AI Assistant&#xa;(Python)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;fontStyle=1;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="360" y="65" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-llm-client" value="LLM Client&#xa;(langchain)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#673AB7;strokeColor=#512DA8;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="490" y="65" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-ollama" value="Ollama&#xa;(Local)" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="620" y="30" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-anthropic" value="Anthropic&#xa;(Cloud)" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="620" y="100" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-db-query" value="DB Query&#xa;Engine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="750" y="65" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-ext-db" value="External DBs&#xa;(UniProt, PDB...)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="870" y="55" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-galaxy" value="Galaxy&#xa;Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="1010" y="65" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-tools" value="Biomni&#xa;Tools" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="1130" y="65" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-result" value="Results" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-diagram">
+          <mxGeometry x="1250" y="55" width="80" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="arch-a1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-user" target="arch-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arch-a2" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-frontend" target="arch-api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arch-a3" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-api" target="arch-ai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arch-a4" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-ai" target="arch-llm-client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arch-a5" value="" style="endArrow=classic;html=1;strokeColor=#4CAF50;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-llm-client" target="arch-ollama">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arch-a6" value="" style="endArrow=classic;html=1;strokeColor=#FF9800;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-llm-client" target="arch-anthropic">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arch-a7" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-ai" target="arch-db-query">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="405" y="160" />
+              <mxPoint x="790" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arch-a8" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-db-query" target="arch-ext-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arch-a9" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-ai" target="arch-galaxy">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="405" y="40" />
+              <mxPoint x="1050" y="40" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arch-a10" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-galaxy" target="arch-tools">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arch-a11" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-diagram" source="arch-tools" target="arch-result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Legend ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="980" width="700" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-local" value="Local LLM" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="25" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-cloud" value="Cloud LLM" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="100" y="25" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-service" value="Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="180" y="30" width="60" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-storage" value="Storage" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="250" y="25" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-decision" value="Decision" style="rhombus;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="320" y="25" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-flow" value="Flow" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="390" y="35" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-flow-line" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="legend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="45" as="sourcePoint" />
+            <mxPoint x="480" y="45" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="leg-retry" value="Retry" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="490" y="35" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-retry-line" value="" style="endArrow=classic;html=1;strokeColor=#F44336;strokeWidth=2;dashed=1;" edge="1" parent="legend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="45" as="sourcePoint" />
+            <mxPoint x="580" y="45" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

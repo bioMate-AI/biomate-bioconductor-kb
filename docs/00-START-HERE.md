@@ -10,11 +10,15 @@ Welcome to the Biomate platform documentation. This guide helps you navigate the
 |--------------|-------|
 | Understand the system architecture | [System Overview](01-architecture/SYSTEM_OVERVIEW.md) |
 | See how data flows through the system | [Information Flow](01-architecture/INFORMATION_FLOW.md) |
+| Understand memory & learning systems | [Database Schemas](05-data/DATABASE_SCHEMAS.md) |
+| Learn about auto-update pipeline | [Auto-Update System](06-auto-update/20260112_AUTO_UPDATE_SYSTEM.md) |
 | Set up my development environment | [Development Setup](07-onboarding/DEVELOPMENT_SETUP.md) |
 | Start contributing code | [New Developer Guide](07-onboarding/NEW_DEVELOPER_GUIDE.md) |
 | Understand frontend components | [Frontend Components](02-frontend/COMPONENTS.md) |
 | Understand backend services | [Backend Services](04-backend/SERVICES.md) |
 | Look up an API endpoint | [REST API Reference](03-api/REST_API_REFERENCE.md) |
+| **See Galaxy capabilities** | [**Galaxy Capabilities Analysis**](03-api/20260113_GALAXY_CAPABILITIES_ANALYSIS.md) |
+| **Fix system issues** | [**System Audit Plan**](../20260112_SYSTEM_AUDIT_AND_IMPROVEMENT_PLAN.md) |
 
 ---
 
@@ -125,12 +129,29 @@ Workflows are monitored via Server-Sent Events (SSE) for real-time status update
 |----------|--------|--------------|
 | System Overview | Complete | Jan 2026 |
 | Information Flow | Complete | Jan 2026 |
+| Database Schemas | Complete | Jan 2026 |
 | Development Setup | Complete | Jan 2026 |
 | New Developer Guide | Complete | Jan 2026 |
 | Frontend Components | Complete | Jan 2026 |
 | Backend Services | Complete | Jan 2026 |
 | REST API Reference | Complete | Jan 2026 |
+| **Galaxy Capabilities Analysis** | **Complete** | **Jan 13, 2026** |
+| **System Audit Plan** | **Complete** | **Jan 12, 2026** |
+| **Auto-Update System** | **Complete** | **Jan 12, 2026** |
+
+### Architecture Diagrams
+
+| Diagram | Description |
+|---------|-------------|
+| 11_memory_management_architecture | Memory system overview with cross-references |
+| 19_hierarchical_memory_architecture | 4-layer memory hierarchy (L1-L4) |
+| 20_ltm_database_schema | Long-Term Memory ER diagram (10 tables) |
+| 21_ai_tool_database_architecture | SQLite FTS5 + Vector hybrid search |
+| 22_main_application_schema | users, audit_logs, workflow_executions |
+| 23_memory_repository_layer | 6 repository classes and patterns |
+| 24_agentic_learning_flow | Explicit, Implicit, Emergent learning |
+| 25_auto_update_pipeline | Daily tool discovery & blog generation |
 
 ---
 
-**Last Updated**: January 9, 2026
+**Last Updated**: January 13, 2026

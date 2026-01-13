@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { ChatMessage, type Message } from "./chat-message"
 import { ChatInput } from "./chat-input"
 import { TypingIndicator } from "./typing-indicator"
-import { FileUpload } from "./file-upload"
+// FileUpload moved into ChatInput component as a popover
 import { CompressionDialog, CompressionStatusBadge } from "./compression-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -75,6 +75,7 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Compression state
   const [showCompressionDialog, setShowCompressionDialog] = useState(false)
@@ -92,9 +93,10 @@ export function ChatInterface({
     console.log('[ChatInterface] displayMessages IDs:', displayMessages.map(m => m.id))
   }, [displayMessages])
 
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [displayMessages, displayTyping])
 
@@ -133,51 +135,66 @@ export function ChatInterface({
     }
   }, [displayMessages, chatSession, showCompressionDialog, compressionDismissed])
 
-  // Galaxy Workflow Generation API integration (via Vite proxy)
+  // Galaxy Chat API integration with full hybrid intelligence
+  // Uses /api/chat which provides: intent analysis, tool search, dataset RAG, workflow generation
   const chatMutation = useMutation({
     mutationFn: async (content: string) => {
-      const response = await fetch('/api/ai_assistant/generate_workflow', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ request_text: content })
+        body: JSON.stringify({
+          message: content,
+          context: {
+            previousMessages: displayMessages.slice(-10).map(m => ({
+              role: m.role,
+              content: m.content
+            })),
+            // Include session ID for memory integration
+            ...(chatSession?.id && { memorySessionId: chatSession.id }),
+          }
+        })
       })
       if (!response.ok) {
-        throw new Error(`Galaxy API error: ${response.statusText}`)
+        throw new Error(`Chat API error: ${response.statusText}`)
       }
       return await response.json()
     },
     onSuccess: (data) => {
       console.log('[ChatInterface] API Response:', data)
 
-      // Handle workflow generation response - NO silent fallbacks
-      let workflowData = data.workflow_ga;
-      let workflowSuccess = data.success;
+      // Handle /api/chat response format (full hybrid intelligence)
+      // Response structure: { response, suggestions, workflow, thinking_content, metadata }
+      let workflowData = data.workflow?.workflow_ga || data.workflow;
+      let workflowSuccess = !!data.workflow?.success || (data.workflow && !data.workflow.error);
       let isDemo = false;
 
-      // If workflow generation failed, show clear error to user
-      if (!data.success || !data.workflow_ga) {
-        console.warn('[ChatInterface] Workflow generation failed:', data.message);
-
-        // Show a demo workflow but CLEARLY LABEL IT AS DEMO
-        workflowData = generateDemoWorkflow();
-        isDemo = true;
-
-        // Keep workflowSuccess false so we show proper error messaging
-        workflowSuccess = false;
+      // Check if workflow was generated
+      if (data.workflow) {
+        if (!workflowSuccess) {
+          console.warn('[ChatInterface] Workflow generation returned but failed:', data.workflow.error || data.workflow.message);
+          // Show demo workflow clearly labeled
+          workflowData = generateDemoWorkflow();
+          isDemo = true;
+        }
       }
 
-      // Galaxy API response format - be transparent about status
-      let workflowInfo: string;
+      // Use the natural language response from /api/chat
+      // This includes tool recommendations, dataset suggestions, etc.
+      let workflowInfo: string = data.response || '';
+
+      // If workflow was generated, append workflow-specific info
       if (workflowSuccess && workflowData) {
-        workflowInfo = `✅ ${data.message || 'Workflow generated successfully'}\n\n${workflowData.annotation || 'Workflow ready for execution'}`;
+        // Response already contains helpful context from Claude
+        if (!workflowInfo.toLowerCase().includes('workflow')) {
+          workflowInfo += '\n\n✅ I\'ve generated a workflow for you based on your request.';
+        }
       } else if (isDemo) {
-        workflowInfo = `⚠️ **Note:** Could not generate a real workflow${data.message ? `: ${data.message}` : ''}.\n\n📋 **Showing a demo workflow** for reference. This is a preview of what a workflow might look like - it won't execute real analysis.\n\nTo get a real workflow, try:\n• Being more specific about your data type\n• Describing your analysis goal in detail\n• Checking that the Galaxy backend is available`;
-        // Mark as demo for visual distinction
-        workflowData = { ...workflowData, _isDemo: true, annotation: '[DEMO] ' + (workflowData.annotation || 'Sample workflow for preview') };
-      } else {
-        workflowInfo = 'Workflow generation completed';
+        workflowInfo = data.response + `\n\n⚠️ **Note:** Could not generate a real workflow. Showing a demo workflow for reference.`;
+        workflowData = { ...workflowData, _isDemo: true, annotation: '[DEMO] ' + (workflowData?.annotation || 'Sample workflow for preview') };
+      } else if (!workflowInfo) {
+        workflowInfo = 'I can help you with bioinformatics analysis!';
       }
 
       // Convert workflow_ga.steps object to array
@@ -195,32 +212,34 @@ export function ChatInterface({
         content: workflowInfo,
         role: "assistant",
         timestamp: new Date(),
-        suggestions: workflowSuccess
+        // Use suggestions from /api/chat or fallbacks
+        suggestions: data.suggestions || (workflowSuccess
           ? ["Open in Workflow Builder", "Show details", "Generate another"]
           : isDemo
           ? ["Try again with different request", "Check server status", "View demo anyway"]
-          : ["Try again", "Refine request"],
+          : ["Tell me more", "Suggest tools", "Build workflow"]),
         metadata: {
           type: workflowSuccess ? 'workflow' : isDemo ? 'demo_workflow' : 'text',
           workflow: workflowData,
           steps: stepsArray,
-          confidence: data.confidence,
-          source: data.source || (isDemo ? 'demo_fallback' : 'unknown'),
+          confidence: data.workflow?.confidence || data.metadata?.workflowSuggestion?.confidence,
+          source: data.workflow?.source || (isDemo ? 'demo_fallback' : 'chat'),
           isDemo: isDemo,
-          generationFailed: !data.success,
-          failureReason: !data.success ? data.message : undefined,
-          // Citation and pilot run data from enhanced API response
-          citations: data.citations || [],
-          methods_section: data.methods_section,
-          pilot_run_suggested: data.pilot_run_suggested || false,
-          pilot_reasons: data.pilot_reasons || [],
-          pilot_message: data.pilot_message,
-          tuning_config: data.tuning_config,
-          parameter_recommendations: data.parameter_recommendations || {},
-          total_samples: data.total_samples || 0,
-          // Validation info for user transparency
-          validation: data.validation || { is_valid: true, issues: [], warnings: [] },
-          tool_installation: data.tool_installation || { success: true, failed_tools: [] }
+          generationFailed: data.workflow && !workflowSuccess,
+          failureReason: data.workflow?.error || data.workflow?.message,
+          // Thinking mode support from /api/chat
+          thinking_content: data.thinking_content,
+          thinking_level: data.thinking_level,
+          // Tool and dataset recommendations from hybrid intelligence
+          recommendedTools: data.metadata?.recommendedTools || [],
+          recommendedDatasets: data.metadata?.recommendedDatasets || [],
+          workflowSuggestion: data.metadata?.workflowSuggestion,
+          sources: data.metadata?.sources || {},
+          memoryUsed: data.metadata?.memoryUsed || false,
+          episodeId: data.episodeId,
+          // Validation info from workflow if available
+          validation: data.workflow?.validation || { is_valid: true, issues: [], warnings: [] },
+          tool_installation: data.workflow?.tool_installation || { success: true, failed_tools: [] }
         }
       }
 
@@ -694,7 +713,16 @@ export function ChatInterface({
     }
   }
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = (content: string, files?: File[]) => {
+    // Handle attached files if present
+    if (files && files.length > 0) {
+      console.log('[ChatInterface] Files attached:', files.map(f => f.name))
+      // TODO: Upload files to Galaxy and include dataset IDs in the message
+      // For now, mention files in the message content
+      const fileNames = files.map(f => f.name).join(', ')
+      content = content + (content ? '\n\n' : '') + `[Attached files: ${fileNames}]`
+    }
+
     // Create user message
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -783,21 +811,25 @@ export function ChatInterface({
         onChatUpdated(updatedSession)
       }
 
-      // Record compression in backend
-      await fetch(`http://localhost:8081/api/sessions/${chatSession.id}/compress`, {
-        method: 'POST',
-        headers: {
-          'x-api-key': 'a7e9f73a7c25300e222d27c84efb10f6',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          summary: result.summary,
-          messages_before: result.messagesBeforeCount,
-          messages_after: result.messagesAfterCount,
-          tokens_before: result.tokensBeforeCount,
-          tokens_after: result.tokensAfterCount
+      // Record compression in backend (optional - don't fail if this fails)
+      try {
+        await fetch(`/api/memory/sessions/${chatSession.id}/compress`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            summary: result.summary,
+            messages_before: result.messagesBeforeCount,
+            messages_after: result.messagesAfterCount,
+            tokens_before: result.tokensBeforeCount,
+            tokens_after: result.tokensAfterCount
+          })
         })
-      })
+      } catch (recordError) {
+        console.warn('[ChatInterface] Failed to record compression in backend:', recordError)
+        // Don't fail the compression - the local compression already succeeded
+      }
 
       // Close dialog
       setShowCompressionDialog(false)
@@ -856,6 +888,8 @@ export function ChatInterface({
             />
           ))}
           {displayTyping && <TypingIndicator />}
+          {/* Auto-scroll anchor */}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
       
@@ -945,18 +979,6 @@ export function ChatInterface({
           )}
         </div>
       )}
-
-      {/* File Upload Section */}
-      <div className="border-t p-4">
-        <FileUpload
-          accept=".fastq,.fastq.gz,.bam,.sam,.mzML,.mzXML,.csv,.tsv,.txt,.fasta,.fa"
-          multiple={true}
-          maxSize={500}
-          onUploadComplete={(files) => {
-            console.log('[ChatInterface] Files uploaded:', files)
-          }}
-        />
-      </div>
 
       <ChatInput
         onSend={handleSendMessage}

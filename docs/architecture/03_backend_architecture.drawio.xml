@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="backend-architecture" name="Backend Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Backend Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="600" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== API Layer ==================== -->
+        <mxCell id="api-layer" value="API Layer (FastAPI/Flask)" style="swimlane;horizontal=0;fillColor=#E3F2FD;strokeColor=#1976D2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1520" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- API Endpoints -->
+        <mxCell id="api-router" value="API Router&#xa;(routes.ts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="api-layer">
+          <mxGeometry x="40" y="30" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai-endpoint" value="/api/ai/*&#xa;AI Assistant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="api-layer">
+          <mxGeometry x="200" y="20" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-endpoint" value="/api/workflows/*&#xa;Workflow CRUD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="api-layer">
+          <mxGeometry x="320" y="20" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="history-endpoint" value="/api/histories/*&#xa;History Mgmt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="api-layer">
+          <mxGeometry x="440" y="20" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-endpoint" value="/api/tools/*&#xa;Tool Execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="api-layer">
+          <mxGeometry x="560" y="20" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sse-endpoint" value="SSE Streams&#xa;Real-time Updates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="api-layer">
+          <mxGeometry x="200" y="80" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-proxy" value="Galaxy API Proxy&#xa;(galaxy-api-proxy.ts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="api-layer">
+          <mxGeometry x="320" y="80" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth-middleware" value="Auth &amp; Security&#xa;Middleware" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E74C3C;strokeColor=#C0392B;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="api-layer">
+          <mxGeometry x="680" y="40" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow from router to endpoints -->
+        <mxCell id="router-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="api-layer" source="api-router" target="ai-endpoint">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Service Layer ==================== -->
+        <mxCell id="service-layer" value="Service Layer" style="swimlane;horizontal=0;fillColor=#E8F5E9;strokeColor=#388E3C;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="1520" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- AI Assistant Module -->
+        <mxCell id="ai-assistant" value="AI Assistant&#xa;(ai_assistant.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="service-layer">
+          <mxGeometry x="40" y="30" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-gen" value="Workflow Generator&#xa;(galaxy_workflow_generator.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="service-layer">
+          <mxGeometry x="200" y="30" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="enhanced-gen" value="Enhanced Generator&#xa;(enhanced_workflow_generator.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="service-layer">
+          <mxGeometry x="380" y="30" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="llm-client" value="LLM Client&#xa;(llm_client.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="service-layer">
+          <mxGeometry x="560" y="30" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-manager" value="Workflow Manager&#xa;(workflows.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="service-layer">
+          <mxGeometry x="40" y="110" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="history-service" value="History Service&#xa;(histories.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="service-layer">
+          <mxGeometry x="200" y="110" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-search" value="Tool Search Index&#xa;(search_index.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="service-layer">
+          <mxGeometry x="360" y="110" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db-query-engine" value="Enhanced DB Query&#xa;Engine&#xa;(database_enhanced.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="service-layer">
+          <mxGeometry x="520" y="100" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Galaxy Core ==================== -->
+        <mxCell id="galaxy-core" value="Galaxy Server Core" style="swimlane;horizontal=0;fillColor=#FFF3E0;strokeColor=#E65100;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="1520" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-app" value="Galaxy Application&#xa;(app.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#E65100;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="galaxy-core">
+          <mxGeometry x="40" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-box" value="Tool Box&#xa;(Tool Registry)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#E65100;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="galaxy-core">
+          <mxGeometry x="200" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-manager" value="Job Manager&#xa;(Job Queue)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#E65100;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="galaxy-core">
+          <mxGeometry x="340" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-engine" value="Workflow Engine&#xa;(Execution)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#E65100;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="galaxy-core">
+          <mxGeometry x="480" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="history-manager" value="History Manager&#xa;(Dataset Storage)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#E65100;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="galaxy-core">
+          <mxGeometry x="620" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Job Runners -->
+        <mxCell id="local-runner" value="Local Runner&#xa;(Docker)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="galaxy-core">
+          <mxGeometry x="200" y="120" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurm-runner" value="SLURM Runner&#xa;(HPC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="galaxy-core">
+          <mxGeometry x="320" y="120" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-runner" value="AWS Runner&#xa;(ECS/Fargate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="galaxy-core">
+          <mxGeometry x="440" y="120" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="k8s-runner" value="K8s Runner&#xa;(Kubernetes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="galaxy-core">
+          <mxGeometry x="560" y="120" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow from job manager to runners -->
+        <mxCell id="job-runner-arrow" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="galaxy-core" source="job-manager" target="local-runner">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Biomni Tools ==================== -->
+        <mxCell id="biomni-tools" value="Biomni Tool Framework (200+ Tools)" style="swimlane;horizontal=0;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="660" width="1520" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-xml" value="Tool Definitions&#xa;(XML + Python)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=12;" vertex="1" parent="biomni-tools">
+          <mxGeometry x="40" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="genomics-tools" value="Genomics&#xa;(30+ tools)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="biomni-tools">
+          <mxGeometry x="180" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="database-tools" value="Database&#xa;(40+ tools)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="biomni-tools">
+          <mxGeometry x="280" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="biochem-tools" value="Biochemistry&#xa;(20+ tools)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="biomni-tools">
+          <mxGeometry x="380" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pharma-tools" value="Pharmacology&#xa;(25+ tools)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="biomni-tools">
+          <mxGeometry x="480" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="imaging-tools" value="Bioimaging&#xa;(20+ tools)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="biomni-tools">
+          <mxGeometry x="580" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="more-tools" value="+ 16 more&#xa;categories" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="biomni-tools">
+          <mxGeometry x="680" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="schema-files" value="Schema Files&#xa;(33 .pkl files)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="biomni-tools">
+          <mxGeometry x="180" y="90" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wrapper-scripts" value="Python Wrappers&#xa;(200+ scripts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="biomni-tools">
+          <mxGeometry x="300" y="90" width="110" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-conf" value="tool_conf.xml&#xa;(Registry)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="biomni-tools">
+          <mxGeometry x="430" y="90" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Database Layer ==================== -->
+        <mxCell id="db-layer" value="Database Layer" style="swimlane;horizontal=0;fillColor=#FCE4EC;strokeColor=#C2185B;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="840" width="760" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="postgres-db" value="PostgreSQL&#xa;(Production)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="db-layer">
+          <mxGeometry x="40" y="30" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sqlite-db" value="SQLite&#xa;(Dev/Cache)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="db-layer">
+          <mxGeometry x="160" y="30" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="file-storage" value="File Storage&#xa;(Datasets)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="db-layer">
+          <mxGeometry x="280" y="30" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cache-storage" value="Cache Storage&#xa;(Query Results)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="db-layer">
+          <mxGeometry x="400" y="30" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="local-files" value="Local Files&#xa;(Schema, Data)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="db-layer">
+          <mxGeometry x="520" y="30" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== External Services ==================== -->
+        <mxCell id="external-services" value="External Services" style="swimlane;horizontal=0;fillColor=#FFEBEE;strokeColor=#D32F2F;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="820" y="840" width="740" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ollama" value="Ollama&#xa;(Local LLM)" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="external-services">
+          <mxGeometry x="40" y="30" width="110" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="anthropic" value="Anthropic&#xa;(Claude API)" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="external-services">
+          <mxGeometry x="170" y="30" width="110" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bio-dbs" value="Bio Databases&#xa;(UniProt, PDB, etc.)" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#E74C3C;strokeColor=#C0392B;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="external-services">
+          <mxGeometry x="300" y="30" width="130" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-storage" value="S3/Cloud&#xa;Storage" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#E65100;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="external-services">
+          <mxGeometry x="450" y="30" width="110" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Data Flow Arrows ==================== -->
+        <!-- API to Service -->
+        <mxCell id="flow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#333333;strokeWidth=2;dashed=0;" edge="1" parent="1" source="ai-endpoint" target="ai-assistant">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="230" />
+              <mxPoint x="150" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Service to Galaxy -->
+        <mxCell id="flow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="workflow-manager" target="galaxy-app">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy to Tools -->
+        <mxCell id="flow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="tool-box" target="tool-xml">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Galaxy to Database -->
+        <mxCell id="flow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="history-manager" target="postgres-db">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="820" />
+              <mxPoint x="130" y="820" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- LLM Client to External -->
+        <mxCell id="flow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#F0AD4E;strokeWidth=2;dashed=1;" edge="1" parent="1" source="llm-client" target="ollama">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="420" />
+              <mxPoint x="800" y="420" />
+              <mxPoint x="800" y="955" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- DB Query Engine to Bio DBs -->
+        <mxCell id="flow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#E74C3C;strokeWidth=2;dashed=1;" edge="1" parent="1" source="db-query-engine" target="bio-dbs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="420" />
+              <mxPoint x="780" y="420" />
+              <mxPoint x="780" y="1020" />
+              <mxPoint x="1185" y="1020" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== Configuration Files Box ==================== -->
+        <mxCell id="config-box" value="Configuration Files" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="80" width="350" height="340" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-yml" value="galaxy.yml&#xa;- Database connection&#xa;- Admin settings&#xa;- Tool paths" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#607D8B;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="config-box">
+          <mxGeometry x="10" y="30" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-conf" value="job_conf.yml&#xa;- Job runners&#xa;- Resource limits&#xa;- Docker settings" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#607D8B;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="config-box">
+          <mxGeometry x="180" y="30" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-conf-file" value="tool_conf_biomni.xml&#xa;- Tool registration&#xa;- Category mapping&#xa;- 200+ tool entries" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#607D8B;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="config-box">
+          <mxGeometry x="10" y="110" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="env-vars" value="Environment Variables&#xa;- LLM_API_KEY&#xa;- DATABASE_URL&#xa;- GALAXY_CONFIG_FILE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#607D8B;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="config-box">
+          <mxGeometry x="180" y="110" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="security-config" value="security-config.ts&#xa;- CORS settings&#xa;- Rate limiting&#xa;- Authentication" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#607D8B;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="config-box">
+          <mxGeometry x="10" y="190" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="drizzle-config" value="drizzle.config.ts&#xa;- DB schema&#xa;- Migrations&#xa;- Connection pool" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#607D8B;fontSize=10;align=left;spacingLeft=5;" vertex="1" parent="config-box">
+          <mxGeometry x="180" y="190" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Legend ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="440" width="350" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-api" value="API/Router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="30" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-service" value="Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="100" y="30" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-galaxy" value="Galaxy Core" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#E65100;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="190" y="30" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-tool" value="Tool" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="70" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-db" value="Database" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="100" y="65" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-external" value="External" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="190" y="65" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-flow" value="Data Flow" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="120" width="60" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-flow-line" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="legend">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="80" y="130" as="sourcePoint" />
+            <mxPoint x="160" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="legend-async" value="Async/External" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="150" width="70" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-async-line" value="" style="endArrow=classic;html=1;strokeColor=#F0AD4E;strokeWidth=2;dashed=1;" edge="1" parent="legend">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="80" y="160" as="sourcePoint" />
+            <mxPoint x="160" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Key Paths Note -->
+        <mxCell id="paths-note" value="Key File Paths:&#xa;&#xa;backend/lib/galaxy/ai/ - AI modules&#xa;backend/lib/galaxy/webapps/galaxy/api/ - API endpoints&#xa;backend/lib/galaxy/managers/ - Service managers&#xa;backend/biomni_workflows/galaxy/tools/biomni/ - Tools&#xa;backend/config/ - Configuration files&#xa;frontend/server/ - Node.js backend proxy" style="text;html=1;strokeColor=#9E9E9E;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=5;fontSize=10;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="660" width="350" height="140" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

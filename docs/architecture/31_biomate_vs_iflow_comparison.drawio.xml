@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-13T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="biomate-vs-iflow" name="BioMate vs iFlow Comparison">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate vs iFlow: Feature Comparison &amp; Gap Analysis" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="700" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- BioMate Column Header -->
+        <mxCell id="biomate-header" value="BioMate (Existing)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- iFlow Column Header -->
+        <mxCell id="iflow-header" value="iFlow Reference" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="700" y="80" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Gap Column Header -->
+        <mxCell id="gap-header" value="Gap?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="620" y="80" width="60" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 1: Intent Classification -->
+        <mxCell id="row1-label" value="1. Intent Classification" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="20" y="140" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="biomate-r1" value="UnifiedIntentRouter&#xa;- 10 intent types&#xa;- Keyword matching &lt;10ms&#xa;- LLM fallback (conf &lt; 0.6)&#xa;- Entity extraction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="100" y="130" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="iflow-r1" value="Task Routing&#xa;- Similar intent detection&#xa;- Routes to domain agents&#xa;- Less bio-specific" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="700" y="130" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="gap-r1" value="NO" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="625" y="140" width="50" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 2: Domain Routing -->
+        <mxCell id="row2-label" value="2. Domain Routing" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="20" y="210" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="biomate-r2" value="EnhancedDomainRouter&#xa;- 15 bioinformatics domains&#xa;- Hybrid keyword + LLM&#xa;- LRU cache (1000, TTL 3600s)&#xa;- User preference boost" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="100" y="200" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="iflow-r2" value="Agent Selection&#xa;- Domain agent routing&#xa;- Generic domains&#xa;- Response caching" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="700" y="200" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="gap-r2" value="NO" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="625" y="210" width="50" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 3: Parallel Execution -->
+        <mxCell id="row3-label" value="3. Parallel Execution" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="20" y="280" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="biomate-r3" value="DomainSpecialistPool&#xa;- ThreadPoolExecutor&#xa;- max_workers=3&#xa;- Concurrent domain queries" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="100" y="270" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="iflow-r3" value="asyncio Tasks&#xa;- async/await pattern&#xa;- Concurrent tool calls&#xa;- Similar parallel execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="700" y="270" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="gap-r3" value="NO" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="625" y="280" width="50" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 4: User Learning -->
+        <mxCell id="row4-label" value="4. User Learning" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="20" y="350" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="biomate-r4" value="UserPatternsAdapter&#xa;- Domain preferences (SQLite)&#xa;- Tool preferences&#xa;- Learned keywords&#xa;- Expertise level tracking" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="100" y="340" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="iflow-r4" value="Memory System&#xa;- Conversation history&#xa;- User preferences&#xa;- Session state" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="700" y="340" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="gap-r4" value="NO" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="625" y="350" width="50" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 5: Message Protocol - GAP -->
+        <mxCell id="row5-label" value="5. Message Protocol" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="20" y="420" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="biomate-r5" value="Ad-hoc Dictionaries&#xa;- No standardized format&#xa;- Custom per-component&#xa;- Hard to debug/trace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="100" y="410" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="iflow-r5" value="Agent Communication Protocol&#xa;- AssistantMessage, ToolCallMessage&#xa;- PlanMessage, TaskFinishMessage&#xa;- Structured, traceable" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="700" y="410" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="gap-r5" value="YES" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="625" y="420" width="50" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 6: Checkpointing - GAP -->
+        <mxCell id="row6-label" value="6. Checkpointing" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="20" y="490" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="biomate-r6" value="None&#xa;- No state persistence&#xa;- Must restart on failure&#xa;- No resume capability" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="100" y="480" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="iflow-r6" value="Suspend/Resume&#xa;- Full state persistence&#xa;- Redis/SQLite checkpoints&#xa;- Resume from any point" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="700" y="480" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="gap-r6" value="YES" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="625" y="490" width="50" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 7: Planning Stage - GAP -->
+        <mxCell id="row7-label" value="7. Planning Stage" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="20" y="560" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="biomate-r7" value="Implicit&#xa;- Routing decisions hidden&#xa;- No user approval step&#xa;- User unaware of domains" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="100" y="550" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="iflow-r7" value="Explicit Planning&#xa;- Plan generation step&#xa;- User approval before exec&#xa;- Transparent decision making" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="700" y="550" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="gap-r7" value="YES" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="625" y="560" width="50" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Row 8: Tool Permissions - GAP -->
+        <mxCell id="row8-label" value="8. Tool Permissions" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="20" y="630" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="biomate-r8" value="Soft Filtering&#xa;- Tool filtering per domain&#xa;- No strict enforcement&#xa;- Cross-domain possible" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="100" y="620" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="iflow-r8" value="Strict Permissions&#xa;- Tool permission scoping&#xa;- Enforced boundaries&#xa;- No cross-domain access" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="700" y="620" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="gap-r8" value="PART" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="625" y="630" width="50" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Summary Box -->
+        <mxCell id="summary-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="100" y="710" width="1100" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="summary-title" value="Summary: Genuine Gaps to Address" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="110" y="715" width="400" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Priority 1 -->
+        <mxCell id="priority1" value="P1: Message Protocol (BCP)&#xa;Standardize inter-agent communication&#xa;Effort: Low | Impact: Medium" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="120" y="745" width="250" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Priority 2 -->
+        <mxCell id="priority2" value="P2: Checkpoint/Resume&#xa;State persistence for reliability&#xa;Effort: Medium | Impact: High" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="390" y="745" width="250" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Priority 3 -->
+        <mxCell id="priority3" value="P3: Explicit Planning Stage&#xa;User transparency &amp; approval&#xa;Effort: Medium | Impact: High" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="660" y="745" width="250" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Priority 4 -->
+        <mxCell id="priority4" value="P4: Tool Permission Enforcement&#xa;Strict domain boundaries&#xa;Effort: Low | Impact: Medium" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=5" vertex="1" parent="1">
+          <mxGeometry x="930" y="745" width="250" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Conclusion -->
+        <mxCell id="conclusion" value="BioMate already has 80% of iFlow's agent capabilities. Focus on the 4 genuine gaps above." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="100" y="810" width="1100" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=1" vertex="1" parent="1">
+          <mxGeometry x="1220" y="80" width="180" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1220" y="85" width="180" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend1" value="BioMate has it" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1230" y="110" width="160" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend2" value="Gap - needs work" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1230" y="135" width="160" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend3" value="Partial - minor gap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1230" y="160" width="160" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="main-application-schema" name="Main Application Database Schema">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Main Application Database Schema" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Core Tables: Users, Audit Logs, Workflow Executions | PostgreSQL via Drizzle ORM | frontend/shared/schema.ts" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="350" y="55" width="700" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== USERS TABLE ==================== -->
+        <mxCell id="users-section" value="Authentication &amp; User Management" style="swimlane;fillColor=#E3F2FD;strokeColor=#2196F3;fontStyle=1;fontSize=14;fontColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="400" height="420" as="geometry" />
+        </mxCell>
+
+        <mxCell id="users" value="users" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#BBDEFB;strokeColor=#64B5F6;fontSize=12;" vertex="1" parent="users-section">
+          <mxGeometry x="20" y="40" width="360" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="users_pk" value="PK  id: serial" style="text;strokeColor=none;fillColor=#90CAF9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="30" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f1" value="    email: varchar(255) UNIQUE NOT NULL" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="50" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f2" value="    password: varchar(255) NOT NULL (bcrypt, 12 rounds)" style="text;strokeColor=none;fillColor=#FFCDD2;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="70" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f3" value="    fullName: varchar(255)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="90" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f4" value="    emailVerified: boolean DEFAULT false" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="110" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f5" value="    verificationToken: varchar(255)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="130" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f6" value="    resetToken: varchar(255)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="150" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f7" value="    resetTokenExpiry: timestamp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="170" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_sep1" value="--- Subscription ---" style="text;strokeColor=none;fillColor=#E8F5E9;align=center;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontStyle=2;" vertex="1" parent="users">
+          <mxGeometry y="190" width="360" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f8" value="    trialStartedAt: timestamp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="206" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f9" value="    subscriptionStatus: varchar(50) DEFAULT 'trial'" style="text;strokeColor=none;fillColor=#C8E6C9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="226" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f10" value="    subscriptionTier: varchar(50)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="246" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f11" value="    stripeCustomerId: varchar(255)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="266" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_sep2" value="--- Galaxy Integration ---" style="text;strokeColor=none;fillColor=#FFF3E0;align=center;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontStyle=2;" vertex="1" parent="users">
+          <mxGeometry y="286" width="360" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f12" value="    galaxyUserId: varchar(100)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="302" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f13" value="    galaxyApiKey: varchar(255) (AES-256-GCM encrypted)" style="text;strokeColor=none;fillColor=#FFCDD2;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="322" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="users_f14" value="    createdAt: timestamp DEFAULT now()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="users">
+          <mxGeometry y="342" width="360" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== AUDIT LOGS TABLE ==================== -->
+        <mxCell id="audit-section" value="Regulatory Compliance &amp; Audit Trail" style="swimlane;fillColor=#FFEBEE;strokeColor=#F44336;fontStyle=1;fontSize=14;fontColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="460" y="100" width="400" height="420" as="geometry" />
+        </mxCell>
+
+        <mxCell id="audit_logs" value="audit_logs" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#FFCDD2;strokeColor=#EF9A9A;fontSize=12;" vertex="1" parent="audit-section">
+          <mxGeometry x="20" y="40" width="360" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_pk" value="PK  id: serial" style="text;strokeColor=none;fillColor=#EF9A9A;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="30" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_fk" value="FK  userId: integer → users.id (nullable for system)" style="text;strokeColor=none;fillColor=#BBDEFB;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="50" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f1" value="    action: varchar(100) NOT NULL" style="text;strokeColor=none;fillColor=#C8E6C9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="70" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_actions" value="    Actions: workflow.execute, dataset.upload, auth.login,&#xa;             workflow.generate, tool.install, system.config" style="text;strokeColor=none;fillColor=#E8F5E9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontStyle=2;" vertex="1" parent="audit_logs">
+          <mxGeometry y="90" width="360" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f2" value="    resourceType: varchar(100)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="120" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f3" value="    resourceId: varchar(255)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="140" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f4" value="    details: json (request params, config changes)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="160" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f5" value="    reasoning: text (AI decision explanation)" style="text;strokeColor=none;fillColor=#FFF9C4;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="180" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f6" value="    timestamp: timestamp DEFAULT now()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="200" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f7" value="    status: varchar(50) DEFAULT 'success'" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="220" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f8" value="    errorMessage: text" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="240" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f9" value="    durationMs: integer (operation timing)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="260" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f10" value="    ipAddress: varchar(45)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="280" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_f11" value="    userAgent: text" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="audit_logs">
+          <mxGeometry y="300" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_idx" value="IDX user_id_idx, action_idx, timestamp_idx, resource_idx" style="text;strokeColor=none;fillColor=#FFF9C4;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontStyle=2;" vertex="1" parent="audit_logs">
+          <mxGeometry y="320" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_compliance" value="Compliance: SOC 2 Type II, HIPAA audit trail requirements" style="text;strokeColor=none;fillColor=#FFCDD2;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontStyle=2;" vertex="1" parent="audit_logs">
+          <mxGeometry y="340" width="360" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== WORKFLOW EXECUTIONS TABLE ==================== -->
+        <mxCell id="exec-section" value="Workflow Execution Tracking" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=14;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="880" y="100" width="400" height="420" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow_executions" value="workflow_executions" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#C8E6C9;strokeColor=#81C784;fontSize=12;" vertex="1" parent="exec-section">
+          <mxGeometry x="20" y="40" width="360" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_pk" value="PK  id: serial" style="text;strokeColor=none;fillColor=#A5D6A7;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="30" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_fk1" value="FK  userId: integer → users.id" style="text;strokeColor=none;fillColor=#BBDEFB;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="50" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_fk2" value="FK  projectId: integer → projects.id (LTM)" style="text;strokeColor=none;fillColor=#BBDEFB;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="70" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_sep1" value="--- Galaxy References ---" style="text;strokeColor=none;fillColor=#FFF3E0;align=center;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontStyle=2;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="90" width="360" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_f1" value="    galaxyWorkflowId: varchar(100)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="106" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_f2" value="    galaxyInvocationId: varchar(100)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="126" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_f3" value="    galaxyHistoryId: varchar(100)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="146" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_sep2" value="--- Execution Details ---" style="text;strokeColor=none;fillColor=#E3F2FD;align=center;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontStyle=2;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="166" width="360" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_f4" value="    workflowName: varchar(255)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="182" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_f5" value="    status: varchar(50) DEFAULT 'pending'" style="text;strokeColor=none;fillColor=#C8E6C9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="202" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_statuses" value="    Status: pending, running, paused, completed, failed, cancelled" style="text;strokeColor=none;fillColor=#E8F5E9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontStyle=2;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="222" width="360" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_f6" value="    errorMessage: text" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="240" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_f7" value="    totalSteps: integer DEFAULT 0" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="260" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_f8" value="    completedSteps: integer DEFAULT 0" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="280" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_f9" value="    startedAt: timestamp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="300" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_f10" value="    completedAt: timestamp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="320" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="exec_idx" value="IDX user_id_idx, status_idx, galaxy_invocation_idx" style="text;strokeColor=none;fillColor=#FFF9C4;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontStyle=2;" vertex="1" parent="workflow_executions">
+          <mxGeometry y="340" width="360" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== PROGRESSIVE TUNING SCHEMAS ==================== -->
+        <mxCell id="tuning-section" value="Progressive Tuning Schemas (JSON)" style="swimlane;fillColor=#F3E5F5;strokeColor=#9C27B0;fontStyle=1;fontSize=14;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="560" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tuning-config" value="tuningConfigSchema" style="swimlane;fillColor=#E1BEE7;strokeColor=#BA68C8;fontStyle=1;fontSize=11;" vertex="1" parent="tuning-section">
+          <mxGeometry x="20" y="40" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tuning-config-content" value="{&#xa;  pilot_fraction: 0.05 - 0.3,&#xa;  sampling_strategy: 'random' | 'stratified',&#xa;  max_pilot_size: number,&#xa;  parameters_to_tune: string[]&#xa;}" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;fontFamily=Courier New;" vertex="1" parent="tuning-config">
+          <mxGeometry y="25" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pilot-result" value="pilotResultSchema" style="swimlane;fillColor=#E1BEE7;strokeColor=#BA68C8;fontStyle=1;fontSize=11;" vertex="1" parent="tuning-section">
+          <mxGeometry x="290" y="40" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pilot-result-content" value="{&#xa;  runtime_seconds: number,&#xa;  memory_peak_mb: number,&#xa;  quality_metrics: { ... },&#xa;  recommended_params: { ... }&#xa;}" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;fontFamily=Courier New;" vertex="1" parent="pilot-result">
+          <mxGeometry y="25" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="param-rec" value="parameterRecommendationSchema" style="swimlane;fillColor=#E1BEE7;strokeColor=#BA68C8;fontStyle=1;fontSize=11;" vertex="1" parent="tuning-section">
+          <mxGeometry x="20" y="160" width="520" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="param-rec-content" value="{&#xa;  parameter_name: string,&#xa;  recommended_value: any,&#xa;  confidence: 0.0 - 1.0,&#xa;  source: 'benchmark' | 'protocol' | 'best_practice' | 'llm_generated',&#xa;  reasoning: string&#xa;}" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;fontFamily=Courier New;" vertex="1" parent="param-rec">
+          <mxGeometry y="25" width="510" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== RELATIONSHIPS ==================== -->
+        <mxCell id="rel-section" value="Table Relationships" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=14;fontColor=#455A64;" vertex="1" parent="1">
+          <mxGeometry x="620" y="540" width="340" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel-diagram" value="" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;startSize=0;" vertex="1" parent="rel-section">
+          <mxGeometry x="20" y="40" width="300" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel-users" value="users" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="rel-diagram">
+          <mxGeometry x="110" y="20" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel-audit" value="audit_logs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#C62828;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="rel-diagram">
+          <mxGeometry x="20" y="90" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel-exec" value="workflow_executions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="rel-diagram">
+          <mxGeometry x="180" y="90" width="110" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel-ltm" value="LTM Tables&#xa;(ltm-schema.ts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;dashed=1;" vertex="1" parent="rel-diagram">
+          <mxGeometry x="90" y="165" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Relationship arrows -->
+        <mxCell id="rel-arr1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="rel-diagram" source="rel-users" target="rel-audit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-arr2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="rel-diagram" source="rel-users" target="rel-exec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-arr3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9C27B0;strokeWidth=2;dashed=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="rel-diagram" source="rel-users" target="rel-ltm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-arr4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9C27B0;strokeWidth=2;dashed=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="rel-diagram" source="rel-exec" target="rel-ltm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== LEGEND ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="980" y="540" width="300" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="35" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1-text" value="User/Auth Domain" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="35" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#F44336;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="65" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2-text" value="Audit/Compliance Domain" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="65" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="95" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3-text" value="Workflow Execution Domain" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="95" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="125" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4-text" value="Progressive Tuning Schemas" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="125" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-sep" value="Field Highlights:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="160" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#EF9A9A;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="185" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5-text" value="Sensitive/Encrypted Data" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="185" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#81C784;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="210" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6-text" value="Status/State Fields" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="210" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg7" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#FFF176;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="235" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg7-text" value="AI Reasoning/Indices" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="235" width="130" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-file" value="File: frontend/shared/schema.ts" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="legend">
+          <mxGeometry x="160" y="255" width="130" height="15" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

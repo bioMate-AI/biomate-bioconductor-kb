@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-13T00:00:00.000Z" agent="BioMate" version="22.0.0" type="device">
+  <diagram name="iFlow Integration Architecture" id="iflow-integration">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate + iFlow Integration Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="400" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- User Interface Layer -->
+        <mxCell id="ui-layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="1000" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="ui-label" value="USER INTERFACE LAYER (Adopt iFlow UX Patterns)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="350" y="85" width="500" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- UI Components -->
+        <mxCell id="slash-cmd" value="/workflow &lt;type&gt;&#xa;Slash Commands&#xa;(iFlow pattern)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="130" y="115" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="file-ref" value="@data/file.mzML&#xa;File References&#xa;(iFlow pattern)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="310" y="115" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent-call" value="$tool-selector&#xa;Agent Calls&#xa;(Map to LTM routing)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="490" y="115" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="context-file" value="BIOMATE.md&#xa;Context Files&#xa;(NEW)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="670" y="115" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="thinking" value="Thinking Levels&#xa;none/normal/hard&#xa;mega/ultra" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="850" y="115" width="150" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow down -->
+        <mxCell id="arrow1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="600" y="200" as="sourcePoint"/>
+            <mxPoint x="600" y="230" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Orchestration Layer -->
+        <mxCell id="orch-layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="100" y="240" width="1000" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="orch-label" value="ORCHESTRATION LAYER (BioMate Hybrid Intelligence)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="350" y="245" width="500" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Hybrid Intelligence Pipeline -->
+        <mxCell id="intent" value="Intent&#xa;Analysis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="130" y="280" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="tool-search" value="Tool Search&#xa;(2,177 tools)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="270" y="280" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="dataset-rag" value="Dataset RAG&#xa;(ChromaDB)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="410" y="280" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="workflow-gen" value="Workflow&#xa;Generation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="550" y="280" width="100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Pipeline arrows -->
+        <mxCell id="pipe1" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="230" y="305" as="sourcePoint"/>
+            <mxPoint x="270" y="305" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pipe2" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="370" y="305" as="sourcePoint"/>
+            <mxPoint x="410" y="305" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pipe3" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="510" y="305" as="sourcePoint"/>
+            <mxPoint x="550" y="305" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Hooks System -->
+        <mxCell id="hooks-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="130" y="350" width="870" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="hooks-label" value="HOOKS SYSTEM (NEW - Adopt from iFlow)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="140" y="355" width="250" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="hook1" value="PreWorkflow" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="150" y="375" width="80" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="hook2" value="PreTool" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="250" y="375" width="80" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="hook3" value="[Execute]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="350" y="375" width="80" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="hook4" value="PostTool" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="450" y="375" width="80" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="hook5" value="Complete" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="550" y="375" width="80" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Hook arrows -->
+        <mxCell id="harrow1" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#82b366" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="230" y="387.5" as="sourcePoint"/>
+            <mxPoint x="250" y="387.5" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="harrow2" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#82b366" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="330" y="387.5" as="sourcePoint"/>
+            <mxPoint x="350" y="387.5" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="harrow3" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#82b366" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="430" y="387.5" as="sourcePoint"/>
+            <mxPoint x="450" y="387.5" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="harrow4" value="" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#82b366" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="530" y="387.5" as="sourcePoint"/>
+            <mxPoint x="550" y="387.5" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Checkpoint info -->
+        <mxCell id="checkpoint-info" value="Checkpoints&#xa;(NEW)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="700" y="280" width="80" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="checkpoint-desc" value="Pre-execution&#xa;snapshots for&#xa;rollback" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="800" y="280" width="90" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow down -->
+        <mxCell id="arrow2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="600" y="420" as="sourcePoint"/>
+            <mxPoint x="600" y="450" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Bottom Three Columns -->
+        <!-- Learning Layer -->
+        <mxCell id="learning-layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="100" y="460" width="300" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="learning-label" value="LEARNING LAYER (BioMate LTM - EXISTING)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="110" y="465" width="280" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ltm-box" value="10-Table LTM Database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="500" width="260" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="ltm-items" value="&#8226; user_preferences (confidence 0-1)&#xa;&#8226; correction_log (auto-learning)&#xa;&#8226; project_episodes (memory)&#xa;&#8226; project_procedures (patterns)&#xa;&#8226; project_knowledge (domain)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="125" y="535" width="250" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="checkpoint-box" value="CHECKPOINTS (NEW)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="120" y="620" width="260" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="checkpoint-items" value="&#8226; Pre-execution state snapshots&#xa;&#8226; History rollback capability&#xa;&#8226; Conversation context restore" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="125" y="655" width="250" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Execution Layer -->
+        <mxCell id="exec-layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="420" y="460" width="260" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="exec-label" value="EXECUTION LAYER (Galaxy Backend)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="430" y="465" width="240" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="galaxy-api" value="Galaxy API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="440" y="500" width="220" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="galaxy-items" value="&#8226; Workflows (2,177 tools)&#xa;&#8226; Datasets &amp; Histories&#xa;&#8226; Jobs &amp; Execution&#xa;&#8226; SSE Status Streaming" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="445" y="535" width="210" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="wf-exec" value="Workflow Executions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="440" y="600" width="220" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wf-items" value="&#8226; Step-by-step tracking&#xa;&#8226; Status monitoring&#xa;&#8226; Error capture" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="445" y="635" width="210" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Auditing Layer -->
+        <mxCell id="audit-layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="700" y="460" width="300" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="audit-label" value="AUDITING LAYER (BioMate Audit - EXISTING)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="710" y="465" width="280" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="audit-svc" value="AuditService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="500" width="260" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="audit-items" value="&#8226; logAuth() - Authentication events&#xa;&#8226; logWorkflowGeneration()&#xa;&#8226; logWorkflowExecution()&#xa;&#8226; logDatasetUpload()&#xa;&#8226; logAccessDenied()&#xa;&#8226; logSSEConnection()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="725" y="535" width="250" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="telem" value="Telemetry (Future)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="720" y="640" width="260" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="telem-items" value="&#8226; OTLP endpoint support" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="725" y="675" width="250" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow down -->
+        <mxCell id="arrow3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="600" y="700" as="sourcePoint"/>
+            <mxPoint x="600" y="730" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- SDK/API Layer -->
+        <mxCell id="sdk-layer" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="100" y="740" width="1000" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="sdk-label" value="SDK/API LAYER (NEW - Adopt from iFlow)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="745" width="400" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="rest-api" value="REST API&#xa;(Current)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="180" y="780" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="python-sdk" value="BioMate SDK&#xa;Python&#xa;(Proposed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="430" y="780" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="gh-action" value="GitHub Action&#xa;biomate-action&#xa;(Proposed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="680" y="780" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ci-cd" value="CI/CD&#xa;Integration&#xa;(Future)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="880" y="780" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="860" width="1000" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-title" value="LEGEND:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="110" y="865" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="180" y="870" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1-text" value="Existing" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="205" y="867" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="280" y="870" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2-text" value="NEW (from iFlow)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="305" y="867" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="420" y="870" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3-text" value="iFlow Pattern" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="445" y="867" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="540" y="870" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4-text" value="Future/Proposed" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="565" y="867" width="90" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg5" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="180" y="895" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5-text" value="BioMate LTM (Superior)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="205" y="892" width="130" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg6" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="360" y="895" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg6-text" value="BioMate Audit (Superior)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="385" y="892" width="140" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg7" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="540" y="895" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg7-text" value="Galaxy Integration" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="565" y="892" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

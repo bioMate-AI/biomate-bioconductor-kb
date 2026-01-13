@@ -143,8 +143,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // Health check
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  app.get("/api/health", async (req, res) => {
+    // Get Galaxy connection status
+    const galaxyStatus = galaxyAPIBackend.getConnectionStatus();
+    const galaxyHealthy = await galaxyAPIBackend.healthCheck();
+
+    res.json({
+      status: galaxyHealthy ? "ok" : "degraded",
+      timestamp: new Date().toISOString(),
+      services: {
+        api: "ok",
+        galaxy: {
+          connected: galaxyHealthy,
+          url: galaxyStatus.url,
+          error: galaxyStatus.error
+        },
+        ai: !!galaxyAssistant ? "ok" : "unavailable"
+      }
+    });
   });
 
   // ============================================================================
@@ -1342,7 +1358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/galaxy/workflows/invoke", async (req, res) => {
+  app.post("/api/galaxy/workflows/invoke", optionalAuth, async (req, res) => {
     try {
       const {
         workflow_id,
@@ -1409,6 +1425,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         workflow_id,
         invocation.history_id
       );
+
+      // Create local invocation record for Workflow History panel
+      try {
+        // Get workflow name from Galaxy if possible
+        let workflowName = 'Workflow';
+        try {
+          const workflowDetails = await galaxyAPIBackend.getWorkflow(workflow_id);
+          workflowName = workflowDetails?.name || 'Workflow';
+        } catch (e) {
+          console.warn('[InvokeWorkflow] Could not fetch workflow name:', e);
+        }
+
+        await storage.createInvocation({
+          id: invocation.id,
+          galaxyInvocationId: invocation.id,
+          workflowId: workflow_id,
+          workflowName: workflowName,
+          userId: (req as any).user?.id || 'anonymous',
+          status: invocation.state || 'new',
+          totalSteps: invocation.steps?.length || 0,
+          completedSteps: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        console.log('[InvokeWorkflow] Created local invocation record:', invocation.id);
+      } catch (storageError) {
+        console.warn('[InvokeWorkflow] Failed to create local invocation record:', storageError);
+        // Don't fail the request - Galaxy invocation was successful
+      }
 
       res.json(invocation);
     } catch (error: any) {
@@ -2746,7 +2791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all invocations for the current user
-  app.get("/api/invocations", async (req, res) => {
+  app.get("/api/invocations", optionalAuth, async (req, res) => {
     try {
       const { limit } = req.query;
       const invocations = await storage.getInvocations(

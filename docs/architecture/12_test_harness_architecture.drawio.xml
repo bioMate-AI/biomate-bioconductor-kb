@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="test-harness-architecture" name="Test Harness Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Test Harness Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="550" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Test Categories ==================== -->
+        <mxCell id="test-categories" value="Test Categories" style="swimlane;fillColor=#E3F2FD;strokeColor=#1976D2;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="700" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- Unit Tests -->
+        <mxCell id="unit-tests" value="Unit Tests&#xa;(pytest)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="test-categories">
+          <mxGeometry x="20" y="40" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="unit-desc" value="- Individual function testing&#xa;- Database query validation&#xa;- Schema validation&#xa;- Parser tests&#xa;- Utility function tests" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=10;rounded=1;" vertex="1" parent="test-categories">
+          <mxGeometry x="20" y="110" width="150" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Integration Tests -->
+        <mxCell id="integration-tests" value="Integration Tests&#xa;(pytest)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="test-categories">
+          <mxGeometry x="190" y="40" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="integration-desc" value="- Component interaction&#xa;- API endpoint testing&#xa;- Database transactions&#xa;- Service layer tests&#xa;- Tool execution chains" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=10;rounded=1;" vertex="1" parent="test-categories">
+          <mxGeometry x="190" y="110" width="150" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- E2E Tests -->
+        <mxCell id="e2e-tests" value="E2E Tests&#xa;(Playwright)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="test-categories">
+          <mxGeometry x="360" y="40" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e2e-desc" value="- Full workflow testing&#xa;- User journey simulation&#xa;- Browser automation&#xa;- UI component testing&#xa;- Cross-browser validation" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=10;rounded=1;" vertex="1" parent="test-categories">
+          <mxGeometry x="360" y="110" width="150" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Benchmark Tests -->
+        <mxCell id="benchmark-tests" value="Benchmark Tests&#xa;(pytest-benchmark)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="test-categories">
+          <mxGeometry x="530" y="40" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="benchmark-desc" value="- Performance regression&#xa;- Response time tracking&#xa;- Memory usage&#xa;- Throughput testing&#xa;- LLM latency benchmarks" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=10;rounded=1;" vertex="1" parent="test-categories">
+          <mxGeometry x="530" y="110" width="150" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Mock Services ==================== -->
+        <mxCell id="mock-services" value="Mock Services (Deterministic Testing)" style="swimlane;fillColor=#FFF3E0;strokeColor=#E65100;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="700" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mock-llm" value="MockLLMService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="mock-services">
+          <mxGeometry x="20" y="40" width="130" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mock-llm-desc" value="- Predefined responses&#xa;- Token counting sim&#xa;- Latency simulation&#xa;- Error injection" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="mock-services">
+          <mxGeometry x="20" y="100" width="130" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mock-api" value="MockAPIService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E74C3C;strokeColor=#C0392B;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="mock-services">
+          <mxGeometry x="170" y="40" width="130" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mock-api-desc" value="- External API mocking&#xa;- Rate limit simulation&#xa;- Network errors&#xa;- Response caching" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="mock-services">
+          <mxGeometry x="170" y="100" width="130" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mock-db" value="MockDatabaseService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9B59B6;strokeColor=#7D3C98;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="mock-services">
+          <mxGeometry x="320" y="40" width="130" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mock-db-desc" value="- In-memory SQLite&#xa;- Test fixtures&#xa;- Transaction rollback&#xa;- Schema validation" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="mock-services">
+          <mxGeometry x="320" y="100" width="130" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mock-galaxy" value="MockGalaxyServer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#E65100;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="mock-services">
+          <mxGeometry x="470" y="40" width="130" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mock-galaxy-desc" value="- Tool execution sim&#xa;- History management&#xa;- Job status mocking&#xa;- Dataset fixtures" style="text;html=1;strokeColor=#BDBDBD;fillColor=#FAFAFA;align=left;verticalAlign=top;spacingLeft=5;spacingTop=3;fontSize=9;rounded=1;" vertex="1" parent="mock-services">
+          <mxGeometry x="470" y="100" width="130" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Test Data Management ==================== -->
+        <mxCell id="test-data" value="Test Data Management" style="swimlane;fillColor=#E8F5E9;strokeColor=#388E3C;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="700" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="test-fixtures" value="Test Fixtures&#xa;(conftest.py)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="test-data">
+          <mxGeometry x="20" y="40" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="synthetic-data" value="Synthetic Data&#xa;Generator" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="test-data">
+          <mxGeometry x="160" y="40" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bio-test-data" value="Bioinformatics&#xa;Test Datasets" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#CDDC39;strokeColor=#AFB42B;fontColor=#333333;fontSize=11;" vertex="1" parent="test-data">
+          <mxGeometry x="300" y="40" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="golden-files" value="Golden Files&#xa;(Expected Output)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFEB3B;strokeColor=#FBC02D;fontColor=#333333;fontSize=11;" vertex="1" parent="test-data">
+          <mxGeometry x="440" y="40" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="snapshot-tests" value="Snapshot Tests&#xa;(pytest-snapshot)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=11;" vertex="1" parent="test-data">
+          <mxGeometry x="580" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="test-data-types" value="Data Types: FASTA, FASTQ, BAM, VCF, PDB, SDF, CSV, JSON, XML" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="test-data">
+          <mxGeometry x="40" y="125" width="600" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CI/CD Pipeline ==================== -->
+        <mxCell id="cicd-pipeline" value="CI/CD Pipeline (GitHub Actions)" style="swimlane;fillColor=#E1F5FE;strokeColor=#0288D1;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="80" width="800" height="280" as="geometry" />
+        </mxCell>
+
+        <!-- Pipeline Stages -->
+        <mxCell id="stage-lint" value="1. Lint &amp; Format&#xa;(ESLint, Black, Ruff)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="cicd-pipeline">
+          <mxGeometry x="20" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stage-typecheck" value="2. Type Check&#xa;(mypy, tsc)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="cicd-pipeline">
+          <mxGeometry x="160" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stage-unit" value="3. Unit Tests&#xa;(pytest -m unit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="cicd-pipeline">
+          <mxGeometry x="300" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stage-integration" value="4. Integration&#xa;(pytest -m int)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="cicd-pipeline">
+          <mxGeometry x="440" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stage-e2e" value="5. E2E Tests&#xa;(Playwright)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="cicd-pipeline">
+          <mxGeometry x="580" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows between stages -->
+        <mxCell id="arrow1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="cicd-pipeline" source="stage-lint" target="stage-typecheck">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="cicd-pipeline" source="stage-typecheck" target="stage-unit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="cicd-pipeline" source="stage-unit" target="stage-integration">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow4" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="cicd-pipeline" source="stage-integration" target="stage-e2e">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Test Matrix -->
+        <mxCell id="test-matrix" value="Test Matrix" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=11;" vertex="1" parent="cicd-pipeline">
+          <mxGeometry x="20" y="110" width="280" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="matrix-python" value="Python: 3.10, 3.11, 3.12" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="test-matrix">
+          <mxGeometry x="10" y="30" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="matrix-node" value="Node.js: 18, 20, 22" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="test-matrix">
+          <mxGeometry x="10" y="50" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="matrix-os" value="OS: Ubuntu, macOS, Windows" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="test-matrix">
+          <mxGeometry x="10" y="70" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="matrix-db" value="DB: SQLite, PostgreSQL" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="test-matrix">
+          <mxGeometry x="10" y="90" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="matrix-arch" value="Arch: amd64, arm64" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="test-matrix">
+          <mxGeometry x="10" y="110" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Parallel Execution -->
+        <mxCell id="parallel-exec" value="Parallel Execution" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=11;" vertex="1" parent="cicd-pipeline">
+          <mxGeometry x="320" y="110" width="200" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="parallel-workers" value="pytest-xdist (4 workers)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="parallel-exec">
+          <mxGeometry x="20" y="30" width="160" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="parallel-sharding" value="Test Sharding by Category" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="parallel-exec">
+          <mxGeometry x="20" y="70" width="160" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="parallel-cache" value="Dependency Caching" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="parallel-exec">
+          <mxGeometry x="20" y="110" width="160" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Results Aggregation -->
+        <mxCell id="results-agg" value="Results Aggregation" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=11;" vertex="1" parent="cicd-pipeline">
+          <mxGeometry x="540" y="110" width="240" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="coverage-report" value="Coverage Report&#xa;(codecov)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="results-agg">
+          <mxGeometry x="20" y="30" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="test-report" value="Test Report&#xa;(pytest-html)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="results-agg">
+          <mxGeometry x="130" y="30" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="benchmark-report" value="Benchmark&#xa;(pytest-bench)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="results-agg">
+          <mxGeometry x="20" y="80" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="artifact-upload" value="Artifact Upload&#xa;(GitHub)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="results-agg">
+          <mxGeometry x="130" y="80" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Test Execution Flow ==================== -->
+        <mxCell id="execution-flow" value="Test Execution Flow" style="swimlane;fillColor=#FCE4EC;strokeColor=#C2185B;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="380" width="800" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- Flow Steps -->
+        <mxCell id="flow-trigger" value="Trigger&#xa;(Push/PR/Manual)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="execution-flow">
+          <mxGeometry x="20" y="50" width="90" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-setup" value="Setup&#xa;Environment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="execution-flow">
+          <mxGeometry x="130" y="55" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-mock" value="Initialize&#xa;Mocks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#673AB7;strokeColor=#512DA8;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="execution-flow">
+          <mxGeometry x="230" y="55" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-run" value="Run Test&#xa;Suite" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3F51B5;strokeColor=#303F9F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="execution-flow">
+          <mxGeometry x="330" y="55" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-collect" value="Collect&#xa;Results" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="execution-flow">
+          <mxGeometry x="430" y="55" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-report" value="Generate&#xa;Reports" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="execution-flow">
+          <mxGeometry x="530" y="55" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-notify" value="Notify&#xa;Results" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="execution-flow">
+          <mxGeometry x="630" y="55" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-gate" value="Quality&#xa;Gate" style="rhombus;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="execution-flow">
+          <mxGeometry x="720" y="45" width="70" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Flow arrows -->
+        <mxCell id="flow-a1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="execution-flow" source="flow-trigger" target="flow-setup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-a2" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="execution-flow" source="flow-setup" target="flow-mock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-a3" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="execution-flow" source="flow-mock" target="flow-run">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-a4" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="execution-flow" source="flow-run" target="flow-collect">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-a5" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="execution-flow" source="flow-collect" target="flow-report">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-a6" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="execution-flow" source="flow-report" target="flow-notify">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-a7" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="execution-flow" source="flow-notify" target="flow-gate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Quality Gate Labels -->
+        <mxCell id="gate-pass" value="Pass" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#4CAF50;" vertex="1" parent="execution-flow">
+          <mxGeometry x="740" y="120" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-fail" value="Fail" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#F44336;" vertex="1" parent="execution-flow">
+          <mxGeometry x="740" y="25" width="30" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Coverage Targets ==================== -->
+        <mxCell id="coverage-targets" value="Coverage Targets" style="swimlane;fillColor=#E8F5E9;strokeColor=#388E3C;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="580" width="380" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="target-unit" value="Unit Tests: 80%+" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="coverage-targets">
+          <mxGeometry x="20" y="40" width="160" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="target-integration" value="Integration: 70%+" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="coverage-targets">
+          <mxGeometry x="200" y="40" width="160" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="target-e2e" value="E2E: Critical Paths 100%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CDDC39;strokeColor=#AFB42B;fontColor=#333333;fontSize=11;" vertex="1" parent="coverage-targets">
+          <mxGeometry x="20" y="85" width="160" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="target-benchmark" value="Benchmark: No Regression" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEB3B;strokeColor=#FBC02D;fontColor=#333333;fontSize=11;" vertex="1" parent="coverage-targets">
+          <mxGeometry x="200" y="85" width="160" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="target-overall" value="Overall Target: 75% code coverage minimum" style="text;html=1;strokeColor=#388E3C;fillColor=#C8E6C9;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;rounded=1;" vertex="1" parent="coverage-targets">
+          <mxGeometry x="20" y="135" width="340" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Key Test Files ==================== -->
+        <mxCell id="key-files" value="Key Test Files &amp; Directories" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="580" width="400" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="files-list" value="backend/tests/&#xa;  ├── unit/           # Unit tests&#xa;  ├── integration/    # Integration tests&#xa;  ├── fixtures/       # Test fixtures&#xa;  └── conftest.py     # Shared fixtures&#xa;&#xa;frontend/tests/&#xa;  ├── unit/           # Component tests&#xa;  ├── e2e/            # Playwright tests&#xa;  └── setup.ts        # Test setup" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=10;fontFamily=monospace;" vertex="1" parent="key-files">
+          <mxGeometry x="10" y="30" width="380" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Legend ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="700" width="700" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-unit" value="Unit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="30" width="60" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-integration" value="Integration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="90" y="30" width="70" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-e2e" value="E2E" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="170" y="30" width="60" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-benchmark" value="Benchmark" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="240" y="30" width="70" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-mock" value="Mock Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0AD4E;strokeColor=#C88A00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="320" y="30" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-data" value="Test Data" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="410" y="25" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-decision" value="Decision" style="rhombus;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="490" y="25" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-trigger" value="Trigger" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="560" y="25" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-flow" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="legend">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="630" y="45" as="sourcePoint" />
+            <mxPoint x="690" y="45" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

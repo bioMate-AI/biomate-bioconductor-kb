@@ -164,6 +164,54 @@ Biomate is a full-stack bioinformatics platform combining:
 
 ---
 
+## Memory & Learning Architecture
+
+BioMate implements a sophisticated agentic memory system that enables the AI to learn from user interactions and improve over time.
+
+### 4-Layer Memory Hierarchy
+
+| Layer | Storage | TTL | Access Time | Purpose |
+|-------|---------|-----|-------------|---------|
+| L1 Volatile | In-Memory | 5 min | <1ms | Hot session data cache |
+| L2 Transient | Redis | 24 hours | ~5ms | Sessions, temporary state |
+| L3 Persistent | PostgreSQL LTM | Permanent | ~10-50ms | Long-term memory (10 tables) |
+| L4 Searchable | SQLite + Vector | Permanent | ~20-100ms | FTS5 + 384-dim embeddings |
+
+**Key Files:**
+- `frontend/server/cache.ts` - L1 in-memory cache
+- `frontend/server/redis-session.ts` - L2 Redis sessions
+- `frontend/shared/ltm-schema.ts` - L3 LTM database schema
+- `backend/lib/galaxy/tools/search_index.py` - L4 hybrid search
+
+### Long-Term Memory Database (10 Tables)
+
+| Domain | Tables | Purpose |
+|--------|--------|---------|
+| User | ltm_users, user_preferences, correction_log | User profiles, learned preferences, explicit corrections |
+| Project | projects, project_knowledge, workflows | Project context, accumulated knowledge, saved workflows |
+| Session | sessions, conversation_messages | Conversation history, message storage |
+| Learning | project_episodes, project_procedures | Episodic memory, emergent procedural knowledge |
+
+### 3 Learning Mechanisms
+
+1. **Explicit Learning**: User corrections are stored with high importance (0.8) in `correction_log`
+2. **Implicit Learning**: Repeated tool/workflow selections increase confidence (+0.1) in `user_preferences`
+3. **Emergent Learning**: 3+ similar episodes trigger automatic procedure generation in `project_procedures`
+
+### AI Tool Search (Hybrid)
+
+```
+Query → Parallel Search → Score Fusion → Top-K Results
+         ├─ SQLite FTS5 (BM25 ranking)
+         └─ Vector (all-MiniLM-L6-v2, 384-dim)
+
+combined_score = 0.6 × bm25_score + 0.4 × cosine_similarity
+```
+
+**Architecture Diagrams:** See `docs/architecture/19-24_*.drawio.xml` for detailed visualizations.
+
+---
+
 ## Security Architecture
 
 ### Authentication

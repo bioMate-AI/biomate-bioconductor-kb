@@ -1,0 +1,248 @@
+<mxfile host="app.diagrams.net" modified="2026-01-10T12:00:00.000Z" agent="BioMate Documentation" version="21.0.0" type="device">
+  <diagram id="enhanced-db-query" name="Enhanced Database Query Engine">
+    <mxGraphModel dx="1434" dy="780" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Enhanced Database Query Engine Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="400" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="File: Biomni/biomni/tool/database_enhanced.py" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=2;fontColor=#666666;" parent="1" vertex="1">
+          <mxGeometry x="400" y="55" width="600" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Input -->
+        <mxCell id="input-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="40" y="100" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="input-title" value="User Query" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#1976D2;" parent="1" vertex="1">
+          <mxGeometry x="40" y="105" width="180" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="input-prompt" value="prompt: &quot;Find human&#xa;insulin protein&quot;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="55" y="135" width="150" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- EnhancedQueryEngine -->
+        <mxCell id="engine-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;strokeWidth=3;" parent="1" vertex="1">
+          <mxGeometry x="260" y="90" width="1080" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="engine-title" value="EnhancedQueryEngine" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#388E3C;" parent="1" vertex="1">
+          <mxGeometry x="260" y="95" width="1080" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1: Local Database Manager -->
+        <mxCell id="local-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="280" y="140" width="240" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="local-title" value="1. LocalDatabaseManager" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#1B5E20;" parent="1" vertex="1">
+          <mxGeometry x="280" y="145" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="local-check" value="check_local_data()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="300" y="175" width="200" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="local-desc1" value="• Scan local FASTA files&#xa;• Check PDB structures&#xa;• Query local databases" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#1B5E20;" parent="1" vertex="1">
+          <mxGeometry x="300" y="215" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="local-cache" value="check_cache()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="300" y="270" width="200" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="local-desc2" value="• SQLite cache lookup&#xa;• TTL validation&#xa;• Access count tracking" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#1B5E20;" parent="1" vertex="1">
+          <mxGeometry x="300" y="305" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Query Validator -->
+        <mxCell id="validator-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="540" y="140" width="240" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="validator-title" value="2. QueryValidator" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#E65100;" parent="1" vertex="1">
+          <mxGeometry x="540" y="145" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="validator-load" value="load_schema(database)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="560" y="175" width="200" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="validator-desc1" value="• Load .pkl schema file&#xa;• Parse API endpoints&#xa;• Extract required params" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#E65100;" parent="1" vertex="1">
+          <mxGeometry x="560" y="215" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="validator-validate" value="validate_url(db, url)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="560" y="270" width="200" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="validator-desc2" value="• Check base URL&#xa;• Validate parameters&#xa;• Report warnings/errors" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#E65100;" parent="1" vertex="1">
+          <mxGeometry x="560" y="305" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3: LLM Query Generator -->
+        <mxCell id="llm-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#0288D1;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="800" y="140" width="240" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="llm-title" value="3. LLM Query Generator" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#01579B;" parent="1" vertex="1">
+          <mxGeometry x="800" y="145" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="llm-generate" value="_generate_query()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="820" y="175" width="200" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="llm-desc1" value="• Build system prompt&#xa;• Inject API schema&#xa;• Call Ollama/Anthropic" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#01579B;" parent="1" vertex="1">
+          <mxGeometry x="820" y="215" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="llm-parse" value="Parse JSON response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="820" y="270" width="200" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="llm-desc2" value="• Extract full_url&#xa;• Get description&#xa;• Confidence level" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#01579B;" parent="1" vertex="1">
+          <mxGeometry x="820" y="305" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4: Rate Limiter -->
+        <mxCell id="rate-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#C2185B;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="1060" y="140" width="260" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="rate-title" value="4. RateLimiter" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="1060" y="145" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rate-wait" value="wait_if_needed(database)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="1080" y="175" width="220" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="rate-desc1" value="• Check min interval&#xa;• Track requests/minute&#xa;• Per-database limits" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="1080" y="215" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="rate-backoff" value="get_backoff_time(attempt)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#ffffff;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="1080" y="270" width="220" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="rate-desc2" value="• Exponential backoff&#xa;• Configurable factor&#xa;• Max retry attempts" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#880E4F;" parent="1" vertex="1">
+          <mxGeometry x="1080" y="305" width="220" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Query Flow -->
+        <mxCell id="flow-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="280" y="360" width="760" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-title" value="Query Execution Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#7B1FA2;" parent="1" vertex="1">
+          <mxGeometry x="280" y="365" width="760" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Flow steps -->
+        <mxCell id="flow-step1" value="Local&#xa;Check" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="300" y="410" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-step2" value="Cache&#xa;Check" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="400" y="410" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-step3" value="LLM&#xa;Generate" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="500" y="410" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-step4" value="Validate&#xa;URL" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="600" y="410" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-step5" value="Rate&#xa;Limit" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="700" y="410" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-step6" value="API&#xa;Call" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="800" y="410" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-step7" value="Cache&#xa;Store" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="900" y="410" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Flow arrows -->
+        <mxCell id="flow-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7B1FA2;endArrow=blockThin;endFill=1;" parent="1" source="flow-step1" target="flow-step2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7B1FA2;endArrow=blockThin;endFill=1;" parent="1" source="flow-step2" target="flow-step3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7B1FA2;endArrow=blockThin;endFill=1;" parent="1" source="flow-step3" target="flow-step4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7B1FA2;endArrow=blockThin;endFill=1;" parent="1" source="flow-step4" target="flow-step5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7B1FA2;endArrow=blockThin;endFill=1;" parent="1" source="flow-step5" target="flow-step6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7B1FA2;endArrow=blockThin;endFill=1;" parent="1" source="flow-step6" target="flow-step7" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Early returns -->
+        <mxCell id="early-local" value="Found locally?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#CE93D8;strokeColor=#7B1FA2;fontColor=#4A148C;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="295" y="480" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="early-cache" value="Cache hit?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#CE93D8;strokeColor=#7B1FA2;fontColor=#4A148C;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="395" y="480" width="80" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="early-return1" value="Return&#xa;source:local" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#81C784;strokeColor=#388E3C;fontColor=#1B5E20;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="300" y="555" width="70" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="early-return2" value="Return&#xa;source:cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#81C784;strokeColor=#388E3C;fontColor=#1B5E20;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="400" y="555" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Retry Loop -->
+        <mxCell id="retry-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#D32F2F;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="1060" y="360" width="260" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="retry-title" value="Retry with LLM Feedback" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#C62828;" parent="1" vertex="1">
+          <mxGeometry x="1060" y="365" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="retry-check" value="API Failed?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#EF9A9A;strokeColor=#D32F2F;fontColor=#B71C1C;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1150" y="395" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="retry-feedback" value="Pass error to LLM&#xa;for query correction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1080" y="475" width="120" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="retry-count" value="attempts++&#xa;max: 3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#ffffff;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1210" y="475" width="90" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="retry-arrow" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#D32F2F;endArrow=blockThin;endFill=1;dashed=1;" parent="1" source="retry-count" target="flow-step3" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1255" y="540" />
+              <mxPoint x="1020" y="540" />
+              <mxPoint x="1020" y="395" />
+              <mxPoint x="535" y="395" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Output -->
+        <mxCell id="output-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#388E3C;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="40" y="240" width="180" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="output-title" value="QueryResult" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#388E3C;" parent="1" vertex="1">
+          <mxGeometry x="40" y="245" width="180" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="output-fields" value="success: bool&#xa;data: dict&#xa;source: local|cache|api&#xa;attempts: int&#xa;cached_at: datetime&#xa;query_info: dict" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#1B5E20;fontFamily=Courier New;" parent="1" vertex="1">
+          <mxGeometry x="55" y="275" width="150" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Database Configs -->
+        <mxCell id="config-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFA000;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="40" y="420" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="config-title" value="DATABASE_CONFIGS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#FF6F00;" parent="1" vertex="1">
+          <mxGeometry x="40" y="425" width="180" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="config-list" value="• UniProt (100/min)&#xa;• KEGG (10/min)&#xa;• PDB (50/min)&#xa;• ChEMBL (30/min)&#xa;• PubChem (5/min)&#xa;• ClinVar (3/min)&#xa;• gnomAD (30/min)&#xa;• Ensembl (15/min)&#xa;• 25+ more schemas" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#E65100;" parent="1" vertex="1">
+          <mxGeometry x="50" y="450" width="160" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Main flow arrows -->
+        <mxCell id="main-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#1976D2;endArrow=blockThin;endFill=1;" parent="1" source="input-prompt" target="local-box" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="main-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#388E3C;endArrow=blockThin;endFill=1;" parent="1" source="flow-step7" target="output-box" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1000" y="435" />
+              <mxPoint x="1000" y="620" />
+              <mxPoint x="130" y="620" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

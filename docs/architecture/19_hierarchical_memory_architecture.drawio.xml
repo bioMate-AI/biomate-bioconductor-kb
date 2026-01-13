@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="hierarchical-memory" name="Hierarchical Memory Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Hierarchical Memory Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="4-Layer Memory System for Agentic Learning" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="500" y="55" width="400" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Layer 1: Volatile (In-Memory) ==================== -->
+        <mxCell id="layer1" value="Layer 1: VOLATILE (In-Memory Cache)" style="swimlane;fillColor=#FFEBEE;strokeColor=#F44336;fontStyle=1;fontSize=14;fontColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="1120" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1-cache" value="Generic Cache&lt;T&gt;" style="swimlane;fillColor=#FFCDD2;strokeColor=#E57373;fontStyle=1;fontSize=11;" vertex="1" parent="layer1">
+          <mxGeometry x="20" y="35" width="200" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-cache-content" value="• TTL: 5 minutes default&#xa;• LRU-like eviction&#xa;• 60s cleanup interval&#xa;• Thread-safe" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="l1-cache">
+          <mxGeometry x="10" y="25" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1-tool-cache" value="Tool Search Cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#C62828;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer1">
+          <mxGeometry x="240" y="50" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1-dataset-cache" value="Dataset Metadata Cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#C62828;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer1">
+          <mxGeometry x="360" y="50" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1-workflow-cache" value="Workflow Recs Cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#C62828;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="layer1">
+          <mxGeometry x="480" y="50" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1-context" value="Active Session Context" style="swimlane;fillColor=#FFCDD2;strokeColor=#E57373;fontStyle=1;fontSize=11;" vertex="1" parent="layer1">
+          <mxGeometry x="600" y="35" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-context-content" value="• Current conversation messages&#xa;• Loaded user preferences&#xa;• Recent corrections (top 10)&#xa;• Similar episodes (top 5)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="l1-context">
+          <mxGeometry x="10" y="25" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1-specs" value="Access: &lt;1ms | Capacity: ~1000 entries | Location: frontend/server/cache.ts" style="text;html=1;strokeColor=#F44336;fillColor=#FFEBEE;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="layer1">
+          <mxGeometry x="840" y="60" width="260" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Layer 2: Transient (Redis) ==================== -->
+        <mxCell id="layer2" value="Layer 2: TRANSIENT (Redis Sessions)" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=14;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="1120" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l2-redis" value="Redis Session Store" style="swimlane;fillColor=#FFE0B2;strokeColor=#FFB74D;fontStyle=1;fontSize=11;" vertex="1" parent="layer2">
+          <mxGeometry x="20" y="35" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l2-redis-content" value="• Prefix: biomate:sess:&#xa;• TTL: 24 hours&#xa;• Auto-reconnect with backoff&#xa;• Fallback: MemoryStore (dev only)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="l2-redis">
+          <mxGeometry x="10" y="25" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l2-session-data" value="Session Data" style="swimlane;fillColor=#FFE0B2;strokeColor=#FFB74D;fontStyle=1;fontSize=11;" vertex="1" parent="layer2">
+          <mxGeometry x="320" y="35" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l2-session-content" value="• userId, projectId&#xa;• JWT token metadata&#xa;• Galaxy API key (encrypted)&#xa;• Last activity timestamp" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="l2-session-data">
+          <mxGeometry x="10" y="25" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l2-distributed" value="Distributed Support" style="swimlane;fillColor=#FFE0B2;strokeColor=#FFB74D;fontStyle=1;fontSize=11;" vertex="1" parent="layer2">
+          <mxGeometry x="620" y="35" width="200" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l2-distributed-content" value="• Multi-server compatible&#xa;• connect-redis adapter&#xa;• Sticky sessions optional&#xa;• Health check: PING" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="l2-distributed">
+          <mxGeometry x="10" y="25" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l2-specs" value="Access: ~5ms | TTL: 24h | Location: frontend/server/redis-session.ts" style="text;html=1;strokeColor=#FF9800;fillColor=#FFF3E0;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="layer2">
+          <mxGeometry x="840" y="60" width="260" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Layer 3: Persistent (PostgreSQL LTM) ==================== -->
+        <mxCell id="layer3" value="Layer 3: PERSISTENT (PostgreSQL Long-Term Memory)" style="swimlane;fillColor=#E3F2FD;strokeColor=#2196F3;fontStyle=1;fontSize=14;fontColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="460" width="1120" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l3-ltm-schema" value="LTM Schema (10 Tables)" style="swimlane;fillColor=#BBDEFB;strokeColor=#64B5F6;fontStyle=1;fontSize=11;" vertex="1" parent="layer3">
+          <mxGeometry x="20" y="35" width="540" height="230" as="geometry" />
+        </mxCell>
+
+        <!-- User Domain -->
+        <mxCell id="l3-users" value="ltm_users" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="20" y="30" width="70" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-prefs" value="user_preferences" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="100" y="30" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-corrections" value="correction_log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="200" y="30" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Project Domain -->
+        <mxCell id="l3-projects" value="projects" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1976D2;strokeColor=#0D47A1;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="20" y="75" width="70" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-knowledge" value="project_knowledge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1976D2;strokeColor=#0D47A1;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="100" y="75" width="95" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-workflows" value="workflows" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1976D2;strokeColor=#0D47A1;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="205" y="75" width="70" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Session Domain -->
+        <mxCell id="l3-sessions" value="sessions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565C0;strokeColor=#0D47A1;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="20" y="120" width="70" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-messages" value="conversation_messages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565C0;strokeColor=#0D47A1;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="100" y="120" width="115" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Learning Domain -->
+        <mxCell id="l3-episodes" value="project_episodes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0D47A1;strokeColor=#002171;fontColor=#FFFFFF;fontSize=9;fontStyle=1;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="20" y="165" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-procedures" value="project_procedures" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0D47A1;strokeColor=#002171;fontColor=#FFFFFF;fontSize=9;fontStyle=1;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="120" y="165" width="100" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Domain Labels -->
+        <mxCell id="l3-label-user" value="User" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=8;fontColor=#1565C0;fontStyle=2;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="290" y="35" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-label-project" value="Project" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=8;fontColor=#1565C0;fontStyle=2;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="290" y="80" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-label-session" value="Session" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=8;fontColor=#1565C0;fontStyle=2;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="225" y="125" width="45" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-label-learning" value="Learning" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=8;fontColor=#1565C0;fontStyle=2;" vertex="1" parent="l3-ltm-schema">
+          <mxGeometry x="230" y="170" width="50" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Key Features Box -->
+        <mxCell id="l3-features" value="Key Features" style="swimlane;fillColor=#BBDEFB;strokeColor=#64B5F6;fontStyle=1;fontSize=11;" vertex="1" parent="layer3">
+          <mxGeometry x="580" y="35" width="250" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-features-content" value="• Episodic: Query→Response→Outcome&#xa;• Procedural: 3+ similar episodes → pattern&#xa;• Preferences: confidence += 0.1 per use&#xa;• Corrections: higher importance (0.8)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="l3-features">
+          <mxGeometry x="10" y="25" width="230" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Indices Box -->
+        <mxCell id="l3-indices" value="Performance Indices" style="swimlane;fillColor=#BBDEFB;strokeColor=#64B5F6;fontStyle=1;fontSize=11;" vertex="1" parent="layer3">
+          <mxGeometry x="580" y="155" width="250" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-indices-content" value="• users: email_idx, last_active_idx&#xa;• projects: user_id, status, domain&#xa;• episodes: outcome_idx, importance_idx&#xa;• procedures: success_rate_idx" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="l3-indices">
+          <mxGeometry x="10" y="25" width="230" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l3-specs" value="Access: ~10-50ms | Capacity: Unlimited | Location: frontend/shared/ltm-schema.ts" style="text;html=1;strokeColor=#2196F3;fillColor=#E3F2FD;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="layer3">
+          <mxGeometry x="850" y="60" width="250" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Layer 4: Searchable (SQLite + Vectors) ==================== -->
+        <mxCell id="layer4" value="Layer 4: SEARCHABLE (Tool Discovery)" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=14;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="40" y="760" width="1120" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l4-sqlite" value="SQLite FTS5 Index" style="swimlane;fillColor=#C8E6C9;strokeColor=#81C784;fontStyle=1;fontSize=11;" vertex="1" parent="layer4">
+          <mxGeometry x="20" y="35" width="280" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="l4-sqlite-content" value="Tables:&#xa;• tools: id, name, description, category&#xa;• tools_fts: FTS5 virtual table&#xa;&#xa;Features:&#xa;• BM25 ranking for relevance&#xa;• Thread-safe (RLock)&#xa;• Query sanitization" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="l4-sqlite">
+          <mxGeometry x="10" y="25" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l4-vector" value="Vector Embeddings" style="swimlane;fillColor=#C8E6C9;strokeColor=#81C784;fontStyle=1;fontSize=11;" vertex="1" parent="layer4">
+          <mxGeometry x="320" y="35" width="280" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="l4-vector-content" value="Model: all-MiniLM-L6-v2&#xa;Dimensions: 384&#xa;Storage: galaxy_ai_tools_embeddings.npz&#xa;&#xa;Capabilities:&#xa;• Semantic similarity search&#xa;• &quot;protein search&quot; → Query Uniprot&#xa;• Graceful degradation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="l4-vector">
+          <mxGeometry x="10" y="25" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l4-hybrid" value="Hybrid Search Flow" style="swimlane;fillColor=#C8E6C9;strokeColor=#81C784;fontStyle=1;fontSize=11;" vertex="1" parent="layer4">
+          <mxGeometry x="620" y="35" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="l4-hybrid-content" value="1. Check in-memory cache&#xa;2. FTS5 keyword search&#xa;3. Vector semantic search&#xa;4. Merge &amp; rank results&#xa;5. Cache results (5min TTL)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="l4-hybrid">
+          <mxGeometry x="10" y="25" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l4-specs" value="Access: ~20-100ms | Tools: 2,177+ | Location: backend/lib/galaxy/tools/search_index.py" style="text;html=1;strokeColor=#4CAF50;fillColor=#E8F5E9;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="layer4">
+          <mxGeometry x="860" y="60" width="240" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Access Pattern Summary ==================== -->
+        <mxCell id="summary" value="Memory Access Pattern" style="swimlane;fillColor=#F3E5F5;strokeColor=#9C27B0;fontStyle=1;fontSize=14;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="100" width="380" height="340" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sum-read" value="READ Operations" style="swimlane;fillColor=#E1BEE7;strokeColor=#BA68C8;fontStyle=1;fontSize=11;" vertex="1" parent="summary">
+          <mxGeometry x="20" y="35" width="340" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="sum-read-content" value="initialize_session_context():&#xa;  → Load user + preferences (top 20)&#xa;  → Recent corrections (top 10)&#xa;  → Recent sessions (5)&#xa;&#xa;get_similar_episodes(intent, tools):&#xa;  → Filter by intent + tools&#xa;  → Order by importanceScore DESC&#xa;&#xa;get_reliable_procedures(min_rate=0.7):&#xa;  → Filter by successRate &gt;= 0.7" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;fontFamily=Courier New;" vertex="1" parent="sum-read">
+          <mxGeometry x="10" y="20" width="320" height="115" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sum-write" value="WRITE Operations" style="swimlane;fillColor=#E1BEE7;strokeColor=#BA68C8;fontStyle=1;fontSize=11;" vertex="1" parent="summary">
+          <mxGeometry x="20" y="185" width="340" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="sum-write-content" value="record_interaction(query, response, tools):&#xa;  → Store episode with success=null&#xa;&#xa;learn_from_outcome(episode_id, success):&#xa;  → importance = 0.6 (success) or 0.8 (fail)&#xa;  → Update lessonsLearned&#xa;&#xa;consolidate_episodes():&#xa;  → Find 3+ similar patterns&#xa;  → Create project_procedure" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;fontFamily=Courier New;" vertex="1" parent="sum-write">
+          <mxGeometry x="10" y="20" width="320" height="115" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Data Flow Arrows ==================== -->
+        <mxCell id="flow-title" value="Data Flow" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=14;fontColor=#455A64;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="460" width="380" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-session" value="Session Start" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#C62828;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="flow-title">
+          <mxGeometry x="20" y="40" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-load" value="Load Context&#xa;(L3 → L1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow-title">
+          <mxGeometry x="130" y="40" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-query" value="User Query" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="flow-title">
+          <mxGeometry x="240" y="40" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-search" value="Tool Search&#xa;(L4)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow-title">
+          <mxGeometry x="20" y="110" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-episode" value="Get Similar&#xa;Episodes (L3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow-title">
+          <mxGeometry x="130" y="110" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-response" value="Generate&#xa;Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow-title">
+          <mxGeometry x="240" y="110" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-record" value="Record Episode&#xa;(L3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow-title">
+          <mxGeometry x="20" y="180" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-outcome" value="Learn from&#xa;Outcome (L3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow-title">
+          <mxGeometry x="130" y="180" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-consolidate" value="Consolidate&#xa;→ Procedure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0D47A1;strokeColor=#002171;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow-title">
+          <mxGeometry x="240" y="180" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Flow arrows -->
+        <mxCell id="fa1" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow-title" source="flow-session" target="flow-load">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa2" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow-title" source="flow-load" target="flow-query">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa3" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow-title" source="flow-query" target="flow-search">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa4" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow-title" source="flow-search" target="flow-episode">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa5" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow-title" source="flow-episode" target="flow-response">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa6" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow-title" source="flow-response" target="flow-record">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa7" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow-title" source="flow-record" target="flow-outcome">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa8" style="endArrow=classic;html=1;strokeColor=#333333;dashed=1;" edge="1" parent="flow-title" source="flow-outcome" target="flow-consolidate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="Layer Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="760" width="380" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#C62828;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="35" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1-text" value="L1 Volatile: In-memory cache (5min TTL, &lt;1ms)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="35" width="310" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="65" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2-text" value="L2 Transient: Redis sessions (24h TTL, ~5ms)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="65" width="310" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="95" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3-text" value="L3 Persistent: PostgreSQL LTM (unlimited, ~10-50ms)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="95" width="310" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="125" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4-text" value="L4 Searchable: SQLite FTS5 + Vectors (~20-100ms)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="125" width="310" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5-text" value="File refs: ltm-schema.ts, cache.ts, redis-session.ts, search_index.py" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="150" width="340" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

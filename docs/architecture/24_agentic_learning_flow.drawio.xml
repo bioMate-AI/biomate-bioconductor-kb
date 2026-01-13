@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="agentic-learning-flow" name="Agentic Learning Flow">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Agentic Learning Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="3 Learning Mechanisms: Explicit (Corrections) | Implicit (Preferences) | Emergent (Procedures)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="400" y="55" width="600" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== EXPLICIT LEARNING ==================== -->
+        <mxCell id="explicit-section" value="Explicit Learning: User Corrections" style="swimlane;fillColor=#FFEBEE;strokeColor=#F44336;fontStyle=1;fontSize=14;fontColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="480" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="exp-trigger" value="User says:&#xa;&quot;No, use STAR&#xa;not BWA for&#xa;this RNA-seq&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;strokeColor=#C62828;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="explicit-section">
+          <mxGeometry x="20" y="50" width="90" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="exp-record" value="Record&#xa;Correction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EF5350;strokeColor=#C62828;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="explicit-section">
+          <mxGeometry x="140" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="exp-store" value="correction_log&#xa;table" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#FFCDD2;strokeColor=#EF9A9A;fontSize=10;" vertex="1" parent="explicit-section">
+          <mxGeometry x="250" y="50" width="90" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="exp-apply" value="Apply to&#xa;Future Sessions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EF5350;strokeColor=#C62828;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="explicit-section">
+          <mxGeometry x="370" y="60" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Correction details -->
+        <mxCell id="exp-details" value="Correction Record:" style="swimlane;fillColor=#FFCDD2;strokeColor=#EF9A9A;fontStyle=1;fontSize=10;" vertex="1" parent="explicit-section">
+          <mxGeometry x="20" y="140" width="440" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="exp-details-content" value="{&#xa;  suggestedApproach: &quot;BWA for alignment&quot;,&#xa;  correctedApproach: &quot;STAR for RNA-seq alignment&quot;,&#xa;  workflowContext: &quot;RNA-seq differential expression&quot;,&#xa;  userExplanation: &quot;STAR handles splice junctions better&quot;,&#xa;  appliedToFuture: true,&#xa;  importance: 0.8  // Higher weight for explicit corrections&#xa;}" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="exp-details">
+          <mxGeometry y="25" width="430" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="exp-arr1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="explicit-section" source="exp-trigger" target="exp-record">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp-arr2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="explicit-section" source="exp-record" target="exp-store">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exp-arr3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="explicit-section" source="exp-store" target="exp-apply">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== IMPLICIT LEARNING ==================== -->
+        <mxCell id="implicit-section" value="Implicit Learning: Preference Tracking" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=14;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="540" y="100" width="480" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="imp-action" value="User repeatedly&#xa;selects FastQC&#xa;for QC steps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="implicit-section">
+          <mxGeometry x="20" y="50" width="90" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="imp-detect" value="Detect&#xa;Pattern" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#66BB6A;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="implicit-section">
+          <mxGeometry x="140" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="imp-store" value="user_preferences&#xa;table" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#C8E6C9;strokeColor=#81C784;fontSize=10;" vertex="1" parent="implicit-section">
+          <mxGeometry x="250" y="50" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="imp-suggest" value="Auto-suggest&#xa;in Future" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#66BB6A;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="implicit-section">
+          <mxGeometry x="380" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Preference details -->
+        <mxCell id="imp-details" value="Preference Record:" style="swimlane;fillColor=#C8E6C9;strokeColor=#81C784;fontStyle=1;fontSize=10;" vertex="1" parent="implicit-section">
+          <mxGeometry x="20" y="140" width="440" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="imp-details-content" value="{&#xa;  preferenceType: &quot;tool_selection&quot;,&#xa;  context: &quot;quality_control&quot;,&#xa;  preferenceKey: &quot;qc_tool&quot;,&#xa;  preferenceValue: &quot;FastQC&quot;,&#xa;  learnedFrom: &quot;repeated_selection&quot;,&#xa;  confidence: 0.8,  // += 0.1 per use (max 1.0)&#xa;  usageCount: 5&#xa;}" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="imp-details">
+          <mxGeometry y="25" width="430" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="imp-arr1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="implicit-section" source="imp-action" target="imp-detect">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="imp-arr2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="implicit-section" source="imp-detect" target="imp-store">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="imp-arr3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="implicit-section" source="imp-store" target="imp-suggest">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== EMERGENT LEARNING ==================== -->
+        <mxCell id="emergent-section" value="Emergent Learning: Episode → Procedure Consolidation" style="swimlane;fillColor=#E3F2FD;strokeColor=#2196F3;fontStyle=1;fontSize=14;fontColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="980" height="320" as="geometry" />
+        </mxCell>
+
+        <!-- Episodes -->
+        <mxCell id="ep1" value="Episode 1:&#xa;&quot;Analyze RNA-seq&quot;&#xa;→ STAR + featureCounts&#xa;→ Success" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="emergent-section">
+          <mxGeometry x="20" y="50" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep2" value="Episode 2:&#xa;&quot;RNA expression&quot;&#xa;→ STAR + featureCounts&#xa;→ Success" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="emergent-section">
+          <mxGeometry x="160" y="50" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ep3" value="Episode 3:&#xa;&quot;Gene counts&quot;&#xa;→ STAR + featureCounts&#xa;→ Success" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="emergent-section">
+          <mxGeometry x="300" y="50" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="detect-pattern" value="Pattern Detection:&#xa;3+ similar episodes&#xa;with same tools &amp;&#xa;successful outcome" style="rhombus;whiteSpace=wrap;html=1;fillColor=#64B5F6;strokeColor=#1565C0;fontColor=#0D47A1;fontSize=9;" vertex="1" parent="emergent-section">
+          <mxGeometry x="460" y="40" width="130" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="create-proc" value="Create&#xa;Procedure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1976D2;strokeColor=#0D47A1;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="emergent-section">
+          <mxGeometry x="630" y="60" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="proc-store" value="project_procedures&#xa;table" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#BBDEFB;strokeColor=#64B5F6;fontSize=10;" vertex="1" parent="emergent-section">
+          <mxGeometry x="750" y="50" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auto-apply" value="Auto-apply when&#xa;similar query&#xa;detected" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1976D2;strokeColor=#0D47A1;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="emergent-section">
+          <mxGeometry x="870" y="60" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Procedure details -->
+        <mxCell id="proc-details" value="Consolidated Procedure:" style="swimlane;fillColor=#BBDEFB;strokeColor=#64B5F6;fontStyle=1;fontSize=10;" vertex="1" parent="emergent-section">
+          <mxGeometry x="20" y="150" width="940" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="proc-details-content" value="{&#xa;  name: &quot;RNA-seq Gene Quantification&quot;,&#xa;  triggerPattern: &quot;(RNA-seq|gene expression|gene counts|transcriptome) AND (quantif|count|analyz)&quot;,&#xa;  steps: [&#xa;    { tool: &quot;STAR&quot;, purpose: &quot;Splice-aware alignment&quot;, params: { genomeDir: &quot;...&quot;, outSAMtype: &quot;BAM&quot; } },&#xa;    { tool: &quot;featureCounts&quot;, purpose: &quot;Gene quantification&quot;, params: { annotation: &quot;GTF&quot;, strandSpecific: 2 } }&#xa;  ],&#xa;  preconditions: [&quot;FASTQ input&quot;, &quot;Reference genome available&quot;],&#xa;  postconditions: [&quot;Gene count matrix&quot;, &quot;Mapping statistics&quot;],&#xa;  successRate: 1.0,  // 3/3 successful executions&#xa;  timesUsed: 3,&#xa;  createdFrom: [&quot;episode_1&quot;, &quot;episode_2&quot;, &quot;episode_3&quot;]&#xa;}" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="proc-details">
+          <mxGeometry y="25" width="930" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="em-arr1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="emergent-section" source="ep1" target="detect-pattern">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="em-arr2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="emergent-section" source="ep2" target="detect-pattern">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="em-arr3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="emergent-section" source="ep3" target="detect-pattern">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="em-arr4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="emergent-section" source="detect-pattern" target="create-proc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="em-arr5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="emergent-section" source="create-proc" target="proc-store">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="em-arr6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="emergent-section" source="proc-store" target="auto-apply">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== IMPORTANCE SCORING ==================== -->
+        <mxCell id="importance-section" value="Importance Scoring Algorithm" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=14;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="100" width="340" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="importance-formula" value="Episode Importance Calculation" style="swimlane;fillColor=#FFE0B2;strokeColor=#FFB74D;fontStyle=1;fontSize=10;" vertex="1" parent="importance-section">
+          <mxGeometry x="20" y="40" width="300" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="importance-content" value="updateEpisodeOutcome(episodeId, success):&#xa;&#xa;  if (success) {&#xa;    importance = 0.6  // Good to remember&#xa;  } else {&#xa;    importance = 0.8  // More important to&#xa;                      // learn from failures&#xa;  }&#xa;&#xa;Retrieval Priority:&#xa;  1. Recent failures (high importance)&#xa;  2. Successful patterns&#xa;  3. User corrections&#xa;&#xa;Reliability Threshold:&#xa;  procedure.successRate &gt;= 0.7&#xa;  → &quot;reliable&quot; for auto-suggestion" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="importance-formula">
+          <mxGeometry y="25" width="290" height="190" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== LEARNING CYCLE ==================== -->
+        <mxCell id="cycle-section" value="Continuous Learning Cycle" style="swimlane;fillColor=#F3E5F5;strokeColor=#9C27B0;fontStyle=1;fontSize=14;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="400" width="340" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cycle-observe" value="1. Observe&#xa;Interaction" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="cycle-section">
+          <mxGeometry x="130" y="50" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cycle-record" value="2. Record&#xa;Episode" style="ellipse;whiteSpace=wrap;html=1;fillColor=#AB47BC;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="cycle-section">
+          <mxGeometry x="240" y="120" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cycle-outcome" value="3. Learn from&#xa;Outcome" style="ellipse;whiteSpace=wrap;html=1;fillColor=#BA68C8;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="cycle-section">
+          <mxGeometry x="200" y="200" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cycle-consolidate" value="4. Consolidate&#xa;Patterns" style="ellipse;whiteSpace=wrap;html=1;fillColor=#CE93D8;strokeColor=#7B1FA2;fontColor=#333333;fontSize=10;" vertex="1" parent="cycle-section">
+          <mxGeometry x="80" y="200" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cycle-retrieve" value="5. Retrieve&#xa;&amp; Apply" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontColor=#333333;fontSize=10;" vertex="1" parent="cycle-section">
+          <mxGeometry x="20" y="120" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Cycle arrows -->
+        <mxCell id="cy-arr1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7B1FA2;strokeWidth=2;curved=1;" edge="1" parent="cycle-section" source="cycle-observe" target="cycle-record">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cy-arr2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7B1FA2;strokeWidth=2;curved=1;" edge="1" parent="cycle-section" source="cycle-record" target="cycle-outcome">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cy-arr3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7B1FA2;strokeWidth=2;curved=1;" edge="1" parent="cycle-section" source="cycle-outcome" target="cycle-consolidate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cy-arr4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7B1FA2;strokeWidth=2;curved=1;" edge="1" parent="cycle-section" source="cycle-consolidate" target="cycle-retrieve">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cy-arr5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#7B1FA2;strokeWidth=2;curved=1;" edge="1" parent="cycle-section" source="cycle-retrieve" target="cycle-observe">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cycle-note" value="Each cycle improves accuracy&#xa;through feedback integration" style="text;html=1;strokeColor=#9C27B0;fillColor=#F3E5F5;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="cycle-section">
+          <mxGeometry x="60" y="270" width="220" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== LEGEND ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="740" width="980" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#F44336;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="35" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1-text" value="Explicit: User corrections (highest priority, importance=0.8)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="35" width="300" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;" vertex="1" parent="legend">
+          <mxGeometry x="360" y="35" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2-text" value="Implicit: Preference tracking (confidence += 0.1 per use)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="390" y="35" width="280" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;" vertex="1" parent="legend">
+          <mxGeometry x="680" y="35" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3-text" value="Emergent: Episode → Procedure (3+ patterns)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="710" y="35" width="250" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-tables" value="Tables: correction_log | user_preferences | project_episodes | project_procedures" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="65" width="450" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-files" value="Files: memory-repository.ts | agentic_memory.py | ltm-schema.ts" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="85" width="350" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-threshold" value="Reliability: successRate &gt;= 0.7 for auto-suggestion | Importance: 0.8 (failure) &gt; 0.6 (success)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="legend">
+          <mxGeometry x="480" y="75" width="480" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

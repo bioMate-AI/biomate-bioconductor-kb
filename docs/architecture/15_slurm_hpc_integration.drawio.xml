@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="slurm-hpc-integration" name="SLURM HPC Integration">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate SLURM HPC Integration" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== BioMate Application ==================== -->
+        <mxCell id="biomate-app" value="BioMate Application Layer" style="swimlane;fillColor=#E3F2FD;strokeColor=#2196F3;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="400" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="galaxy-server" value="Galaxy&#xa;Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="biomate-app">
+          <mxGeometry x="20" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurm-runner" value="SLURM&#xa;Job Runner" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="biomate-app">
+          <mxGeometry x="120" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-mapper" value="Job&#xa;Mapper" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="biomate-app">
+          <mxGeometry x="220" y="40" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="drmaa" value="DRMAA&#xa;Interface" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#009688;strokeColor=#00796B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="biomate-app">
+          <mxGeometry x="310" y="40" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="job-config" value="job_conf.yml: SLURM destinations, resource limits, partitions" style="text;html=1;strokeColor=#2196F3;fillColor=#E3F2FD;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="biomate-app">
+          <mxGeometry x="20" y="110" width="360" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== SLURM Cluster ==================== -->
+        <mxCell id="slurm-cluster" value="SLURM Cluster" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="700" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- Head Node -->
+        <mxCell id="head-node" value="Head Node (Login/Submit)" style="swimlane;fillColor=#FFE0B2;strokeColor=#F57C00;fontStyle=1;fontSize=11;" vertex="1" parent="slurm-cluster">
+          <mxGeometry x="20" y="40" width="300" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurmctld" value="slurmctld&#xa;(Controller)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="head-node">
+          <mxGeometry x="20" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurmdbd" value="slurmdbd&#xa;(Database)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=9;" vertex="1" parent="head-node">
+          <mxGeometry x="110" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slurmrestd" value="slurmrestd&#xa;(REST API)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEB3B;strokeColor=#FBC02D;fontColor=#333333;fontSize=9;" vertex="1" parent="head-node">
+          <mxGeometry x="200" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sbatch" value="sbatch / squeue / scancel / sinfo" style="text;html=1;strokeColor=#F57C00;fillColor=#FFFDE7;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="head-node">
+          <mxGeometry x="20" y="95" width="260" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Compute Nodes -->
+        <mxCell id="compute-nodes" value="Compute Nodes (Worker Pool)" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=11;" vertex="1" parent="slurm-cluster">
+          <mxGeometry x="340" y="40" width="340" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node1" value="node001&#xa;slurmd&#xa;(96 cores, 512GB)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=8;" vertex="1" parent="compute-nodes">
+          <mxGeometry x="20" y="35" width="95" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node2" value="node002&#xa;slurmd&#xa;(96 cores, 512GB)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=8;" vertex="1" parent="compute-nodes">
+          <mxGeometry x="125" y="35" width="95" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node-n" value="node00N&#xa;slurmd&#xa;(+ GPU nodes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=8;" vertex="1" parent="compute-nodes">
+          <mxGeometry x="230" y="35" width="95" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node-ellipsis" value="..." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="compute-nodes">
+          <mxGeometry x="135" y="95" width="30" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Partitions/Queues -->
+        <mxCell id="partitions" value="Partitions (Queues)" style="swimlane;fillColor=#E1F5FE;strokeColor=#03A9F4;fontStyle=1;fontSize=11;" vertex="1" parent="slurm-cluster">
+          <mxGeometry x="20" y="210" width="660" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="part-quick" value="quick&#xa;(1h, 4 cores)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="partitions">
+          <mxGeometry x="20" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="part-normal" value="normal&#xa;(24h, 32 cores)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="partitions">
+          <mxGeometry x="125" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="part-long" value="long&#xa;(7d, 64 cores)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#009688;strokeColor=#00796B;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="partitions">
+          <mxGeometry x="230" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="part-highmem" value="highmem&#xa;(512GB+ RAM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#673AB7;strokeColor=#512DA8;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="partitions">
+          <mxGeometry x="335" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="part-gpu" value="gpu&#xa;(A100/V100)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="partitions">
+          <mxGeometry x="440" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="part-preempt" value="preempt&#xa;(low priority)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#795548;strokeColor=#5D4037;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="partitions">
+          <mxGeometry x="545" y="30" width="90" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Resource Request Box -->
+        <mxCell id="resource-req" value="Resource Request: --cpus-per-task=8 --mem=64G --gres=gpu:1 --time=4:00:00" style="text;html=1;strokeColor=#FF9800;fillColor=#FFF8E1;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="slurm-cluster">
+          <mxGeometry x="20" y="310" width="660" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Shared Storage ==================== -->
+        <mxCell id="storage" value="Shared Storage (NFS/Lustre/GPFS)" style="swimlane;fillColor=#FCE4EC;strokeColor=#E91E63;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="760" y="280" width="300" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="home" value="/home&#xa;User Data" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="storage">
+          <mxGeometry x="20" y="40" width="80" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="scratch" value="/scratch&#xa;Job Temp" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="storage">
+          <mxGeometry x="110" y="40" width="80" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="shared" value="/shared&#xa;Databases" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#FF5722;strokeColor=#E64A19;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="storage">
+          <mxGeometry x="200" y="40" width="80" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-note" value="Lustre: High-performance parallel FS&#xa;Mounted on all nodes with consistent paths" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="storage">
+          <mxGeometry x="20" y="110" width="260" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Job Submission Flow ==================== -->
+        <mxCell id="flow" value="Job Submission Flow" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="680" width="1020" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1" value="1. Tool&#xa;Request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow">
+          <mxGeometry x="20" y="40" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2" value="2. Resource&#xa;Mapping" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow">
+          <mxGeometry x="115" y="40" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step3" value="3. Partition&#xa;Selection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow">
+          <mxGeometry x="210" y="40" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step4" value="4. sbatch&#xa;Submit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=9;" vertex="1" parent="flow">
+          <mxGeometry x="305" y="40" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step5" value="5. Queue&#xa;(PENDING)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9E9E9E;strokeColor=#757575;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow">
+          <mxGeometry x="400" y="40" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step6" value="6. Node&#xa;Allocation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#795548;strokeColor=#5D4037;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow">
+          <mxGeometry x="495" y="40" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step7" value="7. Run&#xa;(RUNNING)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow">
+          <mxGeometry x="590" y="40" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step8" value="8. Output&#xa;Collection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow">
+          <mxGeometry x="685" y="40" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step9" value="9. Complete&#xa;(COMPLETED)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#009688;strokeColor=#00796B;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow">
+          <mxGeometry x="780" y="40" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step10" value="10. Result&#xa;to Galaxy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow">
+          <mxGeometry x="885" y="40" width="70" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Flow arrows -->
+        <mxCell id="arr1" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow" source="step1" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr2" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow" source="step2" target="step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr3" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow" source="step3" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr4" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow" source="step4" target="step5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr5" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow" source="step5" target="step6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr6" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow" source="step6" target="step7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr7" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow" source="step7" target="step8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr8" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow" source="step8" target="step9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr9" value="" style="endArrow=classic;html=1;strokeColor=#333333;" edge="1" parent="flow" source="step9" target="step10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-note" value="Job States: PENDING → RUNNING → COMPLETING → COMPLETED | FAILED | CANCELLED | TIMEOUT" style="text;html=1;strokeColor=#607D8B;fillColor=#FAFAFA;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="flow">
+          <mxGeometry x="200" y="100" width="600" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Job Mapping Configuration ==================== -->
+        <mxCell id="job-mapping" value="Galaxy-SLURM Job Mapping" style="swimlane;fillColor=#F3E5F5;strokeColor=#9C27B0;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="80" width="300" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mapping-content" value="Tool → Partition Mapping:&#xa;&#xa;• blast_* → highmem (256GB+ RAM)&#xa;• bwa, bowtie2 → normal (multi-thread)&#xa;• alphafold, esm → gpu (A100)&#xa;• fastqc → quick (small jobs)&#xa;• long_assembly → long (7-day)&#xa;&#xa;Dynamic: based on input file size" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;" vertex="1" parent="job-mapping">
+          <mxGeometry x="10" y="25" width="280" height="145" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Monitoring ==================== -->
+        <mxCell id="monitoring" value="Monitoring &amp; Accounting" style="swimlane;fillColor=#E8EAF6;strokeColor=#3F51B5;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="500" width="300" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sacct" value="sacct&#xa;Job Accounting" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3F51B5;strokeColor=#303F9F;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="monitoring">
+          <mxGeometry x="20" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sstat" value="sstat&#xa;Job Stats" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5C6BC0;strokeColor=#3F51B5;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="monitoring">
+          <mxGeometry x="110" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="grafana" value="Grafana&#xa;Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7986CB;strokeColor=#5C6BC0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="monitoring">
+          <mxGeometry x="200" y="35" width="80" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mon-note" value="CPU/Memory usage, queue wait times,&#xa;job success rates, cost allocation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="monitoring">
+          <mxGeometry x="20" y="95" width="260" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Connection Arrows -->
+        <mxCell id="arr-app-slurm" value="DRMAA/SSH" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="drmaa" target="slurmctld">
+          <mxGeometry x="-0.2" y="20" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arr-head-compute" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#FF9800;strokeWidth=2;dashed=1;" edge="1" parent="1" source="head-node" target="compute-nodes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arr-compute-storage" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#E91E63;strokeWidth=2;dashed=1;" edge="1" parent="1" source="compute-nodes" target="storage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -245,26 +245,62 @@ class WorkflowGenerator:
             },
             "required": ["parameters"]
         }
-        
+
+        # Get parameter schema from tool metadata
+        parameter_schema = tool.get_parameter_schema_for_llm() if hasattr(tool, 'get_parameter_schema_for_llm') else "No parameter information available."
+
+        # Get help text and examples if available
+        help_info = ""
+        if hasattr(tool, 'help_text') and tool.help_text:
+            if isinstance(tool.help_text, dict):
+                what_it_does = tool.help_text.get('what_it_does', '')
+                how_to_use = tool.help_text.get('how_to_use', '')
+                if what_it_does:
+                    help_info += f"\nWhat it does: {what_it_does}"
+                if how_to_use:
+                    help_info += f"\nHow to use: {how_to_use}"
+            else:
+                help_info = f"\nHelp: {tool.help_text}"
+
+        examples_info = ""
+        if hasattr(tool, 'examples') and tool.examples:
+            examples_info = f"\n\nUsage Examples:\n" + "\n".join([f"  - {ex}" for ex in tool.examples[:3]])
+
+        usage_guide = ""
+        if hasattr(tool, 'usage_guide') and tool.usage_guide:
+            usage_guide = f"\n\nUsage Guide: {tool.usage_guide}"
+
         prompt = f"""
-        Suggest appropriate parameters for this bioinformatics tool:
-        
+        Generate appropriate parameters for this bioinformatics tool based on the task context.
+
         Tool: {tool.name} ({tool.id})
         Description: {tool.description}
-        
+        {help_info}
+
+        {parameter_schema}
+        {examples_info}
+        {usage_guide}
+
         Task Context:
         - Name: {task.name}
         - Description: {task.description}
         - Task Type: {task.task_type.value}
         - Intent: {task.intent_type.value}
-        
-        Provide sensible default parameters that would be appropriate for this task.
-        Consider standard bioinformatics best practices.
-        Only include parameters that are commonly adjusted and important for the analysis.
-        
-        Example parameter types: thread count, quality thresholds, algorithm settings, output formats.
+
+        IMPORTANT INSTRUCTIONS:
+        1. Use ONLY parameter names from the "Available Parameters" list above.
+        2. For API/database query tools with both 'prompt' and 'endpoint' parameters:
+           - PREFER using 'endpoint' with a properly constructed API URL when the query is specific
+           - Only use 'prompt' for truly ambiguous natural language queries
+        3. Generate values appropriate for the task description.
+        4. Include required parameters, and optional ones only if needed.
+        5. Return ONLY valid parameter name-value pairs as JSON.
+
+        Example: For a UniProt query about "BRCA1 human protein":
+        - Use endpoint: "https://rest.uniprot.org/uniprotkb/search?query=gene:BRCA1+AND+organism_id:9606&format=json"
+        - NOT prompt: "Find information about BRCA1 human protein"
         """
-        
+
         try:
             response = self.llm_client.generate_structured(prompt, schema)
             return response.get('parameters', {})

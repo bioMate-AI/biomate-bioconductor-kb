@@ -279,9 +279,38 @@ class GalaxyWorkflowGenerator:
 
             log.info(f"Found {len(results)} tools from unified search")
 
-            # Format tools for LLM context
+            # Format tools for LLM context - include rich metadata for parameter generation
             formatted_tools = []
             for tool in results:
+                # Parse JSON fields if they're strings
+                parameters = tool.get('parameters', [])
+                if isinstance(parameters, str):
+                    try:
+                        parameters = json.loads(parameters)
+                    except:
+                        parameters = []
+
+                help_text = tool.get('help_text', {})
+                if isinstance(help_text, str):
+                    try:
+                        help_text = json.loads(help_text)
+                    except:
+                        help_text = {}
+
+                examples = tool.get('examples', [])
+                if isinstance(examples, str):
+                    try:
+                        examples = json.loads(examples)
+                    except:
+                        examples = []
+
+                scientific_context = tool.get('scientific_context', {})
+                if isinstance(scientific_context, str):
+                    try:
+                        scientific_context = json.loads(scientific_context)
+                    except:
+                        scientific_context = {}
+
                 formatted_tools.append({
                     'tool_id': tool['tool_id'],
                     'name': tool['name'],
@@ -291,7 +320,13 @@ class GalaxyWorkflowGenerator:
                     'keywords': tool.get('keywords', ''),
                     'repo_owner': tool.get('repo_owner', ''),
                     'repo_name': tool.get('repo_name', ''),
-                    'relevance_score': tool.get('rrf_score', 0)  # Include relevance from fusion
+                    'relevance_score': tool.get('rrf_score', 0),  # Include relevance from fusion
+                    # Rich metadata for LLM parameter generation
+                    'parameters': parameters,
+                    'help_text': help_text,
+                    'examples': examples,
+                    'scientific_context': scientific_context,
+                    'usage_guide': tool.get('usage_guide', '')
                 })
 
             return formatted_tools
@@ -445,6 +480,20 @@ A well-designed workflow should follow these phases:
 5. Design for user convenience - ready-to-download outputs
 6. Keep workflows efficient - don't add unnecessary steps
 
+## CRITICAL - PARAMETER SELECTION FOR DATABASE/API TOOLS:
+
+When selecting tools that query databases or APIs, pay attention to their parameters:
+
+- If a tool has BOTH 'prompt' (natural language) AND 'endpoint' (direct API URL) parameters:
+  - PREFER 'endpoint' when the query can be expressed as a specific API call
+  - ONLY use 'prompt' for truly ambiguous queries that need LLM interpretation
+  - Example: For "BRCA1 human protein" query, use endpoint like:
+    "https://rest.uniprot.org/uniprotkb/search?query=gene:BRCA1+AND+organism_id:9606&format=json"
+  - NOT prompt: "Find information about BRCA1 human protein"
+
+- This avoids unnecessary LLM calls inside tools and provides direct, reliable results
+- The workflow system (BioMate) should interpret user intent, NOT delegate to tool-internal LLMs
+
 ## OUTPUT FORMAT (JSON):
 
 {{
@@ -523,20 +572,41 @@ Return valid JSON only - no additional text.
             return {"error": str(e)}
 
     def _build_tool_catalog(self, tools: List[Dict[str, Any]]) -> str:
-        """Build a clean tool catalog using keywords and category (avoids content filters)."""
+        """Build a rich tool catalog with parameters for LLM context."""
         catalog = ""
         for i, tool in enumerate(tools, 1):
-            # Use keywords instead of description to avoid content triggers
             keywords = tool.get('keywords', '')
             category = tool.get('category', 'Unknown')
+            parameters = tool.get('parameters', [])
 
             catalog += f"{i}. {tool['name']}\n"
             catalog += f"   Tool ID: {tool['tool_id']}\n"
             catalog += f"   Category: {category}\n"
 
-            # Keywords are clean and useful for understanding tool purpose
             if keywords:
                 catalog += f"   Keywords: {keywords}\n"
+
+            # Include parameter information for informed workflow design
+            if parameters:
+                catalog += "   Parameters:\n"
+                for param in parameters[:5]:  # Limit to first 5 params for brevity
+                    param_name = param.get('name', 'unknown')
+                    param_type = param.get('type', '')
+                    param_help = param.get('help', '')[:100] if param.get('help') else ''
+                    optional = "optional" if param.get('optional', False) else "required"
+
+                    if param_help:
+                        catalog += f"     - {param_name} ({param_type}, {optional}): {param_help}\n"
+                    else:
+                        catalog += f"     - {param_name} ({param_type}, {optional})\n"
+
+                if len(parameters) > 5:
+                    catalog += f"     ... and {len(parameters) - 5} more parameters\n"
+
+            # Include usage guidance if available
+            usage_guide = tool.get('usage_guide', '')
+            if usage_guide:
+                catalog += f"   Usage: {usage_guide[:150]}...\n" if len(usage_guide) > 150 else f"   Usage: {usage_guide}\n"
 
             catalog += "\n"
         return catalog

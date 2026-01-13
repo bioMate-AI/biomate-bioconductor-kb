@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="memory-repository-layer" name="Memory Repository Layer">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Memory Repository Layer" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="6 Repository Pattern | Drizzle ORM | frontend/server/memory-repository.ts" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="450" y="55" width="500" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Architecture Overview ==================== -->
+        <mxCell id="arch-section" value="Repository Architecture" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=14;fontColor=#455A64;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="400" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-app" value="Application Layer&#xa;(galaxy-assistant.ts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-section">
+          <mxGeometry x="130" y="40" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-repo" value="Repository Layer&#xa;(memory-repository.ts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-section">
+          <mxGeometry x="130" y="100" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-orm" value="Drizzle ORM&#xa;(db.ts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="arch-section">
+          <mxGeometry x="130" y="160" width="140" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arch-arr1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-section" source="arch-app" target="arch-repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arch-arr2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="arch-section" source="arch-repo" target="arch-orm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Benefits -->
+        <mxCell id="arch-benefits" value="Benefits:&#xa;• Single source of truth&#xa;• Testable (mockable)&#xa;• Type-safe queries&#xa;• Centralized logic" style="text;html=1;strokeColor=#607D8B;fillColor=#FAFAFA;align=left;verticalAlign=top;fontSize=9;rounded=1;spacingLeft=5;" vertex="1" parent="arch-section">
+          <mxGeometry x="290" y="60" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== UserMemoryRepository ==================== -->
+        <mxCell id="user-repo" value="UserMemoryRepository" style="swimlane;fillColor=#E3F2FD;strokeColor=#2196F3;fontStyle=1;fontSize=12;fontColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="460" y="100" width="360" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="user-methods" value="Methods:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="user-repo">
+          <mxGeometry x="10" y="30" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user-methods-content" value="getOrCreateUser(email)&#xa;  → Upsert with lastActive timestamp&#xa;&#xa;getUserPreferences(userId, context?)&#xa;  → Filter by domain, dataType&#xa;&#xa;recordPreference(userId, pref)&#xa;  → confidence = min(1.0, current + 0.1)&#xa;  → usageCount++&#xa;&#xa;loadUserContext(userId)&#xa;  → user + top 20 prefs + 10 corrections&#xa;    + 5 recent sessions" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="user-repo">
+          <mxGeometry x="10" y="50" width="340" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ProjectMemoryRepository ==================== -->
+        <mxCell id="project-repo" value="ProjectMemoryRepository" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=12;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="840" y="100" width="360" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="project-methods" value="Methods:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="project-repo">
+          <mxGeometry x="10" y="30" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="project-methods-content" value="createProject(userId, data)&#xa;  → Initialize with domain metadata&#xa;&#xa;loadProjectContext(projectId)&#xa;  → project + knowledge&#xa;  → top 10 episodes + procedures&#xa;  → recent workflows&#xa;&#xa;searchProjects(userId, query)&#xa;  → Full-text by domain, tags, text&#xa;&#xa;updateProjectProgress(projectId, progress)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="project-repo">
+          <mxGeometry x="10" y="50" width="340" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== SessionMemoryRepository ==================== -->
+        <mxCell id="session-repo" value="SessionMemoryRepository" style="swimlane;fillColor=#F3E5F5;strokeColor=#9C27B0;fontStyle=1;fontSize=12;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="360" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="session-methods" value="Methods:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="session-repo">
+          <mxGeometry x="10" y="30" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="session-methods-content" value="createSession(userId, projectId, title?)&#xa;  → New conversation session&#xa;&#xa;endSession(sessionId, summary, keyDecisions)&#xa;  → Calculate durationSeconds&#xa;  → Store summary + keyDecisions JSON&#xa;&#xa;addMessage(sessionId, message)&#xa;  → Auto-increment messageCount&#xa;  → Update totalTokens in session&#xa;&#xa;getSessionMessages(sessionId)&#xa;  → Chronological order for context" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="session-repo">
+          <mxGeometry x="10" y="50" width="340" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== EpisodicMemoryRepository ==================== -->
+        <mxCell id="episodic-repo" value="EpisodicMemoryRepository" style="swimlane;fillColor=#FFEBEE;strokeColor=#F44336;fontStyle=1;fontSize=12;fontColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="420" y="320" width="380" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="episodic-methods" value="Methods:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="episodic-repo">
+          <mxGeometry x="10" y="30" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="episodic-methods-content" value="recordEpisode(projectId, sessionId, data)&#xa;  → Store interaction with success=null initially&#xa;&#xa;getSimilarEpisodes(projectId, intent, tools)&#xa;  → Filter by intent + tools for RAG&#xa;&#xa;getSuccessfulEpisodes(projectId, limit=10)&#xa;  → Order by importanceScore DESC&#xa;&#xa;updateEpisodeOutcome(episodeId, success, lessons)&#xa;  → importance = 0.6 (success) or 0.8 (failure)&#xa;&#xa;consolidateEpisodes(projectId)&#xa;  → Find patterns with 3+ occurrences&#xa;  → Create procedure if pattern found" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="episodic-repo">
+          <mxGeometry x="10" y="50" width="360" height="145" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ProceduralMemoryRepository ==================== -->
+        <mxCell id="procedural-repo" value="ProceduralMemoryRepository" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=12;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="820" y="320" width="380" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="procedural-methods" value="Methods:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="procedural-repo">
+          <mxGeometry x="10" y="30" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="procedural-methods-content" value="createProcedure(projectId, data)&#xa;  → From consolidated episodes&#xa;&#xa;findMatchingProcedures(projectId, query)&#xa;  → Pattern matching on triggerPattern&#xa;&#xa;getReliableProcedures(projectId, minSuccessRate=0.7)&#xa;  → Filter by successRate &gt;= threshold&#xa;&#xa;recordUsage(procedureId, success)&#xa;  → timesUsed++&#xa;  → successRate = successCount / timesUsed&#xa;  → Dynamic success rate calculation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="procedural-repo">
+          <mxGeometry x="10" y="50" width="360" height="145" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== WorkflowMemoryRepository ==================== -->
+        <mxCell id="workflow-repo" value="WorkflowMemoryRepository" style="swimlane;fillColor=#E0F7FA;strokeColor=#00BCD4;fontStyle=1;fontSize=12;fontColor=#006064;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="360" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-methods" value="Methods:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="workflow-repo">
+          <mxGeometry x="10" y="30" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="workflow-methods-content" value="createWorkflow(userId, projectId, data)&#xa;  → Store workflow JSON + metadata&#xa;&#xa;findSimilarWorkflows(domain, dataType, goal)&#xa;  → Search for template reuse&#xa;&#xa;updateWorkflowStatus(workflowId, status)&#xa;  → Track: draft → executing → completed/failed&#xa;&#xa;getProjectWorkflows(projectId)&#xa;  → List all workflows for project" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="workflow-repo">
+          <mxGeometry x="10" y="50" width="340" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Data Flow Diagram ==================== -->
+        <mxCell id="flow-section" value="Repository Data Flow" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=14;fontColor=#455A64;" vertex="1" parent="1">
+          <mxGeometry x="420" y="540" width="780" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-start" value="Session&#xa;Start" style="ellipse;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow-section">
+          <mxGeometry x="20" y="40" width="60" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-user" value="User&#xa;Repo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;fontSize=9;" vertex="1" parent="flow-section">
+          <mxGeometry x="110" y="45" width="60" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-project" value="Project&#xa;Repo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=9;" vertex="1" parent="flow-section">
+          <mxGeometry x="200" y="45" width="60" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-session" value="Session&#xa;Repo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;fontSize=9;" vertex="1" parent="flow-section">
+          <mxGeometry x="290" y="45" width="60" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-query" value="User&#xa;Query" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow-section">
+          <mxGeometry x="380" y="40" width="60" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-episodic" value="Episodic&#xa;Repo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#F44336;fontSize=9;" vertex="1" parent="flow-section">
+          <mxGeometry x="470" y="45" width="60" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-procedural" value="Procedural&#xa;Repo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=9;" vertex="1" parent="flow-section">
+          <mxGeometry x="560" y="45" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-response" value="Generate&#xa;Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="flow-section">
+          <mxGeometry x="655" y="45" width="60" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-record" value="Record&#xa;Episode" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#F44336;fontSize=9;" vertex="1" parent="flow-section">
+          <mxGeometry x="560" y="110" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow-outcome" value="Learn from&#xa;Outcome" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=9;" vertex="1" parent="flow-section">
+          <mxGeometry x="655" y="110" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Flow arrows -->
+        <mxCell id="fa1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;" edge="1" parent="flow-section" source="flow-start" target="flow-user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;" edge="1" parent="flow-section" source="flow-user" target="flow-project">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;" edge="1" parent="flow-section" source="flow-project" target="flow-session">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;" edge="1" parent="flow-section" source="flow-session" target="flow-query">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;" edge="1" parent="flow-section" source="flow-query" target="flow-episodic">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;" edge="1" parent="flow-section" source="flow-episodic" target="flow-procedural">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;" edge="1" parent="flow-section" source="flow-procedural" target="flow-response">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;" edge="1" parent="flow-section" source="flow-response" target="flow-record">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="740" y="63" />
+              <mxPoint x="740" y="128" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fa9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;dashed=1;" edge="1" parent="flow-section" source="flow-record" target="flow-outcome">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa9-label" value="async" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="fa9">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- ==================== Backend Service Integration ==================== -->
+        <mxCell id="backend-section" value="Backend Integration (Python)" style="swimlane;fillColor=#FCE4EC;strokeColor=#E91E63;fontStyle=1;fontSize=14;fontColor=#880E4F;" vertex="1" parent="1">
+          <mxGeometry x="40" y="740" width="500" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="backend-service" value="AgenticMemoryService" style="swimlane;fillColor=#F8BBD9;strokeColor=#EC407A;fontStyle=1;fontSize=11;" vertex="1" parent="backend-section">
+          <mxGeometry x="20" y="35" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="backend-service-content" value="backend/lib/galaxy/ai/memory/&#xa;agentic_memory.py&#xa;&#xa;• UserMemoryService&#xa;• EpisodicMemoryService&#xa;• ProceduralMemoryService&#xa;&#xa;Singleton: agentic_memory" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="backend-service">
+          <mxGeometry y="25" width="210" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="backend-methods" value="Key Methods" style="swimlane;fillColor=#F8BBD9;strokeColor=#EC407A;fontStyle=1;fontSize=11;" vertex="1" parent="backend-section">
+          <mxGeometry x="260" y="35" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="backend-methods-content" value="initialize_session_context()&#xa;  → Load user prefs + corrections&#xa;&#xa;record_interaction()&#xa;  → Store episode&#xa;&#xa;learn_from_outcome()&#xa;  → Update importance score&#xa;&#xa;get_reliable_procedures()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;fontFamily=Courier New;" vertex="1" parent="backend-methods">
+          <mxGeometry y="25" width="210" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Legend ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="740" width="640" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-repos" value="Repositories:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="30" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="55" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1-text" value="UserMemoryRepository" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="55" width="130" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;" vertex="1" parent="legend">
+          <mxGeometry x="180" y="55" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2-text" value="ProjectMemoryRepository" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="210" y="55" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;" vertex="1" parent="legend">
+          <mxGeometry x="350" y="55" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3-text" value="SessionMemoryRepository" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="380" y="55" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#F44336;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="85" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4-text" value="EpisodicMemoryRepository" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="85" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;" vertex="1" parent="legend">
+          <mxGeometry x="180" y="85" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5-text" value="ProceduralMemoryRepository" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="210" y="85" width="155" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg6" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F7FA;strokeColor=#00BCD4;" vertex="1" parent="legend">
+          <mxGeometry x="350" y="85" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6-text" value="WorkflowMemoryRepository" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="legend">
+          <mxGeometry x="380" y="85" width="150" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-tables" value="Tables Used:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="115" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-tables-content" value="User: ltm_users, user_preferences, correction_log | Project: projects, project_knowledge | Session: sessions, conversation_messages&#xa;Episodic: project_episodes | Procedural: project_procedures | Workflow: workflows" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;fontColor=#666666;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="135" width="600" height="35" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="ai-tool-database" name="AI Tool Database Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate AI Tool Database Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="450" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Hybrid Search: SQLite FTS5 + Vector Embeddings | 2,177+ Galaxy Tools" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="450" y="55" width="500" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== SQLite FTS5 Index ==================== -->
+        <mxCell id="sqlite-section" value="SQLite Full-Text Search (FTS5)" style="swimlane;fillColor=#E3F2FD;strokeColor=#2196F3;fontStyle=1;fontSize=14;fontColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="500" height="400" as="geometry" />
+        </mxCell>
+
+        <!-- tools table -->
+        <mxCell id="tools-table" value="tools (Main Catalog)" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#BBDEFB;strokeColor=#64B5F6;fontSize=11;" vertex="1" parent="sqlite-section">
+          <mxGeometry x="20" y="40" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_pk" value="PK  tool_id: TEXT" style="text;strokeColor=none;fillColor=#90CAF9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;fontSize=10;" vertex="1" parent="tools-table">
+          <mxGeometry y="26" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_f1" value="    name: TEXT NOT NULL" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-table">
+          <mxGeometry y="44" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_f2" value="    description: TEXT" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-table">
+          <mxGeometry y="62" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_f3" value="    category: TEXT" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-table">
+          <mxGeometry y="80" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_f4" value="    repo_owner: TEXT" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-table">
+          <mxGeometry y="98" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_f5" value="    repo_name: TEXT" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-table">
+          <mxGeometry y="116" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_f6" value="    is_installed: INTEGER (0/1)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-table">
+          <mxGeometry y="134" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_f7" value="    install_status: TEXT" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-table">
+          <mxGeometry y="152" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_f8" value="    install_date: TEXT" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-table">
+          <mxGeometry y="170" width="220" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- tools_fts virtual table -->
+        <mxCell id="tools-fts" value="tools_fts (FTS5 Virtual Table)" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#BBDEFB;strokeColor=#64B5F6;fontSize=11;" vertex="1" parent="sqlite-section">
+          <mxGeometry x="260" y="40" width="220" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="fts_f1" value="    tool_id: TEXT (content=tools)" style="text;strokeColor=none;fillColor=#C8E6C9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-fts">
+          <mxGeometry y="26" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="fts_f2" value="    name: TEXT (indexed)" style="text;strokeColor=none;fillColor=#C8E6C9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-fts">
+          <mxGeometry y="44" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="fts_f3" value="    description: TEXT (indexed)" style="text;strokeColor=none;fillColor=#C8E6C9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-fts">
+          <mxGeometry y="62" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="fts_f4" value="    category: TEXT (indexed)" style="text;strokeColor=none;fillColor=#C8E6C9;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;" vertex="1" parent="tools-fts">
+          <mxGeometry y="80" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="fts_note" value="BM25 ranking for relevance scoring" style="text;strokeColor=none;fillColor=#FFF9C4;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=9;fontStyle=2;" vertex="1" parent="tools-fts">
+          <mxGeometry y="98" width="220" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- FTS5 Features -->
+        <mxCell id="fts-features" value="FTS5 Features" style="swimlane;fillColor=#E3F2FD;strokeColor=#64B5F6;fontStyle=1;fontSize=11;" vertex="1" parent="sqlite-section">
+          <mxGeometry x="20" y="260" width="220" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="fts-features-content" value="• BM25 ranking algorithm&#xa;• Prefix queries: &quot;blast*&quot;&#xa;• Phrase queries: &quot;sequence alignment&quot;&#xa;• Boolean: &quot;fasta OR fastq&quot;&#xa;• Query sanitization (- → space)&#xa;• Column weighting support" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="fts-features">
+          <mxGeometry y="25" width="210" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Thread Safety -->
+        <mxCell id="thread-safety" value="Thread Safety" style="swimlane;fillColor=#E3F2FD;strokeColor=#64B5F6;fontStyle=1;fontSize=11;" vertex="1" parent="sqlite-section">
+          <mxGeometry x="260" y="200" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="thread-safety-content" value="• Thread-local connections&#xa;• RLock for write operations&#xa;• Connection per thread&#xa;• Automatic cleanup" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="thread-safety">
+          <mxGeometry y="25" width="210" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- File info -->
+        <mxCell id="sqlite-file" value="File: galaxy_ai_tools.db | Location: backend/lib/galaxy/tools/search_index.py" style="text;html=1;strokeColor=#2196F3;fillColor=#E3F2FD;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="sqlite-section">
+          <mxGeometry x="20" y="360" width="460" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Vector Embeddings ==================== -->
+        <mxCell id="vector-section" value="Vector Embeddings (Semantic Search)" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=14;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="560" y="100" width="500" height="400" as="geometry" />
+        </mxCell>
+
+        <!-- Model Info -->
+        <mxCell id="model-info" value="Embedding Model" style="swimlane;fillColor=#C8E6C9;strokeColor=#81C784;fontStyle=1;fontSize=11;" vertex="1" parent="vector-section">
+          <mxGeometry x="20" y="40" width="220" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="model-info-content" value="Model: all-MiniLM-L6-v2&#xa;&#xa;Provider: sentence-transformers&#xa;Dimensions: 384&#xa;Max Sequence: 256 tokens&#xa;Size: ~80MB&#xa;&#xa;Graceful degradation if&#xa;sentence-transformers missing" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="model-info">
+          <mxGeometry y="25" width="210" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- Storage Format -->
+        <mxCell id="storage-format" value="Storage Format" style="swimlane;fillColor=#C8E6C9;strokeColor=#81C784;fontStyle=1;fontSize=11;" vertex="1" parent="vector-section">
+          <mxGeometry x="260" y="40" width="220" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-format-content" value="File: galaxy_ai_tools_embeddings.npz&#xa;&#xa;Contents:&#xa;• tool_ids: string array&#xa;• embeddings: float32 array&#xa;  Shape: (N, 384)&#xa;&#xa;Format: NumPy compressed&#xa;Typical size: ~5-10MB for 2K+ tools" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="storage-format">
+          <mxGeometry y="25" width="210" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- Embedding Process -->
+        <mxCell id="embed-process" value="Embedding Generation" style="swimlane;fillColor=#C8E6C9;strokeColor=#81C784;fontStyle=1;fontSize=11;" vertex="1" parent="vector-section">
+          <mxGeometry x="20" y="220" width="220" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="embed-process-content" value="Input: tool name + description&#xa;&#xa;1. Concatenate text fields&#xa;2. Tokenize (max 256 tokens)&#xa;3. Generate 384-dim vector&#xa;4. Normalize to unit length&#xa;5. Store in NPZ cache" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="embed-process">
+          <mxGeometry y="25" width="210" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Search Process -->
+        <mxCell id="search-process" value="Semantic Search" style="swimlane;fillColor=#C8E6C9;strokeColor=#81C784;fontStyle=1;fontSize=11;" vertex="1" parent="vector-section">
+          <mxGeometry x="260" y="220" width="220" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="search-process-content" value="1. Embed query string&#xa;2. Compute cosine similarity&#xa;3. Rank by similarity score&#xa;4. Filter by threshold (0.7)&#xa;5. Return top-k results&#xa;&#xa;Example: &quot;protein search&quot;&#xa;  → matches &quot;Query Uniprot&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;" vertex="1" parent="search-process">
+          <mxGeometry y="25" width="210" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Vector file info -->
+        <mxCell id="vector-file" value="File: galaxy_ai_tools_embeddings.npz | Location: backend/lib/galaxy/ai/vector_search.py" style="text;html=1;strokeColor=#4CAF50;fillColor=#E8F5E9;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="vector-section">
+          <mxGeometry x="20" y="360" width="460" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Hybrid Search Flow ==================== -->
+        <mxCell id="hybrid-section" value="Hybrid Search Flow" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=14;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="1020" height="250" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1: Query -->
+        <mxCell id="step1" value="1. User Query&#xa;&quot;analyze protein&#xa;sequences&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="20" y="50" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Cache Check -->
+        <mxCell id="step2" value="2. Cache&#xa;Check" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFB74D;strokeColor=#F57C00;fontColor=#333333;fontSize=10;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="150" y="45" width="80" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3a: FTS5 Search -->
+        <mxCell id="step3a" value="3a. FTS5 Search&#xa;(Keyword Match)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="270" y="30" width="110" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3b: Vector Search -->
+        <mxCell id="step3b" value="3b. Vector Search&#xa;(Semantic Match)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="270" y="100" width="110" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4: Merge -->
+        <mxCell id="step4" value="4. Merge &amp;&#xa;Deduplicate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="420" y="55" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 5: Rank -->
+        <mxCell id="step5" value="5. Rank Results&#xa;(Combined Score)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#673AB7;strokeColor=#512DA8;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="540" y="55" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 6: Filter -->
+        <mxCell id="step6" value="6. Filter&#xa;(Category, Installed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3F51B5;strokeColor=#303F9F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="670" y="55" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 7: Cache & Return -->
+        <mxCell id="step7" value="7. Cache Results&#xa;(5 min TTL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="800" y="55" width="90" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 8: Return -->
+        <mxCell id="step8" value="8. Return&#xa;Top-K Tools" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF5722;strokeColor=#E64A19;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="920" y="55" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="arr1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="hybrid-section" source="step1" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr2a" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="hybrid-section" source="step2" target="step3a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr2a-label" value="miss" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="arr2a">
+          <mxGeometry x="-0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+        <mxCell id="arr2b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="hybrid-section" source="step2" target="step3b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr3a" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2196F3;strokeWidth=2;" edge="1" parent="hybrid-section" source="step3a" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr3b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4CAF50;strokeWidth=2;" edge="1" parent="hybrid-section" source="step3b" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="hybrid-section" source="step4" target="step5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="hybrid-section" source="step5" target="step6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="hybrid-section" source="step6" target="step7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="hybrid-section" source="step7" target="step8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Cache hit shortcut -->
+        <mxCell id="cache-hit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4CAF50;strokeWidth=2;dashed=1;" edge="1" parent="hybrid-section" source="step2" target="step8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="170" />
+              <mxPoint x="960" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cache-hit-label" value="cache hit" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#4CAF50;" vertex="1" connectable="0" parent="cache-hit">
+          <mxGeometry x="-0.7" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Scoring Formula -->
+        <mxCell id="scoring" value="Scoring: combined_score = 0.6 * bm25_score + 0.4 * cosine_similarity" style="text;html=1;strokeColor=#FF9800;fillColor=#FFF8E1;align=center;verticalAlign=middle;fontSize=10;rounded=1;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="270" y="175" width="400" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Performance -->
+        <mxCell id="perf" value="Performance: ~20-100ms | Default limit: 50 | Similarity threshold: 0.7" style="text;html=1;strokeColor=#FF9800;fillColor=#FFF8E1;align=center;verticalAlign=middle;fontSize=10;rounded=1;" vertex="1" parent="hybrid-section">
+          <mxGeometry x="270" y="210" width="400" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== API Methods ==================== -->
+        <mxCell id="api-section" value="Search Index API" style="swimlane;fillColor=#F3E5F5;strokeColor=#9C27B0;fontStyle=1;fontSize=14;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="100" width="300" height="400" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api-methods" value="ToolSearchIndex Methods" style="swimlane;fillColor=#E1BEE7;strokeColor=#BA68C8;fontStyle=1;fontSize=11;" vertex="1" parent="api-section">
+          <mxGeometry x="20" y="40" width="260" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="api-methods-content" value="search(query, category=None, limit=50)&#xa;  → Full-text search with BM25&#xa;&#xa;search_semantic(query, top_k=10)&#xa;  → Vector similarity search&#xa;&#xa;get_by_id(tool_id)&#xa;  → Exact tool lookup&#xa;&#xa;get_by_repo(owner, name)&#xa;  → Repository filtering&#xa;&#xa;get_installed_tools()&#xa;  → Filter is_installed=1&#xa;&#xa;mark_installed(tool_id, status)&#xa;  → Track installation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;fontFamily=Courier New;" vertex="1" parent="api-methods">
+          <mxGeometry y="25" width="250" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="config-box" value="Configuration (AIConfig)" style="swimlane;fillColor=#E1BEE7;strokeColor=#BA68C8;fontStyle=1;fontSize=11;" vertex="1" parent="api-section">
+          <mxGeometry x="20" y="260" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="config-content" value="max_tools_per_task: 5&#xa;similarity_threshold: 0.7&#xa;enable_tool_caching: True&#xa;cache_ttl: 300 (5 min)&#xa;&#xa;File: backend/lib/galaxy/ai/config.py" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;spacingLeft=5;fontFamily=Courier New;" vertex="1" parent="config-box">
+          <mxGeometry y="25" width="250" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Tool Statistics ==================== -->
+        <mxCell id="stats-section" value="Tool Inventory Statistics" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=14;fontColor=#455A64;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="520" width="300" height="250" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stats-content" value="Total Tools: 2,177+&#xa;&#xa;Categories:&#xa;• Genomics: ~400 tools&#xa;• Proteomics: ~250 tools&#xa;• Sequence Analysis: ~300 tools&#xa;• Data Manipulation: ~200 tools&#xa;• Visualization: ~150 tools&#xa;• Quality Control: ~100 tools&#xa;• Biomni Custom: 397 tools&#xa;  (21 scientific domains)&#xa;&#xa;Sources:&#xa;• Galaxy Tool Shed&#xa;• IUC (Galaxy Community)&#xa;• Biomni (Custom built)&#xa;• nf-core (Converted)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=10;spacingLeft=10;spacingTop=5;" vertex="1" parent="stats-section">
+          <mxGeometry x="10" y="30" width="280" height="210" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Legend ==================== -->
+        <mxCell id="legend" value="Legend" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="790" width="600" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="35" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1-text" value="FTS5 (Keyword)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="50" y="35" width="90" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;" vertex="1" parent="legend">
+          <mxGeometry x="150" y="35" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2-text" value="Vector (Semantic)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="180" y="35" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;" vertex="1" parent="legend">
+          <mxGeometry x="290" y="35" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3-text" value="Hybrid Flow" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="320" y="35" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;" vertex="1" parent="legend">
+          <mxGeometry x="400" y="35" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4-text" value="API Layer" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="430" y="35" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#81C784;" vertex="1" parent="legend">
+          <mxGeometry x="500" y="35" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5-text" value="Indexed Field" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="530" y="35" width="70" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

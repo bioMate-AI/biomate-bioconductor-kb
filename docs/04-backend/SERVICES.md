@@ -543,6 +543,206 @@ const clean = sanitizeInput(userInput);
 
 ---
 
+## Memory Repository Layer
+
+**Directory**: `server/repositories/`
+
+The memory repository layer provides a clean abstraction for accessing the Long-Term Memory (LTM) database. It follows the repository pattern for separation of concerns.
+
+### UserMemoryRepository
+
+Manages user profile and preference data.
+
+```typescript
+import { UserMemoryRepository } from './repositories/user-memory';
+
+const userRepo = new UserMemoryRepository(db);
+
+// Get user with preferences
+const userWithPrefs = await userRepo.getUserWithPreferences(userId);
+
+// Update learned preferences
+await userRepo.updatePreference(userId, {
+  category: 'tool_preference',
+  key: 'alignment_tool',
+  value: 'bowtie2',
+  confidence: 0.8
+});
+
+// Log user correction (explicit learning)
+await userRepo.logCorrection({
+  userId,
+  originalSuggestion: 'star',
+  correctedValue: 'bowtie2',
+  context: 'RNA-seq alignment',
+  importanceScore: 0.8  // High importance for explicit corrections
+});
+```
+
+### ProjectMemoryRepository
+
+Manages project-level knowledge and context.
+
+```typescript
+import { ProjectMemoryRepository } from './repositories/project-memory';
+
+const projectRepo = new ProjectMemoryRepository(db);
+
+// Get project with accumulated knowledge
+const project = await projectRepo.getProjectWithKnowledge(projectId);
+
+// Store project knowledge
+await projectRepo.addKnowledge(projectId, {
+  type: 'dataset_info',
+  content: { format: 'fastq', organism: 'human' },
+  confidence: 0.9
+});
+```
+
+### SessionMemoryRepository
+
+Manages conversation sessions and messages.
+
+```typescript
+import { SessionMemoryRepository } from './repositories/session-memory';
+
+const sessionRepo = new SessionMemoryRepository(db);
+
+// Create session
+const session = await sessionRepo.createSession(userId, projectId);
+
+// Add message to session
+await sessionRepo.addMessage(sessionId, {
+  role: 'user',
+  content: 'Analyze my RNA-seq data'
+});
+
+// Get session with full history
+const sessionWithMessages = await sessionRepo.getSessionWithMessages(sessionId);
+```
+
+### EpisodicMemoryRepository
+
+Manages episodic memories (specific interaction instances).
+
+```typescript
+import { EpisodicMemoryRepository } from './repositories/episodic-memory';
+
+const episodicRepo = new EpisodicMemoryRepository(db);
+
+// Record episode
+await episodicRepo.recordEpisode({
+  projectId,
+  trigger: 'user requested differential expression',
+  action: 'suggested DESeq2 workflow',
+  outcome: 'success',
+  confidence: 0.9
+});
+
+// Find similar episodes (for emergent learning)
+const similar = await episodicRepo.findSimilarEpisodes(projectId, trigger);
+```
+
+### ProceduralMemoryRepository
+
+Manages emergent procedural knowledge (learned workflows).
+
+```typescript
+import { ProceduralMemoryRepository } from './repositories/procedural-memory';
+
+const proceduralRepo = new ProceduralMemoryRepository(db);
+
+// Generate procedure from episodes (3+ similar triggers)
+await proceduralRepo.generateFromEpisodes(projectId, episodeIds);
+
+// Get applicable procedures
+const procedures = await proceduralRepo.getApplicableProcedures(
+  projectId,
+  'RNA-seq analysis'
+);
+```
+
+### WorkflowMemoryRepository
+
+Manages saved workflows and their execution history.
+
+```typescript
+import { WorkflowMemoryRepository } from './repositories/workflow-memory';
+
+const workflowRepo = new WorkflowMemoryRepository(db);
+
+// Save workflow
+await workflowRepo.saveWorkflow(projectId, {
+  name: 'RNA-seq Pipeline',
+  definition: workflowJson,
+  tags: ['rna-seq', 'differential-expression']
+});
+
+// Update success rate after execution
+await workflowRepo.updateSuccessRate(workflowId, success);
+```
+
+---
+
+## Agentic Memory Service (Backend Python)
+
+**File**: `backend/lib/galaxy/ai/agentic_memory_service.py`
+
+The Python backend service that coordinates memory operations and learning.
+
+```python
+from galaxy.ai.agentic_memory_service import AgenticMemoryService
+
+memory_service = AgenticMemoryService(db_connection)
+
+# Load user context for AI assistant
+context = await memory_service.load_user_context(user_id, project_id)
+# Returns: preferences, recent episodes, applicable procedures
+
+# Record interaction for learning
+await memory_service.record_interaction(
+    user_id=user_id,
+    project_id=project_id,
+    query="Analyze RNA-seq data",
+    response=assistant_response,
+    tools_used=["deseq2", "edger"],
+    outcome="success"
+)
+
+# Trigger emergent learning (runs periodically)
+await memory_service.process_emergent_learning(project_id)
+```
+
+### Learning Flow Integration
+
+```
+User Interaction
+      ↓
+┌─────────────────────────┐
+│ AgenticMemoryService    │
+│ record_interaction()    │
+└─────────────────────────┘
+      ↓
+┌─────────────────────────┐
+│ Explicit Learning       │ ← User corrections (importance=0.8)
+│ correction_log          │
+└─────────────────────────┘
+      ↓
+┌─────────────────────────┐
+│ Implicit Learning       │ ← Tool/workflow selections (confidence+=0.1)
+│ user_preferences        │
+└─────────────────────────┘
+      ↓
+┌─────────────────────────┐
+│ Emergent Learning       │ ← 3+ similar episodes → procedure
+│ project_procedures      │
+└─────────────────────────┘
+```
+
+**Architecture Diagrams:** See `docs/architecture/23_memory_repository_layer.drawio.xml` and `docs/architecture/24_agentic_learning_flow.drawio.xml`.
+
+---
+
 ## Rate Limiting
 
 Rate limits are configured per endpoint category:

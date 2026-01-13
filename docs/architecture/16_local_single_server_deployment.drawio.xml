@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="local-single-server-deployment" name="Local Single Server Deployment">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Local Single Server Deployment" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== Server Box ==================== -->
+        <mxCell id="server-box" value="Single Server (Physical/VM)" style="swimlane;fillColor=#E0E0E0;strokeColor=#757575;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1320" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- Host OS -->
+        <mxCell id="host-os" value="Host OS (Ubuntu/RHEL/macOS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="server-box">
+          <mxGeometry x="20" y="620" width="1280" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Docker Engine -->
+        <mxCell id="docker-engine" value="Docker Engine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="server-box">
+          <mxGeometry x="20" y="560" width="1280" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Docker Compose Stack -->
+        <mxCell id="compose-stack" value="Docker Compose Stack" style="swimlane;fillColor=#E3F2FD;strokeColor=#1976D2;fontStyle=1;fontSize=12;" vertex="1" parent="server-box">
+          <mxGeometry x="20" y="50" width="1280" height="490" as="geometry" />
+        </mxCell>
+
+        <!-- Nginx Reverse Proxy -->
+        <mxCell id="nginx" value="Nginx Reverse Proxy&#xa;(Port 80/443)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="compose-stack">
+          <mxGeometry x="470" y="30" width="300" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Frontend Container -->
+        <mxCell id="frontend-container" value="Frontend Container" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=11;" vertex="1" parent="compose-stack">
+          <mxGeometry x="20" y="100" width="280" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="fe-react" value="React App&#xa;(Node.js)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;strokeColor=#2E5A87;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="frontend-container">
+          <mxGeometry x="20" y="35" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fe-express" value="Express&#xa;Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5CB85C;strokeColor=#3D8B3D;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="frontend-container">
+          <mxGeometry x="140" y="35" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fe-ports" value="Port: 3000 (internal)&#xa;Node.js 20 | Vite" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="frontend-container">
+          <mxGeometry x="20" y="100" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="fe-volumes" value="Volumes: ./frontend:/app" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="frontend-container">
+          <mxGeometry x="20" y="130" width="240" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Backend/Galaxy Container -->
+        <mxCell id="backend-container" value="Backend (Galaxy) Container" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=11;" vertex="1" parent="compose-stack">
+          <mxGeometry x="320" y="100" width="320" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="be-galaxy" value="Galaxy Server&#xa;(Python)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="backend-container">
+          <mxGeometry x="20" y="35" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="be-ai" value="AI Assistant&#xa;Module" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="backend-container">
+          <mxGeometry x="140" y="35" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="be-tools" value="Biomni&#xa;Tools" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="backend-container">
+          <mxGeometry x="240" y="35" width="60" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="be-ports" value="Port: 8080 (internal)&#xa;Python 3.11 | uWSGI" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="backend-container">
+          <mxGeometry x="20" y="100" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="be-volumes" value="Volumes: ./backend:/galaxy, ./data:/data" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="backend-container">
+          <mxGeometry x="20" y="130" width="280" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Ollama Container -->
+        <mxCell id="ollama-container" value="Ollama Container (LLM)" style="swimlane;fillColor=#F3E5F5;strokeColor=#9C27B0;fontStyle=1;fontSize=11;" vertex="1" parent="compose-stack">
+          <mxGeometry x="660" y="100" width="200" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="ollama-server" value="Ollama Server&#xa;(Local LLM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="ollama-container">
+          <mxGeometry x="40" y="35" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ollama-ports" value="Port: 11434&#xa;Models: Llama3.1, Mistral" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="ollama-container">
+          <mxGeometry x="20" y="100" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ollama-volumes" value="Volumes: ./ollama:/root/.ollama" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="ollama-container">
+          <mxGeometry x="20" y="130" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Database Container -->
+        <mxCell id="db-container" value="Database Container" style="swimlane;fillColor=#FCE4EC;strokeColor=#E91E63;fontStyle=1;fontSize=11;" vertex="1" parent="compose-stack">
+          <mxGeometry x="880" y="100" width="180" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="postgres" value="PostgreSQL&#xa;(or SQLite)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="db-container">
+          <mxGeometry x="40" y="30" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="db-ports" value="Port: 5432&#xa;PostgreSQL 15" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="db-container">
+          <mxGeometry x="20" y="100" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="db-volumes" value="Volumes: ./pgdata:/var/lib/pg" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="db-container">
+          <mxGeometry x="10" y="130" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Redis Container -->
+        <mxCell id="redis-container" value="Redis Container" style="swimlane;fillColor=#FFEBEE;strokeColor=#F44336;fontStyle=1;fontSize=11;" vertex="1" parent="compose-stack">
+          <mxGeometry x="1080" y="100" width="180" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="redis" value="Redis&#xa;(Cache)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="redis-container">
+          <mxGeometry x="40" y="30" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="redis-ports" value="Port: 6379&#xa;Redis 7" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="redis-container">
+          <mxGeometry x="20" y="100" width="140" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Tool Runner Container -->
+        <mxCell id="tool-container" value="Tool Runner Containers (Dynamic)" style="swimlane;fillColor=#E1F5FE;strokeColor=#03A9F4;fontStyle=1;fontSize=11;" vertex="1" parent="compose-stack">
+          <mxGeometry x="20" y="290" width="1240" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="biotools" value="biomate/biotools:arm64&#xa;(Bioinformatics Tools)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="tool-container">
+          <mxGeometry x="20" y="35" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-example1" value="BLAST&#xa;Container" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="tool-container">
+          <mxGeometry x="220" y="35" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-example2" value="Autodock&#xa;Container" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="tool-container">
+          <mxGeometry x="310" y="35" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-example3" value="nnU-Net&#xa;Container" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="tool-container">
+          <mxGeometry x="400" y="35" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-dots" value="..." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="tool-container">
+          <mxGeometry x="490" y="45" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="tool-desc" value="Spawned on-demand for each job | GPU passthrough supported | Auto-cleanup after job completion" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="tool-container">
+          <mxGeometry x="20" y="100" width="600" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Volumes -->
+        <mxCell id="volumes-section" value="Persistent Volumes" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=11;" vertex="1" parent="compose-stack">
+          <mxGeometry x="20" y="440" width="1240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-data" value="./data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="volumes-section">
+          <mxGeometry x="20" y="5" width="60" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-pgdata" value="./pgdata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="volumes-section">
+          <mxGeometry x="90" y="5" width="60" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-ollama" value="./ollama" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="volumes-section">
+          <mxGeometry x="160" y="5" width="60" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-logs" value="./logs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="volumes-section">
+          <mxGeometry x="230" y="5" width="60" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-config" value="./config" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="volumes-section">
+          <mxGeometry x="300" y="5" width="60" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="nginx-fe" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="compose-stack" source="nginx" target="frontend-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx-be" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="compose-stack" source="nginx" target="backend-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="be-ollama" value="" style="endArrow=classic;html=1;strokeColor=#9C27B0;strokeWidth=2;dashed=1;" edge="1" parent="compose-stack" source="backend-container" target="ollama-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="be-db" value="" style="endArrow=classic;html=1;strokeColor=#E91E63;strokeWidth=2;dashed=1;" edge="1" parent="compose-stack" source="backend-container" target="db-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="be-redis" value="" style="endArrow=classic;html=1;strokeColor=#F44336;strokeWidth=2;dashed=1;" edge="1" parent="compose-stack" source="backend-container" target="redis-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="be-tools" value="" style="endArrow=classic;html=1;strokeColor=#03A9F4;strokeWidth=2;" edge="1" parent="compose-stack" source="backend-container" target="tool-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -->
+        <mxCell id="user" value="User" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="620" y="800" width="40" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="user-arrow" value="HTTP/HTTPS" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="user" target="nginx">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="660" y="780" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -104,12 +104,16 @@ export class MemStorage implements IStorage {
   }
 
   async getInvocations(userId?: string, limit: number = 100): Promise<WorkflowInvocation[]> {
+    // If no userId provided, return empty array for security
+    // This prevents unauthenticated users from seeing all invocations
+    if (!userId) {
+      return [];
+    }
+
     let invocations = Array.from(this.invocations.values());
 
-    // Filter by userId if provided
-    if (userId) {
-      invocations = invocations.filter(inv => inv.userId === userId);
-    }
+    // Filter by userId
+    invocations = invocations.filter(inv => inv.userId === userId);
 
     // Sort by created date (newest first)
     invocations.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());

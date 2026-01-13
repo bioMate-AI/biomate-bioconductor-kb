@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-01-12T00:00:00.000Z" agent="Claude" version="21.0.0">
+  <diagram id="aws-deployment-architecture" name="AWS Deployment Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate AWS Deployment Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== VPC ==================== -->
+        <mxCell id="vpc" value="VPC (10.0.0.0/16)" style="swimlane;fillColor=#FFF3E0;strokeColor=#FF9800;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1320" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- Public Subnet -->
+        <mxCell id="public-subnet" value="Public Subnet (10.0.1.0/24)" style="swimlane;fillColor=#E8F5E9;strokeColor=#4CAF50;fontStyle=1;fontSize=12;" vertex="1" parent="vpc">
+          <mxGeometry x="20" y="40" width="400" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="alb" value="Application&#xa;Load Balancer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="public-subnet">
+          <mxGeometry x="20" y="40" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cloudfront" value="CloudFront&#xa;CDN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="public-subnet">
+          <mxGeometry x="140" y="40" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="nat" value="NAT&#xa;Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="public-subnet">
+          <mxGeometry x="260" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bastion" value="Bastion Host&#xa;(EC2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8BC34A;strokeColor=#689F38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="public-subnet">
+          <mxGeometry x="20" y="110" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Private Subnet 1 - Application -->
+        <mxCell id="private-app" value="Private Subnet - Application (10.0.2.0/24)" style="swimlane;fillColor=#E3F2FD;strokeColor=#2196F3;fontStyle=1;fontSize=12;" vertex="1" parent="vpc">
+          <mxGeometry x="20" y="260" width="620" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ecs-cluster" value="ECS Cluster" style="swimlane;fillColor=#BBDEFB;strokeColor=#1976D2;fontStyle=1;fontSize=10;" vertex="1" parent="private-app">
+          <mxGeometry x="20" y="35" width="580" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="frontend-task" value="Frontend&#xa;(Fargate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="ecs-cluster">
+          <mxGeometry x="20" y="30" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="backend-task" value="Backend/Galaxy&#xa;(Fargate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;strokeColor=#1565C0;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="ecs-cluster">
+          <mxGeometry x="120" y="30" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool-tasks" value="Tool Runners&#xa;(Fargate Spot)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#03A9F4;strokeColor=#0288D1;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="ecs-cluster">
+          <mxGeometry x="240" y="30" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ollama-task" value="Ollama LLM&#xa;(GPU Instance)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="ecs-cluster">
+          <mxGeometry x="360" y="30" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auto-scale" value="Auto Scaling: 2-20 tasks based on CPU/Memory" style="text;html=1;strokeColor=#2196F3;fillColor=#E3F2FD;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="ecs-cluster">
+          <mxGeometry x="20" y="100" width="540" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Private Subnet 2 - Data -->
+        <mxCell id="private-data" value="Private Subnet - Data (10.0.3.0/24)" style="swimlane;fillColor=#FCE4EC;strokeColor=#E91E63;fontStyle=1;fontSize=12;" vertex="1" parent="vpc">
+          <mxGeometry x="660" y="260" width="400" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rds" value="RDS PostgreSQL&#xa;(Multi-AZ)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="private-data">
+          <mxGeometry x="20" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="elasticache" value="ElastiCache&#xa;Redis" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#F44336;strokeColor=#D32F2F;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="private-data">
+          <mxGeometry x="140" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="efs" value="EFS&#xa;(Shared Storage)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FF5722;strokeColor=#E64A19;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="private-data">
+          <mxGeometry x="260" y="40" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data-note" value="Encrypted at rest with AWS KMS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="private-data">
+          <mxGeometry x="60" y="130" width="250" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- S3 & External Services -->
+        <mxCell id="external" value="AWS Services &amp; Storage" style="swimlane;fillColor=#ECEFF1;strokeColor=#607D8B;fontStyle=1;fontSize=12;" vertex="1" parent="vpc">
+          <mxGeometry x="20" y="480" width="1040" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-data" value="S3 - Data&#xa;(biomate-data)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="external">
+          <mxGeometry x="20" y="35" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-results" value="S3 - Results&#xa;(biomate-results)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFC107;strokeColor=#FFA000;fontColor=#333333;fontSize=9;" vertex="1" parent="external">
+          <mxGeometry x="140" y="35" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-logs" value="S3 - Logs&#xa;(biomate-logs)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFEB3B;strokeColor=#FBC02D;fontColor=#333333;fontSize=9;" vertex="1" parent="external">
+          <mxGeometry x="260" y="35" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="secrets" value="Secrets&#xa;Manager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;strokeColor=#455A64;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="external">
+          <mxGeometry x="380" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cloudwatch" value="CloudWatch&#xa;(Monitoring)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9E9E9E;strokeColor=#757575;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="external">
+          <mxGeometry x="480" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sqs" value="SQS&#xa;(Job Queue)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#795548;strokeColor=#5D4037;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="external">
+          <mxGeometry x="580" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lambda" value="Lambda&#xa;(Triggers)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;strokeColor=#F57C00;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="external">
+          <mxGeometry x="680" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bedrock" value="Bedrock&#xa;(Claude API)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;strokeColor=#7B1FA2;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="external">
+          <mxGeometry x="780" y="40" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ecr" value="ECR&#xa;(Container Registry)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BCD4;strokeColor=#0097A7;fontColor=#FFFFFF;fontSize=9;" vertex="1" parent="external">
+          <mxGeometry x="880" y="40" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-class" value="S3 Intelligent-Tiering for cost optimization | Glacier for archival" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="external">
+          <mxGeometry x="20" y="110" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Internet Gateway -->
+        <mxCell id="igw" value="Internet&#xa;Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;strokeColor=#388E3C;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="vpc">
+          <mxGeometry x="440" y="50" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="arr-igw-alb" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="vpc" source="igw" target="alb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-alb-ecs" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="vpc" source="alb" target="ecs-cluster">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-ecs-rds" value="" style="endArrow=classic;html=1;strokeColor=#E91E63;strokeWidth=2;dashed=1;" edge="1" parent="vpc" source="ecs-cluster" target="rds">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Users -->
+        <mxCell id="users" value="Users" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#E91E63;strokeColor=#C2185B;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="530" y="800" width="40" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-users" value="HTTPS" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="users" target="cloudfront">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Cost Estimate -->
+        <mxCell id="cost-box" value="Estimated Costs" style="swimlane;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="260" width="280" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="cost-list" value="Small (dev): ~$200-400/month&#xa;• t3.medium (2), RDS small&#xa;&#xa;Medium (production): ~$1000-2000/month&#xa;• c6i.xlarge (4), RDS medium&#xa;&#xa;Large (enterprise): ~$5000+/month&#xa;• GPU instances, Multi-AZ&#xa;&#xa;* Spot instances reduce costs 70%" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;fontSize=9;" vertex="1" parent="cost-box">
+          <mxGeometry x="10" y="30" width="260" height="160" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

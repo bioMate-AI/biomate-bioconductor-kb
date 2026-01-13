@@ -28,10 +28,22 @@ export class GalaxyAPIProxy {
   public client: AxiosInstance;
   private galaxyUrl: string;
   private apiKey?: string;
+  private isConnected: boolean = false;
+  private connectionError: string | null = null;
 
   constructor(galaxyUrl?: string, apiKey?: string) {
     this.galaxyUrl = galaxyUrl || process.env.GALAXY_URL || 'http://localhost:8080';
     this.apiKey = apiKey || process.env.GALAXY_API_KEY;
+
+    // Warn if using default localhost
+    if (!process.env.GALAXY_URL) {
+      console.warn('[GalaxyAPIProxy] WARNING: GALAXY_URL not set, using default localhost:8080');
+    }
+
+    // Warn if no API key
+    if (!this.apiKey) {
+      console.warn('[GalaxyAPIProxy] WARNING: GALAXY_API_KEY not set - some operations may fail');
+    }
 
     console.log('[GalaxyAPIProxy] Initializing with:', {
       url: this.galaxyUrl,
@@ -41,11 +53,16 @@ export class GalaxyAPIProxy {
 
     this.client = axios.create({
       baseURL: this.galaxyUrl,
-      timeout: 30000, // 30 seconds
+      timeout: 60000, // 60 seconds (increased from 30 for workflow generation)
       headers: {
         'Content-Type': 'application/json',
         ...(this.apiKey && { 'X-API-Key': this.apiKey }),
       },
+    });
+
+    // Validate connection on startup (async, non-blocking)
+    this.validateConnection().catch(err => {
+      console.error('[GalaxyAPIProxy] Initial connection validation failed:', err.message);
     });
 
     // Response interceptor for error handling
@@ -643,6 +660,42 @@ export class GalaxyAPIProxy {
     } catch (error) {
       return false;
     }
+  }
+
+  /**
+   * Validate connection to Galaxy backend
+   * Called on startup and can be called to check status
+   */
+  async validateConnection(): Promise<{ connected: boolean; error?: string; version?: string }> {
+    try {
+      const response = await this.client.get('/api/version', { timeout: 10000 });
+      this.isConnected = true;
+      this.connectionError = null;
+      console.log('[GalaxyAPIProxy] ✅ Connection validated - Galaxy version:', response.data.version_major);
+      return {
+        connected: true,
+        version: response.data.version_major || response.data.version || 'unknown'
+      };
+    } catch (error: any) {
+      this.isConnected = false;
+      this.connectionError = error.message || 'Connection failed';
+      console.error('[GalaxyAPIProxy] ❌ Connection validation failed:', this.connectionError);
+      return {
+        connected: false,
+        error: this.connectionError
+      };
+    }
+  }
+
+  /**
+   * Get current connection status
+   */
+  getConnectionStatus(): { connected: boolean; error: string | undefined; url: string } {
+    return {
+      connected: this.isConnected,
+      error: this.connectionError || undefined,
+      url: this.galaxyUrl
+    };
   }
 
   // ============================================================================
