@@ -5,6 +5,9 @@ Optimizes workflow execution order, parallelization, and resource allocation.
 """
 
 import json
+import sqlite3
+import logging
+from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple, Set
 from dataclasses import dataclass
 from enum import Enum
@@ -12,6 +15,11 @@ import networkx as nx
 
 from .types import Task, Tool, WorkflowStep, WorkflowTemplate, TaskGraph
 from .config import AIConfig
+
+log = logging.getLogger(__name__)
+
+# Database path for tool I/O type lookups
+_DB_PATH = Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_tools.db"
 
 
 class OptimizationStrategy(Enum):
@@ -486,24 +494,146 @@ class WorkflowValidator:
         return not nx.is_directed_acyclic_graph(graph)
     
     def _check_data_type_compatibility(self, steps: List[WorkflowStep]) -> List[str]:
-        """Check data type compatibility between connected steps."""
-        
+        """
+        Check data type compatibility between connected steps.
+
+        Uses the tool database to validate that output formats from source steps
+        are compatible with input formats expected by target steps.
+        """
         errors = []
-        
-        # This would need access to tool registry to check actual input/output types
-        # For now, perform basic checks
-        
         step_map = {step.step_id: step for step in steps}
-        
+
+        # Cache for tool I/O types to avoid repeated DB queries
+        tool_io_cache: Dict[str, Dict[str, List[str]]] = {}
+
         for step in steps:
             for input_name, connection in step.input_connections.items():
                 source_step_id = connection.get('id')
                 if source_step_id and source_step_id in step_map:
-                    # In a real implementation, would check tool registry
-                    # for actual input/output type compatibility
-                    pass
-        
+                    source_step = step_map[source_step_id]
+
+                    # Get output types from source tool
+                    source_outputs = self._get_tool_io_types(source_step.tool_id, 'outputs', tool_io_cache)
+
+                    # Get input types expected by target tool
+                    target_inputs = self._get_tool_io_types(step.tool_id, 'inputs', tool_io_cache)
+
+                    # Check compatibility
+                    if source_outputs and target_inputs:
+                        if not self._types_compatible(source_outputs, target_inputs):
+                            errors.append(
+                                f"Type mismatch: '{source_step.tool_id}' outputs {source_outputs} "
+                                f"but '{step.tool_id}' expects {target_inputs} "
+                                f"(connection: step {source_step_id} → step {step.step_id})"
+                            )
+
         return errors
+
+    def _get_tool_io_types(
+        self,
+        tool_id: str,
+        io_type: str,
+        cache: Dict[str, Dict[str, List[str]]]
+    ) -> List[str]:
+        """
+        Get input or output types for a tool from the database.
+
+        Args:
+            tool_id: Galaxy tool ID
+            io_type: 'inputs' or 'outputs'
+            cache: Cache dict to store results
+
+        Returns:
+            List of format types (e.g., ['fastq', 'fastq.gz'])
+        """
+        # Check cache first
+        if tool_id in cache:
+            return cache[tool_id].get(io_type, [])
+
+        # Query database
+        try:
+            if not _DB_PATH.exists():
+                log.warning(f"Tool database not found: {_DB_PATH}")
+                return []
+
+            conn = sqlite3.connect(str(_DB_PATH))
+            cursor = conn.cursor()
+
+            # Try exact match first
+            cursor.execute(
+                f"SELECT inputs, outputs FROM tools WHERE tool_id = ?",
+                (tool_id,)
+            )
+            row = cursor.fetchone()
+
+            # If not found, try partial match (for toolshed IDs)
+            if not row and '/' in tool_id:
+                short_id = tool_id.split('/')[-1]
+                cursor.execute(
+                    f"SELECT inputs, outputs FROM tools WHERE tool_id LIKE ?",
+                    (f'%{short_id}%',)
+                )
+                row = cursor.fetchone()
+
+            conn.close()
+
+            if row:
+                inputs_json, outputs_json = row
+                inputs = json.loads(inputs_json) if inputs_json else []
+                outputs = json.loads(outputs_json) if outputs_json else []
+
+                cache[tool_id] = {'inputs': inputs, 'outputs': outputs}
+                return cache[tool_id].get(io_type, [])
+
+        except Exception as e:
+            log.warning(f"Error getting I/O types for {tool_id}: {e}")
+
+        return []
+
+    def _types_compatible(self, source_outputs: List[str], target_inputs: List[str]) -> bool:
+        """
+        Check if source output types are compatible with target input types.
+
+        Compatibility rules:
+        1. Exact match (fastq == fastq)
+        2. Compressed variants (fastq.gz compatible with fastq)
+        3. Format families (fa, fasta are compatible)
+        """
+        if not source_outputs or not target_inputs:
+            # If we don't have type info, assume compatible (avoid false positives)
+            return True
+
+        # Normalize types for comparison
+        source_normalized = set(self._normalize_format(t) for t in source_outputs)
+        target_normalized = set(self._normalize_format(t) for t in target_inputs)
+
+        # Check for any overlap
+        return bool(source_normalized.intersection(target_normalized))
+
+    def _normalize_format(self, format_type: str) -> str:
+        """
+        Normalize format types for comparison.
+
+        Examples:
+            fastq.gz → fastq
+            fasta → fa
+            sam → sam
+        """
+        # Remove compression extensions
+        normalized = format_type.lower()
+        for ext in ['.gz', '.bz2', '.zip', '.xz']:
+            if normalized.endswith(ext):
+                normalized = normalized[:-len(ext)]
+
+        # Normalize common format aliases
+        format_aliases = {
+            'fasta': 'fa',
+            'fastq': 'fq',
+            'tabular': 'tsv',
+            'txt': 'text',
+        }
+
+        return format_aliases.get(normalized, normalized)
     
     def _check_missing_inputs(self, workflow_template: WorkflowTemplate) -> List[str]:
         """Check for missing workflow inputs."""

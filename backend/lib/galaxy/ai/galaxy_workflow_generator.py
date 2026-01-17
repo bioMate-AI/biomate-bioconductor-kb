@@ -16,6 +16,11 @@ import logging
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 
+from .domain_workflow_patterns import (
+    AnalysisDomain, detect_domain, get_domain_pattern,
+    format_phases_for_llm, get_phases_for_domain
+)
+
 log = logging.getLogger(__name__)
 
 # Lazy import for tool knowledge provider
@@ -141,6 +146,13 @@ class GalaxyWorkflowGenerator:
                 except Exception as e:
                     log.warning(f"Progress callback failed: {e}")
 
+        # STEP 0: Detect analysis domain from user intent
+        detected_domain = detect_domain(user_intent)
+        report_progress("domain_detection", 0.05, f"Detected domain: {detected_domain.value}", {
+            "domain": detected_domain.value,
+            "domain_description": get_domain_pattern(detected_domain).description
+        })
+
         # STEP 1: Retrieve available tools from index
         report_progress("tool_search", 0.1, "Searching for relevant tools...", {"user_intent": user_intent})
         log.info(f"Retrieving tools for: {user_intent}")
@@ -157,11 +169,15 @@ class GalaxyWorkflowGenerator:
         report_progress("tool_search", 0.2, f"Found {len(available_tools)} relevant tools", {"tool_count": len(available_tools)})
 
         # STEP 2: Generate workflow structure using LLM (ONLY from retrieved tools)
-        report_progress("workflow_design", 0.3, "Designing intelligent workflow structure...", {"phase": "llm_generation"})
-        log.info("Generating workflow structure with LLM...")
+        report_progress("workflow_design", 0.3, f"Designing {detected_domain.value} workflow structure...", {
+            "phase": "llm_generation",
+            "domain": detected_domain.value
+        })
+        log.info(f"Generating {detected_domain.value} workflow structure with LLM...")
         workflow_structure = self._generate_workflow_structure(
             user_intent,
-            available_tools
+            available_tools,
+            detected_domain=detected_domain
         )
 
         if not workflow_structure or 'error' in workflow_structure:
@@ -248,6 +264,8 @@ class GalaxyWorkflowGenerator:
             "dataset_assignments": dataset_assignments,
             "tool_selections": available_tools,
             "user_intent": user_intent,
+            "detected_domain": detected_domain.value,  # Domain-specific workflow type
+            "domain_description": get_domain_pattern(detected_domain).description,
             "generated_parameters": generated_parameters,  # LLM-generated parameters with confidence scores
             "citations": citations,  # Tool citations with DOI/PMID
             "methods_section": methods_section,  # Auto-generated methods text
@@ -422,19 +440,28 @@ Return ONLY the FTS5 query string, nothing else."""
     def _generate_workflow_structure(
         self,
         user_intent: str,
-        available_tools: List[Dict[str, Any]]
+        available_tools: List[Dict[str, Any]],
+        detected_domain: Optional[AnalysisDomain] = None
     ) -> Dict[str, Any]:
         """
         Generate intelligent workflow structure using LLM.
 
         CRITICAL: LLM can ONLY use tools from available_tools list.
 
-        Workflow Design Principles:
-        1. Data quality check first - validate input data
-        2. Core analysis - satisfy user's information needs
-        3. Post-processing - format, visualize, summarize results
-        4. Output preparation - provide downloadable outputs
+        Uses domain-specific workflow phases (transcriptomics, genomics, proteomics, etc.)
+        to guide workflow design following biological best practices.
         """
+
+        # Detect domain if not provided
+        tool_names = [t['name'] for t in available_tools]
+        if detected_domain is None:
+            detected_domain = detect_domain(user_intent, tool_names)
+
+        log.info(f"Detected analysis domain: {detected_domain.value}")
+
+        # Get domain-specific phases
+        domain_phases_text = format_phases_for_llm(detected_domain)
+        domain_pattern = get_domain_pattern(detected_domain)
 
         # Build tool catalog for LLM
         tool_catalog = self._build_tool_catalog(available_tools)
@@ -443,33 +470,48 @@ Return ONLY the FTS5 query string, nothing else."""
 
 Your task is to design COMPLETE, INTELLIGENT workflows that fully satisfy user needs.
 
+## DETECTED ANALYSIS DOMAIN: {detected_domain.value.upper()}
+
 ## AVAILABLE TOOLS (Use ONLY these exact tool_ids):
 
 {tool_catalog}
 
-## WORKFLOW DESIGN PRINCIPLES:
+## GENERAL WORKFLOW DESIGN PRINCIPLES:
 
-A well-designed workflow should follow these phases:
+A well-designed workflow should follow these universal principles:
 
-### PHASE 1: DATA VALIDATION (if applicable)
+### PHASE 1: DATA VALIDATION (early)
 - Check data quality and format
 - Validate input parameters
 - Report potential data issues
 
-### PHASE 2: CORE ANALYSIS
+### PHASE 2: CORE ANALYSIS (middle)
 - Perform the main analysis task requested by user
 - Use appropriate tools in logical sequence
 - Ensure outputs satisfy user's information needs
 
-### PHASE 3: POST-PROCESSING (if applicable)
+### PHASE 3: POST-PROCESSING (late, if applicable)
 - Format results for readability
 - Generate summaries and statistics
 - Create visualizations (plots, charts)
 
-### PHASE 4: OUTPUT PREPARATION
+### PHASE 4: OUTPUT PREPARATION (late)
 - Prepare downloadable results
 - Generate reports if appropriate
 - Provide results in user-requested format
+
+## DOMAIN-SPECIFIC IMPLEMENTATION:
+
+For {detected_domain.value.upper()} analysis, the general principles map to these specific phases:
+
+{domain_phases_text}
+
+## WORKFLOW DESIGN GUIDANCE:
+
+1. Apply GENERAL PRINCIPLES as overarching structure
+2. Use DOMAIN-SPECIFIC phases for detailed implementation
+3. Each phase should use appropriate tools from the AVAILABLE TOOLS list
+4. Required domain phases MUST be included; optional phases based on user needs
 
 ## IMPORTANT GUIDELINES:
 
@@ -499,17 +541,20 @@ When selecting tools that query databases or APIs, pay attention to their parame
 {{
   "workflow_name": "Descriptive title reflecting the analysis",
   "workflow_description": "Brief description of what this workflow accomplishes",
+  "domain": "{detected_domain.value}",
   "user_need_addressed": "How this workflow satisfies the user's request",
   "phases": [
     {{
-      "phase": "data_validation|core_analysis|post_processing|output_preparation",
+      "general_phase": "data_validation|core_analysis|post_processing|output_preparation",
+      "domain_phase": "specific phase name from DOMAIN-SPECIFIC section",
       "phase_description": "What this phase accomplishes"
     }}
   ],
   "steps": [
     {{
       "step": 1,
-      "phase": "data_validation|core_analysis|post_processing|output_preparation",
+      "general_phase": "data_validation|core_analysis|post_processing|output_preparation",
+      "domain_phase": "specific domain phase name",
       "tool_id": "exact tool_id from AVAILABLE TOOLS",
       "tool_name": "human readable name",
       "purpose": "What this step does and why it's needed",
@@ -523,21 +568,26 @@ When selecting tools that query databases or APIs, pay attention to their parame
 }}
 """
 
+        # Build phase guidance for user prompt
+        phase_names = [p.name for p in domain_pattern.phases if p.required]
+        phase_list = '\n'.join([f"  - {name}" for name in phase_names])
+
         user_prompt = f"""## USER REQUEST:
 {user_intent}
 
+## DETECTED DOMAIN: {detected_domain.value.upper()}
+
 ## TASK:
 Design a complete, intelligent workflow that:
-1. VALIDATES data quality (if applicable)
-2. PERFORMS the core analysis to answer the user's question
-3. FORMATS and VISUALIZES results (if helpful)
-4. PREPARES downloadable outputs
+1. Follows GENERAL PRINCIPLES: data_validation → core_analysis → post_processing → output_preparation
+2. Implements DOMAIN-SPECIFIC phases for {detected_domain.value}:
+{phase_list}
 
 Consider:
 - What information does the user actually need?
+- Which domain phases are essential for this specific request?
 - What format would be most useful for them?
 - Should results include visualizations?
-- What summary statistics would be helpful?
 
 Design the workflow using ONLY tools from the AVAILABLE TOOLS list.
 Return valid JSON only - no additional text.

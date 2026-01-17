@@ -1475,7 +1475,6 @@ def analyze_protein_phylogeny(
     import tempfile
 
     from Bio import AlignIO, Phylo, SeqIO
-    from Bio.Align.Applications import ClustalwCommandline, MuscleCommandline
 
     # Create output directory if it doesn't exist
     if not os.path.exists(output_dir):
@@ -1528,10 +1527,15 @@ def analyze_protein_phylogeny(
             log.append(f"Error processing pre-aligned sequences: {str(e)}")
             return "\n".join(log)
     elif alignment_method.lower() == "clustalw":
-        log.append("Using Clustal Omega for alignment")
+        log.append("Using ClustalW for alignment")
         try:
-            clustalw_cline = ClustalwCommandline("clustalw", infile=input_file, outfile=alignment_file)
-            stdout, stderr = clustalw_cline()
+            # Use subprocess directly instead of deprecated Bio.Align.Applications
+            result = subprocess.run(
+                ["clustalw", "-INFILE=" + input_file, "-OUTFILE=" + alignment_file],
+                capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"ClustalW failed: {result.stderr}")
             log.append("Alignment completed successfully")
         except Exception as e:
             log.append(f"Error during alignment: {str(e)}")
@@ -1541,8 +1545,13 @@ def analyze_protein_phylogeny(
     if alignment_method.lower() == "muscle":
         log.append("Using MUSCLE for alignment")
         try:
-            muscle_cline = MuscleCommandline("muscle", input=input_file, out=alignment_file)
-            stdout, stderr = muscle_cline()
+            # Use subprocess directly instead of deprecated Bio.Align.Applications
+            result = subprocess.run(
+                ["muscle", "-in", input_file, "-out", alignment_file],
+                capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"MUSCLE failed: {result.stderr}")
             log.append("Alignment completed successfully")
         except Exception as e:
             log.append(f"Error during MUSCLE alignment: {str(e)}")

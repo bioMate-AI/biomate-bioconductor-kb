@@ -21,7 +21,8 @@ from .enhanced_workflow_generator import EnhancedWorkflowGenerator
 from .workflow_templates import WorkflowTemplateLibrary
 from .workflow_optimizer import WorkflowOptimizer, WorkflowValidator, OptimizationStrategy
 # NEW: Unified workflow generation components
-from .workflow_search_rag import WorkflowSearchRAG
+from .unified_workflow_search import UnifiedWorkflowSearch, get_workflow_search
+from .unified_tool_search import create_unified_search
 from .galaxy_workflow_generator import GalaxyWorkflowGenerator
 from .workflow_dataset_selector import WorkflowDatasetSelector
 from .biomni_dataset_rag import BioMNIDatasetRAG
@@ -66,7 +67,8 @@ class AIAssistant:
         self.galaxy_app = galaxy_app
 
         # ONLY initialize components needed for generate_workflow_unified()
-        self.workflow_search = WorkflowSearchRAG(galaxy_app)
+        self.workflow_search = get_workflow_search()  # UnifiedWorkflowSearch with 951+ workflows
+        self._tool_search = None  # Lazy-loaded UnifiedToolSearch
         self.constrained_generator = GalaxyWorkflowGenerator(config=self.config)
         self.dataset_selector = WorkflowDatasetSelector()
 
@@ -90,7 +92,7 @@ class AIAssistant:
         self._literature_client = None  # UnifiedLiteratureClient for citation retrieval
 
         log.info("AIAssistant initialized (lightweight mode)")
-        log.info(f"  - Template library: {len(self.workflow_search.templates)} templates")
+        log.info(f"  - Workflow search: UnifiedWorkflowSearch (database-backed)")
 
         # Cache for frequently used data
         self._tool_cache = {}
@@ -453,8 +455,11 @@ class AIAssistant:
         context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Handle tool search requests."""
-        # Use existing tool search
-        tools = self.workflow_search.search_tools(query, limit=10)
+        # Lazy-load tool search
+        if self._tool_search is None:
+            self._tool_search = create_unified_search()
+
+        tools = self._tool_search.search(query, limit=10)
         return {
             "success": True,
             "handler": "unified_tool_search",
@@ -665,23 +670,31 @@ class AIAssistant:
         sources: Optional[List[str]] = None,
         recent_years: int = 5
     ) -> List[Dict[str, Any]]:
-        """Synchronous wrapper for search_literature."""
+        """Synchronous wrapper for search_literature.
+
+        Properly handles event loop creation to avoid "Event loop is closed" errors.
+        Works correctly in Python 3.10+ where get_event_loop() behavior changed.
+        """
         import asyncio
+        import concurrent.futures
 
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        return loop.run_until_complete(
-            self.search_literature(
-                query=query,
-                max_results=max_results,
-                sources=sources,
-                recent_years=recent_years
-            )
+        async_coro = self.search_literature(
+            query=query,
+            max_results=max_results,
+            sources=sources,
+            recent_years=recent_years
         )
+
+        # Check if we're already inside an async context
+        try:
+            loop = asyncio.get_running_loop()
+            # We're inside an async context - run in a separate thread
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, async_coro)
+                return future.result()
+        except RuntimeError:
+            # No running event loop - safe to use asyncio.run()
+            return asyncio.run(async_coro)
 
     # =========================================================================
     # BENCHMARK KNOWLEDGE API (For ResearchAgent and Workflow Generation)
@@ -1351,7 +1364,7 @@ class AIAssistant:
         Unified workflow generation with search-first approach.
 
         This implements the complete architecture from UNIFIED_ARCHITECTURE_SUMMARY.md:
-        1. Search existing templates (WorkflowSearchRAG)
+        1. Search existing workflows (UnifiedWorkflowSearch with 951+ indexed workflows)
         2. If high confidence (>0.8): Reuse workflow + update datasets
         3. If medium confidence (0.5-0.8): Use EnhancedWorkflowGenerator (adapt template)
         4. If low confidence (<0.5): Use GalaxyWorkflowGenerator (tool-constrained from scratch)
@@ -1373,16 +1386,18 @@ class AIAssistant:
         log.info(f"[UnifiedWorkflowGeneration] Starting for intent: {user_intent}")
 
         try:
-            # Step 1: Search existing templates
-            log.info("[UnifiedWorkflowGeneration] Step 1: Searching templates...")
-            search_results = self.workflow_search.search(user_intent, limit=5)
+            # Step 1: Search existing workflows (951+ indexed workflows)
+            log.info("[UnifiedWorkflowGeneration] Step 1: Searching workflows...")
+            search_results = self.workflow_search.search(user_intent, limit=5, include_workflow_json=True)
 
             if not search_results:
-                log.info("[UnifiedWorkflowGeneration] No templates found, will generate from scratch")
+                log.info("[UnifiedWorkflowGeneration] No workflows found, will generate from scratch")
                 score = 0.0
             else:
-                score = search_results[0]['score']
-                log.info(f"[UnifiedWorkflowGeneration] Best match: {search_results[0]['name']} (score: {score:.2f})")
+                # WorkflowMatch is a dataclass, access via attributes
+                best_match = search_results[0]
+                score = best_match.score
+                log.info(f"[UnifiedWorkflowGeneration] Best match: {best_match.name} (score: {score:.2f})")
 
             workflow_ga = None
             source = None
@@ -1392,11 +1407,29 @@ class AIAssistant:
             if score > 0.8:
                 # High confidence - reuse existing workflow
                 log.info("[UnifiedWorkflowGeneration] High confidence match - reusing workflow")
-                workflow = search_results[0]['workflow']
+                best_match = search_results[0]
                 source = 'template_reuse'
 
-                # Extract workflow structure for dataset assignment
-                workflow_steps = workflow.get('workflow_steps', [])
+                # Parse workflow JSON if available
+                import json
+                workflow_json = {}
+                if best_match.workflow_json:
+                    try:
+                        workflow_json = json.loads(best_match.workflow_json) if isinstance(best_match.workflow_json, str) else best_match.workflow_json
+                    except:
+                        workflow_json = {}
+
+                # Extract workflow steps from Galaxy .ga format
+                workflow_steps = []
+                if 'steps' in workflow_json:
+                    for step_id, step_data in workflow_json['steps'].items():
+                        if step_data.get('tool_id'):
+                            workflow_steps.append({
+                                'step': int(step_id),
+                                'tool_id': step_data.get('tool_id'),
+                                'name': step_data.get('name', ''),
+                                'description': step_data.get('annotation', '')
+                            })
 
                 # Assign datasets via WorkflowDatasetSelector
                 log.info("[UnifiedWorkflowGeneration] Assigning datasets...")
@@ -1406,10 +1439,10 @@ class AIAssistant:
                 )
 
                 # Build Galaxy .ga JSON with datasets
-                workflow_ga = self._build_workflow_ga_from_template(workflow, dataset_assignments)
+                workflow_ga = self._build_workflow_ga_from_template(workflow_json, dataset_assignments)
                 datasets_assigned = True
 
-                message = f"Reused existing workflow: {workflow['name']}"
+                message = f"Reused existing workflow: {best_match.name}"
 
             elif score > 0.5:
                 # Medium confidence - adapt template using enhanced generator
@@ -1497,7 +1530,7 @@ class AIAssistant:
         Build Galaxy .ga workflow JSON from template with dataset assignments.
 
         Args:
-            template: Template dictionary from WorkflowSearchRAG
+            template: Workflow JSON dictionary from UnifiedWorkflowSearch
             dataset_assignments: Dataset assignments from WorkflowDatasetSelector
 
         Returns:

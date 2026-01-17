@@ -8,6 +8,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,8 +29,14 @@ import {
   Clock,
   Eye,
   Trash2,
+  FileText,
+  Image,
+  Table,
+  FileCode,
+  ExternalLink,
+  File,
 } from "lucide-react"
-import type { WorkflowInvocation } from "@shared/schema"
+import type { WorkflowInvocation, OutputDataset } from "@shared/schema"
 
 interface WorkflowHistoryPanelProps {
   className?: string
@@ -112,10 +124,12 @@ export function WorkflowHistoryPanel({ className }: WorkflowHistoryPanelProps) {
         </SheetContent>
       </Sheet>
 
-      {/* Results detail dialog - will be implemented in next phase */}
-      {selectedInvocation && (
-        <div>TODO: Results detail view</div>
-      )}
+      {/* Results viewer dialog */}
+      <OutputsDialog
+        invocationId={selectedInvocation}
+        open={!!selectedInvocation}
+        onClose={() => setSelectedInvocation(null)}
+      />
     </>
   )
 }
@@ -138,36 +152,42 @@ function InvocationCard({ invocation, onViewResults }: InvocationCardProps) {
       icon: CheckCircle,
       color: "default" as const,
       label: "Completed",
+      animate: false,
       bgColor: "bg-green-500/10 dark:bg-green-500/20"
     },
     error: {
       icon: XCircle,
       color: "destructive" as const,
       label: "Failed",
+      animate: false,
       bgColor: "bg-red-500/10 dark:bg-red-500/20"
     },
     queued: {
       icon: Clock,
       color: "secondary" as const,
       label: "Queued",
+      animate: false,
       bgColor: "bg-blue-500/10 dark:bg-blue-500/20"
     },
     new: {
       icon: Clock,
       color: "secondary" as const,
       label: "Starting",
+      animate: false,
       bgColor: "bg-blue-500/10 dark:bg-blue-500/20"
     },
     paused: {
       icon: Clock,
       color: "secondary" as const,
       label: "Paused",
+      animate: false,
       bgColor: "bg-gray-500/10 dark:bg-gray-500/20"
     },
     deleted: {
       icon: Trash2,
       color: "secondary" as const,
       label: "Deleted",
+      animate: false,
       bgColor: "bg-gray-500/10 dark:bg-gray-500/20"
     },
   }
@@ -314,11 +334,234 @@ function formatBytes(bytes: number): string {
 }
 
 async function handleDownloadAll(invocationId: string) {
-  // TODO: Implement download all as zip
-  console.log('Download all outputs for:', invocationId)
+  try {
+    // Trigger ZIP download via browser
+    const downloadUrl = `/api/invocations/${invocationId}/download-all`
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = '' // Let server set filename via Content-Disposition
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error) {
+    console.error('Failed to download outputs:', error)
+    alert('Failed to download outputs. Please try again.')
+  }
 }
 
-async function handleRetry(invocationId: string) {
-  // TODO: Implement workflow retry
-  console.log('Retry workflow:', invocationId)
+async function handleRetry(invocationId: string, workflowDefinition?: any, inputDatasets?: any[]) {
+  try {
+    if (!workflowDefinition) {
+      // Fetch invocation to get workflow definition
+      const response = await fetch(`/api/invocations/${invocationId}`)
+      if (!response.ok) throw new Error('Failed to fetch invocation details')
+      const invocation = await response.json()
+      workflowDefinition = invocation.workflowDefinition
+      inputDatasets = invocation.inputDatasets
+    }
+
+    // Re-invoke the workflow with the same inputs
+    const invokeResponse = await fetch('/api/galaxy/workflows/invoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workflow_definition: workflowDefinition,
+        inputs: inputDatasets || [],
+      }),
+    })
+
+    if (!invokeResponse.ok) {
+      const error = await invokeResponse.json()
+      throw new Error(error.message || 'Failed to retry workflow')
+    }
+
+    const result = await invokeResponse.json()
+    alert(`Workflow restarted! New invocation ID: ${result.invocation?.id || 'unknown'}`)
+
+    // Optionally refresh the page or trigger a refetch
+    window.location.reload()
+  } catch (error: any) {
+    console.error('Failed to retry workflow:', error)
+    alert(`Failed to retry workflow: ${error.message}`)
+  }
+}
+
+// ============================================================================
+// Outputs Dialog - View workflow results with Galaxy visualizations
+// ============================================================================
+
+interface OutputsDialogProps {
+  invocationId: string | null
+  open: boolean
+  onClose: () => void
+}
+
+function OutputsDialog({ invocationId, open, onClose }: OutputsDialogProps) {
+  // Fetch outputs for the selected invocation
+  const { data: outputs = [], isLoading } = useQuery<OutputDataset[]>({
+    queryKey: ['outputs', invocationId],
+    queryFn: async () => {
+      if (!invocationId) return []
+      const response = await fetch(`/api/invocations/${invocationId}/outputs`)
+      if (!response.ok) throw new Error('Failed to fetch outputs')
+      return response.json()
+    },
+    enabled: !!invocationId && open,
+  })
+
+  // Get icon for file type
+  const getFileIcon = (fileType: string, extension: string) => {
+    switch (fileType) {
+      case 'image':
+        return <Image className="h-5 w-5 text-purple-500" />
+      case 'table':
+        return <Table className="h-5 w-5 text-green-500" />
+      case 'text':
+        return <FileText className="h-5 w-5 text-blue-500" />
+      case 'interactive':
+        return <FileCode className="h-5 w-5 text-orange-500" />
+      default:
+        return <File className="h-5 w-5 text-gray-500" />
+    }
+  }
+
+  // Check if file can be viewed inline
+  const canViewInline = (fileType: string, extension: string) => {
+    const viewableExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'html', 'htm', 'txt', 'csv', 'tsv', 'pdf']
+    return viewableExtensions.includes(extension.toLowerCase())
+  }
+
+  // Open file in Galaxy viewer or new tab
+  const handleView = (output: OutputDataset) => {
+    const displayUrl = `/api/outputs/${output.id}/display`
+    window.open(displayUrl, '_blank')
+  }
+
+  // Download single file
+  const handleDownload = (output: OutputDataset) => {
+    const downloadUrl = `/api/outputs/${output.id}/download`
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = `${output.name}.${output.extension}`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Eye className="h-5 w-5" />
+            Workflow Results
+            {outputs.length > 0 && (
+              <Badge variant="secondary">{outputs.length} file{outputs.length !== 1 ? 's' : ''}</Badge>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+
+        <ScrollArea className="h-[60vh] pr-4">
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {!isLoading && outputs.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <File className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground">
+                No output files found. The workflow may still be running.
+              </p>
+            </div>
+          )}
+
+          {!isLoading && outputs.length > 0 && (
+            <div className="space-y-2">
+              {outputs.map((output) => (
+                <Card key={output.id} className="p-3">
+                  <div className="flex items-center gap-3">
+                    {/* File icon */}
+                    {getFileIcon(output.fileType, output.extension)}
+
+                    {/* File info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">
+                        {output.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <span className="uppercase">{output.extension}</span>
+                        <span>•</span>
+                        <span>{formatBytes(output.size)}</span>
+                        {output.fileType === 'interactive' && (
+                          <>
+                            <span>•</span>
+                            <Badge variant="outline" className="text-xs py-0">Interactive</Badge>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-1">
+                      {canViewInline(output.fileType, output.extension) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleView(output)}
+                          title="View in new tab"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDownload(output)}
+                        title="Download"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Preview metadata for tables */}
+                  {output.fileType === 'table' && output.metadata?.rows && (
+                    <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
+                      {output.metadata.rows.toLocaleString()} rows
+                      {output.metadata.columns && ` × ${output.metadata.columns} columns`}
+                    </div>
+                  )}
+
+                  {/* Preview metadata for images */}
+                  {output.fileType === 'image' && output.metadata?.width && (
+                    <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
+                      {output.metadata.width} × {output.metadata.height} pixels
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+
+        {/* Footer actions */}
+        {outputs.length > 0 && (
+          <div className="flex justify-between items-center pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              Total: {formatBytes(outputs.reduce((sum, o) => sum + o.size, 0))}
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => invocationId && handleDownloadAll(invocationId)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download All as ZIP
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
 }

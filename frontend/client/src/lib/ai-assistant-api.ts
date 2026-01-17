@@ -93,6 +93,8 @@ export interface StartPilotResponse {
   pilot_size: number
   message: string
   config: TuningConfig
+  galaxy_invocation_id?: string  // Galaxy invocation ID for tracking
+  galaxy_history_id?: string     // Sandbox history ID
 }
 
 export interface PilotStatusResponse {
@@ -116,18 +118,29 @@ export interface FullRunEstimateResponse {
 
 /**
  * Start a pilot run for parameter tuning
+ *
+ * @param workflowIdOrDefinition - Either a Galaxy workflow ID (string) or a workflow definition object (.ga format)
+ * @param totalSamples - Total number of samples in the dataset
+ * @param config - Tuning configuration (pilot fraction, sampling strategy, etc.)
+ * @param inputs - Input datasets for the workflow (optional, for new workflows)
+ * @param sampleIds - Specific sample IDs to use (optional)
  */
 export async function startPilotRun(
-  workflowId: string,
+  workflowIdOrDefinition: string | Record<string, any>,
   totalSamples: number,
   config?: Partial<TuningConfig>,
+  inputs?: Array<{ step_id?: number; src: string; id: string; name?: string }>,
   sampleIds?: string[]
 ): Promise<StartPilotResponse> {
+  // Determine if we have a workflow ID or a definition
+  const isWorkflowId = typeof workflowIdOrDefinition === 'string'
+
   const response = await fetch(`${API_BASE}/pilot/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      workflow_id: workflowId,
+      workflow_id: isWorkflowId ? workflowIdOrDefinition : null,
+      workflow_definition: isWorkflowId ? null : workflowIdOrDefinition,
       total_samples: totalSamples,
       config: config ? {
         pilot_fraction: config.pilot_fraction ?? 0.1,
@@ -136,6 +149,7 @@ export async function startPilotRun(
         min_pilot_samples: config.min_pilot_samples ?? 3,
         max_pilot_samples: config.max_pilot_samples ?? 50
       } : null,
+      inputs: inputs || null,
       sample_ids: sampleIds
     })
   })
@@ -275,4 +289,325 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     console.error('Failed to copy to clipboard:', error)
     return false
   }
+}
+
+// ============================================================================
+// Unified Execution API (routes.ts endpoints)
+// Uses /api/workflows/* instead of /api/ai_assistant/*
+// Provides sandbox/production mode with tunable data scope
+// ============================================================================
+
+import type {
+  ExecutionRun,
+  ExecutionConfig,
+  DataScope,
+  StepExecution,
+  UserInteraction,
+  ExecutionRunStatus,
+} from '@shared/schema'
+
+const EXECUTION_API_BASE = '/api/workflows'
+
+export interface ExecuteWorkflowRequest {
+  workflowDefinition: any
+  workflowName?: string
+  executionConfig?: Partial<ExecutionConfig>
+  inputs?: Array<{ id: string; src: string; step_id?: number }>
+  projectId?: string
+}
+
+export interface ExecuteWorkflowResponse {
+  runId: string
+  galaxyInvocationId: string
+  galaxyHistoryId: string
+  status: string
+  dataScopeApplied: {
+    fraction: number
+    absoluteCount: number
+    sampledIds: string[]
+  }
+}
+
+export interface RunStatusResponse {
+  runId: string
+  status: ExecutionRunStatus
+  progress: ExecutionRun['progress']
+  metrics?: ExecutionRun['metrics']
+  steps?: StepExecution[]
+  errorMessage?: string
+}
+
+export interface RunComparisonResponse {
+  runA: ExecutionRun
+  runB: ExecutionRun
+  comparison: {
+    dataScopeDelta: { fractionA: number; fractionB: number }
+    parameterDifferences: Array<{
+      toolId: string
+      parameter: string
+      valueA: any
+      valueB: any
+    }>
+    runtimeDelta?: number
+    qualityDelta?: Record<string, number>
+  }
+}
+
+export interface PromoteRunResponse {
+  productionRunId: string
+  sandboxRunId: string
+  status: string
+  message: string
+}
+
+/**
+ * Execute a workflow with unified configuration (sandbox or production mode)
+ */
+export async function executeWorkflow(
+  request: ExecuteWorkflowRequest
+): Promise<ExecuteWorkflowResponse> {
+  const response = await fetch(`${EXECUTION_API_BASE}/execute`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }))
+    throw new Error(error.error || 'Failed to execute workflow')
+  }
+
+  return response.json()
+}
+
+/**
+ * Get all execution runs for the current user
+ */
+export async function getExecutionRuns(options?: {
+  mode?: 'sandbox' | 'production'
+  projectId?: string
+  limit?: number
+}): Promise<ExecutionRun[]> {
+  const params = new URLSearchParams()
+  if (options?.mode) params.set('mode', options.mode)
+  if (options?.projectId) params.set('projectId', options.projectId)
+  if (options?.limit) params.set('limit', options.limit.toString())
+
+  const response = await fetch(`${EXECUTION_API_BASE}/runs?${params}`)
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch execution runs')
+  }
+
+  return response.json()
+}
+
+/**
+ * Get a specific execution run by ID
+ */
+export async function getExecutionRun(runId: string): Promise<ExecutionRun | null> {
+  const response = await fetch(`${EXECUTION_API_BASE}/runs/${runId}`)
+
+  if (!response.ok) {
+    if (response.status === 404) return null
+    throw new Error('Failed to fetch execution run')
+  }
+
+  return response.json()
+}
+
+/**
+ * Get lightweight execution status (for polling)
+ */
+export async function getExecutionRunStatus(
+  runId: string,
+  includeSteps: boolean = false
+): Promise<RunStatusResponse> {
+  const params = includeSteps ? '?includeSteps=true' : ''
+  const response = await fetch(`${EXECUTION_API_BASE}/runs/${runId}/status${params}`)
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch run status')
+  }
+
+  return response.json()
+}
+
+/**
+ * Get all runs in an iteration chain
+ */
+export async function getExecutionIterations(runId: string): Promise<ExecutionRun[]> {
+  const response = await fetch(`${EXECUTION_API_BASE}/runs/${runId}/iterations`)
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch iterations')
+  }
+
+  return response.json()
+}
+
+/**
+ * Pause an execution run
+ */
+export async function pauseExecutionRun(runId: string, reason?: string): Promise<ExecutionRun> {
+  const response = await fetch(`${EXECUTION_API_BASE}/runs/${runId}/pause`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to pause' }))
+    throw new Error(error.error || 'Failed to pause run')
+  }
+
+  return response.json()
+}
+
+/**
+ * Resume a paused execution run
+ */
+export async function resumeExecutionRun(runId: string): Promise<ExecutionRun> {
+  const response = await fetch(`${EXECUTION_API_BASE}/runs/${runId}/resume`, {
+    method: 'POST',
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to resume' }))
+    throw new Error(error.error || 'Failed to resume run')
+  }
+
+  return response.json()
+}
+
+/**
+ * Cancel an execution run
+ */
+export async function cancelExecutionRun(runId: string, reason?: string): Promise<ExecutionRun> {
+  const response = await fetch(`${EXECUTION_API_BASE}/runs/${runId}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to cancel' }))
+    throw new Error(error.error || 'Failed to cancel run')
+  }
+
+  return response.json()
+}
+
+/**
+ * Record a user interaction
+ */
+export async function recordInteraction(
+  runId: string,
+  interaction: Partial<UserInteraction>
+): Promise<ExecutionRun> {
+  const response = await fetch(`${EXECUTION_API_BASE}/runs/${runId}/interactions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(interaction),
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to record interaction')
+  }
+
+  return response.json()
+}
+
+/**
+ * Compare two execution runs
+ */
+export async function compareExecutionRuns(
+  runId: string,
+  compareWithId: string
+): Promise<RunComparisonResponse> {
+  const response = await fetch(`${EXECUTION_API_BASE}/runs/${runId}/compare?with=${compareWithId}`)
+
+  if (!response.ok) {
+    throw new Error('Failed to compare runs')
+  }
+
+  return response.json()
+}
+
+/**
+ * Promote a sandbox run to production
+ */
+export async function promoteToProduction(
+  runId: string,
+  fullInputs: Array<{ id: string; src: string; step_id?: number }>
+): Promise<PromoteRunResponse> {
+  const response = await fetch(`${EXECUTION_API_BASE}/runs/${runId}/promote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inputs: fullInputs }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to promote' }))
+    throw new Error(error.error || 'Failed to promote to production')
+  }
+
+  return response.json()
+}
+
+/**
+ * Delete an execution run
+ */
+export async function deleteExecutionRun(runId: string): Promise<boolean> {
+  const response = await fetch(`${EXECUTION_API_BASE}/runs/${runId}`, {
+    method: 'DELETE',
+  })
+
+  if (!response.ok && response.status !== 404) {
+    throw new Error('Failed to delete run')
+  }
+
+  return response.ok
+}
+
+/**
+ * Poll execution run status until complete
+ */
+export async function pollExecutionStatus(
+  runId: string,
+  onProgress: (status: RunStatusResponse) => void,
+  options?: {
+    intervalMs?: number
+    maxAttempts?: number
+    includeSteps?: boolean
+  }
+): Promise<RunStatusResponse> {
+  const { intervalMs = 2000, maxAttempts = 600, includeSteps = true } = options || {}
+  let attempts = 0
+
+  return new Promise((resolve, reject) => {
+    const poll = async () => {
+      try {
+        const status = await getExecutionRunStatus(runId, includeSteps)
+        onProgress(status)
+
+        if (['completed', 'failed', 'cancelled'].includes(status.status)) {
+          resolve(status)
+          return
+        }
+
+        attempts++
+        if (attempts >= maxAttempts) {
+          reject(new Error('Execution polling timeout'))
+          return
+        }
+
+        setTimeout(poll, intervalMs)
+      } catch (error) {
+        reject(error)
+      }
+    }
+
+    poll()
+  })
 }

@@ -31,10 +31,11 @@ import { cn, getSimpleToolName } from "@/lib/utils"
 import { ParameterDialog } from "./parameter-dialog"
 import { CitationPanel } from "./citation-panel"
 import { PilotRunPanel } from "./pilot-run-panel"
+import { ExecutionControlPanel } from "./execution-control-panel"
 import { WorkflowReportViewer } from "./workflow-report-viewer"
 import { InteractiveLauncher } from "./interactive-launcher"
 import { SubworkflowExtractor } from "./subworkflow-extractor"
-import type { Citation, MethodsSection, TuningConfig, ParameterRecommendation } from "@shared/schema"
+import type { Citation, MethodsSection, TuningConfig, ParameterRecommendation, ExecutionRun, ExecutionConfig } from "@shared/schema"
 
 interface WorkflowStep {
   id: string
@@ -92,6 +93,16 @@ interface WorkflowArtifactProps {
   galaxyWorkflowId?: string
   galaxyHistoryId?: string
   outputs?: OutputFile[]
+  // Unified Execution (new system - replaces pilot run when enabled)
+  useUnifiedExecution?: boolean
+  currentExecutionRun?: ExecutionRun
+  previousExecutionRuns?: ExecutionRun[]
+  onUnifiedExecute?: (config: ExecutionConfig) => Promise<void>
+  onPauseExecution?: () => Promise<void>
+  onResumeExecution?: () => Promise<void>
+  onCancelExecution?: () => Promise<void>
+  onPromoteToProduction?: (runId: string) => void
+  strataColumns?: string[]
 }
 
 export function WorkflowArtifact({
@@ -126,13 +137,24 @@ export function WorkflowArtifact({
   invocationId,
   galaxyWorkflowId,
   galaxyHistoryId,
-  outputs = []
+  outputs = [],
+  // Unified Execution
+  useUnifiedExecution = false,
+  currentExecutionRun,
+  previousExecutionRuns = [],
+  onUnifiedExecute,
+  onPauseExecution,
+  onResumeExecution,
+  onCancelExecution,
+  onPromoteToProduction,
+  strataColumns = []
 }: WorkflowArtifactProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
   const [editingStep, setEditingStep] = useState<WorkflowStep | null>(null)
   const [showCitations, setShowCitations] = useState(false)
   const [showPilotRun, setShowPilotRun] = useState(false)
+  const [showUnifiedExecution, setShowUnifiedExecution] = useState(false)
   const [pilotBannerDismissed, setPilotBannerDismissed] = useState(false)
   // P1-P3: New dialog states
   const [showReportViewer, setShowReportViewer] = useState(false)
@@ -240,16 +262,16 @@ export function WorkflowArtifact({
                   </Button>
                 )}
 
-                {/* Pilot run button - shows when pilot is suggested, regardless of sample count */}
+                {/* Execution button - unified or legacy pilot */}
                 {pilotRunSuggested && !isRunning && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="h-7 px-2 text-xs border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
-                    onClick={() => setShowPilotRun(true)}
+                    onClick={() => useUnifiedExecution ? setShowUnifiedExecution(true) : setShowPilotRun(true)}
                   >
                     <FlaskConical className="h-3 w-3 mr-1" />
-                    Pilot Run
+                    {useUnifiedExecution ? 'Execute' : 'Pilot Run'}
                   </Button>
                 )}
 
@@ -310,10 +332,10 @@ export function WorkflowArtifact({
                       size="sm"
                       variant="default"
                       className="h-7 bg-amber-600 hover:bg-amber-700 text-white"
-                      onClick={() => setShowPilotRun(true)}
+                      onClick={() => useUnifiedExecution ? setShowUnifiedExecution(true) : setShowPilotRun(true)}
                     >
                       <FlaskConical className="h-3 w-3 mr-1" />
-                      Configure Pilot Run
+                      {useUnifiedExecution ? 'Configure Execution' : 'Configure Pilot Run'}
                     </Button>
                     <Button
                       size="sm"
@@ -321,7 +343,7 @@ export function WorkflowArtifact({
                       className="h-7 text-xs text-amber-700 hover:text-amber-800"
                       onClick={() => setPilotBannerDismissed(true)}
                     >
-                      Skip pilot
+                      {useUnifiedExecution ? 'Skip' : 'Skip pilot'}
                     </Button>
                   </div>
                 </AlertDescription>
@@ -571,8 +593,8 @@ export function WorkflowArtifact({
         </div>
       )}
 
-      {/* Pilot Run Panel */}
-      {showPilotRun && (
+      {/* Pilot Run Panel (Legacy) */}
+      {showPilotRun && !useUnifiedExecution && (
         <div className="mt-3">
           <PilotRunPanel
             workflowId={workflow.name || 'workflow'}
@@ -582,6 +604,49 @@ export function WorkflowArtifact({
             onProceedToFull={onProceedToFullRun}
             onClose={() => setShowPilotRun(false)}
             parameterRecommendations={parameterRecommendations}
+          />
+        </div>
+      )}
+
+      {/* Unified Execution Control Panel (New) */}
+      {(showUnifiedExecution || currentExecutionRun) && useUnifiedExecution && (
+        <div className="mt-3">
+          <ExecutionControlPanel
+            workflowName={workflow.name || 'Workflow'}
+            totalSamples={totalSamples || 10}
+            totalSteps={normalizedSteps.length}
+            strataColumns={strataColumns}
+            currentRun={currentExecutionRun}
+            previousRuns={previousExecutionRuns}
+            recommendations={parameterRecommendations}
+            onExecute={async (config) => {
+              if (onUnifiedExecute) {
+                await onUnifiedExecute(config)
+              }
+            }}
+            onPause={onPauseExecution}
+            onResume={onResumeExecution}
+            onCancel={onCancelExecution}
+            onEditParameters={() => {
+              // Open parameter dialog for first step with params
+              const stepWithParams = normalizedSteps.find(s => s.parameters && Object.keys(s.parameters).length > 0)
+              if (stepWithParams) {
+                setEditingStep(stepWithParams)
+              }
+            }}
+            onApplyRecommendation={(paramKey, value) => {
+              // Apply recommendation - parse paramKey as toolId.paramName
+              const [stepId, paramName] = paramKey.split('.')
+              if (onParameterChange && stepId && paramName) {
+                const step = normalizedSteps.find(s => s.id === stepId || s.tool_id === stepId)
+                if (step) {
+                  onParameterChange(step.id, { ...step.parameters, [paramName]: value })
+                }
+              }
+            }}
+            onPromote={onPromoteToProduction}
+            isLoading={isRunning}
+            compact={false}
           />
         </div>
       )}

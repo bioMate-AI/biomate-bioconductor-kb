@@ -153,38 +153,29 @@ class LLMClient:
             raise primary_error
     
     def generate(self, prompt: str, **kwargs) -> str:
-        """Synchronous wrapper for generate_async."""
+        """Synchronous wrapper for generate_async.
+
+        Properly handles event loop creation to avoid "Event loop is closed" errors.
+        Works correctly in Python 3.10+ where get_event_loop() behavior changed.
+        """
         import asyncio
-        
+        import concurrent.futures
+
+        async_coro = self.generate_async(prompt, **kwargs)
+
+        # Check if we're already inside an async context
         try:
-            # Check if we're already in an event loop
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Create a new thread for the async call
-                import threading
-                import concurrent.futures
-                
-                def run_async():
-                    new_loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(new_loop)
-                    try:
-                        return new_loop.run_until_complete(self.generate_async(prompt, **kwargs))
-                    finally:
-                        new_loop.close()
-                
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(run_async)
-                    return future.result(timeout=120)
-            else:
-                return loop.run_until_complete(self.generate_async(prompt, **kwargs))
-        except:
-            # Fallback: create new event loop
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                return loop.run_until_complete(self.generate_async(prompt, **kwargs))
-            finally:
-                loop.close()
+            loop = asyncio.get_running_loop()
+            # We're inside an async context - run in a separate thread
+            def run_async():
+                return asyncio.run(self.generate_async(prompt, **kwargs))
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(run_async)
+                return future.result(timeout=120)
+        except RuntimeError:
+            # No running event loop - safe to use asyncio.run()
+            return asyncio.run(async_coro)
     
     async def _generate_openai(self, prompt: str, **kwargs) -> str:
         """Generate using OpenAI API."""

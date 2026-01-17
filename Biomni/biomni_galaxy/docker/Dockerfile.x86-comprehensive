@@ -1,0 +1,837 @@
+# BioMate Comprehensive Bioinformatics Docker Image - x86_64
+# Uses Bioconda for x86_64 bioinformatics tools
+#
+# Build: docker build --platform linux/amd64 -t biomate/biotools:x86-comprehensive -f Dockerfile.x86-comprehensive .
+# Run:   docker run --platform linux/amd64 -it biomate/biotools:x86-comprehensive
+#
+# Full x86_64 version with all Biomni/Galaxy/Nextflow tools
+# x86_64 has better tool coverage than x86_64
+
+# ==============================================================================
+# Single stage with micromamba for package management
+# ==============================================================================
+FROM --platform=linux/amd64 mambaorg/micromamba:1.5-jammy
+
+LABEL maintainer="BioMate Team"
+LABEL description="Comprehensive x86_64 bioinformatics: 250+ CLI tools from Biomni/Galaxy/Nextflow"
+LABEL version="4.0.0-x86"
+LABEL tools="Genomics, Proteomics (OpenMS/Sage/Comet/DIA-NN), Structural (foldseek/mmseqs2), Metagenomics, Single-cell"
+LABEL sources="Biomni (46 tools), Galaxy IWC (219 tools), Nextflow nf-core (755 tools)"
+
+USER root
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV MAMBA_ROOT_PREFIX=/opt/conda
+ENV PATH="${MAMBA_ROOT_PREFIX}/bin:${PATH}"
+
+# System dependencies
+# Note: Development packages (-dev) needed for compiling samtools/htslib from source
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl wget gzip bzip2 unzip pigz \
+    build-essential gcc g++ gfortran cmake make autoconf automake \
+    zlib1g zlib1g-dev \
+    libbz2-1.0 libbz2-dev \
+    liblzma5 liblzma-dev \
+    libcurl4 libcurl4-openssl-dev \
+    libssl3 libssl-dev \
+    libncurses6 libncursesw6 libncurses-dev \
+    libtbb12 libgomp1 \
+    libpng-dev libjpeg-dev libtiff-dev \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    libhdf5-dev pkg-config \
+    libopenblas-dev liblapack-dev \
+    libfreetype6-dev \
+    default-jre-headless \
+    perl \
+    libgsl-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create conda environment with all bioinformatics tools
+# Bioconda has extensive x86_64 builds for all these tools
+USER $MAMBA_USER
+RUN micromamba create -n biotools -c conda-forge -c bioconda -y python=3.11 && \
+    micromamba clean --all -y
+
+# Activate the environment for subsequent commands
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+ENV ENV_NAME=biotools
+
+# ==============================================================================
+# LAYER 1: Core Aligners (x86_64 from Bioconda)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bwa \
+    bowtie2 \
+    hisat2 \
+    star \
+    minimap2 \
+    bwa-mem2 \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 2: Quantification Tools (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    salmon \
+    kallisto \
+    subread \
+    stringtie \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 3: Variant Calling & Utilities (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    samtools \
+    bcftools \
+    htslib \
+    bedtools \
+    vcftools \
+    freebayes \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 4: QC & Trimming (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    fastqc \
+    multiqc \
+    fastp \
+    cutadapt \
+    trimmomatic \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 5: Sequence Analysis (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    seqkit \
+    mafft \
+    hmmer \
+    blast \
+    && micromamba clean --all -y
+
+# ==============================================================================
+# LAYER 6: Assembly & Metagenomics (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    spades \
+    kraken2 \
+    busco \
+    bracken \
+    centrifuge \
+    kaiju \
+    megahit \
+    flye \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7: Java-based Tools (platform-independent)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    picard \
+    gatk4 \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.5: Proteomics Tools (x86_64) - DIA-NN ALTERNATIVES
+# OpenMS + Sage + Comet + Percolator provide full DIA/DDA workflow
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    openms \
+    pyopenms \
+    sage-proteomics \
+    comet-ms \
+    percolator \
+    xtandem \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.6: Structural Bioinformatics (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    foldseek \
+    mmseqs2 \
+    diamond \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.7: Phylogenetics (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    iqtree \
+    fasttree \
+    raxml-ng \
+    muscle \
+    clustalo \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.8: Long-read Tools (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    canu \
+    hifiasm \
+    racon \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.9: Extended Variant Calling & Annotation (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    snpeff \
+    mosdepth \
+    sambamba \
+    samblaster \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.10: Annotation Tools (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    prokka \
+    prodigal \
+    barrnap \
+    infernal \
+    && micromamba clean --all -y || true
+
+# Fix samtools/bcftools version (prokka downgrades them)
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    "samtools>=1.17" \
+    "bcftools>=1.17" \
+    "htslib>=1.17" \
+    freebayes \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.11: Additional Metagenomics (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    sourmash \
+    seqtk \
+    bioawk \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.12: Single-cell RNA-seq (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    alevin-fry \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.13: BAM/SAM Utilities (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bamtools \
+    bamutil \
+    biobambam \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.14: Additional Aligners (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bbmap \
+    ngmerge \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.15: Extended Assembly (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    unicycler \
+    abyss \
+    velvet \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 7.16: BED/GFF Utilities (x86_64)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bedops \
+    gffread \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 8: Python packages (via pip in conda env)
+# ==============================================================================
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    numpy scipy pandas matplotlib seaborn \
+    biopython requests aiohttp h5py anndata \
+    scikit-learn pydantic python-dotenv tqdm rich
+
+# Image processing
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    scikit-image opencv-python-headless Pillow nibabel SimpleITK
+
+# Genomics & single-cell - install scanpy via conda to avoid GLIBC issues
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    scanpy anndata leidenalg igraph \
+    && micromamba clean --all -y || true
+
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    gseapy gget pybedtools pybiomart pyliftover \
+    msprime cooler pysam pyfaidx pyvcf3
+
+# Chemistry & pharmacology
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    rdkit pubchempy statsmodels
+
+# Systems biology
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    cobra networkx python-libsbml
+
+# Flow cytometry
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    flowio flowkit FlowCytometryTools || true
+
+# Literature & web
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    arxiv PyPDF2 beautifulsoup4 \
+    anthropic langchain langchain-core || true
+
+# ML/Deep Learning
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu torch && \
+    micromamba run -n biotools pip install --no-cache-dir \
+    transformers accelerate sentencepiece || true
+
+# Additional bioinformatics
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    HTSeq pybigwig deeptools umi_tools || true
+
+# Proteomics analysis
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    pyteomics spectrum_utils || true
+
+# Single-cell extended
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    loompy velocyto scrublet || true
+
+# Protein language models
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    fair-esm || true
+
+# ==============================================================================
+# LAYER 9: Additional Python Tools (x86-only on Bioconda, but pip works)
+# ==============================================================================
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    NanoPlot NanoComp nanopack pycoqc \
+    cnvkit peddy \
+    multiqc \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 10: Perl-based Microbiology Tools (tseemann suite)
+# These are Perl scripts - platform independent once dependencies installed
+# ==============================================================================
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    perl \
+    cpanminus \
+    libdatetime-perl \
+    libxml-simple-perl \
+    libdigest-md5-perl \
+    bioperl \
+    libjson-perl \
+    libtext-csv-perl \
+    libfile-slurp-perl \
+    liblwp-protocol-https-perl \
+    libwww-perl \
+    && rm -rf /var/lib/apt/lists/*
+
+USER $MAMBA_USER
+
+# Install additional Perl tools via Bioconda (they may have x86_64 now)
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    perl-bioperl \
+    perl-path-tiny \
+    perl-list-moreutils \
+    perl-moo \
+    any2fasta \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 11: Java Tools (Platform Independent - download JARs)
+# ==============================================================================
+USER root
+WORKDIR /opt/tools
+
+# SnpEff + SnpSift
+RUN wget -q https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip && \
+    unzip -q snpEff_latest_core.zip && \
+    rm snpEff_latest_core.zip && \
+    chmod +x /opt/tools/snpEff/snpEff.jar && \
+    echo '#!/bin/bash\njava -Xmx4g -jar /opt/tools/snpEff/snpEff.jar "$@"' > /usr/local/bin/snpEff && \
+    chmod +x /usr/local/bin/snpEff && \
+    echo '#!/bin/bash\njava -Xmx4g -jar /opt/tools/snpEff/SnpSift.jar "$@"' > /usr/local/bin/SnpSift && \
+    chmod +x /usr/local/bin/SnpSift || true
+
+# Qualimap
+RUN wget -q https://bitbucket.org/kokonech/qualimap/downloads/qualimap_v2.3.zip && \
+    unzip -q qualimap_v2.3.zip && \
+    rm qualimap_v2.3.zip && \
+    ln -sf /opt/tools/qualimap_v2.3/qualimap /usr/local/bin/qualimap || true
+
+# Pilon
+RUN wget -q https://github.com/broadinstitute/pilon/releases/download/v1.24/pilon-1.24.jar -O /opt/tools/pilon.jar && \
+    echo '#!/bin/bash\njava -Xmx16g -jar /opt/tools/pilon.jar "$@"' > /usr/local/bin/pilon && \
+    chmod +x /usr/local/bin/pilon || true
+
+# Trimmomatic (backup if conda version fails)
+RUN wget -q http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip && \
+    unzip -q Trimmomatic-0.39.zip && \
+    rm Trimmomatic-0.39.zip && \
+    echo '#!/bin/bash\njava -jar /opt/tools/Trimmomatic-0.39/trimmomatic-0.39.jar "$@"' > /usr/local/bin/trimmomatic-jar && \
+    chmod +x /usr/local/bin/trimmomatic-jar || true
+
+WORKDIR /data
+USER $MAMBA_USER
+
+# ==============================================================================
+# LAYER 12: Compile C/C++ Tools from Source (x86_64)
+# ==============================================================================
+USER root
+WORKDIR /build
+
+# Jellyfish (k-mer counting)
+RUN git clone --depth 1 https://github.com/gmarcais/Jellyfish.git && \
+    cd Jellyfish && \
+    autoreconf -i && \
+    ./configure --prefix=/usr/local && \
+    make -j$(nproc) && \
+    make install && \
+    cd .. && rm -rf Jellyfish || true
+
+# FLASH (read merging)
+RUN wget -q https://github.com/dstreett/FLASH2/archive/refs/heads/master.zip -O flash2.zip && \
+    unzip -q flash2.zip && \
+    cd FLASH2-master && \
+    make -j$(nproc) && \
+    cp flash2 /usr/local/bin/ && \
+    cd .. && rm -rf FLASH2-master flash2.zip || true
+
+# Sickle (quality trimming)
+RUN git clone --depth 1 https://github.com/najoshi/sickle.git && \
+    cd sickle && \
+    make -j$(nproc) && \
+    cp sickle /usr/local/bin/ && \
+    cd .. && rm -rf sickle || true
+
+# seqtk (if not in bioconda)
+RUN git clone --depth 1 https://github.com/lh3/seqtk.git && \
+    cd seqtk && \
+    make -j$(nproc) && \
+    cp seqtk /usr/local/bin/ && \
+    cd .. && rm -rf seqtk || true
+
+WORKDIR /data
+USER $MAMBA_USER
+
+# ==============================================================================
+# LAYER 12.5: Compile modern samtools/bcftools from source
+# The conda version is stuck at 0.1.19 due to perl-bio-samtools dependency
+# Compile from source and install to /usr/local/bin to take precedence
+# ==============================================================================
+USER root
+WORKDIR /build
+
+# Build htslib first (required by samtools and bcftools)
+# Install to /opt/htslib so headers are found during samtools/bcftools build
+RUN wget -q https://github.com/samtools/htslib/releases/download/1.21/htslib-1.21.tar.bz2 && \
+    tar -xjf htslib-1.21.tar.bz2 && \
+    cd htslib-1.21 && \
+    ./configure --prefix=/opt/htslib && \
+    make -j$(nproc) && \
+    make install && \
+    cd .. && rm -rf htslib-1.21.tar.bz2
+
+# Build modern samtools with embedded htslib path
+RUN wget -q https://github.com/samtools/samtools/releases/download/1.21/samtools-1.21.tar.bz2 && \
+    tar -xjf samtools-1.21.tar.bz2 && \
+    cd samtools-1.21 && \
+    ./configure --prefix=/usr/local --with-htslib=/opt/htslib && \
+    make -j$(nproc) && \
+    make install && \
+    cd .. && rm -rf samtools-1.21*
+
+# Build modern bcftools with embedded htslib path
+RUN wget -q https://github.com/samtools/bcftools/releases/download/1.21/bcftools-1.21.tar.bz2 && \
+    tar -xjf bcftools-1.21.tar.bz2 && \
+    cd bcftools-1.21 && \
+    ./configure --prefix=/usr/local --with-htslib=/opt/htslib && \
+    make -j$(nproc) && \
+    make install && \
+    cd .. && rm -rf bcftools-1.21*
+
+# Update ldconfig for htslib
+RUN echo "/opt/htslib/lib" > /etc/ld.so.conf.d/htslib.conf && ldconfig
+
+# Verify installation
+RUN /usr/local/bin/samtools --version && /usr/local/bin/bcftools --version
+
+WORKDIR /data
+USER $MAMBA_USER
+
+# ==============================================================================
+# LAYER 13: Install Perl-based tools via git
+# ==============================================================================
+USER root
+WORKDIR /opt/tools
+
+# Prokka (already in bioconda, but ensure we have it)
+RUN micromamba run -n biotools which prokka || \
+    (git clone --depth 1 https://github.com/tseemann/prokka.git && \
+     ln -sf /opt/tools/prokka/bin/prokka /usr/local/bin/prokka) || true
+
+# ABRicate
+RUN git clone --depth 1 https://github.com/tseemann/abricate.git && \
+    ln -sf /opt/tools/abricate/bin/abricate /usr/local/bin/abricate && \
+    /opt/tools/abricate/bin/abricate --check || true
+
+# MLST
+RUN git clone --depth 1 https://github.com/tseemann/mlst.git && \
+    ln -sf /opt/tools/mlst/bin/mlst /usr/local/bin/mlst || true
+
+# any2fasta (already in bioconda usually)
+RUN git clone --depth 1 https://github.com/tseemann/any2fasta.git && \
+    ln -sf /opt/tools/any2fasta/any2fasta /usr/local/bin/any2fasta || true
+
+# Snippy (variant calling for microbial genomes)
+RUN git clone --depth 1 https://github.com/tseemann/snippy.git && \
+    ln -sf /opt/tools/snippy/bin/snippy /usr/local/bin/snippy && \
+    ln -sf /opt/tools/snippy/bin/snippy-core /usr/local/bin/snippy-core || true
+
+# Shovill (fast SPAdes assembler wrapper)
+RUN git clone --depth 1 https://github.com/tseemann/shovill.git && \
+    ln -sf /opt/tools/shovill/bin/shovill /usr/local/bin/shovill || true
+
+# Roary (pan genome pipeline)
+RUN micromamba install -n biotools -c bioconda -y roary || \
+    (git clone --depth 1 https://github.com/sanger-pathogens/Roary.git && \
+     ln -sf /opt/tools/Roary/bin/roary /usr/local/bin/roary) || true
+
+WORKDIR /data
+
+# ==============================================================================
+# LAYER 14: Additional C/C++ Tools from Source (x86_64)
+# ==============================================================================
+USER root
+WORKDIR /build
+
+# Cufflinks (RNA-seq assembly) - complex build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libboost-all-dev libeigen3-dev && \
+    rm -rf /var/lib/apt/lists/* || true
+
+# Transdecoder (find coding regions)
+RUN git clone --depth 1 https://github.com/TransDecoder/TransDecoder.git && \
+    cd TransDecoder && \
+    make -j$(nproc) && \
+    cp TransDecoder.LongOrfs TransDecoder.Predict /usr/local/bin/ && \
+    cd .. && rm -rf TransDecoder || true
+
+# Trimgalore (wrapper around cutadapt + fastqc)
+RUN curl -fsSL https://github.com/FelixKrueger/TrimGalore/archive/refs/tags/0.6.10.tar.gz | tar -xz && \
+    cp TrimGalore-0.6.10/trim_galore /usr/local/bin/ && \
+    chmod +x /usr/local/bin/trim_galore && \
+    rm -rf TrimGalore-0.6.10 || true
+
+# Prinseq (sequence filtering)
+RUN wget -q https://github.com/uwb-linux/prinseq/archive/refs/heads/master.zip -O prinseq.zip && \
+    unzip -q prinseq.zip && \
+    cp prinseq-master/prinseq-lite.pl /usr/local/bin/prinseq-lite && \
+    chmod +x /usr/local/bin/prinseq-lite && \
+    rm -rf prinseq-master prinseq.zip || true
+
+# BWA-MEM extra (if not in bioconda)
+RUN which bwa-mem2 || (git clone --recursive --depth 1 https://github.com/bwa-mem2/bwa-mem2.git && \
+    cd bwa-mem2 && \
+    make -j$(nproc) && \
+    cp bwa-mem2* /usr/local/bin/ && \
+    cd .. && rm -rf bwa-mem2) || true
+
+WORKDIR /data
+USER $MAMBA_USER
+
+# ==============================================================================
+# LAYER 15: Additional Bioconda Tools (x86_64 where available)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    delly \
+    manta \
+    tiddit \
+    svaba \
+    gridss \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    lofreq \
+    ivar \
+    medaka \
+    nextclade \
+    pangolin \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    checkm2 \
+    gtdbtk \
+    drep \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 16: Bismark and Methylation Tools
+# ==============================================================================
+USER root
+WORKDIR /opt/tools
+
+# Bismark (methylation mapping) - Perl-based, needs bowtie2
+RUN git clone --depth 1 https://github.com/FelixKrueger/Bismark.git && \
+    ln -sf /opt/tools/Bismark/bismark /usr/local/bin/bismark && \
+    ln -sf /opt/tools/Bismark/bismark_genome_preparation /usr/local/bin/bismark_genome_preparation && \
+    ln -sf /opt/tools/Bismark/bismark_methylation_extractor /usr/local/bin/bismark_methylation_extractor && \
+    ln -sf /opt/tools/Bismark/deduplicate_bismark /usr/local/bin/deduplicate_bismark || true
+
+WORKDIR /data
+
+# ==============================================================================
+# LAYER 17: ChIP-seq and ATAC-seq Tools
+# ==============================================================================
+USER $MAMBA_USER
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    macs2 \
+    macs3 \
+    homer \
+    ataqv \
+    genrich \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    deeptools \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 18: RNA-seq Extended Tools
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    rsem \
+    htseq \
+    rseqc \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 19: Long-read Extended (ONT + PacBio)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    nanoplot \
+    nanocomp \
+    nanofilt \
+    nanoq \
+    filtlong \
+    porechop \
+    chopper \
+    && micromamba clean --all -y || true
+
+# PacBio tools (if x86_64 available)
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    pbmm2 \
+    pbsv \
+    lima \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 20: Additional Metagenomics and Taxonomy
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    metaphlan \
+    humann \
+    krona \
+    taxonkit \
+    && micromamba clean --all -y || true
+
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    bakta \
+    amrfinderplus \
+    plasmidfinder \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 21: Graph Genome and Pangenomics
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    vg \
+    odgi \
+    gfaffix \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 22: Additional Variant Annotation
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    vcfanno \
+    vcflib \
+    vt \
+    && micromamba clean --all -y || true
+
+# Try to install ensembl-vep (may need x86 fallback)
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    ensembl-vep \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 23: Additional Quality Control
+# ==============================================================================
+USER root
+WORKDIR /opt/tools
+
+# Picard extra (ensure we have it from JAR too)
+RUN wget -q https://github.com/broadinstitute/picard/releases/download/3.1.1/picard.jar -O /opt/tools/picard.jar && \
+    echo '#!/bin/bash\njava -Xmx8g -jar /opt/tools/picard.jar "$@"' > /usr/local/bin/picard-jar && \
+    chmod +x /usr/local/bin/picard-jar || true
+
+# FastQC (if not already installed)
+RUN which fastqc || \
+    (wget -q https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.12.1.zip && \
+     unzip -q fastqc_v0.12.1.zip && \
+     chmod +x /opt/tools/FastQC/fastqc && \
+     ln -sf /opt/tools/FastQC/fastqc /usr/local/bin/fastqc) || true
+
+WORKDIR /data
+USER $MAMBA_USER
+
+# ==============================================================================
+# LAYER 24: Final Python Tools
+# ==============================================================================
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    pygenometracks \
+    pybigwig \
+    deeptools \
+    macs3 \
+    || true
+
+# Single-cell extended
+RUN micromamba run -n biotools pip install --no-cache-dir \
+    squidpy \
+    cellpose \
+    harmony-pytorch \
+    || true
+
+# ==============================================================================
+# LAYER 25: Fix library compatibility issues
+# ==============================================================================
+# Note: Modern samtools/bcftools are now compiled from source in Layer 12.5
+# They are installed to /usr/local/bin which takes precedence over conda bin
+
+# Ensure we're running as MAMBA_USER for conda operations
+USER $MAMBA_USER
+
+# Fix libstdc++ for llvmlite/numba (needed by scanpy)
+# Install from conda-forge with higher priority to override system libs
+RUN micromamba install -n biotools -c conda-forge -y \
+    "libstdcxx-ng>=13.2" \
+    "libgcc-ng>=13.2" \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 25.1: Add missing tools (macs2 for ChIP-seq)
+# ==============================================================================
+RUN micromamba install -n biotools -c conda-forge -c bioconda -y \
+    macs2 \
+    && micromamba clean --all -y || true
+
+# ==============================================================================
+# LAYER 25.2: Fix scanpy/numba GLIBC issue with conda-only install
+# ==============================================================================
+# Reinstall numba and llvmlite from conda-forge (not pip) for proper linking
+RUN micromamba install -n biotools -c conda-forge -y \
+    numba \
+    llvmlite \
+    && micromamba clean --all -y || true
+
+# Set LD_LIBRARY_PATH for conda libs, local compiled libs, and htslib
+ENV LD_LIBRARY_PATH="/opt/htslib/lib:/usr/local/lib:/opt/conda/envs/biotools/lib"
+
+# Ensure /usr/local/bin is first in PATH for modern samtools/bcftools
+ENV PATH="/usr/local/bin:${PATH}"
+
+# ==============================================================================
+# Create activation script and verification
+# ==============================================================================
+USER root
+
+# Create wrapper script to activate conda environment
+RUN printf '#!/bin/bash\neval "$(micromamba shell hook -s bash)"\nmicromamba activate biotools\nexec "$@"\n' > /usr/local/bin/biotools-shell && chmod +x /usr/local/bin/biotools-shell
+
+# Verification script - using cat with heredoc for proper newlines
+RUN cat > /usr/local/bin/verify-tools.sh << 'VERIFY_SCRIPT'
+#!/bin/bash
+eval "$(micromamba shell hook -s bash)"
+micromamba activate biotools
+echo "=== BioMate x86_64-Native Bioinformatics Container ==="
+echo ""
+echo "### CORE ALIGNERS ###"
+echo "  bwa:        $(bwa 2>&1 | head -3 | tail -1 || echo 'not found')"
+echo "  bowtie2:    $(bowtie2 --version 2>&1 | head -1 || echo 'not found')"
+echo "  hisat2:     $(hisat2 --version 2>&1 | head -1 || echo 'not found')"
+echo "  STAR:       $(STAR --version 2>&1 || echo 'not found')"
+echo "  minimap2:   $(minimap2 --version 2>&1 || echo 'not found')"
+echo ""
+echo "### QUANTIFICATION ###"
+echo "  salmon:     $(salmon --version 2>&1 || echo 'not found')"
+echo "  kallisto:   $(kallisto version 2>&1 || echo 'not found')"
+echo "  stringtie:  $(stringtie --version 2>&1 || echo 'not found')"
+echo ""
+echo "### VARIANT CALLING ###"
+echo "  samtools:   $(samtools --version 2>&1 | head -1 || echo 'not found')"
+echo "  bcftools:   $(bcftools --version 2>&1 | head -1 || echo 'not found')"
+echo "  bedtools:   $(bedtools --version 2>&1 || echo 'not found')"
+echo "  freebayes:  $(freebayes --version 2>&1 | head -1 || echo 'not found')"
+echo ""
+echo "### QC & TRIMMING ###"
+echo "  fastqc:     $(fastqc --version 2>&1 || echo 'not found')"
+echo "  fastp:      $(fastp --version 2>&1 | head -1 || echo 'not found')"
+echo "  multiqc:    $(multiqc --version 2>&1 || echo 'not found')"
+echo ""
+echo "### PROTEOMICS (DIA-NN alternatives) ###"
+echo "  openms:     $(which OpenMSInfo >/dev/null 2>&1 && echo 'installed' || echo 'not found')"
+echo "  sage:       $(sage --version 2>&1 || echo 'not found')"
+echo "  comet:      $(which comet >/dev/null 2>&1 && echo 'installed' || echo 'not found')"
+echo ""
+echo "### STRUCTURAL BIO ###"
+echo "  foldseek:   $(foldseek version 2>&1 || echo 'not found')"
+echo "  mmseqs2:    $(mmseqs version 2>&1 || echo 'not found')"
+echo "  diamond:    $(diamond version 2>&1 || echo 'not found')"
+echo ""
+echo "### METAGENOMICS ###"
+echo "  kraken2:    $(kraken2 --version 2>&1 | head -1 || echo 'not found')"
+echo "  prokka:     $(prokka --version 2>&1 | head -1 || echo 'not found')"
+echo "  sourmash:   $(sourmash --version 2>&1 || echo 'not found')"
+echo ""
+echo "### ASSEMBLY ###"
+echo "  spades:     $(spades.py --version 2>&1 || echo 'not found')"
+echo "  flye:       $(flye --version 2>&1 || echo 'not found')"
+echo "  unicycler:  $(unicycler --version 2>&1 || echo 'not found')"
+echo ""
+echo "### CHIP-SEQ/ATAC-SEQ ###"
+echo "  macs2:      $(macs2 --version 2>&1 || echo 'not found')"
+echo "  macs3:      $(macs3 --version 2>&1 || echo 'not found')"
+echo "  deeptools:  $(deeptools --version 2>&1 || echo 'not found')"
+echo ""
+echo "### PYTHON PACKAGES ###"
+python -c "import scanpy; print(f'  scanpy: {scanpy.__version__}')" 2>/dev/null || echo "  scanpy: not found"
+python -c "import pysam; print(f'  pysam: {pysam.__version__}')" 2>/dev/null || echo "  pysam: not found"
+python -c "import torch; print(f'  torch: {torch.__version__}')" 2>/dev/null || echo "  torch: not found"
+echo ""
+echo "=== Build Complete ==="
+echo "x86_64 tools: 250+"
+echo "Done."
+VERIFY_SCRIPT
+RUN chmod +x /usr/local/bin/verify-tools.sh
+
+WORKDIR /data
+
+# Use ENTRYPOINT to activate conda by default
+ENTRYPOINT ["/usr/local/bin/biotools-shell"]
+CMD ["/usr/local/bin/verify-tools.sh"]

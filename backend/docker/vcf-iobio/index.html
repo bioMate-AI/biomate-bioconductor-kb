@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VCF iobio - BioMate</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .file-list {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        a.button {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px 10px 0;
+        }
+        a.button:hover { background: #c0392b; }
+        .stats {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VCF iobio Visualization</h1>
+
+        <div class="info">
+            <strong>Data Location:</strong> /import/
+        </div>
+
+        <div class="file-list" id="file-list">
+            Loading VCF files...
+        </div>
+
+        <div class="stats" id="vcf-stats">
+            Loading VCF statistics...
+        </div>
+
+        <h3>Quick Links</h3>
+        <a class="button" href="https://vcf.iobio.io" target="_blank">Open vcf.iobio.io</a>
+        <a class="button" href="https://gene.iobio.io" target="_blank">Open gene.iobio.io</a>
+
+        <h3>Instructions</h3>
+        <ol>
+            <li>Your VCF files are served at: <code>http://[this-host]:8080/data/</code></li>
+            <li>Go to <a href="https://vcf.iobio.io">vcf.iobio.io</a></li>
+            <li>Enter the URL to your VCF file</li>
+            <li>Explore variant data interactively!</li>
+        </ol>
+    </div>
+
+    <script>
+        fetch('/data/')
+            .then(r => r.text())
+            .then(html => {
+                const files = html.match(/href="([^"]+\.vcf[^"]*)"/g) || [];
+                const list = files.map(f => f.replace('href="', '').replace('"', ''));
+                document.getElementById('file-list').innerHTML =
+                    list.length > 0
+                        ? '<strong>VCF files found:</strong><ul>' + list.map(f => `<li>${f}</li>`).join('') + '</ul>'
+                        : 'No VCF files found in /import';
+            });
+
+        fetch('/stats.txt')
+            .then(r => r.text())
+            .then(stats => {
+                document.getElementById('vcf-stats').innerHTML = '<strong>VCF Statistics:</strong><pre>' + stats + '</pre>';
+            })
+            .catch(() => {
+                document.getElementById('vcf-stats').innerHTML = 'Statistics not available';
+            });
+    </script>
+</body>
+</html>

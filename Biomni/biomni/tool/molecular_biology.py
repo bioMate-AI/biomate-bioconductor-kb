@@ -303,28 +303,43 @@ def get_gene_coding_sequence(gene_name: str, organism: str, email: str = None) -
 
         return sequences
 
-    # Main execution flow
-    try:
-        gene_id = search_gene()
-        refseq_id = get_refseq_id(gene_id)
-        sequences = get_coding_sequences(refseq_id)
+    # Main execution flow with retry logic for transient HTTP errors
+    import time
+    from urllib.error import HTTPError
 
-        explanation = (
-            "Output fields for each coding sequence:\n"
-            "- refseq_id: RefSeq identifier for the gene sequence\n"
-            "  * Format: NM_XXXXXX.X for mRNA or NC_XXXXXX.X for genomic DNA\n"
-            "  * Example: NM_000546.5 for human TP53\n"
-            "- sequence: The actual coding sequence of the gene\n"
-            "  * Contains only exons (introns removed)\n"
-            "  * Starts with ATG (start codon)\n"
-            "  * Ends with a stop codon (TAA, TAG, or TGA)"
-        )
+    max_retries = 3
+    last_error = None
 
-        return {"explanation": explanation, "sequences": sequences}
+    for attempt in range(max_retries):
+        try:
+            gene_id = search_gene()
+            refseq_id = get_refseq_id(gene_id)
+            sequences = get_coding_sequences(refseq_id)
 
-    except Exception as e:
-        # Log error if needed
-        raise RuntimeError(f"Failed to retrieve coding sequences: {str(e)}") from e
+            explanation = (
+                "Output fields for each coding sequence:\n"
+                "- refseq_id: RefSeq identifier for the gene sequence\n"
+                "  * Format: NM_XXXXXX.X for mRNA or NC_XXXXXX.X for genomic DNA\n"
+                "  * Example: NM_000546.5 for human TP53\n"
+                "- sequence: The actual coding sequence of the gene\n"
+                "  * Contains only exons (introns removed)\n"
+                "  * Starts with ATG (start codon)\n"
+                "  * Ends with a stop codon (TAA, TAG, or TGA)"
+            )
+
+            return {"explanation": explanation, "sequences": sequences}
+
+        except HTTPError as e:
+            last_error = e
+            # Retry on 5xx server errors
+            if 500 <= e.code < 600 and attempt < max_retries - 1:
+                time.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
+                continue
+            raise RuntimeError(f"Failed to retrieve coding sequences: {str(e)}") from e
+        except Exception as e:
+            raise RuntimeError(f"Failed to retrieve coding sequences: {str(e)}") from e
+
+    raise RuntimeError(f"Failed to retrieve coding sequences after {max_retries} retries: {str(last_error)}")
 
 
 def get_plasmid_sequence(identifier: str, is_addgene: bool = None) -> dict[str, Any] | None:
@@ -378,36 +393,48 @@ def get_plasmid_sequence(identifier: str, is_addgene: bool = None) -> dict[str, 
         return None
 
     def _get_sequence_from_ncbi(plasmid_name: str) -> dict[str, Any] | None:
-        """Helper function to get sequence from NCBI."""
-        # First get the accession number
-        query = f"Cloning vector {plasmid_name}"
-        with Entrez.esearch(db="nuccore", term=query, retmax=1, sort="relevance") as handle:
-            record = Entrez.read(handle)
+        """Helper function to get sequence from NCBI with retry logic."""
+        import time
+        from urllib.error import HTTPError
 
-        if not record["IdList"]:
-            print(f"No results found for {plasmid_name} in NCBI.")
-            return None
-
-        plasmid_id = record["IdList"][0]
-
-        # Get the sequence using the accession
-        with Entrez.efetch(db="nuccore", id=plasmid_id, rettype="fasta", retmode="text") as handle:
+        max_retries = 3
+        for attempt in range(max_retries):
             try:
-                sequence = SeqIO.read(handle, "fasta")
-                return {
-                    "explanation": (
-                        "Output fields:\n"
-                        "- source: Source database (NCBI)\n"
-                        "- identifier: NCBI accession number\n"
-                        "- sequence: Complete plasmid sequence"
-                    ),
-                    "source": "NCBI",
-                    "identifier": plasmid_id,
-                    "sequence": str(sequence.seq),
-                }
+                # First get the accession number
+                query = f"Cloning vector {plasmid_name}"
+                with Entrez.esearch(db="nuccore", term=query, retmax=1, sort="relevance") as handle:
+                    record = Entrez.read(handle)
+
+                if not record["IdList"]:
+                    print(f"No results found for {plasmid_name} in NCBI.")
+                    return None
+
+                plasmid_id = record["IdList"][0]
+
+                # Get the sequence using the accession
+                with Entrez.efetch(db="nuccore", id=plasmid_id, rettype="fasta", retmode="text") as handle:
+                    sequence = SeqIO.read(handle, "fasta")
+                    return {
+                        "explanation": (
+                            "Output fields:\n"
+                            "- source: Source database (NCBI)\n"
+                            "- identifier: NCBI accession number\n"
+                            "- sequence: Complete plasmid sequence"
+                        ),
+                        "source": "NCBI",
+                        "identifier": plasmid_id,
+                        "sequence": str(sequence.seq),
+                    }
+            except HTTPError as e:
+                # Retry on 5xx server errors
+                if 500 <= e.code < 600 and attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                raise
             except Exception as e:
                 print(f"Error retrieving sequence for {plasmid_name}: {str(e)}")
                 return None
+        return None
 
     # Auto-detect if is_addgene wasn't specified
     if is_addgene is None:
@@ -1026,6 +1053,12 @@ def get_golden_gate_assembly_protocol(
         Dict: Dictionary containing detailed protocol steps for Golden Gate assembly
 
     """
+    # Validate required parameters
+    if vector_length is None:
+        raise ValueError("vector_length is required and must be a positive integer (bp)")
+    if enzyme_name is None:
+        raise ValueError("enzyme_name is required")
+
     # Validate enzyme name
     supported_enzymes = ["BsaI", "BsmBI", "BbsI", "Esp3I", "BtgZI", "SapI"]
     if enzyme_name not in supported_enzymes:

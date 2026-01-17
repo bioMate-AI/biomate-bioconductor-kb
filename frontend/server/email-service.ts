@@ -296,6 +296,175 @@ class EmailService {
       .trim();
   }
 
+  // ============================================================================
+  // WORKFLOW NOTIFICATION EMAILS
+  // ============================================================================
+
+  async sendWorkflowCompleteEmail(
+    email: string,
+    userName: string,
+    workflowName: string,
+    invocationId: string,
+    completedSteps: number,
+    totalSteps: number,
+    elapsedTime: string
+  ): Promise<boolean> {
+    const resultUrl = `${this.appUrl}/workflows/results/${invocationId}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #10B981; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
+          .button { display: inline-block; padding: 12px 30px; background-color: #10B981; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
+          .stats { background-color: #E5E7EB; padding: 15px; border-radius: 5px; margin: 15px 0; }
+          .stat-row { display: flex; justify-content: space-between; margin: 5px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✓ Workflow Complete!</h1>
+          </div>
+          <div class="content">
+            <h2>Hi ${userName},</h2>
+            <p>Great news! Your workflow has finished running successfully.</p>
+
+            <div class="stats">
+              <div class="stat-row"><strong>Workflow:</strong> ${workflowName}</div>
+              <div class="stat-row"><strong>Steps Completed:</strong> ${completedSteps}/${totalSteps}</div>
+              <div class="stat-row"><strong>Total Time:</strong> ${elapsedTime}</div>
+            </div>
+
+            <p>
+              <a href="${resultUrl}" class="button">View Results</a>
+            </p>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #10B981;">${resultUrl}</p>
+          </div>
+          <div class="footer">
+            <p>© 2025 BioMate. All rights reserved.</p>
+            <p><a href="${this.appUrl}/settings/notifications">Manage notification preferences</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      Workflow Complete!
+
+      Hi ${userName},
+
+      Great news! Your workflow has finished running successfully.
+
+      Workflow: ${workflowName}
+      Steps Completed: ${completedSteps}/${totalSteps}
+      Total Time: ${elapsedTime}
+
+      View Results: ${resultUrl}
+
+      © 2025 BioMate. All rights reserved.
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `✓ Workflow Complete: ${workflowName}`,
+      html,
+      text,
+    });
+  }
+
+  async sendWorkflowErrorEmail(
+    email: string,
+    userName: string,
+    workflowName: string,
+    invocationId: string,
+    failedStep: string,
+    errorMessage: string
+  ): Promise<boolean> {
+    const resultUrl = `${this.appUrl}/workflows/results/${invocationId}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #DC2626; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
+          .button { display: inline-block; padding: 12px 30px; background-color: #DC2626; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
+          .error-box { background-color: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; margin: 15px 0; font-family: monospace; font-size: 12px; overflow-x: auto; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>⚠️ Workflow Error</h1>
+          </div>
+          <div class="content">
+            <h2>Hi ${userName},</h2>
+            <p>Unfortunately, your workflow encountered an error and could not complete.</p>
+
+            <p><strong>Workflow:</strong> ${workflowName}</p>
+            <p><strong>Failed Step:</strong> ${failedStep}</p>
+
+            <div class="error-box">
+              ${errorMessage.substring(0, 500)}${errorMessage.length > 500 ? '...' : ''}
+            </div>
+
+            <p>
+              <a href="${resultUrl}" class="button">View Details</a>
+            </p>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #DC2626;">${resultUrl}</p>
+
+            <p>Need help? Contact support at support@biomate.dev</p>
+          </div>
+          <div class="footer">
+            <p>© 2025 BioMate. All rights reserved.</p>
+            <p><a href="${this.appUrl}/settings/notifications">Manage notification preferences</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      Workflow Error
+
+      Hi ${userName},
+
+      Unfortunately, your workflow encountered an error and could not complete.
+
+      Workflow: ${workflowName}
+      Failed Step: ${failedStep}
+
+      Error:
+      ${errorMessage.substring(0, 500)}${errorMessage.length > 500 ? '...' : ''}
+
+      View Details: ${resultUrl}
+
+      Need help? Contact support at support@biomate.dev
+
+      © 2025 BioMate. All rights reserved.
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `⚠️ Workflow Error: ${workflowName}`,
+      html,
+      text,
+    });
+  }
+
   async testConnection(): Promise<boolean> {
     if (!this.transporter) {
       return false;

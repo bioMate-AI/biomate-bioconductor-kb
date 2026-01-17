@@ -1,13 +1,18 @@
+"""
+Biomni Literature Tools - Non-LLM Functions Only
+
+This module contains literature/web content extraction functions that do not require LLM.
+Query functions (PubMed, arXiv, Google Scholar) have been removed as Galaxy tools are used instead.
+"""
+
 import os
 import re
-import time
 from io import BytesIO
 from urllib.parse import urljoin
 
 import PyPDF2
 import requests
 from bs4 import BeautifulSoup
-from googlesearch import search
 
 
 def fetch_supplementary_info_from_doi(doi: str, output_dir: str = "supplementary_info"):
@@ -85,219 +90,6 @@ def fetch_supplementary_info_from_doi(doi: str, output_dir: str = "supplementary
         research_log.append(f"No files could be downloaded for DOI {doi}.")
 
     return "\n".join(research_log)
-
-
-def query_arxiv(query: str, max_papers: int = 10) -> str:
-    """Query arXiv for papers based on the provided search query.
-
-    Parameters
-    ----------
-    - query (str): The search query string.
-    - max_papers (int): The maximum number of papers to retrieve (default: 10).
-
-    Returns
-    -------
-    - str: The formatted search results or an error message.
-
-    """
-    import arxiv
-
-    try:
-        client = arxiv.Client()
-        search = arxiv.Search(query=query, max_results=max_papers, sort_by=arxiv.SortCriterion.Relevance)
-        results = "\n\n".join([f"Title: {paper.title}\nSummary: {paper.summary}" for paper in client.results(search)])
-        return results if results else "No papers found on arXiv."
-    except Exception as e:
-        return f"Error querying arXiv: {e}"
-
-
-def query_scholar(query: str) -> str:
-    """Query Google Scholar for papers based on the provided search query.
-
-    Parameters
-    ----------
-    - query (str): The search query string.
-
-    Returns
-    -------
-    - str: The first search result formatted or an error message.
-
-    """
-    from scholarly import ProxyGenerator, scholarly
-
-    # Set up a ProxyGenerator object to use free proxies
-    # This needs to be done only once per session
-    pg = ProxyGenerator()
-    pg.FreeProxies()
-    scholarly.use_proxy(pg)
-    try:
-        search_query = scholarly.search_pubs(query)
-        result = next(search_query, None)
-        if result:
-            return f"Title: {result['bib']['title']}\nYear: {result['bib']['pub_year']}\nVenue: {result['bib']['venue']}\nAbstract: {result['bib']['abstract']}"
-        else:
-            return "No results found on Google Scholar."
-    except Exception as e:
-        return f"Error querying Google Scholar: {e}"
-
-
-def query_pubmed(query: str, max_papers: int = 10, max_retries: int = 3) -> str:
-    """Query PubMed for papers based on the provided search query.
-
-    Parameters
-    ----------
-    - query (str): The search query string.
-    - max_papers (int): The maximum number of papers to retrieve (default: 10).
-    - max_retries (int): Maximum number of retry attempts with modified queries (default: 3).
-
-    Returns
-    -------
-    - str: The formatted search results or an error message.
-
-    """
-    from pymed import PubMed
-
-    try:
-        pubmed = PubMed(tool="MyTool", email="your-email@example.com")  # Update with a valid email address
-
-        # Initial attempt
-        papers = list(pubmed.query(query, max_results=max_papers))
-
-        # Retry with modified queries if no results
-        retries = 0
-        while not papers and retries < max_retries:
-            retries += 1
-            # Simplify query with each retry by removing the last word
-            simplified_query = " ".join(query.split()[:-retries]) if len(query.split()) > retries else query
-            time.sleep(1)  # Add delay between requests
-            papers = list(pubmed.query(simplified_query, max_results=max_papers))
-
-        if papers:
-            results = "\n\n".join(
-                [f"Title: {paper.title}\nAbstract: {paper.abstract}\nJournal: {paper.journal}" for paper in papers]
-            )
-            return results
-        else:
-            return "No papers found on PubMed after multiple query attempts."
-    except Exception as e:
-        return f"Error querying PubMed: {e}"
-
-
-def search_google(query: str, num_results: int = 3, language: str = "en") -> list[dict]:
-    """Search using Google search.
-
-    Args:
-        query (str): The search query (e.g., "protocol text or seach question")
-        num_results (int): Number of results to return (default: 10)
-        language (str): Language code for search results (default: 'en')
-        pause (float): Pause between searches to avoid rate limiting (default: 2.0 seconds)
-
-    Returns:
-        List[dict]: List of dictionaries containing search results with title and URL
-
-    """
-    try:
-        results_string = ""
-        search_query = f"{query}"
-
-        print(f"Searching for {search_query} with {num_results} results and {language} language")
-
-        for res in search(search_query, num_results=num_results, lang=language, advanced=True):
-            print(f"Found result: {res.title}")
-            title = res.title
-            url = res.url
-            description = res.description
-
-            results_string += f"Title: {title}\nURL: {url}\nDescription: {description}\n\n"
-
-    except Exception as e:
-        print(f"Error performing search: {str(e)}")
-    return results_string
-
-
-def advanced_web_search_claude(
-    query: str,
-    max_searches: int = 1,
-    max_retries: int = 3,
-) -> tuple[str, list[dict[str, str]], list]:
-    """
-    Initiate an advanced web search by launching a specialized agent to collect relevant information and citations through multiple rounds of web searches for a given query.
-    Craft the query carefully for the search agent to find the most relevant information.
-
-    Parameters
-    ----------
-    query : str
-        The search phrase you want Claude to look up.
-    max_searches : int, optional
-        Upper-bound on searches Claude may issue inside this request.
-    max_retries : int, optional
-        Maximum number of retry attempts with exponential backoff.
-
-    Returns
-    -------
-    full_text : str
-        A formatted string containing the full text response from Claude and the citations.
-    """
-    import random
-
-    import anthropic
-
-    try:
-        from biomni.config import default_config
-
-        model = default_config.llm
-        api_key = default_config.api_key
-        if not api_key:
-            api_key = os.getenv("ANTHROPIC_API_KEY")
-    except ImportError:
-        model = "claude-4-sonnet-latest"
-        api_key = os.getenv("ANTHROPIC_API_KEY")
-
-    if "claude" not in model:
-        raise ValueError("Model must be a Claude model.")
-
-    if not api_key:
-        raise ValueError("Set your api_key explicitly.")
-
-    client = anthropic.Anthropic(api_key=api_key)
-    tool_def = {
-        "type": "web_search_20250305",
-        "name": "web_search",
-        "max_uses": max_searches,
-    }
-
-    delay = random.randint(1, 10)
-
-    for attempt in range(1, max_retries + 1):
-        try:
-            response = client.messages.create(
-                model=model,
-                max_tokens=4096,
-                messages=[{"role": "user", "content": query}],
-                tools=[tool_def],
-            )
-
-            paragraphs, citations = [], []
-            response.content = response.content
-            formatted_response = ""
-            for blk in response.content:
-                if blk.type == "text":
-                    paragraphs.append(blk.text)
-                    formatted_response += blk.text
-
-                    if blk.citations:
-                        for cite in blk.citations:
-                            citations.append({"url": cite.url, "title": cite.title, "cited_text": cite.cited_text})
-                            formatted_response += f"(Citation: {cite.title} - {cite.url})"
-            return formatted_response
-
-        except Exception as e:
-            if attempt < max_retries:
-                time.sleep(delay)
-                delay *= 2
-                continue
-            print(f"Error performing web search after {max_retries} attempts: {str(e)}")
-            return f"Error performing web search after {max_retries} attempts: {str(e)}"
 
 
 def extract_url_content(url: str) -> str:

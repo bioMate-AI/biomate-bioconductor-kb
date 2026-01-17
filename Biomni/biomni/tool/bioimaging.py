@@ -11,7 +11,14 @@ import numpy as np
 import SimpleITK as sitk
 import torch
 import torch.serialization
-from nnunet.inference.predict import predict_from_folder
+
+# Optional nnunet import - only required for segmentation functions
+try:
+    from nnunet.inference.predict import predict_from_folder
+    NNUNET_AVAILABLE = True
+except ImportError:
+    predict_from_folder = None
+    NNUNET_AVAILABLE = False
 
 # Apply safe globals for torch serialization
 torch.serialization.add_safe_globals([tuple, list, dict, set, int, float, str, bytes, bytearray])
@@ -306,6 +313,11 @@ class SegmentationTool:
             results_folder: Path to nnUNet results folder (default: None, will use environment variable or default)
             auto_download: Automatically download missing models (default: True)
         """
+        if not NNUNET_AVAILABLE:
+            raise ImportError(
+                "nnunet is not installed. Install it with: pip install nnunet\n"
+                "Or use conda: conda install -c conda-forge nnunet"
+            )
         if folds is None:
             folds = [0, 1, 2, 3, 4]
         os.makedirs(output_dir, exist_ok=True)

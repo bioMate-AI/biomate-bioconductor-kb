@@ -543,23 +543,32 @@ Format your response as a clear, well-structured answer that a scientist would f
         include_citations: bool = True,
         include_benchmark_evidence: bool = True
     ) -> ResearchResponse:
-        """Synchronous wrapper for answer_question."""
+        """Synchronous wrapper for answer_question.
+
+        Properly handles event loop creation to avoid "Event loop is closed" errors.
+        Works correctly in Python 3.10+ where get_event_loop() behavior changed.
+        """
         import asyncio
 
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        return loop.run_until_complete(
-            self.answer_question(
-                question=question,
-                context=context,
-                include_citations=include_citations,
-                include_benchmark_evidence=include_benchmark_evidence
-            )
+        async_coro = self.answer_question(
+            question=question,
+            context=context,
+            include_citations=include_citations,
+            include_benchmark_evidence=include_benchmark_evidence
         )
+
+        # Check if we're already inside an async context
+        try:
+            loop = asyncio.get_running_loop()
+            # We're inside an async context - use nest_asyncio or run in thread
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, async_coro)
+                return future.result()
+        except RuntimeError:
+            # No running event loop - safe to use asyncio.run()
+            # asyncio.run() creates a new event loop, runs the coroutine, and closes it
+            return asyncio.run(async_coro)
 
 
 # Factory function

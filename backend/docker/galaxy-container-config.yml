@@ -1,0 +1,133 @@
+# Galaxy Job Configuration for BioMate Custom Containers
+# Add this to your galaxy job_conf.yml or galaxy.yml
+
+# ============================================
+# Interactive Tools Container Mapping
+# ============================================
+#
+# For Galaxy to use your custom containers instead of defaults,
+# configure the interactive_tools section in galaxy.yml:
+
+# galaxy.yml example:
+# ---
+# interactivetools:
+#   enabled: true
+#
+# containers:
+#   docker:
+#     enabled: true
+
+# ============================================
+# Tool-to-Container Mapping
+# ============================================
+#
+# In job_conf.yml, map specific tools to containers:
+
+# job_conf.yml example:
+# ---
+# execution:
+#   default: docker_local
+#   environments:
+#     docker_local:
+#       runner: local
+#       docker_enabled: true
+#       docker_volumes: $defaults
+#       docker_auto_rm: true
+#       docker_set_user: ''
+
+# tools:
+#   # Interactive Tools - use biomate all-in-one
+#   - id: interactive_tool_jupyter_notebook
+#     environment: docker_local
+#     docker_container_id_override: biomate/interactive:latest
+#
+#   - id: interactive_tool_rstudio_notebook
+#     environment: docker_local
+#     docker_container_id_override: biomate/interactive:latest
+#
+#   - id: interactive_tool_cellxgene
+#     environment: docker_local
+#     docker_container_id_override: biomate/interactive:latest
+#
+#   - id: interactive_tool_pavian
+#     environment: docker_local
+#     docker_container_id_override: biomate/interactive:latest
+
+# ============================================
+# BioMate Container Registry
+# ============================================
+biomate_containers:
+  # All-in-one interactive (Jupyter + RStudio + CellxGene + Pavian)
+  interactive:
+    image: biomate/interactive:latest
+    ports:
+      - "80:80"      # Nginx hub
+      - "8888:8888"  # Jupyter direct
+      - "8787:8787"  # RStudio direct
+      - "5005:5005"  # CellxGene direct
+      - "3838:3838"  # Shiny direct
+    volumes:
+      - "/path/to/data:/import"
+      - "/path/to/output:/export"
+    features:
+      - jupyter_lab
+      - rstudio
+      - cellxgene
+      - pavian
+      - scanpy
+      - deseq2
+      - edger
+      - bioconductor
+
+  # Batch analysis notebook (for automated workflows)
+  analysis_notebook:
+    image: biomate/analysis-notebook:latest
+    volumes:
+      - "/path/to/data:/import"
+      - "/path/to/output:/export"
+    command: |
+      papermill templates/transcriptomics/deseq2_visualization.ipynb \
+                /export/executed.ipynb \
+                -p PVALUE_THRESHOLD 0.05
+
+# ============================================
+# Docker Compose Example
+# ============================================
+#
+# docker-compose.yml:
+# ---
+# version: '3.8'
+# services:
+#   biomate-interactive:
+#     image: biomate/interactive:latest
+#     ports:
+#       - "8080:80"
+#     volumes:
+#       - ./data:/import
+#       - ./output:/export
+#     environment:
+#       - GALAXY_URL=http://galaxy:8080
+#       - HISTORY_ID=${HISTORY_ID}
+
+# ============================================
+# Usage Examples
+# ============================================
+
+# 1. Run all-in-one interactive container:
+#    docker run -p 8080:80 -v $(pwd)/data:/import biomate/interactive:latest
+#    Open: http://localhost:8080
+#
+# 2. Run batch DESeq2 visualization:
+#    docker run -v $(pwd)/de_results.tsv:/import/data.tsv \
+#               -v $(pwd)/output:/export \
+#               biomate/analysis-notebook:latest \
+#               papermill templates/transcriptomics/deseq2_visualization.ipynb \
+#                         /export/deseq2_report.ipynb
+#
+# 3. Run with Galaxy integration:
+#    docker run -p 8080:80 \
+#               -e GALAXY_URL=http://your-galaxy:8080 \
+#               -e GALAXY_API_KEY=your-key \
+#               -e HISTORY_ID=abc123 \
+#               -v /galaxy/files:/import \
+#               biomate/interactive:latest

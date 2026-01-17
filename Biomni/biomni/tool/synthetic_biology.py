@@ -543,6 +543,10 @@ def analyze_bifurcation_diagram(time_series_data, parameter_values, system_name=
     import numpy as np
     from scipy.signal import find_peaks
 
+    # Convert inputs to numpy arrays if they aren't already
+    time_series_data = np.asarray(time_series_data)
+    parameter_values = np.asarray(parameter_values)
+
     # Create output directory if it doesn't exist
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)

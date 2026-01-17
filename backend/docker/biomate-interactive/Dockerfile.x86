@@ -1,0 +1,121 @@
+# BioMate Interactive Tools - x86_64 Version
+# Jupyter + RStudio + CellxGene + Pavian
+#
+# Uses jupyter/datascience-notebook base + RStudio Server
+
+FROM jupyter/datascience-notebook:python-3.11
+
+LABEL maintainer="BioMate Team"
+LABEL version="1.0"
+LABEL architecture="amd64"
+LABEL description="All-in-One Interactive Tools for BioMate (x86_64)"
+
+USER root
+
+# ============================================
+# System dependencies
+# ============================================
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Build tools
+    build-essential \
+    # HDF5/data formats
+    libhdf5-dev \
+    # Network/SSL
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    # Graphics
+    libfontconfig1-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
+    libcairo2-dev \
+    # Bioinformatics CLI
+    samtools \
+    bcftools \
+    bedtools \
+    tabix \
+    zlib1g-dev \
+    # Web server
+    nginx \
+    supervisor \
+    # RStudio dependencies
+    psmisc \
+    libclang-dev \
+    gdebi-core \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# ============================================
+# Install RStudio Server (x86_64 only)
+# ============================================
+RUN curl -o /tmp/rstudio.deb https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2023.12.1-402-amd64.deb \
+    && gdebi -n /tmp/rstudio.deb \
+    && rm /tmp/rstudio.deb
+
+USER ${NB_UID}
+
+# ============================================
+# Python packages
+# ============================================
+RUN mamba install -y -c conda-forge -c bioconda \
+    pandas numpy scipy matplotlib seaborn plotly bokeh \
+    scanpy anndata pysam biopython pybedtools bioblend \
+    h5py requests \
+    && mamba clean -a -y
+
+# CellxGene and additional packages
+RUN pip install --no-cache-dir \
+    cellxgene \
+    gseapy \
+    adjustText
+
+# ============================================
+# R packages via BiocManager
+# ============================================
+RUN R -e "install.packages('BiocManager', repos='https://cloud.r-project.org/')"
+
+RUN R -e "BiocManager::install(c('DESeq2', 'edgeR', 'limma'), ask=FALSE, update=FALSE)"
+
+RUN R -e "BiocManager::install(c('clusterProfiler', 'enrichplot', 'ComplexHeatmap'), ask=FALSE, update=FALSE)"
+
+RUN R -e "install.packages(c('ggplot2', 'pheatmap', 'ggrepel', 'viridis', 'RColorBrewer', 'tidyverse', 'data.table', 'DT', 'shiny', 'shinydashboard', 'plotly'), repos='https://cloud.r-project.org/')"
+
+# Pavian
+RUN R -e "install.packages('remotes', repos='https://cloud.r-project.org/')" && \
+    R -e "remotes::install_github('fbreitwieser/pavian')"
+
+USER root
+
+# ============================================
+# Configuration
+# ============================================
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY nginx.conf /etc/nginx/sites-available/default
+COPY jupyter_config.py /home/${NB_USER}/.jupyter/jupyter_notebook_config.py
+COPY startup.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/startup.sh
+
+# Create directories
+RUN mkdir -p /import /export /var/log/supervisor /var/www/html/hub
+
+# RStudio config
+RUN echo "rsession-which-r=/opt/conda/bin/R" >> /etc/rstudio/rserver.conf && \
+    echo "www-port=8787" >> /etc/rstudio/rserver.conf && \
+    echo "www-address=127.0.0.1" >> /etc/rstudio/rserver.conf && \
+    echo "auth-none=1" >> /etc/rstudio/rserver.conf
+
+# ============================================
+# Ports
+# ============================================
+EXPOSE 80 8888 8787 5005 3838
+
+ENV GALAXY_URL="" \
+    HISTORY_ID=""
+
+WORKDIR /home/${NB_USER}
+
+CMD ["/usr/local/bin/startup.sh"]

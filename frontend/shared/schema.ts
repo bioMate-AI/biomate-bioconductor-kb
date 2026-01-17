@@ -597,3 +597,452 @@ export const workflowExecutions = pgTable("workflow_executions", {
 });
 
 export type WorkflowExecution = typeof workflowExecutions.$inferSelect;
+
+// ============================================================================
+// Unified Workflow Execution & Tuning Schemas
+// ============================================================================
+
+// Data scope configuration for tunable data subsets
+export const dataScopeSchema = z.object({
+  fraction: z.number().min(0.01).max(1.0).default(1.0), // 1% to 100%
+  absoluteCount: z.number().optional(),
+  totalAvailable: z.number().optional(),
+  samplingStrategy: z.enum(["random", "stratified", "first_n", "representative"]).default("random"),
+  sampledIds: z.array(z.string()).default([]),
+  strataDistribution: z.record(z.number()).optional(), // For stratified sampling
+  strataColumn: z.string().optional(),
+  explicitSamples: z.array(z.string()).optional(), // User-specified sample IDs
+});
+
+export type DataScope = z.infer<typeof dataScopeSchema>;
+
+// Execution environment configuration
+export const executionEnvironmentSchema = z.object({
+  historyPrefix: z.enum(["[Sandbox]", "[Production]"]).default("[Sandbox]"),
+  allowTuning: z.boolean().default(true),
+  allowMidRunAdjustment: z.boolean().default(true),
+});
+
+export type ExecutionEnvironment = z.infer<typeof executionEnvironmentSchema>;
+
+// Tracking configuration
+export const trackingConfigSchema = z.object({
+  collectMetrics: z.boolean().default(true),
+  collectDetailedMetrics: z.boolean().default(true),
+  logLevel: z.enum(["minimal", "normal", "detailed", "verbose"]).default("detailed"),
+  notifyMilestones: z.boolean().default(true),
+  milestonePercentages: z.array(z.number()).default([25, 50, 75, 100]),
+});
+
+export type TrackingConfig = z.infer<typeof trackingConfigSchema>;
+
+// Unified execution configuration
+export const executionConfigSchema = z.object({
+  mode: z.enum(["sandbox", "production"]).default("sandbox"),
+  dataScope: dataScopeSchema.optional(),
+  environment: executionEnvironmentSchema.optional(),
+  tracking: trackingConfigSchema.optional(),
+  parentRunId: z.string().optional(), // Links to previous iteration
+});
+
+export type ExecutionConfig = z.infer<typeof executionConfigSchema>;
+
+// Parameter change tracking
+export const parameterChangeSchema = z.object({
+  toolId: z.string(),
+  paramName: z.string(),
+  oldValue: z.any(),
+  newValue: z.any(),
+  reason: z.string().optional(),
+  changedAt: z.coerce.date().default(() => new Date()),
+});
+
+export type ParameterChange = z.infer<typeof parameterChangeSchema>;
+
+// Versioned parameters
+export const versionedParametersSchema = z.object({
+  version: z.number().default(1),
+  toolParameters: z.record(z.record(z.any())).default({}), // toolId -> { paramName -> value }
+  changedFrom: z.array(parameterChangeSchema).optional(),
+});
+
+export type VersionedParameters = z.infer<typeof versionedParametersSchema>;
+
+// Step execution state
+export const stepExecutionStatusSchema = z.enum([
+  "pending", "queued", "running", "completed", "failed", "skipped", "paused"
+]);
+
+export type StepExecutionStatus = z.infer<typeof stepExecutionStatusSchema>;
+
+// Step timing information
+export const stepTimingSchema = z.object({
+  queuedAt: z.coerce.date().optional(),
+  startedAt: z.coerce.date().optional(),
+  completedAt: z.coerce.date().optional(),
+  durationMs: z.number().optional(),
+  pausedDurationMs: z.number().optional(),
+});
+
+export type StepTiming = z.infer<typeof stepTimingSchema>;
+
+// Step metrics
+export const stepMetricsSchema = z.object({
+  memoryUsedGB: z.number().optional(),
+  peakMemoryGB: z.number().optional(),
+  cpuPercent: z.number().optional(),
+  avgCpuPercent: z.number().optional(),
+  inputSizeBytes: z.number().optional(),
+  outputSizeBytes: z.number().optional(),
+  readCount: z.number().optional(), // For sequencing tools
+  mappedPercent: z.number().optional(), // For alignment tools
+});
+
+export type StepMetrics = z.infer<typeof stepMetricsSchema>;
+
+// Step logs
+export const stepLogsSchema = z.object({
+  stdout: z.array(z.string()).default([]),
+  stderr: z.array(z.string()).default([]),
+  truncated: z.boolean().default(false),
+  lastLines: z.number().default(100), // Number of lines kept
+});
+
+export type StepLogs = z.infer<typeof stepLogsSchema>;
+
+// Step output
+export const stepOutputSchema = z.object({
+  datasetId: z.string(),
+  galaxyDatasetId: z.string().optional(),
+  name: z.string(),
+  extension: z.string(),
+  sizeBytes: z.number(),
+  isVisualizable: z.boolean().default(false),
+  previewUrl: z.string().optional(),
+});
+
+export type StepOutput = z.infer<typeof stepOutputSchema>;
+
+// Step execution - detailed tracking for each workflow step
+export const stepExecutionSchema = z.object({
+  stepId: z.string(),
+  stepIndex: z.number(),
+  stepName: z.string(),
+  toolId: z.string(),
+  toolName: z.string().optional(),
+
+  status: stepExecutionStatusSchema,
+  timing: stepTimingSchema.optional(),
+  metrics: stepMetricsSchema.optional(),
+  logs: stepLogsSchema.optional(),
+  outputs: z.array(stepOutputSchema).default([]),
+
+  // Error details
+  errorMessage: z.string().optional(),
+  errorCode: z.string().optional(),
+
+  // Galaxy references
+  galaxyJobId: z.string().optional(),
+});
+
+export type StepExecution = z.infer<typeof stepExecutionSchema>;
+
+// User interaction types
+export const userInteractionTypeSchema = z.enum([
+  "parameter_change",
+  "pause",
+  "resume",
+  "cancel",
+  "apply_recommendation",
+  "adjust_data_scope",
+  "retry_step",
+  "view_logs",
+  "download_output"
+]);
+
+export type UserInteractionType = z.infer<typeof userInteractionTypeSchema>;
+
+// User interaction - tracks all user actions during execution
+export const userInteractionSchema = z.object({
+  id: z.string().default(() => crypto.randomUUID()),
+  timestamp: z.coerce.date().default(() => new Date()),
+  type: userInteractionTypeSchema,
+  details: z.record(z.any()).default({}),
+  reason: z.string().optional(), // User's stated reason
+  userId: z.string().optional(),
+});
+
+export type UserInteraction = z.infer<typeof userInteractionSchema>;
+
+// Runtime metrics
+export const runtimeMetricsSchema = z.object({
+  totalSeconds: z.number().default(0),
+  perStepSeconds: z.record(z.number()).default({}), // stepId -> seconds
+  estimatedRemaining: z.number().optional(),
+  startedAt: z.coerce.date().optional(),
+  completedAt: z.coerce.date().optional(),
+});
+
+export type RuntimeMetrics = z.infer<typeof runtimeMetricsSchema>;
+
+// Resource metrics
+export const resourceMetricsSchema = z.object({
+  peakMemoryGB: z.number().default(0),
+  avgCpuPercent: z.number().default(0),
+  diskUsedGB: z.number().default(0),
+  networkBytesIn: z.number().optional(),
+  networkBytesOut: z.number().optional(),
+});
+
+export type ResourceMetrics = z.infer<typeof resourceMetricsSchema>;
+
+// Output metrics
+export const outputMetricsSchema = z.object({
+  fileCount: z.number().default(0),
+  totalSizeBytes: z.number().default(0),
+  byType: z.record(z.number()).default({}), // extension -> count
+  bySize: z.record(z.number()).default({}), // extension -> total bytes
+});
+
+export type OutputMetrics = z.infer<typeof outputMetricsSchema>;
+
+// Execution metrics - comprehensive metrics collection
+export const executionMetricsSchema = z.object({
+  runtime: runtimeMetricsSchema.optional(),
+  resources: resourceMetricsSchema.optional(),
+  quality: z.record(z.number()).default({}), // Domain-specific quality metrics
+  outputs: outputMetricsSchema.optional(),
+});
+
+export type ExecutionMetrics = z.infer<typeof executionMetricsSchema>;
+
+// Run comparison
+export const runComparisonSchema = z.object({
+  previousRunId: z.string(),
+  runtimeDelta: z.number().optional(), // % change
+  memoryDelta: z.number().optional(), // % change
+  qualityDelta: z.record(z.number()).default({}), // metric -> delta
+  improvementSummary: z.string().optional(),
+  recommendation: z.string().optional(),
+});
+
+export type RunComparison = z.infer<typeof runComparisonSchema>;
+
+// Execution run status
+export const executionRunStatusSchema = z.enum([
+  "configuring", "queued", "running", "paused", "completed", "failed", "cancelled"
+]);
+
+export type ExecutionRunStatus = z.infer<typeof executionRunStatusSchema>;
+
+// Execution Run - the main unified workflow execution record
+export const executionRunSchema = z.object({
+  // Identity
+  id: z.string().default(() => crypto.randomUUID()),
+  parentRunId: z.string().optional(), // Links iterations together
+  runSequence: z.number().default(1), // 1, 2, 3... within iteration cycle
+
+  // Ownership
+  userId: z.string().optional(),
+  projectId: z.string().optional(),
+  chatSessionId: z.string().optional(),
+
+  // Mode
+  mode: z.enum(["sandbox", "production"]).default("sandbox"),
+
+  // Workflow
+  workflowName: z.string(),
+  workflowDefinition: z.any().optional(), // Full .ga workflow object
+
+  // Data Scope (TUNABLE)
+  dataScope: dataScopeSchema,
+
+  // Parameters (VERSIONED)
+  parameters: versionedParametersSchema,
+
+  // Execution state
+  execution: z.object({
+    galaxyInvocationId: z.string().optional(),
+    galaxyHistoryId: z.string().optional(),
+    galaxyWorkflowId: z.string().optional(),
+    status: executionRunStatusSchema,
+    startedAt: z.coerce.date().optional(),
+    completedAt: z.coerce.date().optional(),
+    pausedAt: z.coerce.date().optional(),
+    pauseReason: z.string().optional(),
+    errorMessage: z.string().optional(),
+  }),
+
+  // Progress
+  progress: z.object({
+    totalSteps: z.number().default(0),
+    completedSteps: z.number().default(0),
+    currentStepIndex: z.number().optional(),
+    currentStepName: z.string().optional(),
+    percentComplete: z.number().default(0),
+    milestone: z.number().optional(), // Last reached milestone (25, 50, 75, 100)
+  }),
+
+  // Step-Level Tracking
+  steps: z.array(stepExecutionSchema).default([]),
+
+  // Metrics (DETAILED)
+  metrics: executionMetricsSchema.optional(),
+
+  // User Interactions
+  interactions: z.array(userInteractionSchema).default([]),
+
+  // Recommendations
+  recommendations: z.array(parameterRecommendationSchema).default([]),
+
+  // Comparison (if iterating)
+  comparison: runComparisonSchema.optional(),
+
+  // Timestamps
+  createdAt: z.coerce.date().default(() => new Date()),
+  updatedAt: z.coerce.date().default(() => new Date()),
+});
+
+export type ExecutionRun = z.infer<typeof executionRunSchema>;
+
+// Execution run creation request
+export const createExecutionRunRequestSchema = z.object({
+  workflowDefinition: z.any(), // .ga format
+
+  executionConfig: executionConfigSchema,
+
+  inputs: z.array(z.object({
+    stepId: z.number().optional(),
+    src: z.string(),
+    id: z.string(),
+    name: z.string().optional(),
+  })).optional(),
+});
+
+export type CreateExecutionRunRequest = z.infer<typeof createExecutionRunRequestSchema>;
+
+// Execution run creation response
+export const createExecutionRunResponseSchema = z.object({
+  runId: z.string(),
+  galaxyInvocationId: z.string().optional(),
+  galaxyHistoryId: z.string().optional(),
+  status: executionRunStatusSchema,
+  dataScopeApplied: z.object({
+    fraction: z.number(),
+    absoluteCount: z.number(),
+    sampledIds: z.array(z.string()),
+  }).optional(),
+});
+
+export type CreateExecutionRunResponse = z.infer<typeof createExecutionRunResponseSchema>;
+
+// Execution run status response (for polling)
+export const executionRunStatusResponseSchema = z.object({
+  runId: z.string(),
+  status: executionRunStatusSchema,
+  progress: z.object({
+    totalSteps: z.number(),
+    completedSteps: z.number(),
+    percentComplete: z.number(),
+    currentStepName: z.string().optional(),
+    milestone: z.number().optional(),
+  }),
+  metrics: executionMetricsSchema.optional(),
+  steps: z.array(stepExecutionSchema).optional(),
+  errorMessage: z.string().optional(),
+});
+
+export type ExecutionRunStatusResponse = z.infer<typeof executionRunStatusResponseSchema>;
+
+// Run comparison request
+export const runComparisonRequestSchema = z.object({
+  runId: z.string(),
+  compareWithRunId: z.string(),
+});
+
+export type RunComparisonRequest = z.infer<typeof runComparisonRequestSchema>;
+
+// Run comparison response
+export const runComparisonResponseSchema = z.object({
+  runs: z.array(executionRunSchema),
+  comparison: z.object({
+    runtimeDelta: z.number().optional(),
+    memoryDelta: z.number().optional(),
+    qualityDelta: z.record(z.number()).default({}),
+  }),
+  recommendation: z.object({
+    preferredRun: z.string(),
+    reason: z.string(),
+    fullRunEstimate: fullRunEstimateSchema.optional(),
+  }).optional(),
+});
+
+export type RunComparisonResponse = z.infer<typeof runComparisonResponseSchema>;
+
+// ============================================================================
+// Database Table for Execution Runs (Persistent Storage)
+// ============================================================================
+
+export const executionRuns = pgTable("execution_runs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentRunId: varchar("parent_run_id"),
+  runSequence: text("run_sequence").default("1"),
+
+  // Ownership
+  userId: text("user_id"),
+  projectId: text("project_id"),
+  chatSessionId: text("chat_session_id"),
+
+  // Mode & Workflow
+  mode: text("mode").default("sandbox"),
+  workflowName: text("workflow_name").notNull(),
+  workflowDefinition: text("workflow_definition"), // JSON stringified
+
+  // Data Scope (JSON)
+  dataScope: text("data_scope"), // JSON stringified DataScope
+
+  // Parameters (JSON)
+  parameters: text("parameters"), // JSON stringified VersionedParameters
+
+  // Execution state
+  galaxyInvocationId: text("galaxy_invocation_id"),
+  galaxyHistoryId: text("galaxy_history_id"),
+  galaxyWorkflowId: text("galaxy_workflow_id"),
+  status: text("status").default("configuring"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  pausedAt: timestamp("paused_at"),
+  pauseReason: text("pause_reason"),
+  errorMessage: text("error_message"),
+
+  // Progress
+  totalSteps: text("total_steps").default("0"),
+  completedSteps: text("completed_steps").default("0"),
+  currentStepIndex: text("current_step_index"),
+  currentStepName: text("current_step_name"),
+  percentComplete: text("percent_complete").default("0"),
+
+  // Steps (JSON array)
+  steps: text("steps"), // JSON stringified StepExecution[]
+
+  // Metrics (JSON)
+  metrics: text("metrics"), // JSON stringified ExecutionMetrics
+
+  // Interactions (JSON array)
+  interactions: text("interactions"), // JSON stringified UserInteraction[]
+
+  // Recommendations (JSON array)
+  recommendations: text("recommendations"), // JSON stringified ParameterRecommendation[]
+
+  // Comparison (JSON)
+  comparison: text("comparison"), // JSON stringified RunComparison
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type ExecutionRunDB = typeof executionRuns.$inferSelect;
+
+export const insertExecutionRunSchema = createInsertSchema(executionRuns);
+export type InsertExecutionRun = z.infer<typeof insertExecutionRunSchema>;

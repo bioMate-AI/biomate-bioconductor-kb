@@ -224,6 +224,14 @@ export class GalaxyAssistant {
 4. Whether dataset recommendations are needed
 5. Confidence score (0-1)
 
+IMPORTANT: The following should ALWAYS be classified as workflow_generation with needsToolSearch=true:
+- Database queries: "query UniProt", "search PubMed", "BLAST", "fetch from KEGG", etc.
+- Literature searches: "search for papers", "find articles", "PubMed search"
+- Any request to run, execute, analyze, or process data
+- Any mention of specific tools or databases (PubMed, NCBI, ChEMBL, etc.)
+
+Only use general_question for conversational questions that don't require running any tools.
+
 Respond in JSON format:
 {
   "type": "workflow_generation",
@@ -520,6 +528,7 @@ Respond in JSON format:
     recommendedTools: ToolRecommendation[]
   ): Promise<WorkflowSuggestion> {
     const triggerWords = [
+      // Workflow terms
       'workflow',
       'pipeline',
       'analysis',
@@ -528,6 +537,29 @@ Respond in JSON format:
       'build',
       'create',
       'generate',
+      // Database/query terms
+      'query',
+      'search',
+      'retrieve',
+      'fetch',
+      'lookup',
+      'look up',
+      'get',
+      'find',
+      // Action terms
+      'run',
+      'execute',
+      'perform',
+      'compute',
+      'calculate',
+      'predict',
+      'detect',
+      'identify',
+      'annotate',
+      'align',
+      'call',
+      'segment',
+      'design',
     ];
 
     const hasWorkflowIntent =

@@ -1,0 +1,569 @@
+/**
+ * Workflow Prerequisites Validator
+ *
+ * LLM-powered pre-execution validation system that intelligently validates
+ * workflow prerequisites before Galaxy submission.
+ *
+ * Design Philosophy:
+ * - NO hardcoded format lists or domain-specific rules
+ * - All tool requirements come from the tool database dynamically
+ * - LLM provides intelligent compatibility analysis and recommendations
+ * - Works across all life science domains
+ *
+ * Created: 2026-01-16
+ * See: /home/yzhang/biomate/20260116_1610_PRE_EXECUTION_VALIDATION_DESIGN.md
+ */
+
+import Anthropic from '@anthropic-ai/sdk';
+import { GalaxyAPIProxy } from './galaxy-api-proxy';
+import type {
+  ValidateWorkflowRequest,
+  PrerequisitesValidationResult,
+  WorkflowRequirements,
+  AvailableResources,
+  LLMAnalysis,
+  InputRequirement,
+  ParameterRequirement,
+  AvailableDataset,
+  AvailableHistory,
+  ToolDocumentation,
+  ValidationContext,
+  InputMapping,
+  MissingInput,
+  MissingParameter,
+  Suggestion,
+  AnalysisNote,
+} from '../shared/prerequisites-types';
+
+export interface PrerequisitesValidatorOptions {
+  anthropicApiKey: string;
+  galaxyAPIProxy: GalaxyAPIProxy;
+}
+
+/**
+ * LLM-powered workflow prerequisites validator
+ */
+export class WorkflowPrerequisitesValidator {
+  private claude: Anthropic;
+  private galaxyAPI: GalaxyAPIProxy;
+
+  constructor(options: PrerequisitesValidatorOptions) {
+    this.claude = new Anthropic({ apiKey: options.anthropicApiKey });
+    this.galaxyAPI = options.galaxyAPIProxy;
+  }
+
+  /**
+   * Main validation entry point
+   *
+   * Validates workflow prerequisites using:
+   * 1. Tool database for requirements extraction
+   * 2. Galaxy API for available resources
+   * 3. LLM for intelligent compatibility analysis
+   */
+  async validate(request: ValidateWorkflowRequest): Promise<PrerequisitesValidationResult> {
+    console.log('[PrerequisitesValidator] Starting validation');
+
+    // Handle both direct workflow definition and WorkflowGenerationResponse wrapper
+    let workflowDefinition = request.workflowDefinition;
+
+    // If this is a WorkflowGenerationResponse (has workflow_ga), extract the actual workflow
+    if (workflowDefinition?.workflow_ga) {
+      console.log('[PrerequisitesValidator] Extracting workflow from WorkflowGenerationResponse');
+      workflowDefinition = workflowDefinition.workflow_ga;
+    }
+
+    console.log('[PrerequisitesValidator] Workflow structure:', {
+      name: workflowDefinition?.name,
+      hasSteps: !!workflowDefinition?.steps,
+      stepCount: workflowDefinition?.steps ? Object.keys(workflowDefinition.steps).length : 0,
+    });
+
+    // Step 1: Extract workflow requirements from tool database
+    const requirements = await this.extractRequirements(workflowDefinition);
+    console.log('[PrerequisitesValidator] Extracted requirements:', {
+      inputs: requirements.inputs.length,
+      parameters: requirements.parameters.length,
+    });
+
+    // Step 2: Get user's available resources from Galaxy
+    const available = await this.getAvailableResources(request.historyId);
+    console.log('[PrerequisitesValidator] Available resources:', {
+      datasets: available.datasets.length,
+      histories: available.histories.length,
+    });
+
+    // Step 3: Get tool documentation for LLM context
+    const toolDocs = await this.getToolDocumentation(requirements);
+    console.log('[PrerequisitesValidator] Loaded tool documentation:', toolDocs.length);
+
+    // Step 4: LLM analysis for intelligent matching
+    const analysis = await this.llmAnalyze({
+      workflow: {
+        name: workflowDefinition?.name || 'Unnamed Workflow',
+        description: workflowDefinition?.annotation,
+        steps: Object.values(workflowDefinition?.steps || {}),
+      },
+      requirements,
+      available,
+      toolDocumentation: toolDocs,
+      userContext: request.userContext,
+    });
+
+    // Step 5: Determine if prerequisites are fulfilled
+    const fulfilled = this.checkFulfillment(analysis, requirements);
+
+    // Step 6: Generate conversational response
+    const conversationalResponse = await this.generateConversationalResponse(
+      fulfilled,
+      requirements,
+      available,
+      analysis,
+      request.workflowDefinition
+    );
+
+    return {
+      fulfilled,
+      requirements,
+      available,
+      analysis,
+      conversationalResponse,
+    };
+  }
+
+  /**
+   * Extract workflow requirements by parsing workflow steps
+   * and querying tool database for dynamic schema information
+   */
+  private async extractRequirements(workflowDefinition: any): Promise<WorkflowRequirements> {
+    const inputs: InputRequirement[] = [];
+    const parameters: ParameterRequirement[] = [];
+
+    const steps = workflowDefinition?.steps || {};
+
+    for (const [stepId, step] of Object.entries(steps) as [string, any][]) {
+      // Handle data input steps
+      if (step.type === 'data_input' || step.type === 'data_collection_input') {
+        inputs.push({
+          stepId,
+          stepLabel: step.name || step.label || `Input ${stepId}`,
+          inputName: 'input',
+          optional: step.optional || false,
+          description: step.annotation || 'Input dataset required',
+          dataType: step.type === 'data_collection_input' ? 'collection' : 'dataset',
+        });
+      }
+
+      // Handle tool steps - query tool database for schema
+      if (step.tool_id) {
+        try {
+          const toolSchema = await this.galaxyAPI.getToolSchema(step.tool_id);
+
+          // Extract input requirements from tool schema
+          // Note: Galaxy tool schemas can have additional properties not in our TypeScript types
+          if (toolSchema.inputs) {
+            for (const input of toolSchema.inputs) {
+              const inputAny = input as any; // Allow access to dynamic properties
+              const inputType = inputAny.type;
+
+              if (inputType === 'data' || inputType === 'data_collection') {
+                inputs.push({
+                  stepId,
+                  stepLabel: step.name || step.label || step.tool_id,
+                  toolId: step.tool_id,
+                  inputName: input.name,
+                  acceptedFormats: inputAny.extensions || [],
+                  dataType: inputType === 'data_collection' ? 'collection' : 'dataset',
+                  optional: input.optional || false,
+                  description: input.help || input.label,
+                });
+              }
+            }
+
+            // Extract parameter requirements from tool schema
+            for (const param of toolSchema.inputs) {
+              const paramAny = param as any; // Allow access to dynamic properties
+              const paramType = paramAny.type;
+
+              if (paramType !== 'data' && paramType !== 'data_collection') {
+                // Check if parameter is required (no default and not optional)
+                const isRequired = !param.optional && paramAny.default === undefined;
+
+                if (isRequired || paramAny.important) {
+                  parameters.push({
+                    stepId,
+                    toolId: step.tool_id,
+                    toolName: toolSchema.name || step.tool_id,
+                    paramName: param.name,
+                    paramLabel: param.label || param.name,
+                    paramType: paramType,
+                    optional: param.optional || false,
+                    defaultValue: paramAny.default,
+                    constraints: param.options || paramAny.validations,
+                    description: param.help,
+                  });
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.log(`[PrerequisitesValidator] Could not get schema for tool ${step.tool_id}`);
+          // Tool schema not available - LLM will handle gracefully
+        }
+      }
+    }
+
+    return {
+      inputs,
+      parameters,
+    };
+  }
+
+  /**
+   * Get user's available resources from Galaxy
+   */
+  private async getAvailableResources(historyId?: string): Promise<AvailableResources> {
+    const datasets: AvailableDataset[] = [];
+    const histories: AvailableHistory[] = [];
+
+    try {
+      // Get all histories
+      const galaxyHistories = await this.galaxyAPI.getHistories();
+      for (const h of galaxyHistories) {
+        histories.push({
+          id: h.id,
+          name: h.name,
+          datasetCount: h.contents_active?.active || 0,
+        });
+      }
+
+      // Get datasets from specified history or all histories
+      const historiesToScan = historyId
+        ? [{ id: historyId }]
+        : galaxyHistories.slice(0, 5); // Limit to recent 5 histories
+
+      for (const history of historiesToScan) {
+        try {
+          const historyDatasets = await this.galaxyAPI.getHistoryDatasets(history.id);
+          for (const ds of historyDatasets) {
+            if (ds.deleted || ds.purged) continue;
+            datasets.push({
+              id: ds.id,
+              name: ds.name,
+              extension: ds.extension || ds.file_ext,
+              size: ds.file_size || 0,
+              state: ds.state,
+              historyId: history.id,
+              metadata: ds.metadata,
+              createTime: ds.create_time,
+            });
+          }
+        } catch (error) {
+          console.log(`[PrerequisitesValidator] Could not get datasets from history ${history.id}`);
+        }
+      }
+    } catch (error) {
+      console.log('[PrerequisitesValidator] Could not get histories:', error);
+    }
+
+    return { datasets, histories };
+  }
+
+  /**
+   * Get tool documentation for LLM context
+   */
+  private async getToolDocumentation(requirements: WorkflowRequirements): Promise<ToolDocumentation[]> {
+    const toolDocs: ToolDocumentation[] = [];
+    const seenTools = new Set<string>();
+
+    // Collect unique tool IDs
+    for (const input of requirements.inputs) {
+      if (input.toolId && !seenTools.has(input.toolId)) {
+        seenTools.add(input.toolId);
+      }
+    }
+    for (const param of requirements.parameters) {
+      if (!seenTools.has(param.toolId)) {
+        seenTools.add(param.toolId);
+      }
+    }
+
+    // Fetch documentation for each tool
+    for (const toolId of seenTools) {
+      try {
+        const toolSchema = await this.galaxyAPI.getToolSchema(toolId);
+        const toolInfo = await this.galaxyAPI.getToolById(toolId).catch(() => null);
+
+        const schemaAny = toolSchema as any; // Allow access to dynamic properties
+        toolDocs.push({
+          toolId,
+          toolName: toolSchema.name || toolId,
+          description: toolSchema.description || toolInfo?.description || '',
+          inputs: toolSchema.inputs || [],
+          parameters: toolSchema.inputs?.filter((i: any) =>
+            i.type !== 'data' && i.type !== 'data_collection'
+          ) || [],
+          scientificContext: (toolInfo as any)?.scientific_context,
+          helpText: schemaAny.help,
+        });
+      } catch (error) {
+        console.log(`[PrerequisitesValidator] Could not get documentation for ${toolId}`);
+      }
+    }
+
+    return toolDocs;
+  }
+
+  /**
+   * Use LLM to analyze compatibility between requirements and available resources
+   */
+  private async llmAnalyze(context: ValidationContext): Promise<LLMAnalysis> {
+    const systemPrompt = `You are a bioinformatics expert validating workflow prerequisites.
+Your task is to analyze workflow requirements and match them with available user data.
+
+IMPORTANT:
+- Consider biological context when matching data (e.g., FASTQ files for sequencing workflows)
+- Understand file format compatibility including compressed variants (.gz)
+- Recognize naming conventions (e.g., R1/R2 for paired-end reads)
+- Suggest intelligent mappings even with imperfect matches
+- Be helpful and specific in your recommendations
+
+Return a JSON object with the following structure:
+{
+  "inputMappings": [
+    {
+      "stepId": "step_id",
+      "inputName": "input_name",
+      "datasetId": "dataset_id",
+      "datasetName": "dataset_name",
+      "confidence": 0.0-1.0,
+      "reasoning": "why this mapping makes sense"
+    }
+  ],
+  "missingInputs": [
+    {
+      "stepId": "step_id",
+      "stepLabel": "human readable label",
+      "inputName": "input_name",
+      "description": "what is needed",
+      "suggestedAction": "what user should do"
+    }
+  ],
+  "missingParameters": [
+    {
+      "stepId": "step_id",
+      "toolId": "tool_id",
+      "paramName": "param_name",
+      "paramLabel": "human readable label",
+      "description": "what is needed",
+      "suggestedOptions": [
+        {
+          "value": "option_value",
+          "label": "display label",
+          "reasoning": "why this option",
+          "recommended": true/false
+        }
+      ]
+    }
+  ],
+  "suggestions": [
+    {
+      "type": "dataset|parameter|preprocessing|general",
+      "message": "helpful suggestion",
+      "action": "specific action to take"
+    }
+  ],
+  "notes": [
+    {
+      "type": "info|warning|error",
+      "message": "important note",
+      "relatedStep": "step_id or null"
+    }
+  ],
+  "confidence": 0.0-1.0
+}`;
+
+    const userPrompt = `Analyze the following workflow validation context:
+
+WORKFLOW: ${context.workflow.name}
+${context.workflow.description ? `Description: ${context.workflow.description}` : ''}
+
+REQUIRED INPUTS:
+${JSON.stringify(context.requirements.inputs, null, 2)}
+
+REQUIRED PARAMETERS:
+${JSON.stringify(context.requirements.parameters, null, 2)}
+
+AVAILABLE DATASETS:
+${JSON.stringify(context.available.datasets.map(d => ({
+  id: d.id,
+  name: d.name,
+  extension: d.extension,
+  size: d.size,
+  state: d.state,
+})), null, 2)}
+
+TOOL DOCUMENTATION:
+${JSON.stringify(context.toolDocumentation.map(t => ({
+  toolId: t.toolId,
+  toolName: t.toolName,
+  description: t.description?.slice(0, 200),
+  scientificContext: t.scientificContext,
+})), null, 2)}
+
+${context.userContext ? `USER CONTEXT: ${context.userContext}` : ''}
+
+Please analyze which datasets can satisfy which inputs, identify any missing requirements, and provide helpful suggestions.`;
+
+    try {
+      const response = await this.claude.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4096,
+        messages: [
+          { role: 'user', content: userPrompt },
+        ],
+        system: systemPrompt,
+      });
+
+      // Extract text content from response
+      const textContent = response.content.find(c => c.type === 'text');
+      if (!textContent || textContent.type !== 'text') {
+        throw new Error('No text response from LLM');
+      }
+
+      // Parse JSON response
+      const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Could not parse JSON from LLM response');
+      }
+
+      const analysis = JSON.parse(jsonMatch[0]) as LLMAnalysis;
+      return analysis;
+    } catch (error) {
+      console.error('[PrerequisitesValidator] LLM analysis failed:', error);
+      // Return empty analysis on failure
+      return {
+        inputMappings: [],
+        missingInputs: [],
+        missingParameters: [],
+        suggestions: [],
+        notes: [{
+          type: 'warning',
+          message: 'Could not perform automatic analysis. Please verify inputs manually.',
+        }],
+        confidence: 0,
+      };
+    }
+  }
+
+  /**
+   * Check if all prerequisites are fulfilled based on LLM analysis
+   */
+  private checkFulfillment(analysis: LLMAnalysis, requirements: WorkflowRequirements): boolean {
+    // Check if all required inputs have mappings
+    const requiredInputs = requirements.inputs.filter(i => !i.optional);
+    const mappedInputs = new Set(analysis.inputMappings.map(m => `${m.stepId}:${m.inputName}`));
+
+    for (const input of requiredInputs) {
+      const key = `${input.stepId}:${input.inputName}`;
+      if (!mappedInputs.has(key)) {
+        // Check if it's in missing inputs (explicitly identified)
+        const isMissing = analysis.missingInputs.some(
+          m => m.stepId === input.stepId && m.inputName === input.inputName
+        );
+        if (!isMissing) {
+          // Not mapped and not explicitly missing - assume missing
+          return false;
+        }
+      }
+    }
+
+    // If there are any missing inputs, not fulfilled
+    if (analysis.missingInputs.length > 0) {
+      return false;
+    }
+
+    // If there are required missing parameters (no suggestions), not fulfilled
+    const criticalMissingParams = analysis.missingParameters.filter(
+      p => !p.suggestedOptions || p.suggestedOptions.length === 0
+    );
+    if (criticalMissingParams.length > 0) {
+      return false;
+    }
+
+    // High confidence analysis with mappings = fulfilled
+    return analysis.confidence >= 0.7 && analysis.inputMappings.length > 0;
+  }
+
+  /**
+   * Generate a conversational response for the chat interface
+   */
+  private async generateConversationalResponse(
+    fulfilled: boolean,
+    requirements: WorkflowRequirements,
+    available: AvailableResources,
+    analysis: LLMAnalysis,
+    workflowDefinition: any
+  ): Promise<string> {
+    const systemPrompt = `You are a helpful bioinformatics assistant guiding a user through workflow preparation.
+Generate a natural, conversational message that:
+- Is friendly but professional
+- Clearly states what was found and what is needed
+- Uses checkmarks (✓) for satisfied requirements
+- Uses question marks (?) or arrows (→) for needed actions
+- Provides specific options when parameters are needed
+- Is concise but informative
+
+Do NOT use code blocks or JSON in your response - use natural language with markdown formatting.`;
+
+    const userPrompt = `Generate a conversational message for the user based on this validation result:
+
+WORKFLOW: ${workflowDefinition?.name || 'Workflow'}
+FULFILLED: ${fulfilled}
+
+INPUT MAPPINGS FOUND:
+${analysis.inputMappings.map(m => `- ${m.datasetName} → ${m.inputName} (${Math.round(m.confidence * 100)}% confidence)`).join('\n') || 'None'}
+
+MISSING INPUTS:
+${analysis.missingInputs.map(m => `- ${m.stepLabel}: ${m.description}`).join('\n') || 'None'}
+
+MISSING PARAMETERS:
+${analysis.missingParameters.map(m => `- ${m.paramLabel}: ${m.description}`).join('\n') || 'None'}
+
+SUGGESTIONS:
+${analysis.suggestions.map(s => `- ${s.message}`).join('\n') || 'None'}
+
+NOTES:
+${analysis.notes.map(n => `- [${n.type}] ${n.message}`).join('\n') || 'None'}
+
+AVAILABLE DATASETS: ${available.datasets.length}
+
+Generate a helpful, conversational message to guide the user.
+${fulfilled ? 'Let them know everything looks ready.' : 'Ask them for the missing information in a helpful way.'}`;
+
+    try {
+      const response = await this.claude.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1024,
+        messages: [
+          { role: 'user', content: userPrompt },
+        ],
+        system: systemPrompt,
+      });
+
+      const textContent = response.content.find(c => c.type === 'text');
+      if (textContent && textContent.type === 'text') {
+        return textContent.text;
+      }
+    } catch (error) {
+      console.error('[PrerequisitesValidator] Could not generate response:', error);
+    }
+
+    // Fallback response
+    if (fulfilled) {
+      return `I've reviewed the workflow requirements and everything looks ready to run. Your datasets have been matched to the workflow inputs.`;
+    } else {
+      const missingCount = analysis.missingInputs.length + analysis.missingParameters.length;
+      return `Before running this workflow, I need ${missingCount} more piece${missingCount !== 1 ? 's' : ''} of information. Please check the requirements above.`;
+    }
+  }
+}

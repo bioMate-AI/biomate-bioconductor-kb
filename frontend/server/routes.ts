@@ -8,6 +8,7 @@ import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
+import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
 import { GalaxyAssistant } from "./galaxy-assistant";
 import { parameterRepository } from "./parameter-repository";
 import { workflowRepository } from "./workflow-repository";
@@ -15,10 +16,12 @@ import { memoryService } from "./memory-repository";
 import { createMemoryIntegration, getMemoryIntegration, type MemoryEnhancedContext } from "./memory-integration";
 import { datasetValidator } from "./dataset-validator";
 import { getContextCompressor } from "./context-compressor";
+import { WorkflowPrerequisitesValidator } from "./workflow-prerequisites-validator";
 import multer from "multer";
 import { promises as fs } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import archiver from "archiver";
 import { authService } from "./auth-service";
 import { authenticateToken, optionalAuth } from "./auth-middleware";
 import type { RegisterData, LoginData } from "./auth-service";
@@ -49,6 +52,9 @@ const galaxyAPIProxy = galaxyAPIBackend; // Alias for consistency
 const galaxyPoller = createPoller(galaxyAPIBackend, { pollInterval: 2000 });
 const sseManager = new WorkflowSSEManager(galaxyPoller);
 
+// Initialize workflow notification service for email notifications
+const workflowNotificationService = createWorkflowNotificationService(galaxyPoller, storage);
+
 // Listen for workflow completion to update bioMate invocation records
 galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; state: string }) => {
   try {
@@ -68,6 +74,12 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
 
 // Initialize Galaxy Assistant (hybrid intelligence with Claude Sonnet 4.5)
 const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+  galaxyAPIProxy,
+}) : null;
+
+// Initialize Prerequisites Validator (LLM-powered pre-execution validation)
+const prerequisitesValidator = process.env.ANTHROPIC_API_KEY ? new WorkflowPrerequisitesValidator({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   galaxyAPIProxy,
 }) : null;
@@ -1450,6 +1462,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updatedAt: new Date(),
         });
         console.log('[InvokeWorkflow] Created local invocation record:', invocation.id);
+
+        // Register for email notifications if user is authenticated
+        const user = (req as any).user;
+        if (user && user.email) {
+          workflowNotificationService.registerInvocation(invocation.id, {
+            userId: user.id,
+            userEmail: user.email,
+            userName: user.fullName || user.email.split('@')[0],
+            workflowName: workflowName,
+            workflowId: workflow_id,
+            startTime: new Date(),
+          });
+          console.log('[InvokeWorkflow] Registered for email notifications:', invocation.id);
+        }
       } catch (storageError) {
         console.warn('[InvokeWorkflow] Failed to create local invocation record:', storageError);
         // Don't fail the request - Galaxy invocation was successful
@@ -1603,11 +1629,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         episodeId,
       });
 
+      // If workflow was generated, validate prerequisites
+      let prerequisitesValidation = null;
+      if (assistantResponse.generatedWorkflow && prerequisitesValidator) {
+        try {
+          console.log('[Chat API] Validating workflow prerequisites...');
+          prerequisitesValidation = await prerequisitesValidator.validate({
+            workflowDefinition: assistantResponse.generatedWorkflow,
+            historyId: context?.historyId,
+            userContext: message, // Use original message as context
+          });
+          console.log('[Chat API] Prerequisites validation:', {
+            fulfilled: prerequisitesValidation.fulfilled,
+            missingInputs: prerequisitesValidation.analysis.missingInputs.length,
+            missingParams: prerequisitesValidation.analysis.missingParameters.length,
+          });
+        } catch (validationError: any) {
+          console.error('[Chat API] Prerequisites validation failed:', validationError.message);
+          // Non-fatal - continue without validation
+        }
+      }
+
       // Format response for frontend
       res.json({
         response: assistantResponse.message,
         suggestions: assistantResponse.suggestions,
         workflow: assistantResponse.generatedWorkflow,
+
+        // Pre-execution validation (if workflow was generated)
+        prerequisitesValidation,
 
         // Thinking mode support
         thinking_content: assistantResponse.thinking_content,
@@ -2963,6 +3013,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download all outputs for an invocation as ZIP
+  app.get("/api/invocations/:id/download-all", async (req, res) => {
+    try {
+      const invocation = await storage.getInvocation(req.params.id);
+      if (!invocation) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+
+      const outputs = await storage.getInvocationOutputs(req.params.id);
+      if (!outputs || outputs.length === 0) {
+        return res.status(404).json({ error: "No outputs found for this invocation" });
+      }
+
+      // Create ZIP archive
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      // Set response headers
+      const zipFilename = `${invocation.workflowName || 'workflow'}_outputs_${req.params.id.slice(0, 8)}.zip`;
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
+
+      // Pipe archive to response
+      archive.pipe(res);
+
+      // Handle archive errors
+      archive.on('error', (err) => {
+        console.error('Archive error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Failed to create archive' });
+        }
+      });
+
+      // Add each output to the archive
+      for (const output of outputs) {
+        try {
+          const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+          const filename = `${output.name}.${output.extension}`;
+          archive.append(fileStream, { name: filename });
+        } catch (err) {
+          console.error(`Failed to add ${output.name} to archive:`, err);
+          // Continue with other files
+        }
+      }
+
+      // Finalize the archive
+      await archive.finalize();
+    } catch (error: any) {
+      console.error("Error creating download archive:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+
   // Display output file (for images, HTML, etc.)
   app.get("/api/outputs/:id/display", async (req, res) => {
     try {
@@ -3038,6 +3142,573 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error previewing output:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Pre-Execution Validation API (LLM-powered prerequisites check)
+  // ============================================================================
+
+  /**
+   * Validate workflow prerequisites before execution
+   * Uses LLM intelligence to analyze:
+   * - Required inputs vs available datasets
+   * - Required parameters
+   * - Data format compatibility
+   *
+   * Returns conversational guidance for the user
+   */
+  app.post("/api/workflows/validate", optionalAuth, async (req, res) => {
+    try {
+      if (!prerequisitesValidator) {
+        return res.status(503).json({
+          error: "Prerequisites validator not available",
+          message: "ANTHROPIC_API_KEY not configured"
+        });
+      }
+
+      const { workflowDefinition, inputs, parameters, historyId, userContext } = req.body;
+
+      if (!workflowDefinition) {
+        return res.status(400).json({
+          error: "workflowDefinition is required"
+        });
+      }
+
+      console.log('[Validate] Starting pre-execution validation for workflow:', workflowDefinition.name);
+
+      const result = await prerequisitesValidator.validate({
+        workflowDefinition,
+        inputs,
+        parameters,
+        historyId,
+        userContext,
+      });
+
+      console.log('[Validate] Validation complete:', {
+        fulfilled: result.fulfilled,
+        inputMappings: result.analysis.inputMappings.length,
+        missingInputs: result.analysis.missingInputs.length,
+        missingParams: result.analysis.missingParameters.length,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('[Validate] Validation failed:', error);
+      res.status(500).json({
+        error: "Validation failed",
+        message: error.message
+      });
+    }
+  });
+
+  // ============================================================================
+  // Unified Workflow Execution API (Sandbox/Production with Tunable Data Scope)
+  // ============================================================================
+
+  // Create a new execution run (unified sandbox/production)
+  app.post("/api/workflows/execute", optionalAuth, async (req, res) => {
+    let executionRun: any = null;
+    let galaxyHistoryId: string | null = null;
+    let galaxyWorkflowId: string | null = null;
+
+    try {
+      const request = req.body;
+
+      // Validation
+      if (!request.workflowDefinition) {
+        return res.status(400).json({ error: "workflowDefinition is required" });
+      }
+
+      // Check if workflow has input steps that require data
+      const steps = request.workflowDefinition.steps || {};
+      const inputSteps = Object.values(steps).filter((step: any) =>
+        step.type === 'data_input' || step.type === 'data_collection_input'
+      );
+
+      // Validate inputs are provided if workflow has input steps
+      const inputs = request.inputs || [];
+      if (inputSteps.length > 0 && inputs.length === 0) {
+        return res.status(400).json({
+          error: "inputs_required",
+          message: `Workflow has ${inputSteps.length} input step(s) but no inputs were provided`,
+          inputStepsCount: inputSteps.length
+        });
+      }
+
+      // Create execution run record
+      executionRun = await storage.createExecutionRun(
+        request,
+        req.user?.id,
+        request.projectId
+      );
+
+      // Determine history name based on mode
+      const mode = request.executionConfig?.mode || 'sandbox';
+      const historyPrefix = mode === 'sandbox' ? '[Sandbox]' : '[Production]';
+      const historyName = `${historyPrefix} ${executionRun.workflowName} - Run ${executionRun.runSequence}`;
+
+      // Create Galaxy history
+      galaxyHistoryId = await galaxyAPIProxy.createHistory(historyName);
+
+      // Apply data scope if specified
+      let sampledInputs = inputs;
+      const dataScope = executionRun.dataScope;
+
+      if (dataScope.fraction < 1.0 && sampledInputs.length > 0) {
+        // Sample inputs based on data scope configuration
+        const totalCount = sampledInputs.length;
+        const targetCount = Math.max(1, Math.ceil(totalCount * dataScope.fraction));
+
+        if (dataScope.samplingStrategy === 'random') {
+          // Random sampling
+          const shuffled = [...sampledInputs].sort(() => Math.random() - 0.5);
+          sampledInputs = shuffled.slice(0, targetCount);
+        } else if (dataScope.samplingStrategy === 'first_n') {
+          // First N sampling
+          sampledInputs = sampledInputs.slice(0, targetCount);
+        }
+        // For stratified and representative, would need metadata - use all for now
+
+        // Update execution run with sampled IDs
+        await storage.updateExecutionRun(executionRun.id, {
+          dataScope: {
+            ...dataScope,
+            absoluteCount: sampledInputs.length,
+            totalAvailable: totalCount,
+            sampledIds: sampledInputs.map((i: any) => i.id),
+          }
+        });
+      }
+
+      // Create workflow in Galaxy
+      const galaxyWorkflow = await galaxyAPIProxy.createWorkflow(request.workflowDefinition);
+      galaxyWorkflowId = galaxyWorkflow.id;
+
+      // Invoke workflow in Galaxy
+      // Build inputs object for Galaxy (mapping step inputs to dataset IDs)
+      const galaxyInputs: Record<string, any> = {};
+      for (const input of sampledInputs) {
+        const stepId = input.step_id ?? 0;
+        galaxyInputs[stepId.toString()] = {
+          src: input.src || 'hda',
+          id: input.id
+        };
+      }
+
+      const invocationResult = await galaxyAPIProxy.invokeWorkflow(
+        galaxyWorkflow.id,
+        galaxyInputs,
+        { history_id: galaxyHistoryId }
+      );
+
+      // Update execution run with Galaxy IDs and status
+      await storage.updateExecutionRun(executionRun.id, {
+        execution: {
+          ...executionRun.execution,
+          galaxyInvocationId: invocationResult.id,
+          galaxyHistoryId: galaxyHistoryId,
+          galaxyWorkflowId: galaxyWorkflow.id,
+          status: 'queued',
+          startedAt: new Date(),
+        }
+      });
+
+      // Start polling for this invocation
+      galaxyPoller.startPolling(
+        invocationResult.id,
+        galaxyWorkflow.id
+      );
+
+      // Also create a legacy invocation record for backward compatibility
+      await storage.createInvocation({
+        userId: req.user?.id,
+        workflowName: executionRun.workflowName,
+        workflowDefinition: request.workflowDefinition,
+        galaxyInvocationId: invocationResult.id,
+        galaxyHistoryId: galaxyHistoryId,
+        galaxyWorkflowId: galaxyWorkflow.id,
+        inputDatasets: sampledInputs,
+        totalSteps: executionRun.progress.totalSteps,
+        status: 'running',
+      });
+
+      res.json({
+        runId: executionRun.id,
+        galaxyInvocationId: invocationResult.id,
+        galaxyHistoryId: galaxyHistoryId,
+        status: 'queued',
+        dataScopeApplied: {
+          fraction: executionRun.dataScope.fraction,
+          absoluteCount: sampledInputs.length,
+          sampledIds: sampledInputs.map((i: any) => i.id),
+        }
+      });
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error creating execution run:", error);
+
+      // If execution run was created, mark it as failed
+      if (executionRun?.id) {
+        try {
+          const errorMessage = error.detail?.err_msg || error.message || 'Unknown error';
+          await storage.updateExecutionRun(executionRun.id, {
+            execution: {
+              ...executionRun.execution,
+              status: 'failed',
+              errorMessage: errorMessage,
+              galaxyHistoryId: galaxyHistoryId || undefined,
+              galaxyWorkflowId: galaxyWorkflowId || undefined,
+            }
+          });
+          console.log(`[ExecutionRun] Marked run ${executionRun.id} as failed`);
+        } catch (updateError) {
+          console.error("[ExecutionRun] Failed to update run status:", updateError);
+        }
+      }
+
+      // Return detailed error
+      const statusCode = error.status_code || 500;
+      res.status(statusCode).json({
+        error: error.error || 'ExecutionError',
+        message: error.detail?.err_msg || error.message || 'Failed to execute workflow',
+        runId: executionRun?.id,
+        details: error.detail
+      });
+    }
+  });
+
+  // Get all execution runs for the current user
+  app.get("/api/workflows/runs", optionalAuth, async (req, res) => {
+    try {
+      const { mode, projectId, limit } = req.query;
+      const runs = await storage.getExecutionRuns(
+        req.user?.id,
+        projectId as string,
+        mode as 'sandbox' | 'production' | undefined,
+        limit ? parseInt(limit as string) : 100
+      );
+      res.json(runs);
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error fetching runs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get a specific execution run by ID
+  app.get("/api/workflows/runs/:id", async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+      res.json(run);
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error fetching run:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get execution run status (lightweight polling endpoint)
+  app.get("/api/workflows/runs/:id/status", async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      // Return lightweight status response
+      res.json({
+        runId: run.id,
+        status: run.execution.status,
+        progress: run.progress,
+        metrics: run.metrics,
+        steps: req.query.includeSteps === 'true' ? run.steps : undefined,
+        errorMessage: run.execution.errorMessage,
+      });
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error fetching run status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get iteration runs (all runs linked to a parent)
+  app.get("/api/workflows/runs/:id/iterations", async (req, res) => {
+    try {
+      const runs = await storage.getExecutionRunsByParent(req.params.id);
+      res.json(runs);
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error fetching iterations:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update execution run (for parameter changes, etc.)
+  app.patch("/api/workflows/runs/:id", async (req, res) => {
+    try {
+      const updates = req.body;
+      const run = await storage.updateExecutionRun(req.params.id, updates);
+
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      res.json(run);
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error updating run:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Pause execution run
+  app.post("/api/workflows/runs/:id/pause", async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const run = await storage.getExecutionRun(req.params.id);
+
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      if (run.execution.status !== 'running') {
+        return res.status(400).json({ error: "Can only pause running workflows" });
+      }
+
+      // Record interaction
+      await storage.addExecutionRunInteraction(req.params.id, {
+        id: uuidv4(),
+        timestamp: new Date(),
+        type: 'pause',
+        details: { reason },
+        reason,
+        userId: req.user?.id,
+      });
+
+      // Update status
+      const updated = await storage.updateExecutionRun(req.params.id, {
+        execution: {
+          ...run.execution,
+          status: 'paused',
+          pausedAt: new Date(),
+          pauseReason: reason,
+        }
+      });
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error pausing run:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Resume execution run
+  app.post("/api/workflows/runs/:id/resume", async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      if (run.execution.status !== 'paused') {
+        return res.status(400).json({ error: "Can only resume paused workflows" });
+      }
+
+      // Record interaction
+      await storage.addExecutionRunInteraction(req.params.id, {
+        id: uuidv4(),
+        timestamp: new Date(),
+        type: 'resume',
+        details: {},
+        userId: req.user?.id,
+      });
+
+      // Update status
+      const updated = await storage.updateExecutionRun(req.params.id, {
+        execution: {
+          ...run.execution,
+          status: 'running',
+          pausedAt: undefined,
+          pauseReason: undefined,
+        }
+      });
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error resuming run:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Cancel execution run
+  app.post("/api/workflows/runs/:id/cancel", async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const run = await storage.getExecutionRun(req.params.id);
+
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      // Record interaction
+      await storage.addExecutionRunInteraction(req.params.id, {
+        id: uuidv4(),
+        timestamp: new Date(),
+        type: 'cancel',
+        details: { reason },
+        reason,
+        userId: req.user?.id,
+      });
+
+      // Cancel in Galaxy if we have an invocation ID
+      if (run.execution.galaxyInvocationId) {
+        try {
+          // Galaxy doesn't have a direct cancel API, but we can delete the invocation
+          // For now, just update our record
+        } catch (galaxyError) {
+          console.error('[ExecutionRun] Failed to cancel in Galaxy:', galaxyError);
+        }
+      }
+
+      // Update status
+      const updated = await storage.updateExecutionRunStatus(
+        req.params.id,
+        'cancelled',
+        reason || 'Cancelled by user'
+      );
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error cancelling run:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Record user interaction
+  app.post("/api/workflows/runs/:id/interactions", async (req, res) => {
+    try {
+      const interaction = req.body;
+      const run = await storage.addExecutionRunInteraction(req.params.id, {
+        ...interaction,
+        id: uuidv4(),
+        timestamp: new Date(),
+        userId: req.user?.id,
+      });
+
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      res.json(run);
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error recording interaction:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Compare two execution runs
+  app.get("/api/workflows/runs/:id/compare", async (req, res) => {
+    try {
+      const { with: compareWithId } = req.query;
+
+      if (!compareWithId) {
+        return res.status(400).json({ error: "'with' query parameter is required" });
+      }
+
+      const comparison = await storage.compareExecutionRuns(
+        req.params.id,
+        compareWithId as string
+      );
+
+      if (!comparison) {
+        return res.status(404).json({ error: "One or both runs not found" });
+      }
+
+      res.json(comparison);
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error comparing runs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Promote sandbox run to production (create new production run with same config)
+  app.post("/api/workflows/runs/:id/promote", optionalAuth, async (req, res) => {
+    try {
+      const sandboxRun = await storage.getExecutionRun(req.params.id);
+
+      if (!sandboxRun) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      if (sandboxRun.mode !== 'sandbox') {
+        return res.status(400).json({ error: "Can only promote sandbox runs" });
+      }
+
+      // Create production run with 100% data scope
+      const productionRequest = {
+        workflowDefinition: sandboxRun.workflowDefinition,
+        executionConfig: {
+          mode: 'production' as const,
+          dataScope: {
+            fraction: 1.0, // Full dataset
+            samplingStrategy: sandboxRun.dataScope.samplingStrategy,
+            strataColumn: sandboxRun.dataScope.strataColumn,
+            sampledIds: [], // Will be populated during execution
+          },
+          parentRunId: sandboxRun.id, // Link to sandbox run
+          tracking: {
+            collectMetrics: true,
+            collectDetailedMetrics: true,
+            logLevel: 'detailed' as const,
+            notifyMilestones: true,
+            milestonePercentages: [25, 50, 75, 100],
+          },
+        },
+        inputs: req.body.inputs, // New inputs for full dataset
+      };
+
+      // Create the production run
+      const productionRun = await storage.createExecutionRun(
+        productionRequest,
+        req.user?.id,
+        sandboxRun.projectId
+      );
+
+      // Record interaction on sandbox run
+      await storage.addExecutionRunInteraction(sandboxRun.id, {
+        id: uuidv4(),
+        timestamp: new Date(),
+        type: 'parameter_change',
+        details: {
+          action: 'promoted_to_production',
+          productionRunId: productionRun.id,
+        },
+        reason: 'Promoted to production run',
+        userId: req.user?.id,
+      });
+
+      res.json({
+        productionRunId: productionRun.id,
+        sandboxRunId: sandboxRun.id,
+        status: 'configuring',
+        message: 'Production run created. Configure inputs and execute.',
+      });
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error promoting run:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete execution run
+  app.delete("/api/workflows/runs/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteExecutionRun(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[ExecutionRun] Error deleting run:", error);
       res.status(500).json({ error: error.message });
     }
   });

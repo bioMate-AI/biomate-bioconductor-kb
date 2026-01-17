@@ -886,9 +886,9 @@ def analyze_protein_conservation(protein_sequences, output_dir="./"):
 
     """
     import os
+    import subprocess
 
     from Bio import AlignIO, Phylo, SeqIO
-    from Bio.Align.Applications import MuscleCommandline
     from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
 
     # Create a research log
@@ -927,9 +927,13 @@ def analyze_protein_conservation(protein_sequences, output_dir="./"):
     aligned_file = os.path.join(output_dir, "aligned.fasta")
 
     try:
-        # Run MUSCLE for multiple sequence alignment
-        muscle_cline = MuscleCommandline(input=input_file, out=aligned_file)
-        stdout, stderr = muscle_cline()
+        # Run MUSCLE for multiple sequence alignment using subprocess
+        result = subprocess.run(
+            ["muscle", "-in", input_file, "-out", aligned_file],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"MUSCLE failed: {result.stderr}")
         log.append("Multiple sequence alignment completed using MUSCLE")
         log.append(f"Alignment saved to {aligned_file}")
 

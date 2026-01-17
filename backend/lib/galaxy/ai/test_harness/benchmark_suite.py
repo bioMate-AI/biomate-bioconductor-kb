@@ -3,6 +3,11 @@ Benchmark Suite
 
 Framework for defining and running benchmark scenarios to compare
 tools, parameters, and datasets.
+
+Supports checkpoint/resume for long-running benchmark suites:
+- Automatically saves checkpoints after each completed run
+- Can resume from checkpoint if interrupted
+- Skips already-completed runs on resume
 """
 
 import logging
@@ -10,8 +15,10 @@ import json
 import sqlite3
 import time
 import signal
+import os
+import atexit
 from contextlib import contextmanager
-from typing import Dict, List, Any, Optional, Callable
+from typing import Dict, List, Any, Optional, Callable, Set
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
@@ -20,6 +27,97 @@ import yaml
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
 
 log = logging.getLogger(__name__)
+
+
+# ============================================================================
+# CHECKPOINT MANAGEMENT
+# ============================================================================
+
+@dataclass
+class BenchmarkCheckpoint:
+    """Checkpoint state for resumable benchmark runs."""
+    scenario_name: str
+    started_at: str
+    checkpoint_at: str
+    git_commit: Optional[str]
+    environment_hash: Optional[str]
+
+    # Completed run IDs (set of run_id strings)
+    completed_run_ids: Set[str] = field(default_factory=set)
+
+    # Completed runs with their results
+    completed_runs: List[Dict[str, Any]] = field(default_factory=list)
+
+    # Total expected runs
+    total_runs: int = 0
+
+    # Checkpoint version for compatibility
+    version: str = "1.0"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "version": self.version,
+            "scenario_name": self.scenario_name,
+            "started_at": self.started_at,
+            "checkpoint_at": self.checkpoint_at,
+            "git_commit": self.git_commit,
+            "environment_hash": self.environment_hash,
+            "completed_run_ids": list(self.completed_run_ids),
+            "completed_runs": self.completed_runs,
+            "total_runs": self.total_runs
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "BenchmarkCheckpoint":
+        return cls(
+            scenario_name=data["scenario_name"],
+            started_at=data["started_at"],
+            checkpoint_at=data.get("checkpoint_at", ""),
+            git_commit=data.get("git_commit"),
+            environment_hash=data.get("environment_hash"),
+            completed_run_ids=set(data.get("completed_run_ids", [])),
+            completed_runs=data.get("completed_runs", []),
+            total_runs=data.get("total_runs", 0),
+            version=data.get("version", "1.0")
+        )
+
+    def save(self, filepath: str):
+        """Save checkpoint to file."""
+        self.checkpoint_at = datetime.now().isoformat()
+        with open(filepath, 'w') as f:
+            json.dump(self.to_dict(), f, indent=2)
+        log.info(f"Checkpoint saved: {len(self.completed_run_ids)}/{self.total_runs} runs completed")
+
+    @classmethod
+    def load(cls, filepath: str) -> Optional["BenchmarkCheckpoint"]:
+        """Load checkpoint from file."""
+        if not os.path.exists(filepath):
+            return None
+        try:
+            with open(filepath, 'r') as f:
+                data = json.load(f)
+            checkpoint = cls.from_dict(data)
+            log.info(f"Checkpoint loaded: {len(checkpoint.completed_run_ids)}/{checkpoint.total_runs} runs completed")
+            return checkpoint
+        except Exception as e:
+            log.error(f"Failed to load checkpoint: {e}")
+            return None
+
+    def add_completed_run(self, run: "BenchmarkRun"):
+        """Add a completed run to the checkpoint."""
+        self.completed_run_ids.add(run.run_id)
+        self.completed_runs.append(run.to_dict())
+
+    def is_run_completed(self, run_id: str) -> bool:
+        """Check if a run has already been completed."""
+        return run_id in self.completed_run_ids
+
+    @property
+    def progress_percent(self) -> float:
+        """Get completion percentage."""
+        if self.total_runs == 0:
+            return 0.0
+        return (len(self.completed_run_ids) / self.total_runs) * 100
 
 
 class BenchmarkTimeoutError(Exception):
@@ -484,18 +582,32 @@ class BenchmarkSuite:
     """
     Main class for managing and running benchmarks.
 
+    Supports checkpoint/resume for long-running benchmark suites:
+    - Automatically saves checkpoints after each completed run
+    - Can resume from checkpoint if interrupted (Ctrl+C, crash, etc.)
+    - Skips already-completed runs on resume
+
     Example usage:
-        suite = BenchmarkSuite()
+        suite = BenchmarkSuite(checkpoint_dir="/tmp/benchmarks")
         scenario = BenchmarkScenario.from_yaml("rna_seq_aligners.yml")
         suite.add_scenario(scenario)
+
+        # Run with checkpointing (can be interrupted and resumed)
         results = suite.run_scenario("rna_seq_aligners", executor=my_executor)
+
+        # Or resume a previously interrupted run
+        results = suite.resume_scenario("rna_seq_aligners", executor=my_executor)
+
         report = suite.compare("rna_seq_aligners")
     """
 
     def __init__(
         self,
         scenarios_dir: str = None,
-        results_db: BenchmarkResultsDB = None
+        results_db: BenchmarkResultsDB = None,
+        checkpoint_dir: str = None,
+        auto_checkpoint: bool = True,
+        checkpoint_interval: int = 1  # Save checkpoint after every N runs
     ):
         """
         Initialize benchmark suite.
@@ -503,9 +615,22 @@ class BenchmarkSuite:
         Args:
             scenarios_dir: Directory containing scenario YAML files
             results_db: Database for storing results
+            checkpoint_dir: Directory for checkpoint files (default: /tmp/benchmark_checkpoints)
+            auto_checkpoint: Whether to automatically save checkpoints
+            checkpoint_interval: Save checkpoint after every N completed runs
         """
         self.scenarios: Dict[str, BenchmarkScenario] = {}
         self.results_db = results_db or BenchmarkResultsDB()
+
+        # Checkpoint configuration
+        self.checkpoint_dir = checkpoint_dir or "/tmp/benchmark_checkpoints"
+        self.auto_checkpoint = auto_checkpoint
+        self.checkpoint_interval = checkpoint_interval
+        self._current_checkpoint: Optional[BenchmarkCheckpoint] = None
+        self._runs_since_checkpoint = 0
+
+        # Create checkpoint directory
+        Path(self.checkpoint_dir).mkdir(parents=True, exist_ok=True)
 
         if scenarios_dir:
             self._load_scenarios(scenarios_dir)
@@ -537,7 +662,73 @@ class BenchmarkSuite:
         """Get a scenario by name."""
         return self.scenarios.get(name)
 
-    def run_scenario(
+    # =========================================================================
+    # CHECKPOINT MANAGEMENT
+    # =========================================================================
+
+    def _get_checkpoint_path(self, scenario_name: str) -> str:
+        """Get checkpoint file path for a scenario."""
+        safe_name = scenario_name.replace("/", "_").replace(" ", "_")
+        return os.path.join(self.checkpoint_dir, f"{safe_name}.checkpoint.json")
+
+    def _init_checkpoint(self, scenario_name: str, total_runs: int) -> BenchmarkCheckpoint:
+        """Initialize a new checkpoint."""
+        self._current_checkpoint = BenchmarkCheckpoint(
+            scenario_name=scenario_name,
+            started_at=datetime.now().isoformat(),
+            checkpoint_at=datetime.now().isoformat(),
+            git_commit=self._get_git_commit(),
+            environment_hash=self._get_environment_hash(),
+            total_runs=total_runs
+        )
+        self._runs_since_checkpoint = 0
+        return self._current_checkpoint
+
+    def _save_checkpoint(self, force: bool = False):
+        """Save current checkpoint if needed."""
+        if not self._current_checkpoint:
+            return
+
+        self._runs_since_checkpoint += 1
+
+        # Save if forced or interval reached
+        if force or (self.auto_checkpoint and self._runs_since_checkpoint >= self.checkpoint_interval):
+            checkpoint_path = self._get_checkpoint_path(self._current_checkpoint.scenario_name)
+            self._current_checkpoint.save(checkpoint_path)
+            self._runs_since_checkpoint = 0
+
+    def _load_checkpoint(self, scenario_name: str) -> Optional[BenchmarkCheckpoint]:
+        """Load existing checkpoint for a scenario."""
+        checkpoint_path = self._get_checkpoint_path(scenario_name)
+        return BenchmarkCheckpoint.load(checkpoint_path)
+
+    def _clear_checkpoint(self, scenario_name: str):
+        """Clear checkpoint file after successful completion."""
+        checkpoint_path = self._get_checkpoint_path(scenario_name)
+        if os.path.exists(checkpoint_path):
+            os.remove(checkpoint_path)
+            log.info(f"Checkpoint cleared: {checkpoint_path}")
+
+    def has_checkpoint(self, scenario_name: str) -> bool:
+        """Check if a checkpoint exists for a scenario."""
+        checkpoint_path = self._get_checkpoint_path(scenario_name)
+        return os.path.exists(checkpoint_path)
+
+    def get_checkpoint_status(self, scenario_name: str) -> Optional[Dict[str, Any]]:
+        """Get status of an existing checkpoint."""
+        checkpoint = self._load_checkpoint(scenario_name)
+        if not checkpoint:
+            return None
+        return {
+            "scenario_name": checkpoint.scenario_name,
+            "started_at": checkpoint.started_at,
+            "checkpoint_at": checkpoint.checkpoint_at,
+            "completed_runs": len(checkpoint.completed_run_ids),
+            "total_runs": checkpoint.total_runs,
+            "progress_percent": checkpoint.progress_percent
+        }
+
+    def resume_scenario(
         self,
         name: str,
         executor: Callable[[str, str, Dict[str, Any], str], Dict[str, Any]] = None,
@@ -545,7 +736,43 @@ class BenchmarkSuite:
         tools: List[str] = None
     ) -> BenchmarkResults:
         """
-        Run a benchmark scenario.
+        Resume a benchmark scenario from checkpoint.
+
+        If no checkpoint exists, starts from scratch.
+
+        Args:
+            name: Scenario name
+            executor: Function to execute a tool
+            datasets: Optional list of datasets to run
+            tools: Optional list of tools to run
+
+        Returns:
+            BenchmarkResults with all run data
+        """
+        checkpoint = self._load_checkpoint(name)
+        if checkpoint:
+            log.info(f"Resuming scenario '{name}' from checkpoint ({checkpoint.progress_percent:.1f}% complete)")
+        else:
+            log.info(f"No checkpoint found for scenario '{name}', starting fresh")
+
+        return self.run_scenario(
+            name=name,
+            executor=executor,
+            datasets=datasets,
+            tools=tools,
+            resume_from_checkpoint=True
+        )
+
+    def run_scenario(
+        self,
+        name: str,
+        executor: Callable[[str, str, Dict[str, Any], str], Dict[str, Any]] = None,
+        datasets: List[str] = None,
+        tools: List[str] = None,
+        resume_from_checkpoint: bool = False
+    ) -> BenchmarkResults:
+        """
+        Run a benchmark scenario with checkpoint support.
 
         Args:
             name: Scenario name
@@ -553,6 +780,7 @@ class BenchmarkSuite:
                       executor(tool_id, dataset_path, params, output_dir) -> metrics_dict
             datasets: Optional list of datasets to run (filters scenario)
             tools: Optional list of tools to run (filters scenario)
+            resume_from_checkpoint: If True, resume from existing checkpoint
 
         Returns:
             BenchmarkResults with all run data
@@ -561,24 +789,76 @@ class BenchmarkSuite:
         if not scenario:
             raise ValueError(f"Unknown scenario: {name}")
 
+        # Load existing checkpoint if resuming
+        checkpoint = None
+        if resume_from_checkpoint:
+            checkpoint = self._load_checkpoint(name)
+
         log.info(f"Starting benchmark: {name}")
 
-        results = BenchmarkResults(
-            scenario_name=name,
-            started_at=datetime.now().isoformat(),
-            git_commit=self._get_git_commit(),
-            environment_hash=self._get_environment_hash()
-        )
+        # Initialize results
+        if checkpoint:
+            # Resume from checkpoint
+            results = BenchmarkResults(
+                scenario_name=name,
+                started_at=checkpoint.started_at,
+                git_commit=checkpoint.git_commit,
+                environment_hash=checkpoint.environment_hash
+            )
+            # Restore completed runs from checkpoint
+            for run_dict in checkpoint.completed_runs:
+                run = BenchmarkRun(
+                    run_id=run_dict["run_id"],
+                    scenario_name=run_dict["scenario_name"],
+                    tool_id=run_dict["tool_id"],
+                    tool_version=run_dict["tool_version"],
+                    parameter_set=run_dict["parameter_set"],
+                    dataset_name=run_dict["dataset_name"],
+                    repetition=run_dict["repetition"],
+                    status=BenchmarkStatus(run_dict["status"]),
+                    started_at=run_dict.get("started_at"),
+                    completed_at=run_dict.get("completed_at"),
+                    runtime_seconds=run_dict.get("runtime_seconds"),
+                    peak_memory_gb=run_dict.get("peak_memory_gb"),
+                    cpu_utilization=run_dict.get("cpu_utilization"),
+                    output_size_mb=run_dict.get("output_size_mb"),
+                    quality_metrics=run_dict.get("quality_metrics", {}),
+                    success=run_dict.get("success", True),
+                    error_message=run_dict.get("error_message")
+                )
+                results.runs.append(run)
+            self._current_checkpoint = checkpoint
+            log.info(f"Resumed from checkpoint: {len(results.runs)} runs already completed")
+        else:
+            results = BenchmarkResults(
+                scenario_name=name,
+                started_at=datetime.now().isoformat(),
+                git_commit=self._get_git_commit(),
+                environment_hash=self._get_environment_hash()
+            )
 
         # Generate all runs
         run_configs = self._generate_run_configs(scenario, datasets, tools)
         log.info(f"Generated {len(run_configs)} run configurations")
 
-        # Execute runs
-        if scenario.parallel_runs > 1 and executor:
-            results.runs = self._run_parallel(run_configs, executor, scenario)
+        # Initialize checkpoint if not resuming
+        if not checkpoint:
+            self._init_checkpoint(name, len(run_configs))
+
+        # Filter out completed runs if resuming
+        if checkpoint:
+            pending_runs = [r for r in run_configs if not checkpoint.is_run_completed(r.run_id)]
+            log.info(f"Skipping {len(run_configs) - len(pending_runs)} completed runs, {len(pending_runs)} remaining")
         else:
-            results.runs = self._run_sequential(run_configs, executor, scenario)
+            pending_runs = run_configs
+
+        # Execute runs (with checkpoint callbacks)
+        if pending_runs:
+            if scenario.parallel_runs > 1 and executor:
+                new_runs = self._run_parallel(pending_runs, executor, scenario)
+            else:
+                new_runs = self._run_sequential_with_checkpoint(pending_runs, executor, scenario)
+            results.runs.extend(new_runs)
 
         # Calculate summary
         results.completed_at = datetime.now().isoformat()
@@ -589,7 +869,84 @@ class BenchmarkSuite:
         run_id = self.results_db.save_results(results)
         log.info(f"Saved benchmark results with ID: {run_id}")
 
+        # Clear checkpoint after successful completion
+        self._clear_checkpoint(name)
+        self._current_checkpoint = None
+
         return results
+
+    def _run_sequential_with_checkpoint(
+        self,
+        runs: List[BenchmarkRun],
+        executor: Callable,
+        scenario: BenchmarkScenario
+    ) -> List[BenchmarkRun]:
+        """Run benchmarks sequentially with checkpoint support."""
+        completed_runs = []
+        timeout_seconds = scenario.timeout_seconds
+
+        for i, run in enumerate(runs):
+            log.info(f"Running {i+1}/{len(runs)}: {run.tool_id} / {run.parameter_set} / {run.dataset_name}")
+
+            run.status = BenchmarkStatus.RUNNING
+            run.started_at = datetime.now().isoformat()
+
+            try:
+                if executor:
+                    # Get parameters and dataset
+                    param_set = next(p for p in scenario.parameter_sets if p.name == run.parameter_set)
+                    dataset = next(d for d in scenario.datasets if d.name == run.dataset_name)
+
+                    # Execute with timeout
+                    start_time = time.time()
+                    with timeout_handler(
+                        timeout_seconds,
+                        f"Run {run.run_id} exceeded timeout of {timeout_seconds}s"
+                    ):
+                        metrics = executor(
+                            run.tool_id,
+                            dataset.path,
+                            param_set.params,
+                            f"/tmp/benchmark_{run.run_id}"
+                        )
+                    elapsed = time.time() - start_time
+
+                    # Record metrics
+                    run.runtime_seconds = metrics.get("runtime_seconds", elapsed)
+                    run.peak_memory_gb = metrics.get("peak_memory_gb", 0)
+                    run.cpu_utilization = metrics.get("cpu_utilization", 0)
+                    run.output_size_mb = metrics.get("output_size_mb", 0)
+                    run.quality_metrics = metrics.get("quality_metrics", {})
+                    run.success = True
+                else:
+                    # Dry run - simulate
+                    run.runtime_seconds = 10.0
+                    run.peak_memory_gb = 1.0
+                    run.success = True
+
+                run.status = BenchmarkStatus.COMPLETE
+
+            except BenchmarkTimeoutError as e:
+                log.error(f"Run timed out: {e}")
+                run.status = BenchmarkStatus.FAILED
+                run.success = False
+                run.error_message = f"Timeout after {timeout_seconds}s"
+            except Exception as e:
+                log.error(f"Run failed: {e}")
+                run.status = BenchmarkStatus.FAILED
+                run.success = False
+                run.error_message = str(e)
+
+            run.completed_at = datetime.now().isoformat()
+            completed_runs.append(run)
+
+            # Save checkpoint after each completed run
+            if self._current_checkpoint:
+                self._current_checkpoint.add_completed_run(run)
+                self._save_checkpoint()
+                log.debug(f"Checkpoint updated: {self._current_checkpoint.progress_percent:.1f}% complete")
+
+        return completed_runs
 
     def _generate_run_configs(
         self,

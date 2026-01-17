@@ -204,10 +204,13 @@ class TuningConfigModel(BaseModel):
 
 class StartPilotRequest(BaseModel):
     """Request to start a pilot run."""
-    workflow_id: str = Field(..., description="Workflow ID")
+    workflow_id: Optional[str] = Field(None, description="Existing Galaxy workflow ID")
+    workflow_definition: Optional[Dict[str, Any]] = Field(None, description="Workflow definition JSON (.ga format)")
     total_samples: int = Field(..., description="Total number of samples")
     config: Optional[TuningConfigModel] = Field(None, description="Tuning configuration")
     sample_ids: Optional[List[str]] = Field(None, description="Sample IDs if available")
+    inputs: Optional[List[Dict[str, Any]]] = Field(None, description="Input datasets for the workflow")
+    history_id: Optional[str] = Field(None, description="History ID to use (creates sandbox if not provided)")
 
 
 class PilotStatusResponse(BaseModel):
@@ -1112,36 +1115,117 @@ def start_pilot_run(
         controller = ProgressiveTuningController(config=config)
         pilot_size = controller.calculate_pilot_size(request.total_samples)
 
-        # Store pilot run info (in production, use database)
+        # Get workflow managers
+        from galaxy.managers.workflows import WorkflowsManager
+        from galaxy.managers.histories import HistoryManager
+
+        workflows_manager = trans.app.workflow_manager
+        history_manager = trans.app.history_manager
+
+        # Create sandbox history for pilot run
+        sandbox_history_name = f"[Pilot Run] {pilot_id}"
+        if request.history_id:
+            history = history_manager.get_accessible(request.history_id, trans.user)
+        else:
+            history = history_manager.create(
+                trans.user,
+                name=sandbox_history_name
+            )
+
+        # Get or import workflow
+        galaxy_workflow_id = None
+        if request.workflow_id:
+            galaxy_workflow_id = request.workflow_id
+        elif request.workflow_definition:
+            # Import workflow definition
+            from galaxy.managers.workflows import MissingToolsException
+            try:
+                workflow_import_result = workflows_manager.import_workflow(
+                    trans,
+                    request.workflow_definition,
+                    fill_defaults=True
+                )
+                galaxy_workflow_id = workflow_import_result.id
+            except MissingToolsException as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Workflow has missing tools: {str(e)}"
+                )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Either workflow_id or workflow_definition is required"
+            )
+
+        # Sample inputs for pilot (take first N based on pilot_size)
+        pilot_inputs = {}
+        if request.inputs:
+            # For pilot, we take a subset of inputs based on pilot_size
+            # This is simplified - in production, use proper sampling strategy
+            sampled_inputs = request.inputs[:pilot_size] if len(request.inputs) > pilot_size else request.inputs
+
+            # Convert inputs to Galaxy format
+            for idx, input_data in enumerate(sampled_inputs):
+                step_id = input_data.get('step_id', idx)
+                if 'src' in input_data and 'id' in input_data:
+                    pilot_inputs[str(step_id)] = {
+                        'src': input_data['src'],
+                        'id': input_data['id']
+                    }
+
+        # Invoke workflow
+        from galaxy.schema.workflows import WorkflowInvocationPayload
+        invoke_payload = WorkflowInvocationPayload(
+            history_id=history.id,
+            inputs=pilot_inputs,
+            # Add pilot marker in parameters
+            parameters_normalized=True,
+            allow_tool_state_corrections=True
+        )
+
+        # Get workflow and invoke
+        stored_workflow = workflows_manager.get_stored_workflow(trans, galaxy_workflow_id, by_stored_id=True)
+        invocation = workflows_manager.invoke_workflow(
+            trans,
+            stored_workflow,
+            invoke_payload
+        )
+
+        # Store pilot run info with Galaxy invocation ID
         _pilot_runs[pilot_id] = {
             "pilot_id": pilot_id,
-            "workflow_id": request.workflow_id,
-            "status": "pending",
+            "workflow_id": galaxy_workflow_id,
+            "galaxy_invocation_id": invocation.id,
+            "galaxy_history_id": history.id,
+            "status": "running",
             "progress": 0.0,
             "total_samples": request.total_samples,
             "pilot_size": pilot_size,
             "config": config.to_dict(),
-            "started_at": None,
+            "started_at": datetime.now().isoformat(),
             "completed_at": None,
-            "metrics": None,
+            "runtime_seconds": None,
+            "peak_memory_gb": None,
+            "quality_metrics": None,
             "error_message": None
         }
 
-        # In production, this would queue the actual pilot run
-        # For now, simulate starting
-        _pilot_runs[pilot_id]["status"] = "running"
-        _pilot_runs[pilot_id]["started_at"] = datetime.now().isoformat()
+        log.info(f"[Pilot] Started pilot run {pilot_id} with Galaxy invocation {invocation.id}")
 
         return {
             "pilot_id": pilot_id,
             "status": "running",
             "pilot_size": pilot_size,
-            "message": f"Pilot run started with {pilot_size} samples",
+            "galaxy_invocation_id": invocation.id,
+            "galaxy_history_id": history.id,
+            "message": f"Pilot run started with {pilot_size} samples in sandbox history",
             "config": config.to_dict()
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        log.error(f"Error starting pilot run: {e}")
+        log.error(f"Error starting pilot run: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error starting pilot: {str(e)}")
 
 
@@ -1153,12 +1237,83 @@ def get_pilot_status(
     pilot_id: str = Path(..., description="Pilot run ID"),
     trans: ProvidesUserContext = DependsOnTrans
 ) -> PilotStatusResponse:
-    """Get the current status of a pilot run."""
+    """Get the current status of a pilot run by checking Galaxy invocation."""
 
     if pilot_id not in _pilot_runs:
         raise HTTPException(status_code=404, detail=f"Pilot run {pilot_id} not found")
 
     pilot_data = _pilot_runs[pilot_id]
+
+    # If already complete or failed, return cached status
+    if pilot_data["status"] in ("complete", "failed"):
+        return PilotStatusResponse(
+            pilot_id=pilot_id,
+            status=pilot_data["status"],
+            progress=pilot_data.get("progress", 0.0),
+            runtime_seconds=pilot_data.get("runtime_seconds"),
+            peak_memory_gb=pilot_data.get("peak_memory_gb"),
+            quality_metrics=pilot_data.get("quality_metrics"),
+            error_message=pilot_data.get("error_message")
+        )
+
+    # Check Galaxy invocation status
+    galaxy_invocation_id = pilot_data.get("galaxy_invocation_id")
+    if galaxy_invocation_id:
+        try:
+            from galaxy.webapps.galaxy.services.invocations import InvocationsService
+            invocations_service = trans.app.invocations_service
+
+            # Get invocation state
+            invocation = invocations_service.get_invocation(trans, galaxy_invocation_id)
+
+            # Map Galaxy state to pilot status
+            galaxy_state = invocation.state
+            if galaxy_state in ("scheduled", "new", "ready"):
+                pilot_data["status"] = "running"
+                pilot_data["progress"] = 0.1
+            elif galaxy_state == "running":
+                # Calculate progress from step states
+                total_steps = len(invocation.steps) if invocation.steps else 1
+                completed_steps = sum(1 for s in (invocation.steps or []) if s.state == "ok")
+                pilot_data["progress"] = (completed_steps / total_steps) * 100
+                pilot_data["status"] = "running"
+            elif galaxy_state == "ok":
+                # Pilot completed successfully
+                pilot_data["status"] = "complete"
+                pilot_data["progress"] = 100.0
+                pilot_data["completed_at"] = datetime.now().isoformat()
+
+                # Calculate runtime
+                if pilot_data.get("started_at"):
+                    started = datetime.fromisoformat(pilot_data["started_at"])
+                    completed = datetime.now()
+                    pilot_data["runtime_seconds"] = (completed - started).total_seconds()
+
+                # Collect metrics from job info (simplified)
+                pilot_data["quality_metrics"] = {
+                    "steps_completed": len([s for s in (invocation.steps or []) if s.state == "ok"]),
+                    "total_steps": len(invocation.steps) if invocation.steps else 0
+                }
+
+                # Estimate memory from job metrics (placeholder - would need job manager access)
+                pilot_data["peak_memory_gb"] = 2.0  # Default estimate
+
+            elif galaxy_state in ("error", "failed"):
+                pilot_data["status"] = "failed"
+                pilot_data["error_message"] = f"Galaxy invocation failed: {galaxy_state}"
+                # Get error details from failed steps
+                for step in (invocation.steps or []):
+                    if step.state == "error" and hasattr(step, 'job_state'):
+                        pilot_data["error_message"] = f"Step {step.order_index} failed"
+                        break
+
+            elif galaxy_state == "cancelled":
+                pilot_data["status"] = "failed"
+                pilot_data["error_message"] = "Pilot run was cancelled"
+
+        except Exception as e:
+            log.warning(f"Could not fetch Galaxy invocation status: {e}")
+            # Keep existing status if Galaxy query fails
 
     return PilotStatusResponse(
         pilot_id=pilot_id,
@@ -1754,3 +1909,8 @@ def get_available_skills(
             "available": False,
             "error": str(e)
         }
+
+
+# Note: Unified Execution endpoints are implemented in frontend/server/routes.ts
+# using the /api/workflows/execute API. This avoids duplication and leverages
+# the existing storage layer, Galaxy state poller, and SSE infrastructure.

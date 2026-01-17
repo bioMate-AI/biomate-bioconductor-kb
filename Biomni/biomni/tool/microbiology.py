@@ -1294,6 +1294,12 @@ def simulate_generalized_lotka_volterra_dynamics(
     import pandas as pd
     from scipy.integrate import odeint
 
+    # Convert inputs to numpy arrays if they aren't already
+    initial_abundances = np.asarray(initial_abundances)
+    growth_rates = np.asarray(growth_rates)
+    interaction_matrix = np.asarray(interaction_matrix)
+    time_points = np.asarray(time_points)
+
     # Check input dimensions
     n_species = len(initial_abundances)
     if len(growth_rates) != n_species or interaction_matrix.shape != (

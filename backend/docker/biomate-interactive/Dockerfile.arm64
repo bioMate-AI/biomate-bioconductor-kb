@@ -1,0 +1,134 @@
+# BioMate Interactive Tools - ARM64 Version
+# Jupyter + RStudio + CellxGene + Pavian
+#
+# Uses rocker/rstudio as base (has ARM64 support)
+
+FROM rocker/rstudio:4.3
+
+LABEL maintainer="BioMate Team"
+LABEL version="1.0"
+LABEL architecture="arm64"
+LABEL description="All-in-One Interactive Tools for BioMate (ARM64)"
+
+# ============================================
+# System dependencies
+# ============================================
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Python
+    python3 python3-pip python3-venv \
+    # Build tools
+    build-essential \
+    # HDF5/data formats
+    libhdf5-dev \
+    # Network/SSL
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    # Graphics
+    libfontconfig1-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
+    libcairo2-dev \
+    # Bioinformatics CLI
+    samtools \
+    bcftools \
+    bedtools \
+    tabix \
+    # For pybedtools compilation
+    zlib1g-dev \
+    # Web server
+    nginx \
+    supervisor \
+    # Node.js for JupyterLab
+    nodejs \
+    npm \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# ============================================
+# Python environment with Jupyter
+# ============================================
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Core Python packages
+RUN pip3 install --no-cache-dir \
+    jupyterlab \
+    notebook \
+    ipykernel \
+    pandas \
+    numpy \
+    scipy \
+    matplotlib \
+    seaborn \
+    plotly \
+    bokeh
+
+# Bioinformatics Python (pybedtools needs bedtools installed first)
+RUN pip3 install --no-cache-dir \
+    scanpy \
+    anndata \
+    pysam \
+    biopython \
+    bioblend \
+    h5py
+
+# pybedtools separately (may fail on some ARM, optional)
+RUN pip3 install --no-cache-dir pybedtools || echo "pybedtools skipped on ARM"
+
+# CellxGene
+RUN pip3 install --no-cache-dir cellxgene
+
+# Additional viz
+RUN pip3 install --no-cache-dir \
+    gseapy \
+    adjustText
+
+# ============================================
+# R packages (Bioconductor + visualization)
+# ============================================
+RUN R -e "install.packages('BiocManager', repos='https://cloud.r-project.org/')"
+
+# Bioconductor core
+RUN R -e "BiocManager::install(c('DESeq2', 'edgeR', 'limma'), ask=FALSE, update=FALSE)"
+
+# Bioconductor visualization
+RUN R -e "BiocManager::install(c('clusterProfiler', 'enrichplot', 'ComplexHeatmap'), ask=FALSE, update=FALSE)"
+
+# CRAN packages
+RUN R -e "install.packages(c('ggplot2', 'pheatmap', 'ggrepel', 'viridis', 'RColorBrewer', 'tidyverse', 'data.table', 'DT', 'shiny', 'shinydashboard', 'plotly'), repos='https://cloud.r-project.org/')"
+
+# Pavian
+RUN R -e "install.packages('remotes', repos='https://cloud.r-project.org/')" && \
+    R -e "remotes::install_github('fbreitwieser/pavian')"
+
+# ============================================
+# Configuration
+# ============================================
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY nginx.conf /etc/nginx/sites-available/default
+COPY jupyter_config.py /root/.jupyter/jupyter_notebook_config.py
+COPY startup.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/startup.sh
+
+# Create directories
+RUN mkdir -p /import /export /var/log/supervisor /var/www/html/hub
+
+# RStudio config (disable auth)
+RUN echo "auth-none=1" >> /etc/rstudio/rserver.conf && \
+    echo "www-address=127.0.0.1" >> /etc/rstudio/rserver.conf
+
+# ============================================
+# Ports
+# ============================================
+EXPOSE 80 8888 8787 5005 3838
+
+ENV GALAXY_URL="" \
+    HISTORY_ID=""
+
+WORKDIR /home/rstudio
+
+CMD ["/usr/local/bin/startup.sh"]
