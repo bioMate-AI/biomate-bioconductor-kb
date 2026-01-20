@@ -499,3 +499,106 @@ sha256sum server/output-visualization.test.ts
 | Developer | Claude Opus 4.5 | 2026-01-20 |
 | Reviewer | [Pending] | |
 | Approver | [Pending] | |
+
+---
+
+## E2E Testing with Video Recording
+
+### Overview
+
+Playwright-based E2E tests are configured to record video of all frontend interactions for detailed audit review. Tests cover:
+
+- VCF Viewer functionality
+- Sequence Viewer (FASTA/FASTQ)
+- Annotation Viewer (BED/GFF/GTF)
+- Interactive Tool Launcher
+- Output Attachments Integration
+- Error Handling
+
+### Configuration
+
+**File:** `frontend/playwright.config.ts`
+
+```typescript
+{
+  video: {
+    mode: 'on',           // Record all tests
+    size: { width: 1920, height: 1080 }
+  },
+  trace: 'on',            // Collect detailed traces
+  screenshot: 'on',       // Capture screenshots
+}
+```
+
+### Running E2E Tests
+
+#### Quick Start
+
+```bash
+# Start frontend server first
+cd frontend && npm run dev
+
+# In another terminal, run e2e tests
+npm run e2e
+```
+
+#### Using the Audit Script
+
+```bash
+# Run all e2e tests with video recording (auto-starts server if needed)
+./scripts/run-e2e-with-video.sh
+
+# Run with visible browser
+./scripts/run-e2e-with-video.sh --headed
+
+# Run specific test file
+./scripts/run-e2e-with-video.sh bioinformatics-viewers.e2e.ts
+
+# Run with Playwright UI
+./scripts/run-e2e-with-video.sh --ui
+```
+
+### Output Locations
+
+| Content | Location |
+|---------|----------|
+| Videos | `frontend/e2e/test-results/*/video.webm` |
+| Screenshots | `frontend/e2e/screenshots/` |
+| HTML Report | `frontend/e2e/reports/index.html` |
+| JSON Results | `frontend/e2e/reports/results.json` |
+| Traces | `frontend/e2e/test-results/*/trace.zip` |
+
+### Viewing Results
+
+```bash
+# Open HTML report in browser
+npm run e2e:report
+
+# Replay test trace with Playwright
+npx playwright show-trace frontend/e2e/test-results/*/trace.zip
+
+# Play video with VLC
+vlc frontend/e2e/test-results/*/video.webm
+```
+
+### E2E Test Inventory
+
+| Test Suite | Tests | Coverage |
+|------------|-------|----------|
+| VCF Viewer | 1 | Variant filtering, statistics |
+| Sequence Viewer | 1 | GC content, quality display |
+| Annotation Viewer | 1 | Feature table, coordinates |
+| Interactive Tool Launcher | 1 | Tool suggestions, launch |
+| Output Integration | 1 | Type grouping, download |
+| Error Handling | 1 | Graceful error display |
+
+**Total E2E Tests:** 6
+
+### Video Recording Notes
+
+- Videos are recorded in WebM format (VP8 codec)
+- Resolution: 1920x1080
+- Frame rate: Variable (based on test execution speed)
+- Videos automatically capture all browser interactions
+- Trace files include detailed timing and network data
+
