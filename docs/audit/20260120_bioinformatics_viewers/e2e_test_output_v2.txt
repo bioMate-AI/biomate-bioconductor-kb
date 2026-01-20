@@ -1,0 +1,262 @@
+
+> rest-express@1.0.0 e2e
+> playwright test
+
+
+Running 7 tests using 1 worker
+
+[Setup] Registering user: e2e_test_1768948085149_ui_render@biomate.test
+[Setup] User setup complete
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-28-10-687Z.json
+  ✘  1 [chromium] › e2e/bioinformatics-viewers.e2e.ts:131:3 › UI Rendering › should render main chat interface elements (5.6s)
+[Setup] Registering user: e2e_test_1768948091497_vcf@biomate.test
+[Setup] User setup complete
+[Mock] API responses configured for: vcf
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-28-30-224Z.json
+  ✘  2 [chromium] › e2e/bioinformatics-viewers.e2e.ts:157:3 › VCF Viewer › should send VCF analysis request and receive response (18.7s)
+[Setup] Registering user: e2e_test_1768948111323_sequence@biomate.test
+[Setup] User setup complete
+[Mock] API responses configured for: sequence
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-28-49-894Z.json
+  ✘  3 [chromium] › e2e/bioinformatics-viewers.e2e.ts:185:3 › Sequence Viewer › should send sequence analysis request and receive response (18.6s)
+[Setup] Registering user: e2e_test_1768948130956_annotation@biomate.test
+[Setup] User setup complete
+[Mock] API responses configured for: annotation
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-29-09-538Z.json
+  ✘  4 [chromium] › e2e/bioinformatics-viewers.e2e.ts:210:3 › Annotation Viewer › should send annotation request and receive response (18.6s)
+[Setup] Registering user: e2e_test_1768948150572_interactive@biomate.test
+[Setup] User setup complete
+[Mock] API responses configured for: interactive
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-29-29-137Z.json
+  ✘  5 [chromium] › e2e/bioinformatics-viewers.e2e.ts:235:3 › Interactive Tool Launcher › should suggest interactive tools for single-cell data (18.6s)
+[Setup] Registering user: e2e_test_1768948170160_navigation@biomate.test
+[Setup] User setup complete
+[Navigation] Found 0 chat items in sidebar
+[Navigation] Test completed successfully
+  ✓  6 [chromium] › e2e/bioinformatics-viewers.e2e.ts:260:3 › Navigation › should navigate using sidebar (6.5s)
+[Setup] Registering user: e2e_test_1768948176903_theme@biomate.test
+[Setup] User setup complete
+[Theme] Theme toggled successfully
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-29-43-111Z.json
+  ✓  7 [chromium] › e2e/bioinformatics-viewers.e2e.ts:292:3 › Theme › should toggle theme (6.2s)
+
+
+  1) [chromium] › e2e/bioinformatics-viewers.e2e.ts:131:3 › UI Rendering › should render main chat interface elements 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=bioMate AI')
+    Expected: visible
+    Error: strict mode violation: locator('text=bioMate AI') resolved to 2 elements:
+        1) <h1 class="text-sm font-semibold text-sidebar-foreground">bioMate AI</h1> aka getByRole('heading', { name: 'bioMate AI' })
+        2) <p class="text-sm leading-relaxed whitespace-pre-wrap">Hello! I'm your BioMate AI assistant. I can help …</p> aka getByText('Hello! I\'m your BioMate AI')
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=bioMate AI')[22m
+
+
+      133 |
+      134 |     // Check sidebar elements
+    > 135 |     await expect(page.locator('text=bioMate AI')).toBeVisible();
+          |                                                   ^
+      136 |     await expect(page.locator('text=New Chat')).toBeVisible();
+      137 |     await expect(page.locator('text=Recent Chats')).toBeVisible();
+      138 |
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:135:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-faad6-ain-chat-interface-elements-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-faad6-ain-chat-interface-elements-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-faad6-ain-chat-interface-elements-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-faad6-ain-chat-interface-elements-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-faad6-ain-chat-interface-elements-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/bioinformatics-viewers.e2e.ts:157:3 › VCF Viewer › should send VCF analysis request and receive response 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=Variant Summary')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('text=Variant Summary')[22m
+
+
+      168 |
+      169 |     // Verify response appeared
+    > 170 |     await expect(page.locator('text=Variant Summary')).toBeVisible({ timeout: 10000 });
+          |                                                        ^
+      171 |
+      172 |     await page.screenshot({
+      173 |       path: `${SCREENSHOT_DIR}/vcf_response.png`,
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:170:56
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-90701-equest-and-receive-response-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-90701-equest-and-receive-response-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-90701-equest-and-receive-response-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-90701-equest-and-receive-response-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-90701-equest-and-receive-response-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/bioinformatics-viewers.e2e.ts:185:3 › Sequence Viewer › should send sequence analysis request and receive response 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=Sequence Summary')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('text=Sequence Summary')[22m
+
+
+      193 |     await page.waitForTimeout(2000);
+      194 |
+    > 195 |     await expect(page.locator('text=Sequence Summary')).toBeVisible({ timeout: 10000 });
+          |                                                         ^
+      196 |
+      197 |     await page.screenshot({
+      198 |       path: `${SCREENSHOT_DIR}/sequence_response.png`,
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:195:57
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-7f686-equest-and-receive-response-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-7f686-equest-and-receive-response-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-7f686-equest-and-receive-response-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-7f686-equest-and-receive-response-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-7f686-equest-and-receive-response-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e/bioinformatics-viewers.e2e.ts:210:3 › Annotation Viewer › should send annotation request and receive response 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=Annotation Summary')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('text=Annotation Summary')[22m
+
+
+      218 |     await page.waitForTimeout(2000);
+      219 |
+    > 220 |     await expect(page.locator('text=Annotation Summary')).toBeVisible({ timeout: 10000 });
+          |                                                           ^
+      221 |
+      222 |     await page.screenshot({
+      223 |       path: `${SCREENSHOT_DIR}/annotation_response.png`,
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:220:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-ef9fc-equest-and-receive-response-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-ef9fc-equest-and-receive-response-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-ef9fc-equest-and-receive-response-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-ef9fc-equest-and-receive-response-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-ef9fc-equest-and-receive-response-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e/bioinformatics-viewers.e2e.ts:235:3 › Interactive Tool Launcher › should suggest interactive tools for single-cell data 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=CellxGene')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('text=CellxGene')[22m
+
+
+      243 |     await page.waitForTimeout(2000);
+      244 |
+    > 245 |     await expect(page.locator('text=CellxGene')).toBeVisible({ timeout: 10000 });
+          |                                                  ^
+      246 |
+      247 |     await page.screenshot({
+      248 |       path: `${SCREENSHOT_DIR}/interactive_tools.png`,
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:245:50
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-262f7--tools-for-single-cell-data-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-262f7--tools-for-single-cell-data-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-262f7--tools-for-single-cell-data-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-262f7--tools-for-single-cell-data-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-262f7--tools-for-single-cell-data-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:131:3 › UI Rendering › should render main chat interface elements 
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:157:3 › VCF Viewer › should send VCF analysis request and receive response 
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:185:3 › Sequence Viewer › should send sequence analysis request and receive response 
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:210:3 › Annotation Viewer › should send annotation request and receive response 
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:235:3 › Interactive Tool Launcher › should suggest interactive tools for single-cell data 
+  2 passed (1.7m)

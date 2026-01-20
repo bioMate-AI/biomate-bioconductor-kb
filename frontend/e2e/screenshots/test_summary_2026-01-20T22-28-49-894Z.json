@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-01-20T22:28:49.894Z",
+  "baseUrl": "http://localhost:5000",
+  "videoDir": "/home/yzhang/biomate/frontend/e2e/videos",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots",
+  "tests": [
+    "UI Rendering",
+    "VCF Viewer",
+    "Sequence Viewer",
+    "Annotation Viewer",
+    "Interactive Tool Launcher",
+    "Navigation",
+    "Theme"
+  ],
+  "note": "Tests use mocked API responses for reliability"
+}
