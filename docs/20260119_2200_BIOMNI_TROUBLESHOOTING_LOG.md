@@ -387,10 +387,10 @@ PYEOF
 
 | File | Purpose |
 |------|---------|
-| `Biomni/tests/test_skipped_tools_v5.py` | Test with 91% pass rate |
-| `Biomni/tests/test_skipped_tools_v7.py` | Test with scRNA working |
-| `docs/BIOMNI_TOOL_REQUIREMENTS_KNOWLEDGE.md` | Function signatures and formats |
-| `docs/BIOMNI_TROUBLESHOOTING_LOG.md` | This troubleshooting document |
+| `Biomni/tests/20260119_1348_test_skipped_tools_v5.py` | Test with 91% pass rate |
+| `Biomni/tests/20260119_2150_test_skipped_tools_v7.py` | Test with scRNA working (95%) |
+| `docs/20260119_BIOMNI_TOOL_REQUIREMENTS_KNOWLEDGE.md` | Function signatures and formats |
+| `docs/20260119_2200_BIOMNI_TROUBLESHOOTING_LOG.md` | This troubleshooting document |
 | `20260119_BIOMNI_SKIPPED_TOOLS_TEST_SUMMARY.md` | Summary of test results |
 | `/usr/local/bin/prepare_receptor` (in container) | Meeko wrapper for MGLTools |
 | `/tmp/data_lake/czi_census_datasets_v4.parquet` (in container) | Mock CZI census data |

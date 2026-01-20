@@ -1,0 +1,458 @@
+
+> rest-express@1.0.0 test
+> vitest run
+
+
+ RUN  v1.6.1 /home/yzhang/biomate/frontend
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Polling Lifecycle > TC-POLL-003: should start polling for an invocation
+Started polling for invocation inv-123
+Started polling interval (2000ms)
+Stopped polling interval
+Stopped all pollers
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Polling Lifecycle > TC-POLL-004: should not start duplicate polling for same invocation
+Started polling for invocation inv-123
+Started polling interval (2000ms)
+Already polling invocation inv-123
+Stopped polling interval
+Stopped all pollers
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Polling Lifecycle > TC-POLL-005: should stop polling when requested
+Started polling for invocation inv-123
+Started polling interval (2000ms)
+Stopped polling for invocation inv-123
+Stopped polling interval
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Polling Lifecycle > TC-POLL-006: should stop all polling
+Started polling for invocation inv-1
+Started polling interval (2000ms)
+Started polling for invocation inv-2
+Stopped polling interval
+Stopped all pollers
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-001: should emit workflow_state event on state change
+Started polling for invocation inv-123
+Started polling interval (100ms)
+
+ ✓ client/src/lib/utils.test.ts  (9 tests) 13ms
+ ✓ client/src/components/chat-output-attachments.test.tsx  (34 tests) 15ms
+ ✓ server/output-visualization.test.ts  (76 tests) 31ms
+ ✓ shared/schema.test.ts  (12 tests) 4ms
+stdout | client/src/hooks/useWorkflowExecution.test.ts > useWorkflowExecution > invokeWorkflow > should invoke workflow and return invocation
+[SSE] Disconnecting
+
+stdout | client/src/hooks/useWorkflowExecution.test.ts > useWorkflowExecution > invokeWorkflow > should update state after successful invocation
+[SSE] Disconnecting
+
+ ✓ client/src/hooks/useWorkflowExecution.test.ts  (12 tests) 21ms
+ ✓ server/encryption.test.ts  (9 tests) 137ms
+stdout | server/encryption.test.ts > Encryption Module > testEncryption > should pass self-test
+[Encryption] Self-test passed
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-001: should emit workflow_state event on state change
+Stopped polling interval
+Stopped all pollers
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-004: should fetch and emit job logs on step completion
+Started polling for invocation inv-123
+Started polling interval (100ms)
+
+ ✓ client/src/components/ui/button.test.tsx  (16 tests) 129ms
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-004: should fetch and emit job logs on step completion
+[Milestone] Invocation inv-123: ✓ 25% complete (1/1 steps)
+[Milestone] Invocation inv-123: ✓ 50% complete (1/1 steps)
+[Milestone] Invocation inv-123: ✓ 75% complete (1/1 steps)
+[Milestone] Invocation inv-123: ✓ Workflow complete! (1/1 steps)
+Invocation inv-123 completed with state: running
+Stopped polling for invocation inv-123
+Stopped polling interval
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-004: should fetch and emit job logs on step completion
+Stopped all pollers
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-005: should emit error event for stderr with error content
+Started polling for invocation inv-123
+Started polling interval (100ms)
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-005: should emit error event for stderr with error content
+[Milestone] Invocation inv-123: ✓ 25% complete (1/1 steps)
+[Milestone] Invocation inv-123: ✓ 50% complete (1/1 steps)
+[Milestone] Invocation inv-123: ✓ 75% complete (1/1 steps)
+[Milestone] Invocation inv-123: ✓ Workflow complete! (1/1 steps)
+Invocation inv-123 completed with state: running
+Stopped polling for invocation inv-123
+Stopped polling interval
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-005: should emit error event for stderr with error content
+Stopped all pollers
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-006: should handle job log fetch failure gracefully
+Started polling for invocation inv-123
+Started polling interval (100ms)
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-006: should handle job log fetch failure gracefully
+[Milestone] Invocation inv-123: ✓ 25% complete (1/1 steps)
+[Milestone] Invocation inv-123: ✓ 50% complete (1/1 steps)
+[Milestone] Invocation inv-123: ✓ 75% complete (1/1 steps)
+[Milestone] Invocation inv-123: ✓ Workflow complete! (1/1 steps)
+Invocation inv-123 completed with state: running
+Stopped polling for invocation inv-123
+Stopped polling interval
+
+ ✓ server/auth-service.test.ts  (13 tests) 897ms
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-006: should handle job log fetch failure gracefully
+Stopped all pollers
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-002: should emit step_state event when step state changes
+Started polling for invocation inv-123
+Started polling interval (100ms)
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-002: should emit step_state event when step state changes
+<empty line>
+stderr | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-002: should emit step_state event when step state changes
+Failed to poll invocation inv-123 (attempt 1/5): Cannot read properties of undefined (reading 'state')
+
+stderr | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-002: should emit step_state event when step state changes
+<empty line>
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-002: should emit step_state event when step state changes
+Stopped polling interval
+Stopped all pollers
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > State Detection > TC-STATE-003: should detect workflow completion
+Started polling for invocation inv-123
+Started polling interval (100ms)
+Invocation inv-123 completed with state: scheduled
+Stopped polling for invocation inv-123
+Stopped polling interval
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Milestone Tracking > TC-MILE-001: should emit progress_milestone at 25%, 50%, 75%, 100%
+Started polling for invocation inv-123
+Started polling interval (100ms)
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Milestone Tracking > TC-MILE-001: should emit progress_milestone at 25%, 50%, 75%, 100%
+[Milestone] Invocation inv-123: ✓ 25% complete (2/4 steps)
+[Milestone] Invocation inv-123: ✓ 50% complete (2/4 steps)
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Milestone Tracking > TC-MILE-001: should emit progress_milestone at 25%, 50%, 75%, 100%
+[Milestone] Invocation inv-123: ✓ 75% complete (3/4 steps)
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Milestone Tracking > TC-MILE-001: should emit progress_milestone at 25%, 50%, 75%, 100%
+[Milestone] Invocation inv-123: ✓ Workflow complete! (4/4 steps)
+Invocation inv-123 completed with state: running
+Stopped polling for invocation inv-123
+Stopped polling interval
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Milestone Tracking > TC-MILE-001: should emit progress_milestone at 25%, 50%, 75%, 100%
+Stopped all pollers
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-001: should emit polling_error on API failure
+Started polling for invocation inv-123
+Started polling interval (100ms)
+
+stderr | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-001: should emit polling_error on API failure
+Failed to poll invocation inv-123 (attempt 1/3): Network error
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-001: should emit polling_error on API failure
+<empty line>
+stderr | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-001: should emit polling_error on API failure
+Failed to poll invocation inv-123 (attempt 2/3): Network error
+
+stderr | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-001: should emit polling_error on API failure
+<empty line>
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-001: should emit polling_error on API failure
+Stopped polling interval
+Stopped all pollers
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-002: should stop polling after max retries
+Started polling for invocation inv-123
+Started polling interval (50ms)
+
+stderr | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-002: should stop polling after max retries
+Failed to poll invocation inv-123 (attempt 1/3): Persistent error
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-002: should stop polling after max retries
+<empty line>
+stderr | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-002: should stop polling after max retries
+Failed to poll invocation inv-123 (attempt 2/3): Persistent error
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-002: should stop polling after max retries
+Stopped polling for invocation inv-123
+Stopped polling interval
+
+stderr | server/workflow-execution.test.ts > GalaxyStatePoller > Error Handling > TC-ERR-002: should stop polling after max retries
+Failed to poll invocation inv-123 (attempt 3/3): Persistent error
+Max retries reached for invocation inv-123, stopping polling
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Terminal States > TC-TERM-001: should detect cancelled workflow as complete
+Started polling for invocation inv-123
+Started polling interval (100ms)
+Invocation inv-123 completed with state: cancelled
+Stopped polling for invocation inv-123
+Stopped polling interval
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Terminal States > TC-TERM-002: should detect failed workflow as complete
+Started polling for invocation inv-123
+Started polling interval (100ms)
+Invocation inv-123 completed with state: failed
+Stopped polling for invocation inv-123
+Stopped polling interval
+
+stdout | server/workflow-execution.test.ts > GalaxyStatePoller > Terminal States > TC-TERM-003: should detect workflow with error steps as complete
+Started polling for invocation inv-123
+Started polling interval (100ms)
+Invocation inv-123 completed with state: scheduled
+Stopped polling for invocation inv-123
+Stopped polling interval
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Connection Handling > TC-SSE-001: should establish SSE connection with valid parameters
+SSE client client_1768943937936_9ell6sb7c connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Connection Handling > TC-SSE-003: should send initial state on connection
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937938_p6oxpfih5 connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Connection Handling > TC-SSE-004: should start polling if not already polling
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937938_tpsns0vpn connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Connection Handling > TC-SSE-005: should handle client disconnect
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937938_46z6l3dlz connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Cleaning up all SSE connections
+Closing 1 SSE connections for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Event Broadcasting > TC-SSE-006: should broadcast workflow_state events to clients
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937939_nbqsrfr2s connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting workflow_state to 1 clients for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Event Broadcasting > TC-SSE-007: should broadcast step_state events to clients
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937940_t9jhh0fct connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting step_state to 1 clients for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Event Broadcasting > TC-SSE-008: should broadcast error events to clients
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937940_x3snelsc0 connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting error to 1 clients for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Management > TC-SSE-009: should track client count correctly
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937941_nov1rnjcc connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Management > TC-SSE-010: should support multiple clients for same invocation
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937941_ae52p8koa connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937941_8nd7wmgrd connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Management > TC-SSE-011: should cleanup all connections
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937942_iqc8afxnd connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Cleaning up all SSE connections
+Closing 1 SSE connections for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Management > TC-SSE-012: should track total client count across invocations
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937942_yloc3njpz connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+[SSE] No execution record for inv-789, allowing connection
+SSE client client_1768943937942_gv24yjscx connected for invocation inv-789
+Starting polling for invocation inv-789 (workflow wf-789)
+Cleaning up all SSE connections
+Closing 1 SSE connections for invocation inv-456
+Closing 1 SSE connections for invocation inv-789
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Management > TC-SSE-014: should send ping to keep connection alive
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937944_90btmqjlv connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Cleaning up all SSE connections
+Closing 1 SSE connections for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Management > TC-SSE-015: should stop ping when client becomes inactive
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937946_xyjidnopi connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Cleaning up all SSE connections
+Closing 1 SSE connections for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Authentication > TC-AUTH-001: should verify token from query parameter
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937946_fqqveiol5 connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Authentication > TC-AUTH-002: should verify token from cookie if no query param
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937947_0h5izwdq7 connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stderr | server/workflow-execution.test.ts > WorkflowSSEManager > Authentication > TC-AUTH-003: should reject connection in strict auth mode when auth fails
+[SSE] Auth failed for invocation inv-456: Invalid token
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Authentication > TC-AUTH-004: should allow connection in permissive mode when auth fails
+[SSE] Allowing unauthenticated connection for inv-456 (strict auth disabled)
+SSE client client_1768943937948_t8f0vjb0n connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stderr | server/workflow-execution.test.ts > WorkflowSSEManager > Authentication > TC-AUTH-004: should allow connection in permissive mode when auth fails
+[SSE] Auth failed for invocation inv-456: Invalid token
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Error Handling > TC-SSE-ERR-001: should handle send event errors gracefully
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937948_fu9uby11z connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Error Handling > TC-SSE-ERR-002: should handle broadcast to inactive clients
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937948_blu0qu51o connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Cleaning up all SSE connections
+Closing 1 SSE connections for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Poller Integration > TC-POLL-INT-001: should update storage on workflow state change
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937949_vpjql3n33 connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting workflow_state to 1 clients for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Poller Integration > TC-POLL-INT-002: should update storage on step completion
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943937949_j2t3kgacf connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting step_state to 1 clients for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Poller Integration > TC-POLL-INT-003: should close clients on workflow completion
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943938002_u27zp3sga connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting workflow_state to 1 clients for invocation inv-456
+[SSE] Workflow completed, updated local record: inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Poller Integration > TC-POLL-INT-003: should close clients on workflow completion
+Closing 1 SSE connections for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Poller Integration > TC-POLL-INT-004: should broadcast job_log events
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939104_os0e20amt connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting job_log to 1 clients for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Poller Integration > TC-POLL-INT-005: should broadcast progress_milestone events
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939105_qpe7zaglu connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting progress_milestone to 1 clients for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Poller Integration > TC-POLL-INT-006: should handle polling_error events
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939105_f71130hf2 connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting error to 1 clients for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Poller Integration > TC-POLL-INT-007: should handle polling_failed events and close clients
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939106_gxgbzkqp3 connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting error to 1 clients for invocation inv-456
+Closing 1 SSE connections for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Disconnect Handling > TC-DISCONNECT-001: should handle client disconnect via close event
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939106_8yqi6q6l7 connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+SSE client client_1768943939106_8yqi6q6l7 disconnected
+No more clients for invocation inv-456, stopping polling
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Disconnect Handling > TC-DISCONNECT-002: should stop polling when last client disconnects
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939107_ud2vwd5oh connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+SSE client client_1768943939107_ud2vwd5oh disconnected
+No more clients for invocation inv-456, stopping polling
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Disconnect Handling > TC-DISCONNECT-003: should not stop polling when other clients remain
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939108_yt0qlm4vg connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939108_r59zoursm connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+SSE client client_1768943939108_yt0qlm4vg disconnected
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Disconnect Handling > TC-DISCONNECT-004: should log disconnect to audit service
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939108_fo8c0ugom connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+SSE client client_1768943939108_fo8c0ugom disconnected
+No more clients for invocation inv-456, stopping polling
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Client Disconnect Handling > TC-DISCONNECT-005: should handle audit log failure on disconnect gracefully
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939160_pk26wu5ew connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+SSE client client_1768943939160_pk26wu5ew disconnected
+No more clients for invocation inv-456, stopping polling
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Auth Error Path Coverage > TC-AUTH-005: should log access denied when auth fails
+[SSE] Allowing unauthenticated connection for inv-456 (strict auth disabled)
+SSE client client_1768943939263_vs4jetsml connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stderr | server/workflow-execution.test.ts > WorkflowSSEManager > Auth Error Path Coverage > TC-AUTH-005: should log access denied when auth fails
+[SSE] Auth failed for invocation inv-456: Token expired
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Auth Error Path Coverage > TC-AUTH-006: should handle logAccessDenied failure gracefully
+[SSE] Allowing unauthenticated connection for inv-456 (strict auth disabled)
+SSE client client_1768943939264_x03ia10bx connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stderr | server/workflow-execution.test.ts > WorkflowSSEManager > Auth Error Path Coverage > TC-AUTH-006: should handle logAccessDenied failure gracefully
+[SSE] Auth failed for invocation inv-456: Invalid token
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Auth Error Path Coverage > TC-AUTH-007: should handle auth error with no message
+[SSE] Allowing unauthenticated connection for inv-456 (strict auth disabled)
+SSE client client_1768943939264_e6prm1krh connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stderr | server/workflow-execution.test.ts > WorkflowSSEManager > Auth Error Path Coverage > TC-AUTH-007: should handle auth error with no message
+[SSE] Auth failed for invocation inv-456: string error
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > State Sending on Connection > TC-STATE-SEND-001: should send current state and steps on connection
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939265_3qtj6qhkz connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > State Sending on Connection > TC-STATE-SEND-002: should not start new polling if already polling
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939265_jx6qq1rg2 connected for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Storage Update Errors > TC-STORAGE-001: should handle storage update failure on workflow completion
+[SSE] No execution record for inv-456, allowing connection
+SSE client client_1768943939266_q8tsbeh0q connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+Broadcasting workflow_state to 1 clients for invocation inv-456
+
+stdout | server/workflow-execution.test.ts > WorkflowSSEManager > Ownership Verification > TC-OWNER-002: should allow access when user owns execution
+SSE client client_1768943939368_4vvgj75g5 connected for invocation inv-456
+Starting polling for invocation inv-456 (workflow wf-123)
+
+ ✓ server/workflow-execution.test.ts  (65 tests) 4569ms
+
+ Test Files  9 passed (9)
+      Tests  246 passed (246)
+   Start at  15:18:53
+   Duration  5.50s (transform 1.10s, setup 368ms, collect 1.80s, tests 5.82s, environment 2.11s, prepare 1.41s)
+

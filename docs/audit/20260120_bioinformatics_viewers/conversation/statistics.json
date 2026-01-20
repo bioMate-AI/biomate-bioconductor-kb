@@ -1,0 +1,10 @@
+{
+  "source_file": "/home/yzhang/.claude/projects/-home-yzhang-biomate/37394a7c-68ea-40e2-8295-b8183b00dce4.jsonl",
+  "extraction_time": "2026-01-20T15:33:33.215615",
+  "total_raw_entries": 7822,
+  "conversation_messages": 5823,
+  "user_messages": 1873,
+  "assistant_messages": 3950,
+  "tool_calls": 1711,
+  "tool_results": 0
+}

@@ -218,9 +218,10 @@ Download pre-trained models:
 
 | File | Purpose |
 |------|---------|
-| `tests/test_skipped_tools_v3.py` | Comprehensive test with correct signatures |
-| `/tmp/biomni_skipped_test_v3.json` | Test results JSON |
-| `/tmp/biomni_test_v3_full_results.log` | Full test output |
+| `Biomni/tests/20260119_1348_test_skipped_tools_v5.py` | Test with 91% pass rate |
+| `Biomni/tests/20260119_2150_test_skipped_tools_v7.py` | Test with 95% pass rate (scRNA working) |
+| `docs/20260119_BIOMNI_TOOL_REQUIREMENTS_KNOWLEDGE.md` | Function signatures and formats |
+| `docs/20260119_2200_BIOMNI_TROUBLESHOOTING_LOG.md` | Detailed troubleshooting documentation |
 
 ## Conclusion
 
