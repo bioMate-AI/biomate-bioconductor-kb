@@ -269,7 +269,15 @@ export const outputDatasetSchema = z.object({
   createdAt: z.coerce.date(),
 
   // Display metadata
-  fileType: z.enum(['image', 'table', 'text', 'binary', 'interactive']),
+  fileType: z.enum([
+    'image', 'table', 'text', 'binary', 'interactive',
+    // Bioinformatics-specific types
+    'sequence',    // FASTA, FASTQ
+    'alignment',   // BAM, SAM
+    'variants',    // VCF
+    'annotation',  // BED, GFF, GTF
+    'singlecell',  // h5ad, loom
+  ]),
   isVisualizable: z.boolean().default(false),
   previewAvailable: z.boolean().default(false),
 
@@ -281,6 +289,15 @@ export const outputDatasetSchema = z.object({
     height: z.number().optional(),
     interactive: z.boolean().optional(), // For Plotly/interactive viz
     dataType: z.string().optional(), // Galaxy data type
+    // Bioinformatics-specific metadata
+    sequenceCount: z.number().optional(), // For FASTA/FASTQ
+    avgLength: z.number().optional(),
+    gcContent: z.number().optional(),
+    variantCount: z.number().optional(), // For VCF
+    featureCount: z.number().optional(), // For BED/GFF/GTF
+    readCount: z.number().optional(), // For BAM/SAM
+    cellCount: z.number().optional(), // For single-cell data
+    geneCount: z.number().optional(),
   }).optional(),
 });
 

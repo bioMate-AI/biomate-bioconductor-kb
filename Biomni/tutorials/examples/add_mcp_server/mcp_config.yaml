@@ -23,3 +23,49 @@ mcp_servers:
         description: "Fetch PubMed abstract"
         parameters:
           pmid: {type: str, required: true, description: "PubMed ID"}
+
+  # =============================================================================
+  # NEW TOOLS ADDED 2026-01-19
+  # =============================================================================
+
+  # Boltz-2: Protein-ligand structure and affinity prediction (MIT License)
+  # Already in ToolUniverse - local server
+  boltz:
+    command: ["python", "-m", "tooluniverse.remote.boltz.boltz_mcp_server"]
+    enabled: true
+    description: "Boltz-2 protein-ligand docking and binding affinity prediction"
+    tools:
+      - biomni_name: run_boltz2
+        description: "Run Boltz-2 protein-ligand docking"
+        parameters:
+          query: {type: dict, required: true, description: "Dict with protein_sequence, ligands (SMILES), diffusion_samples"}
+
+  # Chai-1: Multi-modal protein structure prediction (Apache 2.0)
+  # GitHub: chaidiscovery/chai-lab
+  chai1:
+    command: ["python", "-m", "chai_lab.mcp_server"]
+    enabled: false  # Enable after installing chai_lab
+    description: "Chai-1 multi-modal structure prediction (protein, DNA, RNA, ligands)"
+    tools:
+      - biomni_name: predict_structure_chai1
+        description: "Predict biomolecular structure with Chai-1"
+        parameters:
+          sequences: {type: list, required: true, description: "List of sequence dicts with type and sequence"}
+          num_trunk_recycles: {type: int, required: false, default: 3, description: "Number of trunk recycles"}
+          num_diffusion_timesteps: {type: int, required: false, default: 200, description: "Diffusion timesteps"}
+
+  # AlphaFold 3: Protein structure database access
+  # GitHub: Augmented-Nature/AlphaFold-MCP-Server
+  alphafold:
+    command: ["python", "-m", "alphafold_mcp_server"]
+    enabled: false  # Enable after installing alphafold-mcp-server
+    description: "AlphaFold Protein Structure Database access"
+    tools:
+      - biomni_name: get_alphafold_structure
+        description: "Retrieve pre-computed AlphaFold structure by UniProt ID"
+        parameters:
+          uniprot_id: {type: str, required: true, description: "UniProt accession ID"}
+      - biomni_name: get_alphafold_pae
+        description: "Get predicted aligned error (PAE) matrix"
+        parameters:
+          uniprot_id: {type: str, required: true, description: "UniProt accession ID"}

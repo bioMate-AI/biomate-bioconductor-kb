@@ -1,0 +1,945 @@
+{
+  "state": {
+    "tool_id": "state",
+    "name": "State",
+    "description": "Virtual cell model predicting cellular perturbation responses using State Embedding (SE) and State Transition (ST) modules. Trained on 270M+ cells.",
+    "category": "single-cell",
+    "github_url": "https://github.com/ArcInstitute/state",
+    "primary_citation": {
+      "doi": "10.1101/2025.06.26.661135",
+      "title": "Predicting cellular responses to perturbation across diverse contexts with State",
+      "authors": [
+        "Arc Institute"
+      ],
+      "journal": "bioRxiv",
+      "year": 2025,
+      "url": "https://www.biorxiv.org/content/10.1101/2025.06.26.661135"
+    },
+    "benchmark_papers": [
+      {
+        "title": "Tahoe-100M: The world's largest single-cell perturbation dataset",
+        "url": "https://arcinstitute.org/datasets/tahoe-100m",
+        "note": "Training dataset for State"
+      }
+    ],
+    "review_papers": null,
+    "readme_content": "# Predicting cellular responses to perturbation across diverse contexts with State\n\n> Train State transition models or pretrain State embedding models. See the State [paper](https://www.biorxiv.org/content/10.1101/2025.06.26.661135v2).\n> \n> See the [Google Colab](https://colab.research.google.com/drive/1QKOtYP7bMpdgDJEipDxaJqOchv7oQ-_l) to train STATE for the [Virtual Cell Challenge](https://virtualcellchallenge.org/).\n\n## Associated repositories\n\n- Model evaluation framework: [cell-eval](https://github.com/ArcInstitute/cell-eval)\n- Dataloaders and preprocessing: [cell-load](https://github.com/ArcInstitute/cell-load)\n\n## Getting started\n\n- Train an ST model for genetic perturbation prediction using the Replogle-Nadig dataset: [Colab](https://colab.research.google.com/drive/1Ih-KtTEsPqDQnjTh6etVv_f-gRAA86ZN)\n- Perform inference using an ST model trained on Tahoe-100M: [Colab](https://colab.research.google.com/drive/1bq5v7hixnM-tZHwNdgPiuuDo6kuiwLKJ)\n- Embed and annotate a new dataset using SE: [Colab](https://colab.research.google.com/drive/1uJinTJLSesJeot0mP254fQpSxGuDEsZt)\n- Train STATE for the Virtual Cell Challenge: [Colab](https://colab.research.google.com/drive/1QKOtYP7bMpdgDJEipDxaJqOchv7oQ-_l)\n\n## Installation\n\n### Installation from PyPI\n\nThis package is distributed via [`uv`](https://docs.astral.sh/uv).\n\n```bash\nuv tool install arc-state\n```\n\n### Installation from Source\n\n```bash\ngit clone git@github.com:ArcInstitute/state.git\ncd state\nuv run state\n```\n\nWhen making fundamental changes to State, install an editable version with the `-e` flag.\n\n```bash\ngit clone git@github.com:ArcInstitute/state.git\ncd state\nuv tool install -e .\n```\n\n## CLI Usage\n\nYou can access the CLI help menu with:\n\n```state --help```\n\nOutput:\n```\nusage: state [-h] {emb,tx} ...\n\npositional arguments:\n  {emb,tx}\n\noptions:\n  -h, --help  show this help message and exit\n```\n\n## State Transition Model (ST)\n\nTo start an experiment, write a TOML file (see `examples/zeroshot.toml` or\n`examples/fewshot.toml` to start). The TOML file specifies the dataset paths\n(containing h5ad files) as well as the machine learning task.\n\nTraining an ST example below.\n\n```bash\nstate tx train \\\ndata.kwargs.toml_config_path=\"examples/fewshot.toml\" \\\ndata.kwargs.embed_key=X_hvg \\\ndata.kwargs.num_workers=12 \\\ndata.kwargs.batch_col=batch_var \\\ndata.kwargs.pert_col=target_gene \\\ndata.kwargs.cell_type_key=cell_type \\\ndata.kwargs.control_pert=TARGET1 \\\ntraining.max_steps=40000 \\\ntraining.val_freq=100 \\\ntraining.ckpt_every_n_steps=100 \\\ntraining.batch_size=8 \\\ntraining.lr=1e-4 \\\nmodel.kwargs.cell_set_len=64 \\\nmodel.kwargs.hidden_dim=328 \\\nmodel=pertsets \\\nwandb.tags=\"[test]\" \\\noutput_dir=\"$HOME/state\" \\\nname=\"test\"\n```\n\nThe cell lines and perturbations specified in the TOML should match the values appearing in the\n`data.kwargs.cell_type_key` and `data.kwargs.pert_col` used above. To evaluate STATE on the specified task,\nyou can use the `tx predict` command:\n\n```bash\nstate tx predict --output-dir $HOME/state/test/ --checkpoint final.ckpt\n```\n\nIt will look in the `output_dir` above, for a `checkpoints` folder.\n\nIf you instead want to use a trained checkpoint for inference (e.g. on data not specified)\nin the TOML file:\n\n\n```bash\nstate tx infer --output $HOME/state/test/ --output_dir /path/to/model/ --checkpoint /path/to/model/final.ckpt --adata /path/to/anndata/processed.h5 --pert_col gene --embed_key X_hvg\n```\n\nHere, `/path/to/model/` is the folder downloaded from [HuggingFace](https://huggingface.co/arcinstitute).\n\n### Data Preprocessing\n\nState provides two preprocessing commands to prepare data for training and inference:\n\n#### Training Data Preprocessing\n\nUse `preprocess_train` to normalize, log-transform, and select highly variable genes from your training data:\n\n```bash\nstate tx preprocess_train \\\n  --adata /path/to/raw_data.h5ad \\\n  --output /path/to/preprocessed_training_data.h5ad \\\n  --num_hvgs 2000\n```\n\nThis command:\n- Normalizes total counts per cell (`sc.pp.normalize_total`)\n- Applies log1p transformation (`sc.pp.log1p`) \n- Identifies highly variable genes (`sc.pp.highly_variable_genes`)\n- Stores the HVG expression matrix in `.obsm['X_hvg']`\n\n#### Inference Data Preprocessing\n\nUse `preprocess_infer` to create a \"control template\" for model inference:\n\n```bash\nstate tx preprocess_infer \\\n  --adata /path/to/real_data.h5ad \\\n  --output /path/to/control_template.h5ad \\\n  --control_condition \"DMSO\" \\\n  --pert_col \"treatment\" \\\n  --seed 42\n```\n\nThis command replaces all perturbed cells with control cell expression while preserving perturbation annotations. The resulting dataset serves as a baseline where `state_transition(control_template) \u2248 original_data`, allowing you to evaluate how well the model reconstructs perturbation effects from control states.\n\n## TOML Configuration Files\n\nState experiments are configured using TOML files that define datasets, training splits, and evaluation scenarios. The configuration system supports both **zeroshot** (unseen cell types) and **fewshot** (limited perturbation examples) evaluation paradigms.\n\n### Configuration Structure\n\n#### Required Sections\n\n**`[datasets]`** - Maps dataset names to their file system paths\n```toml\n[datasets]\nreplogle = \"/path/to/replogle/dataset/\"\n# YOU CAN ADD MORE\n```\n\n**`[training]`** - Specifies which datasets participate in training\n```toml\n[training]\nreplogle = \"train\"  # Include all replogle data in training (unless overridden below)\n```\n\n#### Optional Evaluation Sections\n\n**`[zeroshot]`** - Reserves entire cell types for validation/testing\n```toml\n[zeroshot]\n\"replogle.jurkat\" = \"test\"     # All jurkat cells go to test set\n\"replogle.k562\" = \"val\"        # All k562 cells go to validation set\n```\n\n**`[fewshot]`** - Specifies perturbation-level splits within cell types\n```toml\n[fewshot]\n[fewshot.\"replogle.rpe1\"]      # Configure splits for rpe1 cell type\nval = [\"AARS\", \"TUFM\"]         # These perturbations go to validation\ntest = [\"NUP107\", \"RPUSD4\"]    # These perturbations go to test\n# Note: All other perturbations in rpe1 automatically go to training\n\n```\n\n### Configuration Examples\n\n#### Example 1: Pure Zeroshot Evaluation\n```toml\n# Evaluate generalization to completely unseen cell types\n[datasets]\nreplogle = \"/data/replogle/\"\n\n[training]\nreplogle = \"train\"\n\n[zeroshot]\n\"replogle.jurkat\" = \"test\"     # Hold out entire jurkat cell line\n\"replogle.rpe1\" = \"val\"        # Hold out entire rpe1 cell line\n\n[fewshot]\n# Empty - no perturbation-level splits\n```\n\n#### Example 2: Pure Fewshot Evaluation\n```toml\n# Evaluate with limited examples of specific perturbations\n[datasets]\nreplogle = \"/data/replogle/\"\n\n[training]\nreplogle = \"train\"\n\n[zeroshot]\n# Empty - all cell types participate in training\n\n[fewshot]\n[fewshot.\"replogle.k562\"]\nval = [\"AARS\"]                 # Limited AARS examples for validation\ntest = [\"NUP107\", \"RPUSD4\"]    # Limited examples of these genes for testing\n\n[fewshot.\"replogle.jurkat\"]\nval = [\"TUFM\"]\ntest = [\"MYC\", \"TP53\"]\n```\n\n#### Example 3: Mixed Evaluation Strategy\n```toml\n# Combine both zeroshot and fewshot evaluation\n[datasets]\nreplogle = \"/data/replogle/\"\n\n[training]\nreplogle = \"train\"\n\n[zeroshot]\n\"replogle.jurkat\" = \"test\"        # Zeroshot: unseen cell type\n\n[fewshot]\n[fewshot.\"replogle.k562\"]      # Fewshot: limited perturbation examples\nval = [\"STAT1\"]\ntest = [\"MYC\", \"TP53\"]\n```\n\n### Important Notes\n\n- **Automatic training assignment**: Any cell type not mentioned in `[zeroshot]` automatically participates in training, with perturbations not listed in `[fewshot]` going to the training set\n- **Overlapping splits**: Perturbations can appear in both validation and test sets within fewshot configurations\n- **Dataset naming**: Use the format `\"dataset_name.cell_type\"` when specifying cell types in zeroshot and fewshot sections\n- **Path requirements**: Dataset paths should point to directories containing h5ad files\n- **Control perturbations**: Ensure your control condition (specified via `control_pert` parameter) is available across all splits\n\n### Validation\n\nThe configuration system will validate that:\n- All referenced datasets exist at the specified paths\n- Cell types mentioned in zeroshot/fewshot sections exist in the datasets\n- Perturbations listed in fewshot sections are present in the corresponding cell types\n- No conflicts exist between zeroshot and fewshot assignments for the same cell type\n\n\n## State Embedding Model (SE)\n\nAfter following the same installation commands above:\n\n```bash\nstate emb fit --conf ${CONFIG}\n```\n\nTo run inference with a trained State checkpoint, e.g., the State trained to 16 epochs:\n\n```bash\nstate emb transform \\\n  --model-folder /large_storage/ctc/userspace/aadduri/SE-600M \\\n  --checkpoint /large_storage/ctc/userspace/aadduri/SE-600M/se600m_epoch15.ckpt \\\n  --input /large_storage/ctc/datasets/replogle/rpe1_raw_singlecell_01.h5ad \\\n  --output /home/aadduri/vci_pretrain/test_output.h5ad\n```\n\nNotes on the h5ad file format:\n - CSR matrix format is required\n - `gene_name` is required in the `var` dataframe\n\n### Vector Database\n\nInstall the optional dependencies:\n\n```bash\nuv tool install \".[vectordb]\"\n```\n\nIf working off a previous installation, you may need to run:\n\n```bash\nuv sync --extra vectordb\n```\n\n#### Build the vector database\n\n```bash\nstate emb transform \\\n  --model-folder /large_storage/ctc/userspace/aadduri/SE-600M \\\n  --input /large_storage/ctc/public/scBasecamp/GeneFull_Ex50pAS/GeneFull_Ex50pAS/Homo_sapiens/SRX27532045.h5ad \\\n  --lancedb tmp/state_embeddings.lancedb \\\n  --gene-column gene_symbols\n```\n\nRunning this command multiple times with the same lancedb appends the new data to the provided database.\n\n#### Query the database\n\nObtain the embeddings:\n\n```bash\nstate emb transform \\\n  --model-folder /large_storage/ctc/userspace/aadduri/SE-600M \\\n  --input /large_storage/ctc/public/scBasecamp/GeneFull_Ex50pAS/GeneFull_Ex50pAS/Homo_sapiens/SRX27532046.h5ad \\\n  --output tmp/SRX27532046.h5ad \\\n  --gene-column gene_symbols\n```\n\nQuery the database with the embeddings:\n\n```bash\nstate emb query \\\n  --lancedb tmp/state_embeddings.lancedb \\\n  --input tmp/SRX27532046.h5ad \\\n  --output tmp/similar_cells.csv \\\n  --k 3\n\n# Singularity\n\nContainerization for STATE is available via the `singularity.def` file.\n\nBuild the container:\n\n```bash\nsingularity build state.sif singularity.def\n```\n\nRun the container:\n\n```bash\nsingularity run state.sif --help\n```\n\nExample run of `state emb transform`:\n\n```bash\nsingularity run --nv -B /large_storage:/large_storage \\\n  state.sif emb transform \\\n    --model-folder /large_storage/ctc/userspace/aadduri/SE-600M \\\n    --checkpoint /large_storage/ctc/userspace/aadduri/SE-600M/se600m_epoch15.ckpt \\\n    --input /large_storage/ctc/datasets/replogle/rpe1_raw_singlecell_01.h5ad \\\n    --output test_output.h5ad\n```\n\n\n\n## Licenses\nState code is [licensed](LICENSE) under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0).\n\nThe model weights and output are licensed under the [Arc Research Institute State Model Non-Commercial License](MODEL_LICENSE.md) and subject to the [Arc Research Institute State Model Acceptable Use Policy](MODEL_ACCEPTABLE_USE_POLICY.md).\n\nAny publication that uses this source code or model parameters should cite the State [paper](https://arcinstitute.org/manuscripts/State).\n",
+    "help_text": "\nState CLI Commands:\n\nstate --help                    # Show main help\nstate emb --help               # State Embedding commands\nstate tx --help                # State Transition commands\n\nState Embedding (SE):\n  state emb fit               # Train SE model\n  state emb transform         # Generate embeddings\n  state emb query             # Query vector database\n\nState Transition (ST):\n  state tx train              # Train ST model\n  state tx predict            # Evaluate on test set\n  state tx infer              # Inference on new data\n  state tx preprocess_train   # Preprocess training data\n  state tx preprocess_infer   # Preprocess inference data\n",
+    "usage_guide": "\n## Quick Start Guide for State\n\n### 1. Installation\n```bash\nuv tool install arc-state\n```\n\n### 2. Training a State Transition Model\n```bash\nstate tx train \\\n  data.kwargs.toml_config_path=\"config.toml\" \\\n  data.kwargs.embed_key=X_hvg \\\n  training.max_steps=40000 \\\n  training.batch_size=8 \\\n  model=pertsets\n```\n\n### 3. Inference with Pre-trained Model\n```bash\nstate tx infer \\\n  --output_dir /path/to/model/ \\\n  --checkpoint final.ckpt \\\n  --adata /path/to/data.h5ad \\\n  --pert_col gene \\\n  --embed_key X_hvg\n```\n\n### 4. Download Pre-trained Models\nModels available on HuggingFace: https://huggingface.co/arcinstitute\n\n### Key Concepts:\n- **State Embedding (SE)**: Converts transcriptomes to vector space\n- **State Transition (ST)**: Predicts perturbation responses\n- **TOML config**: Defines datasets, splits, and evaluation paradigms\n",
+    "examples": "uv tool install arc-state\n\n---\n\ngit clone git@github.com:ArcInstitute/state.git\ncd state\nuv run state\n\n---\n\ngit clone git@github.com:ArcInstitute/state.git\ncd state\nuv tool install -e .\n\n---\n\n## State Transition Model (ST)\n\nTo start an experiment, write a TOML file (see `examples/zeroshot.toml` or\n`examples/fewshot.toml` to start). The TOML file specifies the dataset paths\n(containing h5ad files) as well as the machine learning task.\n\nTraining an ST example below.",
+    "scientific_context": "State is Arc Institute's first virtual cell model designed for predicting cellular responses to perturbations. It uses two modules: State Embedding (SE) for converting transcriptomes to vector space, and State Transition (ST) for predicting responses. Trained on Tahoe-100M dataset with 100M perturbed cells.",
+    "recommended_parameters": {
+      "training": {
+        "batch_size": {
+          "default": 8,
+          "range": "4-32",
+          "note": "Larger with more GPU memory"
+        },
+        "learning_rate": {
+          "default": 0.0001,
+          "range": "1e-5 to 1e-3"
+        },
+        "max_steps": {
+          "default": 40000,
+          "note": "Increase for larger datasets"
+        },
+        "val_freq": {
+          "default": 100,
+          "note": "Validation frequency"
+        }
+      },
+      "model": {
+        "hidden_dim": {
+          "default": 328
+        },
+        "cell_set_len": {
+          "default": 64
+        }
+      }
+    },
+    "use_cases": [
+      "Drug response prediction",
+      "Perturbation analysis",
+      "Cell state modeling",
+      "Cancer drug screening"
+    ],
+    "limitations": [
+      "Requires single-cell data format",
+      "Cell context dependent",
+      "Not for all cell types"
+    ],
+    "alternatives": [
+      "scGPT",
+      "Geneformer",
+      "scFoundation"
+    ],
+    "install_instructions": "### Installation from PyPI\n\nThis package is distributed via [`uv`](https://docs.astral.sh/uv).\n\n```bash\nuv tool install arc-state\n```\n\n### Installation from Source\n\n```bash\ngit clone git@github.com:ArcInstitute/state.git\ncd state\nuv run state\n```\n\nWhen making fundamental changes to State, install an editable version with the `-e` flag.\n\n```bash\ngit clone git@github.com:ArcInstitute/state.git\ncd state\nuv tool install -e .\n```",
+    "dependencies": [
+      "uv (package manager)",
+      "Python 3.10+",
+      "PyTorch 2.0+",
+      "scanpy",
+      "anndata",
+      "numpy",
+      "pandas",
+      "wandb (optional, for logging)"
+    ],
+    "hardware_requirements": "\n**Minimum Requirements:**\n- CPU: Modern multi-core processor\n- RAM: 32GB+ recommended\n- GPU: Optional but recommended for training (NVIDIA with CUDA)\n- Storage: 50GB+ for models and datasets\n\n**Recommended for Training:**\n- GPU: NVIDIA A100 40GB or better\n- RAM: 64GB+\n- Storage: 500GB+ SSD for large datasets (Tahoe-100M)\n\n**For Inference Only:**\n- GPU: NVIDIA T4 or better\n- RAM: 16GB+\n",
+    "topics": [
+      "single-cell",
+      "perturbation",
+      "virtual-cell",
+      "drug-response"
+    ],
+    "language": "Python",
+    "has_mcp": false,
+    "api_available": null,
+    "license": "NOASSERTION",
+    "last_updated": "2026-01-19T15:55:29.221086"
+  },
+  "chai1": {
+    "tool_id": "chai1",
+    "name": "Chai-1",
+    "description": "Multi-modal foundation model for molecular structure prediction. Predicts proteins, small molecules, DNA, RNA, glycosylations, and ligand complexes.",
+    "category": "structure-prediction",
+    "github_url": "https://github.com/chaidiscovery/chai-lab",
+    "primary_citation": {
+      "doi": "10.1101/2024.10.10.615955",
+      "title": "Chai-1: Decoding the molecular interactions of life",
+      "authors": [
+        "Chai Discovery"
+      ],
+      "journal": "bioRxiv",
+      "year": 2024,
+      "url": "https://www.biorxiv.org/content/10.1101/2024.10.10.615955"
+    },
+    "benchmark_papers": [
+      {
+        "title": "CASP15 Results",
+        "note": "Chai-1 evaluated on CASP15 targets"
+      },
+      {
+        "title": "CAMEO Continuous Evaluation",
+        "url": "https://cameo3d.org",
+        "note": "Ongoing structure prediction benchmarks"
+      }
+    ],
+    "review_papers": null,
+    "readme_content": "# Chai-1\n\nChai-1 is a multi-modal foundation model for molecular structure prediction that performs at the state-of-the-art across a variety of benchmarks. Chai-1 enables unified prediction of proteins, small molecules, DNA, RNA, glycosylations, and more.\n\n<p align=\"center\">\n    <img src='https://github.com/chaidiscovery/chai-lab/blob/main/assets/performance_barplot.png' >\n</p>\n\nFor more information on the model's performance and capabilities, see our [technical report](https://www.biorxiv.org/content/10.1101/2024.10.10.615955).\n\n## Installation\n\n```shell\n# version on pypi:\npip install chai_lab==0.6.1\n\n# newest available version (updates daily to test features that weren't released yet):\npip install git+https://github.com/chaidiscovery/chai-lab.git\n```\n\nThis Python package requires Linux, Python 3.10 or later, and a GPU with CUDA and bfloat16 support. We recommend using an A100 80GB or H100 80GB or L40S 48GB chip, but A10 and A30 will work for smaller complexes. Users have also reported success with consumer-grade RTX 4090.\n\n## Running the model\n\n### Command line inference\n\nYou can fold a FASTA file containing all the sequences (including modified residues, nucleotides, and ligands as SMILES strings) in a complex of interest by calling:\n```shell\nchai-lab fold input.fasta output_folder\n```\n\nBy default, the model generates five sample predictions, and uses embeddings without MSAs or templates. For additional information about how to supply MSAs, templates, and restraints to the model, see the documentation below, or run `chai-lab fold --help`.\n\nFor example, to run the model with MSAs (which we recommend for improved performance), pass the `--use-msa-server` and `--use-templates-server` flags:\n\n```shell\nchai-lab fold --use-msa-server --use-templates-server input.fasta output_folder\n```\n\nIf you are hosting your own ColabFold server, additionally pass the `--msa-server` flag with your server:\n\n```shell\nchai-lab fold --use-msa-server --msa-server-url \"https://api.internalcolabserver.com\" input.fasta output_folder\n```\n\nWe also provide additional utility functions for tasks such as MSA file format conversion; see `chai --help` for details.\n\n### Pythonic inference\n\nThe main entrypoint into the Chai-1 folding code is through the `chai_lab.chai1.run_inference` function. The following script demonstrates how to provide inputs to the model, and obtain a list of PDB files for downstream analysis:\n\n```shell\npython examples/predict_structure.py\n```\n\nTo get the best performance, we recommend running the model with MSAs. The following script demonstrates how to provide MSAs to the model.\n\n```shell\npython examples/msas/predict_with_msas.py\n```\n\nFor further instructions, see `\"How can MSAs be provided to Chai-1?\"` below.\n\n<details>\n<summary>Where are downloaded weights stored?</summary>\n<p markdown=\"1\">\nBy default, weights are automatically downloaded and stored in <package_root>/downloads (usually that's within site-packages).\nIn cases where you want to control the download location (e.g. on a mounted drive in Docker), you can use the CHAI_DOWNLOADS_DIR envvar to control the download location. For example:\n\n```bash\nCHAI_DOWNLOADS_DIR=/tmp/downloads python ./examples/predict_structure.py \n```\n</p>\n</details>\n\n<details>\n<summary>How can MSAs be provided to Chai-1?</summary>\n<p markdown=\"1\">\n\nChai-1 supports MSAs provided as an `aligned.pqt` file. This file format is similar to an `a3m` file, but has additional columns that provide metadata like the source database and sequence pairing keys. We provide code to convert `a3m` files to `aligned.pqt` files. For more information on how to provide MSAs to Chai-1, see [this documentation](examples/msas/README.md).\n\nFor user convenience, we also support automatic MSA generation via the ColabFold [MMseqs2](https://github.com/soedinglab/MMseqs2) server via the `--use-msa-server` flag. As detailed in the ColabFold [repository](https://github.com/sokrypton/ColabFold), please keep in mind that this is a shared resource. Note that the results reported in our preprint and the webserver use a different MSA search strategy than MMseqs2, though we expect results to be broadly similar.\n\n</p>\n</details>\n\n<details>\n<summary>How can I customize the inputs to the model further?</summary>\n<p markdown=\"1\">\n\nFor more advanced use cases, we also expose the `chai_lab.chai1.run_folding_on_context`, which allows users to construct an `AllAtomFeatureContext` manually. This allows users to specify their own templates, MSAs, embeddings, and constraints, including support for specifying covalent bonds (for example, for specifying branched ligands). We currently provide examples of how to construct an embeddings context, an MSA context, template contexts, restraint contexts, and covalent bonds. \n\n</p>\n</details>\n\n<details>\n<summary>How can I provide custom templates to Chai-1?</summary>\n<p markdown=\"1\">\n\nTemplates are loaded in two steps - (1) a `m8` file is read, providing a table of template hits to load (2) we load each hit by downloading the corresponding identifier from RCSB and parsing the corresponding chain. You can provide your own `m8` file to specify template hits of your choice, and you can also place structure cif files in the directory specified by the environment variable `CHAI_TEMPLATE_CIF_FOLDER` to specify custom (non-RCSB) structures corresponding to each identifier in the `m8` file. Note that the template loading code expects cif files to be named as `$CHAI_TEMPLATE_CIF_FOLDER/identifier.cif.gz` where `identifier` matches that provided in the `m8` file.\n\n</p>\n</details>\n\n## \u26a1 Try it online\n\nWe provide a [web server](https://lab.chaidiscovery.com) so you can test the Chai-1 model right from your browser, without any setup.\n\n<p align=\"center\">\n    <img src='assets/chailab_online_screenshot.png' height=400 >\n</p>\n\n## Using experimental restraints\nChai-1 uniquely offers the ability to fold complexes with user-specified \"restraints\" as inputs. These restraints specify inter-chain contacts or covalent bonds at various resolutions that are used to guide Chai-1 in folding the complex. See [restraints documentation](examples/restraints/README.md) and [covalent bond documentation](examples/covalent_bonds/README.md) for details.\n\n<p align=\"center\">\n    <img src='assets/chailab_restraints_screenshot.png' height=400 >\n</p>\n\n## \ud83d\udcac Feedback\n\nFound a \ud83d\udc1e? Please report it in GitHub [issues](https://github.com/chaidiscovery/chai-lab/issues).\n\nWe welcome community testing and feedback. To share observations about the model's performance, please reach via [GitHub discussions](https://github.com/chaidiscovery/chai-lab/discussions), or [via email](mailto:feedback@chaidiscovery.com).\n\n## \ud83d\udee0\ufe0f Development\n\nWe use [devcontainers](https://code.visualstudio.com/docs/devcontainers/containers) in development, which helps us ensure we work in identical environments. We recommend working inside a devcontainer if you want to make a contribution to this repository.\n\nDevcontainers work on local Linux setup, and on remote machines over an SSH connection.\n\n## Status\n\nAPI is quite stable, but we recommend pinning the version in your requirements, i.e.:\n\n```\nchai_lab==0.6.1\n```\n\n## Citations\n\nIf you find Chai-1 useful in your research or use any structures produced by the model, we ask that you cite our technical report:\n\n```\n@article{Chai-1-Technical-Report,\n\ttitle        = {Chai-1: Decoding the molecular interactions of life},\n\tauthor       = {{Chai Discovery}},\n\tyear         = 2024,\n\tjournal      = {bioRxiv},\n\tpublisher    = {Cold Spring Harbor Laboratory},\n\tdoi          = {10.1101/2024.10.10.615955},\n\turl          = {https://www.biorxiv.org/content/early/2024/10/11/2024.10.10.615955},\n\telocation-id = {2024.10.10.615955},\n\teprint       = {https://www.biorxiv.org/content/early/2024/10/11/2024.10.10.615955.full.pdf}\n}\n```\n\nYou can also access this information by running `chai citation`.\n\nYou can use the following citation for the Chai-2 technical report:\n```\n@article{Chai-2-Technical-Report,\n\ttitle        = {Zero-shot antibody design in a 24-well plate},\n\tauthor       = {{Chai Discovery}},\n\tyear         = 2025,\n\tjournal      = {bioRxiv},\n\tpublisher    = {Cold Spring Harbor Laboratory},\n\tdoi          = {10.1101/2025.07.05.663018},\n\turl          = {https://www.biorxiv.org/content/early/2025/07/06/2025.07.05.663018},\n\telocation-id = {2025.07.05.663018},\n\teprint       = {https://www.biorxiv.org/content/early/2025/07/06/2025.07.05.663018.full.pdf}\n}\n```\n\nAdditionally, if you use the automatic MMseqs2 MSA generation described above, please also cite:\n\n```\n@article{mirdita2022colabfold,\n  title={ColabFold: making protein folding accessible to all},\n  author={Mirdita, Milot and Sch{\\\"u}tze, Konstantin and Moriwaki, Yoshitaka and Heo, Lim and Ovchinnikov, Sergey and Steinegger, Martin},\n  journal={Nature methods},\n  year={2022},\n}\n```\n\n\n## Licence \n\nChai-1 is released under an Apache 2.0 License (both code and model weights), which means it can be used for both academic and commerical purposes, including for drug discovery.\n\nSee [LICENSE](LICENSE).\n\nTo discuss partnership and access to new internal capabilities, reach us [via email](mailto:partnerships@chaidiscovery.com).\n",
+    "help_text": "\nChai-1 CLI Commands:\n\nchai-lab fold <input.fasta> <output_folder>\n    Fold sequences from FASTA file\n\n    Options:\n    --use-msa-server          Use ColabFold MMseqs2 for MSA generation\n    --use-templates-server    Use template search server\n    --msa-server-url URL      Custom MSA server URL\n    --num-diffn-timesteps N   Diffusion timesteps (default: 200)\n    --num-trunk-recycles N    Trunk recycles (default: 3)\n\nchai citation                 Show citation information\nchai --help                   Show all commands\n",
+    "usage_guide": "\n## Quick Start Guide for Chai-1\n\n### 1. Installation\n```bash\npip install chai_lab==0.6.1\n```\n\n### 2. Basic Structure Prediction\n```bash\nchai-lab fold input.fasta output_folder\n```\n\n### 3. With MSA Enhancement (Recommended)\n```bash\nchai-lab fold --use-msa-server --use-templates-server input.fasta output_folder\n```\n\n### 4. Python API\n```python\nfrom chai_lab.chai1 import run_inference\n\ncandidates = run_inference(\n    fasta_file=\"complex.fasta\",\n    output_dir=\"./output\",\n    num_trunk_recycles=3,\n    num_diffn_timesteps=200,\n    seed=42,\n    use_esm_embeddings=True\n)\n```\n\n### 5. Web Interface\nVisit: https://lab.chaidiscovery.com\n\n### Key Features:\n- Multi-modal: proteins, DNA, RNA, ligands, glycosylations\n- Restraints support for guided folding\n- Covalent bond specification\n",
+    "examples": "# version on pypi:\npip install chai_lab==0.6.1\n\n# newest available version (updates daily to test features that weren't released yet):\npip install git+https://github.com/chaidiscovery/chai-lab.git\n\n---\n\nchai-lab fold input.fasta output_folder\n\n---\n\nchai-lab fold --use-msa-server --use-templates-server input.fasta output_folder\n\n---\n\nchai-lab fold --use-msa-server --msa-server-url \"https://api.internalcolabserver.com\" input.fasta output_folder\n\n---\n\npython examples/predict_structure.py",
+    "scientific_context": "Chai-1 is a multi-modal foundation model achieving state-of-the-art accuracy on protein structure prediction benchmarks. It unifies prediction of proteins, DNA, RNA, small molecules, and glycosylations in a single model.",
+    "recommended_parameters": {
+      "inference": {
+        "num_trunk_recycles": {
+          "default": 3,
+          "range": "1-5",
+          "note": "More = better but slower"
+        },
+        "num_diffn_timesteps": {
+          "default": 200,
+          "range": "50-500",
+          "note": "More = higher quality"
+        },
+        "use_esm_embeddings": {
+          "default": true,
+          "note": "Improves accuracy"
+        },
+        "use_msa_server": {
+          "default": false,
+          "note": "Set True for best results"
+        }
+      }
+    },
+    "use_cases": [
+      "Protein structure prediction",
+      "Protein-ligand complexes",
+      "RNA structure",
+      "Drug binding sites"
+    ],
+    "limitations": [
+      "Requires GPU (A100/H100 recommended)",
+      "Limited to 1024 residues for proteins",
+      "MSA generation optional but improves accuracy"
+    ],
+    "alternatives": [
+      "AlphaFold 3",
+      "Boltz-2",
+      "ESMFold",
+      "RoseTTAFold"
+    ],
+    "install_instructions": "```shell\n# version on pypi:\npip install chai_lab==0.6.1\n\n# newest available version (updates daily to test features that weren't released yet):\npip install git+https://github.com/chaidiscovery/chai-lab.git\n```\n\nThis Python package requires Linux, Python 3.10 or later, and a GPU with CUDA and bfloat16 support. We recommend using an A100 80GB or H100 80GB or L40S 48GB chip, but A10 and A30 will work for smaller complexes. Users have also reported success with consumer-grade RTX 4090.",
+    "dependencies": [
+      "Python 3.10+",
+      "PyTorch 2.0+ with CUDA",
+      "bfloat16 GPU support",
+      "Linux operating system"
+    ],
+    "hardware_requirements": "\n**Minimum Requirements:**\n- GPU: NVIDIA A10 or A30 (for small complexes)\n- VRAM: 24GB+\n- RAM: 32GB\n- Storage: 50GB\n\n**Recommended:**\n- GPU: NVIDIA A100 80GB or H100 80GB or L40S 48GB\n- VRAM: 48-80GB\n- RAM: 64GB+\n\n**Consumer Grade (limited):**\n- NVIDIA RTX 4090 (for smaller complexes only)\n\n**Input Limitations:**\n- Proteins: up to 1,024 residues\n- DNA/RNA: up to 3,072 bases\n- Ligands: up to 128 characters (SMILES)\n",
+    "topics": [
+      "protein-structure",
+      "structure-prediction",
+      "deep-learning",
+      "alphafold-alternative"
+    ],
+    "language": "Python",
+    "has_mcp": true,
+    "api_available": null,
+    "license": "Apache-2.0",
+    "last_updated": "2026-01-19T15:55:29.221090"
+  },
+  "boltz2": {
+    "tool_id": "boltz2",
+    "name": "Boltz-2",
+    "description": "Biomolecular foundation model for predicting structures of proteins, RNA, DNA, ligands, and binding affinities. MIT licensed, 1000x faster than FEP methods.",
+    "category": "structure-prediction",
+    "github_url": "https://github.com/jwohlwend/boltz",
+    "primary_citation": {
+      "doi": null,
+      "title": "Boltz-2: A unified model for biomolecular structure and affinity prediction",
+      "authors": [
+        "Jeremy Wohlwend",
+        "MIT",
+        "Recursion"
+      ],
+      "journal": "Preprint",
+      "year": 2025,
+      "url": "https://github.com/jwohlwend/boltz"
+    },
+    "benchmark_papers": [
+      {
+        "title": "Comparison with AlphaFold 3",
+        "note": "Boltz-2 approaches AF3 accuracy with MIT license"
+      }
+    ],
+    "review_papers": null,
+    "readme_content": "<div align=\"center\">\n  <div>&nbsp;</div>\n  <img src=\"docs/boltz2_title.png\" width=\"300\"/>\n  <img src=\"https://model-gateway.boltz.bio/a.png?x-pxid=bce1627f-f326-4bff-8a97-45c6c3bc929d\" />\n\n[Boltz-1](https://doi.org/10.1101/2024.11.19.624167) | [Boltz-2](https://doi.org/10.1101/2025.06.14.659707) |\n[Slack](https://boltz.bio/join-slack) <br> <br>\n</div>\n\n\n\n![](docs/boltz1_pred_figure.png)\n\n\n## Introduction\n\nBoltz is a family of models for biomolecular interaction prediction. Boltz-1 was the first fully open source model to approach AlphaFold3 accuracy. Our latest work Boltz-2 is a new biomolecular foundation model that goes beyond AlphaFold3 and Boltz-1 by jointly modeling complex structures and binding affinities, a critical component towards accurate molecular design. Boltz-2 is the first deep learning model to approach the accuracy of physics-based free-energy perturbation (FEP) methods, while running 1000x faster \u2014 making accurate in silico screening practical for early-stage drug discovery.\n\nAll the code and weights are provided under MIT license, making them freely available for both academic and commercial uses. For more information about the model, see the [Boltz-1](https://doi.org/10.1101/2024.11.19.624167) and [Boltz-2](https://doi.org/10.1101/2025.06.14.659707) technical reports. To discuss updates, tools and applications join our [Slack channel](https://boltz.bio/join-slack).\n\n## Installation\n\n> Note: we recommend installing boltz in a fresh python environment\n\nInstall boltz with PyPI (recommended):\n\n```\npip install boltz[cuda] -U\n```\n\nor directly from GitHub for daily updates:\n\n```\ngit clone https://github.com/jwohlwend/boltz.git\ncd boltz; pip install -e .[cuda]\n```\n\nIf you are installing on CPU-only or non-CUDA GPus hardware, remove `[cuda]` from the above commands. Note that the CPU version is significantly slower than the GPU version.\n\n## Inference\n\nYou can run inference using Boltz with:\n\n```\nboltz predict input_path --use_msa_server\n```\n\n`input_path` should point to a YAML file, or a directory of YAML files for batched processing, describing the biomolecules you want to model and the properties you want to predict (e.g. affinity). To see all available options: `boltz predict --help` and for more information on these input formats, see our [prediction instructions](docs/prediction.md). By default, the `boltz` command will run the latest version of the model.\n\n\n### Binding Affinity Prediction\nThere are two main predictions in the affinity output: `affinity_pred_value` and `affinity_probability_binary`. They are trained on largely different datasets, with different supervisions, and should be used in different contexts. The `affinity_probability_binary` field should be used to detect binders from decoys, for example in a hit-discovery stage. Its value ranges from 0 to 1 and represents the predicted probability that the ligand is a binder. The `affinity_pred_value` aims to measure the specific affinity of different binders and how this changes with small modifications of the molecule. This should be used in ligand optimization stages such as hit-to-lead and lead-optimization. It reports a binding affinity value as `log10(IC50)`, derived from an `IC50` measured in `\u03bcM`. More details on how to run affinity predictions and parse the output can be found in our [prediction instructions](docs/prediction.md).\n\n## Authentication to MSA Server\n\nWhen using the `--use_msa_server` option with a server that requires authentication, you can provide credentials in one of two ways. More information is available in our [prediction instructions](docs/prediction.md).\n \n## Evaluation\n\n\u26a0\ufe0f **Coming soon: updated evaluation code for Boltz-2!**\n\nTo encourage reproducibility and facilitate comparison with other models, on top of the existing Boltz-1 evaluation pipeline, we will soon provide the evaluation scripts and structural predictions for Boltz-2, Boltz-1, Chai-1 and AlphaFold3 on our test benchmark dataset, and our affinity predictions on the FEP+ benchmark, CASP16 and our MF-PCBA test set.\n\n![Affinity test sets evaluations](docs/pearson_plot.png)\n![Test set evaluations](docs/plot_test_boltz2.png)\n\n\n## Training\n\n\u26a0\ufe0f **Coming soon: updated training code for Boltz-2!**\n\nIf you're interested in retraining the model, currently for Boltz-1 but soon for Boltz-2, see our [training instructions](docs/training.md).\n\n\n## Contributing\n\nWe welcome external contributions and are eager to engage with the community. Connect with us on our [Slack channel](https://boltz.bio/join-slack) to discuss advancements, share insights, and foster collaboration around Boltz-2.\n\nOn recent NVIDIA GPUs, Boltz leverages the acceleration provided by [NVIDIA  cuEquivariance](https://developer.nvidia.com/cuequivariance) kernels. Boltz also runs on Tenstorrent hardware thanks to a [fork](https://github.com/moritztng/tt-boltz) by Moritz Th\u00fcning.\n\n## License\n\nOur model and code are released under MIT License, and can be freely used for both academic and commercial purposes.\n\n\n## Cite\n\nIf you use this code or the models in your research, please cite the following papers:\n\n```bibtex\n@article{passaro2025boltz2,\n  author = {Passaro, Saro and Corso, Gabriele and Wohlwend, Jeremy and Reveiz, Mateo and Thaler, Stephan and Somnath, Vignesh Ram and Getz, Noah and Portnoi, Tally and Roy, Julien and Stark, Hannes and Kwabi-Addo, David and Beaini, Dominique and Jaakkola, Tommi and Barzilay, Regina},\n  title = {Boltz-2: Towards Accurate and Efficient Binding Affinity Prediction},\n  year = {2025},\n  doi = {10.1101/2025.06.14.659707},\n  journal = {bioRxiv}\n}\n\n@article{wohlwend2024boltz1,\n  author = {Wohlwend, Jeremy and Corso, Gabriele and Passaro, Saro and Getz, Noah and Reveiz, Mateo and Leidal, Ken and Swiderski, Wojtek and Atkinson, Liam and Portnoi, Tally and Chinn, Itamar and Silterra, Jacob and Jaakkola, Tommi and Barzilay, Regina},\n  title = {Boltz-1: Democratizing Biomolecular Interaction Modeling},\n  year = {2024},\n  doi = {10.1101/2024.11.19.624167},\n  journal = {bioRxiv}\n}\n```\n\nIn addition if you use the automatic MSA generation, please cite:\n\n```bibtex\n@article{mirdita2022colabfold,\n  title={ColabFold: making protein folding accessible to all},\n  author={Mirdita, Milot and Sch{\\\"u}tze, Konstantin and Moriwaki, Yoshitaka and Heo, Lim and Ovchinnikov, Sergey and Steinegger, Martin},\n  journal={Nature methods},\n  year={2022},\n}\n```\n",
+    "help_text": "\nBoltz CLI Commands:\n\nboltz predict <input> [options]\n    Predict structure from input file\n\n    Input formats:\n    - FASTA file\n    - YAML file with sequences and ligands\n\n    Options:\n    --output_dir DIR         Output directory\n    --num_samples N          Number of samples (default: 1)\n    --recycling_steps N      Recycling iterations\n    --diffusion_samples N    Diffusion samples\n\nboltz affinity <complex>\n    Predict binding affinity\n\nboltz --help                 Show all commands\n",
+    "usage_guide": "\n## Quick Start Guide for Boltz-2\n\n### 1. Installation\n```bash\npip install boltz\n# or with pixi\npixi add --pypi boltz\n```\n\n### 2. Predict Structure\n```bash\nboltz predict input.fasta --output_dir results/\n```\n\n### 3. Protein-Ligand Complex\nCreate YAML input:\n```yaml\nsequences:\n  - protein:\n      id: A\n      sequence: MKTVRQERLKSIVRILERSKEPVSGAQ...\n  - ligand:\n      id: B\n      smiles: CC(=O)Nc1ccc(O)cc1\n```\n\n```bash\nboltz predict complex.yaml\n```\n\n### 4. Python API\n```python\nfrom boltz import Boltz\n\nmodel = Boltz()\nresult = model.predict(\n    protein_sequence=\"MKTVRQERLK...\",\n    ligand_smiles=\"CC(=O)Nc1ccc(O)cc1\"\n)\n```\n\n### Key Advantages:\n- MIT License (fully commercial use)\n- Joint structure + affinity prediction\n- 1000x faster than FEP methods\n",
+    "examples": "pip install boltz[cuda] -U\n\n---\n\ngit clone https://github.com/jwohlwend/boltz.git\ncd boltz; pip install -e .[cuda]\n\n---\n\nboltz predict input_path --use_msa_server\n\n---\n\nIn addition if you use the automatic MSA generation, please cite:",
+    "scientific_context": "Boltz-2 jointly models biomolecular structures and binding affinities, approaching the accuracy of physics-based FEP methods while running 1000x faster. Fully open-source under MIT license, making it ideal for commercial drug discovery.",
+    "recommended_parameters": {
+      "prediction": {
+        "num_samples": {
+          "default": 1,
+          "range": "1-5",
+          "note": "More samples = better confidence"
+        },
+        "diffusion_samples": {
+          "default": 1,
+          "range": "1-10"
+        },
+        "recycling_steps": {
+          "default": 3,
+          "range": "1-10"
+        }
+      }
+    },
+    "use_cases": [
+      "Protein-ligand docking",
+      "Binding affinity prediction",
+      "Drug discovery",
+      "Lead optimization"
+    ],
+    "limitations": [
+      "Requires GPU for inference",
+      "Best for protein-small molecule complexes"
+    ],
+    "alternatives": [
+      "AlphaFold 3",
+      "Chai-1",
+      "DiffDock"
+    ],
+    "install_instructions": "> Note: we recommend installing boltz in a fresh python environment\n\nInstall boltz with PyPI (recommended):\n\n```\npip install boltz[cuda] -U\n```\n\nor directly from GitHub for daily updates:\n\n```\ngit clone https://github.com/jwohlwend/boltz.git\ncd boltz; pip install -e .[cuda]\n```\n\nIf you are installing on CPU-only or non-CUDA GPus hardware, remove `[cuda]` from the above commands. Note that the CPU version is significantly slower than the GPU version.",
+    "dependencies": [
+      "Python 3.10+",
+      "PyTorch 2.0+",
+      "CUDA toolkit"
+    ],
+    "hardware_requirements": "\n**Minimum Requirements:**\n- GPU: NVIDIA GPU with 16GB+ VRAM\n- RAM: 32GB\n- Storage: 20GB\n\n**Recommended:**\n- GPU: NVIDIA A100 or H100\n- VRAM: 40-80GB (for large complexes)\n- RAM: 64GB\n\n**Scaling:**\n- Small molecules: 16GB VRAM sufficient\n- Large protein complexes: 40GB+ VRAM\n- Affinity prediction: Additional compute\n",
+    "topics": [
+      "protein-structure",
+      "binding-affinity",
+      "drug-discovery",
+      "molecular-docking"
+    ],
+    "language": "Python",
+    "has_mcp": true,
+    "api_available": null,
+    "license": "MIT",
+    "last_updated": "2026-01-19T15:55:29.221091"
+  },
+  "evo2": {
+    "tool_id": "evo2",
+    "name": "Evo 2",
+    "description": "40B parameter DNA foundation model trained on 9T nucleotides from 100K+ species. Supports 1M base pair context for genome-scale predictions.",
+    "category": "genomics",
+    "github_url": "https://github.com/ArcInstitute/evo2",
+    "primary_citation": {
+      "doi": null,
+      "title": "Evo 2: A 40 billion parameter DNA foundation model",
+      "authors": [
+        "Arc Institute",
+        "NVIDIA",
+        "Stanford",
+        "UC Berkeley",
+        "UCSF"
+      ],
+      "journal": "Arc Institute",
+      "year": 2025,
+      "url": "https://arcinstitute.org/news/evo2"
+    },
+    "benchmark_papers": [
+      {
+        "title": "Evo: A model of DNA at the scale of evolution",
+        "doi": "10.1126/science.ado9336",
+        "note": "Original Evo paper"
+      }
+    ],
+    "review_papers": null,
+    "readme_content": "# Evo 2: Genome modeling and design across all domains of life\n\n![Evo 2](evo2.jpg)\n\nEvo 2 is a state of the art DNA language model for long context modeling and design. Evo 2 models DNA sequences at single-nucleotide resolution at up to 1 million base pair context length using the [StripedHyena 2](https://github.com/Zymrael/savanna/blob/main/paper.pdf) architecture. Evo 2 was pretrained using [Savanna](https://github.com/Zymrael/savanna). Evo 2 was trained autoregressively on [OpenGenome2](https://huggingface.co/datasets/arcinstitute/opengenome2), a dataset containing 8.8 trillion tokens from all domains of life.\n\nWe describe Evo 2 in the preprint:\n[\"Genome modeling and design across all domains of life with Evo 2\"](https://www.biorxiv.org/content/10.1101/2025.02.18.638918v1).\n\n## Contents\n\n- [Setup](#setup)\n  - [Requirements](#requirements)\n  - [Installation](#installation)\n  - [Docker](#docker)\n- [Usage](#usage)\n  - [Checkpoints](#checkpoints)\n  - [Forward](#forward)\n  - [Embeddings](#embeddings)\n  - [Generation](#generation)\n- [Notebooks](#notebooks)\n- [Nvidia NIM](#nvidia-nim)\n- [Dataset](#dataset)\n- [Training and Finetuning](#training-and-finetuning)\n- [Citation](#citation)\n\n## Setup\n\nThis repo is for running Evo 2 locally for inference or generation, using our [Vortex](https://github.com/Zymrael/vortex) inference code. For training and finetuning, see the section [here](#training-and-finetuning).\nYou can run Evo 2 without any installation using the [Nvidia Hosted API](https://build.nvidia.com/arc/evo2-40b).\nYou can also self-host an instance using Nvidia NIM. See the [Nvidia NIM](#nvidia-nim) section for more \ninformation.\n\n### Requirements\n\nEvo 2 is built on the Vortex inference repo, see the [Vortex github](https://github.com/Zymrael/vortex) for more details and Docker option.\n\n**Prerequisites**\n- [Transformer Engine](https://github.com/NVIDIA/TransformerEngine) >= 2.0.0\n- [Flash Attention](https://github.com/Dao-AILab/flash-attention/tree/main) for optimized attention operations (strongly recommended)\n\n**System requirements**\n- [OS] Linux (official) or WSL2 (limited support)\n- [GPU] Requires Compute Capability 8.9+ (Ada/Hopper) for FP8 support\n- [Software]\n\t- CUDA: 12.1+ with compatible NVIDIA drivers\n\t- cuDNN: 9.3+\n\t- Compiler: GCC 9+ or Clang 10+ with C++17 support\n\t- Python 3.12 required\n\n**FP8 requirements:** The 40B and 1B models require FP8 for numerical accuracy, and low accuracy has been reported on Blackwell hardware or without FP8. The 7B models can run without FP8 by modifying the config. Always validate model outputs after configuration changes or on different hardware by using the tests.\n\nCheck respective githubs for more details about [Transformer Engine](https://github.com/NVIDIA/TransformerEngine) and [Flash Attention](https://github.com/Dao-AILab/flash-attention/tree/main) and how to install them.\nWe recommend using conda to easily install Transformer Engine. Here is an example of how to install the prerequisites:\n```bash\nconda install -c nvidia cuda-nvcc cuda-cudart-dev\nconda install -c conda-forge transformer-engine-torch=2.3.0\npip install flash-attn==2.8.0.post2 --no-build-isolation\n```\n\n### Installation\n\nTo get started with Evo 2, install from pip or from github after installing the prerequisites.\n\nTo install Evo 2:\n```bash\npip install evo2\n```\n\nFor the latest features or to contribute:\n```bash\ngit clone https://github.com/arcinstitute/evo2\ncd evo2\npip install -e .\n```\n\nTo verify that the installation was correct:\n\n```\npython -m evo2.test.test_evo2_generation --model_name evo2_7b\n```\n\nFor the 40b model:\n```\npython -m evo2.test.test_evo2_generation --model_name evo2_40b\n```\n\n### Docker\n\nEvo 2 can be run using Docker (shown below), Singularity, or Apptainer.\n\n```bash\ndocker build -t evo2 .\ndocker run -it --rm --gpus '\"device=0\"' -v ./huggingface:/root/.cache/huggingface evo2 bash\n```\nNote: The volume mount (-v) preserves downloaded models between container runs and specifies where they are saved.\n\nOnce inside the container:\n\n```bash\npython -m evo2.test.test_evo2_generation --model_name evo2_7b\n```\n\n## Usage\n\n### Checkpoints\n\nWe provide the following model checkpoints, hosted on [HuggingFace](https://huggingface.co/arcinstitute):\n| Checkpoint Name                        | Description |\n|----------------------------------------|-------------|\n| `evo2_7b`  | 7B parameter model with 1M context |\n| `evo2_40b`  | 40B parameter model with 1M context (requires multiple GPUs) |\n| `evo2_7b_base`  | 7B parameter model with 8K context |\n| `evo2_40b_base`  | 40B parameter model with 8K context |\n| `evo2_1b_base`  | Smaller 1B parameter model with 8K context |\n| `evo2_7b_262k`  | 7B parameter model with 262K context |\n| `evo2_7b_microviridae`  | 7B parameter base model fine-tuned on Microviridae genomes |\n\n**Note:** The 40B model requires multiple GPUs. Vortex automatically handles device placement, splitting the model across available CUDA devices.\n\n### Forward\n\nEvo 2 can be used to score the likelihoods across a DNA sequence.\n\n```python\nimport torch\nfrom evo2 import Evo2\n\nevo2_model = Evo2('evo2_7b')\n\nsequence = 'ACGT'\ninput_ids = torch.tensor(\n    evo2_model.tokenizer.tokenize(sequence),\n    dtype=torch.int,\n).unsqueeze(0).to('cuda:0')\n\noutputs, _ = evo2_model(input_ids)\nlogits = outputs[0]\n\nprint('Logits: ', logits)\nprint('Shape (batch, length, vocab): ', logits.shape)\n```\n\n### Embeddings\n\nEvo 2 embeddings can be saved for use downstream. We find that intermediate embeddings work better than final embeddings, see our paper for details.\n\n```python\nimport torch\nfrom evo2 import Evo2\n\nevo2_model = Evo2('evo2_7b')\n\nsequence = 'ACGT'\ninput_ids = torch.tensor(\n    evo2_model.tokenizer.tokenize(sequence),\n    dtype=torch.int,\n).unsqueeze(0).to('cuda:0')\n\nlayer_name = 'blocks.28.mlp.l3'\n\noutputs, embeddings = evo2_model(input_ids, return_embeddings=True, layer_names=[layer_name])\n\nprint('Embeddings shape: ', embeddings[layer_name].shape)\n```\n\n### Generation\n\nEvo 2 can generate DNA sequences based on prompts.\n\n```python\nfrom evo2 import Evo2\n\nevo2_model = Evo2('evo2_7b')\n\noutput = evo2_model.generate(prompt_seqs=[\"ACGT\"], n_tokens=400, temperature=1.0, top_k=4)\n\nprint(output.sequences[0])\n```\n\n## Notebooks\n\nWe provide example notebooks.\n\nThe [BRCA1 scoring notebook](https://github.com/ArcInstitute/evo2/blob/main/notebooks/brca1/brca1_zero_shot_vep.ipynb) shows zero-shot *BRCA1* variant effect prediction. This example includes a walkthrough of:\n- Performing zero-shot *BRCA1* variant effect predictions using Evo 2\n- Reference vs alternative allele normalization\n\nThe [generation notebook](https://github.com/ArcInstitute/evo2/blob/main/notebooks/generation/generation_notebook.ipynb) shows DNA sequence completion with Evo 2. This example shows:\n- DNA prompt based generation and 'DNA autocompletion'\n- How to get and prompt using phylogenetic species tags for generation\n\nThe [exon classifier notebook](https://github.com/ArcInstitute/evo2/blob/main/notebooks/exon_classifier/exon_classifier.ipynb) demonstrates exon classification using Evo 2 embeddings. This example shows:\n- Running the Evo 2 based exon classifier\n- Performance metrics and visualization\n\nThe [sparse autoencoder (SAE) notebook](https://github.com/ArcInstitute/evo2/blob/main/notebooks/sparse_autoencoder/sparse_autoencoder.ipynb) explores interpretable features learned by Evo 2. This example includes:\n- Running and visualizing Evo 2 SAE features\n- Demonstrating SAE features on a part of the *E. coli* genome\n\n\n## Nvidia NIM\n\nEvo 2 is available on [Nvidia NIM](https://catalog.ngc.nvidia.com/containers?filters=&orderBy=scoreDESC&query=evo2&page=&pageSize=) and [hosted API](https://build.nvidia.com/arc/evo2-40b).\n\n- [Documentation](https://docs.nvidia.com/nim/bionemo/evo2/latest/overview.html)\n- [Quickstart](https://docs.nvidia.com/nim/bionemo/evo2/latest/quickstart-guide.html)\n\nThe quickstart guides users through running Evo 2 on the NVIDIA NIM using a python or shell client after starting NIM. An example python client script is shown below. This is the same way you would interact with the [Nvidia hosted API](https://build.nvidia.com/arc/evo2-40b?snippet_tab=Python).\n\n```python\n#!/usr/bin/env python3\nimport requests\nimport os\nimport json\nfrom pathlib import Path\n\nkey = os.getenv(\"NVCF_RUN_KEY\") or input(\"Paste the Run Key: \")\n\nr = requests.post(\n    url=os.getenv(\"URL\", \"https://health.api.nvidia.com/v1/biology/arc/evo2-40b/generate\"),\n    headers={\"Authorization\": f\"Bearer {key}\"},\n    json={\n        \"sequence\": \"ACTGACTGACTGACTG\",\n        \"num_tokens\": 8,\n        \"top_k\": 1,\n        \"enable_sampled_probs\": True,\n    },\n)\n\nif \"application/json\" in r.headers.get(\"Content-Type\", \"\"):\n    print(r, \"Saving to output.json:\\n\", r.text[:200], \"...\")\n    Path(\"output.json\").write_text(r.text)\nelif \"application/zip\" in r.headers.get(\"Content-Type\", \"\"):\n    print(r, \"Saving large response to data.zip\")\n    Path(\"data.zip\").write_bytes(r.content)\nelse:\n    print(r, r.headers, r.content)\n```\n\n\n### Very long sequences\n\nYou can use [Savanna](https://github.com/Zymrael/savanna) or [Nvidia BioNemo](https://github.com/NVIDIA/bionemo-framework) for embedding long sequences. Vortex can currently compute over very long sequences via teacher prompting, however please note that forward pass on long sequences may currently be slow.\n\n## Dataset\n\nThe OpenGenome2 dataset used for pretraining Evo2 is available on [HuggingFace ](https://huggingface.co/datasets/arcinstitute/opengenome2). Data is available either as raw fastas or as JSONL files which include preprocessing and data augmentation.\n\n## Training and Finetuning\n\nEvo 2 was trained using [Savanna](https://github.com/Zymrael/savanna), an open source framework for training alternative architectures.\n\nTo train or finetune Evo 2, you can use [Savanna](https://github.com/Zymrael/savanna) or [Nvidia BioNemo](https://github.com/NVIDIA/bionemo-framework) which provides a [Evo 2 finetuning tutorial here](https://github.com/NVIDIA/bionemo-framework/blob/ca16c2acf9bf813d020b6d1e2d4e1240cfef6a69/docs/docs/user-guide/examples/bionemo-evo2/fine-tuning-tutorial.ipynb).\n\n## Citation\n\nIf you find these models useful for your research, please cite the relevant papers\n\n```\n@article {Brixi2025.02.18.638918,\n\tauthor = {Brixi, Garyk and Durrant, Matthew G and Ku, Jerome and Poli, Michael and Brockman, Greg and Chang, Daniel and Gonzalez, Gabriel A and King, Samuel H and Li, David B and Merchant, Aditi T and Naghipourfar, Mohsen and Nguyen, Eric and Ricci-Tam, Chiara and Romero, David W and Sun, Gwanggyu and Taghibakshi, Ali and Vorontsov, Anton and Yang, Brandon and Deng, Myra and Gorton, Liv and Nguyen, Nam and Wang, Nicholas K and Adams, Etowah and Baccus, Stephen A and Dillmann, Steven and Ermon, Stefano and Guo, Daniel and Ilango, Rajesh and Janik, Ken and Lu, Amy X and Mehta, Reshma and Mofrad, Mohammad R.K. and Ng, Madelena Y and Pannu, Jaspreet and Re, Christopher and Schmok, Jonathan C and St. John, John and Sullivan, Jeremy and Zhu, Kevin and Zynda, Greg and Balsam, Daniel and Collison, Patrick and Costa, Anthony B. and Hernandez-Boussard, Tina and Ho, Eric and Liu, Ming-Yu and McGrath, Tom and Powell, Kimberly and Burke, Dave P. and Goodarzi, Hani and Hsu, Patrick D and Hie, Brian},\n\ttitle = {Genome modeling and design across all domains of life with Evo 2},\n\telocation-id = {2025.02.18.638918},\n\tyear = {2025},\n\tdoi = {10.1101/2025.02.18.638918},\n\tpublisher = {Cold Spring Harbor Laboratory},\n\tURL = {https://www.biorxiv.org/content/early/2025/02/21/2025.02.18.638918},\n\teprint = {https://www.biorxiv.org/content/early/2025/02/21/2025.02.18.638918.full.pdf},\n\tjournal = {bioRxiv}\n}\n```\n\n",
+    "help_text": "\nEvo 2 Usage:\n\n# Local Python API\nfrom evo2 import Evo2\n\nmodel = Evo2.from_pretrained(\"arcinstitute/evo2-7b\")\noutput = model.generate(sequence=\"ATCGATCG...\", max_length=1000)\n\n# NVIDIA NIM API\nimport requests\n\nresponse = requests.post(\n    \"https://integrate.api.nvidia.com/v1/biology/arc/evo2/generate\",\n    headers={\"Authorization\": \"Bearer $NGC_API_KEY\"},\n    json={\n        \"sequence\": \"ATCGATCG...\",\n        \"num_tokens\": 100,\n        \"temperature\": 1.0\n    }\n)\n\n# Taxonomy-guided generation\nsequence = \"|D__BACTERIA;P__PSEUDOMONADOTA;...|ATCGATCG...\"\n",
+    "usage_guide": "\n## Quick Start Guide for Evo 2\n\n### 1. Installation\n```bash\n# Install dependencies\nconda install -c nvidia cuda-nvcc cuda-cudart-dev\nconda install -c conda-forge transformer-engine-torch=2.3.0\npip install flash-attn==2.8.0.post2 --no-build-isolation\n\n# Install Evo 2\npip install evo2\n```\n\n### 2. Using NVIDIA NIM API (Recommended)\n```python\nimport requests\n\n# Get API key from developer.nvidia.com\nresponse = requests.post(\n    \"https://integrate.api.nvidia.com/v1/biology/arc/evo2/generate\",\n    headers={\n        \"Authorization\": \"Bearer YOUR_NGC_API_KEY\",\n        \"Content-Type\": \"application/json\"\n    },\n    json={\n        \"sequence\": \"ATCGATCGATCG\",\n        \"num_tokens\": 100,\n        \"top_k\": 4,\n        \"temperature\": 1.0\n    }\n)\nprint(response.json())\n```\n\n### 3. Taxonomy-Guided Generation\n```python\n# Bias toward E. coli genome patterns\nsequence = \"|D__BACTERIA;P__PSEUDOMONADOTA;C__GAMMAPROTEOBACTERIA;O__ENTEROBACTERALES;F__ENTEROBACTERIACEAE;G__ESCHERICHIA;S__ESCHERICHIA|ATCGATCG\"\n```\n\n### Key Capabilities:\n- Disease mutation prediction\n- Genome design and generation\n- Cross-species DNA analysis\n- 1M base pair context length\n",
+    "examples": "conda install -c nvidia cuda-nvcc cuda-cudart-dev\nconda install -c conda-forge transformer-engine-torch=2.3.0\npip install flash-attn==2.8.0.post2 --no-build-isolation\n\n---\n\npip install evo2\n\n---\n\ngit clone https://github.com/arcinstitute/evo2\ncd evo2\npip install -e .\n\n---\n\npython -m evo2.test.test_evo2_generation --model_name evo2_7b\n\n---\n\npython -m evo2.test.test_evo2_generation --model_name evo2_40b",
+    "scientific_context": "Evo 2 is a 40 billion parameter DNA foundation model capable of genome-scale predictions with single-nucleotide resolution. It can identify disease-causing mutations, design novel genomes, and analyze sequences across all domains of life.",
+    "recommended_parameters": {
+      "generation": {
+        "temperature": {
+          "default": 1.0,
+          "range": "0.5-1.5",
+          "note": "Lower = more conservative"
+        },
+        "top_k": {
+          "default": 4,
+          "range": "1-50",
+          "note": "Sampling diversity"
+        },
+        "num_tokens": {
+          "default": 100,
+          "range": "1-1000000",
+          "note": "Up to 1M context"
+        }
+      }
+    },
+    "use_cases": [
+      "Mutation effect prediction",
+      "Genome design",
+      "Cross-species analysis",
+      "Variant pathogenicity"
+    ],
+    "limitations": [
+      "40B parameters requires significant compute",
+      "Best for DNA, not protein sequences"
+    ],
+    "alternatives": [
+      "Nucleotide Transformer",
+      "DNABERT-2",
+      "HyenaDNA"
+    ],
+    "install_instructions": "To get started with Evo 2, install from pip or from github after installing the prerequisites.\n\nTo install Evo 2:\n```bash\npip install evo2\n```\n\nFor the latest features or to contribute:\n```bash\ngit clone https://github.com/arcinstitute/evo2\ncd evo2\npip install -e .\n```\n\nTo verify that the installation was correct:\n\n```\npython -m evo2.test.test_evo2_generation --model_name evo2_7b\n```\n\nFor the 40b model:\n```\npython -m evo2.test.test_evo2_generation --model_name evo2_40b\n```\n\n### Docker\n\nEvo 2 can be run using Docker (shown below), Singularity, or Apptainer.\n\n```bash\ndocker build -t evo2 .\ndocker run -it --rm --gpus '\"device=0\"' -v ./huggingface:/root/.cache/huggingface evo2 bash\n```\nNote: The volume mount (-v) preserves downloaded models between container runs and specifies where they are saved.\n\nOnce inside the container:\n\n```bash\npython -m evo2.test.test_evo2_generation --model_name evo2_7b\n```",
+    "dependencies": [
+      "Python 3.10+",
+      "PyTorch 2.0+",
+      "CUDA 12.0+",
+      "flash-attn==2.8.0.post2",
+      "transformer-engine-torch==2.3.0"
+    ],
+    "hardware_requirements": "\n**For Local Inference (7B model):**\n- GPU: NVIDIA A100 40GB or better\n- VRAM: 40GB+\n- RAM: 64GB\n- Storage: 50GB\n\n**For Full 40B Model:**\n- GPU: Multiple NVIDIA H100 80GB\n- VRAM: 160GB+ (multi-GPU)\n- RAM: 256GB+\n- Storage: 200GB\n\n**NVIDIA NIM API (Recommended):**\n- No local GPU required\n- Rate limit: 40 requests/minute\n- Free for developers\n",
+    "topics": [
+      "genomics",
+      "dna",
+      "foundation-model",
+      "mutation-prediction"
+    ],
+    "language": "Python",
+    "has_mcp": false,
+    "api_available": "NVIDIA NIM",
+    "license": "Apache-2.0",
+    "last_updated": "2026-01-19T15:55:29.221092"
+  },
+  "drugclip": {
+    "tool_id": "drugclip",
+    "name": "DrugCLIP",
+    "description": "Contrastive learning framework for virtual screening. 10 million times faster than traditional methods. Screened 10K proteins \u00d7 500M compounds.",
+    "category": "drug-discovery",
+    "github_url": "https://github.com/bowen-gao/DrugCLIP",
+    "primary_citation": {
+      "doi": "10.1126/science.ads9530",
+      "title": "Deep contrastive learning enables genome-wide virtual screening",
+      "authors": [
+        "Yinjun Jia",
+        "Bowen Gao",
+        "Jiaxin Tan",
+        "Jiqing Zheng",
+        "Xin Hong",
+        "Wenyu Zhu",
+        "Haichuan Tan",
+        "Yuan Xiao",
+        "Liping Tan",
+        "Hongyi Cai",
+        "Yanwen Huang",
+        "Zhiheng Deng",
+        "Xiangwei Wu",
+        "Yue Jin",
+        "Yafei Yuan",
+        "Jiekang Tian",
+        "Wei He",
+        "Weiying Ma",
+        "Yaqin Zhang",
+        "Lei Liu",
+        "Chuangye Yan",
+        "Wei Zhang",
+        "Yanyan Lan"
+      ],
+      "journal": "Science",
+      "year": 2026,
+      "url": "https://doi.org/10.1126/science.ads9530"
+    },
+    "benchmark_papers": [
+      {
+        "title": "DrugCLIP: Contrastive Protein-Molecule Representation Learning for Virtual Screening",
+        "venue": "NeurIPS 2023",
+        "note": "Original DrugCLIP paper"
+      },
+      {
+        "title": "Genome-wide virtual screening with DrugCLIP",
+        "doi": "10.1126/science.ads9530",
+        "venue": "Science 2026",
+        "note": "Large-scale screening benchmark"
+      }
+    ],
+    "review_papers": null,
+    "readme_content": "# DrugCLIP: Contrastive Protein-Molecule Representation Learning for Virtual Screening\n\n[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/xxxx/blob/main/LICENSE)\n[![ArXiv](http://img.shields.io/badge/cs.LG-arXiv%3A2310.06367-B31B1B.svg)](https://arxiv.org/pdf/2310.06367.pdf)\n\n<!-- [[Code](xxxx - Overview)] -->\n\n![cover](framework.png)\n\nOfficial code for the paper \"DrugCLIP: Contrastive Protein-Molecule Representation Learning for Virtual Screening\", accepted at *Neural Information Processing Systems, 2023*. **Currently the code is a raw version, will be updated ASAP**. If you have any inquiries, feel free to contact billgao0111@gmail.com\n\n# Requirements\n\nsame as [Uni-Mol](https://github.com/dptech-corp/Uni-Mol/tree/main/unimol)\n\n**rdkit version should be 2022.9.5**\n\n## Data and checkpoints\n\nhttps://drive.google.com/drive/folders/1zW1MGpgunynFxTKXC2Q4RgWxZmg6CInV?usp=sharing\n\nIt currently includes the train data, the trained checkpoint and the test data for DUD-E\n\n\n\n### Training data\n\nThe dataset for training is included in google drive: train_no_test_af.zip. It contains several files:\n\n```\n\ndick_pkt.txt: dictionary for pocket atom types\n\ndict_mol.txt: dictionary for molecule atom types\n\ntrain.lmdb: train dataset\n\nvalid.lmdb: validation dataset\n\n```\n\nUse py_scripts/lmdb_utils.py to read the lmdb file. The keys in the lmdb files and corresponding descriptions are shown below:\n\n```\n\n\"atoms\": \"atom types for each atom in the ligand\" \n\n\"coordinates\": \"3D coordinates for each atom in the ligand generated by RDKit. Max number of conformations is 10\"\n\n\"pocket_atoms\": \"atom types for each atom in the pocket\"\n\n\"pocket_coordinates\": \"3D coordinates for each atom in the pocket\"\n\n\"mol\": \"RDKit molecule object for the ligand\"\n\n\"smi\": \"SMILES string for the ligand\"\n\n\"pocket\": \"pdbid of the pocket\",\n```\n\n\nThe dataset is compiled from the PBDBind dataset, containing a combination of authentic protein-ligand complexes and those generated through HomoAug, a technique for augmenting data with homology-based transformations.\n\n\n### Test data\n\n#### DUD-E\n\n```\nDUD-E\n\u251c\u2500\u2500 gene id\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 receptor.pdb\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 crystal_ligand.mol2\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 actives_final.ism\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 decoys_final.ism\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 mols.lmdb (containing all actives and decoys)\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 pocket.lmdb\n\n```\n\n#### PCBA\n\n```\nlit_pcba\n\u251c\u2500\u2500 target name\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 PDBID_protein.mol2\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 PDBID_ligand.mol2\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 actives.smi\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 inactives.smi\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 mols.lmdb (containing all actives and inactives)\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 pocket.lmdb\n\n```\n\n\n### Data preprocessing\n\nsee py_scripts/write_dude_multi.py\n\n## HomoAug\n\nPlease refer to HomoAug directory for details\n\n## Train\n\nbash drugclip.sh\n\n## Test\n\nbash test.sh\n\n\n## Retrieval \n\nbash retrieval.sh\n\nIn the google drive folder, you can find example file for pocket.lmdb and mols.lmdb under retrieval dir.\n\n\n## Citation\n\nIf you find our work useful, please cite our paper:\n\n```bibtex\n@inproceedings{gao2023drugclip,\n    author = {Gao, Bowen and Qiang, Bo and Tan, Haichuan and Jia, Yinjun and Ren, Minsi and Lu, Minsi and Liu, Jingjing and Ma, Wei-Ying and Lan, Yanyan},\n    title = {DrugCLIP: Contrasive Protein-Molecule Representation Learning for Virtual Screening},\n    booktitle = {NeurIPS 2023},\n    year = {2023},\n    url = {https://openreview.net/forum?id=lAbCgNcxm7},\n}\n```\n",
+    "help_text": "\nDrugCLIP Usage:\n\n# Encode protein pocket\npython encode_pocket.py --input pockets.csv --output pocket_embeddings.pt\n\n# Encode molecules\npython encode_molecule.py --input molecules.smi --output mol_embeddings.pt\n\n# Screen\npython screen.py --pockets pocket_embeddings.pt --molecules mol_embeddings.pt --output hits.csv\n\n# Full pipeline\npython drugclip_screen.py --protein target.pdb --library compounds.smi --output results/\n",
+    "usage_guide": "\n## Quick Start Guide for DrugCLIP\n\n### 1. Installation\n```bash\ngit clone https://github.com/bowen-gao/DrugCLIP\ncd DrugCLIP\npip install -r requirements.txt\n\n# Install RDKit\nconda install -c conda-forge rdkit=2022.9.5\n```\n\n### 2. Prepare Input Data\n- Protein pocket: PDB file or pocket coordinates\n- Molecule library: SMILES file\n\n### 3. Run Screening\n```python\nfrom drugclip import DrugCLIP\n\nmodel = DrugCLIP.load_pretrained()\n\n# Encode target\npocket_embedding = model.encode_pocket(pocket_pdb=\"target_pocket.pdb\")\n\n# Encode molecules\nmol_embeddings = model.encode_molecules(smiles_list=[\"CCO\", \"CC(=O)O\", ...])\n\n# Calculate similarity scores\nscores = model.similarity(pocket_embedding, mol_embeddings)\n\n# Get top hits\ntop_hits = scores.topk(100)\n```\n\n### Key Features:\n- 10 million times faster than traditional docking\n- Contrastive learning approach\n- Genome-wide screening capability\n",
+    "examples": "dick_pkt.txt: dictionary for pocket atom types\n\ndict_mol.txt: dictionary for molecule atom types\n\ntrain.lmdb: train dataset\n\nvalid.lmdb: validation dataset\n\n---\n\n\"atoms\": \"atom types for each atom in the ligand\" \n\n\"coordinates\": \"3D coordinates for each atom in the ligand generated by RDKit. Max number of conformations is 10\"\n\n\"pocket_atoms\": \"atom types for each atom in the pocket\"\n\n\"pocket_coordinates\": \"3D coordinates for each atom in the pocket\"\n\n\"mol\": \"RDKit molecule object for the ligand\"\n\n\"smi\": \"SMILES string for the ligand\"\n\n\"pocket\": \"pdbid of the pocket\",\n\n---\n\nDUD-E\n\u251c\u2500\u2500 gene id\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 receptor.pdb\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 crystal_ligand.mol2\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 actives_final.ism\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 decoys_final.ism\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 mols.lmdb (containing all actives and decoys)\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 pocket.lmdb\n\n---\n\nlit_pcba\n\u251c\u2500\u2500 target name\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 PDBID_protein.mol2\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 PDBID_ligand.mol2\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 actives.smi\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 inactives.smi\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 mols.lmdb (containing all actives and inactives)\n\u2502\u00a0\u00a0 \u251c\u2500\u2500 pocket.lmdb",
+    "scientific_context": "DrugCLIP reformulates virtual screening as a dense retrieval task using contrastive learning. It can screen millions of compounds against thousands of targets simultaneously, enabling genome-wide drug discovery.",
+    "recommended_parameters": {
+      "screening": {
+        "top_k": {
+          "default": 100,
+          "note": "Number of hits to return"
+        },
+        "threshold": {
+          "default": 0.5,
+          "note": "Similarity threshold"
+        }
+      }
+    },
+    "use_cases": [
+      "Virtual screening",
+      "Hit identification",
+      "Target fishing",
+      "Polypharmacology analysis"
+    ],
+    "limitations": [
+      "Requires RDKit and UniMol",
+      "Best for small molecule screening"
+    ],
+    "alternatives": [
+      "Glide",
+      "AutoDock Vina",
+      "GNINA"
+    ],
+    "install_instructions": "\n```bash\n# Clone repository\ngit clone https://github.com/bowen-gao/DrugCLIP\ncd DrugCLIP\n\n# Create environment\nconda create -n drugclip python=3.8\nconda activate drugclip\n\n# Install RDKit (specific version required)\nconda install -c conda-forge rdkit=2022.9.5\n\n# Install other dependencies\npip install -r requirements.txt\n```\n",
+    "dependencies": [
+      "Python 3.8+",
+      "RDKit 2022.9.5",
+      "PyTorch",
+      "UniMol framework",
+      "numpy",
+      "pandas"
+    ],
+    "hardware_requirements": "\n**Minimum Requirements:**\n- CPU: Modern multi-core processor\n- RAM: 16GB\n- Storage: 10GB\n\n**For Large-Scale Screening:**\n- GPU: NVIDIA GPU with 8GB+ VRAM (optional, for acceleration)\n- RAM: 64GB+ (for loading large molecule libraries)\n- Storage: 100GB+ (for compound databases)\n",
+    "topics": [
+      "drug-discovery",
+      "virtual-screening",
+      "contrastive-learning",
+      "deep-learning"
+    ],
+    "language": "Python",
+    "has_mcp": false,
+    "api_available": null,
+    "license": "NOASSERTION",
+    "last_updated": "2026-01-19T15:55:29.221093"
+  },
+  "scfv_pmpnn_af2": {
+    "tool_id": "scfv_pmpnn_af2",
+    "name": "scFv_Pmpnn_AF2",
+    "description": "AI pipeline integrating AlphaFold2 and ProteinMPNN for converting antibodies to functional scFv intrabodies. 73% success rate vs 31% standard methods.",
+    "category": "protein-design",
+    "github_url": "https://github.com/jbderoo/scFv_Pmpnn_AF2",
+    "primary_citation": {
+      "doi": "10.1126/sciadv.adx8352",
+      "title": "AI-assisted protein design to rapidly convert antibody sequences to intrabodies targeting diverse peptides and histone modifications",
+      "authors": [
+        "Gabriel Galindo",
+        "Daiki Maejima",
+        "Jacob DeRoo",
+        "Scott R. Burlingham",
+        "Gretchen Fixen",
+        "Tatsuya Morisaki",
+        "Hallie P. Febvre",
+        "Ryan Hasbrook",
+        "Ning Zhao",
+        "Soham Ghosh",
+        "E. Handly Mayton",
+        "Christopher D. Snow",
+        "Brian J. Geiss",
+        "Yasuyuki Ohkawa",
+        "Yuko Sato",
+        "Hiroshi Kimura",
+        "Timothy J. Stasevich"
+      ],
+      "journal": "Science Advances",
+      "year": 2026,
+      "url": "https://doi.org/10.1126/sciadv.adx8352"
+    },
+    "benchmark_papers": [
+      {
+        "title": "AI-assisted protein design to rapidly convert sequences to intrabodies",
+        "doi": "10.1126/sciadv.adx8352",
+        "venue": "Science Advances 2026",
+        "note": "73% vs 31% success rate benchmark"
+      }
+    ],
+    "review_papers": null,
+    "readme_content": "![scFv Colored by 3 regions](images/F1.large.jpg \"Graphical Abstract Intro Code\")\n\n# **AI-assisted protein design to rapidly convert antibody sequences to intrabodies targeting diverse peptides and histone modifications**\u00a0\n\n## Set up:\nThis was written with cuda 11.8 in mind, but should easily be exportable to any other cuda version; no custom GPU development was done. The following major packages are dependencies:\n- ANARCI (https://github.com/oxpig/ANARCI)\n- localcolabfold ([YoshitakaMo/localcolabfold: ColabFold on your local PC](https://github.com/YoshitakaMo/localcolabfold)) \n- ProteinMPNN ([dauparas/ProteinMPNN: Code for the ProteinMPNN paper](https://github.com/dauparas/ProteinMPNN))\n\nAnd there are the following python dependencies:\n- Python 3.9\n- Biopython (should get installed when you install ANARCI)\n- NumPy (should get installed with both ANARCI and ProteinMPNN)\n- Matplotlib\n- Scipy\n- PyTorch (should get installed with ProteinMPNN)\n- Web Logo\n\nA `requirements.txt` file is not provided because 99% of the setup for this project is getting ANARCI, localcolabfold, and ProteinMPNN set up and operational in a singular environment. The extraneous libraries are very easy to install after getting the major 3 operational. If you find it useful, the conda env for this project is provided in `environment.yaml` - but again, it is highly recommended to install each of the 3 major dependicies independently, and not with this `.yaml` file. \n\n## Usage\nThis pipeline was written with ease of use in mind. There are two scripts worth mentioning here. The first being the scFv-ification of antibody sequences (`scripts/scfv_anarci.py`), and the second being the actual run pipeline itself (`af2_pmpnn.sh`). \n\n### scFv-ification of an antibody\nAn scFv (single chain variable fragment) is an antibody with only the CDR loops and variable region framework, of both the constant and heavy chains. A flexible linker is then used to combine the remaining regions to create and a single chain domain. The process of doing this is tedious and time consuming by hand; identify the CDR regions, identify the variable and constant regions, and stitch them together. For both speed and consistency, a script was written to quickly automate this process.\n\nLet\u2019s use the hemagglutinin (HA) Heavy and Light chains for our example, called `HA.fasta` :\n```\n>HA_heavy\nMKLPVLLVVLLLFTSPASSSEVKLVESGGDLVKPGGSLKLSCAASGFTFSSYGMSWVRQTPDKRLEWVATISRGGSYTYYPDSVKGRFTISRDNAKNTLYLQMSSLKSEDTAMYYCARRETYDEKGFAYWGQGTTVTVSSARPTAPSVYPLAPVCGDTTGSSVTLGCLVKGYFPEPVTLTWNSGSLSSGVHTFPAVLQSDLYTLSSSVTVTSSTWPSQSITCNVAHPASSTKVDKKIEPRGPTIKPCPPCKCPAPNLLGGPSVFIFPPKIKDVLMISLSPIVTCVVVDVSEDDPDVQISWFVNNVEVHTAQTQTHREDYNSTLRVVSALPIQHQDWMSGKEFKCKVNNKDLPAPIERTISKPKGSVRAPQVYVLPPPEEEMTKKQVTLTCMVTDFMPEDIYVEWTNNGKTELNYKNTEPVLDSDGSYFMYSKLRVEKKNWVERNSYSCSVVHEGLHNHHTTKSFSRTPGK\n>HA_light\nMTSTLPFSPQVSTPRSKFATMEFQTQVLMSLLLCMSGAAADIELTQSPSSLTVTAGEKVTMSCKSSQSLLNSGNQKNYLTWYQQKPGQPPKLLIYWASTRESGVPDRFTGSGSGRDFTLTISSVQAEDLAVYYCQNDNSHPLTFGAGTKLELKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFYPKDINVKWKIDGSERQNGVLNSWTDQDSKDSTYSMSSTLTLTKDEYERHNSYTCEATHKTSTSPIVKSFNRNEC\n```\n\nIdentifing the variable regions, and stitching them together with the default flexible linker (`GGGGS` x3):\n`scfv_anarci.py HA.fasta`\nYeilds the scFv sequence printed to the screen:\n`MEVKLVESGGDLVKPGGSLKLSCAASGFTFSSYGMSWVRQTPDKRLEWVATISRGGSYTYYPDSVKGRFTISRDNAKNTLYLQMSSLKSEDTAMYYCARRETYDEKGFAYWGQGTTVTVSSGGGGSGGGGSGGGGSDIELTQSPSSLTVTAGEKVTMSCKSSQSLLNSGNQKNYLTWYQQKPGQPPKLLIYWASTRESGVPDRFTGSGSGRDFTLTISSVQAEDLAVYYCQNDNSHPLTFGAGTKLELK`\n\nIf you\u2019d like to use any other sequence besides the default, this is easily changable with the `\u2014linker-seq` flag. Note that this DOES NOT check for legitimate amino acids:\n\n`scfv_anarci.py HA.fasta --linker-seq GSGSGSGSGSGSGSG`\n`MEVKLVESGGDLVKPGGSLKLSCAASGFTFSSYGMSWVRQTPDKRLEWVATISRGGSYTYYPDSVKGRFTISRDNAKNTLYLQMSSLKSEDTAMYYCARRETYDEKGFAYWGQGTTVTVSSGSGSGSGSGSGSGSGDIELTQSPSSLTVTAGEKVTMSCKSSQSLLNSGNQKNYLTWYQQKPGQPPKLLIYWASTRESGVPDRFTGSGSGRDFTLTISSVQAEDLAVYYCQNDNSHPLTFGAGTKLELK`\n\n`scfv_anarci.py HA.fasta --linker-seq __science_is_cool__`\n`MEVKLVESGGDLVKPGGSLKLSCAASGFTFSSYGMSWVRQTPDKRLEWVATISRGGSYTYYPDSVKGRFTISRDNAKNTLYLQMSSLKSEDTAMYYCARRETYDEKGFAYWGQGTTVTVSS__science_is_cool__DIELTQSPSSLTVTAGEKVTMSCKSSQSLLNSGNQKNYLTWYQQKPGQPPKLLIYWASTRESGVPDRFTGSGSGRDFTLTISSVQAEDLAVYYCQNDNSHPLTFGAGTKLELK`\n\nIf you\u2019d like to save your sequence to a file, use the `--output` flag.\n`scfv_anarci.py HA.fasta --output HA_scfv` Will produce the file `HA_scfv.fasta` with sequence title `>HA_scfv`. And if we look inside that file:\n```\n$ cat HA_scfv.fasta\n\n>HA_scfv\nMEVKLVESGGDLVKPGGSLKLSCAASGFTFSSYGMSWVRQTPDKRLEWVATISRGGSYTYYPDSVKGRFTISRDNAKNTLYLQMSSLKSEDTAMYYCARRETYDEKGFAYWGQGTTVTVSSGGGGSGGGGSGGGGSDIELTQSPSSLTVTAGEKVTMSCKSSQSLLNSGNQKNYLTWYQQKPGQPPKLLIYWASTRESGVPDRFTGSGSGRDFTLTISSVQAEDLAVYYCQNDNSHPLTFGAGTKLELK\n```\n\n### scFv Framework Optimization\nNow that we\u2019ve successfully created an scFv sequence, we can optimize its framework with the pipeline that is the crux of the protein design aspect of the paper. The heart and soul of the pipeline is the `af2_pmpnn.sh` bash script. In it are a handful of input variables that we\u2019ll go over briefly.\n\n`folder_with_pdbs=\"input_dir\"` Is the input directory where all pdbs or fastas (one scFv per fasta!) we want to redesign the framework of should go. \n\n`seqs_per_run=3`  is the number of sequences to generate via ProteinMPNN for the scFv framework.\n\n`determine_CDRs=\"martin\"`  Is the method with which to determine the CDRs of the scFv. There are four supported options here:\n`martin`, `kabat`, and `chothia` are all self explanatory. These are the sequence numbering schemes with which the literature has widly used to identify CDRs in an antibody.\nThe fourth and final one is `structure` . This takes a structure based approach (as opposed to sequence for the other 3) to identifying the CDR loops. A peptide and the scFv have their structure predicted via AF2, then all the residues within 6 angstroms of that peptide are considered the \u201cCDRs\u201d, and they are not allowed to mutate.\n\n`simple_grab=true` is used to determine how do we determine what residues are near the CDRs. For example, if two residues are near a CDR and create a \u201cbridge\u201d if 1 residue that isn\u2019t, this residue would be allowed to change if `simple_grab` is set to `true`. However, if we set this to `false`, then that residue would artificially be considered part of the group of residues near the CDR loops that are not allowed to change. \n\n`output_dir=\"output_dir\u201d` the name of the output directory\n\n`to_design=\"framework\"` What are we redesigning during this run? This was put in to help with other projects from the Snow, Geiss, and Stasevich labs. `to_design` is only allowed to be 1 of 3 things: `framework` to redesign the framework of the scFv, `loops` to redesign the loops of the scFv, and `lss` to redesign both the loops and the secondary shell of the loops (all residues within 4A of the loops, modified by `simple_grab`). \n\n`PMPNN='path/to/my/ProteinMPNN'` Path to the ProteinMPNN directory \n\nIn the output directory, there are 4 key files to look at (continuing our HA example):\n`HA_noWT.fa` contains all of the framework designed sequences that are produced.\n`HA_sequence_log.png` is an image of the sequence logo of the designed framework.\n`HA_plddt.png` is a plot of the pLDDT\u2019s ([pLDDT: Understanding local confidence | AlphaFold](https://www.ebi.ac.uk/training/online/courses/alphafold/inputs-and-outputs/evaluating-alphafolds-predicted-structures-using-confidence-scores/plddt-understanding-local-confidence/)) for each scFv.\n`HA_ptm.png` is a plot of the pTM\u2019s ([Confidence scores in AlphaFold-Multimer | AlphaFold](https://www.ebi.ac.uk/training/online/courses/alphafold/inputs-and-outputs/evaluating-alphafolds-predicted-structures-using-confidence-scores/confidence-scores-in-alphafold-multimer/)) for each scFv. \n\nTo make our sequence selections, we took the top sequences that performed well in both pLDDT and pTM. \n\n## TODO \nDockerfile / Docker image\n\n\n",
+    "help_text": "\nscFv_Pmpnn_AF2 Pipeline:\n\n# Step 1: Convert antibody to scFv format\npython scripts/scfv_anarci.py --input antibody.fasta --output scfv.fasta\n\n# Step 2: Run AlphaFold2 + ProteinMPNN pipeline\nbash af2_pmpnn.sh scfv.fasta output_dir/\n\n# Step 3: Analyze results\npython scripts/analyze_designs.py --input output_dir/ --output results.csv\n\nKey scripts:\n- scfv_anarci.py: scFv-ification of antibody sequences\n- af2_pmpnn.sh: Main AlphaFold2 + ProteinMPNN pipeline\n- analyze_designs.py: Result analysis\n",
+    "usage_guide": "\n## Quick Start Guide for scFv_Pmpnn_AF2\n\n### 1. Installation\n```bash\n# Clone repository\ngit clone https://github.com/jbderoo/scFv_Pmpnn_AF2\ncd scFv_Pmpnn_AF2\n\n# Install dependencies\npip install -r requirements.txt\n\n# Install ANARCI for antibody numbering\npip install anarci\n\n# Install ProteinMPNN\ngit clone https://github.com/dauparas/ProteinMPNN\ncd ProteinMPNN && pip install -e .\n\n# Install LocalColabFold (follow their instructions)\n```\n\n### 2. Prepare Antibody Sequence\n- Input: Heavy and light chain sequences\n- Format: FASTA file\n\n### 3. Run Pipeline\n```bash\n# Convert to scFv format\npython scripts/scfv_anarci.py \\\n    --vh_sequence \"EVQLVESGG...\" \\\n    --vl_sequence \"DIQMTQSPS...\" \\\n    --output scfv.fasta\n\n# Run design pipeline\nbash af2_pmpnn.sh scfv.fasta results/\n```\n\n### 4. Key Success Metrics\n- 73% conversion success rate (vs 31% standard)\n- 19/26 antibodies successfully converted\n",
+    "examples": ">HA_heavy\nMKLPVLLVVLLLFTSPASSSEVKLVESGGDLVKPGGSLKLSCAASGFTFSSYGMSWVRQTPDKRLEWVATISRGGSYTYYPDSVKGRFTISRDNAKNTLYLQMSSLKSEDTAMYYCARRETYDEKGFAYWGQGTTVTVSSARPTAPSVYPLAPVCGDTTGSSVTLGCLVKGYFPEPVTLTWNSGSLSSGVHTFPAVLQSDLYTLSSSVTVTSSTWPSQSITCNVAHPASSTKVDKKIEPRGPTIKPCPPCKCPAPNLLGGPSVFIFPPKIKDVLMISLSPIVTCVVVDVSEDDPDVQISWFVNNVEVHTAQTQTHREDYNSTLRVVSALPIQHQDWMSGKEFKCKVNNKDLPAPIERTISKPKGSVRAPQVYVLPPPEEEMTKKQVTLTCMVTDFMPEDIYVEWTNNGKTELNYKNTEPVLDSDGSYFMYSKLRVEKKNWVERNSYSCSVVHEGLHNHHTTKSFSRTPGK\n>HA_light\nMTSTLPFSPQVSTPRSKFATMEFQTQVLMSLLLCMSGAAADIELTQSPSSLTVTAGEKVTMSCKSSQSLLNSGNQKNYLTWYQQKPGQPPKLLIYWASTRESGVPDRFTGSGSGRDFTLTISSVQAEDLAVYYCQNDNSHPLTFGAGTKLELKRADAAPTVSIFPPSSEQLTSGGASVVCFLNNFYPKDINVKWKIDGSERQNGVLNSWTDQDSKDSTYSMSSTLTLTKDEYERHNSYTCEATHKTSTSPIVKSFNRNEC\n\n---\n\n$ cat HA_scfv.fasta\n\n>HA_scfv\nMEVKLVESGGDLVKPGGSLKLSCAASGFTFSSYGMSWVRQTPDKRLEWVATISRGGSYTYYPDSVKGRFTISRDNAKNTLYLQMSSLKSEDTAMYYCARRETYDEKGFAYWGQGTTVTVSSGGGGSGGGGSGGGGSDIELTQSPSSLTVTAGEKVTMSCKSSQSLLNSGNQKNYLTWYQQKPGQPPKLLIYWASTRESGVPDRFTGSGSGRDFTLTISSVQAEDLAVYYCQNDNSHPLTFGAGTKLELK",
+    "scientific_context": "This pipeline integrates AI-driven protein design tools to convert antibody sequences into functional intrabodies. It achieved 73% success rate compared to 31% with standard methods, enabling creation of tools for studying chromatin dynamics.",
+    "recommended_parameters": {
+      "design": {
+        "num_designs": {
+          "default": 100,
+          "note": "Number of designs to generate"
+        },
+        "sampling_temp": {
+          "default": 0.1,
+          "note": "ProteinMPNN sampling temperature"
+        }
+      }
+    },
+    "use_cases": [
+      "Intrabody design",
+      "scFv engineering",
+      "Antibody humanization",
+      "Chromatin imaging tools"
+    ],
+    "limitations": [
+      "Requires ProteinMPNN and ColabFold",
+      "Specific to antibody/scFv conversion"
+    ],
+    "alternatives": [
+      "RFdiffusion",
+      "ProteinMPNN alone"
+    ],
+    "install_instructions": "\n```bash\n# Clone repository\ngit clone https://github.com/jbderoo/scFv_Pmpnn_AF2\ncd scFv_Pmpnn_AF2\n\n# Create conda environment\nconda create -n scfv python=3.8\nconda activate scfv\n\n# Install dependencies\npip install -r requirements.txt\npip install anarci\n\n# Install ProteinMPNN\ngit clone https://github.com/dauparas/ProteinMPNN\npip install -e ProteinMPNN/\n\n# Install LocalColabFold (optional but recommended)\n# Follow instructions at: https://github.com/YoshitakaMo/localcolabfold\n```\n",
+    "dependencies": [
+      "Python 3.8+",
+      "ProteinMPNN",
+      "LocalColabFold (or ColabFold)",
+      "ANARCI (antibody numbering)",
+      "PyTorch",
+      "numpy",
+      "pandas",
+      "biopython"
+    ],
+    "hardware_requirements": "\n**Minimum Requirements:**\n- GPU: NVIDIA GPU with 16GB VRAM\n- RAM: 32GB\n- Storage: 50GB\n\n**Recommended:**\n- GPU: NVIDIA A100 40GB\n- RAM: 64GB\n- Storage: 100GB (for ColabFold databases)\n\n**Dependencies with GPU Requirements:**\n- ColabFold/LocalColabFold: 16GB+ VRAM\n- ProteinMPNN: 8GB+ VRAM\n",
+    "topics": [
+      "protein-design",
+      "antibody",
+      "intrabody",
+      "alphafold",
+      "proteinmpnn"
+    ],
+    "language": "Python",
+    "has_mcp": false,
+    "api_available": null,
+    "license": null,
+    "last_updated": "2026-01-19T15:55:29.221093"
+  },
+  "protrek": {
+    "tool_id": "protrek",
+    "name": "ProTrek",
+    "description": "Trimodal protein language model unifying sequence, structure, and function. Enables advanced protein searches across 5B+ proteins.",
+    "category": "protein-analysis",
+    "github_url": "https://github.com/westlake-repl/ProTrek",
+    "primary_citation": {
+      "doi": "10.1038/s41587-025-02836-0",
+      "title": "A trimodal protein language model enables advanced protein searches",
+      "authors": [
+        "Jin Su",
+        "Yan He",
+        "Shiyang You",
+        "Shiyu Jiang",
+        "Xibin Zhou",
+        "Xuting Zhang",
+        "Yuxuan Wang",
+        "Xining Su",
+        "Igor Tolstoy",
+        "Xing Chang",
+        "Hongyuan Lu",
+        "Fajie Yuan"
+      ],
+      "journal": "Nature Biotechnology",
+      "year": 2025,
+      "url": "https://doi.org/10.1038/s41587-025-02836-0"
+    },
+    "benchmark_papers": [
+      {
+        "title": "A trimodal protein language model enables advanced protein searches",
+        "doi": "10.1038/s41587-025-02836-0",
+        "venue": "Nature Biotechnology 2025",
+        "note": "Benchmark against Foldseek, MMseqs2"
+      }
+    ],
+    "review_papers": null,
+    "readme_content": "# [A trimodal protein language model enables advanced protein searches](https://www.nature.com/articles/s41587-025-02836-0)\n<a href=\"https://doi.org/10.1101/2024.05.30.596740\"><img src=\"https://img.shields.io/badge/Paper-bioRxiv-green\" style=\"max-width: 100%;\"></a>\n<a href=\"http://search-protrek.com/\"><img src=\"https://img.shields.io/badge/\ud83d\udd0dProTrek-red?label=Server\" style=\"max-width: 100%;\"></a>\n<a href=\"https://huggingface.co/westlake-repl/ProTrek_650M\"><img src=\"https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-yellow?label=Model\" style=\"max-width: 100%;\"></a>\n<a href=\"https://cbirt.net/charting-the-protein-universe-with-protreks-tri-modal-contrastive-learning/\" alt=\"blog\"><img src=\"https://img.shields.io/badge/Blog-Medium-purple\" /></a> \n\nYou can download the final accepted version [here](https://drive.google.com/file/d/11rNOUlSr8CSpBc5QsJH8QXa1oje_qyXT/view?usp=drive_link) in Nature Biotechnology, provided for open access purposes.\n\n**Try our online server** [here](http://search-protrek.com/). \n\n**Finetuning ProTrek for diverse tasks**  [here](https://colab.research.google.com/github/westlake-repl/SaprotHub/blob/main/colab/ColabSeprot.ipynb?hl=en#scrollTo=paX3gluumu7J). \n\n**Download billion-scale protein embeddings**  [here](https://protrek.westlake.edu.cn/). \n\nMore information about ProTrek, see [FAQ](https://github.com/westlake-repl/ProTrek/wiki/FAQs)\n\nIf you have any question about the paper or the code, feel free to raise an issue!\n\n> Every year, we have 2 PhD positions for international students at Westlake University! Join us [here](https://x.com/duguyuan/status/1897101692665258245).  Contact yuanfajie@westlake.edu.cn \n\n<details open><summary><b>Table of contents</b></summary>\n\n- [News](#News)\n- [Overview](#Overview)\n- [Environment installation](#Environment-installation)\n- [Download model weights](#Download-model-weights)\n- [Download Foldseek binary file](#Download-Foldseek-binary-file)\n- [Obtain embeddings and calculate similarity score](#Obtain-embeddings-and-calculate-similarity-score)\n- [Deploy your server locally](#Deploy-your-server-locally)\n- [Add custom database](#Add-custom-database)\n- [Citation](#Citation)\n</details>\n\n## News\n- **2025/10/02:** ProTrek is now online in Nature Biotechnology, see [here](https://www.nature.com/articles/s41587-025-02836-0).\n- **2025/08/20:** We have shared all database embeddings generated by ProTrek, see [here](https://protrek.westlake.edu.cn/).\n- **2025/08/15:** We added the the full OMG and MGnify databases, which contains over 3 billion protein sequences from metagenomic sequencing.\n- **2025/02/20:** ProTrek search results have been experimentally validated, see [here](https://x.com/duguyuan/status/1892419416924836164).\n- **2025/02/09:** We added the NCBI database, which contains 700 million protein sequences\n- **2025/01/01:** We added the GOPC database, which contains 2 bilion protein sequences from global ocean microbiome.\n- **2024/09/27:** We added the OMG_prot50 database, which contains 200 million protein sequences from metagenomic sequencing.\n- **2024/09/04:** We built [ColabProTrek](https://colab.research.google.com/github/westlake-repl/SaprotHub/blob/main/colab/ColabProTrek.ipynb?hl=en).\nColabProTrek has joined [OPMC](https://theopmc.github.io/).\n\n## Overview\nProTrek is a tri-modal protein language model that jointly models protein sequence, structure and function (SSF). It employs\ncontrastive learning with three core alignment strategies: (1) using structure as the supervision signal for AA\nsequences and vice versa, (2) mutual supervision between sequences and functions, and (3) mutual supervision\nbetween structures and functions. This tri-modal alignment training enables ProTrek to tightly associate SSF by\nbringing genuine sample pairs (sequence-structure, sequence-function, and structure-function) closer together while\npushing negative samples farther apart in the latent space.\n\nProTrek achieves over 30x and 60x improvements in sequence-function and function-sequence retrieval, is 100x faster than Foldseek and MMseqs2 in protein-protein search, and outperforms ESM-2 in 9 of 11 downstream prediction tasks.\n\n<img src=\"figure/img.jpg\" style=\"zoom:33%;\" />\n\n## Environment installation\n### Create a virtual environment\n```\nconda create -n protrek python=3.10 --yes\nconda activate protrek\n```\n### Clone the repo and install packages\n```\nbash environment.sh  \n```\n\n## Download model weights\nProTrek provides pre-trained models with different sizes (35M and 650M), as shown below. For each pre-trained model, \nPlease download all files and put them in the `weights` directory, e.g. `weights/ProTrek_35M/...`.\n\n\n| **Name**                                                     | **Size \uff08protein sequence encoder\uff09** | **Size \uff08protein structure encoder\uff09** | **Size \uff08text encoder\uff09** | Dataset               |\n| ------------------------------------------------------------ | ------------------------------------- | -------------------------------------- |-------------------------| --------------------- |\n| [ProTrek_35M](https://huggingface.co/westlake-repl/ProTrek_35M) | 35M parameters                        | 35M parameters                         | 130M parameters         | Swiss-Prot + TrEMBL50 |\n| [ProTrek_650M](https://huggingface.co/westlake-repl/ProTrek_650M) | 650M parameters                       | 150M parameters                        | 130M parameters         | Swiss-Prot + TrEMBL50 |\n\nWe provide an example to download the pre-trained model weights.\n```\nhuggingface-cli download westlake-repl/ProTrek_650M \\\n                         --repo-type model \\\n                         --local-dir weights/ProTrek_650M\n```\n> Note: if you cannot access the huggingface website, you can try to connect to the mirror site through \"export \n> HF_ENDPOINT=https://hf-mirror.com\"\n\n## Download Foldseek binary file\nTo run examples correctly and deploy your demo locally, please at first download the Foldseek\nbinary file from [here](https://drive.google.com/file/d/1B_9t3n_nlj8Y3Kpc_mMjtMdY0OPYa7Re/view?usp=sharing) and place \nit into the `bin` folder. Then add the execute permission to the binary file.\n```\nchmod +x bin/foldseek\n```\n\n## Obtain embeddings and calculate similarity score\nBelow is an example of how to obtain embeddings and calculate similarity score using the pre-trained ProTrek model.\n```python\nimport torch\n\nfrom model.ProTrek.protrek_trimodal_model import ProTrekTrimodalModel\nfrom utils.foldseek_util import get_struc_seq\n\n# Load model\nconfig = {\n    \"protein_config\": \"weights/ProTrek_650M/esm2_t33_650M_UR50D\",\n    \"text_config\": \"weights/ProTrek_650M/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext\",\n    \"structure_config\": \"weights/ProTrek_650M/foldseek_t30_150M\",\n    \"from_checkpoint\": \"weights/ProTrek_650M/ProTrek_650M.pt\"\n}\n\ndevice = \"cuda\"\nmodel = ProTrekTrimodalModel(**config).eval().to(device)\n\n# Load protein and text\npdb_path = \"example/8ac8.cif\"\nseqs = get_struc_seq(\"bin/foldseek\", pdb_path, [\"A\"])[\"A\"]\naa_seq = seqs[0]\nfoldseek_seq = seqs[1].lower()\ntext = \"Replication initiator in the monomeric form, and autogenous repressor in the dimeric form.\"\n\nwith torch.no_grad():\n    # Obtain protein sequence embedding\n    seq_embedding = model.get_protein_repr([aa_seq])\n    print(\"Protein sequence embedding shape:\", seq_embedding.shape)\n    \n    # Obtain protein structure embedding\n    struc_embedding = model.get_structure_repr([foldseek_seq])\n    print(\"Protein structure embedding shape:\", struc_embedding.shape)\n    \n    # Obtain text embedding\n    text_embedding = model.get_text_repr([text])\n    print(\"Text embedding shape:\", text_embedding.shape)\n    \n    # Calculate similarity score between protein sequence and structure\n    seq_struc_score = seq_embedding @ struc_embedding.T / model.temperature\n    print(\"Similarity score between protein sequence and structure:\", seq_struc_score.item())\n\n    # Calculate similarity score between protein sequence and text\n    seq_text_score = seq_embedding @ text_embedding.T / model.temperature\n    print(\"Similarity score between protein sequence and text:\", seq_text_score.item())\n    \n    # Calculate similarity score between protein structure and text\n    struc_text_score = struc_embedding @ text_embedding.T / model.temperature\n    print(\"Similarity score between protein structure and text:\", struc_text_score.item())\n   \n\n\"\"\"\nProtein sequence embedding shape: torch.Size([1, 1024])\nProtein structure embedding shape: torch.Size([1, 1024])\nText embedding shape: torch.Size([1, 1024])\nSimilarity score between protein sequence and structure: 28.506675720214844\nSimilarity score between protein sequence and text: 17.842409133911133\nSimilarity score between protein structure and text: 11.866174697875977\n\"\"\"\n```\n\n## Deploy your server locally\nWe strongly recommend deploying it on your university server and have your IT department (or a computer science student) do it, it's easy for them. Please follow the steps below:\n\n### Step 1: Install the environment\nPlease follow the instructions in the [Environment installation](#Environment-installation) section.\n\n### Step 2: Download the Foldseek binary file\nPlease follow the instructions in the [Download Foldseek binary file](#Download-Foldseek-binary-file) section.\n\n### Step 3: Download the pre-trained model weights\nPlease download the weights of [ProTrek_650M](https://huggingface.co/westlake-repl/ProTrek_650M) and put them into the `weights` directory, \ni.e. `weights/ProTrek_650M/...`. Please follow the instructions in the \n[Download model weights](#Download-model-weights) section.\n\n### Step 4: Download pre-computed faiss index\nWe have built faiss index for fast retrieval using the embedding computed by [ProTrek_650M](https://huggingface.co/westlake-repl/ProTrek_650M). \nPlease download the faiss index from [here](https://huggingface.co/datasets/westlake-repl/faiss_index_ProTrek_650M_UniRef50/tree/main)\nand put it into the `faiss_index` directory, i.e. `faiss_index/SwissProt/...`. You can follow the below command to\ndownload the faiss index.\n```\nhuggingface-cli download westlake-repl/faiss_index --repo-type dataset --local-dir faiss_index/\n```\n\n### Step 5: Run the server\nAfter all data and files are prepared, you can run the server by executing the following command. Once you see the\nprompt ``All servers are active! You can now visit http://127.0.0.1:7860/ to start to use.``, you can visit the \nspecified URL to use the server.\n```\n# Important: The server will occupy the ports 7860 to 7863, please make sure these ports are available!\npython demo/run_pipeline.py\n```\n\n### Step 6(optional): SSH port forwarding\nIf the software is deployed on your remote server, you can use SSH port forwarding to connect to the server. Specifically, you can run the code below on your local computer:\n```\nssh -NL 7860:localhost:7860 user@remote_server\n```\nThen you can visit http://127.0.0.1:7860/ on your local computer.\n\n## Add custom database\nYou can add your custom database to the server for retrieval. Please follow the instructions below:\n\n### Step 1: Build the faiss index\nYou can build the faiss index through a ``.fasta`` file:\n```\npython scripts/generate_database.py --fasta example/custom_db.fasta --save_dir faiss_index/Custom/ProTrek_650M/sequence\n```\n\n### Step 2: Add the index to the config file\nYou need to add the index to the ``demo/config.yaml``:\n```\n...\n\nsequence_index_dir:\n  - name: Swiss-Prot\n    index_dir: faiss_index/SwissProt/ProTrek_650M/sequence\n\n# Add your custom database here\n  - name: Custom\n    index_dir: faiss_index/Custom/ProTrek_650M/sequence\n    \n...\n\nfrontend:\n  sequence: [\n    'Swiss-Prot',\n    # Add your custom database here\n    'Custom',\n  ]\n\n...\n```\nFinally, you can run the server to use the custom database.\n\n## Citation\nIf you find ProTrek useful for your research, please consider citing the following paper:\n```\n@article{su2025trimodal,\n  title={A trimodal protein language model enables advanced protein searches},\n  author={Su, Jin and He, Yan and You, Shiyang and Jiang, Shiyu and Zhou, Xibin and Zhang, Xuting and Wang, Yuxuan and Su, Xining and Tolstoy, Igor and Chang, Xing and others},\n  journal={Nature Biotechnology},\n  pages={1--7},\n  year={2025},\n  publisher={Nature Publishing Group US New York}\n}\n```\n### Other resources\n- [Evolla](https://www.biorxiv.org/content/10.1101/2025.01.05.630192v1) and its [online server](http://www.chat-protein.com/)\n- [Pinal](https://www.biorxiv.org/content/10.1101/2024.08.01.606258v2) and its [online server](http://www.denovo-pinal.com/)\n- [SaprotHub](https://www.biorxiv.org/content/10.1101/2024.05.24.595648v5) and its [online server](https://colab.research.google.com/github/westlake-repl/SaprotHub/blob/main/colab/SaprotHub_v2.ipynb?hl=en)\n",
+    "help_text": "\nProTrek Usage:\n\n# Search modes:\n- Sequence \u2192 Function: Find function from protein sequence\n- Structure \u2192 Function: Find function from structure\n- Function \u2192 Sequence: Find sequences matching description\n- Sequence \u2192 Structure: Find structurally similar proteins\n- All pairwise combinations supported\n\n# Python API\nfrom protrek import ProTrekTrimodalModel\n\nmodel = ProTrekTrimodalModel.from_pretrained(\"westlake-repl/ProTrek_650M\")\n\n# Get embeddings\nseq_emb = model.get_protein_repr([\"MKTVRQERLK...\"])\ntext_emb = model.get_text_repr([\"ATP-binding kinase\"])\nstruct_emb = model.get_structure_repr([foldseek_seq])\n\n# Calculate similarity\nsimilarity = torch.dot(seq_emb, text_emb) / model.temperature\n",
+    "usage_guide": "\n## Quick Start Guide for ProTrek\n\n### 1. Web Interface (Easiest)\nVisit: https://search-protrek.com\n- No installation required\n- Access to 5B+ proteins\n- All search modes available\n\n### 2. Local Installation\n```bash\n# Create environment\nconda create -n protrek python=3.10\nconda activate protrek\n\n# Clone repository\ngit clone https://github.com/westlake-repl/ProTrek\ncd ProTrek\n\n# Download model weights\nhuggingface-cli download westlake-repl/ProTrek_650M \\\n    --repo-type model \\\n    --local-dir weights/ProTrek_650M\n```\n\n### 3. Run Local Server\n```bash\npython demo/run_pipeline.py\n# Access at http://127.0.0.1:7860/\n```\n\n### 4. Python API for Custom Embeddings\n```python\nfrom model.ProTrek.protrek_trimodal_model import ProTrekTrimodalModel\n\nconfig = {\"model_path\": \"weights/ProTrek_650M\"}\nmodel = ProTrekTrimodalModel(**config).eval().cuda()\n\n# Get 1024-dimensional embeddings\nseq_embedding = model.get_protein_repr([\"MKTVRQERLKSIVRILERSKEPVSGAQ\"])\n```\n\n### Databases Available:\n- SwissProt, UniRef50, ESMAtlas\n- NCBI (700M sequences)\n- GOPC (2B ocean microbiome)\n- Total: 5B+ proteins\n",
+    "examples": "conda create -n protrek python=3.10 --yes\nconda activate protrek\n\n---\n\nbash environment.sh\n\n---\n\nhuggingface-cli download westlake-repl/ProTrek_650M \\\n                         --repo-type model \\\n                         --local-dir weights/ProTrek_650M\n\n---\n\nchmod +x bin/foldseek\n\n---\n\nimport torch\n\nfrom model.ProTrek.protrek_trimodal_model import ProTrekTrimodalModel\nfrom utils.foldseek_util import get_struc_seq\n\n# Load model\nconfig = {\n    \"protein_config\": \"weights/ProTrek_650M/esm2_t33_650M_UR50D\",\n    \"text_config\": \"weights/ProTrek_650M/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext\",\n    \"structure_config\": \"weights/ProTrek_650M/foldseek_t30_150M\",\n    \"from_checkpoint\": \"weights/ProTrek_650M/ProTrek_650M.pt\"\n}\n\ndevice = \"cuda\"\nmodel = ProTrekTrimodalModel(**config).eval().to(device)\n\n# Load protein and text\npdb_path = \"example/8ac8.cif\"\nseqs = get_struc_seq(\"bin/foldseek\", pdb_path, [\"A\"])[\"A\"]\naa_seq = seqs[0]\nfoldseek_seq = seqs[1].lower()\ntext = \"Replication initiator in the monomeric form, and autogenous repressor in the dimeric form.\"\n\nwith torch.no_grad():\n    # Obtain protein sequence embedding\n    seq_embedding = model.get_protein_repr([aa_seq])\n    print(\"Protein sequence embedding shape:\", seq_embedding.shape)\n    \n    # Obtain protein structure embedding\n    struc_embedding = model.get_structure_repr([foldseek_seq])\n    print(\"Protein structure embedding shape:\", struc_embedding.shape)\n    \n    # Obtain text embedding\n    text_embedding = model.get_text_repr([text])\n    print(\"Text embedding shape:\", text_embedding.shape)\n    \n    # Calculate similarity score between protein sequence and structure\n    seq_struc_score = seq_embedding @ struc_embedding.T / model.temperature\n    print(\"Similarity score between protein sequence and structure:\", seq_struc_score.item())\n\n    # Calculate similarity score between protein sequence and text\n    seq_text_score = seq_embedding @ text_embedding.T / model.temperature\n    print(\"Similarity score between protein sequence and text:\", seq_text_score.item())\n    \n    # Calculate similarity score between protein structure and text\n    struc_text_score = struc_embedding @ text_embedding.T / model.temperature\n    print(\"Similarity score between protein structure and text:\", struc_text_score.item())\n   \n\n\"\"\"\nProtein sequence embedding shape: torch.Size([1, 1024])\nProtein structure embedding shape: torch.Size([1, 1024])\nText embedding shape: torch.Size([1, 1024])\nSimilarity score between protein sequence and structure: 28.506675720214844\nSimilarity score between protein sequence and text: 17.842409133911133\nSimilarity score between protein structure and text: 11.866174697875977\n\"\"\"",
+    "scientific_context": "ProTrek unifies protein sequence, structure, and function through contrastive learning, enabling searches between any two modalities. The web server provides access to 5B+ proteins from multiple databases.",
+    "recommended_parameters": {
+      "search": {
+        "top_k": {
+          "default": 10,
+          "note": "Number of results"
+        },
+        "temperature": {
+          "default": 0.05,
+          "note": "Similarity scaling"
+        }
+      }
+    },
+    "use_cases": [
+      "Protein function search",
+      "Structure similarity search",
+      "Functional annotation",
+      "Database mining"
+    ],
+    "limitations": [
+      "Web API for search, local for embeddings",
+      "Structure search requires Foldseek format"
+    ],
+    "alternatives": [
+      "ESM-2",
+      "Foldseek",
+      "MMseqs2"
+    ],
+    "install_instructions": "\n```bash\n# Create environment\nconda create -n protrek python=3.10 --yes\nconda activate protrek\n\n# Clone repository\ngit clone https://github.com/westlake-repl/ProTrek\ncd ProTrek\npip install -r requirements.txt\n\n# Download model weights from HuggingFace\nhuggingface-cli download westlake-repl/ProTrek_650M \\\n    --repo-type model \\\n    --local-dir weights/ProTrek_650M\n\n# (Optional) Download FAISS indices for protein databases\n# See README for database download instructions\n```\n",
+    "dependencies": [
+      "Python 3.10+",
+      "PyTorch 2.0+",
+      "Transformers",
+      "FAISS (for similarity search)",
+      "HuggingFace Hub",
+      "gradio (for web interface)"
+    ],
+    "hardware_requirements": "\n**For Web API (search-protrek.com):**\n- No local requirements\n- Free access to 5B+ proteins\n\n**For Local Deployment:**\n- GPU: NVIDIA GPU with 8GB+ VRAM\n- RAM: 32GB\n- Storage: 50GB (for models)\n- Storage: 500GB+ (for FAISS indices of protein databases)\n\n**For Custom Embeddings:**\n- GPU: NVIDIA A100 40GB recommended\n- RAM: 64GB\n",
+    "topics": [
+      "protein-language-model",
+      "protein-search",
+      "embeddings",
+      "trimodal"
+    ],
+    "language": "Python",
+    "has_mcp": false,
+    "api_available": "search-protrek.com",
+    "license": "MIT",
+    "last_updated": "2026-01-19T15:55:29.221094"
+  },
+  "profam1": {
+    "tool_id": "profam1",
+    "name": "ProFam-1",
+    "description": "251M parameter autoregressive protein family language model. State-of-the-art zero-shot fitness prediction on ProteinGym benchmark.",
+    "category": "protein-analysis",
+    "github_url": "https://github.com/alex-hh/profam",
+    "primary_citation": {
+      "doi": "10.1101/2025.12.19.695431",
+      "title": "ProFam: Open-Source Protein Family Language Modelling for Fitness Prediction and Design",
+      "authors": [
+        "Alex Hh",
+        "Jude Wells"
+      ],
+      "journal": "bioRxiv",
+      "year": 2025,
+      "url": "https://www.biorxiv.org/content/10.1101/2025.12.19.695431"
+    },
+    "benchmark_papers": [
+      {
+        "title": "ProteinGym benchmark results",
+        "url": "https://proteingym.org",
+        "note": "State-of-the-art on fitness prediction (0.47 substitutions, 0.53 indels)"
+      }
+    ],
+    "review_papers": null,
+    "readme_content": "<div align=\"center\">\n\n<img src=\"data/profam_logo_grey.png\" alt=\"ProFam logo\" width=\"800\" />\n\n# ProFam: Open-Source Protein Family Language Modelling for Fitness Prediction and Design\n\n\n</div>\n\n## Description\n\n**ProFam-1** is a 251M-parameter autoregressive protein family language model (pfLM), trained with next-token prediction on **concatenated, unaligned protein sequences** drawn from the same family.\n\nProFam is built using the **PyTorch Lightning** framework and uses hydra for configuration management.\n\n## Quickstart\n\n### Installation (recommended: `uv`)\n\nIf you run into install issues (especially around CUDA / `flash-attn`), jump to [Debugging installation (conda fallback)](#debugging-installation-conda-fallback).\n\n```bash\n# clone project\ngit clone https://github.com/alex-hh/profam.git\ncd profam\n\n# create and activate a virtual environment (python 3.11 recommended)\nuv venv -p python3.11 .venv\nsource .venv/bin/activate\n\n# install requirements\nuv pip install -r requirements.txt\n\n# (optional) dev tooling\nuv pip install -r requirements-dev.txt\n\n# download the model checkpoint\npython scripts/hf_download_checkpoint.py\n```\n\n### CPU-only installation (no GPU)\n\n```bash\nuv pip install -r requirements-cpu.txt --index-strategy unsafe-best-match\n```\n\n### (Recommended) `flash-attn` 2\n\nWe **recommend installing FlashAttention 2** it should make (scoring and generating sequences) faster, but these inference pipelines will work fine without it.\n\nIf you want to train models using this repo we **strongly** recommend installing Flash Attention as we use **sequence packing** (multiple samples packed with `batch_size=1` and no padding), and this configuration is generally **not supported/without FlashAttention**. To train models without Flash Attention you will need to update the configuration to set `data.pack_to_max_tokens=null`\n\n\n\nInstall (may require a working CUDA toolchain; see debugging section if it fails):\n\n```bash\nuv pip install flash-attn --no-build-isolation\npython -c \"import flash_attn; print(flash_attn.__version__)\"\n```\n\n## Repository overview\n\n### Inference entrypoints\n\nThere are two main inference scripts:\n\n- **Sampling / generating new sequences**: `scripts/generate_sequences.py`\n- **Scoring / log-likelihood**: `scripts/score_sequences.py`\n\n### Training entrypoint\n\nIf you want to train ProFam, the entrypoint is:\n\n- **Training**: `src/train.py`\n\n### Input sequence formats (FASTA / MSA)\n\nProFam can take:\n\n- **Unaligned FASTA** (standard protein sequences), and\n- **Aligned / MSA-type files** (e.g. A2M/A3M-style content containing gaps and insertions).\n\nIn `scripts/score_sequences.py` we recommend providing an aligned MSA file as we use sequence weighting to encourage sequence diversity when subsampling sequences for the prompt. The weight of a sequence is inversely proportional to the number of similar sequences it has, and this similarity is best computed from an MSA file.\n\nImportant: **even if aligned/MSA information is provided, the ProFam model converts these to unaligned gap-free sequences before the forward pass** (i.e. no alignment-aware features are consumed by the model in the standard configs).\n\nDuring preprocessing, sequences are standardised:\n\n- **Gaps**: `-` (and alignment gap-like `.`) are removed\n- **Insertions / lowercase**: lowercase residues (common in A3M insertions) will be converted to uppercase\n- **Non-canonical amino acids**: selenocysteine/pyrrolysine are converted (`U \u2192 C`, `O \u2192 K`). Any remaining out-of-vocabulary characters will map to `[UNK]` if `allow_unk=true` (otherwise they are rejected).\n\n## Training\n\n### Run a lightweight example (no ProFam-Atlas download)\n\n`configs/experiment/train_profam_example.yaml` is configured to run using data in: `data/train_example`.\n\n```bash\npython src/train.py experiment=train_profam_example logger=null_logger\n```\n\n### Train with the ProFam-Atlas dataset\n\nTraining data for ProFam can be downloaded from:\n\n- [Zenodo: ProFam Atlas Dataset](https://zenodo.org/records/17713590)\n\nThe default configuration (`configs/train.yaml`) is compatible with the latest ProFam-Atlas release. To run it:\n\n```bash\npython src/train.py\n```\n\n\n## Debugging installation (conda fallback)\n\nIf the `uv` / `pip` install worked for core dependencies but `flash-attn` fails to build (common when the CUDA toolchain isn\u2019t available), this conda-based approach is a good fallback.\n\n```bash\nconda create -n pfenv python=3.11 -y\nconda activate pfenv\n\nconda install -c conda-forge ninja packaging -y\nconda install -c nvidia cuda-toolkit=12.4 -y\n\npip install -r requirements.txt\n\n# install a CUDA-enabled PyTorch build (adjust CUDA version/index-url to match your setup)\npip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 --index-url https://download.pytorch.org/whl/cu121\n\npip install flash-attn==2.5.6 --no-build-isolation\n\npython -c \"import flash_attn; print(flash_attn.__version__)\"\n```\n\n## Development\n\nWe're using pre-commit to format code and pytest to run tests.\n\nPull requests will automatically have pre-commit and pytest run on them\nand will only be approved once these checks are all passing\n\nBefore submitting a pull request, run the checks locally with:\n\n```bash\npre-commit run --all-files\n```\n\nand\n\n```bash\npytest -k 'not example'\n```\n\nPull requests adding complex new features or making any significant changes\nor additions should be accompanied with associated tests in the tests/ directory.\n\n\n## Concepts\n\n### Data loading\n\nProFam uses **text memmap datasets**\nfor fast random access over large corpora:\n\n- `src/data/text_memmap_datasets.py`: generic **memory-mapped** line access + index building (`*.idx.{npy,info}`)\n- `src/data/builders/family_text_memmap_datasets.py`: ProFam-Atlas-specific datasets built on top of the memmap layer\n\n#### ProFam-Atlas on-disk format (`.mapping` / `.sequences`)\n\nThe ProFam-Atlas dataset is distributed as paired files:\n\n- **`*.mapping`**: family id + indices into one or more `*.sequences` files\n  - **Format**:\n    - Line 1: `>FAMILY_ID`\n    - Line 2+: `sequences_filename:idx0,idx1,idx2,...`\n  - **Important**: `*.mapping` files **must not** have a trailing newline at end-of-file.\n- **`*.sequences`**: FASTA-like accessions + sequences\n  - **Format** (repeated):\n    - `>ACCESSION ...`\n    - `SEQUENCE`\n  - **Important**: `*.sequences` files **should** have a final trailing newline.\n\nSee `README_ProFam_atlas.md` for examples and additional details.\n\n#### How it\u2019s loaded\n\nAt a high level, training loads one **protein family** at a time by:\n\n1. Reading a family record from `MappingProteinFamilyMemmapDataset` (a memmapped `*.mapping` dataset)\n2. Fetching the referenced sequences from `SequencesProteinFamilyMemmapDataset` (memmapped `*.sequences` files)\n3. Building a `ProteinDocument` and preprocessing it (see `src/data/processors/preprocessing.py`)\n4. Encoding with `ProFamTokenizer` and forming batches (optionally with packing)\n\n#### Converting FASTA \u2192 text memmap\n\nIf you have a directory of per-family FASTA files and want to create `*.mapping` / `*.sequences` files for training,\nsee:\n\n- `data_creation_scripts/fasta_to_text_memmap.py`\n",
+    "help_text": "\nProFam-1 Usage:\n\n# Load model\nfrom profam import ProFam\n\nmodel = ProFam.from_pretrained(\"profam-1\")\n\n# Predict fitness\nfitness_scores = model.predict_fitness(\n    sequences=[\"MKTVRQERLK...\", \"MKTVRQERLR...\"],\n    reference=\"MKTVRQERLK...\"\n)\n\n# Generate variants\nvariants = model.generate(\n    seed_sequence=\"MKTVRQERLK...\",\n    num_variants=100\n)\n",
+    "usage_guide": "\n## Quick Start Guide for ProFam-1\n\n### 1. Installation\n```bash\ngit clone https://github.com/alex-hh/profam\ncd profam\npip install -e .\n\n# (Optional) Install Flash Attention for faster training\npip install flash-attn --no-build-isolation\n```\n\n### 2. Fitness Prediction\n```python\nfrom profam import ProFam\n\nmodel = ProFam.from_pretrained(\"profam-1\")\n\n# Predict fitness of variants\nsequences = [\n    \"MKTVRQERLKSIVRILERSKEPVSGAQ\",  # Variant 1\n    \"MKTVRQERLKSIVRILERSKEPVSGAA\",  # Variant 2\n]\nreference = \"MKTVRQERLKSIVRILERSKEPVSGAQ\"\n\nfitness_scores = model.predict_fitness(\n    sequences=sequences,\n    reference=reference\n)\n\nfor seq, score in zip(sequences, fitness_scores):\n    print(f\"Score: {score:.3f}\")\n```\n\n### Key Features:\n- 251M parameters\n- State-of-the-art on ProteinGym benchmark\n- No MSA required at inference\n- Trained on 40M protein families\n",
+    "examples": "# clone project\ngit clone https://github.com/alex-hh/profam.git\ncd profam\n\n# create and activate a virtual environment (python 3.11 recommended)\nuv venv -p python3.11 .venv\nsource .venv/bin/activate\n\n# install requirements\nuv pip install -r requirements.txt\n\n# (optional) dev tooling\nuv pip install -r requirements-dev.txt\n\n# download the model checkpoint\npython scripts/hf_download_checkpoint.py\n\n---\n\nuv pip install -r requirements-cpu.txt --index-strategy unsafe-best-match\n\n---\n\nuv pip install flash-attn --no-build-isolation\npython -c \"import flash_attn; print(flash_attn.__version__)\"\n\n---\n\npython src/train.py experiment=train_profam_example logger=null_logger\n\n---\n\npython src/train.py",
+    "scientific_context": "ProFam-1 is trained on concatenated protein family sequences for next-token prediction. It achieves state-of-the-art fitness prediction without requiring multiple sequence alignments at inference time.",
+    "recommended_parameters": {
+      "prediction": {
+        "batch_size": {
+          "default": 32,
+          "note": "Adjust based on GPU memory"
+        },
+        "temperature": {
+          "default": 1.0,
+          "note": "For generation"
+        }
+      }
+    },
+    "use_cases": [
+      "Fitness prediction",
+      "Protein design",
+      "Variant effect prediction",
+      "Directed evolution"
+    ],
+    "limitations": [
+      "Best for fitness prediction within families",
+      "Requires family context"
+    ],
+    "alternatives": [
+      "ESM-2",
+      "ProtTrans",
+      "Tranception"
+    ],
+    "install_instructions": "\n```bash\n# Clone repository\ngit clone https://github.com/alex-hh/profam\ncd profam\n\n# Install package\npip install -e .\n\n# (Optional) For training with Flash Attention\npip install flash-attn --no-build-isolation\n\n# Download pre-trained weights (automatic on first use)\n```\n",
+    "dependencies": [
+      "Python 3.8+",
+      "PyTorch 2.0+",
+      "Flash Attention (recommended for training)",
+      "transformers",
+      "numpy",
+      "pandas"
+    ],
+    "hardware_requirements": "\n**Minimum Requirements:**\n- GPU: NVIDIA GPU with 8GB VRAM\n- RAM: 16GB\n- Storage: 10GB\n\n**Recommended:**\n- GPU: NVIDIA A100 or better (for training)\n- RAM: 32GB\n- Storage: 50GB (for training data)\n\n**For Inference Only:**\n- GPU: NVIDIA T4 or consumer GPU\n- RAM: 16GB\n",
+    "topics": [
+      "protein-language-model",
+      "fitness-prediction",
+      "protein-family",
+      "autoregressive"
+    ],
+    "language": "Python",
+    "has_mcp": false,
+    "api_available": null,
+    "license": "MIT",
+    "last_updated": "2026-01-19T15:55:29.221094"
+  },
+  "syncraft": {
+    "tool_id": "syncraft",
+    "name": "SynCraft",
+    "description": "LLM-guided framework for molecular synthesizability optimization. Uses Chain-of-Thought prompting with Gemini-2.5-Pro for atom-level edits.",
+    "category": "drug-discovery",
+    "github_url": "https://github.com/catalystforyou/SynCraft-Core",
+    "primary_citation": {
+      "doi": null,
+      "arxiv": "2512.20333",
+      "title": "SynCraft: Guiding Large Language Models to Predict Edit Sequences for Molecular Synthesizability Optimization",
+      "authors": [
+        "Peking University"
+      ],
+      "journal": "arXiv",
+      "year": 2025,
+      "url": "https://arxiv.org/abs/2512.20333"
+    },
+    "benchmark_papers": [
+      {
+        "title": "SynCraft Evaluation on PLK1 inhibitors and RIPK1 candidates",
+        "arxiv": "2512.20333",
+        "note": "Replicates expert medicinal chemistry decisions"
+      }
+    ],
+    "review_papers": null,
+    "readme_content": "# SynCraft: Guiding Large Language Models to Predict Edit Sequences for Molecular Synthesizability Optimization\n\n**SynCraft** is a reasoning-based framework that reframes synthesizability optimization not as a sequence translation task, but as a precise structural editing problem. Leveraging the emergent reasoning capabilities of Large Language Models (LLMs), SynCraft navigates the \"synthesis cliff\" where minimal structural modifications yield significant gains in synthetic feasibility.\n\nBy predicting executable sequences of atom-level edits rather than generating SMILES strings directly, SynCraft circumvents the syntactic fragility of LLMs while harnessing their chemical intuition.\n\n![Overview](assets/overview_full.svg)\n\n\n## Key Features\n\n- **Generative Editing via In-Context Reasoning**: Decouples strategic planning from chemical execution. The LLM acts as a chemical strategist, reasoning about synthetic liabilities before prescribing edits.\n- **Discrete Editing Action Space**: Uses a precise JSON-based command set (`DEL_ATOM`, `ADD_BOND`, `MUTATE_ATOM`, etc.) to modify molecular graphs deterministically, ensuring validity.\n- **Interaction-Aware Optimization**: Incorporates 3D protein-ligand interaction data (via AutoDock Vina and PLIP) into the prompting strategy to preserve critical pharmacophores during optimization.\n- **Synthesis Cliff Navigation**: Focuses on minimal, high-impact edits to transform \"unsynthesizable\" molecules into accessible analogs without destroying the original scaffold.\n\n## Structure\n\n```\nSynCraft-Core/\n\u251c\u2500\u2500 assets/                 # Data assets\n\u2502   \u251c\u2500\u2500 reasoning.json      # Golden examples with reasoning traces\n\u2502   \u251c\u2500\u2500 RIPK1.txt           # Example molecule lists\n\u2502   \u2514\u2500\u2500 unsolved.json       # Input datasets\n\u251c\u2500\u2500 config/                 # Configuration files\n\u251c\u2500\u2500 notebooks/              # Jupyter notebooks for analysis\n\u251c\u2500\u2500 scripts/                # Shell scripts for running experiments\n\u2502   \u251c\u2500\u2500 inference_enhanced.sh\n\u2502   \u2514\u2500\u2500 inference_bioactivity_constrain.sh\n\u251c\u2500\u2500 src/                    # Source code\n\u2502   \u251c\u2500\u2500 inference_enhanced.py             # Standard inference script\n\u2502   \u251c\u2500\u2500 inference_bioactivity_constrain.py # Interaction-aware inference\n\u2502   \u251c\u2500\u2500 utils.py                          # Core editing & reconstruction logic\n\u2502   \u251c\u2500\u2500 extract_interaction.py            # PLIP interaction analysis\n\u2502   \u2514\u2500\u2500 docking_utils.py                  # Vina docking wrappers\n\u2514\u2500\u2500 vina/                   # Vina executables and receptor files\n```\n\n## Installation\n\n### Prerequisites\n\n- Python 3.8+\n- [AutoDock Vina](https://vina.scripps.edu/) (for interaction-aware mode)\n- [PLIP](https://github.com/pharmai/plip) (for interaction-aware mode)\n- [OpenBabel](https://github.com/openbabel/openbabel)\n\n### Python Dependencies\n\nInstall the required Python packages:\n\n```bash\npip install rdkit litellm loguru meeko openbabel tqdm numpy syntheseus\n```\n\n### Environment Setup\n\nSynCraft uses `litellm` to interface with LLMs (e.g., Gemini, DeepSeek). You must set your API keys in your environment variables:\n\n```bash\nexport GEMINI_API_KEY='your-gemini-api-key'\n# or\nexport DEEPSEEK_API_KEY='your-deepseek-api-key'\n```\n\n## Usage\n\n### 1. Standard Synthesizability Optimization\n\nTo run the standard optimization pipeline which focuses on restoring synthesizability using chemical reasoning:\n\n```bash\ncd scripts\nbash inference_enhanced.sh\n```\n\n**Under the hood (`src/inference_enhanced.py`):**\n- Loads unsynthesizable molecules.\n- Retrieves similar \"golden examples\" (pairs of unsynthesizable $\\to$ synthesizable molecules) for few-shot prompting.\n- Prompts the LLM to reason about synthetic liabilities and generate a JSON edit sequence.\n- Applies the edits deterministically to produce the result.\n\n**Key Arguments:**\n- `--dataset`: The dataset key in the input JSON.\n- `--model`: The LLM model to use (e.g., `gemini/gemini-2.5-pro`).\n- `--few-shot-k`: Number of few-shot examples to use (default: 5).\n- `--pass-k`: Number of parallel inference passes per molecule.\n\n### 2. Interaction-Aware Optimization\n\nTo optimize molecules while preserving binding interactions (requires Vina and receptor files):\n\n```bash\ncd scripts\nbash inference_bioactivity_constrain.sh\n```\n\n**Under the hood (`src/inference_bioactivity_constrain.py`):**\n- Docks the input molecule into the target receptor.\n- Analyzes interactions (H-bonds, $\\pi$-stacking, etc.) using PLIP.\n- Injects these constraints into the LLM prompt (e.g., \"Atom 5 forms a critical Hydrogen Bond...\").\n- The LLM generates edits that respect these biological constraints.\n\n**Configuration:**\nEnsure your receptor files (`.pdbqt`, `.pdb`, `config.txt`) are correctly placed in the `vina/` directory and referenced in the script.\n\n## Methodology\n\n### The Edit Action Space\nSynCraft defines a compact action space $\\mathcal{A}$ where operations are referenced via unique atom-map numbers:\n- `DEL_ATOM`: Removes a specific atom.\n- `MUTATE_ATOM`: Changes the atomic element.\n- `ADD_ATOM`: Introduces a new atom.\n- `ADD_BOND` / `DEL_BOND`: Creates or removes bonds.\n- `CHANGE_BOND`: Modifies bond order/aromaticity.\n- `SET_CHIRAL` / `SET_BOND_STEREO`: Defines stereochemistry.\n\n### Workflow\n1.  **Retrieval**: Finds similar \"Synthesis Cliff\" examples.\n2.  **Reasoning**: The LLM analyzes the molecule and articulates a plan.\n3.  **Execution**: The plan (JSON) is executed by the deterministic toolkit (`src/utils.py`).\n",
+    "help_text": "\nSynCraft Usage:\n\n# Basic optimization\npython syncraft.py --input molecule.smi --output optimized.smi\n\n# With docking constraints\npython syncraft.py \\\n    --input molecule.smi \\\n    --protein target.pdb \\\n    --output optimized.smi \\\n    --max_iterations 5\n\n# Edit operations:\n- DEL_ATOM: Delete an atom\n- ADD_BOND: Add a bond\n- DEL_BOND: Delete a bond\n- CHANGE_BOND: Change bond type\n",
+    "usage_guide": "\n## Quick Start Guide for SynCraft\n\n### 1. Installation\n```bash\ngit clone https://github.com/catalystforyou/SynCraft-Core\ncd SynCraft-Core\npip install -r requirements.txt\n\n# Install AutoDock Vina\nconda install -c conda-forge autodock-vina\n\n# Set up Gemini API key\nexport GOOGLE_API_KEY=\"your-api-key\"\n```\n\n### 2. Basic Usage\n```python\nfrom syncraft import SynCraft\n\noptimizer = SynCraft(api_key=\"your-gemini-api-key\")\n\n# Optimize a molecule for synthesizability\nresult = optimizer.optimize(\n    smiles=\"CC(=O)Nc1ccc(O)cc1\",  # Input molecule\n    max_iterations=5\n)\n\nprint(f\"Original: {result.original_smiles}\")\nprint(f\"Optimized: {result.optimized_smiles}\")\nprint(f\"Synthesizability improvement: {result.improvement}\")\n```\n\n### 3. With Protein Target Constraint\n```python\nresult = optimizer.optimize(\n    smiles=\"CC(=O)Nc1ccc(O)cc1\",\n    protein_pdb=\"target.pdb\",\n    binding_site_residues=[45, 46, 47, 48],\n    max_iterations=5\n)\n```\n\n### Key Features:\n- Chain-of-Thought prompting for interpretable edits\n- Maintains binding activity while improving synthesis\n- Uses AutoDock Vina for docking validation\n",
+    "examples": "SynCraft-Core/\n\u251c\u2500\u2500 assets/                 # Data assets\n\u2502   \u251c\u2500\u2500 reasoning.json      # Golden examples with reasoning traces\n\u2502   \u251c\u2500\u2500 RIPK1.txt           # Example molecule lists\n\u2502   \u2514\u2500\u2500 unsolved.json       # Input datasets\n\u251c\u2500\u2500 config/                 # Configuration files\n\u251c\u2500\u2500 notebooks/              # Jupyter notebooks for analysis\n\u251c\u2500\u2500 scripts/                # Shell scripts for running experiments\n\u2502   \u251c\u2500\u2500 inference_enhanced.sh\n\u2502   \u2514\u2500\u2500 inference_bioactivity_constrain.sh\n\u251c\u2500\u2500 src/                    # Source code\n\u2502   \u251c\u2500\u2500 inference_enhanced.py             # Standard inference script\n\u2502   \u251c\u2500\u2500 inference_bioactivity_constrain.py # Interaction-aware inference\n\u2502   \u251c\u2500\u2500 utils.py                          # Core editing & reconstruction logic\n\u2502   \u251c\u2500\u2500 extract_interaction.py            # PLIP interaction analysis\n\u2502   \u2514\u2500\u2500 docking_utils.py                  # Vina docking wrappers\n\u2514\u2500\u2500 vina/                   # Vina executables and receptor files\n\n---\n\npip install rdkit litellm loguru meeko openbabel tqdm numpy syntheseus\n\n---\n\nexport GEMINI_API_KEY='your-gemini-api-key'\n# or\nexport DEEPSEEK_API_KEY='your-deepseek-api-key'\n\n---\n\ncd scripts\nbash inference_enhanced.sh\n\n---\n\ncd scripts\nbash inference_bioactivity_constrain.sh",
+    "scientific_context": "SynCraft uses Chain-of-Thought prompting to guide LLMs in predicting atom-level molecular edits for synthesizability optimization. It navigates the 'synthesis cliff' where small modifications yield significant improvements.",
+    "recommended_parameters": {
+      "optimization": {
+        "max_iterations": {
+          "default": 5,
+          "range": "1-10",
+          "note": "More iterations = better but slower"
+        },
+        "temperature": {
+          "default": 0.7,
+          "note": "Gemini sampling temperature"
+        }
+      }
+    },
+    "use_cases": [
+      "Lead optimization",
+      "Synthesizability improvement",
+      "Retrosynthesis planning",
+      "Drug-like property optimization"
+    ],
+    "limitations": [
+      "Requires Gemini API access",
+      "Focused on synthesizability, not activity"
+    ],
+    "alternatives": [
+      "REINVENT",
+      "GuacaMol",
+      "MOSES"
+    ],
+    "install_instructions": "### Prerequisites\n\n- Python 3.8+\n- [AutoDock Vina](https://vina.scripps.edu/) (for interaction-aware mode)\n- [PLIP](https://github.com/pharmai/plip) (for interaction-aware mode)\n- [OpenBabel](https://github.com/openbabel/openbabel)\n\n### Python Dependencies\n\nInstall the required Python packages:\n\n```bash\npip install rdkit litellm loguru meeko openbabel tqdm numpy syntheseus\n```\n\n### Environment Setup\n\nSynCraft uses `litellm` to interface with LLMs (e.g., Gemini, DeepSeek). You must set your API keys in your environment variables:\n\n```bash\nexport GEMINI_API_KEY='your-gemini-api-key'\n# or\nexport DEEPSEEK_API_KEY='your-deepseek-api-key'\n```",
+    "dependencies": [
+      "Python 3.8+",
+      "RDKit",
+      "AutoDock Vina",
+      "PLIP (Protein-Ligand Interaction Profiler)",
+      "Google Generative AI SDK (for Gemini)",
+      "numpy",
+      "pandas"
+    ],
+    "hardware_requirements": "\n**Requirements:**\n- CPU: Modern multi-core processor\n- RAM: 16GB\n- Storage: 5GB\n- Internet: Required for Gemini API calls\n\n**No Local GPU Required** - uses Gemini-2.5-Pro API\n\n**API Costs:**\n- Gemini API: Pay-per-use\n- Typical cost: ~$0.01-0.10 per molecule optimization\n",
+    "topics": [
+      "drug-discovery",
+      "synthesizability",
+      "llm",
+      "molecule-optimization"
+    ],
+    "language": "Python",
+    "has_mcp": false,
+    "api_available": null,
+    "license": null,
+    "last_updated": "2026-01-19T15:55:29.221095"
+  },
+  "alphafold3": {
+    "tool_id": "alphafold3",
+    "name": "AlphaFold 3",
+    "description": "Predicts structure of biomolecular complexes with proteins, DNA, RNA, ligands, ions. 50%+ improvement over AlphaFold 2.",
+    "category": "structure-prediction",
+    "github_url": "https://github.com/google-deepmind/alphafold3",
+    "primary_citation": {
+      "doi": "10.1038/s41586-024-07487-w",
+      "title": "Accurate structure prediction of biomolecular interactions with AlphaFold 3",
+      "authors": [
+        "Josh Abramson",
+        "Jonas Adler",
+        "Jack Dunger",
+        "Richard Evans",
+        "Tim Green",
+        "Alexander Pritzel",
+        "Olaf Ronneberger",
+        "Lindsay Willmore",
+        "Andrew J. Ballard",
+        "Joshua Bambrick",
+        "Sebastian W. Bodenstein",
+        "David A. Evans",
+        "Chia-Chun Hung",
+        "Michael O\u2019Neill",
+        "David Reiman",
+        "Kathryn Tunyasuvunakool",
+        "Zachary Wu",
+        "Akvil\u0117 \u017demgulyt\u0117",
+        "Eirini Arvaniti",
+        "Charles Beattie",
+        "Ottavia Bertolli",
+        "Alex Bridgland",
+        "Alexey Cherepanov",
+        "Miles Congreve",
+        "Alexander I. Cowen-Rivers",
+        "Andrew Cowie",
+        "Michael Figurnov",
+        "Fabian B. Fuchs",
+        "Hannah Gladman",
+        "Rishub Jain",
+        "Yousuf A. Khan",
+        "Caroline M. R. Low",
+        "Kuba Perlin",
+        "Anna Potapenko",
+        "Pascal Savy",
+        "Sukhdeep Singh",
+        "Adrian Stecula",
+        "Ashok Thillaisundaram",
+        "Catherine Tong",
+        "Sergei Yakneen",
+        "Ellen D. Zhong",
+        "Michal Zielinski",
+        "Augustin \u017d\u00eddek",
+        "Victor Bapst",
+        "Pushmeet Kohli",
+        "Max Jaderberg",
+        "Demis Hassabis",
+        "John M. Jumper"
+      ],
+      "journal": "Nature",
+      "year": 2024,
+      "url": "https://doi.org/10.1038/s41586-024-07487-w"
+    },
+    "benchmark_papers": [
+      {
+        "title": "Accurate structure prediction of biomolecular interactions with AlphaFold 3",
+        "doi": "10.1038/s41586-024-07487-w",
+        "venue": "Nature 2024",
+        "note": "50%+ improvement over AlphaFold 2"
+      },
+      {
+        "title": "CASP15 Results",
+        "url": "https://predictioncenter.org/casp15/",
+        "note": "Community-wide structure prediction benchmark"
+      }
+    ],
+    "review_papers": null,
+    "readme_content": "![header](docs/header.jpg)\n\n# AlphaFold 3\n\nThis package provides an implementation of the inference pipeline of AlphaFold\n3. See below for how to access the model parameters. You may only use AlphaFold\n3 model parameters if received directly from Google. Use is subject to these\n[terms of use](https://github.com/google-deepmind/alphafold3/blob/main/WEIGHTS_TERMS_OF_USE.md).\n\nAny publication that discloses findings arising from using this source code, the\nmodel parameters or outputs produced by those should [cite](#citing-this-work)\nthe\n[Accurate structure prediction of biomolecular interactions with AlphaFold 3](https://doi.org/10.1038/s41586-024-07487-w)\npaper.\n\nPlease also refer to the Supplementary Information for a detailed description of\nthe method.\n\nAlphaFold 3 is also available at\n[alphafoldserver.com](https://alphafoldserver.com) for non-commercial use,\nthough with a more limited set of ligands and covalent modifications.\n\nIf you have any questions, please contact the AlphaFold team at\n[alphafold@google.com](mailto:alphafold@google.com).\n\n## Obtaining Model Parameters\n\nThis repository contains all necessary code for AlphaFold 3 inference. To\nrequest access to the AlphaFold 3 model parameters, please complete\n[this form](https://forms.gle/svvpY4u2jsHEwWYS6). Access will be granted at\nGoogle DeepMind\u2019s sole discretion. We will aim to respond to requests within 2\u20133\nbusiness days. You may only use AlphaFold 3 model parameters if received\ndirectly from Google. Use is subject to these\n[terms of use](https://github.com/google-deepmind/alphafold3/blob/main/WEIGHTS_TERMS_OF_USE.md).\n\n## Installation and Running Your First Prediction\n\nSee the [installation documentation](docs/installation.md).\n\nOnce you have installed AlphaFold 3, you can test your setup using e.g. the\nfollowing input JSON file named `fold_input.json`:\n\n```json\n{\n  \"name\": \"2PV7\",\n  \"sequences\": [\n    {\n      \"protein\": {\n        \"id\": [\"A\", \"B\"],\n        \"sequence\": \"GMRESYANENQFGFKTINSDIHKIVIVGGYGKLGGLFARYLRASGYPISILDREDWAVAESILANADVVIVSVPINLTLETIERLKPYLTENMLLADLTSVKREPLAKMLEVHTGAVLGLHPMFGADIASMAKQVVVRCDGRFPERYEWLLEQIQIWGAKIYQTNATEHDHNMTYIQALRHFSTFANGLHLSKQPINLANLLALSSPIYRLELAMIGRLFAQDAELYADIIMDKSENLAVIETLKQTYDEALTFFENNDRQGFIDAFHKVRDWFGDYSEQFLKESRQLLQQANDLKQG\"\n      }\n    }\n  ],\n  \"modelSeeds\": [1],\n  \"dialect\": \"alphafold3\",\n  \"version\": 1\n}\n```\n\nYou can then run AlphaFold 3 using the following command:\n\n```\ndocker run -it \\\n    --volume $HOME/af_input:/root/af_input \\\n    --volume $HOME/af_output:/root/af_output \\\n    --volume <MODEL_PARAMETERS_DIR>:/root/models \\\n    --volume <DATABASES_DIR>:/root/public_databases \\\n    --gpus all \\\n    alphafold3 \\\n    python run_alphafold.py \\\n    --json_path=/root/af_input/fold_input.json \\\n    --model_dir=/root/models \\\n    --output_dir=/root/af_output\n```\n\nThere are various flags that you can pass to the `run_alphafold.py` command, to\nlist them all run `python run_alphafold.py --help`. Two fundamental flags that\ncontrol which parts AlphaFold 3 will run are:\n\n*   `--run_data_pipeline` (defaults to `true`): whether to run the data\n    pipeline, i.e. genetic and template search. This part is CPU-only, time\n    consuming and could be run on a machine without a GPU.\n*   `--run_inference` (defaults to `true`): whether to run the inference. This\n    part requires a GPU.\n\n## AlphaFold 3 Input\n\nSee the [input documentation](docs/input.md).\n\n## AlphaFold 3 Output\n\nSee the [output documentation](docs/output.md).\n\n## Performance\n\nSee the [performance documentation](docs/performance.md).\n\n## Known Issues\n\nKnown issues are documented in the\n[known issues documentation](docs/known_issues.md).\n\nPlease\n[create an issue](https://github.com/google-deepmind/alphafold3/issues/new/choose)\nif it is not already listed in [Known Issues](docs/known_issues.md) or in the\n[issues tracker](https://github.com/google-deepmind/alphafold3/issues).\n\n## Citing This Work\n\nAny publication that discloses findings arising from using this source code, the\nmodel parameters or outputs produced by those should cite:\n\n```bibtex\n@article{Abramson2024,\n  author  = {Abramson, Josh and Adler, Jonas and Dunger, Jack and Evans, Richard and Green, Tim and Pritzel, Alexander and Ronneberger, Olaf and Willmore, Lindsay and Ballard, Andrew J. and Bambrick, Joshua and Bodenstein, Sebastian W. and Evans, David A. and Hung, Chia-Chun and O\u2019Neill, Michael and Reiman, David and Tunyasuvunakool, Kathryn and Wu, Zachary and \u017demgulyt\u0117, Akvil\u0117 and Arvaniti, Eirini and Beattie, Charles and Bertolli, Ottavia and Bridgland, Alex and Cherepanov, Alexey and Congreve, Miles and Cowen-Rivers, Alexander I. and Cowie, Andrew and Figurnov, Michael and Fuchs, Fabian B. and Gladman, Hannah and Jain, Rishub and Khan, Yousuf A. and Low, Caroline M. R. and Perlin, Kuba and Potapenko, Anna and Savy, Pascal and Singh, Sukhdeep and Stecula, Adrian and Thillaisundaram, Ashok and Tong, Catherine and Yakneen, Sergei and Zhong, Ellen D. and Zielinski, Michal and \u017d\u00eddek, Augustin and Bapst, Victor and Kohli, Pushmeet and Jaderberg, Max and Hassabis, Demis and Jumper, John M.},\n  journal = {Nature},\n  title   = {Accurate structure prediction of biomolecular interactions with AlphaFold 3},\n  year    = {2024},\n  volume  = {630},\n  number  = {8016},\n  pages   = {493\u2013-500},\n  doi     = {10.1038/s41586-024-07487-w}\n}\n```\n\n## Acknowledgements\n\nAlphaFold 3's release was made possible by the invaluable contributions of the\nfollowing people:\n\nAndrew\u00a0Cowie, Bella\u00a0Hansen, Charlie\u00a0Beattie, Chris\u00a0Jones, Grace\u00a0Margand,\nJacob\u00a0Kelly, James\u00a0Spencer, Josh\u00a0Abramson, Kathryn\u00a0Tunyasuvunakool, Kuba\u00a0Perlin,\nLindsay\u00a0Willmore, Max\u00a0Bileschi, Molly\u00a0Beck, Oleg\u00a0Kovalevskiy,\nSebastian\u00a0Bodenstein, Sukhdeep\u00a0Singh, Tim\u00a0Green, Toby\u00a0Sargeant, Uchechi\u00a0Okereke,\nYotam\u00a0Doron, and Augustin\u00a0\u017d\u00eddek (engineering lead).\n\nWe also extend our gratitude to our collaborators at Google and Isomorphic Labs.\n\nAlphaFold 3 uses the following separate libraries and packages:\n\n*   [abseil-cpp](https://github.com/abseil/abseil-cpp) and\n    [abseil-py](https://github.com/abseil/abseil-py)\n*   [Docker](https://www.docker.com)\n*   [DSSP](https://github.com/PDB-REDO/dssp)\n*   [HMMER Suite](https://github.com/EddyRivasLab/hmmer)\n*   [Haiku](https://github.com/deepmind/dm-haiku)\n*   [JAX](https://github.com/jax-ml/jax/)\n*   [libcifpp](https://github.com/pdb-redo/libcifpp)\n*   [NumPy](https://github.com/numpy/numpy)\n*   [pybind11](https://github.com/pybind/pybind11) and\n    [pybind11_abseil](https://github.com/pybind/pybind11_abseil)\n*   [RDKit](https://github.com/rdkit/rdkit)\n*   [Tokamax](https://github.com/openxla/tokamax)\n*   [tqdm](https://github.com/tqdm/tqdm)\n\nWe thank all their contributors and maintainers!\n\n## Get in Touch\n\nIf you have any questions not covered in this overview, please contact the\nAlphaFold team at alphafold@google.com.\n\nWe would love to hear your feedback and understand how AlphaFold 3 has been\nuseful in your research. Share your stories with us at\n[alphafold@google.com](mailto:alphafold@google.com).\n\n## Licence and Disclaimer\n\nThis is not an officially supported Google product.\n\nCopyright 2024 DeepMind Technologies Limited.\n\n### AlphaFold 3 Source Code and Model Parameters\n\nThe AlphaFold 3 source code is licensed under the Creative Commons\nAttribution-Non-Commercial ShareAlike International License, Version 4.0\n(CC-BY-NC-SA 4.0) (the \"License\"); you may not use this file except in\ncompliance with the License. You may obtain a copy of the License at\n[https://github.com/google-deepmind/alphafold3/blob/main/LICENSE](https://github.com/google-deepmind/alphafold3/blob/main/LICENSE).\n\nThe AlphaFold 3 model parameters are made available under the\n[AlphaFold 3 Model Parameters Terms of Use](https://github.com/google-deepmind/alphafold3/blob/main/WEIGHTS_TERMS_OF_USE.md)\n(the \"Terms\"); you may not use these except in compliance with the Terms. You\nmay obtain a copy of the Terms at\n[https://github.com/google-deepmind/alphafold3/blob/main/WEIGHTS_TERMS_OF_USE.md](https://github.com/google-deepmind/alphafold3/blob/main/WEIGHTS_TERMS_OF_USE.md).\n\nUnless required by applicable law, AlphaFold 3 and its output are distributed on\nan \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express\nor implied. You are solely responsible for determining the appropriateness of\nusing AlphaFold 3, or using or distributing its source code or output, and\nassume any and all risks associated with such use or distribution and your\nexercise of rights and obligations under the relevant terms. Output are\npredictions with varying levels of confidence and should be interpreted\ncarefully. Use discretion before relying on, publishing, downloading or\notherwise using the AlphaFold 3 Assets.\n\nAlphaFold 3 and its output are for theoretical modeling only. They are not\nintended, validated, or approved for clinical use. You should not use the\nAlphaFold 3 or its output for clinical purposes or rely on them for medical or\nother professional advice. Any content regarding those topics is provided for\ninformational purposes only and is not a substitute for advice from a qualified\nprofessional. See the relevant terms for the specific language governing\npermissions and limitations under the terms.\n\n### Third-party Software\n\nUse of the third-party software, libraries or code referred to in the\n[Acknowledgements](#acknowledgements) section above may be governed by separate\nterms and conditions or license provisions. Your use of the third-party\nsoftware, libraries or code is subject to any such terms and you should check\nthat you can comply with any applicable restrictions or terms and conditions\nbefore use.\n\n### Mirrored and Reference Databases\n\nThe following databases have been: (1) mirrored by Google DeepMind; and (2) in\npart, included with the inference code package for testing purposes, and are\navailable with reference to the following:\n\n*   [BFD](https://bfd.mmseqs.com/) (modified), by Steinegger M. and S\u00f6ding J.,\n    modified by Google DeepMind, available under a\n    [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/deed.en).\n    See the Methods section of the\n    [AlphaFold proteome paper](https://www.nature.com/articles/s41586-021-03828-1)\n    for details.\n*   [PDB](https://wwpdb.org) (unmodified), by H.M. Berman et al., available free\n    of all copyright restrictions and made fully and freely available for both\n    non-commercial and commercial use under\n    [CC0 1.0 Universal (CC0 1.0) Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/).\n*   [MGnify: v2022\\_05](https://ftp.ebi.ac.uk/pub/databases/metagenomics/peptide_database/2022_05/README.txt)\n    (unmodified), by Mitchell AL et al., available free of all copyright\n    restrictions and made fully and freely available for both non-commercial and\n    commercial use under\n    [CC0 1.0 Universal (CC0 1.0) Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/).\n*   [UniProt: 2021\\_04](https://www.uniprot.org/) (unmodified), by The UniProt\n    Consortium, available under a\n    [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/deed.en).\n*   [UniRef90: 2022\\_05](https://www.uniprot.org/) (unmodified) by The UniProt\n    Consortium, available under a\n    [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/deed.en).\n*   [NT: 2023\\_02\\_23](https://www.ncbi.nlm.nih.gov/nucleotide/) (modified) See\n    the Supplementary Information of the\n    [AlphaFold 3 paper](https://nature.com/articles/s41586-024-07487-w) for\n    details.\n*   [RFam: 14\\_4](https://rfam.org/) (modified), by I. Kalvari et al., available\n    free of all copyright restrictions and made fully and freely available for\n    both non-commercial and commercial use under\n    [CC0 1.0 Universal (CC0 1.0) Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/).\n    See the Supplementary Information of the\n    [AlphaFold 3 paper](https://nature.com/articles/s41586-024-07487-w) for\n    details.\n*   [RNACentral: 21\\_0](https://rnacentral.org/) (modified), by The RNAcentral\n    Consortium available free of all copyright restrictions and made fully and\n    freely available for both non-commercial and commercial use under\n    [CC0 1.0 Universal (CC0 1.0) Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/).\n    See the Supplementary Information of the\n    [AlphaFold 3 paper](https://nature.com/articles/s41586-024-07487-w) for\n    details.\n",
+    "help_text": "\nAlphaFold 3 Usage:\n\n# Via AlphaFold Server (Recommended)\n1. Visit: https://alphafoldserver.com\n2. Sign in with Google account\n3. Input sequences and run prediction\n4. Download results\n\n# Via AlphaFold Database API (Pre-computed)\ncurl \"https://alphafold.ebi.ac.uk/api/prediction/P00520\"\n\n# Local Installation (Advanced)\ndocker run --gpus all alphafold3 \\\n    --input input.json \\\n    --output results/\n",
+    "usage_guide": "\n## Quick Start Guide for AlphaFold 3\n\n### Option 1: AlphaFold Server (Easiest)\n1. Visit https://alphafoldserver.com\n2. Sign in with Google account\n3. Enter sequences (protein, DNA, RNA, ligands)\n4. Submit job (max 20/day)\n5. Download PDB results\n\n### Option 2: AlphaFold Database API (Pre-computed)\n```python\nimport requests\n\n# Get pre-computed structure\nuniprot_id = \"P00520\"\nresponse = requests.get(\n    f\"https://alphafold.ebi.ac.uk/api/prediction/{uniprot_id}\"\n)\ndata = response.json()\n\n# Download PDB file\npdb_url = data[\"pdbUrl\"]\npdb_content = requests.get(pdb_url).text\n```\n\n### Option 3: Local Installation (Advanced)\n```bash\n# Clone repository\ngit clone https://github.com/google-deepmind/alphafold3\n\n# Request model weights (requires approval)\n# Fill form at: https://forms.gle/svvpY4u2jsHEwWYS6\n\n# Build Docker container\ndocker build -t alphafold3 .\n\n# Run prediction\ndocker run --gpus all -v /data:/data alphafold3 \\\n    --input /data/input.json \\\n    --output /data/results\n```\n\n### Alternative: Use Boltz-2 (MIT License)\nFor commercial use, consider Boltz-2:\n```bash\npip install boltz\nboltz predict input.fasta\n```\n\n### Limitations:\n- Non-commercial license (CC-BY-NC-SA)\n- Web server: 20 predictions/day\n- No drug-protein interaction predictions on server\n",
+    "examples": "You can then run AlphaFold 3 using the following command:\n\n---\n\nThere are various flags that you can pass to the `run_alphafold.py` command, to\nlist them all run `python run_alphafold.py --help`. Two fundamental flags that\ncontrol which parts AlphaFold 3 will run are:\n\n*   `--run_data_pipeline` (defaults to `true`): whether to run the data\n    pipeline, i.e. genetic and template search. This part is CPU-only, time\n    consuming and could be run on a machine without a GPU.\n*   `--run_inference` (defaults to `true`): whether to run the inference. This\n    part requires a GPU.\n\n## AlphaFold 3 Input\n\nSee the [input documentation](docs/input.md).\n\n## AlphaFold 3 Output\n\nSee the [output documentation](docs/output.md).\n\n## Performance\n\nSee the [performance documentation](docs/performance.md).\n\n## Known Issues\n\nKnown issues are documented in the\n[known issues documentation](docs/known_issues.md).\n\nPlease\n[create an issue](https://github.com/google-deepmind/alphafold3/issues/new/choose)\nif it is not already listed in [Known Issues](docs/known_issues.md) or in the\n[issues tracker](https://github.com/google-deepmind/alphafold3/issues).\n\n## Citing This Work\n\nAny publication that discloses findings arising from using this source code, the\nmodel parameters or outputs produced by those should cite:",
+    "scientific_context": "AlphaFold 3 extends beyond proteins to predict structures of complexes containing DNA, RNA, ligands, and ions. The 2024 Nobel Prize in Chemistry recognized the foundational AlphaFold work.",
+    "recommended_parameters": {
+      "prediction": {
+        "num_models": {
+          "default": 5,
+          "note": "Number of structure models"
+        },
+        "num_recycles": {
+          "default": 3,
+          "note": "Recycling iterations"
+        }
+      }
+    },
+    "use_cases": [
+      "Complex structure prediction",
+      "Protein-DNA interactions",
+      "Drug binding",
+      "Molecular mechanism studies"
+    ],
+    "limitations": [
+      "Non-commercial license",
+      "No programmatic API (web only)",
+      "Use Boltz-2 for commercial applications"
+    ],
+    "alternatives": [
+      "Boltz-2 (MIT)",
+      "Chai-1",
+      "OpenFold"
+    ],
+    "install_instructions": "\n**For AlphaFold Server (Recommended):**\nNo installation required - visit https://alphafoldserver.com\n\n**For Local Installation:**\n```bash\n# Clone repository\ngit clone https://github.com/google-deepmind/alphafold3\ncd alphafold3\n\n# Request model weights (approval required)\n# Form: https://forms.gle/svvpY4u2jsHEwWYS6\n\n# Build Docker image\ndocker build -t alphafold3 .\n\n# Run with Docker\ndocker run --gpus all \\\n    -v /path/to/data:/data \\\n    alphafold3 \\\n    --input /data/input.json \\\n    --output /data/output\n```\n\n**Note:** Model weights require separate request and approval from DeepMind.\n",
+    "dependencies": [
+      "Python 3.11",
+      "Docker",
+      "NVIDIA Container Toolkit",
+      "CUDA 12.6+",
+      "Model weights (request required)"
+    ],
+    "hardware_requirements": "\n**For Local Installation:**\n- GPU: NVIDIA GPU with 80GB+ VRAM (A100 or H100)\n- GPU Compute Capability: 8.0+\n- RAM: 128GB+\n- Storage: Up to 1TB (for databases and model weights)\n- OS: Linux only\n\n**For AlphaFold Server (Recommended):**\n- No local requirements\n- Web browser only\n- Limit: 20 predictions/day\n\n**Note:** Consider using Boltz-2 (MIT license) for commercial use\n",
+    "topics": [
+      "protein-structure",
+      "structure-prediction",
+      "alphafold",
+      "deep-learning"
+    ],
+    "language": "Python",
+    "has_mcp": true,
+    "api_available": null,
+    "license": "CC-BY-NC-SA 4.0",
+    "last_updated": "2026-01-19T15:55:29.221095"
+  }
+}

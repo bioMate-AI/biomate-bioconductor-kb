@@ -1,12 +1,12 @@
 # BioMate Interactive Tools - x86_64 Version
-# Jupyter + RStudio + CellxGene + Pavian
+# Comprehensive all-in-one container with ALL interactive tools
 #
 # Uses jupyter/datascience-notebook base + RStudio Server
 
 FROM jupyter/datascience-notebook:python-3.11
 
 LABEL maintainer="BioMate Team"
-LABEL version="1.0"
+LABEL version="2.0"
 LABEL architecture="amd64"
 LABEL description="All-in-One Interactive Tools for BioMate (x86_64)"
 
@@ -17,7 +17,7 @@ USER root
 # ============================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Build tools
-    build-essential \
+    build-essential cmake pkg-config \
     # HDF5/data formats
     libhdf5-dev \
     # Network/SSL
@@ -33,12 +33,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libtiff5-dev \
     libjpeg-dev \
     libcairo2-dev \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
     # Bioinformatics CLI
     samtools \
     bcftools \
     bedtools \
     tabix \
     zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
     # Web server
     nginx \
     supervisor \
@@ -46,6 +51,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     psmisc \
     libclang-dev \
     gdebi-core \
+    lsb-release \
+    # Java for OpenRefine
+    default-jre-headless \
+    # Git/wget
+    git \
+    wget \
+    unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -62,16 +74,26 @@ USER ${NB_UID}
 # Python packages
 # ============================================
 RUN mamba install -y -c conda-forge -c bioconda \
-    pandas numpy scipy matplotlib seaborn plotly bokeh \
+    pandas numpy scipy matplotlib seaborn plotly bokeh ipywidgets \
     scanpy anndata pysam biopython pybedtools bioblend \
-    h5py requests \
+    h5py requests pyBigWig \
     && mamba clean -a -y
 
-# CellxGene and additional packages
+# CellxGene
+RUN pip install --no-cache-dir cellxgene
+
+# HiGlass (Hi-C visualization)
 RUN pip install --no-cache-dir \
-    cellxgene \
+    higlass-python \
+    clodius \
+    cooler || echo "HiGlass packages - some may fail"
+
+# Additional packages
+RUN pip install --no-cache-dir \
     gseapy \
-    adjustText
+    adjustText \
+    networkx \
+    scikit-learn
 
 # ============================================
 # R packages via BiocManager
@@ -82,7 +104,13 @@ RUN R -e "BiocManager::install(c('DESeq2', 'edgeR', 'limma'), ask=FALSE, update=
 
 RUN R -e "BiocManager::install(c('clusterProfiler', 'enrichplot', 'ComplexHeatmap'), ask=FALSE, update=FALSE)"
 
-RUN R -e "install.packages(c('ggplot2', 'pheatmap', 'ggrepel', 'viridis', 'RColorBrewer', 'tidyverse', 'data.table', 'DT', 'shiny', 'shinydashboard', 'plotly'), repos='https://cloud.r-project.org/')"
+# iSEE - Interactive SummarizedExperiment Explorer
+RUN R -e "BiocManager::install('iSEE', ask=FALSE, update=FALSE)"
+
+# Single-cell R packages
+RUN R -e "BiocManager::install(c('SingleCellExperiment', 'scater', 'scran'), ask=FALSE, update=FALSE)" || echo "Some single-cell packages may fail"
+
+RUN R -e "install.packages(c('ggplot2', 'pheatmap', 'ggrepel', 'viridis', 'RColorBrewer', 'tidyverse', 'data.table', 'DT', 'shiny', 'shinydashboard', 'plotly', 'colourpicker', 'rintrojs'), repos='https://cloud.r-project.org/')"
 
 # Pavian
 RUN R -e "install.packages('remotes', repos='https://cloud.r-project.org/')" && \
@@ -91,16 +119,30 @@ RUN R -e "install.packages('remotes', repos='https://cloud.r-project.org/')" && 
 USER root
 
 # ============================================
+# OpenRefine (Data cleaning tool)
+# ============================================
+ARG OPENREFINE_VERSION=3.7.9
+RUN mkdir -p /opt/openrefine && \
+    wget -q https://github.com/OpenRefine/OpenRefine/releases/download/${OPENREFINE_VERSION}/openrefine-linux-${OPENREFINE_VERSION}.tar.gz -O /tmp/openrefine.tar.gz && \
+    tar -xzf /tmp/openrefine.tar.gz -C /opt/openrefine --strip-components=1 && \
+    rm /tmp/openrefine.tar.gz
+
+# ============================================
+# EtherCalc (Collaborative spreadsheet)
+# ============================================
+RUN npm install -g ethercalc || echo "EtherCalc installation optional"
+
+# ============================================
 # Configuration
 # ============================================
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY nginx.conf /etc/nginx/sites-available/default
-COPY jupyter_config.py /home/${NB_USER}/.jupyter/jupyter_notebook_config.py
+COPY jupyter_config.py /root/.jupyter/jupyter_notebook_config.py
 COPY startup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/startup.sh
 
 # Create directories
-RUN mkdir -p /import /export /var/log/supervisor /var/www/html/hub
+RUN mkdir -p /import /export /var/log/supervisor /var/www/html/hub /data/openrefine
 
 # RStudio config
 RUN echo "rsession-which-r=/opt/conda/bin/R" >> /etc/rstudio/rserver.conf && \
@@ -111,7 +153,16 @@ RUN echo "rsession-which-r=/opt/conda/bin/R" >> /etc/rstudio/rserver.conf && \
 # ============================================
 # Ports
 # ============================================
-EXPOSE 80 8888 8787 5005 3838
+# 80    - nginx (main entry)
+# 8888  - JupyterLab
+# 8787  - RStudio
+# 5005  - CellxGene
+# 3838  - Pavian/Shiny
+# 3333  - OpenRefine
+# 8000  - EtherCalc
+# 8989  - HiGlass
+# 7777  - iSEE
+EXPOSE 80 8888 8787 5005 3838 3333 8000 8989 7777
 
 ENV GALAXY_URL="" \
     HISTORY_ID=""

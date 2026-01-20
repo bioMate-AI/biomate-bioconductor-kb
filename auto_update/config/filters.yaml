@@ -16,19 +16,13 @@ bonus_signals:
   has_linter_config: 0.05
 
 scoring_weights:
-  popularity: 0.3
+  # popularity removed - not fair for new tools
   code_quality: 0.35
   documentation: 0.2
   containerization: 0.1
   recency: 0.1
   scientific: 0.35
   releases: 0.05
-
-# Popularity tiers (stars or downloads)
-popularity_tiers:
-  tier_1: 500   # 1.0 score
-  tier_2: 200   # 0.67 score
-  tier_3: 50    # 0.33 score
 
 # Recency scoring (days since last commit)
 recency_tiers:

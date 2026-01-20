@@ -50,14 +50,7 @@ class QualityScorer:
         """Calculate quality score (0.0 - 1.0)"""
         score = 0.0
 
-        # Popularity (max 0.3)
-        stars = repo_data.get('stars', 0)
-        if stars >= self.popularity_tiers.get('tier_1', 500):
-            score += 0.3
-        elif stars >= self.popularity_tiers.get('tier_2', 200):
-            score += 0.2
-        elif stars >= self.popularity_tiers.get('tier_3', 50):
-            score += 0.1
+        # Popularity removed - not fair for new cutting-edge tools
 
         # Code quality (max 0.35)
         if repo_data.get('has_ci_cd'):

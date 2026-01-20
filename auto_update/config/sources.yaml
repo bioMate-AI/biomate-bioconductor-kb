@@ -1,6 +1,84 @@
 
 # Data Source Configurations for Auto-Update System
 
+# =============================================================================
+# MANUAL REPOSITORIES - High-priority tools added 2026-01-19
+# These are cutting-edge tools that should be tracked and integrated
+# =============================================================================
+manual_repos:
+  # Arc Institute - Virtual Cell and DNA Foundation Models
+  - repo: ArcInstitute/state
+    name: State
+    category: single-cell
+    description: "Virtual cell model predicting perturbation responses"
+    priority: high
+
+  - repo: ArcInstitute/evo2
+    name: Evo 2
+    category: genomics
+    description: "40B parameter DNA foundation model"
+    priority: high
+    api: "NVIDIA NIM"
+
+  # Structure Prediction
+  - repo: chaidiscovery/chai-lab
+    name: Chai-1
+    category: structure-prediction
+    description: "Multi-modal structure prediction (protein, DNA, RNA, ligands)"
+    priority: high
+    has_mcp: true
+
+  - repo: jwohlwend/boltz
+    name: Boltz-2
+    category: structure-prediction
+    description: "Structure and binding affinity prediction (MIT license)"
+    priority: high
+    has_mcp: true
+
+  - repo: google-deepmind/alphafold3
+    name: AlphaFold 3
+    category: structure-prediction
+    description: "Biomolecular complex structure prediction"
+    priority: high
+    has_mcp: true
+    license: "CC-BY-NC-SA"
+
+  # Drug Discovery
+  - repo: bowen-gao/DrugCLIP
+    name: DrugCLIP
+    category: drug-discovery
+    description: "Virtual screening 10M× faster than traditional methods"
+    priority: high
+    doi: "10.1126/science.ads9530"
+
+  - repo: catalystforyou/SynCraft-Core
+    name: SynCraft
+    category: drug-discovery
+    description: "LLM-guided synthesizability optimization"
+    priority: medium
+
+  # Protein Analysis & Design
+  - repo: westlake-repl/ProTrek
+    name: ProTrek
+    category: protein-analysis
+    description: "Trimodal protein language model for sequence-structure-function"
+    priority: high
+    doi: "10.1038/s41587-025-02836-0"
+    api: "search-protrek.com"
+
+  - repo: alex-hh/profam
+    name: ProFam-1
+    category: protein-analysis
+    description: "Protein family language model for fitness prediction"
+    priority: medium
+
+  - repo: jbderoo/scFv_Pmpnn_AF2
+    name: scFv_Pmpnn_AF2
+    category: protein-design
+    description: "AI-assisted intrabody design pipeline"
+    priority: medium
+    doi: "10.1126/sciadv.adx8352"
+
 github:
   api_url: https://api.github.com
   topics:

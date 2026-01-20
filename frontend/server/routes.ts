@@ -3146,6 +3146,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Parse bioinformatics file (VCF, FASTA, FASTQ, BED, GFF, GTF)
+  app.get("/api/outputs/:id/parse", async (req, res) => {
+    try {
+      const output = await storage.getOutput(req.params.id);
+      if (!output) {
+        return res.status(404).json({ error: "Output not found" });
+      }
+
+      const format = (req.query.format as string) || output.extension.toLowerCase();
+      const limit = parseInt(req.query.limit as string) || 1000;
+
+      // Import parsers dynamically to avoid circular dependencies
+      const {
+        parseVCF,
+        parseFASTA,
+        parseFASTQ,
+        parseBED,
+        parseGFF,
+        parseGTF,
+      } = await import('./bioinformatics-parsers');
+
+      // Fetch file content from Galaxy
+      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+
+      // Collect all chunks
+      const chunks: Buffer[] = [];
+      for await (const chunk of fileStream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      const content = Buffer.concat(chunks).toString('utf-8');
+
+      // Parse based on format
+      let parsed: any;
+      switch (format) {
+        case 'vcf':
+          parsed = parseVCF(content, limit);
+          break;
+        case 'fasta':
+        case 'fa':
+        case 'fna':
+          parsed = parseFASTA(content, limit);
+          break;
+        case 'fastq':
+        case 'fq':
+          parsed = parseFASTQ(content, limit);
+          break;
+        case 'bed':
+          parsed = parseBED(content, limit);
+          break;
+        case 'gff':
+        case 'gff3':
+          parsed = parseGFF(content, limit);
+          break;
+        case 'gtf':
+          parsed = parseGTF(content, limit);
+          break;
+        default:
+          return res.status(400).json({
+            error: `Unsupported format for parsing: ${format}`,
+            supportedFormats: ['vcf', 'fasta', 'fa', 'fna', 'fastq', 'fq', 'bed', 'gff', 'gff3', 'gtf']
+          });
+      }
+
+      res.json(parsed);
+    } catch (error: any) {
+      console.error("Error parsing bioinformatics file:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Launch interactive tool
+  app.post("/api/interactive-tools/launch", optionalAuth, async (req, res) => {
+    try {
+      const { toolId, datasetIds, historyId } = req.body;
+
+      if (!toolId || !datasetIds?.length) {
+        return res.status(400).json({
+          error: "toolId and datasetIds are required"
+        });
+      }
+
+      // Get Galaxy dataset IDs from our output records
+      const galaxyDatasetIds: string[] = [];
+      for (const outputId of datasetIds) {
+        const output = await storage.getOutput(outputId);
+        if (output?.galaxyDatasetId) {
+          galaxyDatasetIds.push(output.galaxyDatasetId);
+        }
+      }
+
+      if (galaxyDatasetIds.length === 0) {
+        return res.status(400).json({
+          error: "No valid Galaxy datasets found for the provided IDs"
+        });
+      }
+
+      // Get or create history ID
+      let targetHistoryId = historyId;
+      if (!targetHistoryId) {
+        // Get the most recent active history
+        const histories = await galaxyAPIProxy.getHistories();
+        if (histories && histories.length > 0) {
+          targetHistoryId = histories[0].id;
+        } else {
+          // Create a new history if none exists
+          targetHistoryId = await galaxyAPIProxy.createHistory('BioMate Interactive Session');
+        }
+      }
+
+      // Build inputs for the interactive tool
+      const inputs: Record<string, any> = {};
+      galaxyDatasetIds.forEach((datasetId, index) => {
+        inputs[`input${index + 1}`] = {
+          src: 'hda',
+          id: datasetId,
+        };
+      });
+      // Some tools also expect 'input' as parameter name
+      if (galaxyDatasetIds.length === 1) {
+        inputs['input'] = {
+          src: 'hda',
+          id: galaxyDatasetIds[0],
+        };
+      }
+
+      // Launch interactive tool via Galaxy API
+      const result = await galaxyAPIProxy.launchInteractiveTool(toolId, targetHistoryId, inputs);
+
+      // Construct entry point URL if not provided
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8080';
+      const entryPointUrl = result.entry_point_url || `${galaxyUrl}/interactivetool/jobs/${result.job_id}`;
+
+      res.json({
+        success: true,
+        url: entryPointUrl,
+        jobId: result.job_id,
+        state: result.state,
+      });
+    } catch (error: any) {
+      console.error("Error launching interactive tool:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
   // ============================================================================
   // Pre-Execution Validation API (LLM-powered prerequisites check)
   // ============================================================================

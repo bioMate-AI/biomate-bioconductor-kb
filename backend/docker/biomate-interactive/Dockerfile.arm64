@@ -1,12 +1,12 @@
 # BioMate Interactive Tools - ARM64 Version
-# Jupyter + RStudio + CellxGene + Pavian
+# Comprehensive all-in-one container with ALL interactive tools
 #
 # Uses rocker/rstudio as base (has ARM64 support)
 
 FROM rocker/rstudio:4.3
 
 LABEL maintainer="BioMate Team"
-LABEL version="1.0"
+LABEL version="2.0"
 LABEL architecture="arm64"
 LABEL description="All-in-One Interactive Tools for BioMate (ARM64)"
 
@@ -15,9 +15,9 @@ LABEL description="All-in-One Interactive Tools for BioMate (ARM64)"
 # ============================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Python
-    python3 python3-pip python3-venv \
+    python3 python3-pip python3-venv python3-dev \
     # Build tools
-    build-essential \
+    build-essential cmake pkg-config \
     # HDF5/data formats
     libhdf5-dev \
     # Network/SSL
@@ -33,6 +33,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libtiff5-dev \
     libjpeg-dev \
     libcairo2-dev \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
     # Bioinformatics CLI
     samtools \
     bcftools \
@@ -40,12 +43,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tabix \
     # For pybedtools compilation
     zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
     # Web server
     nginx \
     supervisor \
-    # Node.js for JupyterLab
+    # Node.js for JupyterLab and EtherCalc
     nodejs \
     npm \
+    # Java for OpenRefine
+    default-jre-headless \
+    # Git for cloning tools
+    git \
+    wget \
+    unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -65,16 +76,18 @@ RUN pip3 install --no-cache-dir \
     matplotlib \
     seaborn \
     plotly \
-    bokeh
+    bokeh \
+    ipywidgets
 
-# Bioinformatics Python (pybedtools needs bedtools installed first)
+# Bioinformatics Python
 RUN pip3 install --no-cache-dir \
     scanpy \
     anndata \
     pysam \
     biopython \
     bioblend \
-    h5py
+    h5py \
+    pyBigWig
 
 # pybedtools separately (may fail on some ARM, optional)
 RUN pip3 install --no-cache-dir pybedtools || echo "pybedtools skipped on ARM"
@@ -82,10 +95,18 @@ RUN pip3 install --no-cache-dir pybedtools || echo "pybedtools skipped on ARM"
 # CellxGene
 RUN pip3 install --no-cache-dir cellxgene
 
+# HiGlass (Hi-C visualization)
+RUN pip3 install --no-cache-dir \
+    higlass-python \
+    clodius \
+    cooler || echo "HiGlass packages - some may fail on ARM"
+
 # Additional viz
 RUN pip3 install --no-cache-dir \
     gseapy \
-    adjustText
+    adjustText \
+    networkx \
+    scikit-learn
 
 # ============================================
 # R packages (Bioconductor + visualization)
@@ -98,12 +119,32 @@ RUN R -e "BiocManager::install(c('DESeq2', 'edgeR', 'limma'), ask=FALSE, update=
 # Bioconductor visualization
 RUN R -e "BiocManager::install(c('clusterProfiler', 'enrichplot', 'ComplexHeatmap'), ask=FALSE, update=FALSE)"
 
-# CRAN packages
-RUN R -e "install.packages(c('ggplot2', 'pheatmap', 'ggrepel', 'viridis', 'RColorBrewer', 'tidyverse', 'data.table', 'DT', 'shiny', 'shinydashboard', 'plotly'), repos='https://cloud.r-project.org/')"
+# iSEE - Interactive SummarizedExperiment Explorer
+RUN R -e "BiocManager::install('iSEE', ask=FALSE, update=FALSE)"
 
-# Pavian
+# Single-cell R packages
+RUN R -e "BiocManager::install(c('SingleCellExperiment', 'scater', 'scran'), ask=FALSE, update=FALSE)" || echo "Some single-cell packages may fail"
+
+# CRAN packages
+RUN R -e "install.packages(c('ggplot2', 'pheatmap', 'ggrepel', 'viridis', 'RColorBrewer', 'tidyverse', 'data.table', 'DT', 'shiny', 'shinydashboard', 'plotly', 'colourpicker', 'rintrojs'), repos='https://cloud.r-project.org/')"
+
+# Pavian (metagenomics)
 RUN R -e "install.packages('remotes', repos='https://cloud.r-project.org/')" && \
     R -e "remotes::install_github('fbreitwieser/pavian')"
+
+# ============================================
+# OpenRefine (Data cleaning tool)
+# ============================================
+ARG OPENREFINE_VERSION=3.7.9
+RUN mkdir -p /opt/openrefine && \
+    wget -q https://github.com/OpenRefine/OpenRefine/releases/download/${OPENREFINE_VERSION}/openrefine-linux-${OPENREFINE_VERSION}.tar.gz -O /tmp/openrefine.tar.gz && \
+    tar -xzf /tmp/openrefine.tar.gz -C /opt/openrefine --strip-components=1 && \
+    rm /tmp/openrefine.tar.gz
+
+# ============================================
+# EtherCalc (Collaborative spreadsheet)
+# ============================================
+RUN npm install -g ethercalc || echo "EtherCalc installation optional"
 
 # ============================================
 # Configuration
@@ -115,7 +156,7 @@ COPY startup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/startup.sh
 
 # Create directories
-RUN mkdir -p /import /export /var/log/supervisor /var/www/html/hub
+RUN mkdir -p /import /export /var/log/supervisor /var/www/html/hub /data/openrefine
 
 # RStudio config (disable auth)
 RUN echo "auth-none=1" >> /etc/rstudio/rserver.conf && \
@@ -124,7 +165,16 @@ RUN echo "auth-none=1" >> /etc/rstudio/rserver.conf && \
 # ============================================
 # Ports
 # ============================================
-EXPOSE 80 8888 8787 5005 3838
+# 80    - nginx (main entry)
+# 8888  - JupyterLab
+# 8787  - RStudio
+# 5005  - CellxGene
+# 3838  - Pavian/Shiny
+# 3333  - OpenRefine
+# 8000  - EtherCalc
+# 8989  - HiGlass
+# 7777  - iSEE
+EXPOSE 80 8888 8787 5005 3838 3333 8000 8989 7777
 
 ENV GALAXY_URL="" \
     HISTORY_ID=""

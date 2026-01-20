@@ -196,6 +196,16 @@ class GalaxyWorkflowGenerator:
             "workflow_name": workflow_structure.get('workflow_name', '')
         })
 
+        # STEP 2.5: Validate tool chain compatibility
+        is_compatible, compatibility_warnings = self.validate_workflow_compatibility(workflow_structure)
+        if compatibility_warnings:
+            log.warning(f"Workflow compatibility warnings: {compatibility_warnings}")
+            report_progress("validation", 0.55, f"Compatibility check: {len(compatibility_warnings)} warnings", {
+                "warnings": compatibility_warnings
+            })
+        else:
+            report_progress("validation", 0.55, "Workflow compatibility validated", {})
+
         # STEP 3: Select datasets for workflow steps
         report_progress("dataset_selection", 0.6, "Selecting datasets for workflow...", {"phase": "dataset_matching"})
         log.info("Selecting datasets for workflow steps...")
@@ -269,7 +279,9 @@ class GalaxyWorkflowGenerator:
             "generated_parameters": generated_parameters,  # LLM-generated parameters with confidence scores
             "citations": citations,  # Tool citations with DOI/PMID
             "methods_section": methods_section,  # Auto-generated methods text
-            "generation_progress": progress_steps  # Progress tracking for UI
+            "generation_progress": progress_steps,  # Progress tracking for UI
+            "compatibility_validated": is_compatible,  # Tool chain compatibility
+            "compatibility_warnings": compatibility_warnings  # Any format mismatches detected
         }
 
     def _retrieve_tools_from_index(
@@ -939,8 +951,9 @@ Return valid JSON only - no additional text.
         Determine if a tool is a data source tool that needs parameter generation.
 
         Data source tools include:
+        - BioMate data source API tools (biomate_ds_api_*) - 31 Galaxy tools
         - BioMni data lake tools (biomate_dm_*)
-        - BioMate API tools (biomate_datasource_api_*)
+        - BioMate legacy API tools (biomate_datasource_api_*)
         - Galaxy native data source tools (biomart, ucsc_table_direct, etc.)
 
         Args:
@@ -949,11 +962,16 @@ Return valid JSON only - no additional text.
         Returns:
             True if tool is a data source tool
         """
+        # BioMate data source API tools (primary - 31 tools for database queries)
+        # These are the Galaxy tools that replaced Biomni query functions
+        if tool_id.startswith('biomate_ds_api_'):
+            return True
+
         # BioMni data management tools (local data lakes)
         if tool_id.startswith('biomate_dm_'):
             return True
 
-        # BioMate API data source tools
+        # BioMate legacy API data source tools
         if tool_id.startswith('biomate_datasource_api_'):
             return True
 
@@ -977,6 +995,117 @@ Return valid JSON only - no additional text.
                 return True
 
         return False
+
+    def validate_workflow_compatibility(
+        self,
+        workflow_structure: Dict[str, Any]
+    ) -> Tuple[bool, List[str]]:
+        """
+        Validate tool chain compatibility in a workflow.
+
+        Checks that output formats from each step are compatible with
+        input formats expected by subsequent steps.
+
+        Args:
+            workflow_structure: Workflow structure with 'steps' list
+
+        Returns:
+            Tuple of (is_valid, list_of_warnings)
+        """
+        import sqlite3
+
+        warnings = []
+        steps = workflow_structure.get('steps', [])
+
+        if len(steps) < 2:
+            return True, []  # No connections to validate
+
+        # Cache for tool I/O types
+        io_cache: Dict[str, Dict[str, List[str]]] = {}
+
+        # Get database path
+        db_path = Path(__file__).parent.parent.parent.parent / "galaxy_ai_tools.db"
+        if not db_path.exists():
+            log.warning(f"Tool database not found: {db_path}")
+            return True, ["Tool database not available for validation"]
+
+        def get_tool_io(tool_id: str) -> Dict[str, List[str]]:
+            """Get tool input/output types from database."""
+            if tool_id in io_cache:
+                return io_cache[tool_id]
+
+            try:
+                conn = sqlite3.connect(str(db_path))
+                cursor = conn.cursor()
+
+                # Normalize tool_id for lookup
+                lookup_id = tool_id.replace('_', '/') if tool_id.startswith('biomni_') else tool_id
+
+                cursor.execute(
+                    "SELECT inputs, outputs FROM tools WHERE tool_id = ? OR id = ?",
+                    (lookup_id, tool_id)
+                )
+                row = cursor.fetchone()
+                conn.close()
+
+                if row:
+                    inputs = json.loads(row[0]) if row[0] else []
+                    outputs = json.loads(row[1]) if row[1] else []
+                    io_cache[tool_id] = {'inputs': inputs, 'outputs': outputs}
+                else:
+                    io_cache[tool_id] = {'inputs': [], 'outputs': []}
+
+            except Exception as e:
+                log.debug(f"Error getting I/O for {tool_id}: {e}")
+                io_cache[tool_id] = {'inputs': [], 'outputs': []}
+
+            return io_cache[tool_id]
+
+        def formats_compatible(outputs: List[str], inputs: List[str]) -> bool:
+            """Check if output formats are compatible with input formats."""
+            if not outputs or not inputs:
+                return True  # Unknown = assume compatible
+
+            # Normalize format names
+            def normalize(fmt: str) -> str:
+                fmt = fmt.lower().strip()
+                # Handle compressed variants
+                fmt = fmt.replace('.gz', '').replace('.bz2', '')
+                # Handle format aliases
+                aliases = {
+                    'fa': 'fasta', 'fq': 'fastq',
+                    'sam': 'bam', 'vcf': 'bcf',
+                    'bed': 'interval', 'gff': 'gff3'
+                }
+                return aliases.get(fmt, fmt)
+
+            out_normalized = {normalize(f) for f in outputs}
+            in_normalized = {normalize(f) for f in inputs}
+
+            # Check for any overlap
+            return bool(out_normalized & in_normalized) or 'data' in in_normalized
+
+        # Check each consecutive step pair
+        for i in range(len(steps) - 1):
+            current_step = steps[i]
+            next_step = steps[i + 1]
+
+            current_tool = current_step.get('tool_id', '')
+            next_tool = next_step.get('tool_id', '')
+
+            current_io = get_tool_io(current_tool)
+            next_io = get_tool_io(next_tool)
+
+            if current_io['outputs'] and next_io['inputs']:
+                if not formats_compatible(current_io['outputs'], next_io['inputs']):
+                    warnings.append(
+                        f"Step {i+1} ({current_step.get('tool_name', current_tool)}) outputs "
+                        f"{current_io['outputs']} but Step {i+2} ({next_step.get('tool_name', next_tool)}) "
+                        f"expects {next_io['inputs']}"
+                    )
+
+        is_valid = len(warnings) == 0
+        return is_valid, warnings
 
     def save_workflow(self, workflow_data: Dict[str, Any], output_path: str):
         """Save workflow to .ga JSON file."""

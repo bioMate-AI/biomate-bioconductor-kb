@@ -23,15 +23,21 @@ export interface SSEClient {
   isActive: boolean;
 }
 
+export interface SSEManagerOptions {
+  strictAuth?: boolean; // If true, reject connections without valid auth (default: false for backward compatibility)
+}
+
 /**
  * SSE Manager for workflow execution updates
  */
 export class WorkflowSSEManager {
   private clients: Map<string, SSEClient[]> = new Map(); // invocationId -> clients
   private poller: GalaxyStatePoller;
+  private strictAuth: boolean;
 
-  constructor(poller: GalaxyStatePoller) {
+  constructor(poller: GalaxyStatePoller, options: SSEManagerOptions = {}) {
     this.poller = poller;
+    this.strictAuth = options.strictAuth ?? (process.env.SSE_STRICT_AUTH === 'true');
     this.setupPollerListeners();
   }
 
@@ -194,12 +200,27 @@ export class WorkflowSSEManager {
 
       // Log SSE connection
       await auditService.logSSEConnection(userId, invocationId, 'connect', req.ip || req.socket.remoteAddress);
-    } catch (authError) {
-      // Log failed auth attempt but allow connection for now (backward compatibility)
-      // In strict mode, uncomment the return statement below
-      console.warn(`[SSE] Auth failed for invocation ${invocationId}:`, authError);
-      // res.status(401).json({ error: 'Authentication required' });
-      // return;
+    } catch (authError: any) {
+      // Log failed auth attempt
+      console.warn(`[SSE] Auth failed for invocation ${invocationId}:`, authError?.message || authError);
+
+      // Audit log the failed auth attempt
+      await auditService.logAccessDenied(
+        null,
+        'sse.connect',
+        'workflow_invocation',
+        invocationId,
+        `Auth failed: ${authError?.message || 'Unknown error'}`,
+        req.ip || req.socket.remoteAddress
+      ).catch(err => console.error('[SSE] Failed to log auth failure:', err));
+
+      // In strict mode, reject the connection
+      if (this.strictAuth) {
+        res.status(401).json({ error: 'Authentication required for SSE connection' });
+        return;
+      }
+      // In permissive mode (default), allow connection but with null userId
+      console.log(`[SSE] Allowing unauthenticated connection for ${invocationId} (strict auth disabled)`);
     }
 
     // Setup SSE headers

@@ -17,6 +17,7 @@ from .tool_auto_installer import ToolAutoInstaller
 from .types import WorkflowTemplate, UserRequest
 from .config import AIConfig
 from .llm_client import LLMClient
+from .interactive_tool_mapping import get_interactive_tool_registry
 
 log = logging.getLogger(__name__)
 
@@ -151,7 +152,152 @@ class EnhancedWorkflowGenerator:
         workflow_result["generation_timestamp"] = datetime.now().isoformat()
         workflow_result["template_matches"] = len(template_matches)
 
+        # Step 6: Add visualization suggestions based on workflow outputs
+        workflow_result["visualization_suggestions"] = self._suggest_visualizations(
+            workflow_result, user_request
+        )
+
         return workflow_result
+
+    def _suggest_visualizations(self, workflow_result: Dict[str, Any],
+                                user_request: UserRequest) -> List[Dict[str, Any]]:
+        """
+        Suggest interactive visualization tools based on workflow outputs.
+
+        Returns list of recommended tools/templates for post-workflow exploration.
+        """
+        try:
+            registry = get_interactive_tool_registry()
+
+            # Determine workflow domain from template or request
+            domain = self._detect_workflow_domain(workflow_result, user_request)
+
+            # Extract expected output types from workflow
+            output_types = self._extract_output_types(workflow_result)
+
+            # Get suggestions based on domain and outputs
+            suggestions = registry.suggest_tools_for_workflow(domain, output_types)
+
+            # Filter to most relevant suggestions (avoid generic tools when domain-specific exist)
+            filtered = self._filter_suggestions(suggestions, domain)
+
+            return filtered[:5]  # Return top 5 suggestions
+
+        except Exception as e:
+            log.warning(f"Failed to generate visualization suggestions: {e}")
+            return []
+
+    def _detect_workflow_domain(self, workflow_result: Dict[str, Any],
+                                user_request: UserRequest) -> str:
+        """Detect the workflow domain from various sources."""
+        # Try from template metadata
+        if "template_id" in workflow_result:
+            template = self.template_library.templates.get(workflow_result["template_id"], {})
+            if "category" in template:
+                return template["category"]
+
+        # Try from workflow annotation
+        workflow = workflow_result.get("workflow", {})
+        if isinstance(workflow, dict):
+            annotation = workflow.get("annotation", "").lower()
+            tags = workflow.get("tags", [])
+
+            domain_keywords = {
+                "transcriptomics": ["rna-seq", "rna seq", "transcriptome", "deseq", "differential expression"],
+                "single_cell": ["single-cell", "single cell", "scrna", "10x", "scanpy", "cellranger"],
+                "genomics": ["variant", "wgs", "wes", "snp", "indel", "genome"],
+                "metagenomics": ["metagenome", "microbiome", "kraken", "16s", "amplicon"],
+                "epigenomics": ["chip-seq", "atac-seq", "methylation", "histone", "hi-c"],
+            }
+
+            for domain, keywords in domain_keywords.items():
+                if any(kw in annotation for kw in keywords):
+                    return domain
+                if any(kw in str(tags).lower() for kw in keywords):
+                    return domain
+
+        # Try from user request
+        request_text = user_request.request_text.lower()
+        if any(kw in request_text for kw in ["rna-seq", "rna seq", "transcriptome"]):
+            return "transcriptomics"
+        if any(kw in request_text for kw in ["single cell", "scrna", "single-cell"]):
+            return "single_cell"
+        if any(kw in request_text for kw in ["variant", "snp", "wgs"]):
+            return "genomics"
+        if any(kw in request_text for kw in ["metagenom", "microbiome", "16s"]):
+            return "metagenomics"
+
+        return "unknown"
+
+    def _extract_output_types(self, workflow_result: Dict[str, Any]) -> List[str]:
+        """Extract expected output file types from workflow."""
+        output_types = set()
+
+        workflow = workflow_result.get("workflow", {})
+        if not isinstance(workflow, dict):
+            return list(output_types)
+
+        # From expected_outputs in template
+        expected_outputs = workflow_result.get("expected_outputs", [])
+        for output in expected_outputs:
+            if isinstance(output, dict) and "type" in output:
+                output_types.add(output["type"])
+
+        # From workflow step outputs
+        steps = workflow.get("steps", {})
+        for step_id, step in steps.items() if isinstance(steps, dict) else []:
+            step_outputs = step.get("outputs", [])
+            for out in step_outputs:
+                if isinstance(out, dict):
+                    fmt = out.get("format", out.get("type", ""))
+                    if fmt:
+                        output_types.add(fmt)
+
+        # Common output type mappings
+        type_mapping = {
+            "tabular": "tsv",
+            "txt": "txt",
+            "html": "html",
+            "png": "png",
+            "pdf": "pdf",
+        }
+
+        mapped = set()
+        for t in output_types:
+            mapped.add(type_mapping.get(t, t))
+
+        return list(mapped)
+
+    def _filter_suggestions(self, suggestions: List[Dict[str, Any]],
+                           domain: str) -> List[Dict[str, Any]]:
+        """Filter suggestions to prioritize domain-specific tools over generic ones."""
+        if not suggestions:
+            return []
+
+        # Separate specialized and template suggestions
+        specialized = [s for s in suggestions if s["type"] == "specialized"]
+        templates = [s for s in suggestions if s["type"] == "template"]
+
+        # Keep specialized tools with high confidence
+        high_conf_specialized = [s for s in specialized if s["confidence"] >= 0.9]
+
+        # Keep domain-matching templates
+        domain_templates = [s for s in templates if s.get("domain") == domain]
+
+        # Deprioritize generic data wrangling tools if domain-specific options exist
+        if domain_templates or high_conf_specialized:
+            specialized = [s for s in specialized
+                          if s.get("domain") != "data_wrangling" or s["confidence"] >= 0.95]
+
+        # Combine: high-confidence specialized first, then domain templates, then others
+        result = high_conf_specialized + domain_templates
+
+        # Add remaining if we have room
+        for s in specialized + templates:
+            if s not in result:
+                result.append(s)
+
+        return result
     
     def _generate_from_template(self, user_request: UserRequest, 
                                template_matches: List[Dict]) -> Dict[str, Any]:

@@ -1402,6 +1402,7 @@ class AIAssistant:
             workflow_ga = None
             source = None
             datasets_assigned = False
+            generated_parameters = []  # Initialize for all paths
 
             # Step 2: Decide strategy based on template match score
             if score > 0.8:

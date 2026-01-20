@@ -14,8 +14,12 @@ import {
   FileCode,
   File,
   ExternalLink,
+  Dna,
+  Layers,
+  Network,
 } from "lucide-react"
 import type { OutputDataset } from "@shared/schema"
+import { VCFViewer, SequenceViewer, AnnotationViewer, InteractiveToolLauncher } from "./viewers"
 
 interface ChatOutputAttachmentsProps {
   invocationId: string
@@ -56,10 +60,19 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
   // Group outputs by type for better organization
   const visualizations = outputs.filter(o => o.fileType === 'image' || o.fileType === 'interactive')
   const tables = outputs.filter(o => o.fileType === 'table')
-  const otherFiles = outputs.filter(o => o.fileType !== 'image' && o.fileType !== 'interactive' && o.fileType !== 'table')
+  const sequences = outputs.filter(o => o.fileType === 'sequence')
+  const variants = outputs.filter(o => o.fileType === 'variants')
+  const annotations = outputs.filter(o => o.fileType === 'annotation')
+  const singleCell = outputs.filter(o => o.fileType === 'singlecell')
+  const otherFiles = outputs.filter(o =>
+    !['image', 'interactive', 'table', 'sequence', 'variants', 'annotation', 'singlecell'].includes(o.fileType)
+  )
 
   return (
     <div className={`space-y-4 ${className}`}>
+      {/* Interactive Tool Launcher */}
+      <InteractiveToolLauncher outputs={outputs} />
+
       {/* Visualizations Section */}
       {visualizations.length > 0 && (
         <div className="space-y-3">
@@ -69,6 +82,62 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
             <Badge variant="secondary">{visualizations.length}</Badge>
           </div>
           {visualizations.map(output => (
+            <OutputRenderer key={output.id} output={output} />
+          ))}
+        </div>
+      )}
+
+      {/* Variants Section (VCF) */}
+      {variants.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Dna className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-medium">Variant Calls</h4>
+            <Badge variant="secondary">{variants.length}</Badge>
+          </div>
+          {variants.map(output => (
+            <OutputRenderer key={output.id} output={output} />
+          ))}
+        </div>
+      )}
+
+      {/* Sequences Section (FASTA/FASTQ) */}
+      {sequences.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Dna className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-medium">Sequences</h4>
+            <Badge variant="secondary">{sequences.length}</Badge>
+          </div>
+          {sequences.map(output => (
+            <OutputRenderer key={output.id} output={output} />
+          ))}
+        </div>
+      )}
+
+      {/* Annotations Section (BED/GFF/GTF) */}
+      {annotations.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-medium">Genomic Annotations</h4>
+            <Badge variant="secondary">{annotations.length}</Badge>
+          </div>
+          {annotations.map(output => (
+            <OutputRenderer key={output.id} output={output} />
+          ))}
+        </div>
+      )}
+
+      {/* Single-Cell Section */}
+      {singleCell.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Network className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-medium">Single-Cell Data</h4>
+            <Badge variant="secondary">{singleCell.length}</Badge>
+          </div>
+          {singleCell.map(output => (
             <OutputRenderer key={output.id} output={output} />
           ))}
         </div>
@@ -119,6 +188,15 @@ function OutputRenderer({ output }: OutputRendererProps) {
       return <TableOutput output={output} />
     case 'text':
       return <TextOutput output={output} />
+    case 'variants':
+      return <VCFViewer output={output} />
+    case 'sequence':
+      return <SequenceViewer output={output} />
+    case 'annotation':
+      return <AnnotationViewer output={output} />
+    case 'singlecell':
+      // Single-cell data typically requires interactive tools
+      return <FileOutput output={output} />
     default:
       return <FileOutput output={output} />
   }
@@ -126,6 +204,8 @@ function OutputRenderer({ output }: OutputRendererProps) {
 
 function ImageOutput({ output }: OutputRendererProps) {
   const [expanded, setExpanded] = useState(true)
+  const [imageError, setImageError] = useState(false)
+  const [imageLoading, setImageLoading] = useState(true)
 
   return (
     <Card>
@@ -152,12 +232,38 @@ function ImageOutput({ output }: OutputRendererProps) {
       <CardContent className="space-y-3">
         {expanded && (
           <div className="rounded-lg border bg-muted/30 p-2">
-            <img
-              src={`/api/outputs/${output.id}/display`}
-              alt={output.name}
-              className="max-w-full h-auto rounded"
-              loading="lazy"
-            />
+            {imageLoading && !imageError && (
+              <Skeleton className="w-full h-48" />
+            )}
+            {imageError ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <ImageIcon className="h-12 w-12 mb-2 opacity-50" />
+                <p className="text-sm">Failed to load image</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => {
+                    setImageError(false)
+                    setImageLoading(true)
+                  }}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <img
+                src={`/api/outputs/${output.id}/display`}
+                alt={output.name}
+                className={`max-w-full h-auto rounded ${imageLoading ? 'hidden' : ''}`}
+                loading="lazy"
+                onLoad={() => setImageLoading(false)}
+                onError={() => {
+                  setImageError(true)
+                  setImageLoading(false)
+                }}
+              />
+            )}
           </div>
         )}
         <div className="flex gap-2">
@@ -185,6 +291,8 @@ function ImageOutput({ output }: OutputRendererProps) {
 
 function InteractiveOutput({ output }: OutputRendererProps) {
   const [expanded, setExpanded] = useState(true)
+  const [iframeError, setIframeError] = useState(false)
+  const [iframeLoading, setIframeLoading] = useState(true)
 
   return (
     <Card>
@@ -207,13 +315,42 @@ function InteractiveOutput({ output }: OutputRendererProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {expanded && (
-          <div className="rounded-lg border">
-            <iframe
-              src={`/api/outputs/${output.id}/display`}
-              className="w-full h-96 rounded"
-              sandbox="allow-scripts allow-same-origin"
-              title={output.name}
-            />
+          <div className="rounded-lg border relative">
+            {iframeLoading && !iframeError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+                <Skeleton className="w-full h-96" />
+              </div>
+            )}
+            {iframeError ? (
+              <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
+                <FileCode className="h-12 w-12 mb-2 opacity-50" />
+                <p className="text-sm">Failed to load interactive content</p>
+                <p className="text-xs text-muted-foreground mt-1">Try opening in a new tab</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => {
+                    setIframeError(false)
+                    setIframeLoading(true)
+                  }}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <iframe
+                src={`/api/outputs/${output.id}/display`}
+                className="w-full h-96 rounded"
+                sandbox="allow-scripts allow-same-origin"
+                title={output.name}
+                onLoad={() => setIframeLoading(false)}
+                onError={() => {
+                  setIframeError(true)
+                  setIframeLoading(false)
+                }}
+              />
+            )}
           </div>
         )}
         <div className="flex gap-2">
