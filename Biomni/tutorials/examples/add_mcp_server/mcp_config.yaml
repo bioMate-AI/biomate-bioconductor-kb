@@ -42,30 +42,69 @@ mcp_servers:
 
   # Chai-1: Multi-modal protein structure prediction (Apache 2.0)
   # GitHub: chaidiscovery/chai-lab
+  # Requires: pip install chai_lab (GPU with CUDA and bfloat16 support)
+  # Also available via: lab.chaidiscovery.com (web) or BioLM API
   chai1:
-    command: ["python", "-m", "chai_lab.mcp_server"]
-    enabled: false  # Enable after installing chai_lab
+    command: ["python", "/home/yzhang/biomate/auto_update/mcp_servers/chai1_mcp_server.py"]
+    enabled: true  # chai_lab v0.6.1 installed
     description: "Chai-1 multi-modal structure prediction (protein, DNA, RNA, ligands)"
+    requirements:
+      gpu: "A100 80GB recommended, works with RTX 4090"
+      ram: "32GB+"
     tools:
-      - biomni_name: predict_structure_chai1
+      - biomni_name: chai1_predict
         description: "Predict biomolecular structure with Chai-1"
         parameters:
-          sequences: {type: list, required: true, description: "List of sequence dicts with type and sequence"}
-          num_trunk_recycles: {type: int, required: false, default: 3, description: "Number of trunk recycles"}
-          num_diffusion_timesteps: {type: int, required: false, default: 200, description: "Diffusion timesteps"}
+          sequences: {type: list, required: true, description: "List of dicts with name, sequence, type (protein/dna/rna)"}
+          ligands: {type: list, required: false, description: "List of SMILES strings for ligands"}
+          num_samples: {type: int, required: false, default: 1, description: "Number of samples (1-5)"}
+          seed: {type: int, required: false, default: 42, description: "Random seed"}
+      - biomni_name: chai1_health
+        description: "Check Chai-1 server health and GPU status"
+        parameters: {}
 
-  # AlphaFold 3: Protein structure database access
-  # GitHub: Augmented-Nature/AlphaFold-MCP-Server
+  # Chai-2: Zero-shot antibody design (NOT PUBLICLY AVAILABLE)
+  # Access: Early access partners only via Chai Discovery
+  # chai2:
+  #   enabled: false
+  #   note: "Chai-2 is not publicly available. Contact Chai Discovery for access."
+
+  # AlphaFold MCP Server: Protein Structure Database access
+  # GitHub: Augmented-Nature/AlphaFold-MCP-Server (Node.js)
   alphafold:
-    command: ["python", "-m", "alphafold_mcp_server"]
-    enabled: false  # Enable after installing alphafold-mcp-server
-    description: "AlphaFold Protein Structure Database access"
+    command: ["node", "/home/yzhang/biomate/auto_update/mcp_servers/AlphaFold-MCP-Server/build/index.js"]
+    enabled: true  # Built and ready
+    description: "AlphaFold Protein Structure Database access (pre-computed structures)"
     tools:
       - biomni_name: get_alphafold_structure
         description: "Retrieve pre-computed AlphaFold structure by UniProt ID"
         parameters:
           uniprot_id: {type: str, required: true, description: "UniProt accession ID"}
+      - biomni_name: search_alphafold
+        description: "Search AlphaFold database by protein name or organism"
+        parameters:
+          query: {type: str, required: true, description: "Protein name, gene, or organism"}
       - biomni_name: get_alphafold_pae
         description: "Get predicted aligned error (PAE) matrix"
         parameters:
           uniprot_id: {type: str, required: true, description: "UniProt accession ID"}
+
+  # =============================================================================
+  # API-BASED TOOLS (No local GPU required)
+  # =============================================================================
+
+  # BioLM API: Alternative cloud API for Chai-1
+  # Access: biolm.ai/models/chai1/
+  # biolm_chai1:
+  #   command: ["python", "-m", "biomni.tool.api_tools.biolm_chai1"]
+  #   enabled: false  # Enable after setting BIOLM_API_KEY
+  #   env:
+  #     BIOLM_API_KEY: "${BIOLM_API_KEY}"
+
+  # NVIDIA NIM API: Evo 2 DNA foundation model
+  # Access: integrate.api.nvidia.com
+  # nvidia_evo2:
+  #   command: ["python", "-m", "biomni.tool.api_tools.nvidia_nim_evo2"]
+  #   enabled: false  # Enable after setting NVIDIA_API_KEY
+  #   env:
+  #     NVIDIA_API_KEY: "${NVIDIA_API_KEY}"

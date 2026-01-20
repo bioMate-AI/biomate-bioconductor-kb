@@ -8,6 +8,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
+  testMatch: '**/*.e2e.ts', // Match .e2e.ts files
   fullyParallel: false, // Run tests sequentially for audit clarity
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

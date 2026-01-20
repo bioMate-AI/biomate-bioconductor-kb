@@ -1,0 +1,74 @@
+<tool id="protrek" name="ProTrek" version="1.0" profile="21.05">
+    <description>Trimodal protein language model for sequence-structure-function search</description>
+    <requirements>
+        <container type="docker">biomate/protrek:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        #if $search_mode.mode == "text_to_protein"
+        python -m protrek search
+            --query '$search_mode.text_query'
+            --mode text2protein
+            --top_k $top_k
+            --output '$output_results'
+        #elif $search_mode.mode == "protein_to_function"
+        python -m protrek search
+            --input '$search_mode.protein_input'
+            --mode protein2function
+            --output '$output_results'
+        #elif $search_mode.mode == "structure_search"
+        python -m protrek search
+            --input '$search_mode.structure_input'
+            --mode structure
+            --top_k $top_k
+            --output '$output_results'
+        #end if
+    ]]></command>
+    <inputs>
+        <conditional name="search_mode">
+            <param name="mode" type="select" label="Search mode">
+                <option value="text_to_protein">Text → Protein (find proteins by description)</option>
+                <option value="protein_to_function">Protein → Function (annotate protein)</option>
+                <option value="structure_search">Structure similarity search</option>
+            </param>
+            <when value="text_to_protein">
+                <param name="text_query" type="text" label="Function description"
+                       help="e.g., 'DNA binding transcription factor'"/>
+            </when>
+            <when value="protein_to_function">
+                <param name="protein_input" type="data" format="fasta" label="Protein sequence"/>
+            </when>
+            <when value="structure_search">
+                <param name="structure_input" type="data" format="pdb,cif" label="Protein structure"/>
+            </when>
+        </conditional>
+        <param name="top_k" type="integer" value="10" min="1" max="1000" label="Number of results"/>
+    </inputs>
+    <outputs>
+        <data name="output_results" format="json" label="${tool.name} on ${on_string}: Results"/>
+    </outputs>
+    <help><![CDATA[
+**ProTrek: Trimodal Protein Language Model**
+
+ProTrek jointly embeds protein sequences, structures, and functional descriptions in a shared space.
+
+**Search Modes:**
+1. **Text → Protein**: Find proteins matching a functional description
+2. **Protein → Function**: Predict function from sequence
+3. **Structure Search**: Find structurally similar proteins
+
+**Features:**
+- 1.5B parameter model
+- Trained on 100M+ proteins
+- Cross-modal retrieval
+
+**API Available:**
+Also accessible via search-protrek.com
+
+**Citation:**
+Su et al. (2025). A trimodal protein language model for sequence-structure-function.
+Nature Biotechnology. DOI: 10.1038/s41587-025-02836-0
+    ]]></help>
+    <citations>
+        <citation type="doi">10.1038/s41587-025-02836-0</citation>
+    </citations>
+</tool>

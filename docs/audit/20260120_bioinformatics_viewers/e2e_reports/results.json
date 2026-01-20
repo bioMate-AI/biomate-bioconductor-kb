@@ -1,0 +1,674 @@
+{
+  "config": {
+    "configFile": "/home/yzhang/biomate/frontend/playwright.config.ts",
+    "rootDir": "/home/yzhang/biomate/frontend/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "e2e/reports"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "e2e/reports/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/yzhang/biomate/frontend/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/yzhang/biomate/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.e2e.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.57.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "bioinformatics-viewers.e2e.ts",
+      "file": "bioinformatics-viewers.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "VCF Viewer",
+          "file": "bioinformatics-viewers.e2e.ts",
+          "line": 131,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display variant calls with filtering and statistics",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 32357,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts",
+                            "column": 16,
+                            "line": 122
+                          },
+                          "message": "Error: page.waitForTimeout: Test timeout of 30000ms exceeded.\n\n  120 |       break;\n  121 |     }\n> 122 |     await page.waitForTimeout(1000);\n      |                ^\n  123 |   }\n  124 |\n  125 |   console.log('[Chat] AI response received');\n    at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)\n    at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:136:5"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[Setup] Registering user: e2e_viewer_test_1768946404924@biomate.test\n"
+                        },
+                        {
+                          "text": "[Setup] User registered and logged in\n"
+                        },
+                        {
+                          "text": "[Chat] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "\n[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-00-37-345Z.json\n"
+                        },
+                        {
+                          "text": "[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos\n"
+                        },
+                        {
+                          "text": "[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-20T22:00:04.931Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-c8961-th-filtering-and-statistics-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-c8961-th-filtering-and-statistics-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-c8961-th-filtering-and-statistics-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-c8961-th-filtering-and-statistics-chromium/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3dcbe450ff52f9ab47e8-68b368d57d6e25ab28ff",
+              "file": "bioinformatics-viewers.e2e.ts",
+              "line": 132,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Sequence Viewer",
+          "file": "bioinformatics-viewers.e2e.ts",
+          "line": 178,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display sequences with GC content and statistics",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 32619,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts",
+                            "column": 16,
+                            "line": 122
+                          },
+                          "message": "Error: page.waitForTimeout: Test timeout of 30000ms exceeded.\n\n  120 |       break;\n  121 |     }\n> 122 |     await page.waitForTimeout(1000);\n      |                ^\n  123 |   }\n  124 |\n  125 |   console.log('[Chat] AI response received');\n    at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)\n    at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:183:5"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[Setup] Registering user: e2e_viewer_test_1768946440853@biomate.test\n"
+                        },
+                        {
+                          "text": "[Setup] User registered and logged in\n"
+                        },
+                        {
+                          "text": "[Chat] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "\n[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-01-13-549Z.json\n"
+                        },
+                        {
+                          "text": "[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos\n"
+                        },
+                        {
+                          "text": "[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-20T22:00:40.860Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-40e64-h-GC-content-and-statistics-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-40e64-h-GC-content-and-statistics-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-40e64-h-GC-content-and-statistics-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-40e64-h-GC-content-and-statistics-chromium/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3dcbe450ff52f9ab47e8-5861402721fb4797b5e1",
+              "file": "bioinformatics-viewers.e2e.ts",
+              "line": 179,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Annotation Viewer",
+          "file": "bioinformatics-viewers.e2e.ts",
+          "line": 217,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display genomic annotations with feature types",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 32275,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts",
+                            "column": 16,
+                            "line": 122
+                          },
+                          "message": "Error: page.waitForTimeout: Test timeout of 30000ms exceeded.\n\n  120 |       break;\n  121 |     }\n> 122 |     await page.waitForTimeout(1000);\n      |                ^\n  123 |   }\n  124 |\n  125 |   console.log('[Chat] AI response received');\n    at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)\n    at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:222:5"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[Setup] Registering user: e2e_viewer_test_1768946477262@biomate.test\n"
+                        },
+                        {
+                          "text": "[Setup] User registered and logged in\n"
+                        },
+                        {
+                          "text": "[Chat] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "\n[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-01-49-621Z.json\n"
+                        },
+                        {
+                          "text": "[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos\n"
+                        },
+                        {
+                          "text": "[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-20T22:01:17.269Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-19ea2-otations-with-feature-types-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-19ea2-otations-with-feature-types-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-19ea2-otations-with-feature-types-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-19ea2-otations-with-feature-types-chromium/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3dcbe450ff52f9ab47e8-ddb00674534c9e4ef0fd",
+              "file": "bioinformatics-viewers.e2e.ts",
+              "line": 218,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Interactive Tool Launcher",
+          "file": "bioinformatics-viewers.e2e.ts",
+          "line": 256,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should suggest Galaxy interactive tools based on output type",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 32457,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts",
+                            "column": 16,
+                            "line": 122
+                          },
+                          "message": "Error: page.waitForTimeout: Test timeout of 30000ms exceeded.\n\n  120 |       break;\n  121 |     }\n> 122 |     await page.waitForTimeout(1000);\n      |                ^\n  123 |   }\n  124 |\n  125 |   console.log('[Chat] AI response received');\n    at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)\n    at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:261:5"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[Setup] Registering user: e2e_viewer_test_1768946513412@biomate.test\n"
+                        },
+                        {
+                          "text": "[Setup] User registered and logged in\n"
+                        },
+                        {
+                          "text": "[Chat] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "\n[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-02-25-944Z.json\n"
+                        },
+                        {
+                          "text": "[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos\n"
+                        },
+                        {
+                          "text": "[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-20T22:01:53.418Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-b4a0d--tools-based-on-output-type-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-b4a0d--tools-based-on-output-type-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-b4a0d--tools-based-on-output-type-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-b4a0d--tools-based-on-output-type-chromium/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3dcbe450ff52f9ab47e8-4b1d198d504d0bb29810",
+              "file": "bioinformatics-viewers.e2e.ts",
+              "line": 257,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Output Attachments Integration",
+          "file": "bioinformatics-viewers.e2e.ts",
+          "line": 302,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should group outputs by type and render appropriate viewers",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 32458,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts",
+                            "column": 16,
+                            "line": 122
+                          },
+                          "message": "Error: page.waitForTimeout: Test timeout of 30000ms exceeded.\n\n  120 |       break;\n  121 |     }\n> 122 |     await page.waitForTimeout(1000);\n      |                ^\n  123 |   }\n  124 |\n  125 |   console.log('[Chat] AI response received');\n    at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)\n    at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:307:5"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[Setup] Registering user: e2e_viewer_test_1768946549420@biomate.test\n"
+                        },
+                        {
+                          "text": "[Setup] User registered and logged in\n"
+                        },
+                        {
+                          "text": "[Chat] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "\n[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-03-01-952Z.json\n"
+                        },
+                        {
+                          "text": "[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos\n"
+                        },
+                        {
+                          "text": "[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-20T22:02:29.427Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-f859b--render-appropriate-viewers-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-f859b--render-appropriate-viewers-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-f859b--render-appropriate-viewers-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-f859b--render-appropriate-viewers-chromium/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3dcbe450ff52f9ab47e8-104ffdb74907e856a156",
+              "file": "bioinformatics-viewers.e2e.ts",
+              "line": 303,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Viewer Error Handling",
+          "file": "bioinformatics-viewers.e2e.ts",
+          "line": 350,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display graceful error messages for invalid data",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 32684,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts",
+                            "column": 16,
+                            "line": 122
+                          },
+                          "message": "Error: page.waitForTimeout: Test timeout of 30000ms exceeded.\n\n  120 |       break;\n  121 |     }\n> 122 |     await page.waitForTimeout(1000);\n      |                ^\n  123 |   }\n  124 |\n  125 |   console.log('[Chat] AI response received');\n    at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)\n    at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:355:5"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[Setup] Registering user: e2e_viewer_test_1768946585555@biomate.test\n"
+                        },
+                        {
+                          "text": "[Setup] User registered and logged in\n"
+                        },
+                        {
+                          "text": "[Chat] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "\n[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-03-38-326Z.json\n"
+                        },
+                        {
+                          "text": "[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos\n"
+                        },
+                        {
+                          "text": "[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-20T22:03:05.562Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-b6f3a-r-messages-for-invalid-data-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-b6f3a-r-messages-for-invalid-data-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-b6f3a-r-messages-for-invalid-data-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/bioinformatics-viewers.e2e-b6f3a-r-messages-for-invalid-data-chromium/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3dcbe450ff52f9ab47e8-fbb4aeee745496dfd66b",
+              "file": "bioinformatics-viewers.e2e.ts",
+              "line": 351,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-01-20T22:00:04.447Z",
+    "duration": 217401.095,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 6,
+    "flaky": 0
+  }
+}

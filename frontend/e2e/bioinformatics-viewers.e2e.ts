@@ -10,9 +10,14 @@
  * Video recordings are saved to: frontend/e2e/videos/
  */
 
-import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const BASE_URL = process.env.BIOMATE_URL || 'http://localhost:5000';
 const VIDEO_DIR = path.join(__dirname, 'videos');

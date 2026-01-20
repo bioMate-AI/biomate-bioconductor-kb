@@ -1,0 +1,60 @@
+<tool id="state_perturbation" name="State" version="1.0" profile="21.05">
+    <description>Virtual cell model for perturbation response prediction</description>
+    <requirements>
+        <container type="docker">biomate/state:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python -m state.predict
+        --input '$input_h5ad'
+        --perturbation '$perturbation'
+        --output '$output_h5ad'
+        #if $cell_type
+        --cell_type '$cell_type'
+        #end if
+        #if $dose
+        --dose $dose
+        #end if
+    ]]></command>
+    <inputs>
+        <param name="input_h5ad" type="data" format="h5ad" label="Input single-cell data (h5ad)"
+               help="AnnData object with baseline cell states"/>
+        <param name="perturbation" type="text" label="Perturbation"
+               help="Gene name, drug, or CRISPR target to simulate"/>
+        <param name="cell_type" type="text" optional="true" label="Cell type filter"
+               help="Optional: filter to specific cell type"/>
+        <param name="dose" type="float" optional="true" min="0" label="Dose"
+               help="Optional: perturbation dose level"/>
+    </inputs>
+    <outputs>
+        <data name="output_h5ad" format="h5ad" label="${tool.name} on ${on_string}: Predicted response"/>
+    </outputs>
+    <help><![CDATA[
+**State: Virtual Cell Model**
+
+State is a foundation model from Arc Institute that predicts how cells respond to perturbations.
+
+**Capabilities:**
+- Predict gene expression changes after drug treatment
+- Simulate CRISPR knockouts/knockdowns
+- Model genetic perturbations across cell types
+
+**Inputs:**
+- Single-cell data (h5ad format)
+- Perturbation specification (gene, drug, or CRISPR)
+
+**Outputs:**
+- Predicted cell states after perturbation (h5ad)
+
+**Use Cases:**
+- Drug response prediction
+- Target identification
+- Combinatorial perturbation modeling
+
+**Citation:**
+Arc Institute (2025). Predicting cellular responses to perturbation across cell types.
+bioRxiv. DOI: 10.1101/2025.06.26.661135
+    ]]></help>
+    <citations>
+        <citation type="doi">10.1101/2025.06.26.661135</citation>
+    </citations>
+</tool>

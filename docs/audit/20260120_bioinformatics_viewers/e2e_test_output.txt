@@ -1,0 +1,268 @@
+
+> rest-express@1.0.0 e2e
+> playwright test
+
+
+Running 6 tests using 1 worker
+
+[Setup] Registering user: e2e_viewer_test_1768946404924@biomate.test
+[Setup] User registered and logged in
+[Chat] Waiting for AI response...
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-00-37-345Z.json
+[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos
+[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots
+  ✘  1 [chromium] › e2e/bioinformatics-viewers.e2e.ts:132:3 › VCF Viewer › should display variant calls with filtering and statistics (32.4s)
+[Setup] Registering user: e2e_viewer_test_1768946440853@biomate.test
+[Setup] User registered and logged in
+[Chat] Waiting for AI response...
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-01-13-549Z.json
+[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos
+[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots
+  ✘  2 [chromium] › e2e/bioinformatics-viewers.e2e.ts:179:3 › Sequence Viewer › should display sequences with GC content and statistics (32.6s)
+[Setup] Registering user: e2e_viewer_test_1768946477262@biomate.test
+[Setup] User registered and logged in
+[Chat] Waiting for AI response...
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-01-49-621Z.json
+[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos
+[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots
+  ✘  3 [chromium] › e2e/bioinformatics-viewers.e2e.ts:218:3 › Annotation Viewer › should display genomic annotations with feature types (32.3s)
+[Setup] Registering user: e2e_viewer_test_1768946513412@biomate.test
+[Setup] User registered and logged in
+[Chat] Waiting for AI response...
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-02-25-944Z.json
+[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos
+[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots
+  ✘  4 [chromium] › e2e/bioinformatics-viewers.e2e.ts:257:3 › Interactive Tool Launcher › should suggest Galaxy interactive tools based on output type (32.5s)
+[Setup] Registering user: e2e_viewer_test_1768946549420@biomate.test
+[Setup] User registered and logged in
+[Chat] Waiting for AI response...
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-03-01-952Z.json
+[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos
+[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots
+  ✘  5 [chromium] › e2e/bioinformatics-viewers.e2e.ts:303:3 › Output Attachments Integration › should group outputs by type and render appropriate viewers (32.5s)
+[Setup] Registering user: e2e_viewer_test_1768946585555@biomate.test
+[Setup] User registered and logged in
+[Chat] Waiting for AI response...
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-03-38-326Z.json
+[Summary] Videos saved to: /home/yzhang/biomate/frontend/e2e/videos
+[Summary] Screenshots saved to: /home/yzhang/biomate/frontend/e2e/screenshots
+  ✘  6 [chromium] › e2e/bioinformatics-viewers.e2e.ts:351:3 › Viewer Error Handling › should display graceful error messages for invalid data (32.7s)
+
+
+  1) [chromium] › e2e/bioinformatics-viewers.e2e.ts:132:3 › VCF Viewer › should display variant calls with filtering and statistics 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForTimeout: Test timeout of 30000ms exceeded.
+
+      120 |       break;
+      121 |     }
+    > 122 |     await page.waitForTimeout(1000);
+          |                ^
+      123 |   }
+      124 |
+      125 |   console.log('[Chat] AI response received');
+        at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:136:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-c8961-th-filtering-and-statistics-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-c8961-th-filtering-and-statistics-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-c8961-th-filtering-and-statistics-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-c8961-th-filtering-and-statistics-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-c8961-th-filtering-and-statistics-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/bioinformatics-viewers.e2e.ts:179:3 › Sequence Viewer › should display sequences with GC content and statistics 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForTimeout: Test timeout of 30000ms exceeded.
+
+      120 |       break;
+      121 |     }
+    > 122 |     await page.waitForTimeout(1000);
+          |                ^
+      123 |   }
+      124 |
+      125 |   console.log('[Chat] AI response received');
+        at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:183:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-40e64-h-GC-content-and-statistics-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-40e64-h-GC-content-and-statistics-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-40e64-h-GC-content-and-statistics-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-40e64-h-GC-content-and-statistics-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-40e64-h-GC-content-and-statistics-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/bioinformatics-viewers.e2e.ts:218:3 › Annotation Viewer › should display genomic annotations with feature types 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForTimeout: Test timeout of 30000ms exceeded.
+
+      120 |       break;
+      121 |     }
+    > 122 |     await page.waitForTimeout(1000);
+          |                ^
+      123 |   }
+      124 |
+      125 |   console.log('[Chat] AI response received');
+        at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:222:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-19ea2-otations-with-feature-types-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-19ea2-otations-with-feature-types-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-19ea2-otations-with-feature-types-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-19ea2-otations-with-feature-types-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-19ea2-otations-with-feature-types-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e/bioinformatics-viewers.e2e.ts:257:3 › Interactive Tool Launcher › should suggest Galaxy interactive tools based on output type 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForTimeout: Test timeout of 30000ms exceeded.
+
+      120 |       break;
+      121 |     }
+    > 122 |     await page.waitForTimeout(1000);
+          |                ^
+      123 |   }
+      124 |
+      125 |   console.log('[Chat] AI response received');
+        at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:261:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-b4a0d--tools-based-on-output-type-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-b4a0d--tools-based-on-output-type-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-b4a0d--tools-based-on-output-type-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-b4a0d--tools-based-on-output-type-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-b4a0d--tools-based-on-output-type-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e/bioinformatics-viewers.e2e.ts:303:3 › Output Attachments Integration › should group outputs by type and render appropriate viewers 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForTimeout: Test timeout of 30000ms exceeded.
+
+      120 |       break;
+      121 |     }
+    > 122 |     await page.waitForTimeout(1000);
+          |                ^
+      123 |   }
+      124 |
+      125 |   console.log('[Chat] AI response received');
+        at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:307:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-f859b--render-appropriate-viewers-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-f859b--render-appropriate-viewers-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-f859b--render-appropriate-viewers-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-f859b--render-appropriate-viewers-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-f859b--render-appropriate-viewers-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › e2e/bioinformatics-viewers.e2e.ts:351:3 › Viewer Error Handling › should display graceful error messages for invalid data 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForTimeout: Test timeout of 30000ms exceeded.
+
+      120 |       break;
+      121 |     }
+    > 122 |     await page.waitForTimeout(1000);
+          |                ^
+      123 |   }
+      124 |
+      125 |   console.log('[Chat] AI response received');
+        at sendChatMessage (/home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:122:16)
+        at /home/yzhang/biomate/frontend/e2e/bioinformatics-viewers.e2e.ts:355:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-b6f3a-r-messages-for-invalid-data-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-b6f3a-r-messages-for-invalid-data-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/bioinformatics-viewers.e2e-b6f3a-r-messages-for-invalid-data-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/bioinformatics-viewers.e2e-b6f3a-r-messages-for-invalid-data-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/bioinformatics-viewers.e2e-b6f3a-r-messages-for-invalid-data-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6 failed
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:132:3 › VCF Viewer › should display variant calls with filtering and statistics 
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:179:3 › Sequence Viewer › should display sequences with GC content and statistics 
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:218:3 › Annotation Viewer › should display genomic annotations with feature types 
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:257:3 › Interactive Tool Launcher › should suggest Galaxy interactive tools based on output type 
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:303:3 › Output Attachments Integration › should group outputs by type and render appropriate viewers 
+    [chromium] › e2e/bioinformatics-viewers.e2e.ts:351:3 › Viewer Error Handling › should display graceful error messages for invalid data 

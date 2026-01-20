@@ -1,0 +1,75 @@
+<tool id="boltz2" name="Boltz-2" version="2.2.1" profile="21.05">
+    <description>Protein-ligand structure and binding affinity prediction</description>
+    <requirements>
+        <container type="docker">biomate/boltz:2.2.1</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        boltz predict
+        '$input_fasta'
+        --out_dir output/
+        --diffusion_samples $diffusion_samples
+        #if $use_msa_server
+        --use_msa_server
+        #end if
+        #if $use_potentials
+        --use_potentials
+        #end if
+        &&
+        cp output/*/predictions/*/*.cif '$output_structure' 2>/dev/null || echo "No structure output"
+        &&
+        cp output/*/predictions/*/affinity_*.json '$output_affinity' 2>/dev/null || echo "No affinity output"
+    ]]></command>
+    <inputs>
+        <param name="input_fasta" type="data" format="fasta" label="Protein sequence (FASTA)"/>
+        <param name="ligand_smiles" type="text" label="Ligand SMILES" optional="true"
+               help="SMILES string of the ligand molecule"/>
+        <param name="diffusion_samples" type="integer" value="5" min="1" max="50"
+               label="Diffusion samples" help="More samples = better but slower"/>
+        <param name="use_msa_server" type="boolean" checked="true"
+               label="Use MSA server" help="Use ColabFold MSA server for alignments"/>
+        <param name="use_potentials" type="boolean" checked="false"
+               label="Use potentials" help="Enable energy-based potentials"/>
+    </inputs>
+    <outputs>
+        <data name="output_structure" format="cif" label="${tool.name} on ${on_string}: Structure"/>
+        <data name="output_affinity" format="json" label="${tool.name} on ${on_string}: Affinity"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_fasta" value="test_protein.fasta"/>
+            <param name="diffusion_samples" value="1"/>
+            <output name="output_structure" file="expected_structure.cif" compare="sim_size"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+**Boltz-2: Protein-Ligand Structure Prediction**
+
+Boltz-2 is a unified model for biomolecular structure and binding affinity prediction.
+
+**Inputs:**
+- Protein sequence in FASTA format
+- Optional: Ligand SMILES string
+
+**Outputs:**
+- Predicted 3D structure (CIF format)
+- Binding affinity prediction (JSON)
+
+**Requirements:**
+- GPU with 16-40GB VRAM recommended
+- Uses ColabFold MSA server by default
+
+**Citation:**
+Wohlwend et al. (2025). Boltz-2: A unified model for biomolecular structure and affinity prediction.
+https://github.com/jwohlwend/boltz
+    ]]></help>
+    <citations>
+        <citation type="bibtex">
+@article{boltz2_2025,
+    title={Boltz-2: A unified model for biomolecular structure and affinity prediction},
+    author={Wohlwend, Jeremy and others},
+    year={2025},
+    url={https://github.com/jwohlwend/boltz}
+}
+        </citation>
+    </citations>
+</tool>

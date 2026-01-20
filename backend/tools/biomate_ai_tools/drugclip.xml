@@ -1,0 +1,57 @@
+<tool id="drugclip" name="DrugCLIP" version="1.0" profile="21.05">
+    <description>Virtual screening 10M× faster than traditional docking</description>
+    <requirements>
+        <container type="docker">biomate/drugclip:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python /opt/drugclip/screen.py
+        --target '$target_pocket'
+        --library '$compound_library'
+        --output '$output_hits'
+        --top_k $top_k
+        #if $mode == "fast"
+        --fast_mode
+        #end if
+    ]]></command>
+    <inputs>
+        <param name="target_pocket" type="data" format="pdb,mol2" label="Target protein pocket"
+               help="Protein binding site structure (PDB or MOL2)"/>
+        <param name="compound_library" type="data" format="smi,csv" label="Compound library"
+               help="SMILES file or CSV with compounds to screen"/>
+        <param name="top_k" type="integer" value="100" min="1" max="10000"
+               label="Top K hits" help="Number of top-scoring compounds to return"/>
+        <param name="mode" type="select" label="Screening mode">
+            <option value="accurate">Accurate (slower)</option>
+            <option value="fast" selected="true">Fast (recommended)</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output_hits" format="csv" label="${tool.name} on ${on_string}: Hits"/>
+    </outputs>
+    <help><![CDATA[
+**DrugCLIP: Deep Contrastive Learning for Virtual Screening**
+
+DrugCLIP enables genome-wide virtual screening up to 10 million times faster than traditional docking.
+
+**How it works:**
+Uses contrastive learning to match protein binding pockets with small molecules in a shared embedding space.
+
+**Inputs:**
+- Target protein pocket structure (PDB/MOL2)
+- Compound library (SMILES format)
+
+**Outputs:**
+- Ranked list of top hits with scores
+
+**Performance:**
+- Screens millions of compounds in minutes
+- Comparable accuracy to physics-based docking
+
+**Citation:**
+Gao et al. (2025). Deep contrastive learning enables genome-wide virtual screening.
+Science. DOI: 10.1126/science.ads9530
+    ]]></help>
+    <citations>
+        <citation type="doi">10.1126/science.ads9530</citation>
+    </citations>
+</tool>

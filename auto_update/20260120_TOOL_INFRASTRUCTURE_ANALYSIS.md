@@ -235,3 +235,97 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 8. [ ] Set up GPU server for heavy tools
 9. [ ] Configure API routing for Evo 2, AlphaFold 3
 10. [ ] Integration testing with full workflows
+
+---
+
+## 8. Completed Infrastructure (2026-01-20)
+
+### Docker Images Created
+```
+backend/docker/biomate-ai-tools/
+├── boltz/Dockerfile         # GPU: 16-40GB VRAM
+├── state/Dockerfile         # CPU/GPU optional
+├── drugclip/Dockerfile      # CPU/GPU optional
+├── syncraft/Dockerfile      # CPU only (Gemini API)
+├── chai1/                   # TODO: needs 24-80GB GPU
+├── protrek/                 # TODO: CPU/8GB GPU
+├── profam/                  # TODO: CPU/8GB GPU
+├── scfv-pmpnn/             # TODO: 16GB GPU
+└── build-all.sh            # Multi-arch build script
+```
+
+### Galaxy XML Wrappers Created
+```
+backend/tools/biomate_ai_tools/
+├── boltz2.xml              # Structure prediction
+├── drugclip.xml            # Virtual screening
+├── state.xml               # Perturbation prediction
+├── protrek.xml             # Protein search
+└── tool_conf.xml           # Tool registration
+```
+
+### Nextflow Modules Created
+```
+backend/nf-core-workflows/modules/biomate/
+├── boltz/main.nf           # BOLTZ_PREDICT, BOLTZ_AFFINITY
+├── boltz/meta.yml          # nf-core metadata
+├── state/main.nf           # STATE_PREDICT, STATE_EMBED
+├── nextflow.config         # Resource labels & defaults
+├── alphafold3/             # TODO
+├── chai1/                  # TODO
+├── drugclip/              # TODO
+└── protrek/               # TODO
+```
+
+### MCP Servers Status
+```
+auto_update/mcp_servers/
+└── AlphaFold-MCP-Server/   # ✓ Built and ready (Node.js)
+    └── build/index.js      # Run: node build/index.js
+
+ToolUniverse (existing):
+└── remote/boltz/           # ✓ Ready (Python)
+    └── boltz_mcp_server.py # Requires boltz package installed
+```
+
+---
+
+## 9. Answers to User Questions
+
+### Q1: How to integrate into Nextflow?
+**Answer:** Use nf-core style modules in `modules/biomate/<tool>/main.nf`
+- Each tool has a process definition with container reference
+- Resource labels defined in `nextflow.config`
+- Can be included in any Nextflow workflow
+
+### Q2: Should we generate Nextflow workflow folder for each tool?
+**Answer:** No, use **module-based approach** (already created)
+- Tools are individual processes, not workflows
+- Workflows combine multiple tools (e.g., structure → docking → scoring)
+- Create workflow files in `workflows/` that import these modules
+
+### Q3: How to execute them in Galaxy?
+**Answer:** Use Galaxy XML wrappers (already created)
+- Wrappers in `tools/biomate_ai_tools/*.xml`
+- Register in `tool_conf.xml`
+- Galaxy executes via Docker containers
+
+### Q4: Resource consumption?
+**Answer:** See Section 1 table. Summary:
+- **Light (CPU/8GB):** State, DrugCLIP, ProTrek, ProFam, SynCraft
+- **Medium (16-24GB GPU):** Boltz-2, scFv_Pmpnn_AF2, Chai-1 (min)
+- **Heavy (80GB+ GPU):** AlphaFold 3, Evo 2, Chai-1 (optimal)
+- **Recommend APIs** for Evo 2 (NVIDIA NIM), AlphaFold 3 (server)
+
+### Q5: Docker for ARM64 + x86?
+**Answer:** Partially complete
+- **x86 GPU:** Boltz, State, DrugCLIP, SynCraft Dockerfiles ready
+- **ARM64:** CPU-only tools (State, DrugCLIP, SynCraft) can work
+- **Multi-arch build:** Use `build-all.sh` with buildx
+- Note: Most ML tools are x86 GPU only (CUDA dependency)
+
+### Q6: MCP Server Status?
+**Answer:**
+- **AlphaFold MCP:** ✓ Installed and built (`node build/index.js`)
+- **Boltz MCP:** ✓ Available in ToolUniverse (requires boltz package)
+- **Chai-1 MCP:** ⚠️ Not available (chai-lab has Python API, no MCP)
