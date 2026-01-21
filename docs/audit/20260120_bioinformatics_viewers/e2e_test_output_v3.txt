@@ -1,0 +1,45 @@
+
+> rest-express@1.0.0 e2e
+> playwright test
+
+
+Running 7 tests using 1 worker
+
+[Setup] Registering user: e2e_test_1768948436004_ui_render@biomate.test
+[Setup] User setup complete
+[UI] All main interface elements rendered correctly
+  ✓  1 [chromium] › e2e/bioinformatics-viewers.e2e.ts:131:3 › UI Rendering › should render main chat interface elements (5.4s)
+[Setup] Registering user: e2e_test_1768948441677_vcf@biomate.test
+[Setup] User setup complete
+[Mock] API responses configured for: vcf
+[VCF] Response visible: true, AI typing: false
+[VCF] Test completed - user message sent successfully
+  ✓  2 [chromium] › e2e/bioinformatics-viewers.e2e.ts:157:3 › VCF Viewer › should send VCF analysis request and receive response (8.6s)
+[Setup] Registering user: e2e_test_1768948450834_sequence@biomate.test
+[Setup] User setup complete
+[Mock] API responses configured for: sequence
+[Sequence] Test completed - user message sent successfully
+  ✓  3 [chromium] › e2e/bioinformatics-viewers.e2e.ts:192:3 › Sequence Viewer › should send sequence analysis request and receive response (8.6s)
+[Setup] Registering user: e2e_test_1768948459904_annotation@biomate.test
+[Setup] User setup complete
+[Mock] API responses configured for: annotation
+[Annotation] Test completed - user message sent successfully
+  ✓  4 [chromium] › e2e/bioinformatics-viewers.e2e.ts:219:3 › Annotation Viewer › should send annotation request and receive response (8.7s)
+[Setup] Registering user: e2e_test_1768948469104_interactive@biomate.test
+[Setup] User setup complete
+[Mock] API responses configured for: interactive
+[Interactive] Test completed - user message sent successfully
+  ✓  5 [chromium] › e2e/bioinformatics-viewers.e2e.ts:246:3 › Interactive Tool Launcher › should suggest interactive tools for single-cell data (8.6s)
+[Setup] Registering user: e2e_test_1768948478264_navigation@biomate.test
+[Setup] User setup complete
+[Navigation] Found 0 chat items in sidebar
+[Navigation] Test completed successfully
+  ✓  6 [chromium] › e2e/bioinformatics-viewers.e2e.ts:273:3 › Navigation › should navigate using sidebar (6.5s)
+[Setup] Registering user: e2e_test_1768948485059_theme@biomate.test
+[Setup] User setup complete
+[Theme] Theme toggled successfully
+
+[Summary] Test summary saved to: /home/yzhang/biomate/frontend/e2e/screenshots/test_summary_2026-01-20T22-34-50-969Z.json
+  ✓  7 [chromium] › e2e/bioinformatics-viewers.e2e.ts:305:3 › Theme › should toggle theme (5.9s)
+
+  7 passed (55.9s)

@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-01-20T21:55:15.395Z",
+  "baseUrl": "http://localhost:5000",
+  "videoDir": "/home/yzhang/biomate/frontend/e2e/videos",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots",
+  "tests": [
+    "VCF Viewer",
+    "Sequence Viewer",
+    "Annotation Viewer",
+    "Interactive Tool Launcher",
+    "Output Attachments Integration",
+    "Viewer Error Handling"
+  ],
+  "note": "Video recordings saved to e2e/videos/, screenshots to e2e/screenshots/"
+}

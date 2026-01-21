@@ -1,0 +1,72 @@
+{
+  "timestamp": "2026-01-20T16:34:57.483668",
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "timedout": 0
+  },
+  "ui_bugs": [],
+  "api_timeouts": [],
+  "recommendations": [
+    "All tests passed! No issues found."
+  ],
+  "tests": [
+    {
+      "name": "bioinformatics-viewers.e2e-faad6-ain-chat-interface-elements-chromium",
+      "status": "passed",
+      "error_type": null,
+      "has_video": true,
+      "has_screenshot": true,
+      "ui_issues": []
+    },
+    {
+      "name": "bioinformatics-viewers.e2e-7f686-equest-and-receive-response-chromium",
+      "status": "passed",
+      "error_type": null,
+      "has_video": true,
+      "has_screenshot": true,
+      "ui_issues": []
+    },
+    {
+      "name": "bioinformatics-viewers.e2e-262f7--tools-for-single-cell-data-chromium",
+      "status": "passed",
+      "error_type": null,
+      "has_video": true,
+      "has_screenshot": true,
+      "ui_issues": []
+    },
+    {
+      "name": "bioinformatics-viewers.e2e-ef9fc-equest-and-receive-response-chromium",
+      "status": "passed",
+      "error_type": null,
+      "has_video": true,
+      "has_screenshot": true,
+      "ui_issues": []
+    },
+    {
+      "name": "bioinformatics-viewers.e2e-5b192-ould-navigate-using-sidebar-chromium",
+      "status": "passed",
+      "error_type": null,
+      "has_video": true,
+      "has_screenshot": true,
+      "ui_issues": []
+    },
+    {
+      "name": "bioinformatics-viewers.e2e-90701-equest-and-receive-response-chromium",
+      "status": "passed",
+      "error_type": null,
+      "has_video": true,
+      "has_screenshot": true,
+      "ui_issues": []
+    },
+    {
+      "name": "bioinformatics-viewers.e2e.ts-Theme-should-toggle-theme-chromium",
+      "status": "passed",
+      "error_type": null,
+      "has_video": true,
+      "has_screenshot": true,
+      "ui_issues": []
+    }
+  ]
+}
