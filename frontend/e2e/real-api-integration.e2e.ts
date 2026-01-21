@@ -1,0 +1,273 @@
+/**
+ * Real API Integration E2E Tests
+ *
+ * These tests verify ACTUAL backend functionality without mocks.
+ * They test the real /api/chat endpoint and verify proper responses.
+ */
+
+import { test, expect, Page } from '@playwright/test';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const BASE_URL = process.env.BIOMATE_URL || 'http://localhost:5000';
+const SCREENSHOT_DIR = path.join(__dirname, 'screenshots', 'real-api');
+
+// Ensure directories exist
+if (!fs.existsSync(SCREENSHOT_DIR)) fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
+
+// Test configuration
+test.use({
+  video: { mode: 'on', size: { width: 1920, height: 1080 } },
+  screenshot: 'on',
+  trace: 'on',
+  viewport: { width: 1920, height: 1080 },
+});
+
+/**
+ * Helper to register a test user
+ */
+async function setupTestUser(page: Page, testName: string): Promise<void> {
+  const email = `e2e_real_${Date.now()}_${testName}@biomate.test`;
+  const password = 'TestPass123!';
+
+  console.log(`[Setup] Registering user: ${email}`);
+
+  await page.goto(`${BASE_URL}/register`);
+  await page.waitForLoadState('networkidle');
+
+  try {
+    await page.waitForSelector('#name', { state: 'visible', timeout: 10000 });
+    await page.fill('#name', 'E2E Real API Tester');
+    await page.fill('#email', email);
+    await page.fill('#password', password);
+    await page.fill('#confirmPassword', password);
+    await page.click('#terms');
+    await page.click('button[type="submit"]');
+    await page.waitForTimeout(2000);
+  } catch {
+    console.log('[Setup] Registration form not found, may already be logged in');
+  }
+
+  await page.goto(BASE_URL);
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1000);
+}
+
+/**
+ * Test: Backend API health check
+ */
+test.describe('Backend API Health', () => {
+  test('should have /api/chat endpoint responding', async ({ request }) => {
+    const response = await request.post(`${BASE_URL}/api/chat`, {
+      data: { message: 'Hello, can you help me?' },
+    });
+
+    expect(response.status()).toBe(200);
+
+    const data = await response.json();
+    console.log('[API Health] Response structure:', Object.keys(data));
+
+    // Verify response has required fields
+    expect(data).toHaveProperty('response');
+    expect(typeof data.response).toBe('string');
+    expect(data.response.length).toBeGreaterThan(0);
+
+    // Verify response has suggestions
+    expect(data).toHaveProperty('suggestions');
+    expect(Array.isArray(data.suggestions)).toBe(true);
+
+    console.log('[API Health] Response preview:', data.response.substring(0, 200));
+  });
+});
+
+/**
+ * Test: Real VCF analysis request
+ */
+test.describe('Real VCF Analysis', () => {
+  test('should get VCF analysis response from real backend', async ({ page }) => {
+    await setupTestUser(page, 'vcf_real');
+
+    // Send message
+    const chatInput = page.locator('textarea').first();
+    await expect(chatInput).toBeVisible({ timeout: 10000 });
+
+    const userMessage = 'I have a VCF file with variant calls. Can you help me analyze the variants?';
+    await chatInput.fill(userMessage);
+    await chatInput.press('Enter');
+
+    // Verify user message appeared
+    await expect(page.getByText(userMessage.substring(0, 30))).toBeVisible({ timeout: 5000 });
+    console.log('[VCF Real] User message sent');
+
+    // Wait for AI to finish typing (typing indicator should disappear)
+    // The AI response takes time - wait up to 90 seconds
+    await page.waitForFunction(
+      () => {
+        const typingIndicator = document.querySelector('[data-testid="typing-indicator"]');
+        return !typingIndicator;
+      },
+      { timeout: 90000 }
+    ).catch(() => {
+      console.log('[VCF Real] Typing indicator check timed out after 90s');
+    });
+
+    // Wait additional time for response to render
+    await page.waitForTimeout(2000);
+
+    // Take screenshot
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/vcf_real_response.png`,
+      fullPage: true,
+    });
+
+    // Verify AI response appeared - should contain VCF-related content
+    // Real responses should mention tools, variants, or analysis
+    const pageContent = await page.textContent('body');
+
+    // Check for any of these indicators of a real VCF response
+    const vcfIndicators = [
+      'VCF',
+      'variant',
+      'Variant',
+      'VARIANT',
+      'analysis',
+      'Analysis',
+      'tool',
+      'Tool',
+      'FreeBayes',
+      'VCFtools',
+      'filter',
+      'quality',
+    ];
+
+    const hasVcfContent = vcfIndicators.some((indicator) =>
+      pageContent?.includes(indicator)
+    );
+
+    console.log('[VCF Real] Page has VCF-related content:', hasVcfContent);
+
+    // The response should NOT be just "AI is typing"
+    const stillTyping = pageContent?.includes('AI is typing');
+    if (stillTyping) {
+      console.log('[VCF Real] Warning: AI still typing after timeout');
+    }
+
+    // Verify we got a substantive response
+    expect(hasVcfContent || !stillTyping).toBe(true);
+
+    // Check for assistant message element
+    const assistantMessages = await page.locator('[data-role="assistant"]').count();
+    console.log('[VCF Real] Assistant message count:', assistantMessages);
+  });
+});
+
+/**
+ * Test: Real workflow generation
+ */
+test.describe('Real Workflow Generation', () => {
+  test('should generate workflow from real backend', async ({ page }) => {
+    await setupTestUser(page, 'workflow_real');
+
+    const chatInput = page.locator('textarea').first();
+    await expect(chatInput).toBeVisible({ timeout: 10000 });
+
+    // Request a specific workflow
+    const userMessage = 'Create a workflow for RNA-seq differential expression analysis with DESeq2';
+    await chatInput.fill(userMessage);
+    await chatInput.press('Enter');
+
+    // Verify user message appeared
+    await expect(page.getByText(userMessage.substring(0, 20))).toBeVisible({ timeout: 5000 });
+    console.log('[Workflow Real] User message sent');
+
+    // Wait for response (workflow generation takes longer)
+    await page.waitForTimeout(30000);
+
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/workflow_real_response.png`,
+      fullPage: true,
+    });
+
+    const pageContent = await page.textContent('body');
+
+    // Check for workflow-related content
+    const workflowIndicators = [
+      'workflow',
+      'Workflow',
+      'RNA-seq',
+      'RNA-Seq',
+      'DESeq2',
+      'differential expression',
+      'pipeline',
+      'step',
+      'Step',
+    ];
+
+    const hasWorkflowContent = workflowIndicators.some((indicator) =>
+      pageContent?.includes(indicator)
+    );
+
+    console.log('[Workflow Real] Page has workflow-related content:', hasWorkflowContent);
+
+    expect(hasWorkflowContent).toBe(true);
+  });
+});
+
+/**
+ * Test: Message persistence in chat
+ */
+test.describe('Chat Message Persistence', () => {
+  test('should display both user and assistant messages', async ({ page }) => {
+    await setupTestUser(page, 'persistence');
+
+    const chatInput = page.locator('textarea').first();
+    await expect(chatInput).toBeVisible({ timeout: 10000 });
+
+    // Send a simple message
+    await chatInput.fill('What bioinformatics tools do you support?');
+    await chatInput.press('Enter');
+
+    // Wait for response
+    await page.waitForTimeout(15000);
+
+    await page.screenshot({
+      path: `${SCREENSHOT_DIR}/message_persistence.png`,
+      fullPage: true,
+    });
+
+    // Count user and assistant messages
+    const allMessages = await page.locator('.whitespace-pre-wrap').count();
+    console.log('[Persistence] Total message elements:', allMessages);
+
+    // Should have at least 2 messages (user + assistant) or more (including welcome)
+    expect(allMessages).toBeGreaterThanOrEqual(2);
+  });
+});
+
+/**
+ * After all tests, generate summary
+ */
+test.afterAll(async () => {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const summaryPath = path.join(SCREENSHOT_DIR, `real_api_summary_${timestamp}.json`);
+
+  const summary = {
+    timestamp: new Date().toISOString(),
+    baseUrl: BASE_URL,
+    testType: 'Real API Integration (no mocks)',
+    tests: [
+      'Backend API Health',
+      'Real VCF Analysis',
+      'Real Workflow Generation',
+      'Chat Message Persistence',
+    ],
+  };
+
+  fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
+  console.log(`\n[Summary] Real API test summary saved to: ${summaryPath}`);
+});

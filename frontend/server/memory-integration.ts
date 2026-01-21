@@ -104,35 +104,56 @@ export class MemoryIntegration {
     message: string,
     context: MemoryEnhancedContext
   ): Promise<MemoryEnhancedResponse> {
+    const startTime = Date.now();
+    const log = (step: string) => console.log(`[MemoryIntegration] [${Date.now() - startTime}ms] ${step}`);
+
+    log('Starting processWithMemory');
+
     // Step 1: Build memory-enhanced context
+    log('Step 1: Building enhanced context');
     const enhancedContext = await this.enhanceContextWithMemory(message, context);
+    log('Step 1 complete');
 
     // Step 2: Check for matching procedures
+    log('Step 2: Finding matching procedures');
     const matchingProcedures = await this.findMatchingProcedures(message, context);
+    log('Step 2 complete');
 
     // Step 3: Get similar past episodes
+    log('Step 3: Getting similar episodes');
     const similarEpisodes = await this.getSimilarEpisodes(message, context);
+    log('Step 3 complete');
 
     // Step 4: Add memory hints to context
+    log('Step 4: Adding memory hints');
     enhancedContext.previousMessages = this.addMemoryHints(
       context.previousMessages || [],
       matchingProcedures,
       similarEpisodes,
       context.projectMemory?.knowledge || []
     );
+    log('Step 4 complete');
 
     // Step 5: Process with the assistant
+    log('Step 5: Processing with assistant');
     const response = await this.assistant.processMessage(message, enhancedContext);
+    log('Step 5 complete');
 
     // Step 6: Record the episode
+    log('Step 6: Recording episode');
     let episodeId: number | undefined;
     if (context.memorySessionId && context.projectId) {
       const episode = await this.recordEpisode(message, response, context);
       episodeId = episode?.id;
     }
+    log('Step 6 complete');
 
     // Step 7: Learn from the interaction
+    log('Step 7: Learning from interaction');
     await this.learnFromInteraction(message, response, context);
+    log('Step 7 complete');
+
+    log(`Total time: ${Date.now() - startTime}ms`);
 
     return {
       ...response,

@@ -1587,19 +1587,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Chat endpoint with Galaxy Assistant integration
   app.post("/api/chat", async (req, res) => {
+    const requestStartTime = Date.now();
+    const timings: { step: string; elapsed: number }[] = [];
+    const addTiming = (step: string) => {
+      timings.push({ step, elapsed: Date.now() - requestStartTime });
+      console.log(`[Chat API] [${Date.now() - requestStartTime}ms] ${step}`);
+    };
+
     try {
+      addTiming('Request received');
       const { message, context } = req.body;
 
       if (!message) {
+        addTiming('Error: Message missing');
         return res.status(400).json({ error: "Message is required" });
       }
 
       if (!galaxyAssistant) {
+        addTiming('Error: Galaxy Assistant not available');
         return res.status(503).json({
           error: "Galaxy Assistant not available. ANTHROPIC_API_KEY is not configured."
         });
       }
 
+      addTiming('Validation passed');
       console.log('[Chat API] Processing message with Galaxy Assistant:', message);
 
       // Check if memory integration should be used
@@ -1607,15 +1618,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let assistantResponse;
       let episodeId: number | undefined;
 
+      addTiming('Starting AI processing');
+
       if (useMemory) {
         // Process with memory enhancement
-        console.log('[Chat API] Using memory-enhanced processing');
+        addTiming('Using memory-enhanced processing');
         const memoryResponse = await memoryIntegration!.processWithMemory(message, context as MemoryEnhancedContext);
         assistantResponse = memoryResponse;
         episodeId = memoryResponse.episodeId;
+        addTiming('Memory processing complete');
       } else {
         // Standard processing without memory
+        addTiming('Using standard processing');
         assistantResponse = await galaxyAssistant.processMessage(message, context || {});
+        addTiming('Standard processing complete');
       }
 
       console.log('[Chat API] Galaxy Assistant response:', {
@@ -1651,6 +1667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Format response for frontend
+      addTiming('Sending response');
       res.json({
         response: assistantResponse.message,
         suggestions: assistantResponse.suggestions,
@@ -1674,9 +1691,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sources: assistantResponse.sources,
           memoryUsed: useMemory,
         },
+
+        // Debug: Include timings
+        _debug_timings: timings,
       });
+      addTiming('Response sent');
 
     } catch (error: any) {
+      addTiming(`Error: ${error.message}`);
       console.error("Chat API error:", error);
 
       // Fallback response

@@ -51,7 +51,11 @@ export function ChatMessage({
   )
 
   return (
-    <div className={cn("flex gap-4 p-4", isUser && "flex-row-reverse")} data-testid={`chat-message-${message.id}`}>
+    <div
+      className={cn("flex gap-4 p-4", isUser && "flex-row-reverse")}
+      data-testid={`chat-message-${message.id}`}
+      data-role={message.role}
+    >
       <Avatar className="h-8 w-8 flex-shrink-0">
         <AvatarImage 
           src={isUser ? userAvatar : assistantAvatar} 
