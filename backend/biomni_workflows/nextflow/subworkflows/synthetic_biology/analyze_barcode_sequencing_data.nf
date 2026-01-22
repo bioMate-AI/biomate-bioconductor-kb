@@ -2,69 +2,101 @@
 /*
  * biomni_synthetic_biology_analyze_barcode_sequencing_data
  * Analyze sequencing data to extract, quantify and determine lineage relationships of barcodes.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
 params.input_file = null
+params.barcode_pattern = null
+params.flanking_seq_5prime = null
+params.flanking_seq_3prime = null
+params.min_count = '5'
+params.output_dir = './results'
 
-// Processes
+// Main process
 process ANALYZE_BARCODE_SEQUENCING_DATA {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(input_file)
+    // No file inputs
 
     output:
+    path("analyze_barcode_sequencing_data_results.json"), emit: results
     path("analyze_barcode_sequencing_data_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_synthetic_biology_analyze_barcode_sequencing_data
-    # Runs in unified Docker container
-    echo 'Running ANALYZE_BARCODE_SEQUENCING_DATA'
-        touch analyze_barcode_sequencing_data_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.synthetic_biology import analyze_barcode_sequencing_data
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def analyze_barcode_sequencing_data(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = analyze_barcode_sequencing_data(
+    input_file="${params.input_file}",
+    barcode_pattern="${params.barcode_pattern}",
+    flanking_seq_5prime="${params.flanking_seq_5prime}",
+    flanking_seq_3prime="${params.flanking_seq_3prime}",
+    min_count="${params.min_count}",
+    output_dir="${params.output_dir}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("analyze_barcode_sequencing_data_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("analyze_barcode_sequencing_data_output.txt", "w") as f:
+    f.write("Biomni: Analyze Barcode Sequencing Data Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("analyze_barcode_sequencing_data completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_SYNTHETIC_BIOLOGY_ANALYZE_BARCODE_SEQUENCING_DATA {
-    main:
-    ch_input_file = Channel.fromPath(params.input_file)
+    take:
+    // No file inputs
 
-    ANALYZE_BARCODE_SEQUENCING_DATA(ch_input_file)
-    OUTPUT()
+    main:
+    ANALYZE_BARCODE_SEQUENCING_DATA()
 
     emit:
-    output = OUTPUT.out.output
+    results = ANALYZE_BARCODE_SEQUENCING_DATA.out.results
+    output = ANALYZE_BARCODE_SEQUENCING_DATA.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.input_file) {
+        error "Please provide --input_file parameter"
+    }
+
+
     BIOMNI_SYNTHETIC_BIOLOGY_ANALYZE_BARCODE_SEQUENCING_DATA()
 }

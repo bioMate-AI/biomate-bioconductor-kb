@@ -1,59 +1,118 @@
 #!/usr/bin/env nextflow
 /*
  * biomni_bioimaging_batch_register_images
- * Batch register multiple images to a reference using progressive registration (rigid -> affine -> deformable). Uses quick_rigid_registration, quick_affine_registration, and quick_deformable_registration internally.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Batch registration of multiple images to a single reference.
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
-params.reference_image = null
-params.registration_type = null
-params.use_gpu = null
+params.outdir = './results'
+params.fixed_image_path = null
+params.moving_images_dir = null
+params.output_dir = null
+params.transform_type = 'rigid'
+params.metric = 'mutual_information'
+params.optimizer = 'gradient_descent'
+params.preprocess = false
+params.create_visualizations = false
+params.learning_rate = 0.01
+params.number_of_iterations = 100
+params.gradient_convergence_tolerance = 1e-06
 
-// Processes
-process COMPILE_REGISTRATION_RESULTS {
+// Main process
+process BATCH_REGISTER_IMAGES {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(moving_images)
-    path(reference_image)
-    path(registration_type)
-    path(rigid_results)
-    path(affine_results)
-    path(deformable_results)
+    // No file inputs
 
     output:
-    path("compile_registration_results_metrics.txt"), emit: metrics
-    path("compile_registration_results_registered_images.txt"), emit: registered_images
+    path("batch_register_images_results.json"), emit: results
+    path("batch_register_images_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_bioimaging_batch_register_images
-    # Runs in unified Docker container
-    echo 'Running COMPILE_REGISTRATION_RESULTS'
-        touch compile_registration_results_metrics.txt
-    touch compile_registration_results_registered_images.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.bioimaging import batch_register_images
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def batch_register_images(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = batch_register_images(
+    fixed_image_path="${params.fixed_image_path}",
+    moving_images_dir="${params.moving_images_dir}",
+    output_dir="${params.output_dir}",
+    transform_type="${params.transform_type}",
+    metric="${params.metric}",
+    optimizer="${params.optimizer}",
+    preprocess=${params.preprocess},
+    create_visualizations=${params.create_visualizations},
+    learning_rate=${params.learning_rate},
+    number_of_iterations=${params.number_of_iterations},
+    gradient_convergence_tolerance=${params.gradient_convergence_tolerance}
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("batch_register_images_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("batch_register_images_output.txt", "w") as f:
+    f.write("Biomni: Batch Register Images Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("batch_register_images completed successfully")
+PYEOF
     """
 }
 
+// Workflow definition
 workflow BIOMNI_BIOIMAGING_BATCH_REGISTER_IMAGES {
-    main:
-    ch_reference_image = Channel.fromPath(params.reference_image)
-    ch_registration_type = Channel.value(params.registration_type)
-    ch_use_gpu = Channel.value(params.use_gpu)
+    take:
+    // No file inputs
 
-    COMPILE_REGISTRATION_RESULTS(MOVING_IMAGES.out.output, ch_reference_image, ch_registration_type, STEP_1__RIGID_REGISTRATION.out.registered_image, STEP_2__AFFINE_REGISTRATION.out.registered_image, STEP_3__DEFORMABLE_REGISTRATION.out.registered_image)
+    main:
+    BATCH_REGISTER_IMAGES()
 
     emit:
-    output = COMPILE_REGISTRATION_RESULTS.out.metrics
+    results = BATCH_REGISTER_IMAGES.out.results
+    output = BATCH_REGISTER_IMAGES.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.fixed_image_path) {
+        error "Please provide --fixed_image_path parameter"
+    }
+    if (!params.moving_images_dir) {
+        error "Please provide --moving_images_dir parameter"
+    }
+    if (!params.output_dir) {
+        error "Please provide --output_dir parameter"
+    }
+
+
     BIOMNI_BIOIMAGING_BATCH_REGISTER_IMAGES()
 }

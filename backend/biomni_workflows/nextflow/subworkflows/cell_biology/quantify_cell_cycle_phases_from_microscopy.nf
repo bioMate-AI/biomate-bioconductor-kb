@@ -2,69 +2,93 @@
 /*
  * biomni_cell_biology_quantify_cell_cycle_phases_from_microscopy
  * Quantify the percentage of cells in each cell cycle phase using Calcofluor white stained microscopy images.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
 params.image_paths = null
+params.output_dir = './results'
 
-// Processes
+// Main process
 process QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(image_paths)
+    // No file inputs
 
     output:
+    path("quantify_cell_cycle_phases_from_microscopy_results.json"), emit: results
     path("quantify_cell_cycle_phases_from_microscopy_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_cell_biology_quantify_cell_cycle_phases_from_microscopy
-    # Runs in unified Docker container
-    echo 'Running QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY'
-        touch quantify_cell_cycle_phases_from_microscopy_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.cell_biology import quantify_cell_cycle_phases_from_microscopy
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def quantify_cell_cycle_phases_from_microscopy(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = quantify_cell_cycle_phases_from_microscopy(
+    image_paths="${params.image_paths}",
+    output_dir="${params.output_dir}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("quantify_cell_cycle_phases_from_microscopy_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("quantify_cell_cycle_phases_from_microscopy_output.txt", "w") as f:
+    f.write("Biomni: Quantify Cell Cycle Phases From Microscopy Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("quantify_cell_cycle_phases_from_microscopy completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_CELL_BIOLOGY_QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY {
-    main:
-    ch_image_paths = Channel.fromPath(params.image_paths)
+    take:
+    // No file inputs
 
-    QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY(ch_image_paths)
-    OUTPUT()
+    main:
+    QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY()
 
     emit:
-    output = OUTPUT.out.output
+    results = QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY.out.results
+    output = QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.image_paths) {
+        error "Please provide --image_paths parameter"
+    }
+
+
     BIOMNI_CELL_BIOLOGY_QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY()
 }

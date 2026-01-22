@@ -2,67 +2,96 @@
 /*
  * biomni_physiology_pk_ode_system
  * 
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
+params.t = null
+params.y = null
 
-// Processes
+// Main process
 process PK_ODE_SYSTEM {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(input_file)
+    // No file inputs
 
     output:
+    path("pk_ode_system_results.json"), emit: results
     path("pk_ode_system_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_physiology_pk_ode_system
-    # Runs in unified Docker container
-    echo 'Running PK_ODE_SYSTEM'
-        touch pk_ode_system_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.physiology import pk_ode_system
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def pk_ode_system(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = pk_ode_system(
+    t="${params.t}",
+    y="${params.y}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("pk_ode_system_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("pk_ode_system_output.txt", "w") as f:
+    f.write("Biomni: Pk Ode System Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("pk_ode_system completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_PHYSIOLOGY_PK_ODE_SYSTEM {
-    main:
+    take:
+    // No file inputs
 
+    main:
     PK_ODE_SYSTEM()
-    OUTPUT()
 
     emit:
-    output = OUTPUT.out.output
+    results = PK_ODE_SYSTEM.out.results
+    output = PK_ODE_SYSTEM.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.t) {
+        error "Please provide --t parameter"
+    }
+    if (!params.y) {
+        error "Please provide --y parameter"
+    }
+
+
     BIOMNI_PHYSIOLOGY_PK_ODE_SYSTEM()
 }

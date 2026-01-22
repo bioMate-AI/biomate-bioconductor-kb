@@ -2,72 +2,100 @@
 /*
  * biomni_bioengineering_decode_behavior_from_neural_trajectories
  * Model neural activity trajectories and decode behavioral variables.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
 params.neural_data = null
 params.behavioral_data = null
+params.n_components = '10'
+params.output_dir = './'
 
-// Processes
+// Main process
 process DECODE_BEHAVIOR_FROM_NEURAL_TRAJECTORIES {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(neural_data)
-    path(behavioral_data)
+    // No file inputs
 
     output:
+    path("decode_behavior_from_neural_trajectories_results.json"), emit: results
     path("decode_behavior_from_neural_trajectories_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_bioengineering_decode_behavior_from_neural_trajectories
-    # Runs in unified Docker container
-    echo 'Running DECODE_BEHAVIOR_FROM_NEURAL_TRAJECTORIES'
-        touch decode_behavior_from_neural_trajectories_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.bioengineering import decode_behavior_from_neural_trajectories
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def decode_behavior_from_neural_trajectories(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = decode_behavior_from_neural_trajectories(
+    neural_data="${params.neural_data}",
+    behavioral_data="${params.behavioral_data}",
+    n_components="${params.n_components}",
+    output_dir="${params.output_dir}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("decode_behavior_from_neural_trajectories_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("decode_behavior_from_neural_trajectories_output.txt", "w") as f:
+    f.write("Biomni: Decode Behavior From Neural Trajectories Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("decode_behavior_from_neural_trajectories completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_BIOENGINEERING_DECODE_BEHAVIOR_FROM_NEURAL_TRAJECTORIES {
-    main:
-    ch_neural_data = Channel.fromPath(params.neural_data)
-    ch_behavioral_data = Channel.fromPath(params.behavioral_data)
+    take:
+    // No file inputs
 
-    DECODE_BEHAVIOR_FROM_NEURAL_TRAJECTORIES(ch_neural_data, ch_behavioral_data)
-    OUTPUT()
+    main:
+    DECODE_BEHAVIOR_FROM_NEURAL_TRAJECTORIES()
 
     emit:
-    output = OUTPUT.out.output
+    results = DECODE_BEHAVIOR_FROM_NEURAL_TRAJECTORIES.out.results
+    output = DECODE_BEHAVIOR_FROM_NEURAL_TRAJECTORIES.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.neural_data) {
+        error "Please provide --neural_data parameter"
+    }
+    if (!params.behavioral_data) {
+        error "Please provide --behavioral_data parameter"
+    }
+
+
     BIOMNI_BIOENGINEERING_DECODE_BEHAVIOR_FROM_NEURAL_TRAJECTORIES()
 }

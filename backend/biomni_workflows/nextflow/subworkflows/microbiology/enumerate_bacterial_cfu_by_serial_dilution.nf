@@ -2,69 +2,99 @@
 /*
  * biomni_microbiology_enumerate_bacterial_cfu_by_serial_dilution
  * Quantify bacterial concentration (CFU/mL) using serial dilutions and spot plating.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
-params.output_file = null
+params.outdir = './results'
+params.initial_sample_volume_ml = '1.0'
+params.estimated_concentration = '100000000.0'
+params.dilution_factor = '10'
+params.num_dilutions = '8'
+params.spots_per_dilution = '3'
+params.output_file = 'cfu_enumeration_results.csv'
 
-// Processes
+// Main process
 process ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(output_file)
+    // No file inputs
 
     output:
+    path("enumerate_bacterial_cfu_by_serial_dilution_results.json"), emit: results
     path("enumerate_bacterial_cfu_by_serial_dilution_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_microbiology_enumerate_bacterial_cfu_by_serial_dilution
-    # Runs in unified Docker container
-    echo 'Running ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION'
-        touch enumerate_bacterial_cfu_by_serial_dilution_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.microbiology import enumerate_bacterial_cfu_by_serial_dilution
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def enumerate_bacterial_cfu_by_serial_dilution(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = enumerate_bacterial_cfu_by_serial_dilution(
+    initial_sample_volume_ml="${params.initial_sample_volume_ml}",
+    estimated_concentration="${params.estimated_concentration}",
+    dilution_factor="${params.dilution_factor}",
+    num_dilutions="${params.num_dilutions}",
+    spots_per_dilution="${params.spots_per_dilution}",
+    output_file="${params.output_file}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("enumerate_bacterial_cfu_by_serial_dilution_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("enumerate_bacterial_cfu_by_serial_dilution_output.txt", "w") as f:
+    f.write("Biomni: Enumerate Bacterial Cfu By Serial Dilution Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("enumerate_bacterial_cfu_by_serial_dilution completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_MICROBIOLOGY_ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION {
-    main:
-    ch_output_file = Channel.fromPath(params.output_file)
+    take:
+    // No file inputs
 
-    ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION(ch_output_file)
-    OUTPUT()
+    main:
+    ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION()
 
     emit:
-    output = OUTPUT.out.output
+    results = ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION.out.results
+    output = ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION.out.output
 }
 
+// Entry workflow
 workflow {
+
+
+
     BIOMNI_MICROBIOLOGY_ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION()
 }

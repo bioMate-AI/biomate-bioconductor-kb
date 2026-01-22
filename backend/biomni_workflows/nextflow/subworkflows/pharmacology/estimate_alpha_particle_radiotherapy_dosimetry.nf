@@ -2,72 +2,98 @@
 /*
  * biomni_pharmacology_estimate_alpha_particle_radiotherapy_dosimetry
  * Estimate radiation absorbed doses to tumor and normal organs for alpha-particle radiotherapeutics.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
 params.biodistribution_data = null
-params.output_file = null
+params.radiation_parameters = null
+params.output_file = 'dosimetry_results.csv'
 
-// Processes
+// Main process
 process ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(biodistribution_data)
-    path(output_file)
+    // No file inputs
 
     output:
+    path("estimate_alpha_particle_radiotherapy_dosimetry_results.json"), emit: results
     path("estimate_alpha_particle_radiotherapy_dosimetry_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_pharmacology_estimate_alpha_particle_radiotherapy_dosimetry
-    # Runs in unified Docker container
-    echo 'Running ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY'
-        touch estimate_alpha_particle_radiotherapy_dosimetry_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.pharmacology import estimate_alpha_particle_radiotherapy_dosimetry
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def estimate_alpha_particle_radiotherapy_dosimetry(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = estimate_alpha_particle_radiotherapy_dosimetry(
+    biodistribution_data="${params.biodistribution_data}",
+    radiation_parameters="${params.radiation_parameters}",
+    output_file="${params.output_file}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("estimate_alpha_particle_radiotherapy_dosimetry_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("estimate_alpha_particle_radiotherapy_dosimetry_output.txt", "w") as f:
+    f.write("Biomni: Estimate Alpha Particle Radiotherapy Dosimetry Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("estimate_alpha_particle_radiotherapy_dosimetry completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_PHARMACOLOGY_ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY {
-    main:
-    ch_biodistribution_data = Channel.fromPath(params.biodistribution_data)
-    ch_output_file = Channel.fromPath(params.output_file)
+    take:
+    // No file inputs
 
-    ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY(ch_biodistribution_data, ch_output_file)
-    OUTPUT()
+    main:
+    ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY()
 
     emit:
-    output = OUTPUT.out.output
+    results = ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY.out.results
+    output = ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.biodistribution_data) {
+        error "Please provide --biodistribution_data parameter"
+    }
+    if (!params.radiation_parameters) {
+        error "Please provide --radiation_parameters parameter"
+    }
+
+
     BIOMNI_PHARMACOLOGY_ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY()
 }

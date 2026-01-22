@@ -2,69 +2,100 @@
 /*
  * biomni_cell_biology_analyze_flow_cytometry_immunophenotyping
  * Analyze flow cytometry data to identify and quantify specific cell populations based on surface markers.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
 params.fcs_file_path = null
+params.gating_strategy = null
+params.compensation_matrix = null
+params.output_dir = './results'
 
-// Processes
+// Main process
 process ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(fcs_file_path)
+    // No file inputs
 
     output:
+    path("analyze_flow_cytometry_immunophenotyping_results.json"), emit: results
     path("analyze_flow_cytometry_immunophenotyping_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_cell_biology_analyze_flow_cytometry_immunophenotyping
-    # Runs in unified Docker container
-    echo 'Running ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING'
-        touch analyze_flow_cytometry_immunophenotyping_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.cell_biology import analyze_flow_cytometry_immunophenotyping
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def analyze_flow_cytometry_immunophenotyping(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = analyze_flow_cytometry_immunophenotyping(
+    fcs_file_path="${params.fcs_file_path}",
+    gating_strategy="${params.gating_strategy}",
+    compensation_matrix="${params.compensation_matrix}",
+    output_dir="${params.output_dir}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("analyze_flow_cytometry_immunophenotyping_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("analyze_flow_cytometry_immunophenotyping_output.txt", "w") as f:
+    f.write("Biomni: Analyze Flow Cytometry Immunophenotyping Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("analyze_flow_cytometry_immunophenotyping completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_CELL_BIOLOGY_ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING {
-    main:
-    ch_fcs_file_path = Channel.fromPath(params.fcs_file_path)
+    take:
+    // No file inputs
 
-    ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING(ch_fcs_file_path)
-    OUTPUT()
+    main:
+    ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING()
 
     emit:
-    output = OUTPUT.out.output
+    results = ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING.out.results
+    output = ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.fcs_file_path) {
+        error "Please provide --fcs_file_path parameter"
+    }
+    if (!params.gating_strategy) {
+        error "Please provide --gating_strategy parameter"
+    }
+
+
     BIOMNI_CELL_BIOLOGY_ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING()
 }

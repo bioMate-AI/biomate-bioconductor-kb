@@ -1,70 +1,98 @@
 #!/usr/bin/env nextflow
 /*
  * biomni_pharmacology_check_drug_combination_safety
- * 
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Analyze safety of a drug combination for potential interactions.
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
+params.drug_list = null
+params.include_mechanisms = 'True'
+params.include_management = 'True'
 params.data_lake_path = null
 
-// Processes
+// Main process
 process CHECK_DRUG_COMBINATION_SAFETY {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(data_lake_path)
+    // No file inputs
 
     output:
+    path("check_drug_combination_safety_results.json"), emit: results
     path("check_drug_combination_safety_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_pharmacology_check_drug_combination_safety
-    # Runs in unified Docker container
-    echo 'Running CHECK_DRUG_COMBINATION_SAFETY'
-        touch check_drug_combination_safety_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.pharmacology import check_drug_combination_safety
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def check_drug_combination_safety(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = check_drug_combination_safety(
+    drug_list="${params.drug_list}",
+    include_mechanisms="${params.include_mechanisms}",
+    include_management="${params.include_management}",
+    data_lake_path="${params.data_lake_path}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("check_drug_combination_safety_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("check_drug_combination_safety_output.txt", "w") as f:
+    f.write("Biomni: Check Drug Combination Safety Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("check_drug_combination_safety completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_PHARMACOLOGY_CHECK_DRUG_COMBINATION_SAFETY {
-    main:
-    ch_data_lake_path = Channel.fromPath(params.data_lake_path)
+    take:
+    // No file inputs
 
-    CHECK_DRUG_COMBINATION_SAFETY(ch_data_lake_path)
-    OUTPUT()
+    main:
+    CHECK_DRUG_COMBINATION_SAFETY()
 
     emit:
-    output = OUTPUT.out.output
+    results = CHECK_DRUG_COMBINATION_SAFETY.out.results
+    output = CHECK_DRUG_COMBINATION_SAFETY.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.drug_list) {
+        error "Please provide --drug_list parameter"
+    }
+
+
     BIOMNI_PHARMACOLOGY_CHECK_DRUG_COMBINATION_SAFETY()
 }

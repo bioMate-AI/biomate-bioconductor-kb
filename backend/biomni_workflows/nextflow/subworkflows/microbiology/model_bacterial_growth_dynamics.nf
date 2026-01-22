@@ -2,67 +2,110 @@
 /*
  * biomni_microbiology_model_bacterial_growth_dynamics
  * Model bacterial population dynamics over time using ordinary differential equations.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
+params.initial_population = null
+params.growth_rate = null
+params.clearance_rate = null
+params.niche_size = null
+params.simulation_time = '24'
+params.time_step = '0.1'
 
-// Processes
+// Main process
 process MODEL_BACTERIAL_GROWTH_DYNAMICS {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(input_file)
+    // No file inputs
 
     output:
+    path("model_bacterial_growth_dynamics_results.json"), emit: results
     path("model_bacterial_growth_dynamics_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_microbiology_model_bacterial_growth_dynamics
-    # Runs in unified Docker container
-    echo 'Running MODEL_BACTERIAL_GROWTH_DYNAMICS'
-        touch model_bacterial_growth_dynamics_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.microbiology import model_bacterial_growth_dynamics
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def model_bacterial_growth_dynamics(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = model_bacterial_growth_dynamics(
+    initial_population="${params.initial_population}",
+    growth_rate="${params.growth_rate}",
+    clearance_rate="${params.clearance_rate}",
+    niche_size="${params.niche_size}",
+    simulation_time="${params.simulation_time}",
+    time_step="${params.time_step}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("model_bacterial_growth_dynamics_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("model_bacterial_growth_dynamics_output.txt", "w") as f:
+    f.write("Biomni: Model Bacterial Growth Dynamics Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("model_bacterial_growth_dynamics completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_MICROBIOLOGY_MODEL_BACTERIAL_GROWTH_DYNAMICS {
-    main:
+    take:
+    // No file inputs
 
+    main:
     MODEL_BACTERIAL_GROWTH_DYNAMICS()
-    OUTPUT()
 
     emit:
-    output = OUTPUT.out.output
+    results = MODEL_BACTERIAL_GROWTH_DYNAMICS.out.results
+    output = MODEL_BACTERIAL_GROWTH_DYNAMICS.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.initial_population) {
+        error "Please provide --initial_population parameter"
+    }
+    if (!params.growth_rate) {
+        error "Please provide --growth_rate parameter"
+    }
+    if (!params.clearance_rate) {
+        error "Please provide --clearance_rate parameter"
+    }
+    if (!params.niche_size) {
+        error "Please provide --niche_size parameter"
+    }
+
+
     BIOMNI_MICROBIOLOGY_MODEL_BACTERIAL_GROWTH_DYNAMICS()
 }

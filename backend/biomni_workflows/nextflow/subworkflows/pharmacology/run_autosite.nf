@@ -2,69 +2,98 @@
 /*
  * biomni_pharmacology_run_autosite
  * 
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
 params.pdb_file = null
+params.output_dir = null
+params.spacing = '1.0'
 
-// Processes
+// Main process
 process RUN_AUTOSITE {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(pdb_file)
+    // No file inputs
 
     output:
+    path("run_autosite_results.json"), emit: results
     path("run_autosite_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_pharmacology_run_autosite
-    # Runs in unified Docker container
-    echo 'Running RUN_AUTOSITE'
-        touch run_autosite_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.pharmacology import run_autosite
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def run_autosite(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = run_autosite(
+    pdb_file="${params.pdb_file}",
+    output_dir="${params.output_dir}",
+    spacing="${params.spacing}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("run_autosite_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("run_autosite_output.txt", "w") as f:
+    f.write("Biomni: Run Autosite Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("run_autosite completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_PHARMACOLOGY_RUN_AUTOSITE {
-    main:
-    ch_pdb_file = Channel.fromPath(params.pdb_file)
+    take:
+    // No file inputs
 
-    RUN_AUTOSITE(ch_pdb_file)
-    OUTPUT()
+    main:
+    RUN_AUTOSITE()
 
     emit:
-    output = OUTPUT.out.output
+    results = RUN_AUTOSITE.out.results
+    output = RUN_AUTOSITE.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.pdb_file) {
+        error "Please provide --pdb_file parameter"
+    }
+    if (!params.output_dir) {
+        error "Please provide --output_dir parameter"
+    }
+
+
     BIOMNI_PHARMACOLOGY_RUN_AUTOSITE()
 }

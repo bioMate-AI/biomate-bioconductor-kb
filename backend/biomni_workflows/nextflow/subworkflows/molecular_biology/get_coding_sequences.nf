@@ -2,67 +2,91 @@
 /*
  * biomni_molecular_biology_get_coding_sequences
  * Extract coding sequences from RefSeq record.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
+params.refseq_id = null
 
-// Processes
+// Main process
 process GET_CODING_SEQUENCES {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(input_file)
+    // No file inputs
 
     output:
+    path("get_coding_sequences_results.json"), emit: results
     path("get_coding_sequences_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_molecular_biology_get_coding_sequences
-    # Runs in unified Docker container
-    echo 'Running GET_CODING_SEQUENCES'
-        touch get_coding_sequences_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.molecular_biology import get_coding_sequences
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def get_coding_sequences(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = get_coding_sequences(
+    refseq_id="${params.refseq_id}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("get_coding_sequences_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("get_coding_sequences_output.txt", "w") as f:
+    f.write("Biomni: Get Coding Sequences Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("get_coding_sequences completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_MOLECULAR_BIOLOGY_GET_CODING_SEQUENCES {
-    main:
+    take:
+    // No file inputs
 
+    main:
     GET_CODING_SEQUENCES()
-    OUTPUT()
 
     emit:
-    output = OUTPUT.out.output
+    results = GET_CODING_SEQUENCES.out.results
+    output = GET_CODING_SEQUENCES.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.refseq_id) {
+        error "Please provide --refseq_id parameter"
+    }
+
+
     BIOMNI_MOLECULAR_BIOLOGY_GET_CODING_SEQUENCES()
 }

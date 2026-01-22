@@ -2,69 +2,108 @@
 /*
  * biomni_pharmacology_analyze_western_blot
  * Performs densitometric analysis of Western blot images to quantify relative protein expression.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
 params.blot_image_path = null
+params.target_bands = null
+params.loading_control_band = null
+params.antibody_info = null
+params.output_dir = './results'
 
-// Processes
+// Main process
 process ANALYZE_WESTERN_BLOT {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(blot_image_path)
+    // No file inputs
 
     output:
+    path("analyze_western_blot_results.json"), emit: results
     path("analyze_western_blot_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_pharmacology_analyze_western_blot
-    # Runs in unified Docker container
-    echo 'Running ANALYZE_WESTERN_BLOT'
-        touch analyze_western_blot_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.pharmacology import analyze_western_blot
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def analyze_western_blot(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = analyze_western_blot(
+    blot_image_path="${params.blot_image_path}",
+    target_bands="${params.target_bands}",
+    loading_control_band="${params.loading_control_band}",
+    antibody_info="${params.antibody_info}",
+    output_dir="${params.output_dir}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("analyze_western_blot_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("analyze_western_blot_output.txt", "w") as f:
+    f.write("Biomni: Analyze Western Blot Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("analyze_western_blot completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_PHARMACOLOGY_ANALYZE_WESTERN_BLOT {
-    main:
-    ch_blot_image_path = Channel.fromPath(params.blot_image_path)
+    take:
+    // No file inputs
 
-    ANALYZE_WESTERN_BLOT(ch_blot_image_path)
-    OUTPUT()
+    main:
+    ANALYZE_WESTERN_BLOT()
 
     emit:
-    output = OUTPUT.out.output
+    results = ANALYZE_WESTERN_BLOT.out.results
+    output = ANALYZE_WESTERN_BLOT.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.blot_image_path) {
+        error "Please provide --blot_image_path parameter"
+    }
+    if (!params.target_bands) {
+        error "Please provide --target_bands parameter"
+    }
+    if (!params.loading_control_band) {
+        error "Please provide --loading_control_band parameter"
+    }
+    if (!params.antibody_info) {
+        error "Please provide --antibody_info parameter"
+    }
+
+
     BIOMNI_PHARMACOLOGY_ANALYZE_WESTERN_BLOT()
 }

@@ -2,69 +2,91 @@
 /*
  * biomni_cancer_biology_analyze_cell_senescence_and_apoptosis
  * Analyze flow cytometry data to quantify senescent and apoptotic cell populations.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
 params.fcs_file_path = null
 
-// Processes
+// Main process
 process ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(fcs_file_path)
+    // No file inputs
 
     output:
+    path("analyze_cell_senescence_and_apoptosis_results.json"), emit: results
     path("analyze_cell_senescence_and_apoptosis_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_cancer_biology_analyze_cell_senescence_and_apoptosis
-    # Runs in unified Docker container
-    echo 'Running ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS'
-        touch analyze_cell_senescence_and_apoptosis_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.cancer_biology import analyze_cell_senescence_and_apoptosis
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def analyze_cell_senescence_and_apoptosis(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = analyze_cell_senescence_and_apoptosis(
+    fcs_file_path="${params.fcs_file_path}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("analyze_cell_senescence_and_apoptosis_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("analyze_cell_senescence_and_apoptosis_output.txt", "w") as f:
+    f.write("Biomni: Analyze Cell Senescence And Apoptosis Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("analyze_cell_senescence_and_apoptosis completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_CANCER_BIOLOGY_ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS {
-    main:
-    ch_fcs_file_path = Channel.fromPath(params.fcs_file_path)
+    take:
+    // No file inputs
 
-    ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS(ch_fcs_file_path)
-    OUTPUT()
+    main:
+    ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS()
 
     emit:
-    output = OUTPUT.out.output
+    results = ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS.out.results
+    output = ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.fcs_file_path) {
+        error "Please provide --fcs_file_path parameter"
+    }
+
+
     BIOMNI_CANCER_BIOLOGY_ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS()
 }

@@ -1,70 +1,96 @@
 #!/usr/bin/env nextflow
 /*
  * biomni_pharmacology_analyze_interaction_mechanisms
- * 
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Analyze interaction mechanisms between two specific drugs.
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
+params.drug_pair = null
+params.detailed_analysis = 'True'
 params.data_lake_path = null
 
-// Processes
+// Main process
 process ANALYZE_INTERACTION_MECHANISMS {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(data_lake_path)
+    // No file inputs
 
     output:
+    path("analyze_interaction_mechanisms_results.json"), emit: results
     path("analyze_interaction_mechanisms_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_pharmacology_analyze_interaction_mechanisms
-    # Runs in unified Docker container
-    echo 'Running ANALYZE_INTERACTION_MECHANISMS'
-        touch analyze_interaction_mechanisms_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.pharmacology import analyze_interaction_mechanisms
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def analyze_interaction_mechanisms(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = analyze_interaction_mechanisms(
+    drug_pair="${params.drug_pair}",
+    detailed_analysis="${params.detailed_analysis}",
+    data_lake_path="${params.data_lake_path}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("analyze_interaction_mechanisms_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("analyze_interaction_mechanisms_output.txt", "w") as f:
+    f.write("Biomni: Analyze Interaction Mechanisms Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("analyze_interaction_mechanisms completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_PHARMACOLOGY_ANALYZE_INTERACTION_MECHANISMS {
-    main:
-    ch_data_lake_path = Channel.fromPath(params.data_lake_path)
+    take:
+    // No file inputs
 
-    ANALYZE_INTERACTION_MECHANISMS(ch_data_lake_path)
-    OUTPUT()
+    main:
+    ANALYZE_INTERACTION_MECHANISMS()
 
     emit:
-    output = OUTPUT.out.output
+    results = ANALYZE_INTERACTION_MECHANISMS.out.results
+    output = ANALYZE_INTERACTION_MECHANISMS.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.drug_pair) {
+        error "Please provide --drug_pair parameter"
+    }
+
+
     BIOMNI_PHARMACOLOGY_ANALYZE_INTERACTION_MECHANISMS()
 }

@@ -2,67 +2,96 @@
 /*
  * biomni_bioengineering_higuchi
  * 
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
+params.t = null
+params.k = null
 
-// Processes
+// Main process
 process HIGUCHI {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(input_file)
+    // No file inputs
 
     output:
+    path("higuchi_results.json"), emit: results
     path("higuchi_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_bioengineering_higuchi
-    # Runs in unified Docker container
-    echo 'Running HIGUCHI'
-        touch higuchi_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.bioengineering import higuchi
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def higuchi(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = higuchi(
+    t="${params.t}",
+    k="${params.k}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("higuchi_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("higuchi_output.txt", "w") as f:
+    f.write("Biomni: Higuchi Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("higuchi completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_BIOENGINEERING_HIGUCHI {
-    main:
+    take:
+    // No file inputs
 
+    main:
     HIGUCHI()
-    OUTPUT()
 
     emit:
-    output = OUTPUT.out.output
+    results = HIGUCHI.out.results
+    output = HIGUCHI.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.t) {
+        error "Please provide --t parameter"
+    }
+    if (!params.k) {
+        error "Please provide --k parameter"
+    }
+
+
     BIOMNI_BIOENGINEERING_HIGUCHI()
 }

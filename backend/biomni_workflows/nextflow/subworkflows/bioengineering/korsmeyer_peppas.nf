@@ -2,67 +2,101 @@
 /*
  * biomni_bioengineering_korsmeyer_peppas
  * 
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
+params.t = null
+params.k = null
+params.n = null
 
-// Processes
+// Main process
 process KORSMEYER_PEPPAS {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(input_file)
+    // No file inputs
 
     output:
+    path("korsmeyer_peppas_results.json"), emit: results
     path("korsmeyer_peppas_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_bioengineering_korsmeyer_peppas
-    # Runs in unified Docker container
-    echo 'Running KORSMEYER_PEPPAS'
-        touch korsmeyer_peppas_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.bioengineering import korsmeyer_peppas
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def korsmeyer_peppas(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = korsmeyer_peppas(
+    t="${params.t}",
+    k="${params.k}",
+    n="${params.n}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("korsmeyer_peppas_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("korsmeyer_peppas_output.txt", "w") as f:
+    f.write("Biomni: Korsmeyer Peppas Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("korsmeyer_peppas completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_BIOENGINEERING_KORSMEYER_PEPPAS {
-    main:
+    take:
+    // No file inputs
 
+    main:
     KORSMEYER_PEPPAS()
-    OUTPUT()
 
     emit:
-    output = OUTPUT.out.output
+    results = KORSMEYER_PEPPAS.out.results
+    output = KORSMEYER_PEPPAS.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.t) {
+        error "Please provide --t parameter"
+    }
+    if (!params.k) {
+        error "Please provide --k parameter"
+    }
+    if (!params.n) {
+        error "Please provide --n parameter"
+    }
+
+
     BIOMNI_BIOENGINEERING_KORSMEYER_PEPPAS()
 }

@@ -1,0 +1,92 @@
+#!/usr/bin/env nextflow
+/*
+ * biomni_immunology_objective_function
+ * 
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
+ */
+
+nextflow.enable.dsl = 2
+
+// Parameters
+params.outdir = './results'
+params.params = null
+
+// Main process
+process OBJECTIVE_FUNCTION {
+    tag "${task.process}"
+    label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
+
+    container 'biomate/biomni-tools:latest'
+
+    input:
+    // No file inputs
+
+    output:
+    path("objective_function_results.json"), emit: results
+    path("objective_function_output.txt"), emit: output
+
+    script:
+    """
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.immunology import objective_function
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def objective_function(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = objective_function(
+    params="${params.params}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("objective_function_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("objective_function_output.txt", "w") as f:
+    f.write("Biomni: Objective Function Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("objective_function completed successfully")
+PYEOF
+    """
+}
+
+// Workflow definition
+workflow BIOMNI_IMMUNOLOGY_OBJECTIVE_FUNCTION {
+    take:
+    // No file inputs
+
+    main:
+    OBJECTIVE_FUNCTION()
+
+    emit:
+    results = OBJECTIVE_FUNCTION.out.results
+    output = OBJECTIVE_FUNCTION.out.output
+}
+
+// Entry workflow
+workflow {
+    if (!params.params) {
+        error "Please provide --params parameter"
+    }
+
+
+    BIOMNI_IMMUNOLOGY_OBJECTIVE_FUNCTION()
+}

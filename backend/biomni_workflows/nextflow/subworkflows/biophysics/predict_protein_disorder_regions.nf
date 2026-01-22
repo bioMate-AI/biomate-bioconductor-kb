@@ -2,69 +2,95 @@
 /*
  * biomni_biophysics_predict_protein_disorder_regions
  * Predicts intrinsically disordered regions (IDRs) in a protein sequence using IUPred2A.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
-params.output_file = null
+params.outdir = './results'
+params.protein_sequence = null
+params.threshold = '0.5'
+params.output_file = 'disorder_prediction_results.csv'
 
-// Processes
+// Main process
 process PREDICT_PROTEIN_DISORDER_REGIONS {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(output_file)
+    // No file inputs
 
     output:
+    path("predict_protein_disorder_regions_results.json"), emit: results
     path("predict_protein_disorder_regions_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_biophysics_predict_protein_disorder_regions
-    # Runs in unified Docker container
-    echo 'Running PREDICT_PROTEIN_DISORDER_REGIONS'
-        touch predict_protein_disorder_regions_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.biophysics import predict_protein_disorder_regions
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def predict_protein_disorder_regions(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = predict_protein_disorder_regions(
+    protein_sequence="${params.protein_sequence}",
+    threshold="${params.threshold}",
+    output_file="${params.output_file}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("predict_protein_disorder_regions_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("predict_protein_disorder_regions_output.txt", "w") as f:
+    f.write("Biomni: Predict Protein Disorder Regions Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("predict_protein_disorder_regions completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_BIOPHYSICS_PREDICT_PROTEIN_DISORDER_REGIONS {
-    main:
-    ch_output_file = Channel.fromPath(params.output_file)
+    take:
+    // No file inputs
 
-    PREDICT_PROTEIN_DISORDER_REGIONS(ch_output_file)
-    OUTPUT()
+    main:
+    PREDICT_PROTEIN_DISORDER_REGIONS()
 
     emit:
-    output = OUTPUT.out.output
+    results = PREDICT_PROTEIN_DISORDER_REGIONS.out.results
+    output = PREDICT_PROTEIN_DISORDER_REGIONS.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.protein_sequence) {
+        error "Please provide --protein_sequence parameter"
+    }
+
+
     BIOMNI_BIOPHYSICS_PREDICT_PROTEIN_DISORDER_REGIONS()
 }

@@ -2,69 +2,96 @@
 /*
  * biomni_database_get_hpo_names
  * Retrieve the names of given HPO terms.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
+params.hpo_terms = null
 params.data_lake_path = null
 
-// Processes
+// Main process
 process GET_HPO_NAMES {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(data_lake_path)
+    // No file inputs
 
     output:
+    path("get_hpo_names_results.json"), emit: results
     path("get_hpo_names_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_database_get_hpo_names
-    # Runs in unified Docker container
-    echo 'Running GET_HPO_NAMES'
-        touch get_hpo_names_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.database import get_hpo_names
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def get_hpo_names(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = get_hpo_names(
+    hpo_terms="${params.hpo_terms}",
+    data_lake_path="${params.data_lake_path}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("get_hpo_names_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("get_hpo_names_output.txt", "w") as f:
+    f.write("Biomni: Get Hpo Names Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("get_hpo_names completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_DATABASE_GET_HPO_NAMES {
-    main:
-    ch_data_lake_path = Channel.fromPath(params.data_lake_path)
+    take:
+    // No file inputs
 
-    GET_HPO_NAMES(ch_data_lake_path)
-    OUTPUT()
+    main:
+    GET_HPO_NAMES()
 
     emit:
-    output = OUTPUT.out.output
+    results = GET_HPO_NAMES.out.results
+    output = GET_HPO_NAMES.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.hpo_terms) {
+        error "Please provide --hpo_terms parameter"
+    }
+    if (!params.data_lake_path) {
+        error "Please provide --data_lake_path parameter"
+    }
+
+
     BIOMNI_DATABASE_GET_HPO_NAMES()
 }

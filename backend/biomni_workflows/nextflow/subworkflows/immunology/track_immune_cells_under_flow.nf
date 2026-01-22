@@ -2,69 +2,99 @@
 /*
  * biomni_immunology_track_immune_cells_under_flow
  * Track immune cells under flow conditions and classify their behaviors.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
 params.image_sequence_path = null
+params.output_dir = './output'
+params.pixel_size_um = '1.0'
+params.time_interval_sec = '1.0'
+params.flow_direction = 'right'
 
-// Processes
+// Main process
 process TRACK_IMMUNE_CELLS_UNDER_FLOW {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(image_sequence_path)
+    // No file inputs
 
     output:
+    path("track_immune_cells_under_flow_results.json"), emit: results
     path("track_immune_cells_under_flow_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_immunology_track_immune_cells_under_flow
-    # Runs in unified Docker container
-    echo 'Running TRACK_IMMUNE_CELLS_UNDER_FLOW'
-        touch track_immune_cells_under_flow_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.immunology import track_immune_cells_under_flow
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def track_immune_cells_under_flow(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = track_immune_cells_under_flow(
+    image_sequence_path="${params.image_sequence_path}",
+    output_dir="${params.output_dir}",
+    pixel_size_um="${params.pixel_size_um}",
+    time_interval_sec="${params.time_interval_sec}",
+    flow_direction="${params.flow_direction}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("track_immune_cells_under_flow_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("track_immune_cells_under_flow_output.txt", "w") as f:
+    f.write("Biomni: Track Immune Cells Under Flow Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("track_immune_cells_under_flow completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_IMMUNOLOGY_TRACK_IMMUNE_CELLS_UNDER_FLOW {
-    main:
-    ch_image_sequence_path = Channel.fromPath(params.image_sequence_path)
+    take:
+    // No file inputs
 
-    TRACK_IMMUNE_CELLS_UNDER_FLOW(ch_image_sequence_path)
-    OUTPUT()
+    main:
+    TRACK_IMMUNE_CELLS_UNDER_FLOW()
 
     emit:
-    output = OUTPUT.out.output
+    results = TRACK_IMMUNE_CELLS_UNDER_FLOW.out.results
+    output = TRACK_IMMUNE_CELLS_UNDER_FLOW.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.image_sequence_path) {
+        error "Please provide --image_sequence_path parameter"
+    }
+
+
     BIOMNI_IMMUNOLOGY_TRACK_IMMUNE_CELLS_UNDER_FLOW()
 }

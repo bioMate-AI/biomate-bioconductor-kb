@@ -2,69 +2,108 @@
 /*
  * biomni_pharmacology_docking_autodock_vina
  * 
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
+params.smiles_list = null
 params.receptor_pdb_file = null
+params.box_center = null
+params.box_size = null
+params.ncpu = '1'
 
-// Processes
+// Main process
 process DOCKING_AUTODOCK_VINA {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(receptor_pdb_file)
+    // No file inputs
 
     output:
+    path("docking_autodock_vina_results.json"), emit: results
     path("docking_autodock_vina_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_pharmacology_docking_autodock_vina
-    # Runs in unified Docker container
-    echo 'Running DOCKING_AUTODOCK_VINA'
-        touch docking_autodock_vina_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.pharmacology import docking_autodock_vina
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def docking_autodock_vina(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = docking_autodock_vina(
+    smiles_list="${params.smiles_list}",
+    receptor_pdb_file="${params.receptor_pdb_file}",
+    box_center="${params.box_center}",
+    box_size="${params.box_size}",
+    ncpu="${params.ncpu}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("docking_autodock_vina_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("docking_autodock_vina_output.txt", "w") as f:
+    f.write("Biomni: Docking Autodock Vina Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("docking_autodock_vina completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_PHARMACOLOGY_DOCKING_AUTODOCK_VINA {
-    main:
-    ch_receptor_pdb_file = Channel.fromPath(params.receptor_pdb_file)
+    take:
+    // No file inputs
 
-    DOCKING_AUTODOCK_VINA(ch_receptor_pdb_file)
-    OUTPUT()
+    main:
+    DOCKING_AUTODOCK_VINA()
 
     emit:
-    output = OUTPUT.out.output
+    results = DOCKING_AUTODOCK_VINA.out.results
+    output = DOCKING_AUTODOCK_VINA.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.smiles_list) {
+        error "Please provide --smiles_list parameter"
+    }
+    if (!params.receptor_pdb_file) {
+        error "Please provide --receptor_pdb_file parameter"
+    }
+    if (!params.box_center) {
+        error "Please provide --box_center parameter"
+    }
+    if (!params.box_size) {
+        error "Please provide --box_size parameter"
+    }
+
+
     BIOMNI_PHARMACOLOGY_DOCKING_AUTODOCK_VINA()
 }

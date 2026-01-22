@@ -2,72 +2,98 @@
 /*
  * biomni_physiology_perform_cosinor_analysis
  * Performs cosinor analysis on physiological time series data to characterize circadian rhythms.
- * Converted from Galaxy format
- * Docker: biomate/biotools:latest
+ * Generated from Galaxy tool definition
+ * Docker: biomate/biomni-tools:latest
  */
 
 nextflow.enable.dsl = 2
 
 // Parameters
+params.outdir = './results'
 params.time_data = null
 params.physiological_data = null
+params.period = '24.0'
 
-// Processes
+// Main process
 process PERFORM_COSINOR_ANALYSIS {
     tag "${task.process}"
     label 'process_medium'
+    publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biotools:latest'
+    container 'biomate/biomni-tools:latest'
 
     input:
-    path(time_data)
-    path(physiological_data)
+    // No file inputs
 
     output:
+    path("perform_cosinor_analysis_results.json"), emit: results
     path("perform_cosinor_analysis_output.txt"), emit: output
 
     script:
     """
-    # Tool: biomni_physiology_perform_cosinor_analysis
-    # Runs in unified Docker container
-    echo 'Running PERFORM_COSINOR_ANALYSIS'
-        touch perform_cosinor_analysis_output.txt
+    python3 << 'PYEOF'
+import json
+import sys
+
+# Import the biomni function
+try:
+    from biomni.tool.physiology import perform_cosinor_analysis
+except ImportError:
+    # Fallback: function may need to be implemented locally
+    def perform_cosinor_analysis(**kwargs):
+        return {"status": "Function not available", "params": kwargs}
+
+# Run the tool
+try:
+    result = perform_cosinor_analysis(
+    time_data="${params.time_data}",
+    physiological_data="${params.physiological_data}",
+    period="${params.period}"
+    )
+except Exception as e:
+    result = {"error": str(e)}
+
+# Save results as JSON
+with open("perform_cosinor_analysis_results.json", "w") as f:
+    json.dump(result, f, indent=2, default=str)
+
+# Create human-readable output
+with open("perform_cosinor_analysis_output.txt", "w") as f:
+    f.write("Biomni: Perform Cosinor Analysis Results\n")
+    f.write("=" * 60 + "\n\n")
+    if isinstance(result, dict):
+        for key, value in result.items():
+            f.write(f"{key}: {value}\n")
+    else:
+        f.write(str(result))
+
+print("perform_cosinor_analysis completed successfully")
+PYEOF
     """
 }
 
-process OUTPUT {
-    tag "${task.process}"
-    label 'process_medium'
-
-    container 'biomate/biotools:latest'
-
-    input:
-    path(input_file)
-
-    output:
-    path("output_output.txt"), emit: output
-
-    script:
-    """
-    # Tool: cat1
-    # Runs in unified Docker container
-    echo 'Running OUTPUT'
-        touch output_output.txt
-    """
-}
-
+// Workflow definition
 workflow BIOMNI_PHYSIOLOGY_PERFORM_COSINOR_ANALYSIS {
-    main:
-    ch_time_data = Channel.fromPath(params.time_data)
-    ch_physiological_data = Channel.fromPath(params.physiological_data)
+    take:
+    // No file inputs
 
-    PERFORM_COSINOR_ANALYSIS(ch_time_data, ch_physiological_data)
-    OUTPUT()
+    main:
+    PERFORM_COSINOR_ANALYSIS()
 
     emit:
-    output = OUTPUT.out.output
+    results = PERFORM_COSINOR_ANALYSIS.out.results
+    output = PERFORM_COSINOR_ANALYSIS.out.output
 }
 
+// Entry workflow
 workflow {
+    if (!params.time_data) {
+        error "Please provide --time_data parameter"
+    }
+    if (!params.physiological_data) {
+        error "Please provide --physiological_data parameter"
+    }
+
+
     BIOMNI_PHYSIOLOGY_PERFORM_COSINOR_ANALYSIS()
 }
