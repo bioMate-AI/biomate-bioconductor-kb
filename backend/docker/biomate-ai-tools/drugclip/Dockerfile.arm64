@@ -1,0 +1,40 @@
+# DrugCLIP: Virtual Screening 10M× Faster
+# ARM64 native build with CUDA support (using NGC PyTorch)
+# Requirements: 8GB+ GPU optional, 16GB RAM
+
+FROM nvcr.io/nvidia/pytorch:24.10-py3
+
+LABEL maintainer="Biomate Team"
+LABEL description="DrugCLIP - Deep contrastive learning for genome-wide virtual screening"
+LABEL version="latest"
+LABEL architecture="arm64"
+LABEL doi="10.1126/science.ads9530"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install additional system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libxrender1 \
+    libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create working directory
+WORKDIR /opt/drugclip
+
+# Clone DrugCLIP
+RUN git clone --depth 1 https://github.com/bowen-gao/DrugCLIP.git .
+
+# Install DrugCLIP dependencies (PyTorch already in NGC image)
+RUN pip install --no-cache-dir \
+    pandas \
+    scikit-learn \
+    tqdm \
+    rdkit
+
+ENV PYTHONPATH="/opt/drugclip:$PYTHONPATH"
+
+WORKDIR /workspace
+
+ENTRYPOINT ["python3"]
+CMD ["--help"]

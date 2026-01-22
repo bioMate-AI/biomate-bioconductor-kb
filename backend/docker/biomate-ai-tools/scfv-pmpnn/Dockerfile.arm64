@@ -1,0 +1,60 @@
+# scFv-pMPNN: Single-chain Fv Antibody Design
+# ARM64 native build with CUDA support (using NGC PyTorch)
+# Requirements: 16GB+ GPU, 32GB+ RAM
+
+FROM nvcr.io/nvidia/pytorch:24.10-py3
+
+LABEL maintainer="Biomate Team"
+LABEL description="scFv-pMPNN - Antibody design using ProteinMPNN with AlphaFold2"
+LABEL version="latest"
+LABEL architecture="arm64"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install additional system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    autoconf \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install HMMER from source (not available in ARM64 packages)
+RUN cd /tmp && \
+    wget http://eddylab.org/software/hmmer/hmmer-3.4.tar.gz && \
+    tar xzf hmmer-3.4.tar.gz && \
+    cd hmmer-3.4 && \
+    ./configure --prefix=/usr/local && \
+    make && make install && \
+    cd / && rm -rf /tmp/hmmer*
+
+# Create working directory
+WORKDIR /opt/scfv-pmpnn
+
+# Clone repository
+RUN git clone --depth 1 https://github.com/jbderoo/scFv_Pmpnn_AF2.git .
+
+# Install Python dependencies (PyTorch already in NGC image)
+RUN pip install --no-cache-dir \
+    biopython \
+    pandas \
+    scipy \
+    dm-haiku \
+    jax \
+    jaxlib \
+    ml-collections
+
+# Create models directory
+RUN mkdir -p /models/scfv-pmpnn /models/alphafold2
+
+# Set environment variables
+ENV SCFV_PMPNN_DIR=/opt/scfv-pmpnn
+ENV SCFV_MODEL=/models/scfv-pmpnn
+ENV AF2_MODEL=/models/alphafold2
+ENV PYTHONPATH="/opt/scfv-pmpnn:$PYTHONPATH"
+
+# Default entrypoint
+WORKDIR /workspace
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["--help"]

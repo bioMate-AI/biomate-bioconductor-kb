@@ -1,0 +1,42 @@
+name: state
+description: Virtual cell model for perturbation response prediction from scRNA-seq
+keywords:
+  - single-cell
+  - scRNA-seq
+  - perturbation
+  - virtual cell
+  - gene expression
+tools:
+  - state:
+      description: STATE - Arc Institute virtual cell model for perturbation prediction
+      homepage: https://github.com/ArcInstitute/state
+      documentation: https://github.com/ArcInstitute/state
+      licence: ["Apache-2.0"]
+input:
+  - meta:
+      type: map
+      description: Groovy Map containing sample information (e.g., id)
+  - h5ad:
+      type: file
+      description: Single-cell RNA-seq data in h5ad format
+      pattern: "*.h5ad"
+  - perturbation:
+      type: string
+      description: Perturbation to simulate (e.g., "TP53 knockout")
+output:
+  - predictions:
+      type: file
+      description: Predicted gene expression after perturbation
+      pattern: "*predictions*.h5ad"
+  - embeddings:
+      type: file
+      description: Cell state embeddings
+      pattern: "*embeddings*.npy"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-team"
+maintainers:
+  - "@biomate-team"

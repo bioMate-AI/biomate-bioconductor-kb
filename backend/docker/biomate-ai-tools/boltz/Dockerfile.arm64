@@ -1,0 +1,40 @@
+# Boltz-2: Protein-Ligand Structure Prediction
+# ARM64 native build with CUDA support (using NGC PyTorch)
+# Requirements: 16-40GB GPU VRAM
+
+FROM nvcr.io/nvidia/pytorch:24.10-py3
+
+LABEL maintainer="Biomate Team"
+LABEL description="Boltz-2 protein-ligand docking and binding affinity prediction"
+LABEL version="2.2.1"
+LABEL architecture="arm64"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install additional system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake \
+    pybind11-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Boltz (NGC image already has PyTorch with CUDA)
+RUN pip install --no-cache-dir boltz==2.2.1
+
+# Create working directory
+WORKDIR /workspace
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+if [ "$1" = "predict" ]; then\n\
+    shift\n\
+    exec boltz predict "$@"\n\
+elif [ "$1" = "server" ]; then\n\
+    shift\n\
+    exec python -m tooluniverse.remote.boltz.boltz_mcp_server "$@"\n\
+else\n\
+    exec boltz "$@"\n\
+fi' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["--help"]

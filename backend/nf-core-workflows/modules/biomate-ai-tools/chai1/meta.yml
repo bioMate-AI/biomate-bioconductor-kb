@@ -1,0 +1,44 @@
+name: chai1
+description: Multi-modal structure prediction for protein, DNA, RNA, and ligands
+keywords:
+  - protein
+  - DNA
+  - RNA
+  - ligand
+  - structure prediction
+  - multi-modal
+tools:
+  - chai1:
+      description: Chai-1 multi-modal biomolecular structure prediction
+      homepage: https://github.com/chaidiscovery/chai-lab
+      documentation: https://github.com/chaidiscovery/chai-lab
+      licence: ["Apache-2.0"]
+input:
+  - meta:
+      type: map
+      description: Groovy Map containing sample information (e.g., id)
+  - fasta:
+      type: file
+      description: Protein/DNA/RNA sequence in FASTA format
+      pattern: "*.{fasta,fa,faa,fna}"
+  - ligand:
+      type: file
+      description: Optional ligand structure in SDF format
+      pattern: "*.sdf"
+output:
+  - pdb:
+      type: file
+      description: Predicted structure in PDB format
+      pattern: "*.pdb"
+  - scores:
+      type: file
+      description: Confidence scores
+      pattern: "*scores*.json"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-team"
+maintainers:
+  - "@biomate-team"

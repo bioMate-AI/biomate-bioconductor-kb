@@ -1,0 +1,54 @@
+# State: Virtual Cell Model for Perturbation Response Prediction
+# ARM64 native build with CUDA support (using NGC PyTorch)
+# Requirements: 8GB+ GPU optional, 16GB RAM
+
+FROM nvcr.io/nvidia/pytorch:24.10-py3
+
+LABEL maintainer="Biomate Team"
+LABEL description="Arc Institute State - Virtual cell model for perturbation response prediction"
+LABEL version="latest"
+LABEL architecture="arm64"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Create working directory
+WORKDIR /opt/state
+
+# Clone State repository
+RUN git clone --depth 1 https://github.com/ArcInstitute/state.git .
+
+# Fix pyproject.toml - remove local path dependencies
+RUN sed -i 's|file:///home/aadduri/cell-eval|git+https://github.com/ArcInstitute/cell-eval.git|g' pyproject.toml || true && \
+    sed -i 's|file:///home/aadduri/cell-load|git+https://github.com/ArcInstitute/cell-load.git|g' pyproject.toml || true
+
+# Install Python dependencies (PyTorch already in NGC image)
+RUN pip install --no-cache-dir \
+    anndata \
+    scanpy \
+    lightning \
+    transformers \
+    peft \
+    hydra-core \
+    omegaconf \
+    wandb \
+    geomloss \
+    huggingface_hub
+
+# Install State package (ignore dependency resolver issues)
+RUN pip install --no-cache-dir --no-deps -e . || pip install --no-cache-dir -e . || true
+
+# Create models directory
+RUN mkdir -p /models/state
+
+# Set environment variables
+ENV STATE_MODEL_DIR=/models/state
+ENV PYTHONPATH="/opt/state:$PYTHONPATH"
+
+# Default entrypoint
+WORKDIR /workspace
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["--help"]

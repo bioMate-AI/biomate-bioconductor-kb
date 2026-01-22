@@ -1,0 +1,44 @@
+name: drugclip
+description: Virtual screening 10M times faster than traditional docking
+keywords:
+  - drug discovery
+  - virtual screening
+  - compound library
+  - CLIP
+  - deep learning
+tools:
+  - drugclip:
+      description: DrugCLIP - Deep contrastive learning for genome-wide virtual screening
+      homepage: https://github.com/bowen-gao/DrugCLIP
+      documentation: https://github.com/bowen-gao/DrugCLIP
+      doi: 10.1126/science.ads9530
+      licence: ["MIT"]
+input:
+  - meta:
+      type: map
+      description: Groovy Map containing sample information (e.g., id)
+  - target:
+      type: file
+      description: Target protein sequence in FASTA format
+      pattern: "*.{fasta,fa,faa}"
+  - compounds:
+      type: file
+      description: Compound library in SMILES or SDF format
+      pattern: "*.{smi,smiles,sdf}"
+output:
+  - scores:
+      type: file
+      description: All compound scores
+      pattern: "*scores*.csv"
+  - top_hits:
+      type: file
+      description: Top scoring compounds
+      pattern: "*top_hits*.csv"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-team"
+maintainers:
+  - "@biomate-team"

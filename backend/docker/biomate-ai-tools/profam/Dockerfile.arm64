@@ -1,0 +1,55 @@
+# ProFam-1: Protein Family Language Model for Fitness Prediction
+# ARM64 native build with CUDA support (using NGC PyTorch)
+# Requirements: 8GB+ GPU recommended, 16GB RAM
+
+FROM nvcr.io/nvidia/pytorch:24.10-py3
+
+LABEL maintainer="Biomate Team"
+LABEL description="ProFam-1 - 251M protein family language model for fitness prediction"
+LABEL version="latest"
+LABEL architecture="arm64"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Create working directory
+WORKDIR /opt/profam
+
+# Clone ProFam repository
+RUN git clone --depth 1 https://github.com/alex-hh/profam.git .
+
+# Install Python dependencies (PyTorch already in NGC image)
+# NOTE: numba is required for MSA subsampling
+RUN pip install --no-cache-dir \
+    numba \
+    llvmlite \
+    transformers \
+    datasets \
+    biopython \
+    biotite \
+    biotraj \
+    hydra-core \
+    omegaconf \
+    rootutils \
+    rich \
+    pyrootutils \
+    huggingface_hub
+
+# Install ProFam package
+RUN pip install --no-cache-dir -e .
+
+# Create models directory
+RUN mkdir -p /models/profam
+
+# Set environment variables
+ENV PROFAM_DIR=/opt/profam
+ENV PROFAM_CHECKPOINT=/models/profam
+ENV PYTHONPATH="/opt/profam/src:$PYTHONPATH"
+
+# Default entrypoint
+WORKDIR /workspace
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["--help"]

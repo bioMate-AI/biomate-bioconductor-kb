@@ -1,0 +1,47 @@
+name: scfv-pmpnn
+description: AI-powered single-chain Fv antibody design using ProteinMPNN
+keywords:
+  - antibody
+  - scFv
+  - protein design
+  - ProteinMPNN
+  - immunology
+tools:
+  - scfv-pmpnn:
+      description: scFv-pMPNN - Antibody design using ProteinMPNN with AlphaFold2
+      homepage: https://github.com/jbderoo/scFv_Pmpnn_AF2
+      documentation: https://github.com/jbderoo/scFv_Pmpnn_AF2
+      licence: ["MIT"]
+input:
+  - meta:
+      type: map
+      description: Groovy Map containing sample information (e.g., id)
+  - pdb:
+      type: file
+      description: Antibody structure in PDB format
+      pattern: "*.pdb"
+  - target:
+      type: file
+      description: Optional target antigen structure
+      pattern: "*.pdb"
+output:
+  - sequences:
+      type: file
+      description: Designed antibody sequences
+      pattern: "*designed*.fasta"
+  - structures:
+      type: file
+      description: Predicted structures of designed antibodies
+      pattern: "*designed*.pdb"
+  - scores:
+      type: file
+      description: Design scores and metrics
+      pattern: "*scores*.csv"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-team"
+maintainers:
+  - "@biomate-team"

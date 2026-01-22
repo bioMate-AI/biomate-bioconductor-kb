@@ -1,0 +1,3 @@
+# Test SMILES for SynCraft retrosynthesis
+# Aspirin - simple molecule for synthesis planning
+CC(=O)Oc1ccccc1C(=O)O

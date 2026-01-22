@@ -1,0 +1,34 @@
+name: esmfold
+description: Protein structure prediction using ESMFold API
+keywords:
+  - protein
+  - structure prediction
+  - folding
+  - ESM
+tools:
+  - esmfold:
+      description: Fast protein structure prediction using ESM-2 language model
+      homepage: https://github.com/facebookresearch/esm
+      documentation: https://esmatlas.com/about
+      licence: ["MIT"]
+input:
+  - meta:
+      type: map
+      description: Groovy Map containing sample information (e.g., id)
+  - fasta:
+      type: file
+      description: Protein sequence in FASTA format
+      pattern: "*.{fasta,fa,faa}"
+output:
+  - pdb:
+      type: file
+      description: Predicted protein structure in PDB format
+      pattern: "*.pdb"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-team"
+maintainers:
+  - "@biomate-team"

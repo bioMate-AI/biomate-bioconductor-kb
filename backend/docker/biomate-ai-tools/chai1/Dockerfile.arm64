@@ -1,0 +1,30 @@
+# Chai-1: Multi-modal Structure Prediction
+# ARM64 native build with CUDA support (using NGC PyTorch)
+# Requirements: 24-80GB GPU VRAM
+
+FROM nvcr.io/nvidia/pytorch:24.10-py3
+
+LABEL maintainer="Biomate Team"
+LABEL description="Chai-1 multi-modal structure prediction (protein/DNA/RNA/ligand)"
+LABEL version="latest"
+LABEL architecture="arm64"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install additional system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake \
+    pybind11-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Chai-1 (NGC image already has PyTorch with CUDA)
+RUN pip install --no-cache-dir chai_lab
+
+# Create working directory
+WORKDIR /workspace
+
+# Chai-1 is a Python library, not a CLI tool
+# Use python to run inference
+ENTRYPOINT ["python3"]
+CMD ["-c", "from chai_lab.chai1 import run_inference; print('Chai-1 ready. Use: python3 -m chai_lab.chai1 ...')"]

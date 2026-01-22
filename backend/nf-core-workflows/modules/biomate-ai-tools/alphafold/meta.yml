@@ -1,0 +1,37 @@
+name: alphafold
+description: Retrieve structures from AlphaFold Database or format for AlphaFold3 Server
+keywords:
+  - protein
+  - structure prediction
+  - alphafold
+  - database
+tools:
+  - alphafold:
+      description: AlphaFold protein structure database and AF3 server formatting
+      homepage: https://alphafold.ebi.ac.uk/
+      documentation: https://alphafold.ebi.ac.uk/api-docs
+      licence: ["CC-BY-4.0"]
+input:
+  - meta:
+      type: map
+      description: Groovy Map containing sample information (e.g., id)
+  - query:
+      type: string
+      description: UniProt accession ID or protein sequence
+output:
+  - pdb:
+      type: file
+      description: Protein structure in PDB format
+      pattern: "*.pdb"
+  - json:
+      type: file
+      description: AlphaFold3 Server formatted JSON
+      pattern: "*.json"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-team"
+maintainers:
+  - "@biomate-team"

@@ -1,0 +1,45 @@
+# ProTrek: Protein Sequence-Structure-Function Search
+# ARM64 native build with CUDA support (using NGC PyTorch)
+# Requirements: 8GB+ GPU recommended, 16GB RAM
+
+FROM nvcr.io/nvidia/pytorch:24.10-py3
+
+LABEL maintainer="Biomate Team"
+LABEL description="ProTrek - Navigating the Protein Universe through Tri-Modal Contrastive Learning"
+LABEL version="latest"
+LABEL architecture="arm64"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Create working directory
+WORKDIR /opt/protrek
+
+# Clone ProTrek repository
+RUN git clone --depth 1 https://github.com/westlake-repl/ProTrek.git .
+
+# Install Python dependencies (PyTorch already in NGC image)
+RUN pip install --no-cache-dir \
+    transformers \
+    faiss-cpu \
+    biopython \
+    pandas \
+    tqdm \
+    huggingface_hub \
+    sentencepiece
+
+# Create models directory
+RUN mkdir -p /models/protrek
+
+# Set environment variables
+ENV PROTREK_DIR=/opt/protrek
+ENV PROTREK_MODEL=/models/protrek
+ENV PYTHONPATH="/opt/protrek:$PYTHONPATH"
+
+# Default entrypoint
+WORKDIR /workspace
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["--help"]

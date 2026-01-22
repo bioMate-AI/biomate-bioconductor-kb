@@ -1,0 +1,10 @@
+# Test compound library for DrugCLIP (SMILES format)
+# Common drug molecules for testing virtual screening
+CC(=O)Oc1ccccc1C(=O)O	aspirin
+CC(C)Cc1ccc(cc1)C(C)C(=O)O	ibuprofen
+CN1C=NC2=C1C(=O)N(C(=O)N2C)C	caffeine
+CC(=O)Nc1ccc(cc1)O	acetaminophen
+c1ccc2c(c1)cc3ccccc3n2	acridine
+COc1ccc2[nH]cc(CCNC(C)=O)c2c1	melatonin
+CC(C)(C)NCC(O)c1ccc(O)c(CO)c1	salbutamol
+Cn1cnc2c1c(=O)n(c(=O)n2C)C	theophylline

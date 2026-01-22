@@ -1,0 +1,47 @@
+name: boltz
+description: Protein-ligand structure prediction with binding affinity using Boltz-2
+keywords:
+  - protein
+  - structure prediction
+  - docking
+  - binding affinity
+  - drug discovery
+tools:
+  - boltz:
+      description: Boltz-2 protein-ligand docking and binding affinity prediction
+      homepage: https://github.com/jwohlwend/boltz
+      documentation: https://github.com/jwohlwend/boltz
+      licence: ["MIT"]
+input:
+  - meta:
+      type: map
+      description: Groovy Map containing sample information (e.g., id)
+  - fasta:
+      type: file
+      description: Protein sequence in FASTA format
+      pattern: "*.{fasta,fa,faa}"
+  - ligand:
+      type: file
+      description: Optional ligand structure in SDF format
+      pattern: "*.sdf"
+output:
+  - pdb:
+      type: file
+      description: Predicted complex structure in PDB format
+      pattern: "*.pdb"
+  - cif:
+      type: file
+      description: Predicted structure in mmCIF format
+      pattern: "*.cif"
+  - affinity:
+      type: file
+      description: Binding affinity predictions in JSON format
+      pattern: "*affinity*.json"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-team"
+maintainers:
+  - "@biomate-team"

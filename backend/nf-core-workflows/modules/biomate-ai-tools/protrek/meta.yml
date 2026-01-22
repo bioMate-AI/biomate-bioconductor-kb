@@ -1,0 +1,42 @@
+name: protrek
+description: Tri-modal protein search by sequence, structure, or function
+keywords:
+  - protein
+  - search
+  - embedding
+  - tri-modal
+  - contrastive learning
+tools:
+  - protrek:
+      description: ProTrek - Navigating the Protein Universe through Tri-Modal Contrastive Learning
+      homepage: https://github.com/westlake-repl/ProTrek
+      documentation: https://github.com/westlake-repl/ProTrek
+      licence: ["Apache-2.0"]
+input:
+  - meta:
+      type: map
+      description: Groovy Map containing sample information (e.g., id)
+  - query:
+      type: file
+      description: Query sequence (FASTA), structure (PDB), or function text
+      pattern: "*.{fasta,fa,pdb,txt}"
+  - mode:
+      type: string
+      description: Search mode (sequence, structure, or function)
+output:
+  - results:
+      type: file
+      description: Search results with similar proteins
+      pattern: "*results*.json"
+  - embeddings:
+      type: file
+      description: Generated embeddings
+      pattern: "*embeddings*.npy"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-team"
+maintainers:
+  - "@biomate-team"

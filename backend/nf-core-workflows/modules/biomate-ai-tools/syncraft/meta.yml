@@ -1,0 +1,38 @@
+name: syncraft
+description: AI-powered retrosynthesis planning using Gemini
+keywords:
+  - chemistry
+  - retrosynthesis
+  - synthesis planning
+  - drug discovery
+  - AI
+tools:
+  - syncraft:
+      description: SynCraft - AI retrosynthesis planning powered by Gemini
+      homepage: https://github.com/emmaking-smith/SynCraft
+      documentation: https://github.com/emmaking-smith/SynCraft
+      licence: ["MIT"]
+input:
+  - meta:
+      type: map
+      description: Groovy Map containing sample information (e.g., id)
+  - smiles:
+      type: string
+      description: Target molecule SMILES string
+output:
+  - route:
+      type: file
+      description: Synthesis route in JSON format
+      pattern: "*route*.json"
+  - steps:
+      type: file
+      description: Step-by-step synthesis instructions
+      pattern: "*steps*.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-team"
+maintainers:
+  - "@biomate-team"

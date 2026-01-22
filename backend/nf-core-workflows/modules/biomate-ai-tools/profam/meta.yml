@@ -1,0 +1,42 @@
+name: profam
+description: Protein family language model for fitness prediction and sequence generation
+keywords:
+  - protein
+  - fitness prediction
+  - sequence generation
+  - language model
+  - protein engineering
+tools:
+  - profam:
+      description: ProFam-1 - 251M protein family language model
+      homepage: https://github.com/alex-hh/profam
+      documentation: https://github.com/alex-hh/profam
+      licence: ["MIT"]
+input:
+  - meta:
+      type: map
+      description: Groovy Map containing sample information (e.g., id)
+  - fasta:
+      type: file
+      description: Protein sequence(s) in FASTA format
+      pattern: "*.{fasta,fa,faa}"
+  - mode:
+      type: string
+      description: Mode (score for fitness prediction, generate for sequence generation)
+output:
+  - scores:
+      type: file
+      description: Fitness scores for variants
+      pattern: "*scores*.csv"
+  - sequences:
+      type: file
+      description: Generated sequences
+      pattern: "*generated*.fasta"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-team"
+maintainers:
+  - "@biomate-team"
