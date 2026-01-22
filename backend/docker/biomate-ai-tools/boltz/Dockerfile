@@ -2,10 +2,7 @@
 # Supports: x86_64 with CUDA
 # Requirements: 16-40GB GPU VRAM
 
-ARG CUDA_VERSION=12.4.0
-ARG PYTHON_VERSION=3.11
-
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn-runtime-ubuntu22.04
+FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
 
 LABEL maintainer="Biomate Team"
 LABEL description="Boltz-2 protein-ligand docking and binding affinity prediction"
