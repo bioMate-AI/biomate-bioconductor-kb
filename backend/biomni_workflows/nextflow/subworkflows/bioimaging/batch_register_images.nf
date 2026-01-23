@@ -41,15 +41,7 @@ process BATCH_REGISTER_IMAGES {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.bioimaging import batch_register_images
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def batch_register_images(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.bioimaging import batch_register_images
 
 # Run the tool
 try:
@@ -60,8 +52,8 @@ try:
     transform_type="${params.transform_type}",
     metric="${params.metric}",
     optimizer="${params.optimizer}",
-    preprocess=${params.preprocess},
-    create_visualizations=${params.create_visualizations},
+    preprocess=${params.preprocess ? "True" : "False"},
+    create_visualizations=${params.create_visualizations ? "True" : "False"},
     learning_rate=${params.learning_rate},
     number_of_iterations=${params.number_of_iterations},
     gradient_convergence_tolerance=${params.gradient_convergence_tolerance}
@@ -74,12 +66,13 @@ with open("batch_register_images_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("batch_register_images_output.txt", "w") as f:
-    f.write("Biomni: Batch Register Images Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Batch Register Images Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

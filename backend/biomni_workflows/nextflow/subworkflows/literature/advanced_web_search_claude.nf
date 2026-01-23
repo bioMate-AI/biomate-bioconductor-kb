@@ -33,15 +33,7 @@ process ADVANCED_WEB_SEARCH_CLAUDE {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.literature import advanced_web_search_claude
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def advanced_web_search_claude(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.literature import advanced_web_search_claude
 
 # Run the tool
 try:
@@ -58,12 +50,13 @@ with open("advanced_web_search_claude_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("advanced_web_search_claude_output.txt", "w") as f:
-    f.write("Biomni: Advanced Web Search Claude Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Advanced Web Search Claude Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

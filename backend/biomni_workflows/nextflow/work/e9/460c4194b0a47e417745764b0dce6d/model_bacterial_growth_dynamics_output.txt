@@ -1,0 +1,4 @@
+Biomni: Model Bacterial Growth Dynamics Results
+============================================================
+
+error: arange() not supported for inputs with DType <class 'numpy.dtypes.StrDType'>.

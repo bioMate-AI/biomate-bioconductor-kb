@@ -1,0 +1,8 @@
+Biomni: Design Primer Results
+============================================================
+
+sequence: CGATCGATCGATCGATCGAT
+position: 10
+gc: 0.5
+tm: 60.0
+score: 0.0

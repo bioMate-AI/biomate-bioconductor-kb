@@ -42,15 +42,7 @@ process SEGMENT_WITH_NN_UNET {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.bioimaging import segment_with_nn_unet
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def segment_with_nn_unet(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.bioimaging import segment_with_nn_unet
 
 # Run the tool
 try:
@@ -76,12 +68,13 @@ with open("segment_with_nn_unet_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("segment_with_nn_unet_output.txt", "w") as f:
-    f.write("Biomni: Segment With Nn Unet Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Segment With Nn Unet Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

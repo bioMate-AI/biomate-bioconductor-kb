@@ -34,15 +34,7 @@ process PREDICT_O_GLYCOSYLATION_HOTSPOTS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.glycoengineering import predict_o_glycosylation_hotspots
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def predict_o_glycosylation_hotspots(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.glycoengineering import predict_o_glycosylation_hotspots
 
 # Run the tool
 try:
@@ -50,7 +42,7 @@ try:
     sequence="${params.sequence}",
     window=${params.window},
     min_st_fraction=${params.min_st_fraction},
-    disallow_proline_next=${params.disallow_proline_next}
+    disallow_proline_next=${params.disallow_proline_next ? "True" : "False"}
     )
 except Exception as e:
     result = {"error": str(e)}
@@ -60,12 +52,13 @@ with open("predict_o_glycosylation_hotspots_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("predict_o_glycosylation_hotspots_output.txt", "w") as f:
-    f.write("Biomni: Predict O Glycosylation Hotspots Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Predict O Glycosylation Hotspots Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

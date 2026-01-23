@@ -31,15 +31,7 @@ process CONDA_ENV_EXISTS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genomics import conda_env_exists
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def conda_env_exists(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genomics import conda_env_exists
 
 # Run the tool
 try:
@@ -54,12 +46,13 @@ with open("conda_env_exists_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("conda_env_exists_output.txt", "w") as f:
-    f.write("Biomni: Conda Env Exists Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Conda Env Exists Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

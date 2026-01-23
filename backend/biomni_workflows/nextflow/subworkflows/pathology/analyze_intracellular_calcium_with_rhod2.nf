@@ -34,15 +34,7 @@ process ANALYZE_INTRACELLULAR_CALCIUM_WITH_RHOD2 {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.pathology import analyze_intracellular_calcium_with_rhod2
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def analyze_intracellular_calcium_with_rhod2(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.pathology import analyze_intracellular_calcium_with_rhod2
 
 # Run the tool
 try:
@@ -60,12 +52,13 @@ with open("analyze_intracellular_calcium_with_rhod2_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("analyze_intracellular_calcium_with_rhod2_output.txt", "w") as f:
-    f.write("Biomni: Analyze Intracellular Calcium With Rhod2 Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Analyze Intracellular Calcium With Rhod2 Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

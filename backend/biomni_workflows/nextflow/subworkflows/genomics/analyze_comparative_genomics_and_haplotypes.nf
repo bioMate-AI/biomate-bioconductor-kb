@@ -33,15 +33,7 @@ process ANALYZE_COMPARATIVE_GENOMICS_AND_HAPLOTYPES {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genomics import analyze_comparative_genomics_and_haplotypes
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def analyze_comparative_genomics_and_haplotypes(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genomics import analyze_comparative_genomics_and_haplotypes
 
 # Run the tool
 try:
@@ -58,12 +50,13 @@ with open("analyze_comparative_genomics_and_haplotypes_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("analyze_comparative_genomics_and_haplotypes_output.txt", "w") as f:
-    f.write("Biomni: Analyze Comparative Genomics And Haplotypes Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Analyze Comparative Genomics And Haplotypes Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

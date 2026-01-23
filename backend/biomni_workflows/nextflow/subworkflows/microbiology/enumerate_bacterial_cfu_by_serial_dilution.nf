@@ -36,15 +36,7 @@ process ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.microbiology import enumerate_bacterial_cfu_by_serial_dilution
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def enumerate_bacterial_cfu_by_serial_dilution(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.microbiology import enumerate_bacterial_cfu_by_serial_dilution
 
 # Run the tool
 try:
@@ -64,12 +56,13 @@ with open("enumerate_bacterial_cfu_by_serial_dilution_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("enumerate_bacterial_cfu_by_serial_dilution_output.txt", "w") as f:
-    f.write("Biomni: Enumerate Bacterial Cfu By Serial Dilution Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Enumerate Bacterial Cfu By Serial Dilution Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

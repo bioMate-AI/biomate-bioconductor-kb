@@ -35,15 +35,7 @@ process COMPARE_PROTEIN_STRUCTURES {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.systems_biology import compare_protein_structures
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def compare_protein_structures(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.systems_biology import compare_protein_structures
 
 # Run the tool
 try:
@@ -62,12 +54,13 @@ with open("compare_protein_structures_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("compare_protein_structures_output.txt", "w") as f:
-    f.write("Biomni: Compare Protein Structures Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Compare Protein Structures Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

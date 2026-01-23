@@ -35,15 +35,7 @@ process PERFORM_MWAS_CYP2C19_METABOLIZER_STATUS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.pharmacology import perform_mwas_cyp2c19_metabolizer_status
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def perform_mwas_cyp2c19_metabolizer_status(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.pharmacology import perform_mwas_cyp2c19_metabolizer_status
 
 # Run the tool
 try:
@@ -62,12 +54,13 @@ with open("perform_mwas_cyp2c19_metabolizer_status_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("perform_mwas_cyp2c19_metabolizer_status_output.txt", "w") as f:
-    f.write("Biomni: Perform Mwas Cyp2C19 Metabolizer Status Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Perform Mwas Cyp2C19 Metabolizer Status Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

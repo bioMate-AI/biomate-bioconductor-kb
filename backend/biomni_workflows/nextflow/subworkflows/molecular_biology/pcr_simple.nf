@@ -34,15 +34,7 @@ process PCR_SIMPLE {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import pcr_simple
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def pcr_simple(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import pcr_simple
 
 # Run the tool
 try:
@@ -50,7 +42,7 @@ try:
     sequence="${params.sequence}",
     forward_primer="${params.forward_primer}",
     reverse_primer="${params.reverse_primer}",
-    circular=${params.circular}
+    circular=${params.circular ? "True" : "False"}
     )
 except Exception as e:
     result = {"error": str(e)}
@@ -60,12 +52,13 @@ with open("pcr_simple_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("pcr_simple_output.txt", "w") as f:
-    f.write("Biomni: Pcr Simple Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Pcr Simple Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

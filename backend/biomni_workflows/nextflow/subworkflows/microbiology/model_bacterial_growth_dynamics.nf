@@ -36,15 +36,7 @@ process MODEL_BACTERIAL_GROWTH_DYNAMICS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.microbiology import model_bacterial_growth_dynamics
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def model_bacterial_growth_dynamics(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.microbiology import model_bacterial_growth_dynamics
 
 # Run the tool
 try:
@@ -64,12 +56,13 @@ with open("model_bacterial_growth_dynamics_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("model_bacterial_growth_dynamics_output.txt", "w") as f:
-    f.write("Biomni: Model Bacterial Growth Dynamics Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Model Bacterial Growth Dynamics Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

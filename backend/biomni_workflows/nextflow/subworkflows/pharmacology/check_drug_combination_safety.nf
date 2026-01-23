@@ -34,15 +34,7 @@ process CHECK_DRUG_COMBINATION_SAFETY {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.pharmacology import check_drug_combination_safety
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def check_drug_combination_safety(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.pharmacology import check_drug_combination_safety
 
 # Run the tool
 try:
@@ -60,12 +52,13 @@ with open("check_drug_combination_safety_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("check_drug_combination_safety_output.txt", "w") as f:
-    f.write("Biomni: Check Drug Combination Safety Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Check Drug Combination Safety Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

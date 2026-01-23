@@ -31,15 +31,7 @@ process GRADE_ADVERSE_EVENTS_USING_VCOG_CTCAE {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.pharmacology import grade_adverse_events_using_vcog_ctcae
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def grade_adverse_events_using_vcog_ctcae(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.pharmacology import grade_adverse_events_using_vcog_ctcae
 
 # Run the tool
 try:
@@ -54,12 +46,13 @@ with open("grade_adverse_events_using_vcog_ctcae_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("grade_adverse_events_using_vcog_ctcae_output.txt", "w") as f:
-    f.write("Biomni: Grade Adverse Events Using Vcog Ctcae Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Grade Adverse Events Using Vcog Ctcae Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

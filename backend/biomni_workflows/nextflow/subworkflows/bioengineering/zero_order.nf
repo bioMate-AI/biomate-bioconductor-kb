@@ -32,15 +32,7 @@ process ZERO_ORDER {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.bioengineering import zero_order
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def zero_order(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.bioengineering import zero_order
 
 # Run the tool
 try:
@@ -56,12 +48,13 @@ with open("zero_order_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("zero_order_output.txt", "w") as f:
-    f.write("Biomni: Zero Order Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Zero Order Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

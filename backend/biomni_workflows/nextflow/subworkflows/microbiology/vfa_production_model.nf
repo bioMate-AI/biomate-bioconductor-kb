@@ -31,15 +31,7 @@ process VFA_PRODUCTION_MODEL {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.microbiology import vfa_production_model
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def vfa_production_model(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.microbiology import vfa_production_model
 
 # Run the tool
 try:
@@ -54,12 +46,13 @@ with open("vfa_production_model_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("vfa_production_model_output.txt", "w") as f:
-    f.write("Biomni: Vfa Production Model Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Vfa Production Model Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

@@ -32,15 +32,7 @@ process QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.cell_biology import quantify_cell_cycle_phases_from_microscopy
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def quantify_cell_cycle_phases_from_microscopy(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.cell_biology import quantify_cell_cycle_phases_from_microscopy
 
 # Run the tool
 try:
@@ -56,12 +48,13 @@ with open("quantify_cell_cycle_phases_from_microscopy_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("quantify_cell_cycle_phases_from_microscopy_output.txt", "w") as f:
-    f.write("Biomni: Quantify Cell Cycle Phases From Microscopy Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Quantify Cell Cycle Phases From Microscopy Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

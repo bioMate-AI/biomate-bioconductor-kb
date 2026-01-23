@@ -33,15 +33,7 @@ process MODEL_PROTEIN_DIMERIZATION_NETWORK {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.systems_biology import model_protein_dimerization_network
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def model_protein_dimerization_network(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.systems_biology import model_protein_dimerization_network
 
 # Run the tool
 try:
@@ -58,12 +50,13 @@ with open("model_protein_dimerization_network_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("model_protein_dimerization_network_output.txt", "w") as f:
-    f.write("Biomni: Model Protein Dimerization Network Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Model Protein Dimerization Network Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

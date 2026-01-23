@@ -33,15 +33,7 @@ process INTERSPECIES_GENE_CONVERSION {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genomics import interspecies_gene_conversion
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def interspecies_gene_conversion(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genomics import interspecies_gene_conversion
 
 # Run the tool
 try:
@@ -58,12 +50,13 @@ with open("interspecies_gene_conversion_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("interspecies_gene_conversion_output.txt", "w") as f:
-    f.write("Biomni: Interspecies Gene Conversion Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Interspecies Gene Conversion Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

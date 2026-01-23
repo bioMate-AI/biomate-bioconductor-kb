@@ -34,15 +34,7 @@ process GOLDEN_GATE_ASSEMBLY {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import golden_gate_assembly
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def golden_gate_assembly(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import golden_gate_assembly
 
 # Run the tool
 try:
@@ -50,7 +42,7 @@ try:
     backbone_sequence="${params.backbone_sequence}",
     enzyme_name="${params.enzyme_name}",
     fragments="${params.fragments}",
-    is_circular=${params.is_circular}
+    is_circular=${params.is_circular ? "True" : "False"}
     )
 except Exception as e:
     result = {"error": str(e)}
@@ -60,12 +52,13 @@ with open("golden_gate_assembly_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("golden_gate_assembly_output.txt", "w") as f:
-    f.write("Biomni: Golden Gate Assembly Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Golden Gate Assembly Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

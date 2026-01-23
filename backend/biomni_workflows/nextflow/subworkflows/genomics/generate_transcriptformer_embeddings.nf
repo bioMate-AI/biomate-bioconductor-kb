@@ -48,15 +48,7 @@ process GENERATE_TRANSCRIPTFORMER_EMBEDDINGS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genomics import generate_transcriptformer_embeddings
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def generate_transcriptformer_embeddings(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genomics import generate_transcriptformer_embeddings
 
 # Run the tool
 try:
@@ -74,11 +66,11 @@ try:
     n_data_workers=${params.n_data_workers},
     gene_col_name="${params.gene_col_name}",
     pretrained_embedding="${params.pretrained_embedding}",
-    filter_to_vocabs=${params.filter_to_vocabs},
+    filter_to_vocabs=${params.filter_to_vocabs ? "True" : "False"},
     use_raw="${params.use_raw}",
     emb_type="${params.emb_type}",
-    remove_duplicate_genes=${params.remove_duplicate_genes},
-    oom_dataloader=${params.oom_dataloader}
+    remove_duplicate_genes=${params.remove_duplicate_genes ? "True" : "False"},
+    oom_dataloader=${params.oom_dataloader ? "True" : "False"}
     )
 except Exception as e:
     result = {"error": str(e)}
@@ -88,12 +80,13 @@ with open("generate_transcriptformer_embeddings_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("generate_transcriptformer_embeddings_output.txt", "w") as f:
-    f.write("Biomni: Generate Transcriptformer Embeddings Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Generate Transcriptformer Embeddings Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

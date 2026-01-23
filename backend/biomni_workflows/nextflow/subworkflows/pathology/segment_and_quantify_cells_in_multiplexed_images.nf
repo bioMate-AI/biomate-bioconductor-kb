@@ -34,15 +34,7 @@ process SEGMENT_AND_QUANTIFY_CELLS_IN_MULTIPLEXED_IMAGES {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.pathology import segment_and_quantify_cells_in_multiplexed_images
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def segment_and_quantify_cells_in_multiplexed_images(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.pathology import segment_and_quantify_cells_in_multiplexed_images
 
 # Run the tool
 try:
@@ -60,12 +52,13 @@ with open("segment_and_quantify_cells_in_multiplexed_images_results.json", "w") 
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("segment_and_quantify_cells_in_multiplexed_images_output.txt", "w") as f:
-    f.write("Biomni: Segment And Quantify Cells In Multiplexed Images Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Segment And Quantify Cells In Multiplexed Images Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

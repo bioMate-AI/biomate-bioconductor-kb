@@ -36,15 +36,7 @@ process SIMULATE_WHOLE_CELL_ODE_MODEL {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.bioengineering import simulate_whole_cell_ode_model
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def simulate_whole_cell_ode_model(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.bioengineering import simulate_whole_cell_ode_model
 
 # Run the tool
 try:
@@ -64,12 +56,13 @@ with open("simulate_whole_cell_ode_model_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("simulate_whole_cell_ode_model_output.txt", "w") as f:
-    f.write("Biomni: Simulate Whole Cell Ode Model Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Simulate Whole Cell Ode Model Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

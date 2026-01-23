@@ -31,15 +31,7 @@ process MERGE_OVERLAPPING_REGIONS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import merge_overlapping_regions
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def merge_overlapping_regions(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import merge_overlapping_regions
 
 # Run the tool
 try:
@@ -54,12 +46,13 @@ with open("merge_overlapping_regions_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("merge_overlapping_regions_output.txt", "w") as f:
-    f.write("Biomni: Merge Overlapping Regions Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Merge Overlapping Regions Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

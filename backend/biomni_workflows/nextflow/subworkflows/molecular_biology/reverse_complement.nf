@@ -31,15 +31,7 @@ process REVERSE_COMPLEMENT {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import reverse_complement
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def reverse_complement(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import reverse_complement
 
 # Run the tool
 try:
@@ -54,12 +46,13 @@ with open("reverse_complement_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("reverse_complement_output.txt", "w") as f:
-    f.write("Biomni: Reverse Complement Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Reverse Complement Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

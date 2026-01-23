@@ -311,7 +311,8 @@ def generate_nextflow_workflow(tool: GalaxyTool) -> str:
             if p.param_type in ('integer', 'float'):
                 func_args.append(f'    {p.name}=${{params.{p.name}}}')
             elif p.param_type == 'boolean':
-                func_args.append(f'    {p.name}=${{params.{p.name}}}')
+                # Pass boolean as True/False string that Python can evaluate
+                func_args.append(f'    {p.name}=${{params.{p.name} ? "True" : "False"}}')
             else:
                 func_args.append(f'    {p.name}="${{params.{p.name}}}"')
     func_args_str = ",\n".join(func_args)
@@ -375,15 +376,7 @@ process {process_name} {{
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.{tool.domain} import {tool.function_name}
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def {tool.function_name}(**kwargs):
-        return {{"status": "Function not available", "params": kwargs}}
+from biomni.tool.{tool.domain} import {tool.function_name}
 
 # Run the tool
 try:
@@ -398,12 +391,13 @@ with open("{tool.function_name}_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("{tool.function_name}_output.txt", "w") as f:
-    f.write("{tool.name} Results\\n")
-    f.write("=" * 60 + "\\n\\n")
+    f.write("{tool.name} Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{{key}}: {{value}}\\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

@@ -36,15 +36,7 @@ process GET_GOLDEN_GATE_ASSEMBLY_PROTOCOL {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import get_golden_gate_assembly_protocol
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def get_golden_gate_assembly_protocol(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import get_golden_gate_assembly_protocol
 
 # Run the tool
 try:
@@ -54,7 +46,7 @@ try:
     vector_length=${params.vector_length},
     vector_amount_ng=${params.vector_amount_ng},
     insert_lengths="${params.insert_lengths}",
-    is_library_prep=${params.is_library_prep}
+    is_library_prep=${params.is_library_prep ? "True" : "False"}
     )
 except Exception as e:
     result = {"error": str(e)}
@@ -64,12 +56,13 @@ with open("get_golden_gate_assembly_protocol_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("get_golden_gate_assembly_protocol_output.txt", "w") as f:
-    f.write("Biomni: Get Golden Gate Assembly Protocol Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Get Golden Gate Assembly Protocol Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

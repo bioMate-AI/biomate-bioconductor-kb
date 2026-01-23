@@ -35,15 +35,7 @@ process DETECT_AND_ANNOTATE_SOMATIC_MUTATIONS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.cancer_biology import detect_and_annotate_somatic_mutations
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def detect_and_annotate_somatic_mutations(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.cancer_biology import detect_and_annotate_somatic_mutations
 
 # Run the tool
 try:
@@ -62,12 +54,13 @@ with open("detect_and_annotate_somatic_mutations_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("detect_and_annotate_somatic_mutations_output.txt", "w") as f:
-    f.write("Biomni: Detect And Annotate Somatic Mutations Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Detect And Annotate Somatic Mutations Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

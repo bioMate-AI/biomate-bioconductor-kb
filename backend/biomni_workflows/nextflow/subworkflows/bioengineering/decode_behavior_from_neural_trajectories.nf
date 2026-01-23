@@ -34,15 +34,7 @@ process DECODE_BEHAVIOR_FROM_NEURAL_TRAJECTORIES {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.bioengineering import decode_behavior_from_neural_trajectories
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def decode_behavior_from_neural_trajectories(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.bioengineering import decode_behavior_from_neural_trajectories
 
 # Run the tool
 try:
@@ -60,12 +52,13 @@ with open("decode_behavior_from_neural_trajectories_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("decode_behavior_from_neural_trajectories_output.txt", "w") as f:
-    f.write("Biomni: Decode Behavior From Neural Trajectories Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Decode Behavior From Neural Trajectories Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

@@ -1,0 +1,4 @@
+  File "<stdin>", line 26
+    f.write("Biomni: Reverse Complement Results
+            ^
+SyntaxError: unterminated string literal (detected at line 26)

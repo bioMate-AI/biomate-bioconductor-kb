@@ -35,15 +35,7 @@ process DOCKING_AUTODOCK_VINA {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.pharmacology import docking_autodock_vina
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def docking_autodock_vina(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.pharmacology import docking_autodock_vina
 
 # Run the tool
 try:
@@ -62,12 +54,13 @@ with open("docking_autodock_vina_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("docking_autodock_vina_output.txt", "w") as f:
-    f.write("Biomni: Docking Autodock Vina Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Docking Autodock Vina Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

@@ -34,15 +34,7 @@ process ANNOTATE_OPEN_READING_FRAMES {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import annotate_open_reading_frames
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def annotate_open_reading_frames(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import annotate_open_reading_frames
 
 # Run the tool
 try:
@@ -60,12 +52,13 @@ with open("annotate_open_reading_frames_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("annotate_open_reading_frames_output.txt", "w") as f:
-    f.write("Biomni: Annotate Open Reading Frames Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Annotate Open Reading Frames Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

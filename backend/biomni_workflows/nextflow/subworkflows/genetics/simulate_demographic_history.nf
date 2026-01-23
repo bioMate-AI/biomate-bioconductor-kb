@@ -40,15 +40,7 @@ process SIMULATE_DEMOGRAPHIC_HISTORY {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genetics import simulate_demographic_history
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def simulate_demographic_history(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genetics import simulate_demographic_history
 
 # Run the tool
 try:
@@ -72,12 +64,13 @@ with open("simulate_demographic_history_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("simulate_demographic_history_output.txt", "w") as f:
-    f.write("Biomni: Simulate Demographic History Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Simulate Demographic History Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

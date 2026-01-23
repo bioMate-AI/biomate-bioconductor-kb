@@ -40,15 +40,7 @@ process DESIGN_VERIFICATION_PRIMERS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import design_verification_primers
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def design_verification_primers(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import design_verification_primers
 
 # Run the tool
 try:
@@ -56,7 +48,7 @@ try:
     plasmid_sequence="${params.plasmid_sequence}",
     target_region="${params.target_region}",
     existing_primers="${params.existing_primers}",
-    is_circular=${params.is_circular},
+    is_circular=${params.is_circular ? "True" : "False"},
     coverage_length=${params.coverage_length},
     primer_length=${params.primer_length},
     min_gc=${params.min_gc},
@@ -72,12 +64,13 @@ with open("design_verification_primers_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("design_verification_primers_output.txt", "w") as f:
-    f.write("Biomni: Design Verification Primers Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Design Verification Primers Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

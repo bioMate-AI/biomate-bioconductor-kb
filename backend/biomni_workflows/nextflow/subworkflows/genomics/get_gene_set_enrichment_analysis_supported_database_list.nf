@@ -30,15 +30,7 @@ process GET_GENE_SET_ENRICHMENT_ANALYSIS_SUPPORTED_DATABASE_LIST {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genomics import get_gene_set_enrichment_analysis_supported_database_list
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def get_gene_set_enrichment_analysis_supported_database_list(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genomics import get_gene_set_enrichment_analysis_supported_database_list
 
 # Run the tool
 try:
@@ -53,12 +45,13 @@ with open("get_gene_set_enrichment_analysis_supported_database_list_results.json
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("get_gene_set_enrichment_analysis_supported_database_list_output.txt", "w") as f:
-    f.write("Biomni: Get Gene Set Enrichment Analysis Supported Database List Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Get Gene Set Enrichment Analysis Supported Database List Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

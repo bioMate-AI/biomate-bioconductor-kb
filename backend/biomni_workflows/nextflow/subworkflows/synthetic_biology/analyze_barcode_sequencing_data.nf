@@ -36,15 +36,7 @@ process ANALYZE_BARCODE_SEQUENCING_DATA {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.synthetic_biology import analyze_barcode_sequencing_data
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def analyze_barcode_sequencing_data(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.synthetic_biology import analyze_barcode_sequencing_data
 
 # Run the tool
 try:
@@ -64,12 +56,13 @@ with open("analyze_barcode_sequencing_data_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("analyze_barcode_sequencing_data_output.txt", "w") as f:
-    f.write("Biomni: Analyze Barcode Sequencing Data Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Analyze Barcode Sequencing Data Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

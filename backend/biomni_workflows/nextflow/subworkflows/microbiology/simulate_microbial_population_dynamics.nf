@@ -37,15 +37,7 @@ process SIMULATE_MICROBIAL_POPULATION_DYNAMICS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.microbiology import simulate_microbial_population_dynamics
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def simulate_microbial_population_dynamics(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.microbiology import simulate_microbial_population_dynamics
 
 # Run the tool
 try:
@@ -66,12 +58,13 @@ with open("simulate_microbial_population_dynamics_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("simulate_microbial_population_dynamics_output.txt", "w") as f:
-    f.write("Biomni: Simulate Microbial Population Dynamics Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Simulate Microbial Population Dynamics Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

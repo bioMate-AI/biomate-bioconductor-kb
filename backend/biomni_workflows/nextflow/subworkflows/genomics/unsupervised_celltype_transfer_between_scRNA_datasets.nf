@@ -48,15 +48,7 @@ process UNSUPERVISED_CELLTYPE_TRANSFER_BETWEEN_SCRNA_DATASETS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genomics import unsupervised_celltype_transfer_between_scRNA_datasets
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def unsupervised_celltype_transfer_between_scRNA_datasets(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genomics import unsupervised_celltype_transfer_between_scRNA_datasets
 
 # Run the tool
 try:
@@ -88,12 +80,13 @@ with open("unsupervised_celltype_transfer_between_scRNA_datasets_results.json", 
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("unsupervised_celltype_transfer_between_scRNA_datasets_output.txt", "w") as f:
-    f.write("Biomni: Unsupervised Celltype Transfer Between Scrna Datasets Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Unsupervised Celltype Transfer Between Scrna Datasets Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

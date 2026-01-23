@@ -31,15 +31,7 @@ process VERIFY_NIFTI_INPUT {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.bioimaging import verify_nifti_input
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def verify_nifti_input(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.bioimaging import verify_nifti_input
 
 # Run the tool
 try:
@@ -54,12 +46,13 @@ with open("verify_nifti_input_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("verify_nifti_input_output.txt", "w") as f:
-    f.write("Biomni: Verify Nifti Input Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Verify Nifti Input Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

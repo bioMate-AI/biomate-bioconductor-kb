@@ -33,22 +33,14 @@ process DIGEST_SEQUENCE {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import digest_sequence
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def digest_sequence(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import digest_sequence
 
 # Run the tool
 try:
     result = digest_sequence(
     dna_sequence="${params.dna_sequence}",
     enzyme_names="${params.enzyme_names}",
-    is_circular=${params.is_circular}
+    is_circular=${params.is_circular ? "True" : "False"}
     )
 except Exception as e:
     result = {"error": str(e)}
@@ -58,12 +50,13 @@ with open("digest_sequence_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("digest_sequence_output.txt", "w") as f:
-    f.write("Biomni: Digest Sequence Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Digest Sequence Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

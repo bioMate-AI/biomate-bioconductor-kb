@@ -34,15 +34,7 @@ process ELBO_LOSS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genetics import elbo_loss
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def elbo_loss(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genetics import elbo_loss
 
 # Run the tool
 try:
@@ -60,12 +52,13 @@ with open("elbo_loss_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("elbo_loss_output.txt", "w") as f:
-    f.write("Biomni: Elbo Loss Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Elbo Loss Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

@@ -40,15 +40,7 @@ process ANALYZE_COPY_NUMBER_PURITY_PLOIDY_AND_FOCAL_EVENTS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.cancer_biology import analyze_copy_number_purity_ploidy_and_focal_events
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def analyze_copy_number_purity_ploidy_and_focal_events(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.cancer_biology import analyze_copy_number_purity_ploidy_and_focal_events
 
 # Run the tool
 try:
@@ -72,12 +64,13 @@ with open("analyze_copy_number_purity_ploidy_and_focal_events_results.json", "w"
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("analyze_copy_number_purity_ploidy_and_focal_events_output.txt", "w") as f:
-    f.write("Biomni: Analyze Copy Number Purity Ploidy And Focal Events Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Analyze Copy Number Purity Ploidy And Focal Events Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

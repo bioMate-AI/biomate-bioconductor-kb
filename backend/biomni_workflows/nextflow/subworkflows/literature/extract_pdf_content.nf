@@ -31,15 +31,7 @@ process EXTRACT_PDF_CONTENT {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.literature import extract_pdf_content
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def extract_pdf_content(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.literature import extract_pdf_content
 
 # Run the tool
 try:
@@ -54,12 +46,13 @@ with open("extract_pdf_content_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("extract_pdf_content_output.txt", "w") as f:
-    f.write("Biomni: Extract Pdf Content Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Extract Pdf Content Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

@@ -36,15 +36,7 @@ process GENERATE_GENE_EMBEDDINGS_WITH_ESM_MODELS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genomics import generate_gene_embeddings_with_ESM_models
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def generate_gene_embeddings_with_ESM_models(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genomics import generate_gene_embeddings_with_ESM_models
 
 # Run the tool
 try:
@@ -64,12 +56,13 @@ with open("generate_gene_embeddings_with_ESM_models_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("generate_gene_embeddings_with_ESM_models_output.txt", "w") as f:
-    f.write("Biomni: Generate Gene Embeddings With Esm Models Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Generate Gene Embeddings With Esm Models Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

@@ -35,23 +35,15 @@ process TEST_PYLABROBOT_SCRIPT {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.lab_automation import test_pylabrobot_script
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def test_pylabrobot_script(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.lab_automation import test_pylabrobot_script
 
 # Run the tool
 try:
     result = test_pylabrobot_script(
     script_input="${params.script_input}",
-    enable_tracking=${params.enable_tracking},
+    enable_tracking=${params.enable_tracking ? "True" : "False"},
     timeout_seconds=${params.timeout_seconds},
-    save_test_report=${params.save_test_report},
+    save_test_report=${params.save_test_report ? "True" : "False"},
     test_report_dir="${params.test_report_dir}"
     )
 except Exception as e:
@@ -62,12 +54,13 @@ with open("test_pylabrobot_script_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("test_pylabrobot_script_output.txt", "w") as f:
-    f.write("Biomni: Test Pylabrobot Script Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Test Pylabrobot Script Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

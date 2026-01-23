@@ -32,15 +32,7 @@ process GENE_CIRCUIT_ODES {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.synthetic_biology import gene_circuit_odes
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def gene_circuit_odes(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.synthetic_biology import gene_circuit_odes
 
 # Run the tool
 try:
@@ -56,12 +48,13 @@ with open("gene_circuit_odes_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("gene_circuit_odes_output.txt", "w") as f:
-    f.write("Biomni: Gene Circuit Odes Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Gene Circuit Odes Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

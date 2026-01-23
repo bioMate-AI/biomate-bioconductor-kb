@@ -32,15 +32,7 @@ process PREDICT_RNA_SECONDARY_STRUCTURE {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.microbiology import predict_rna_secondary_structure
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def predict_rna_secondary_structure(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.microbiology import predict_rna_secondary_structure
 
 # Run the tool
 try:
@@ -56,12 +48,13 @@ with open("predict_rna_secondary_structure_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("predict_rna_secondary_structure_output.txt", "w") as f:
-    f.write("Biomni: Predict Rna Secondary Structure Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Predict Rna Secondary Structure Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

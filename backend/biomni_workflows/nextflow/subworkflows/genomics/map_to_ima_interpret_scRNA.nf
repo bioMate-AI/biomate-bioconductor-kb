@@ -33,15 +33,7 @@ process MAP_TO_IMA_INTERPRET_SCRNA {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genomics import map_to_ima_interpret_scRNA
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def map_to_ima_interpret_scRNA(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genomics import map_to_ima_interpret_scRNA
 
 # Run the tool
 try:
@@ -58,12 +50,13 @@ with open("map_to_ima_interpret_scRNA_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("map_to_ima_interpret_scRNA_output.txt", "w") as f:
-    f.write("Biomni: Map To Ima Interpret Scrna Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Map To Ima Interpret Scrna Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

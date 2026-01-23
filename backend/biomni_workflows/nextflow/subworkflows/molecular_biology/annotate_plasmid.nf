@@ -32,21 +32,13 @@ process ANNOTATE_PLASMID {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import annotate_plasmid
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def annotate_plasmid(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import annotate_plasmid
 
 # Run the tool
 try:
     result = annotate_plasmid(
     sequence="${params.sequence}",
-    is_circular=${params.is_circular}
+    is_circular=${params.is_circular ? "True" : "False"}
     )
 except Exception as e:
     result = {"error": str(e)}
@@ -56,12 +48,13 @@ with open("annotate_plasmid_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("annotate_plasmid_output.txt", "w") as f:
-    f.write("Biomni: Annotate Plasmid Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Annotate Plasmid Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

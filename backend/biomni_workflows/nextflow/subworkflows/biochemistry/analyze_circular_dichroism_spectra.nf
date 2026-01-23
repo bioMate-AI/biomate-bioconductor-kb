@@ -37,15 +37,7 @@ process ANALYZE_CIRCULAR_DICHROISM_SPECTRA {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.biochemistry import analyze_circular_dichroism_spectra
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def analyze_circular_dichroism_spectra(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.biochemistry import analyze_circular_dichroism_spectra
 
 # Run the tool
 try:
@@ -66,12 +58,13 @@ with open("analyze_circular_dichroism_spectra_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("analyze_circular_dichroism_spectra_output.txt", "w") as f:
-    f.write("Biomni: Analyze Circular Dichroism Spectra Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Analyze Circular Dichroism Spectra Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

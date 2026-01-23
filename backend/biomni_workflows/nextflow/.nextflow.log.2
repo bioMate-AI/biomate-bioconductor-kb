@@ -1,0 +1,173 @@
+Jan-23 17:36:31.705 [main] DEBUG nextflow.cli.Launcher - $> nextflow run subworkflows/biochemistry/michaelis_menten.nf --s 5.0 --vmax 1.5 --km 2.0 -with-docker 'biomate/biomni-tools:latest'
+Jan-23 17:36:31.756 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Jan-23 17:36:31.777 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow/nextflow.config
+Jan-23 17:36:31.778 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow/nextflow.config
+Jan-23 17:36:31.805 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Jan-23 17:36:32.107 [main] DEBUG nextflow.config.ConfigBuilder - Enabling execution in Docker container as requested by command-line option `-with-docker biomate/biomni-tools:latest`
+Jan-23 17:36:32.121 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Jan-23 17:36:32.127 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Jan-23 17:36:32.127 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Jan-23 17:36:32.129 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Jan-23 17:36:32.137 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Jan-23 17:36:32.223 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Jan-23 17:36:32.224 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Jan-23 17:36:32.224 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Jan-23 17:36:32.232 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Jan-23 17:36:32.234 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@1e1b061] - activable => nextflow.secret.LocalSecretsProvider@1e1b061
+Jan-23 17:36:32.235 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Jan-23 17:36:32.243 [main] DEBUG nextflow.cli.CmdRun - Launching `subworkflows/biochemistry/michaelis_menten.nf` [agitated_pauling] DSL2 - revision: 145fc127f9
+Jan-23 17:36:32.268 [main] DEBUG nextflow.Session - Session UUID: c1466c82-0797-42fa-891d-89395308aa36
+Jan-23 17:36:32.268 [main] DEBUG nextflow.Session - Run name: agitated_pauling
+Jan-23 17:36:32.269 [main] DEBUG nextflow.Session - Executor pool size: 20
+Jan-23 17:36:32.273 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Jan-23 17:36:32.276 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Jan-23 17:36:32.285 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 43251@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (99.5 GB) - Swap: 16 GB (16 GB)
+Jan-23 17:36:32.297 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow/work [ext2/ext3]
+Jan-23 17:36:32.298 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow/subworkflows/biochemistry/bin
+Jan-23 17:36:32.302 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Jan-23 17:36:32.307 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Jan-23 17:36:32.309 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Jan-23 17:36:32.330 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Jan-23 17:36:32.334 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Jan-23 17:36:32.378 [main] DEBUG nextflow.Session - Session start
+Jan-23 17:36:32.505 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Jan-23 17:36:32.563 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_medium` matches labels `process_medium` for process with name BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN
+Jan-23 17:36:32.572 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Jan-23 17:36:32.572 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jan-23 17:36:32.577 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Jan-23 17:36:32.581 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Jan-23 17:36:32.582 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Jan-23 17:36:32.596 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN': maxForks=0; fair=false; array=0
+Jan-23 17:36:32.625 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: MICHAELIS_MENTEN, BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN
+Jan-23 17:36:32.627 [main] DEBUG nextflow.Session - Igniting dataflow network (1)
+Jan-23 17:36:32.627 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN
+Jan-23 17:36:32.628 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_11b085e3b19a3883: /home/yzhang/biomate/backend/biomni_workflows/nextflow/subworkflows/biochemistry/michaelis_menten.nf
+Jan-23 17:36:32.628 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Jan-23 17:36:32.628 [main] DEBUG nextflow.Session - Session await
+Jan-23 17:36:32.754 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jan-23 17:36:32.757 [Task submitter] INFO  nextflow.Session - [b2/0b9bcf] Submitted process > BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)
+Jan-23 17:36:33.590 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN); status: COMPLETED; exit: 1; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow/work/b2/0b9bcfdbf292ae79668f49970b0b41]
+Jan-23 17:36:33.591 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Jan-23 17:36:33.600 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow/work/b2/0b9bcfdbf292ae79668f49970b0b41
+  error [nextflow.exception.ProcessFailedException]: Process `BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)` terminated with an error exit status (1)
+Jan-23 17:36:33.614 [TaskFinalizer-1] INFO  nextflow.processor.TaskProcessor - [b2/0b9bcf] NOTE: Process `BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)` terminated with an error exit status (1) -- Execution is retried (1)
+Jan-23 17:36:33.620 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jan-23 17:36:33.621 [Task submitter] INFO  nextflow.Session - [e4/aa5ec6] Re-submitted process > BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)
+Jan-23 17:36:34.455 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN); status: COMPLETED; exit: 1; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow/work/e4/aa5ec64a54d95915c0fa52bdadc195]
+Jan-23 17:36:34.457 [TaskFinalizer-2] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow/work/e4/aa5ec64a54d95915c0fa52bdadc195
+  error [nextflow.exception.ProcessFailedException]: Process `BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)` terminated with an error exit status (1)
+Jan-23 17:36:34.457 [TaskFinalizer-2] INFO  nextflow.processor.TaskProcessor - [e4/aa5ec6] NOTE: Process `BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)` terminated with an error exit status (1) -- Execution is retried (2)
+Jan-23 17:36:34.465 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jan-23 17:36:34.466 [Task submitter] INFO  nextflow.Session - [cf/cae7fd] Re-submitted process > BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)
+Jan-23 17:36:35.275 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN); status: COMPLETED; exit: 1; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow/work/cf/cae7fdcf602d4188140dd56cc4f472]
+Jan-23 17:36:35.278 [TaskFinalizer-3] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow/work/cf/cae7fdcf602d4188140dd56cc4f472
+  error [nextflow.exception.ProcessFailedException]: Process `BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)` terminated with an error exit status (1)
+Jan-23 17:36:35.291 [TaskFinalizer-3] ERROR nextflow.processor.TaskProcessor - Error executing process > 'BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)'
+
+Caused by:
+  Process `BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)` terminated with an error exit status (1)
+
+
+Command executed:
+
+  python3 << 'PYEOF'
+  import json
+  from biomni.tool.biochemistry import michaelis_menten
+  
+  # Run the tool
+  try:
+      result = michaelis_menten(
+      s="5.0",
+      vmax="1.5",
+      km="2.0"
+      )
+  except Exception as e:
+      result = {"error": str(e)}
+  
+  # Save results as JSON
+  with open("michaelis_menten_results.json", "w") as f:
+      json.dump(result, f, indent=2, default=str)
+  
+  # Create human-readable output
+  NL = chr(10)
+  with open("michaelis_menten_output.txt", "w") as f:
+      f.write("Biomni: Michaelis Menten Results" + NL)
+      f.write("=" * 60 + NL + NL)
+      if isinstance(result, dict):
+          for key, value in result.items():
+              f.write(str(key) + ": " + str(value) + NL)
+      else:
+          f.write(str(result))
+  
+  print("michaelis_menten completed successfully")
+  PYEOF
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  Traceback (most recent call last):
+    File "<stdin>", line 2, in <module>
+  ImportError: cannot import name 'michaelis_menten' from 'biomni.tool.biochemistry' (/opt/biomni/src/biomni/tool/biochemistry.py)
+
+Work dir:
+  /home/yzhang/biomate/backend/biomni_workflows/nextflow/work/cf/cae7fdcf602d4188140dd56cc4f472
+
+Container:
+  biomate/biomni-tools:latest
+
+Tip: when you have fixed the problem you can continue the execution adding the option `-resume` to the run command line
+Jan-23 17:36:35.294 [TaskFinalizer-3] DEBUG nextflow.Session - Session aborted -- Cause: Process `BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN (BIOMNI_BIOCHEMISTRY_MICHAELIS_MENTEN:MICHAELIS_MENTEN)` terminated with an error exit status (1)
+Jan-23 17:36:35.295 [main] DEBUG nextflow.Session - Session await > all processes finished
+Jan-23 17:36:35.315 [TaskFinalizer-3] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=3; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=2; abortedCount=0; succeedDuration=0ms; failedDuration=4.6s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=2; peakMemory=4 GB; ]
+Jan-23 17:36:35.376 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Jan-23 17:36:35.376 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Jan-23 17:36:35.376 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=3; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=2; abortedCount=0; succeedDuration=0ms; failedDuration=4.6s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=2; peakMemory=4 GB; ]
+Jan-23 17:36:35.376 [TaskFinalizer-3] DEBUG nextflow.Session - null
+java.lang.InterruptedException: null
+	at java.base/java.lang.Object.wait(Native Method)
+	at java.base/java.lang.Thread.join(Thread.java:1313)
+	at java.base/java.lang.Thread.join(Thread.java:1381)
+	at nextflow.trace.AnsiLogObserver.onFlowComplete(AnsiLogObserver.groovy:520)
+	at nextflow.Session$_notifyFlowComplete_lambda39.doCall(Session.groovy:1121)
+	at nextflow.Session.notifyEvent(Session.groovy:1151)
+	at nextflow.Session.notifyFlowComplete(Session.groovy:1121)
+	at nextflow.Session.shutdown0(Session.groovy:779)
+	at nextflow.Session.abort(Session.groovy:834)
+	at nextflow.Session.fault(Session.groovy:796)
+	at nextflow.processor.TaskPollingMonitor.finalizeTask(TaskPollingMonitor.groovy:753)
+	at nextflow.processor.TaskPollingMonitor.safeFinalizeTask(TaskPollingMonitor.groovy:736)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1339)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1094)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokePogoMethod(InvokerHelper.java:645)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(InvokerHelper.java:628)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethodSafe(InvokerHelper.java:82)
+	at nextflow.processor.TaskPollingMonitor$_checkTaskStatus_lambda8.doCall(TaskPollingMonitor.groovy:726)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Jan-23 17:36:35.501 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Jan-23 17:36:35.506 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

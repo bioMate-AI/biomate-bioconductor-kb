@@ -34,15 +34,7 @@ process GET_UCE_EMBEDDINGS_SCRNA {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.genomics import get_uce_embeddings_scRNA
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def get_uce_embeddings_scRNA(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.genomics import get_uce_embeddings_scRNA
 
 # Run the tool
 try:
@@ -60,12 +52,13 @@ with open("get_uce_embeddings_scRNA_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("get_uce_embeddings_scRNA_output.txt", "w") as f:
-    f.write("Biomni: Get Uce Embeddings Scrna Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Get Uce Embeddings Scrna Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

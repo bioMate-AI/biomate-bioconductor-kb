@@ -34,15 +34,7 @@ process DESIGN_GOLDEN_GATE_OLIGOS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import design_golden_gate_oligos
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def design_golden_gate_oligos(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import design_golden_gate_oligos
 
 # Run the tool
 try:
@@ -50,7 +42,7 @@ try:
     backbone_sequence="${params.backbone_sequence}",
     insert_sequence="${params.insert_sequence}",
     enzyme_name="${params.enzyme_name}",
-    is_circular=${params.is_circular}
+    is_circular=${params.is_circular ? "True" : "False"}
     )
 except Exception as e:
     result = {"error": str(e)}
@@ -60,12 +52,13 @@ with open("design_golden_gate_oligos_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("design_golden_gate_oligos_output.txt", "w") as f:
-    f.write("Biomni: Design Golden Gate Oligos Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Design Golden Gate Oligos Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

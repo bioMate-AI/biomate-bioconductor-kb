@@ -33,22 +33,14 @@ process FIND_RESTRICTION_SITES {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.molecular_biology import find_restriction_sites
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def find_restriction_sites(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.molecular_biology import find_restriction_sites
 
 # Run the tool
 try:
     result = find_restriction_sites(
     dna_sequence="${params.dna_sequence}",
     enzymes="${params.enzymes}",
-    is_circular=${params.is_circular}
+    is_circular=${params.is_circular ? "True" : "False"}
     )
 except Exception as e:
     result = {"error": str(e)}
@@ -58,12 +50,13 @@ with open("find_restriction_sites_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("find_restriction_sites_output.txt", "w") as f:
-    f.write("Biomni: Find Restriction Sites Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Find Restriction Sites Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

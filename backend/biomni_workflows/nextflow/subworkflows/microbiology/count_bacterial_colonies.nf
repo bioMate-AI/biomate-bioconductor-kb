@@ -34,15 +34,7 @@ process COUNT_BACTERIAL_COLONIES {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.microbiology import count_bacterial_colonies
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def count_bacterial_colonies(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.microbiology import count_bacterial_colonies
 
 # Run the tool
 try:
@@ -60,12 +52,13 @@ with open("count_bacterial_colonies_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("count_bacterial_colonies_output.txt", "w") as f:
-    f.write("Biomni: Count Bacterial Colonies Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Count Bacterial Colonies Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 

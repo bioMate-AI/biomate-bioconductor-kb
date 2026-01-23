@@ -33,15 +33,7 @@ process IDENTIFY_FAS_FUNCTIONAL_DOMAINS {
     """
     python3 << 'PYEOF'
 import json
-import sys
-
-# Import the biomni function
-try:
-    from biomni.tool.synthetic_biology import identify_fas_functional_domains
-except ImportError:
-    # Fallback: function may need to be implemented locally
-    def identify_fas_functional_domains(**kwargs):
-        return {"status": "Function not available", "params": kwargs}
+from biomni.tool.synthetic_biology import identify_fas_functional_domains
 
 # Run the tool
 try:
@@ -58,12 +50,13 @@ with open("identify_fas_functional_domains_results.json", "w") as f:
     json.dump(result, f, indent=2, default=str)
 
 # Create human-readable output
+NL = chr(10)
 with open("identify_fas_functional_domains_output.txt", "w") as f:
-    f.write("Biomni: Identify Fas Functional Domains Results\n")
-    f.write("=" * 60 + "\n\n")
+    f.write("Biomni: Identify Fas Functional Domains Results" + NL)
+    f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():
-            f.write(f"{key}: {value}\n")
+            f.write(str(key) + ": " + str(value) + NL)
     else:
         f.write(str(result))
 
