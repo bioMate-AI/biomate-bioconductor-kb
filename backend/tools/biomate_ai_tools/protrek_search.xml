@@ -1,0 +1,52 @@
+<tool id="protrek_search" name="ProTrek Search" version="1.0" profile="21.05">
+    <description>Search proteins by function, sequence, or structure (FREE)</description>
+    <requirements>
+        <requirement type="package" version="3.10">python</requirement>
+        <requirement type="package">requests</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/protrek_search_wrapper.py'
+        --query '$query'
+        --search_type '$search_type'
+        --database '$database'
+        --top_k $top_k
+        --output '$output'
+    ]]></command>
+    <inputs>
+        <param name="query" type="text" area="true" label="Search query"
+               help="Function description, protein sequence, or structure"/>
+        <param name="search_type" type="select" label="Search type">
+            <option value="function" selected="true">Function (text description)</option>
+            <option value="sequence">Sequence (amino acids)</option>
+        </param>
+        <param name="database" type="select" label="Database">
+            <option value="uniprot" selected="true">UniProt (reviewed)</option>
+            <option value="ncbi">NCBI (700M sequences)</option>
+            <option value="mgnify">MGnify (metagenomics)</option>
+        </param>
+        <param name="top_k" type="integer" value="100" min="10" max="1000" label="Number of results"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="tabular" label="${tool.name}: Search results"/>
+    </outputs>
+    <help><![CDATA[
+**ProTrek: Trimodal Protein Search (FREE)**
+
+Search 5B+ proteins by function description, sequence, or structure.
+100x faster than Foldseek and MMseqs2!
+
+**No GPU or local computation required!**
+
+**Search Types:**
+- **Function**: Natural language description (e.g., "kinase that phosphorylates tyrosine")
+- **Sequence**: Amino acid sequence for similarity search
+
+**Databases:**
+- UniProt: Curated protein database
+- NCBI: 700 million sequences
+- MGnify: 3 billion metagenomic proteins
+
+**Citation:**
+ProTrek: Trimodal protein language model. Nature Biotechnology (2025)
+    ]]></help>
+</tool>

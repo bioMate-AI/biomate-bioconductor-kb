@@ -103,6 +103,16 @@ interface WorkflowArtifactProps {
   onCancelExecution?: () => Promise<void>
   onPromoteToProduction?: (runId: string) => void
   strataColumns?: string[]
+  // Prerequisites validation (from LLM analysis of input/parameter requirements)
+  prerequisitesValidation?: {
+    fulfilled: boolean
+    analysis: {
+      missingInputs: Array<{ stepId: string; stepLabel: string; inputName: string; description: string; expectedFormats?: string[] }>
+      missingParameters: Array<{ stepId: string; stepLabel: string; parameterName: string; description: string }>
+      inputMappings: Array<{ stepId: string; inputName: string; datasetId: string; datasetName: string; compatibility: string }>
+    }
+    llmResponse?: string
+  } | null
 }
 
 export function WorkflowArtifact({
@@ -147,7 +157,8 @@ export function WorkflowArtifact({
   onResumeExecution,
   onCancelExecution,
   onPromoteToProduction,
-  strataColumns = []
+  strataColumns = [],
+  prerequisitesValidation = null
 }: WorkflowArtifactProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
@@ -237,14 +248,18 @@ export function WorkflowArtifact({
                 <Badge variant="secondary" className="text-xs">
                   {totalSteps} step{totalSteps !== 1 ? 's' : ''}
                 </Badge>
-                {confidence > 0 && (
-                  <Badge
-                    variant={confidence > 0.8 ? "default" : confidence > 0.6 ? "secondary" : "outline"}
-                    className="text-xs"
-                  >
-                    {(confidence * 100).toFixed(0)}% confidence
-                  </Badge>
-                )}
+                {confidence > 0 && (() => {
+                  // Normalize confidence to 0-100 range for display
+                  const normalizedConfidence = confidence > 1 ? confidence : confidence * 100;
+                  return (
+                    <Badge
+                      variant={normalizedConfidence > 80 ? "default" : normalizedConfidence > 60 ? "secondary" : "outline"}
+                      className="text-xs"
+                    >
+                      {normalizedConfidence.toFixed(0)}% confidence
+                    </Badge>
+                  );
+                })()}
 
                 {/* Citation badge */}
                 {citationsCount > 0 && (
@@ -281,7 +296,13 @@ export function WorkflowArtifact({
                     Stop
                   </Button>
                 ) : (
-                  <Button size="sm" onClick={() => onRun?.(workflow, normalizedSteps)} className="bg-green-600 hover:bg-green-700">
+                  <Button
+                    size="sm"
+                    onClick={() => onRun?.(workflow, normalizedSteps)}
+                    className="bg-green-600 hover:bg-green-700"
+                    disabled={prerequisitesValidation?.fulfilled === false}
+                    title={prerequisitesValidation?.fulfilled === false ? 'Missing required inputs - see details below' : undefined}
+                  >
                     <Play className="h-3 w-3 mr-1" />
                     Run
                   </Button>
@@ -299,6 +320,104 @@ export function WorkflowArtifact({
                 <Progress value={(completedSteps / totalSteps) * 100} className="h-2" />
               </div>
             )}
+
+            {/* Prerequisites Warning - Show if inputs or parameters are missing */}
+            {prerequisitesValidation && !prerequisitesValidation.fulfilled && (() => {
+              const hasMissingInputs = prerequisitesValidation.analysis.missingInputs.length > 0;
+              const hasMissingParams = prerequisitesValidation.analysis.missingParameters.length > 0;
+              const isParameterOnly = !hasMissingInputs && hasMissingParams;
+
+              return (
+                <Alert className={cn(
+                  "mt-3",
+                  isParameterOnly
+                    ? "border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20"
+                    : "border-red-500/50 bg-red-50/50 dark:bg-red-950/20"
+                )}>
+                  {isParameterOnly ? (
+                    <Settings2 className="h-4 w-4 text-amber-600" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                  )}
+                  <AlertTitle className={cn(
+                    "text-sm font-medium",
+                    isParameterOnly
+                      ? "text-amber-800 dark:text-amber-200"
+                      : "text-red-800 dark:text-red-200"
+                  )}>
+                    {isParameterOnly ? 'Parameters Need Configuration' : 'Input Data Required'}
+                  </AlertTitle>
+                  <AlertDescription className={cn(
+                    isParameterOnly
+                      ? "text-amber-700 dark:text-amber-300"
+                      : "text-red-700 dark:text-red-300"
+                  )}>
+                    <p className="text-xs mb-2">
+                      {prerequisitesValidation.llmResponse || (
+                        isParameterOnly
+                          ? 'This workflow needs parameter configuration before it can run.'
+                          : 'This workflow requires input data before it can run.'
+                      )}
+                    </p>
+
+                    {/* Missing Inputs */}
+                    {hasMissingInputs && (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium mb-1">Missing Input Data:</p>
+                        <ul className="text-xs list-disc list-inside space-y-1">
+                          {prerequisitesValidation.analysis.missingInputs.map((input, i) => (
+                            <li key={i}>
+                              <span className="font-medium">{input.inputName}</span>
+                              {input.description && <span className="text-muted-foreground"> - {input.description}</span>}
+                              {input.expectedFormats && input.expectedFormats.length > 0 && (
+                                <span className="text-muted-foreground"> (formats: {input.expectedFormats.join(', ')})</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Missing Parameters */}
+                    {hasMissingParams && (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium mb-1">Parameters to Configure:</p>
+                        <ul className="text-xs list-disc list-inside space-y-1">
+                          {prerequisitesValidation.analysis.missingParameters.map((param, i) => (
+                            <li key={i}>
+                              <span className="font-medium">{param.parameterName}</span>
+                              {param.description && <span className="text-muted-foreground"> - {param.description}</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Available Dataset Mappings */}
+                    {prerequisitesValidation.analysis.inputMappings.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium mb-1 text-green-700">Available Data:</p>
+                        <ul className="text-xs list-disc list-inside space-y-1">
+                          {prerequisitesValidation.analysis.inputMappings.map((mapping, i) => (
+                            <li key={i} className="text-green-700">
+                              {mapping.datasetName} → {mapping.inputName}
+                              <span className="text-muted-foreground"> ({mapping.compatibility})</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <p className="text-xs mt-2 italic">
+                      {isParameterOnly
+                        ? 'Click on workflow steps to configure parameters, or ask me to help set them up.'
+                        : 'Please upload your data files to Galaxy or ask me to help you prepare test data.'
+                      }
+                    </p>
+                  </AlertDescription>
+                </Alert>
+              );
+            })()}
 
             {workflow.annotation && (
               <p className="text-sm text-muted-foreground mt-2">

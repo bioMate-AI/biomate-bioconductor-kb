@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni mass_action_kinetics tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Mass action kinetics for chemical reactions."""
 import sys
 import json
-from biomni.tool.systems_biology import mass_action_kinetics
+
+def mass_action_kinetics(k, concentrations):
+    """Mass action kinetics: rate = k * product(concentrations)
+    Args: k: rate constant, concentrations: list of reactant concentrations
+    """
+    import numpy as np
+    if isinstance(concentrations, str):
+        concentrations = [float(x.strip()) for x in concentrations.split(',')]
+    rate = k * np.prod(concentrations)
+    return {"rate": float(rate), "k": k, "concentrations": concentrations}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,41 +21,20 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
+                try:
+                    val = float(val)
+                except ValueError:
+                    pass
                 args[key] = val
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = mass_action_kinetics(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

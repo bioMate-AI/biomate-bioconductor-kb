@@ -1,0 +1,37 @@
+<tool id="esmfold_api" name="ESMFold API" version="1.0" profile="21.05">
+    <description>Protein structure prediction via Meta's free API (no GPU needed)</description>
+    <requirements>
+        <requirement type="package" version="3.10">python</requirement>
+        <requirement type="package">requests</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/esmfold_api_wrapper.py'
+        --sequence '$sequence'
+        --output '$output_structure'
+    ]]></command>
+    <inputs>
+        <param name="sequence" type="text" area="true" label="Protein sequence"
+               help="Amino acid sequence (max 400 residues). Single chain only."/>
+    </inputs>
+    <outputs>
+        <data name="output_structure" format="pdb" label="${tool.name}: Predicted structure"/>
+    </outputs>
+    <help><![CDATA[
+**ESMFold: Fast Protein Structure Prediction (FREE API)**
+
+Meta's ESMFold predicts protein structure directly from sequence without MSAs.
+60x faster than AlphaFold2 while maintaining high accuracy.
+
+**Limitations:**
+- Maximum 400 residues
+- Single chain only (no multimers)
+- No ligands or modifications
+
+**No GPU or API key required!**
+
+For longer sequences or multimers, use Chai-1 or AlphaFold.
+
+**Citation:**
+Lin et al. (2023). Evolutionary-scale prediction of atomic-level protein structure with a language model. Science.
+    ]]></help>
+</tool>

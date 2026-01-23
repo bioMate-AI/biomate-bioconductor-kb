@@ -1,56 +1,45 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni merge_overlapping_regions tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Merge overlapping genomic regions."""
 import sys
 import json
-from biomni.tool.molecular_biology import merge_overlapping_regions
+
+def merge_overlapping_regions(regions):
+    """Merge overlapping regions.
+    Args: regions: list of (start, end) tuples or JSON string
+    """
+    if isinstance(regions, str):
+        regions = json.loads(regions)
+    if not regions:
+        return {"merged": [], "count": 0}
+    
+    sorted_regions = sorted(regions, key=lambda x: x[0])
+    merged = [sorted_regions[0]]
+    
+    for start, end in sorted_regions[1:]:
+        if start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    
+    return {"merged": merged, "count": len(merged), "original_count": len(regions)}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
         if sys.argv[i].startswith('--'):
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
-                val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
-                args[key] = val
+                args[key] = sys.argv[i + 1]
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = merge_overlapping_regions(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni bacterial_dynamics tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Bacterial population dynamics ODE."""
 import sys
 import json
-from biomni.tool.microbiology import bacterial_dynamics
+import numpy as np
+
+def bacterial_dynamics(n, r, k, d):
+    """Bacterial dynamics: dN/dt = r*N*(1-N/K) - d*N
+    Args: n: population, r: growth rate, k: carrying capacity, d: death rate
+    """
+    dndt = r * n * (1 - n / k) - d * n
+    return {"dN_dt": float(dndt), "N": n, "r": r, "K": k, "d": d}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,41 +19,20 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
+                try:
+                    val = float(val)
+                except ValueError:
+                    pass
                 args[key] = val
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = bacterial_dynamics(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

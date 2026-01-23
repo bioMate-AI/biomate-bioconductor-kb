@@ -1,14 +1,33 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni get_coding_sequences tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Extract coding sequences from DNA."""
 import sys
 import json
-from biomni.tool.molecular_biology import get_coding_sequences
+from Bio.Seq import Seq
+
+def get_coding_sequences(sequence, min_length=100):
+    """Extract all potential coding sequences (ORFs).
+    Args: sequence: DNA, min_length: minimum CDS length
+    """
+    seq = sequence.upper()
+    cds_list = []
+    start_codon = "ATG"
+    stop_codons = ["TAA", "TAG", "TGA"]
+    
+    for frame in range(3):
+        i = frame
+        while i < len(seq) - 2:
+            if seq[i:i+3] == start_codon:
+                for j in range(i+3, len(seq)-2, 3):
+                    if seq[j:j+3] in stop_codons:
+                        cds = seq[i:j+3]
+                        if len(cds) >= min_length:
+                            protein = str(Seq(cds).translate())
+                            cds_list.append({"start": i, "end": j+3, "frame": frame+1, "cds": cds, "protein": protein})
+                        break
+            i += 3
+    return {"coding_sequences": cds_list, "count": len(cds_list)}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,41 +35,20 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
+                try:
+                    val = int(val)
+                except ValueError:
+                    pass
                 args[key] = val
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = get_coding_sequences(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

@@ -1,56 +1,48 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni forward tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Forward pass for neural network."""
 import sys
 import json
-from biomni.tool.genetics import forward
+import numpy as np
+
+def forward(x, weights, bias, activation="relu"):
+    """Simple forward pass: y = activation(W*x + b)
+    Args: x: input (comma-sep), weights: matrix (JSON), bias: vector (comma-sep), activation: relu/sigmoid/tanh
+    """
+    if isinstance(x, str):
+        x = np.array([float(v.strip()) for v in x.split(',')])
+    if isinstance(weights, str):
+        weights = np.array(json.loads(weights))
+    if isinstance(bias, str):
+        bias = np.array([float(v.strip()) for v in bias.split(',')])
+    
+    z = np.dot(weights, x) + bias
+    if activation == "relu":
+        y = np.maximum(0, z)
+    elif activation == "sigmoid":
+        y = 1 / (1 + np.exp(-z))
+    elif activation == "tanh":
+        y = np.tanh(z)
+    else:
+        y = z
+    return {"output": y.tolist(), "pre_activation": z.tolist()}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
         if sys.argv[i].startswith('--'):
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
-                val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
-                args[key] = val
+                args[key] = sys.argv[i + 1]
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = forward(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

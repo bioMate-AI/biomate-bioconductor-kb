@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni gene_circuit_odes tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Gene circuit ODE system for synthetic biology."""
 import sys
 import json
-from biomni.tool.synthetic_biology import gene_circuit_odes
+import numpy as np
+
+def gene_circuit_odes(protein_level, production_rate, degradation_rate, inducer=0, hill_coef=2, k_half=1):
+    """Gene circuit: dP/dt = production * (inducer^n / (K^n + inducer^n)) - degradation * P
+    Args: protein_level: current level, production_rate, degradation_rate, inducer: inducer conc, hill_coef: cooperativity
+    """
+    if inducer > 0:
+        activation = (inducer ** hill_coef) / (k_half ** hill_coef + inducer ** hill_coef)
+    else:
+        activation = 0
+    dpdt = production_rate * activation - degradation_rate * protein_level
+    return {"dP_dt": float(dpdt), "protein_level": protein_level, "activation": float(activation)}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,41 +23,20 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
+                try:
+                    val = float(val)
+                except ValueError:
+                    pass
                 args[key] = val
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = gene_circuit_odes(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

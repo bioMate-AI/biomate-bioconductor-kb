@@ -1,0 +1,58 @@
+<tool id="alphafold3_server" name="AlphaFold 3 Server" version="1.0" profile="21.05">
+    <description>FREE structure prediction (20 jobs/day, no key needed)</description>
+    <requirements>
+        <requirement type="package" version="3.10">python</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/alphafold3_server_wrapper.py'
+        --input '$input_file'
+        --output '$output_structure'
+    ]]></command>
+    <inputs>
+        <param name="input_file" type="data" format="fasta,json,txt" label="Input sequences"
+               help="FASTA file or AlphaFold 3 JSON specification"/>
+    </inputs>
+    <outputs>
+        <data name="output_structure" format="cif" label="${tool.name}: Structure (submit to server)"/>
+    </outputs>
+    <help><![CDATA[
+**AlphaFold 3 Server - FREE Structure Prediction**
+
+Use DeepMind's AlphaFold 3 for FREE via their web server.
+
+**Limits:**
+- 20 jobs per day
+- No API key required
+- Results via email
+
+**Website:** https://alphafoldserver.com
+
+**Supported Molecules:**
+- Proteins
+- DNA
+- RNA
+- Ligands (small molecules)
+- Ions
+- Modified residues
+
+**How to Use:**
+1. Run this tool to format your input
+2. Go to alphafoldserver.com
+3. Sign in with Google
+4. Submit the formatted sequences
+5. Download results when ready
+
+**Input Formats:**
+- FASTA file with protein/DNA/RNA sequences
+- AlphaFold 3 JSON specification
+
+**Output:**
+- mmCIF structure file
+- Confidence scores
+
+**License:** Free for non-commercial use
+
+**Citation:**
+Abramson et al. (2024). Accurate structure prediction of biomolecular interactions. Nature.
+    ]]></help>
+</tool>

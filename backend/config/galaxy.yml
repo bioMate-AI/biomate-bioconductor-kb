@@ -21,9 +21,9 @@ galaxy:
   new_file_path: tmp
   tool_dependency_dir: dependencies
   check_migrate_tools: false
-  # Include both standard Galaxy tools and Biomni tools
-  # Use absolute path for Biomni tools
-  tool_config_file: tool_conf.xml.sample,/home/yzhang/biomate/backend/biomni_workflows/galaxy/tools/biomni/tool_conf_biomni.xml
+  # Include standard Galaxy tools, Biomni tools, and Biomate AI tools
+  # Use absolute paths for custom tools
+  tool_config_file: tool_conf.xml.sample,/home/yzhang/biomate/backend/biomni_workflows/galaxy/tools/biomni/tool_conf_biomni.xml,/home/yzhang/biomate/backend/tools/biomate_ai_tools/tool_conf.xml
 
   # Memory optimization - load tools on demand instead of preloading
   preload_tool_panel: false

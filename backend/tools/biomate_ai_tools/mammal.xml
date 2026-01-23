@@ -1,0 +1,61 @@
+<tool id="mammal" name="MAMMAL" version="1.0" profile="21.05">
+    <description>Multi-species genomic analysis and annotation</description>
+    <requirements>
+        <container type="docker">ghcr.io/biomate/mammal:1.0</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/mammal_wrapper.py'
+        --input '$input_fasta'
+        --task '$task'
+        --species '$species'
+        --output '$output'
+    ]]></command>
+    <inputs>
+        <param name="input_fasta" type="data" format="fasta" label="Input genomic sequences"
+               help="FASTA file containing genomic DNA sequences"/>
+        <param name="task" type="select" label="Analysis task">
+            <option value="gene_prediction">Gene prediction</option>
+            <option value="regulatory">Regulatory element prediction</option>
+            <option value="conservation">Cross-species conservation</option>
+            <option value="annotation">Functional annotation</option>
+        </param>
+        <param name="species" type="select" label="Species">
+            <option value="human">Human (Homo sapiens)</option>
+            <option value="mouse">Mouse (Mus musculus)</option>
+            <option value="rat">Rat (Rattus norvegicus)</option>
+            <option value="dog">Dog (Canis familiaris)</option>
+            <option value="pig">Pig (Sus scrofa)</option>
+            <option value="cow">Cow (Bos taurus)</option>
+            <option value="auto">Auto-detect</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output" format="gff3" label="${tool.name}: ${task} annotations">
+            <change_format>
+                <when input="task" value="conservation" format="bedgraph"/>
+            </change_format>
+        </data>
+    </outputs>
+    <help><![CDATA[
+**MAMMAL: Multi-species Genomic Analysis**
+
+MAMMAL is a foundation model for mammalian genomics, trained on multiple species for cross-species analysis.
+
+**Analysis Tasks:**
+- **Gene prediction**: Identify coding genes and transcripts
+- **Regulatory elements**: Predict promoters, enhancers, silencers
+- **Conservation**: Score evolutionary conservation across mammals
+- **Functional annotation**: Annotate genomic regions with functions
+
+**Supported Species:**
+- Human, Mouse, Rat, Dog, Pig, Cow
+- Auto-detection mode available
+
+**Output Formats:**
+- GFF3 for annotations
+- BedGraph for conservation scores
+
+**Citation:**
+MAMMAL: A Mammalian Genomic Foundation Model (2024)
+    ]]></help>
+</tool>

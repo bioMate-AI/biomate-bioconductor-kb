@@ -1,0 +1,253 @@
+{
+  "sentence-transformers/all-MiniLM-L6-v2": {
+    "load_time": 0.9988129138946533,
+    "dimension": 384,
+    "speed": {
+      "total_texts": 500,
+      "total_time": 3.369415760040283,
+      "texts_per_second": 148.39367878840284,
+      "ms_per_text": 6.738831520080566
+    },
+    "accuracy": {
+      "per_query": [
+        {
+          "query": "RNA-seq differential expression analysis",
+          "category": "RNA-seq",
+          "expected_count": 7,
+          "hits_in_top_k": 1,
+          "recall": 0.14285714285714285,
+          "top_results": [
+            [
+              "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_edger_differential_expression/ctat_edger_differential_expression/1.0.0",
+              0.6524825692176819
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/rnateam/dewseq/Repository_Actions_DEWSeq",
+              0.5808545351028442
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/yhoogstrate/fuma/Repository_Actions_FuMa",
+              0.5806658864021301
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_analyze_differential_expression/Repository_Actions_ctat_analyze_differential_expression",
+              0.5519070029258728
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_lncrna/Repository_Actions_ctat_lncrna",
+              0.5043739080429077
+            ]
+          ]
+        },
+        {
+          "query": "protein sequence alignment",
+          "category": "Alignment",
+          "expected_count": 6,
+          "hits_in_top_k": 1,
+          "recall": 0.16666666666666666,
+          "top_results": [
+            [
+              "toolshed.g2.bx.psu.edu/repos/shantanu/demo_bowtie/Repository_Actions_Map_with_Bowtie_for_Illumina",
+              0.5984345078468323
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_rsem_align_and_estimate_abundance/Repository_Actions_ctat_rsem_align_and_estimate_abundance",
+              0.5238204598426819
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/bgruening/deeptools_alignmentsieve/Repository_Actions_alignmentsieve",
+              0.5234453082084656
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/artbio/blastx_to_scaffold/Repository_Actions_blastx_to_scaffold",
+              0.5209695100784302
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/yating-l/blastxmltopsl/Repository_Actions_blastXmlToPsl",
+              0.5167550444602966
+            ]
+          ]
+        },
+        {
+          "query": "variant calling from whole genome sequencing",
+          "category": "Variant Calling",
+          "expected_count": 6,
+          "hits_in_top_k": 0,
+          "recall": 0.0,
+          "top_results": [
+            [
+              "toolshed.g2.bx.psu.edu/repos/peterjc/count_roi_variants/Repository_Actions_Count_sequence_variants_in_region_of_interest",
+              0.4941094219684601
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/bgruening/deeptools_multi_bam_summary/Repository_Actions_multiBamSummary",
+              0.4703846573829651
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/bgruening/deeptools_bam_coverage/Repository_Actions_bamCoverage",
+              0.4491674304008484
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/aaronquinlan/bedtools/Repository_Actions_Create_a_BedGraph_of_genome_coverage",
+              0.44444674253463745
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/aaronquinlan/bedtools/Repository_Actions_Create_a_histogram_of_genome_coverage",
+              0.43564754724502563
+            ]
+          ]
+        },
+        {
+          "query": "quality control for sequencing reads",
+          "category": "QC",
+          "expected_count": 5,
+          "hits_in_top_k": 0,
+          "recall": 0.0,
+          "top_results": [
+            [
+              "toolshed.g2.bx.psu.edu/repos/iuc/art/Repository_Actions_ART_SOLiD",
+              0.5894585847854614
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/iuc/art/Repository_Actions_ART_454",
+              0.5792356729507446
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/bgruening/deeptools_correct_gc_bias/Repository_Actions_correctGCBias",
+              0.5665925741195679
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/bgruening/deeptools_bam_coverage/Repository_Actions_bamCoverage",
+              0.563634991645813
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/bgruening/deeptools_plot_coverage/Repository_Actions_plotCoverage",
+              0.5545608997344971
+            ]
+          ]
+        },
+        {
+          "query": "ChIP-seq peak calling",
+          "category": "ChIP-seq",
+          "expected_count": 5,
+          "hits_in_top_k": 0,
+          "recall": 0.0,
+          "top_results": [
+            [
+              "toolshed.g2.bx.psu.edu/repos/devteam/ccat/Repository_Actions_CCAT",
+              0.7643690705299377
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/mvdbeek/damidseq_findpeaks/Repository_Actions_damidseq_find_peaks",
+              0.6167139410972595
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/mvdbeek/damid_deseq2_to_peaks/Repository_Actions_DamID_deseq2_to_peaks",
+              0.562909722328186
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/mvdbeek/damidseq_core/Repository_Actions_damidseq",
+              0.5573918223381042
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/mora-lab/chipenrich/Repository_Actions_ChIP-Enrich",
+              0.5293295383453369
+            ]
+          ]
+        },
+        {
+          "query": "metabolomics data analysis",
+          "category": "Metabolomics",
+          "expected_count": 4,
+          "hits_in_top_k": 0,
+          "recall": 0.0,
+          "top_results": [
+            [
+              "toolshed.g2.bx.psu.edu/repos/ufz/data_manager_eukcc/Repository_Actions_EukCC_data_manager",
+              0.506533682346344
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/iuc/pcdl_get_substrate_list/Repository_Actions_pcdl_get_substrate_list",
+              0.4567815661430359
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/trinity_ctat/ctat_metagenomics/Repository_Actions_ctat_metagenomics",
+              0.4519004821777344
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/iuc/data_manager_bwameth_index_builder/Repository_Actions_bwa-meth_index",
+              0.4409106373786926
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/iuc/ebi_metagenomics_run_downloader/Repository_Actions_Download_run_data",
+              0.43569499254226685
+            ]
+          ]
+        },
+        {
+          "query": "genome assembly de novo",
+          "category": "Assembly",
+          "expected_count": 6,
+          "hits_in_top_k": 1,
+          "recall": 0.16666666666666666,
+          "top_results": [
+            [
+              "toolshed.g2.bx.psu.edu/repos/iuc/abyss/Repository_Actions_ABySS",
+              0.6386280059814453
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/edward-kirton/abyss_toolsuite/Repository_Actions_Abyss_Paired-End",
+              0.6271668076515198
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/edward-kirton/abyss_toolsuite/Repository_Actions_Abyss",
+              0.5940573215484619
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/artbio/blast_to_scaffold/Repository_Actions_blast_to_scaffold",
+              0.5667594075202942
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/artbio/blastx_to_scaffold/Repository_Actions_blastx_to_scaffold",
+              0.541454553604126
+            ]
+          ]
+        },
+        {
+          "query": "phylogenetic tree construction",
+          "category": "Phylogenetics",
+          "expected_count": 5,
+          "hits_in_top_k": 0,
+          "recall": 0.0,
+          "top_results": [
+            [
+              "toolshed.g2.bx.psu.edu/repos/lijing/bubio/Repository_Actions_Phylip_DNAPARS",
+              0.5531356930732727
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/weiwei12456/binning_tool/Repository_Actions_Species_Binning",
+              0.48173093795776367
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/weiwei12456/dada2_convert/Repository_Actions_Classical_ASV_Table_Generator",
+              0.42589953541755676
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/lijing/bubio/Repository_Actions_Phylip_Seqboot",
+              0.4257054626941681
+            ],
+            [
+              "toolshed.g2.bx.psu.edu/repos/chemteam/acpype_amber2gromacs/Repository_Actions_Convert_Amber_topology_and_coordinate_files_to_GROMACS_format",
+              0.3896723687648773
+            ]
+          ]
+        }
+      ],
+      "average_recall": 0.05952380952380952,
+      "total_queries": 8
+    }
+  },
+  "google/embeddinggemma-300m": {
+    "error": "You are trying to access a gated repo.\nMake sure to have access to it at https://huggingface.co/google/embeddinggemma-300m.\n401 Client Error. (Request ID: Root=1-697093a7-723cba160a865ac16e6bf5e5;fa25a867-997c-4465-8706-fc193e1938c3)\n\nCannot access gated repo for url https://huggingface.co/google/embeddinggemma-300m/resolve/main/config.json.\nAccess to model google/embeddinggemma-300m is restricted. You must have access to it and be authenticated to access it. Please log in."
+  }
+}

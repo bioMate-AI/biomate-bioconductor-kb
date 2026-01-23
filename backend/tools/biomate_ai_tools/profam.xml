@@ -1,0 +1,50 @@
+<tool id="profam" name="ProFam" version="1.0" profile="21.05">
+    <description>Protein family classification and annotation</description>
+    <requirements>
+        <container type="docker">ghcr.io/biomate/profam:1.0</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/profam_wrapper.py'
+        --mode score
+        --input '$input_fasta'
+        --output '$output'
+    ]]></command>
+    <inputs>
+        <param name="input_fasta" type="data" format="fasta" label="Input protein sequences"
+               help="FASTA file containing protein sequences to classify"/>
+        <param name="output_format" type="select" label="Output format">
+            <option value="tsv" selected="true">TSV</option>
+            <option value="json">JSON</option>
+        </param>
+        <param name="evalue" type="float" value="1e-5" optional="true" label="E-value threshold"
+               help="Maximum E-value for reporting matches"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="tabular" label="${tool.name}: Family annotations">
+            <change_format>
+                <when input="output_format" value="json" format="json"/>
+            </change_format>
+        </data>
+    </outputs>
+    <help><![CDATA[
+**ProFam: Protein Family Classification**
+
+ProFam uses deep learning to classify proteins into families and predict functional annotations.
+
+**Input:**
+- FASTA file with protein sequences
+
+**Output:**
+- Family classifications with confidence scores
+- Functional domain annotations
+- GO term predictions
+
+**Features:**
+- Fast classification using pre-trained embeddings
+- Support for novel protein families
+- Multi-level hierarchy (superfamily, family, subfamily)
+
+**Citation:**
+ProFam: Deep Learning for Protein Family Classification (2024)
+    ]]></help>
+</tool>

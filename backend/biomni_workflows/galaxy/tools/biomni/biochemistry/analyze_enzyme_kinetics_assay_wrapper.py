@@ -40,6 +40,21 @@ def main():
     # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
 
+    # Handle list parameters - substrate_concentrations should be a list of floats
+    if 'substrate_concentrations' in args and isinstance(args['substrate_concentrations'], str):
+        args['substrate_concentrations'] = [float(x.strip()) for x in args['substrate_concentrations'].split(',')]
+
+    # Handle time_points as list of floats
+    if 'time_points' in args and isinstance(args['time_points'], str):
+        args['time_points'] = [float(x.strip()) for x in args['time_points'].split(',')]
+
+    # Handle modulators as JSON dict
+    if 'modulators' in args and isinstance(args['modulators'], str):
+        try:
+            args['modulators'] = json.loads(args['modulators'])
+        except json.JSONDecodeError:
+            args['modulators'] = None
+
     # Call function
     result = analyze_enzyme_kinetics_assay(**args)
 

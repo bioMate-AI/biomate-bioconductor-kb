@@ -280,7 +280,10 @@ class BenchmarkKnowledgeDB:
         if self._embedding_model is None and self._enable_semantic:
             try:
                 from sentence_transformers import SentenceTransformer
-                self._embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+                from .vector_search import _detect_device_safe
+                device = _detect_device_safe(timeout_seconds=5.0)
+                log.info(f"Loading embedding model on device: {device}")
+                self._embedding_model = SentenceTransformer('all-MiniLM-L6-v2', device=device)
                 self._build_embeddings_index()
                 log.info("Loaded embedding model for semantic benchmark search")
             except ImportError:

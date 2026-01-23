@@ -1,56 +1,44 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni glv_equations tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Generalized Lotka-Volterra equations."""
 import sys
 import json
-from biomni.tool.microbiology import glv_equations
+import numpy as np
+
+def glv_equations(populations, growth_rates, interaction_matrix):
+    """GLV: dxi/dt = xi * (ri + sum_j(aij * xj))
+    Args: populations: list, growth_rates: list, interaction_matrix: 2D list (as JSON string)
+    """
+    if isinstance(populations, str):
+        populations = [float(x.strip()) for x in populations.split(',')]
+    if isinstance(growth_rates, str):
+        growth_rates = [float(x.strip()) for x in growth_rates.split(',')]
+    if isinstance(interaction_matrix, str):
+        interaction_matrix = json.loads(interaction_matrix)
+    
+    populations = np.array(populations)
+    growth_rates = np.array(growth_rates)
+    interaction_matrix = np.array(interaction_matrix)
+    
+    derivatives = populations * (growth_rates + interaction_matrix @ populations)
+    return {"derivatives": derivatives.tolist(), "populations": populations.tolist()}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
         if sys.argv[i].startswith('--'):
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
-                val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
-                args[key] = val
+                args[key] = sys.argv[i + 1]
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = glv_equations(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

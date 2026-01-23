@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { ChatInterface } from "./chat-interface"
 import { WorkflowHistoryPanel } from "./workflow-history-panel"
 import { chatHistoryService } from "@/lib/chat-history"
-import { useWorkflowExecution } from "@/hooks/useWorkflowExecution"
+import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
 import type { ChatSession } from "@shared/schema"
 import { MessageCircle } from "lucide-react"
 
@@ -19,30 +19,25 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   const [isWorkflowRunning, setIsWorkflowRunning] = useState(false)
   const [workflowProgress, setWorkflowProgress] = useState(0)
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(null)
+  const [workflowError, setWorkflowError] = useState<string | null>(null)
 
-  // Real-time workflow execution hook
+  // Unified workflow execution hook (with input validation)
   const {
-    invocationId,
-    workflowState,
-    steps: executionSteps,
+    currentRun,
     error: executionError,
     isConnected,
     isComplete,
-    invokeWorkflow,
-    cancelWorkflow,
-  } = useWorkflowExecution()
+    isRunning,
+    executeWorkflow,
+    cancelRun,
+  } = useUnifiedExecution()
 
-  // Update progress based on execution steps
+  // Update progress based on execution run
   useEffect(() => {
-    if (executionSteps.size > 0) {
-      const completedSteps = Array.from(executionSteps.values()).filter(
-        s => s.state === 'ok'
-      ).length
-      const totalSteps = executionSteps.size
-      const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0
-      setWorkflowProgress(progress)
+    if (currentRun?.progress) {
+      setWorkflowProgress(currentRun.progress.percent || 0)
     }
-  }, [executionSteps])
+  }, [currentRun?.progress])
 
   // Handle workflow completion
   useEffect(() => {
@@ -87,20 +82,19 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       return;
     }
 
+    // Clear any previous error
+    setWorkflowError(null);
     setIsWorkflowRunning(true);
     setWorkflowProgress(0);
 
     try {
-      // Step 1: Create workflow in Galaxy
-      // Use the AI-generated .ga format if available, otherwise build one
+      // Build workflow definition (Galaxy .ga format)
       let workflowDefinition: any;
 
       if (workflow.a_galaxy_workflow) {
-        // Already in Galaxy .ga format from AI generator
         console.log('[ChatWithArtifacts] Using AI-generated .ga workflow format');
         workflowDefinition = workflow;
       } else {
-        // Build Galaxy workflow from simplified format
         console.log('[ChatWithArtifacts] Building workflow from simplified format');
         workflowDefinition = {
           a_galaxy_workflow: "true",
@@ -126,89 +120,74 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         }
       }
 
-      console.log('[ChatWithArtifacts] Creating workflow in Galaxy:', workflowDefinition.name);
-      const createResponse = await fetch('/api/galaxy/workflows', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workflow: workflowDefinition })
-      });
-
-      if (!createResponse.ok) {
-        const error = await createResponse.json();
-        throw new Error(error.message || 'Failed to create workflow in Galaxy');
-      }
-
-      const createdWorkflow = await createResponse.json();
-      const workflowId = createdWorkflow.id;
-      console.log('[ChatWithArtifacts] Created workflow with ID:', workflowId);
-      setCurrentWorkflowId(workflowId);
-
-      // Step 2: Build workflow inputs
-      // Extract dataset assignments if available in the workflow metadata
-      const workflowInputs: Record<string, any> = {};
-
-      // Check if workflow has dataset_assignments from AI generator
+      // Build inputs from dataset_assignments if available
+      const inputs: Array<{ id: string; src: string; step_id?: number }> = [];
       if (workflow.dataset_assignments?.workflow_steps) {
         for (const stepData of workflow.dataset_assignments.workflow_steps) {
           if (stepData.dataset_needed && stepData.selected_datasets?.length > 0) {
-            // Map first selected dataset to the step's input
             const dataset = stepData.selected_datasets[0];
-            workflowInputs[stepData.step.toString()] = {
-              src: 'hda',  // HistoryDatasetAssociation
-              id: dataset.id
-            };
+            inputs.push({
+              id: dataset.id,
+              src: 'hda',
+              step_id: stepData.step
+            });
           }
         }
       }
 
-      console.log('[ChatWithArtifacts] Workflow inputs:', workflowInputs);
+      console.log('[ChatWithArtifacts] Executing workflow via unified API');
+      console.log('[ChatWithArtifacts] Inputs:', inputs.length);
 
-      // Step 3: Invoke workflow with inputs
-      console.log('[ChatWithArtifacts] Invoking workflow:', workflowId);
-      const galaxyInvocation = await invokeWorkflow(workflowId, workflowInputs);
-      console.log('[ChatWithArtifacts] Workflow invoked successfully:', galaxyInvocation);
+      // Execute workflow using unified API (handles validation, history creation, invocation)
+      const run = await executeWorkflow({
+        workflowDefinition,
+        workflowName: workflow.name || 'bioMate Workflow',
+        executionConfig: {
+          mode: 'sandbox',
+          dataScope: { fraction: 1.0, samplingStrategy: 'sequential' }
+        },
+        inputs
+      });
 
-      // Step 4: Create invocation record in our backend for output tracking
-      try {
-        const invocationResponse = await fetch('/api/invocations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            workflowName: workflow.name || 'bioMate Workflow',
-            workflowDefinition: {
-              id: workflowId,
-              name: workflow.name,
-              steps: steps,
-              galaxyWorkflowId: workflowId
-            },
-            galaxyInvocationId: galaxyInvocation.id,
-            galaxyHistoryId: galaxyInvocation.history_id || '',
-            totalSteps: steps.length,
-            status: 'running'
-          })
-        });
+      console.log('[ChatWithArtifacts] Workflow execution started:', run?.id);
+      setCurrentWorkflowId(run?.execution?.galaxyWorkflowId || null);
 
-        if (invocationResponse.ok) {
-          const bioMateInvocation = await invocationResponse.json();
-          console.log('[ChatWithArtifacts] Created bioMate invocation:', bioMateInvocation.id);
+      // Update message with invocationId for output tracking
+      if (run && currentChatSession) {
+        const freshSession = chatHistoryService.getSession(currentChatSession.id);
+        if (freshSession) {
+          const updatedMessages = freshSession.messages.map(msg => {
+            if (msg.metadata?.type === 'workflow' &&
+                msg.metadata?.workflow?.name === workflow.name) {
+              console.log('[ChatWithArtifacts] Updating message with run ID:', run.id);
+              return {
+                ...msg,
+                invocationId: run.id,
+              };
+            }
+            return msg;
+          });
+
+          const updatedSession = { ...freshSession, messages: updatedMessages };
+          chatHistoryService.updateSession(freshSession.id, updatedSession);
+          onChatUpdated(updatedSession);
         }
-      } catch (trackingError: any) {
-        console.error('[ChatWithArtifacts] Failed to create tracking invocation:', trackingError);
-        // Don't fail workflow execution if tracking fails
       }
 
     } catch (error: any) {
       console.error('[ChatWithArtifacts] Failed to run workflow:', error);
       setIsWorkflowRunning(false);
       setWorkflowProgress(0);
-      // Could show an error toast here
+
+      // Error message comes from unified API (includes input validation errors)
+      setWorkflowError(error?.message || 'Failed to run workflow');
     }
   };
 
   const handleStopWorkflow = async () => {
     console.log('[ChatWithArtifacts] Stopping workflow');
     try {
-      await cancelWorkflow();
+      await cancelRun();
       setIsWorkflowRunning(false);
       setWorkflowProgress(0);
       setCurrentWorkflowId(null);
@@ -314,6 +293,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
           onParameterChange={handleParameterChange}
           isWorkflowRunning={isWorkflowRunning}
           workflowProgress={workflowProgress}
+          workflowError={workflowError}
         />
       </div>
     </div>

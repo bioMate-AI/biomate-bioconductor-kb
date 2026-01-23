@@ -26,6 +26,51 @@ except ImportError:
     log.warning("sentence-transformers not installed. Vector search will be disabled.")
 
 
+def _detect_device_safe(timeout_seconds: float = 5.0) -> str:
+    """
+    Safely detect if CUDA is available with a timeout.
+
+    Some systems have CUDA driver issues that cause torch.cuda.is_available()
+    to hang indefinitely. This function uses a timeout to detect such cases
+    and falls back to CPU.
+
+    Returns:
+        'cuda' if CUDA is available and working, 'cpu' otherwise
+    """
+    import threading
+    import queue
+
+    result_queue = queue.Queue()
+
+    def check_cuda():
+        try:
+            import torch
+            if torch.cuda.is_available():
+                # Also test that CUDA actually works
+                try:
+                    torch.tensor([1.0]).cuda()
+                    result_queue.put('cuda')
+                except Exception:
+                    result_queue.put('cpu')
+            else:
+                result_queue.put('cpu')
+        except Exception:
+            result_queue.put('cpu')
+
+    thread = threading.Thread(target=check_cuda, daemon=True)
+    thread.start()
+    thread.join(timeout=timeout_seconds)
+
+    if thread.is_alive():
+        log.warning(f"CUDA detection timed out after {timeout_seconds}s, falling back to CPU")
+        return 'cpu'
+
+    try:
+        return result_queue.get_nowait()
+    except queue.Empty:
+        return 'cpu'
+
+
 class VectorToolSearch:
     """
     Semantic search using vector embeddings.
@@ -34,7 +79,9 @@ class VectorToolSearch:
     Falls back gracefully if sentence-transformers is not installed.
     """
 
-    # Default model - fast and good quality (384 dimensions)
+    # Default model - all-MiniLM-L6-v2 (384 dimensions, MTEB 56.3)
+    # TODO: Consider upgrading to BAAI/bge-small-en-v1.5 (MTEB 62.17, +9% recall)
+    # See docs/20260121_embedding_model_survey.md for comparison
     DEFAULT_MODEL = 'all-MiniLM-L6-v2'
 
     def __init__(
@@ -42,7 +89,8 @@ class VectorToolSearch:
         db_path: str,
         model_name: str = None,
         embedding_path: str = None,
-        auto_create: bool = True
+        auto_create: bool = True,
+        device: str = None
     ):
         """
         Initialize vector search.
@@ -52,11 +100,13 @@ class VectorToolSearch:
             model_name: Sentence transformer model name
             embedding_path: Path to save/load embeddings (default: db_path with .npz)
             auto_create: Automatically create embeddings if not found
+            device: Device to use ('cpu', 'cuda', or None for auto-detect with timeout)
         """
         self.db_path = db_path
         self.model_name = model_name or self.DEFAULT_MODEL
         self.embedding_path = embedding_path or db_path.replace('.db', '_embeddings.npz')
         self.auto_create = auto_create
+        self.device = device
 
         self.model = None
         self.tool_ids: List[str] = []
@@ -71,9 +121,14 @@ class VectorToolSearch:
     def _initialize(self):
         """Load model and embeddings."""
         try:
-            # Load model
-            log.info(f"Loading sentence transformer model: {self.model_name}")
-            self.model = SentenceTransformer(self.model_name)
+            # Determine device - use safe detection if not specified
+            if self.device is None:
+                self.device = _detect_device_safe(timeout_seconds=5.0)
+                log.info(f"Auto-detected device: {self.device}")
+
+            # Load model on specified device
+            log.info(f"Loading sentence transformer model: {self.model_name} on {self.device}")
+            self.model = SentenceTransformer(self.model_name, device=self.device)
 
             # Load or create embeddings
             if Path(self.embedding_path).exists():

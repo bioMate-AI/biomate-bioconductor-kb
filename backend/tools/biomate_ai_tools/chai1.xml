@@ -1,0 +1,60 @@
+<tool id="chai1" name="Chai-1" version="0.6.1" profile="21.05">
+    <description>Multi-modal structure prediction for proteins, DNA, RNA, and ligands</description>
+    <requirements>
+        <container type="docker">ghcr.io/biomate/chai1:0.6.1</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/chai1_wrapper.py'
+        --input '$input_fasta'
+        --output '$output_structure'
+        --num_trunk_recycles $num_samples
+    ]]></command>
+    <inputs>
+        <param name="input_fasta" type="data" format="fasta" label="Input sequences (FASTA)"
+               help="FASTA file with protein, DNA, or RNA sequences. Use chain identifiers for complexes."/>
+        <param name="ligand_smiles" type="text" optional="true" label="Ligand SMILES"
+               help="Optional small molecule ligand in SMILES format"/>
+        <param name="num_samples" type="integer" value="1" min="1" max="5" label="Number of structure samples"
+               help="Generate multiple structure predictions"/>
+        <param name="use_templates" type="boolean" checked="false" label="Use template structures"
+               help="Use homologous structures as templates if available"/>
+    </inputs>
+    <outputs>
+        <data name="output_structure" format="cif" label="${tool.name}: Predicted structure"/>
+    </outputs>
+    <help><![CDATA[
+**Chai-1: Multi-Modal Structure Prediction**
+
+State-of-the-art structure prediction for biomolecular complexes.
+
+**Hardware Requirements:**
+- GPU Memory: ~15-24 GB (runs on NVIDIA GB10)
+- Disk Space: ~15 GB for model weights
+
+**Supported Molecule Types:**
+- Proteins
+- DNA
+- RNA
+- Small molecule ligands
+- Glycosylations
+- Multi-chain complexes
+
+**Input Format:**
+FASTA file with sequences. For complexes, use different chain IDs:
+```
+>proteinA
+MKFLILLFNILCLFPVLAADNH...
+>proteinB
+MKVLWAALLVTFLAGCQA...
+```
+
+**Output:**
+- mmCIF format structure file
+- Confidence scores per residue
+
+**License:** Apache 2.0 (commercial use allowed)
+
+**Citation:**
+Chai Discovery (2024). Chai-1: Decoding molecular interactions.
+    ]]></help>
+</tool>

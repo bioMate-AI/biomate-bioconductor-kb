@@ -1161,14 +1161,32 @@ class AIAssistant:
         for i, step in enumerate(workflow.workflow_steps):
             tool_id = self._normalize_tool_id(step.tool_id)
 
+            # Try to get tool parameters from tool attributes if available
+            tool_params = getattr(step, 'parameters', None) or {}
+            if isinstance(tool_params, str):
+                import json
+                try:
+                    tool_params = json.loads(tool_params) if tool_params else {}
+                except:
+                    tool_params = {}
+
+            # Get inputs from step if available
+            step_inputs = getattr(step, 'inputs', None) or []
+            if isinstance(step_inputs, str):
+                import json
+                try:
+                    step_inputs = json.loads(step_inputs) if step_inputs else []
+                except:
+                    step_inputs = []
+
             steps[str(i)] = {
                 "id": i,
                 "type": "tool",
                 "tool_id": tool_id,
                 "name": step.tool_name,
                 "annotation": step.description,
-                "tool_state": "{}",
-                "inputs": [],
+                "tool_state": tool_params,
+                "inputs": step_inputs,
                 "outputs": [],
                 "position": {"left": 100 + i * 200, "top": 100}
             }
@@ -1182,6 +1200,7 @@ class AIAssistant:
             "steps": steps
         }
 
+        log.info(f"[_build_workflow_ga_from_multi_agent] Built workflow with {len(steps)} steps")
         return workflow_ga
 
     def process_request(self, user_request: UserRequest) -> AIResponse:
@@ -1491,7 +1510,7 @@ class AIAssistant:
                 if result['success']:
                     workflow_ga = result['workflow_ga']
                     datasets_assigned = True  # Constrained generator includes dataset assignment
-                    generated_parameters = result.get('generated_parameters', [])  # NEW: Get LLM-generated parameters
+                    generated_parameters = result.get('generated_parameters', [])  # Get LLM-generated parameters
                     message = f"Generated new workflow with {len(result['workflow_structure']['steps'])} steps (tool-constrained)"
                 else:
                     raise Exception(f"Constrained generator failed: {result['error']}")
@@ -1514,8 +1533,8 @@ class AIAssistant:
                 'message': message,
                 'datasets_assigned': datasets_assigned,
                 'template_match_score': score,
-                'generated_parameters': generated_parameters,  # NEW: Include LLM-generated parameters with confidence scores
-                'tool_installation': tool_install_result  # NEW: Include tool installation results
+                'generated_parameters': generated_parameters,  # Include LLM-generated parameters with confidence scores
+                'tool_installation': tool_install_result  # Include tool installation results
             }
 
         except Exception as e:
@@ -1539,8 +1558,21 @@ class AIAssistant:
         """
         # Extract template structure
         workflow_name = template.get('name', 'Generated Workflow')
-        workflow_desc = template.get('description', '')
-        workflow_steps = template.get('workflow_steps', [])
+        workflow_desc = template.get('description', '') or template.get('annotation', '')
+
+        # Galaxy .ga format uses 'steps' key (dict), not 'workflow_steps' (list)
+        # Handle both formats for compatibility
+        raw_steps = template.get('steps', {})
+        if isinstance(raw_steps, dict):
+            # Galaxy .ga format: {'0': {...}, '1': {...}, ...}
+            workflow_steps = [
+                {**step_data, 'step_id': step_id}
+                for step_id, step_data in sorted(raw_steps.items(), key=lambda x: int(x[0]))
+                if step_data.get('tool_id')  # Skip input steps without tool_id
+            ]
+        else:
+            # Legacy list format
+            workflow_steps = raw_steps if raw_steps else template.get('workflow_steps', [])
 
         # Build .ga format
         ga_workflow = {
@@ -1557,20 +1589,34 @@ class AIAssistant:
             # Normalize tool ID from AI database format (slashes) to Galaxy format (underscores)
             tool_id = self._normalize_tool_id(step.get('tool_id', 'unknown'))
 
+            # Preserve existing tool_state if available from template, otherwise use empty dict
+            existing_tool_state = step.get('tool_state', {})
+            if isinstance(existing_tool_state, str):
+                # Parse string JSON to dict
+                import json
+                try:
+                    existing_tool_state = json.loads(existing_tool_state) if existing_tool_state else {}
+                except:
+                    existing_tool_state = {}
+
             ga_workflow['steps'][step_id] = {
                 'id': i,
                 'tool_id': tool_id,
-                'type': 'tool',
-                'annotation': step.get('description', ''),
-                'tool_state': {},
-                'inputs': []
+                'type': step.get('type', 'tool'),
+                'name': step.get('name', ''),
+                'annotation': step.get('annotation', '') or step.get('description', ''),
+                'tool_state': existing_tool_state,
+                'inputs': step.get('inputs', []),
+                'outputs': step.get('outputs', []),
+                'position': step.get('position', {'left': 100 + i * 200, 'top': 100})
             }
 
             # Add dataset assignments for this step
             step_datasets = self._get_datasets_for_step(i, dataset_assignments)
             if step_datasets:
-                ga_workflow['steps'][step_id]['inputs'] = step_datasets
+                ga_workflow['steps'][step_id]['inputs'].extend(step_datasets)
 
+        log.info(f"[_build_workflow_ga_from_template] Built workflow with {len(ga_workflow['steps'])} steps")
         return ga_workflow
 
     def _build_workflow_ga_from_generated(self, workflow_data: Dict, dataset_assignments: Dict) -> Dict:

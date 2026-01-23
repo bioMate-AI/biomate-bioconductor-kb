@@ -327,6 +327,13 @@ IMPORTANT:
 - Suggest intelligent mappings even with imperfect matches
 - Be helpful and specific in your recommendations
 
+QUERY-BASED WORKFLOWS:
+- Database query tools (PDB, UniProt, PubChem, etc.) often need ONLY parameters, not file inputs
+- If a workflow only requires parameters (search terms, IDs, query strings) and no file inputs,
+  set confidence to 0.8+ if the parameters have sensible defaults or are provided
+- DO NOT add missingInputs for workflows that only need parameters
+- Example: "Query PDB for hemoglobin" needs a search term parameter, not a file upload
+
 Return a JSON object with the following structure:
 {
   "inputMappings": [
@@ -457,6 +464,10 @@ Please analyze which datasets can satisfy which inputs, identify any missing req
 
   /**
    * Check if all prerequisites are fulfilled based on LLM analysis
+   *
+   * IMPORTANT: Query-based workflows (database queries, API calls) may have
+   * NO file inputs - only parameters. These should be considered fulfilled
+   * if all required parameters have defaults or user-provided values.
    */
   private checkFulfillment(analysis: LLMAnalysis, requirements: WorkflowRequirements): boolean {
     // Check if all required inputs have mappings
@@ -482,16 +493,55 @@ Please analyze which datasets can satisfy which inputs, identify any missing req
       return false;
     }
 
-    // If there are required missing parameters (no suggestions), not fulfilled
+    // Check parameter sufficiency
+    // Required parameters must have: (1) default values, OR (2) suggestions from LLM
+    const requiredParams = requirements.parameters.filter(p => !p.optional);
+    const paramsWithDefaults = requiredParams.filter(p => p.defaultValue !== undefined);
+    const paramsWithoutDefaults = requiredParams.filter(p => p.defaultValue === undefined);
+
+    // For parameters without defaults, check if LLM provided suggestions
+    for (const param of paramsWithoutDefaults) {
+      const hasSuggestion = analysis.missingParameters.some(
+        mp => mp.stepId === param.stepId &&
+              mp.paramName === param.paramName &&
+              mp.suggestedOptions &&
+              mp.suggestedOptions.length > 0
+      );
+      // If no default and no suggestion, it's a critical missing parameter
+      if (!hasSuggestion) {
+        // Check if the LLM identified it as missing without suggestions
+        const isCriticallyMissing = analysis.missingParameters.some(
+          mp => mp.stepId === param.stepId &&
+                mp.paramName === param.paramName &&
+                (!mp.suggestedOptions || mp.suggestedOptions.length === 0)
+        );
+        if (isCriticallyMissing) {
+          console.log(`[PrerequisitesValidator] Parameter ${param.paramName} is missing without suggestions`);
+          return false;
+        }
+      }
+    }
+
+    // If there are any explicitly missing parameters without suggestions, not fulfilled
     const criticalMissingParams = analysis.missingParameters.filter(
       p => !p.suggestedOptions || p.suggestedOptions.length === 0
     );
     if (criticalMissingParams.length > 0) {
+      console.log(`[PrerequisitesValidator] Critical missing params:`, criticalMissingParams.map(p => p.paramName));
       return false;
     }
 
-    // High confidence analysis with mappings = fulfilled
-    return analysis.confidence >= 0.7 && analysis.inputMappings.length > 0;
+    // For workflows with required file inputs, need mappings
+    if (requiredInputs.length > 0) {
+      return analysis.confidence >= 0.7 && analysis.inputMappings.length > 0;
+    }
+
+    // For parameter-only workflows (queries, API calls):
+    // - No file inputs required (already checked above)
+    // - All required parameters have defaults or suggestions (checked above)
+    // - Reasonable confidence from LLM analysis
+    console.log(`[PrerequisitesValidator] Parameter-only workflow - confidence: ${analysis.confidence}`);
+    return analysis.confidence >= 0.5;
   }
 
   /**

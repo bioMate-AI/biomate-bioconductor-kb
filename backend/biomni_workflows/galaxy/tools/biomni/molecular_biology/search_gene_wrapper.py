@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni search_gene tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Search for gene in sequence."""
 import sys
 import json
-from biomni.tool.molecular_biology import search_gene
+import re
+
+def search_gene(sequence, pattern, case_sensitive=False):
+    """Search for pattern in sequence.
+    Args: sequence: DNA/RNA, pattern: regex or sequence, case_sensitive: bool
+    """
+    flags = 0 if case_sensitive else re.IGNORECASE
+    matches = []
+    for m in re.finditer(pattern, sequence, flags):
+        matches.append({"start": m.start(), "end": m.end(), "match": m.group()})
+    return {"matches": matches, "count": len(matches), "pattern": pattern}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,41 +22,20 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
                 if val.lower() == 'true':
                     val = True
                 elif val.lower() == 'false':
                     val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
                 args[key] = val
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = search_gene(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

@@ -1,0 +1,60 @@
+<tool id="evo2" name="Evo 2" version="40b" profile="21.05">
+    <description>DNA foundation model - 40B parameters for genome-scale analysis</description>
+    <requirements>
+        <container type="docker">ghcr.io/biomate/evo2:40b</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        echo '$sequence' > input_seq.txt &&
+        python '$__tool_directory__/scripts/evo2_wrapper.py'
+        --mode generate
+        --model evo2_7b
+        --input input_seq.txt
+        --output '$output'
+        --n_tokens $num_tokens
+        --temperature $temperature
+    ]]></command>
+    <inputs>
+        <param name="sequence" type="text" area="true" label="Input DNA sequence"
+               help="DNA sequence using A, T, C, G characters. Supports up to 1M base pairs."/>
+        <param name="task" type="select" label="Task">
+            <option value="generation" selected="true">Generate continuation</option>
+            <option value="scoring">Score sequence likelihood</option>
+            <option value="embedding">Extract embeddings</option>
+            <option value="variant_effect">Predict variant effects</option>
+        </param>
+        <param name="num_tokens" type="integer" value="100" min="1" max="10000" label="Tokens to generate"
+               help="Number of DNA bases to generate (for generation task)"/>
+        <param name="temperature" type="float" value="1.0" min="0.1" max="2.0" label="Temperature"
+               help="Sampling temperature (lower = more deterministic)"/>
+        <param name="context_length" type="integer" value="8192" optional="true" label="Context length"
+               help="Maximum context window. Model supports up to 1M bp."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name}: ${task} result"/>
+    </outputs>
+    <help><![CDATA[
+**Evo 2: 40 Billion Parameter DNA Foundation Model**
+
+Arc Institute's largest DNA model, trained on 9 trillion nucleotides from 100,000+ species.
+
+**Hardware Requirements:**
+- GPU Memory: ~80 GB (runs on NVIDIA GB10 with 120GB unified memory)
+- Disk Space: ~80 GB for model weights
+
+**Capabilities:**
+- Generate DNA sequence continuations
+- Score sequence likelihood
+- Extract learned embeddings
+- Predict variant effects
+- Supports 1 million base pair context
+
+**Tasks:**
+- **Generation**: Continue a DNA sequence
+- **Scoring**: Calculate sequence likelihood
+- **Embedding**: Extract vector representations
+- **Variant Effect**: Predict mutation impact
+
+**Citation:**
+Arc Institute (2025). Evo 2: A 40 billion parameter DNA foundation model.
+    ]]></help>
+</tool>

@@ -110,14 +110,16 @@ def generate_embeddings(db_path: str, force: bool = False):
     try:
         from sentence_transformers import SentenceTransformer
         import numpy as np
+        from .vector_search import _detect_device_safe
     except ImportError:
         log.warning("sentence-transformers not installed. Skipping embeddings.")
         log.info("Install with: pip install sentence-transformers")
         return
 
     model_name = 'all-MiniLM-L6-v2'
-    log.info(f"Loading model: {model_name}")
-    model = SentenceTransformer(model_name)
+    device = _detect_device_safe(timeout_seconds=5.0)
+    log.info(f"Loading model: {model_name} on device: {device}")
+    model = SentenceTransformer(model_name, device=device)
 
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()

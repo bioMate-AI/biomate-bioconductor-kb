@@ -212,6 +212,8 @@ export function ChatInterface({
         content: workflowInfo,
         role: "assistant",
         timestamp: new Date(),
+        // Include invocationId from API response to trigger output viewers
+        invocationId: data.invocationId,
         // Use suggestions from /api/chat or fallbacks
         suggestions: data.suggestions || (workflowSuccess
           ? ["Open in Workflow Builder", "Show details", "Generate another"]
@@ -239,12 +241,15 @@ export function ChatInterface({
           episodeId: data.episodeId,
           // Validation info from workflow if available
           validation: data.workflow?.validation || { is_valid: true, issues: [], warnings: [] },
-          tool_installation: data.workflow?.tool_installation || { success: true, failed_tools: [] }
+          tool_installation: data.workflow?.tool_installation || { success: true, failed_tools: [] },
+          // Prerequisites validation (input data, parameters needed before execution)
+          prerequisitesValidation: data.prerequisitesValidation || null
         }
       }
 
       console.log('[ChatInterface] Created AI message:', {
         id: aiMessage.id,
+        invocationId: aiMessage.invocationId,
         metadata: aiMessage.metadata,
         hasWorkflow: !!aiMessage.metadata?.workflow,
         metadataType: aiMessage.metadata?.type

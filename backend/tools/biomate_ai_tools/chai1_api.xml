@@ -1,0 +1,46 @@
+<tool id="chai1_api" name="Chai-1 API" version="0.6.1" profile="21.05">
+    <description>Protein structure prediction via BioLM API (no GPU required)</description>
+    <requirements>
+        <requirement type="package" version="3.10">python</requirement>
+        <requirement type="package">requests</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/chai1_api_wrapper.py'
+        --sequences '$sequences'
+        --output '$output_structure'
+        --num_samples $num_samples
+        #if $api_key
+        --api_key '$api_key'
+        #end if
+    ]]></command>
+    <inputs>
+        <param name="sequences" type="text" area="true" label="Sequences (JSON format)"
+               help="JSON array: [{&quot;type&quot;: &quot;protein&quot;, &quot;sequence&quot;: &quot;MKFL...&quot;}]"/>
+        <param name="num_samples" type="integer" value="1" min="1" max="5" label="Number of samples"/>
+        <param name="api_key" type="text" optional="true" label="BioLM API Key"
+               help="Get from biolm.ai. Leave empty to use BIOLM_API_KEY env variable."/>
+    </inputs>
+    <outputs>
+        <data name="output_structure" format="cif" label="${tool.name}: Structure"/>
+    </outputs>
+    <help><![CDATA[
+**Chai-1 Structure Prediction via BioLM API**
+
+Predict protein/DNA/RNA/ligand complex structures without local GPU.
+
+**Input Format (JSON):**
+```json
+[
+  {"type": "protein", "sequence": "MKFLILLFNILC..."},
+  {"type": "dna", "sequence": "ATCGATCG"},
+  {"type": "ligand", "sequence": "CC(=O)OC1=CC=CC=C1C(=O)O"}
+]
+```
+
+**API Key:**
+Get your key at https://biolm.ai
+
+**Citation:**
+Chai Discovery (2024). Chai-1: Decoding molecular interactions.
+    ]]></help>
+</tool>

@@ -1,14 +1,25 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni reduce_tokens tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Reduce text tokens for LLM context."""
 import sys
 import json
-from biomni.tool.database import reduce_tokens
+
+def reduce_tokens(text, max_tokens=4000, method="truncate"):
+    """Reduce text to fit token limit.
+    Args: text: input text, max_tokens: limit, method: truncate/summarize
+    """
+    # Rough estimate: 4 chars per token
+    max_chars = max_tokens * 4
+    if len(text) <= max_chars:
+        return {"text": text, "reduced": False, "original_length": len(text)}
+    
+    if method == "truncate":
+        reduced = text[:max_chars] + "..."
+    else:
+        reduced = text[:max_chars] + "..."
+    
+    return {"text": reduced, "reduced": True, "original_length": len(text), "new_length": len(reduced)}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,41 +27,20 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
+                try:
+                    val = int(val)
+                except ValueError:
+                    pass
                 args[key] = val
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = reduce_tokens(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

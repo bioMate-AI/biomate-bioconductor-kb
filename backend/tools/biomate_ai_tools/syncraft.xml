@@ -1,0 +1,48 @@
+<tool id="syncraft" name="SynCraft" version="1.0" profile="21.05">
+    <description>Multi-step retrosynthesis planning for drug discovery</description>
+    <requirements>
+        <container type="docker">ghcr.io/biomate/syncraft:1.0</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/syncraft_wrapper.py'
+        --smiles '$smiles'
+        --output '$output'
+        --few_shot_k $top_k
+        --pass_k 3
+    ]]></command>
+    <inputs>
+        <param name="smiles" type="text" label="Target molecule SMILES"
+               help="SMILES string of the target molecule to synthesize"/>
+        <param name="max_depth" type="integer" value="5" min="1" max="15" label="Maximum depth"
+               help="Maximum number of retrosynthesis steps"/>
+        <param name="top_k" type="integer" value="10" min="1" max="50" label="Top K routes"
+               help="Number of top synthesis routes to return"/>
+        <param name="expansion_topk" type="integer" value="50" optional="true" label="Expansion Top K"
+               help="Number of candidate reactions to consider at each step"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="json" label="${tool.name}: Synthesis routes for ${smiles}"/>
+    </outputs>
+    <help><![CDATA[
+**SynCraft: Multi-Step Retrosynthesis Planning**
+
+SynCraft uses AI to plan chemical synthesis routes for drug molecules.
+
+**Input:**
+- SMILES string of the target molecule
+
+**Output:**
+- JSON file containing ranked synthesis routes with:
+  - Step-by-step reactions
+  - Reaction conditions
+  - Starting materials
+  - Confidence scores
+
+**Example SMILES:**
+- Aspirin: CC(=O)OC1=CC=CC=C1C(=O)O
+- Ibuprofen: CC(C)CC1=CC=C(C=C1)C(C)C(=O)O
+
+**Citation:**
+SynCraft: AI-Driven Retrosynthesis for Drug Discovery (2024)
+    ]]></help>
+</tool>

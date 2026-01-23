@@ -1,14 +1,29 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni is_region_fully_covered tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Check if region is fully covered."""
 import sys
 import json
-from biomni.tool.molecular_biology import is_region_fully_covered
+
+def is_region_fully_covered(query_start, query_end, regions):
+    """Check if query region is fully covered by other regions.
+    Args: query_start, query_end, regions: list of (start, end)
+    """
+    if isinstance(regions, str):
+        regions = json.loads(regions)
+    # Merge regions first
+    sorted_regions = sorted(regions, key=lambda x: x[0])
+    merged = [list(sorted_regions[0])]
+    for start, end in sorted_regions[1:]:
+        if start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    
+    for start, end in merged:
+        if start <= query_start and end >= query_end:
+            return {"fully_covered": True, "query": [query_start, query_end]}
+    return {"fully_covered": False, "query": [query_start, query_end]}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,41 +31,20 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
+                try:
+                    val = int(val)
+                except ValueError:
+                    pass
                 args[key] = val
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = is_region_fully_covered(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

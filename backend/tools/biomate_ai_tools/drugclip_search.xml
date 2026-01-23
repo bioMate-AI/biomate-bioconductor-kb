@@ -1,0 +1,46 @@
+<tool id="drugclip_search" name="DrugCLIP Search" version="1.0" profile="21.05">
+    <description>Search pre-computed virtual screening database (FREE, no GPU)</description>
+    <requirements>
+        <requirement type="package" version="3.10">python</requirement>
+        <requirement type="package">requests</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/drugclip_search_wrapper.py'
+        --uniprot_id '$uniprot_id'
+        --top_k $top_k
+        --output '$output'
+    ]]></command>
+    <inputs>
+        <param name="uniprot_id" type="text" label="UniProt ID"
+               help="Target protein UniProt ID (e.g., P00533 for EGFR)"/>
+        <param name="top_k" type="integer" value="100" min="10" max="1000" label="Top K compounds"
+               help="Number of top-scoring compounds to return"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="tabular" label="${tool.name}: ${uniprot_id} hits"/>
+    </outputs>
+    <help><![CDATA[
+**DrugCLIP: Pre-computed Virtual Screening Database (FREE)**
+
+Access DrugCLIP's pre-computed screening results for 10,000+ human proteins
+against 500 million compounds. Results available instantly!
+
+**No GPU or local computation required!**
+
+**Database Coverage:**
+- 10,000+ human protein targets
+- 500 million compound library
+- Pre-computed binding scores
+
+**Input:**
+- UniProt ID of target protein
+
+**Output:**
+- Top-scoring compounds with SMILES and scores
+
+**For custom proteins not in database**, use the local DrugCLIP tool.
+
+**Citation:**
+Gao et al. (2026). DrugCLIP: Contrastive learning for virtual screening. Science.
+    ]]></help>
+</tool>

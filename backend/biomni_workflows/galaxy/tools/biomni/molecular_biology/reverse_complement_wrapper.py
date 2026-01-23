@@ -1,11 +1,31 @@
 #!/usr/bin/env python3
 """
-Wrapper script for Biomni reverse_complement tool.
-Auto-generated to fix inline Python code issues in Galaxy.
+Wrapper script for reverse_complement tool.
+Uses Biopython directly - no biomni dependency.
 """
 import sys
 import json
-from biomni.tool.molecular_biology import reverse_complement
+from Bio.Seq import Seq
+
+
+def reverse_complement(seq: str) -> dict:
+    """Get the reverse complement of a DNA sequence.
+
+    Args:
+        seq: DNA sequence string
+
+    Returns:
+        dict with original sequence, reverse complement, and metadata
+    """
+    seq_obj = Seq(seq.upper())
+    rev_comp = str(seq_obj.reverse_complement())
+
+    return {
+        "original_sequence": str(seq_obj),
+        "reverse_complement": rev_comp,
+        "length": len(seq_obj)
+    }
+
 
 def main():
     # Parse arguments

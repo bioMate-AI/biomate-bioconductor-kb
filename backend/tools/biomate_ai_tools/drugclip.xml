@@ -4,14 +4,12 @@
         <container type="docker">biomate/drugclip:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
-        python /opt/drugclip/screen.py
-        --target '$target_pocket'
+        python '$__tool_directory__/scripts/drugclip_wrapper.py'
+        --mode screen
+        --protein '$target_pocket'
         --library '$compound_library'
         --output '$output_hits'
         --top_k $top_k
-        #if $mode == "fast"
-        --fast_mode
-        #end if
     ]]></command>
     <inputs>
         <param name="target_pocket" type="data" format="pdb,mol2" label="Target protein pocket"

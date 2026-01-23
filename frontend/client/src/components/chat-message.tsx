@@ -147,6 +147,10 @@ export function ChatMessage({
               // Validation info for transparency
               validationIssues={message.metadata.validation?.issues || []}
               validationWarnings={message.metadata.validation?.warnings || []}
+              // Prerequisites validation (input data, parameters needed)
+              prerequisitesValidation={message.metadata.prerequisitesValidation}
+              // Invocation ID for workflow report viewer
+              invocationId={message.invocationId}
             />
           )}
 

@@ -22,9 +22,100 @@ import type {
   WorkflowGenerationResponse,
 } from '../shared/galaxy-types';
 
+/**
+ * Model configuration for different AI tasks
+ *
+ * Recommended configurations:
+ * - Intent analysis: Fast model (haiku) - simple classification task
+ * - Tool ranking: Medium model (haiku/sonnet) - needs domain knowledge
+ * - Response generation: Best model (sonnet) - user-facing, quality matters
+ *
+ * When to use Thinking Mode:
+ * -------------------------
+ * RECOMMENDED for:
+ * - Complex multi-step workflow planning (e.g., "design a metagenomics pipeline")
+ * - Comparative analysis requiring trade-off evaluation (e.g., "BWA vs Bowtie2")
+ * - Technical explanations requiring accuracy (e.g., statistical interpretation)
+ * - Troubleshooting complex issues (e.g., "why did my alignment fail")
+ *
+ * NOT NECESSARY for:
+ * - Simple greetings and general questions ("Hello", "What can you do?")
+ * - Intent classification (simple JSON classification task)
+ * - Tool ranking (structured output task)
+ * - Short factual responses (e.g., "What format does BWA accept?")
+ *
+ * Performance impact:
+ * - Thinking adds ~2-5 seconds latency
+ * - Thinking uses additional tokens (budget_tokens parameter)
+ * - Quality improvement is most noticeable for complex tasks
+ */
+export interface ModelConfig {
+  /** Model for intent classification (default: claude-sonnet-4-5, can use haiku for speed) */
+  intentModel: string;
+  /** Model for tool ranking (default: claude-sonnet-4-5, can use haiku for speed) */
+  toolRankingModel: string;
+  /** Model for response generation (default: claude-sonnet-4-5) */
+  responseModel: string;
+  /** Whether to enable thinking mode for response generation */
+  enableThinking: boolean;
+  /** Token budget for thinking mode (default: 2000) */
+  thinkingBudget: number;
+}
+
+/**
+ * Determine if thinking mode should be enabled based on the query complexity.
+ * Can be used for adaptive thinking mode (enable only when beneficial).
+ */
+export function shouldEnableThinking(message: string, intent: string): boolean {
+  // Complex workflow requests benefit from thinking
+  const complexPatterns = [
+    /design\s+(a\s+)?.*pipeline/i,
+    /create\s+(a\s+)?.*workflow/i,
+    /compare\s+.*\s+(vs|versus|or)\s+/i,
+    /trade-?offs?\s+(of|between)/i,
+    /explain\s+(the\s+)?(difference|comparison)/i,
+    /troubleshoot/i,
+    /debug/i,
+    /why\s+(did|does|is)/i,
+    /interpret\s+(my|the|these)/i,
+    /what\s+(are\s+)?the\s+(best|optimal|recommended)/i,
+  ];
+
+  // Simple patterns that don't need thinking
+  const simplePatterns = [
+    /^(hello|hi|hey)/i,
+    /what\s+(can\s+)?you\s+do/i,
+    /^(thanks|thank\s+you)/i,
+    /what\s+(is|are)\s+\w+$/i, // Simple definitional questions
+  ];
+
+  // Check for simple patterns first
+  if (simplePatterns.some(p => p.test(message))) {
+    return false;
+  }
+
+  // Check for complex patterns
+  if (complexPatterns.some(p => p.test(message))) {
+    return true;
+  }
+
+  // Default: enable for workflow generation, disable otherwise
+  return intent === 'workflow_generation';
+}
+
+export const DEFAULT_MODEL_CONFIG: ModelConfig = {
+  intentModel: 'claude-haiku-4-5',       // Haiku: same 94% accuracy, 2x faster, 11.5x cheaper
+  toolRankingModel: 'claude-haiku-4-5',  // Haiku: 1.4x faster for ranking
+  responseModel: 'claude-sonnet-4-5',    // Keep sonnet for quality
+  enableThinking: true,
+  thinkingBudget: 2000,
+};
+
 export interface GalaxyAssistantOptions {
   anthropicApiKey: string;
   galaxyAPIProxy: GalaxyAPIProxy;
+  /** Model configuration - uses defaults if not provided */
+  modelConfig?: Partial<ModelConfig>;
 }
 
 export interface ChatContext {
@@ -88,10 +179,24 @@ export interface GalaxyAssistantResponse {
 export class GalaxyAssistant {
   private claude: Anthropic;
   private galaxyAPI: GalaxyAPIProxy;
+  private modelConfig: ModelConfig;
 
   constructor(options: GalaxyAssistantOptions) {
     this.claude = new Anthropic({ apiKey: options.anthropicApiKey });
     this.galaxyAPI = options.galaxyAPIProxy;
+    this.modelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
+    console.log('[GalaxyAssistant] Initialized with model config:', this.modelConfig);
+  }
+
+  /** Get current model configuration (for testing/debugging) */
+  getModelConfig(): ModelConfig {
+    return { ...this.modelConfig };
+  }
+
+  /** Update model configuration at runtime */
+  setModelConfig(config: Partial<ModelConfig>): void {
+    this.modelConfig = { ...this.modelConfig, ...config };
+    console.log('[GalaxyAssistant] Model config updated:', this.modelConfig);
   }
 
   /**
@@ -101,11 +206,15 @@ export class GalaxyAssistant {
     message: string,
     context: ChatContext = {}
   ): Promise<GalaxyAssistantResponse> {
-    console.log('[GalaxyAssistant] Processing message:', message);
+    const startTime = Date.now();
+    const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
+
+    log('Processing message: ' + message.substring(0, 50));
 
     // Step 1: Analyze user intent with NLU
+    log('Step 1: Analyzing intent');
     const intent = await this.analyzeIntent(message, context);
-    console.log('[GalaxyAssistant] Intent analysis:', intent);
+    log('Step 1 complete - Intent: ' + intent.type);
 
     // Steps 2 & 3: Search for tools and datasets IN PARALLEL
     // These are independent operations that can run concurrently
@@ -139,35 +248,43 @@ export class GalaxyAssistant {
     }
 
     // Wait for all parallel searches to complete
+    log('Steps 2-3: Starting parallel searches');
     if (searchPromises.length > 0) {
       await Promise.all(searchPromises);
-      console.log('[GalaxyAssistant] Parallel search completed');
+      log('Steps 2-3 complete');
     }
 
     // Step 4: Determine if workflow generation is needed
+    log('Step 4: Analyzing workflow need');
     const workflowSuggestion = await this.analyzeWorkflowNeed(
       message,
       intent,
       recommendedTools
     );
+    log('Step 4 complete - shouldGenerate: ' + workflowSuggestion.shouldGenerate);
 
     // Step 5: Generate workflow if requested
     let generatedWorkflow = null;
     let workflowGenerated = false;
     if (workflowSuggestion.shouldGenerate && workflowSuggestion.confidence > 0.7) {
       try {
+        log('Step 5: Generating workflow');
         generatedWorkflow = await this.generateWorkflow(
           workflowSuggestion.userIntent,
           recommendedDatasets.map(d => d.dataset)
         );
         workflowGenerated = true;
-        console.log('[GalaxyAssistant] Workflow generated successfully');
+        log('Step 5 complete - Workflow generated');
       } catch (error: any) {
+        log('Step 5 failed: ' + error.message);
         console.error('[GalaxyAssistant] Workflow generation failed:', error);
       }
+    } else {
+      log('Step 5: Skipped (no workflow needed)');
     }
 
     // Step 6: Generate natural language response
+    log('Step 6: Generating response');
     const response = await this.generateResponse(
       message,
       intent,
@@ -177,14 +294,18 @@ export class GalaxyAssistant {
       generatedWorkflow,
       context
     );
+    log('Step 6 complete');
 
     // Step 7: Generate follow-up suggestions
+    log('Step 7: Generating suggestions');
     const suggestions = this.generateSuggestions(
       message,
       intent,
       recommendedTools,
       workflowSuggestion
     );
+    log('Step 7 complete');
+    log('Total processing time: ' + (Date.now() - startTime) + 'ms');
 
     return {
       message: response.message,
@@ -242,8 +363,17 @@ Respond in JSON format:
 }`;
 
     try {
+      const intentStartTime = Date.now();
+      console.log('[GalaxyAssistant] Intent API request:', {
+        model: this.modelConfig.intentModel,
+        max_tokens: 200,
+        system_prompt_length: systemPrompt.length,
+        message_length: message.length
+      });
+
+      // Intent classification - using configurable model
       const completion = await this.claude.messages.create({
-        model: 'claude-sonnet-4-5',
+        model: this.modelConfig.intentModel,
         max_tokens: 200,
         temperature: 0.3,
         system: [
@@ -254,6 +384,12 @@ Respond in JSON format:
           },
         ],
         messages: [{ role: 'user', content: message }],
+      });
+
+      console.log('[GalaxyAssistant] Intent API response:', {
+        model: this.modelConfig.intentModel,
+        time_ms: Date.now() - intentStartTime,
+        usage: completion.usage
       });
 
       const content = completion.content[0];
@@ -418,8 +554,15 @@ Respond in JSON format:
       .join('\n\n');
 
     try {
+      console.log('[GalaxyAssistant] Tool ranking API request:', {
+        model: this.modelConfig.toolRankingModel,
+        max_tokens: 2000,
+        tools_to_rank: tools.length
+      });
+      const rankStartTime = Date.now();
+
       const completion = await this.claude.messages.create({
-        model: 'claude-sonnet-4-5',
+        model: this.modelConfig.toolRankingModel,
         max_tokens: 2000, // Increased to handle ranking many tools
         temperature: 0.3,
         system: [
@@ -435,6 +578,12 @@ Respond in JSON format:
             content: `User request: ${userMessage}\n\nAvailable tools:\n${toolCatalog}`,
           },
         ],
+      });
+
+      console.log('[GalaxyAssistant] Tool ranking API response:', {
+        model: this.modelConfig.toolRankingModel,
+        time_ms: Date.now() - rankStartTime,
+        usage: completion.usage
       });
 
       const content = completion.content[0];
@@ -679,14 +828,24 @@ Provide a helpful response that:
         content: msg.content,
       }));
 
-      const completion = await this.claude.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4096,  // Must be > thinking.budget_tokens (2000)
-        // temperature not set - incompatible with thinking mode
-        thinking: {
-          type: 'enabled',
-          budget_tokens: 2000
-        },
+      // Log what we're sending to Claude
+      const apiStartTime = Date.now();
+      const useThinking = this.modelConfig.enableThinking;
+      console.log('[GalaxyAssistant] Response API request:', {
+        model: this.modelConfig.responseModel,
+        max_tokens: 4096,
+        thinking_enabled: useThinking,
+        thinking_budget: useThinking ? this.modelConfig.thinkingBudget : null,
+        system_prompt_length: systemPrompt.length,
+        user_prompt_length: userPrompt.length,
+        previous_messages: previousMessages.length,
+        total_input_chars: systemPrompt.length + userPrompt.length + previousMessages.reduce((acc, m) => acc + m.content.length, 0)
+      });
+
+      // Build API request options - thinking mode is optional
+      const apiOptions: any = {
+        model: this.modelConfig.responseModel,
+        max_tokens: 4096,
         system: [
           {
             type: 'text',
@@ -695,6 +854,26 @@ Provide a helpful response that:
           },
         ],
         messages: [...previousMessages, { role: 'user', content: userPrompt }],
+      };
+
+      // Add thinking mode if enabled (not compatible with temperature)
+      if (useThinking) {
+        apiOptions.thinking = {
+          type: 'enabled',
+          budget_tokens: this.modelConfig.thinkingBudget
+        };
+      } else {
+        apiOptions.temperature = 0.7;
+      }
+
+      const completion = await this.claude.messages.create(apiOptions);
+
+      console.log('[GalaxyAssistant] Response API response:', {
+        model: this.modelConfig.responseModel,
+        time_ms: Date.now() - apiStartTime,
+        usage: completion.usage,
+        stop_reason: completion.stop_reason,
+        content_blocks: completion.content.length
       });
 
       // Find the text content block (thinking mode returns [thinking, text])

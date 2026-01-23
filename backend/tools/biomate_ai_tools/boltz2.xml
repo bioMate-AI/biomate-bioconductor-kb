@@ -4,20 +4,13 @@
         <container type="docker">biomate/boltz:2.2.1</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
-        boltz predict
-        '$input_fasta'
-        --out_dir output/
-        --diffusion_samples $diffusion_samples
+        python '$__tool_directory__/scripts/boltz2_wrapper.py'
+        --input '$input_fasta'
+        --output '$output_structure'
+        --recycling_steps $diffusion_samples
         #if $use_msa_server
-        --use_msa_server
+        --use_msa
         #end if
-        #if $use_potentials
-        --use_potentials
-        #end if
-        &&
-        cp output/*/predictions/*/*.cif '$output_structure' 2>/dev/null || echo "No structure output"
-        &&
-        cp output/*/predictions/*/affinity_*.json '$output_affinity' 2>/dev/null || echo "No affinity output"
     ]]></command>
     <inputs>
         <param name="input_fasta" type="data" format="fasta" label="Protein sequence (FASTA)"/>

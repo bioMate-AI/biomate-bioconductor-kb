@@ -83,8 +83,8 @@ async function apiExecuteWorkflow(params: ExecuteWorkflowParams): Promise<{
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to execute workflow');
+    const error = await response.json().catch(() => ({ message: `HTTP ${response.status}: ${response.statusText}` }));
+    throw new Error(error.message || error.error || 'Failed to execute workflow');
   }
 
   return response.json();

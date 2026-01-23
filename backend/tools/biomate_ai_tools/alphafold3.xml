@@ -1,0 +1,53 @@
+<tool id="alphafold3" name="AlphaFold 3" version="3.0" profile="21.05">
+    <description>Biomolecular complex structure prediction (local installation)</description>
+    <requirements>
+        <container type="docker">ghcr.io/biomate/alphafold3:3.0</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/alphafold3_wrapper.py'
+        --input '$input_json'
+        --output '$output_structure'
+    ]]></command>
+    <inputs>
+        <param name="input_json" type="data" format="json" label="Input specification (JSON)"
+               help="AlphaFold 3 input JSON with sequences and molecule types"/>
+    </inputs>
+    <outputs>
+        <data name="output_structure" format="cif" label="${tool.name}: Predicted structure"/>
+        <data name="output_confidence" format="json" label="${tool.name}: Confidence scores"/>
+    </outputs>
+    <help><![CDATA[
+**AlphaFold 3: Biomolecular Complex Prediction**
+
+DeepMind's latest structure prediction model with 50%+ improvement over AlphaFold 2.
+
+**Hardware Requirements:**
+- GPU Memory: ~80-100 GB (may work on NVIDIA GB10 with 120GB)
+- Disk Space: ~100 GB for model weights
+
+**Capabilities:**
+- Protein structure prediction
+- Protein-protein complexes
+- Protein-DNA complexes
+- Protein-RNA complexes
+- Protein-ligand complexes
+- Ion binding sites
+
+**Input JSON Format:**
+```json
+{
+  "sequences": [
+    {"protein": {"id": "A", "sequence": "MVLSPADKTN..."}},
+    {"ligand": {"id": "B", "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O"}}
+  ]
+}
+```
+
+**License:** CC-BY-NC-SA (Non-commercial only)
+
+**Alternative:** Use alphafold_api.xml for the EBI database (200M+ pre-computed structures)
+
+**Citation:**
+Abramson et al. (2024). Accurate structure prediction of biomolecular interactions. Nature.
+    ]]></help>
+</tool>

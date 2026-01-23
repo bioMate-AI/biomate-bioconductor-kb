@@ -1,14 +1,29 @@
 #!/usr/bin/env python3
 """
-Wrapper script for Biomni dose_response tool.
-Auto-generated to fix inline Python code issues in Galaxy.
+Wrapper script for dose_response tool.
+Reimplemented directly - no biomni dependency.
 """
 import sys
 import json
-from biomni.tool.biochemistry import dose_response
+import numpy as np
+
+
+def dose_response(x, ic50, hill):
+    """Dose-response curve (Hill equation).
+
+    Args:
+        x: Concentration/dose
+        ic50: Half-maximal inhibitory concentration
+        hill: Hill coefficient (slope)
+
+    Returns:
+        Response value (0-1 scale, 1 = no inhibition, 0 = full inhibition)
+    """
+    response = 1 / (1 + (x / ic50) ** hill)
+    return {"response": float(response), "x": x, "ic50": ic50, "hill": hill}
+
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,19 +31,15 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
                 if val.lower() == 'true':
                     val = True
                 elif val.lower() == 'false':
                     val = False
                 else:
                     try:
-                        val = int(val)
+                        val = float(val)
                     except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
+                        pass
                 args[key] = val
                 i += 2
             else:
@@ -37,20 +48,11 @@ def main():
         else:
             i += 1
 
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = dose_response(**args)
 
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2, default=str)
 
 if __name__ == '__main__':
     main()

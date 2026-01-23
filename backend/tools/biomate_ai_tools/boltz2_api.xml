@@ -1,0 +1,54 @@
+<tool id="boltz2_api" name="Boltz-2 API" version="1.0" profile="21.05">
+    <description>Structure prediction via NVIDIA NIM (no local GPU needed)</description>
+    <requirements>
+        <requirement type="package" version="3.10">python</requirement>
+        <requirement type="package">requests</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/boltz2_api_wrapper.py'
+        --input '$input_yaml'
+        --output '$output_structure'
+        #if $api_key
+        --api_key '$api_key'
+        #end if
+    ]]></command>
+    <inputs>
+        <param name="input_yaml" type="data" format="yaml,txt" label="Input specification (YAML)"
+               help="Boltz-2 input YAML with sequences and molecule types"/>
+        <param name="api_key" type="text" optional="true" label="NVIDIA API Key"
+               help="Get from build.nvidia.com. Leave empty to use NVIDIA_API_KEY env variable."/>
+    </inputs>
+    <outputs>
+        <data name="output_structure" format="cif" label="${tool.name}: Predicted structure"/>
+    </outputs>
+    <help><![CDATA[
+**Boltz-2: Structure Prediction via NVIDIA NIM API**
+
+Predict biomolecular structures without local GPU using NVIDIA's cloud service.
+
+**Saves ~103 GB disk space and 48+ GB GPU memory!**
+
+**Capabilities:**
+- Protein structure prediction
+- Protein-ligand complexes
+- Binding affinity estimation
+- DNA/RNA structures
+
+**API Key:**
+Get your key at https://build.nvidia.com/mit/boltz2
+
+**Input Format (YAML):**
+```yaml
+sequences:
+  - protein:
+      id: A
+      sequence: MKFLILLFNILC...
+  - ligand:
+      id: B
+      smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O'
+```
+
+**Citation:**
+Passaro et al. (2025). Boltz-2: Towards Accurate Binding Affinity Prediction. bioRxiv.
+    ]]></help>
+</tool>

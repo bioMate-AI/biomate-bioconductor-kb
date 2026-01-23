@@ -4,15 +4,13 @@
         <container type="docker">biomate/state:latest</container>
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
-        python -m state.predict
+        python '$__tool_directory__/scripts/state_wrapper.py'
+        --mode perturbation
         --input '$input_h5ad'
-        --perturbation '$perturbation'
         --output '$output_h5ad'
+        --perturbation_col '$perturbation'
         #if $cell_type
         --cell_type '$cell_type'
-        #end if
-        #if $dose
-        --dose $dose
         #end if
     ]]></command>
     <inputs>

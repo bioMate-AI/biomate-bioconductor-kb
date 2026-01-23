@@ -5,20 +5,24 @@
     </requirements>
     <command detect_errors="exit_code"><![CDATA[
         #if $search_mode.mode == "text_to_protein"
-        python -m protrek search
-            --query '$search_mode.text_query'
-            --mode text2protein
+        echo '$search_mode.text_query' > query.txt &&
+        python '$__tool_directory__/scripts/protrek_wrapper.py'
+            --mode search
+            --query query.txt
+            --search_type function
             --top_k $top_k
             --output '$output_results'
         #elif $search_mode.mode == "protein_to_function"
-        python -m protrek search
+        python '$__tool_directory__/scripts/protrek_wrapper.py'
+            --mode embed
             --input '$search_mode.protein_input'
-            --mode protein2function
+            --modality sequence
             --output '$output_results'
         #elif $search_mode.mode == "structure_search"
-        python -m protrek search
-            --input '$search_mode.structure_input'
-            --mode structure
+        python '$__tool_directory__/scripts/protrek_wrapper.py'
+            --mode search
+            --query '$search_mode.structure_input'
+            --search_type structure
             --top_k $top_k
             --output '$output_results'
         #end if

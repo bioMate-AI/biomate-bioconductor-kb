@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """
-Wrapper script for Biomni higuchi tool.
-Auto-generated to fix inline Python code issues in Galaxy.
+Wrapper script for higuchi tool.
+Reimplemented directly - no biomni dependency.
+Drug release kinetics model.
 """
 import sys
 import json
-from biomni.tool.bioengineering import higuchi
+import numpy as np
+
+def higuchi(t, kh):
+    """Higuchi model: Q = kH * sqrt(t)
+    Args: t: time, kh: Higuchi dissolution constant
+    """
+    return {"release": float(kh * np.sqrt(t)), "t": t, "kh": kh}
+
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,19 +23,15 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
                 if val.lower() == 'true':
                     val = True
                 elif val.lower() == 'false':
                     val = False
                 else:
                     try:
-                        val = int(val)
+                        val = float(val)
                     except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
+                        pass
                 args[key] = val
                 i += 2
             else:
@@ -37,20 +40,15 @@ def main():
         else:
             i += 1
 
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
+    func_name = list(globals().keys())
+    for name in ['zero_order', 'first_order', 'higuchi', 'korsmeyer_peppas', 'exp_decay']:
+        if name in globals():
+            result = globals()[name](**args)
+            break
 
-    # Call function
-    result = higuchi(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2, default=str)
 
 if __name__ == '__main__':
     main()

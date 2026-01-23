@@ -1,0 +1,49 @@
+<tool id="evo2_api" name="Evo 2 API" version="40b" profile="21.05">
+    <description>DNA generation and analysis via NVIDIA NIM (40B parameter model)</description>
+    <requirements>
+        <requirement type="package" version="3.10">python</requirement>
+        <requirement type="package">requests</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/evo2_api_wrapper.py'
+        --sequence '$sequence'
+        --task '$task'
+        --num_tokens $num_tokens
+        --temperature $temperature
+        --output '$output'
+        #if $api_key
+        --api_key '$api_key'
+        #end if
+    ]]></command>
+    <inputs>
+        <param name="sequence" type="text" area="true" label="Input DNA sequence"
+               help="DNA sequence using A, T, C, G characters"/>
+        <param name="task" type="select" label="Task">
+            <option value="generation" selected="true">Generate continuation</option>
+            <option value="scoring">Score sequence</option>
+        </param>
+        <param name="num_tokens" type="integer" value="100" min="1" max="1000" label="Tokens to generate"/>
+        <param name="temperature" type="float" value="1.0" min="0.1" max="2.0" label="Temperature"/>
+        <param name="api_key" type="text" optional="true" label="NVIDIA API Key"
+               help="Get from build.nvidia.com. Leave empty to use NVIDIA_API_KEY env variable."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" label="${tool.name}: Generated DNA"/>
+    </outputs>
+    <help><![CDATA[
+**Evo 2: DNA Foundation Model**
+
+40 billion parameter model trained on 9 trillion DNA tokens.
+
+**Capabilities:**
+- Generate DNA sequence continuations
+- Score mutation effects
+- Analyze sequence patterns
+
+**API Key:**
+Get your key at https://build.nvidia.com/arcinstitute/evo-2-40b
+
+**Citation:**
+Arc Institute (2025). Evo 2: A 40 billion parameter DNA foundation model.
+    ]]></help>
+</tool>

@@ -227,6 +227,8 @@ class UnifiedToolSearch:
                 # ToolShed filter is configurable via include_toolshed parameter
                 toolshed_filter = "" if self.include_toolshed else "AND tool_id NOT LIKE 'toolshed.%'"
 
+                # Two-stage ranking: relevance first, then availability as tie-breaker
+                # This ensures semantic match quality comes before tool availability
                 cursor.execute(f'''
                     SELECT *,
                            CASE
@@ -235,17 +237,14 @@ class UnifiedToolSearch:
                                WHEN LOWER(tool_id) LIKE LOWER(?) THEN 70
                                WHEN LOWER(description) LIKE LOWER(?) THEN 50
                                ELSE 30
-                           END +
-                           CASE
-                               WHEN tool_id LIKE 'biomni/%' THEN 50
-                               ELSE 0
-                           END as match_score
+                           END as relevance_score,
+                           COALESCE(priority_score, 0) as availability_score
                     FROM tools
                     WHERE (name LIKE ? COLLATE NOCASE
                        OR tool_id LIKE ? COLLATE NOCASE
                        OR (description IS NOT NULL AND description LIKE ? COLLATE NOCASE))
                       {toolshed_filter}
-                    ORDER BY match_score DESC
+                    ORDER BY relevance_score DESC, availability_score DESC
                     LIMIT ?
                 ''', (entity, pattern, pattern, pattern,
                       pattern, pattern, pattern, limit))
@@ -298,33 +297,29 @@ class UnifiedToolSearch:
             try:
                 # Use tool_id for JOIN (not rowid) since FTS5 rowids don't match tools.id
                 # Prioritize Biomni tools but include ToolShed tools for installation
+                # Two-stage ranking: BM25 relevance first, then availability as tie-breaker
+                # BM25 returns negative scores (lower = better match)
                 if category:
                     sql = f'''
                         SELECT t.*, bm25(tools_fts) as rank,
-                               CASE
-                                   WHEN t.tool_id LIKE 'biomni/%' THEN 50
-                                   ELSE 0
-                               END as biomni_boost
+                               COALESCE(t.priority_score, 0) as availability_score
                         FROM tools t
                         JOIN tools_fts fts ON t.tool_id = fts.tool_id
                         WHERE tools_fts MATCH ? AND t.category = ?
                           {toolshed_filter}
-                        ORDER BY biomni_boost DESC, rank
+                        ORDER BY rank, availability_score DESC
                         LIMIT ?
                     '''
                     cursor.execute(sql, (fts_query, category, limit))
                 else:
                     sql = f'''
                         SELECT t.*, bm25(tools_fts) as rank,
-                               CASE
-                                   WHEN t.tool_id LIKE 'biomni/%' THEN 50
-                                   ELSE 0
-                               END as biomni_boost
+                               COALESCE(t.priority_score, 0) as availability_score
                         FROM tools t
                         JOIN tools_fts fts ON t.tool_id = fts.tool_id
                         WHERE tools_fts MATCH ?
                           {toolshed_filter}
-                        ORDER BY biomni_boost DESC, rank
+                        ORDER BY rank, availability_score DESC
                         LIMIT ?
                     '''
                     cursor.execute(sql, (fts_query, limit))
@@ -355,34 +350,30 @@ class UnifiedToolSearch:
         toolshed_filter = "" if self.include_toolshed else "AND tool_id NOT LIKE 'toolshed.%'"
 
         with self._get_cursor() as cursor:
-            # Prioritize Biomni tools but include ToolShed tools for installation
+            # Simple LIKE fallback - order by name match quality, then availability
             if category:
                 cursor.execute(f'''
                     SELECT *,
-                           CASE
-                               WHEN tool_id LIKE 'biomni/%' THEN 50
-                               ELSE 0
-                           END as biomni_boost
+                           CASE WHEN name LIKE ? THEN 1 ELSE 0 END as name_match,
+                           COALESCE(priority_score, 0) as availability_score
                     FROM tools
                     WHERE (name LIKE ? OR description LIKE ?)
                       AND category = ?
                       {toolshed_filter}
-                    ORDER BY biomni_boost DESC
+                    ORDER BY name_match DESC, availability_score DESC
                     LIMIT ?
-                ''', (pattern, pattern, category, limit))
+                ''', (pattern, pattern, pattern, category, limit))
             else:
                 cursor.execute(f'''
                     SELECT *,
-                           CASE
-                               WHEN tool_id LIKE 'biomni/%' THEN 50
-                               ELSE 0
-                           END as biomni_boost
+                           CASE WHEN name LIKE ? THEN 1 ELSE 0 END as name_match,
+                           COALESCE(priority_score, 0) as availability_score
                     FROM tools
                     WHERE (name LIKE ? OR description LIKE ?)
                       {toolshed_filter}
-                    ORDER BY biomni_boost DESC
+                    ORDER BY name_match DESC, availability_score DESC
                     LIMIT ?
-                ''', (pattern, pattern, limit))
+                ''', (pattern, pattern, pattern, limit))
 
             for row in cursor.fetchall():
                 tool = dict(row)
@@ -431,17 +422,23 @@ class UnifiedToolSearch:
     def _reciprocal_rank_fusion(
         self,
         result_lists: List[List[Dict]],
-        k: int = 60
+        k: int = 60,
+        relevance_tolerance: float = 0.1
     ) -> List[Dict[str, Any]]:
         """
         Combine results from multiple retrieval stages using RRF.
 
         RRF score = sum(1/(k + rank_i)) for each list where doc appears
 
-        This is robust because:
-        - Handles different score scales across methods
-        - Rewards documents appearing in multiple result sets
-        - Simple and effective fusion strategy
+        Two-stage ranking:
+        1. Group tools by relevance (RRF score within tolerance are considered equivalent)
+        2. Within each relevance group, sort by availability (priority_score)
+
+        Args:
+            result_lists: Lists of results from different search methods
+            k: RRF constant (default 60)
+            relevance_tolerance: Tools within this relative difference are considered
+                                 equally relevant (default 0.1 = 10%)
         """
         scores: Dict[str, float] = {}
         tool_data: Dict[str, Dict] = {}
@@ -459,8 +456,25 @@ class UnifiedToolSearch:
                     scores[tool_id] = rrf_score
                     tool_data[tool_id] = tool
 
-        # Sort by combined RRF score
-        sorted_tools = sorted(scores.items(), key=lambda x: -x[1])
+        # Two-stage sorting with relevance tolerance:
+        # 1. Quantize RRF scores into buckets (tools within tolerance are in same bucket)
+        # 2. Sort by bucket (relevance) first, then by availability within bucket
+
+        if not scores:
+            return []
+
+        max_score = max(scores.values())
+
+        def get_sort_key(item):
+            tool_id, rrf_score = item
+            # Quantize to buckets based on relative tolerance
+            # Higher bucket number = more relevant (we negate for descending sort)
+            bucket = int(rrf_score / (max_score * relevance_tolerance)) if max_score > 0 else 0
+            priority = tool_data[tool_id].get('priority_score', 0)
+            # Sort by: bucket DESC, priority DESC
+            return (-bucket, -priority)
+
+        sorted_tools = sorted(scores.items(), key=get_sort_key)
 
         results = []
         for tool_id, score in sorted_tools:

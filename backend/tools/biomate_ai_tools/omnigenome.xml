@@ -1,0 +1,58 @@
+<tool id="omnigenome" name="OmniGenome" version="1.0" profile="21.05">
+    <description>Multi-task genomic foundation model for sequence analysis</description>
+    <requirements>
+        <container type="docker">ghcr.io/biomate/omnigenome:1.0</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/omnigenome_wrapper.py'
+        --input '$input_fasta'
+        --task '$task'
+        --output '$output'
+        #if $output_embeddings
+        --output_embeddings
+        #end if
+    ]]></command>
+    <inputs>
+        <param name="input_fasta" type="data" format="fasta" label="Input DNA/RNA sequences"
+               help="FASTA file containing nucleotide sequences"/>
+        <param name="task" type="select" label="Prediction task">
+            <option value="promoter">Promoter prediction</option>
+            <option value="splice">Splice site prediction</option>
+            <option value="enhancer">Enhancer prediction</option>
+            <option value="conservation">Conservation scoring</option>
+            <option value="variant_effect">Variant effect prediction</option>
+            <option value="embedding">Sequence embeddings only</option>
+        </param>
+        <param name="output_embeddings" type="boolean" checked="false" label="Also output embeddings"
+               help="Save sequence embeddings in addition to predictions"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="tabular" label="${tool.name}: ${task} predictions"/>
+        <data name="embeddings_output" format="h5" label="${tool.name}: Embeddings">
+            <filter>output_embeddings</filter>
+        </data>
+    </outputs>
+    <help><![CDATA[
+**OmniGenome: Multi-Task Genomic Foundation Model**
+
+OmniGenome is a foundation model for diverse genomic prediction tasks.
+
+**Available Tasks:**
+- **Promoter prediction**: Identify promoter regions
+- **Splice site prediction**: Predict splice donor/acceptor sites
+- **Enhancer prediction**: Identify enhancer elements
+- **Conservation scoring**: Score evolutionary conservation
+- **Variant effect**: Predict impact of sequence variants
+- **Embeddings**: Extract learned representations
+
+**Input:**
+- FASTA file with DNA or RNA sequences
+
+**Output:**
+- Task-specific predictions in tabular format
+- Optional: HDF5 file with sequence embeddings
+
+**Citation:**
+OmniGenome: A Multi-Task Genomic Foundation Model (2024)
+    ]]></help>
+</tool>

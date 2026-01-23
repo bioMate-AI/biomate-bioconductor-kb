@@ -1,0 +1,49 @@
+<tool id="alphafold_api" name="AlphaFold Database" version="1.0" profile="21.05">
+    <description>Get pre-computed protein structures (200M+ available, no GPU needed)</description>
+    <requirements>
+        <requirement type="package" version="3.10">python</requirement>
+        <requirement type="package">requests</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/alphafold_api_wrapper.py'
+        --uniprot_id '$uniprot_id'
+        --format '$format'
+        --output '$output_structure'
+        --metadata '$output_metadata'
+    ]]></command>
+    <inputs>
+        <param name="uniprot_id" type="text" label="UniProt ID"
+               help="e.g., P00533 (EGFR), P04637 (TP53), P38398 (BRCA1)"/>
+        <param name="format" type="select" label="Output format">
+            <option value="pdb" selected="true">PDB</option>
+            <option value="cif">mmCIF</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output_structure" format="pdb" label="${tool.name}: ${uniprot_id} structure">
+            <change_format>
+                <when input="format" value="cif" format="cif"/>
+            </change_format>
+        </data>
+        <data name="output_metadata" format="json" label="${tool.name}: ${uniprot_id} metadata"/>
+    </outputs>
+    <help><![CDATA[
+**AlphaFold Protein Structure Database**
+
+Instantly retrieve pre-computed AlphaFold structures for 200M+ proteins.
+
+**No GPU or API key required!**
+
+**Example UniProt IDs:**
+- P00533: EGFR (Epidermal growth factor receptor)
+- P04637: TP53 (Tumor protein p53)
+- P38398: BRCA1
+
+**Output:**
+- 3D structure file (PDB or mmCIF format)
+- Metadata including confidence scores
+
+**Citation:**
+Jumper et al. (2021). Highly accurate protein structure prediction with AlphaFold. Nature.
+    ]]></help>
+</tool>

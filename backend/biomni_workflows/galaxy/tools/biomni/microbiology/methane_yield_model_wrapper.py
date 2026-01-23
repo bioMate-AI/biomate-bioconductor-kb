@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni methane_yield_model tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Methane yield model for anaerobic digestion."""
 import sys
 import json
-from biomni.tool.microbiology import methane_yield_model
+
+def methane_yield_model(substrate, yield_coefficient, inhibition_constant=None):
+    """Methane yield: Y = Ymax * S / (Ks + S) with optional inhibition
+    Args: substrate: concentration, yield_coefficient: max yield, inhibition_constant: optional Ki
+    """
+    if inhibition_constant:
+        yield_val = yield_coefficient * substrate / (substrate + inhibition_constant)
+    else:
+        yield_val = yield_coefficient * substrate
+    return {"methane_yield": float(yield_val), "substrate": substrate}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,41 +21,20 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
+                try:
+                    val = float(val)
+                except ValueError:
+                    pass
                 args[key] = val
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = methane_yield_model(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

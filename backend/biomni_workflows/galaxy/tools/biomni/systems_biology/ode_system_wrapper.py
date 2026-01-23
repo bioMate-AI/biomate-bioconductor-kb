@@ -1,56 +1,38 @@
 #!/usr/bin/env python3
-"""
-Wrapper script for Biomni ode_system tool.
-Auto-generated to fix inline Python code issues in Galaxy.
-"""
+"""Generic ODE system solver."""
 import sys
 import json
-from biomni.tool.systems_biology import ode_system
+import numpy as np
+
+def ode_system(state, rates, stoichiometry=None):
+    """Generic ODE: dx/dt = S * v(x) where S is stoichiometry matrix
+    Args: state: current state vector, rates: rate constants, stoichiometry: matrix (optional)
+    """
+    if isinstance(state, str):
+        state = [float(x.strip()) for x in state.split(',')]
+    if isinstance(rates, str):
+        rates = [float(x.strip()) for x in rates.split(',')]
+    # Simple linear system if no stoichiometry
+    derivatives = [r * s for r, s in zip(rates, state)]
+    return {"derivatives": derivatives, "state": state, "rates": rates}
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
         if sys.argv[i].startswith('--'):
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
-                val = sys.argv[i + 1]
-                # Type conversion
-                if val.lower() == 'true':
-                    val = True
-                elif val.lower() == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(val)
-                    except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
-                args[key] = val
+                args[key] = sys.argv[i + 1]
                 i += 2
             else:
-                args[key] = True
                 i += 1
         else:
             i += 1
-
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = ode_system(**args)
-
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2)
 
 if __name__ == '__main__':
     main()

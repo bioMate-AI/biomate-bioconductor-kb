@@ -1,14 +1,33 @@
 #!/usr/bin/env python3
 """
-Wrapper script for Biomni one_site_model tool.
-Auto-generated to fix inline Python code issues in Galaxy.
+Wrapper script for one_site_model tool.
+Reimplemented directly - no biomni dependency.
 """
 import sys
 import json
-from biomni.tool.biochemistry import one_site_model
+import numpy as np
+
+
+def one_site_model(x, kd, dh, n):
+    """One-site binding model for ITC data.
+
+    Args:
+        x: Molar ratio [ligand]/[protein]
+        kd: Dissociation constant (M)
+        dh: Enthalpy change (cal/mol)
+        n: Stoichiometry
+
+    Returns:
+        Binding parameters and calculated heat
+    """
+    ka = 1 / kd  # Association constant
+    # Simplified binding calculation
+    theta = (ka * x) / (1 + ka * x)  # Fraction bound
+    q = n * dh * theta  # Heat
+    return {"heat": float(q), "fraction_bound": float(theta), "x": x, "kd": kd, "dh": dh, "n": n}
+
 
 def main():
-    # Parse arguments
     args = {}
     i = 1
     while i < len(sys.argv):
@@ -16,19 +35,15 @@ def main():
             key = sys.argv[i][2:]
             if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--'):
                 val = sys.argv[i + 1]
-                # Type conversion
                 if val.lower() == 'true':
                     val = True
                 elif val.lower() == 'false':
                     val = False
                 else:
                     try:
-                        val = int(val)
+                        val = float(val)
                     except ValueError:
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            pass
+                        pass
                 args[key] = val
                 i += 2
             else:
@@ -37,20 +52,11 @@ def main():
         else:
             i += 1
 
-    # Get output path and remove from args
     output_path = args.pop('output', '/dev/stdout')
-
-    # Call function
     result = one_site_model(**args)
 
-    # Write output
     with open(output_path, 'w') as f:
-        if isinstance(result, str):
-            f.write(result)
-        elif isinstance(result, (dict, list)):
-            json.dump(result, f, indent=2, default=str)
-        else:
-            f.write(str(result))
+        json.dump(result, f, indent=2, default=str)
 
 if __name__ == '__main__':
     main()

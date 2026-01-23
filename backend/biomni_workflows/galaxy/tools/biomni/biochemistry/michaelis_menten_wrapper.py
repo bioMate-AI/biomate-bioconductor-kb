@@ -1,11 +1,24 @@
 #!/usr/bin/env python3
 """
-Wrapper script for Biomni michaelis_menten tool.
-Auto-generated to fix inline Python code issues in Galaxy.
+Wrapper script for michaelis_menten tool.
+Reimplemented directly - no biomni dependency.
 """
 import sys
 import json
-from biomni.tool.biochemistry import michaelis_menten
+
+
+def michaelis_menten(s, vmax, km):
+    """Michaelis-Menten equation for enzyme kinetics.
+
+    Args:
+        s: Substrate concentration
+        vmax: Maximum reaction velocity
+        km: Michaelis constant
+
+    Returns:
+        Reaction velocity v = vmax * s / (km + s)
+    """
+    return {"velocity": vmax * s / (km + s), "s": s, "vmax": vmax, "km": km}
 
 def main():
     # Parse arguments

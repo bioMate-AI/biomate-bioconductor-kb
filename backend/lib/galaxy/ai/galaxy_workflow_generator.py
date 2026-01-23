@@ -59,11 +59,11 @@ class GalaxyWorkflowGenerator:
         """Initialize workflow generator with tool index and dataset selector."""
         # Use LLMClient for multi-provider support (OpenAI, Anthropic, etc.)
         if config is None:
-            from galaxy.ai.config import DEFAULT_AI_CONFIG
+            from .config import DEFAULT_AI_CONFIG
             config = DEFAULT_AI_CONFIG
 
         self.config = config
-        from galaxy.ai.llm_client import LLMClient
+        from .llm_client import LLMClient
         self.llm_client = LLMClient(config)
 
         # Tool search - lazy loaded to avoid heavy imports
@@ -72,7 +72,7 @@ class GalaxyWorkflowGenerator:
 
         # Dataset selector for dataset integration
         if dataset_selector is None:
-            from galaxy.ai.workflow_dataset_selector import WorkflowDatasetSelector
+            from .workflow_dataset_selector import WorkflowDatasetSelector
             self.dataset_selector = WorkflowDatasetSelector()
         else:
             self.dataset_selector = dataset_selector
@@ -88,7 +88,7 @@ class GalaxyWorkflowGenerator:
             if self._tool_search is None:
                 # Use UnifiedToolSearch for multi-stage retrieval
                 try:
-                    from galaxy.ai.unified_tool_search import create_unified_search
+                    from .unified_tool_search import create_unified_search
                     self._tool_search = create_unified_search(
                         llm_client=self.llm_client
                     )
@@ -534,6 +534,22 @@ For {detected_domain.value.upper()} analysis, the general principles map to thes
 5. Design for user convenience - ready-to-download outputs
 6. Keep workflows efficient - don't add unnecessary steps
 
+## TOOL SELECTION PRIORITY (CRITICAL):
+
+When multiple tools can accomplish the same task, follow this STRICT priority order:
+
+1. **[LOCAL] tools** - STRONGLY PREFERRED. These are pre-installed and ready to use immediately.
+   - Tool IDs starting with "biomni/" are local tools
+   - Tool IDs starting with "biomate_ai_tools/" are local docker-based tools
+   - These have zero installation overhead and are fully tested
+
+2. **[REQUIRES_INSTALL] tools** - Use ONLY when no local alternative exists.
+   - Tool IDs starting with "toolshed.g2.bx.psu.edu/" require installation
+   - These add delay and may fail due to dependency issues
+
+ALWAYS prefer a local tool even if a ToolShed tool seems more feature-rich.
+Only use ToolShed tools when the required functionality has NO local equivalent.
+
 ## CRITICAL - PARAMETER SELECTION FOR DATABASE/API TOOLS:
 
 When selecting tools that query databases or APIs, pay attention to their parameters:
@@ -640,10 +656,21 @@ Return valid JSON only - no additional text.
             keywords = tool.get('keywords', '')
             category = tool.get('category', 'Unknown')
             parameters = tool.get('parameters', [])
+            tool_id = tool['tool_id']
 
-            catalog += f"{i}. {tool['name']}\n"
+            # Use availability_status from database for source indication
+            availability = tool.get('availability_status', 'installable')
+            if availability in ('ready', 'docker', 'api'):
+                source_tag = "[LOCAL]"
+            elif availability == 'dataset':
+                source_tag = "[DATA]"
+            else:  # 'installable' or unknown
+                source_tag = "[REQUIRES_INSTALL]"
+
+            catalog += f"{i}. {source_tag} {tool['name']}\n"
             catalog += f"   Tool ID: {tool['tool_id']}\n"
             catalog += f"   Category: {category}\n"
+            catalog += f"   Availability: {availability}\n"
 
             if keywords:
                 catalog += f"   Keywords: {keywords}\n"

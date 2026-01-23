@@ -1,0 +1,52 @@
+<tool id="scfv_pmpnn" name="scFv-pMPNN" version="1.0" profile="21.05">
+    <description>Antibody scFv design and optimization using ProteinMPNN</description>
+    <requirements>
+        <container type="docker">ghcr.io/biomate/scfv-pmpnn:1.0</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/scfv_pmpnn_wrapper.py'
+        --mode design
+        --input '$input_structure'
+        --output '$output'
+        --num_designs $num_designs
+        --temperature $temperature
+    ]]></command>
+    <inputs>
+        <param name="input_structure" type="data" format="pdb,cif" label="Input antibody structure"
+               help="PDB or mmCIF file of the scFv or antibody structure"/>
+        <param name="num_designs" type="integer" value="10" min="1" max="100" label="Number of designs"
+               help="Number of sequence designs to generate"/>
+        <param name="temperature" type="float" value="0.1" min="0.01" max="1.0" label="Sampling temperature"
+               help="Lower values give more conservative designs"/>
+        <param name="fixed_positions" type="text" optional="true" label="Fixed positions"
+               help="Comma-separated list of positions to keep fixed (e.g., 1,2,3,50-60)"/>
+        <param name="target_chains" type="text" optional="true" label="Target chains"
+               help="Chains to redesign (e.g., H,L for heavy and light chains)"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="fasta" label="${tool.name}: Designed sequences"/>
+    </outputs>
+    <help><![CDATA[
+**scFv-pMPNN: Antibody Design with ProteinMPNN**
+
+Specialized antibody sequence design tool based on ProteinMPNN, optimized for scFv and Fab fragments.
+
+**Input:**
+- Antibody structure (PDB/mmCIF format)
+- Optional: positions to keep fixed
+
+**Output:**
+- FASTA file with designed sequences
+- Each sequence includes predicted stability scores
+
+**Features:**
+- CDR loop optimization
+- Framework region preservation
+- Humanization support
+- Multi-chain design
+
+**Citation:**
+ProteinMPNN: Robust sequence design using deep learning (2022)
+Antibody-specific extensions (2024)
+    ]]></help>
+</tool>

@@ -1,0 +1,53 @@
+<tool id="cambrian1" name="Cambrian-1" version="1.0" profile="21.05">
+    <description>Multimodal biological image analysis and understanding</description>
+    <requirements>
+        <container type="docker">ghcr.io/biomate/cambrian1:1.0</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/cambrian1_wrapper.py'
+        --input '$input_image'
+        --task '$task'
+        --output '$output'
+        #if $query
+        --query '$query'
+        #end if
+    ]]></command>
+    <inputs>
+        <param name="input_image" type="data" format="png,jpg,tiff" label="Input biological image"
+               help="Microscopy image, gel image, or other biological visualization"/>
+        <param name="task" type="select" label="Analysis task">
+            <option value="describe">Describe image content</option>
+            <option value="count">Count objects/cells</option>
+            <option value="segment">Segment regions</option>
+            <option value="classify">Classify image type</option>
+            <option value="qa">Answer question about image</option>
+        </param>
+        <param name="query" type="text" optional="true" label="Question (for QA task)"
+               help="Natural language question about the image"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="json" label="${tool.name}: ${task} results"/>
+    </outputs>
+    <help><![CDATA[
+**Cambrian-1: Multimodal Biological Vision-Language Model**
+
+Cambrian-1 is a vision-language model trained on biological images for automated image analysis.
+
+**Supported Image Types:**
+- Microscopy (fluorescence, brightfield, electron)
+- Gel electrophoresis
+- Western blots
+- Flow cytometry plots
+- Histopathology
+
+**Analysis Tasks:**
+- **Describe**: Generate natural language description
+- **Count**: Count cells, colonies, bands
+- **Segment**: Identify regions of interest
+- **Classify**: Categorize image type/phenotype
+- **QA**: Answer specific questions
+
+**Citation:**
+Cambrian-1: Vision-Centric Exploration of Multimodal LLMs (2024)
+    ]]></help>
+</tool>

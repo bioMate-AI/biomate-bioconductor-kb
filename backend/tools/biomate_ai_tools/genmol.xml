@@ -1,0 +1,73 @@
+<tool id="genmol" name="GenMol" version="1.0" profile="21.05">
+    <description>Generative molecular design using diffusion models</description>
+    <requirements>
+        <container type="docker">ghcr.io/biomate/genmol:1.0</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scripts/genmol_wrapper.py'
+        --mode '$task.mode'
+        #if $task.mode == "unconditional"
+        --num_molecules $task.num_molecules
+        #else if $task.mode == "conditional"
+        --target_property '$task.target_property'
+        --target_value $task.target_value
+        --num_molecules $task.num_molecules
+        #else if $task.mode == "scaffold"
+        --scaffold '$task.scaffold'
+        --num_molecules $task.num_molecules
+        #end if
+        --output '$output'
+    ]]></command>
+    <inputs>
+        <conditional name="task">
+            <param name="mode" type="select" label="Generation mode">
+                <option value="unconditional">Unconditional generation</option>
+                <option value="conditional">Property-guided generation</option>
+                <option value="scaffold">Scaffold-based generation</option>
+            </param>
+            <when value="unconditional">
+                <param name="num_molecules" type="integer" value="100" min="1" max="1000" label="Number of molecules"/>
+            </when>
+            <when value="conditional">
+                <param name="target_property" type="select" label="Target property">
+                    <option value="logP">LogP (lipophilicity)</option>
+                    <option value="qed">QED (drug-likeness)</option>
+                    <option value="sa_score">SA Score (synthetic accessibility)</option>
+                    <option value="mw">Molecular weight</option>
+                </param>
+                <param name="target_value" type="float" label="Target value"/>
+                <param name="num_molecules" type="integer" value="100" min="1" max="1000" label="Number of molecules"/>
+            </when>
+            <when value="scaffold">
+                <param name="scaffold" type="text" label="Scaffold SMILES"
+                       help="SMILES string of the scaffold to decorate"/>
+                <param name="num_molecules" type="integer" value="100" min="1" max="1000" label="Number of molecules"/>
+            </when>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data name="output" format="smi" label="${tool.name}: Generated molecules"/>
+    </outputs>
+    <help><![CDATA[
+**GenMol: Generative Molecular Design**
+
+GenMol uses diffusion models to generate novel drug-like molecules.
+
+**Generation Modes:**
+1. **Unconditional**: Generate diverse molecules
+2. **Property-guided**: Generate molecules with target properties
+3. **Scaffold-based**: Decorate a core scaffold
+
+**Output:**
+- SMILES file with generated molecules
+- Each molecule is validated for chemical validity
+
+**Applications:**
+- Lead optimization
+- Hit expansion
+- Virtual library generation
+
+**Citation:**
+GenMol: Diffusion Models for Molecular Generation (2024)
+    ]]></help>
+</tool>
