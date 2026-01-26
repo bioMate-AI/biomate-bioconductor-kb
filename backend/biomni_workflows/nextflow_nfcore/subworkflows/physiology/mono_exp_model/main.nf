@@ -10,9 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.b = null
-params.S0 = null
-params.ADC = null
+params.t = null
+params.a = null
+params.k = null
 
 process MONO_EXP_MODEL {
     tag "$meta.id"
@@ -33,10 +33,11 @@ process MONO_EXP_MODEL {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_B="${params.b?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_S0="${params.S0?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_ADC="${params.ADC?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_A="${params.a?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_K="${params.k?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -83,9 +84,9 @@ def mono_exp_model(t, a, k):
 # Execute the function
 try:
     result = mono_exp_model(
-        b=auto_convert(os.environ.get("PARAM_B", "")),
-        S0=auto_convert(os.environ.get("PARAM_S0", "")),
-        ADC=auto_convert(os.environ.get("PARAM_ADC", "")),
+        t=auto_convert(os.environ.get("PARAM_T", "")),
+        a=auto_convert(os.environ.get("PARAM_A", "")),
+        k=auto_convert(os.environ.get("PARAM_K", "")),
     )
     success = True
     error_msg = None

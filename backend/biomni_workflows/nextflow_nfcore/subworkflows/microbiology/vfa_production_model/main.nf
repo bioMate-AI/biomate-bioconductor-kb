@@ -10,7 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.params = null
+params.substrate = null
+params.max_rate = null
+params.ks = null
 
 process VFA_PRODUCTION_MODEL {
     tag "$meta.id"
@@ -31,8 +33,11 @@ process VFA_PRODUCTION_MODEL {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_PARAMS="${params.params?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_SUBSTRATE="${params.substrate?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_MAX_RATE="${params.max_rate?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_KS="${params.ks?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -79,7 +84,9 @@ def vfa_production_model(substrate, max_rate, ks):
 # Execute the function
 try:
     result = vfa_production_model(
-        params=auto_convert(os.environ.get("PARAM_PARAMS", "")),
+        substrate=auto_convert(os.environ.get("PARAM_SUBSTRATE", "")),
+        max_rate=auto_convert(os.environ.get("PARAM_MAX_RATE", "")),
+        ks=auto_convert(os.environ.get("PARAM_KS", "")),
     )
     success = True
     error_msg = None

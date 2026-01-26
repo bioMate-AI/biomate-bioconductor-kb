@@ -10,9 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.reaction = null
+params.k = null
 params.concentrations = null
-params.metabolite_ids = null
 
 process MASS_ACTION_KINETICS {
     tag "$meta.id"
@@ -33,10 +32,10 @@ process MASS_ACTION_KINETICS {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_REACTION="${params.reaction?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_K="${params.k?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_CONCENTRATIONS="${params.concentrations?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_METABOLITE_IDS="${params.metabolite_ids?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -86,9 +85,8 @@ def mass_action_kinetics(k, concentrations):
 # Execute the function
 try:
     result = mass_action_kinetics(
-        reaction=auto_convert(os.environ.get("PARAM_REACTION", "")),
+        k=auto_convert(os.environ.get("PARAM_K", "")),
         concentrations=auto_convert(os.environ.get("PARAM_CONCENTRATIONS", "")),
-        metabolite_ids=auto_convert(os.environ.get("PARAM_METABOLITE_IDS", "")),
     )
     success = True
     error_msg = None

@@ -11,6 +11,8 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 params.params = null
+params.data = null
+params.model_type = null
 
 process OBJECTIVE_FUNCTION {
     tag "$meta.id"
@@ -31,8 +33,11 @@ process OBJECTIVE_FUNCTION {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_PARAMS="${params.params?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_DATA="${params.data?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_MODEL_TYPE="${params.model_type?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -86,6 +91,8 @@ def objective_function(params, data, model_type="sum_squared"):
 try:
     result = objective_function(
         params=auto_convert(os.environ.get("PARAM_PARAMS", "")),
+        data=auto_convert(os.environ.get("PARAM_DATA", "")),
+        model_type=auto_convert(os.environ.get("PARAM_MODEL_TYPE", "")),
     )
     success = True
     error_msg = None

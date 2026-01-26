@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.refseq_id = null
+params.sequence = null
+params.min_length = null
 
 process GET_CODING_SEQUENCES {
     tag "$meta.id"
@@ -31,8 +32,10 @@ process GET_CODING_SEQUENCES {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_REFSEQ_ID="${params.refseq_id?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_SEQUENCE="${params.sequence?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_MIN_LENGTH="${params.min_length?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -95,7 +98,8 @@ def get_coding_sequences(sequence, min_length=100):
 # Execute the function
 try:
     result = get_coding_sequences(
-        refseq_id=auto_convert(os.environ.get("PARAM_REFSEQ_ID", "")),
+        sequence=auto_convert(os.environ.get("PARAM_SEQUENCE", "")),
+        min_length=auto_convert(os.environ.get("PARAM_MIN_LENGTH", "")),
     )
     success = True
     error_msg = None

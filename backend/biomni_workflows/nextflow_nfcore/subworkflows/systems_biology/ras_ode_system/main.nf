@@ -10,8 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.y = null
+params.ras_gdp = null
+params.ras_gtp = null
+params.gef_rate = null
+params.gap_rate = null
 
 process RAS_ODE_SYSTEM {
     tag "$meta.id"
@@ -32,9 +34,12 @@ process RAS_ODE_SYSTEM {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_Y="${params.y?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_RAS_GDP="${params.ras_gdp?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_RAS_GTP="${params.ras_gtp?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_GEF_RATE="${params.gef_rate?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_GAP_RATE="${params.gap_rate?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -82,8 +87,10 @@ def ras_ode_system(ras_gdp, ras_gtp, gef_rate, gap_rate):
 # Execute the function
 try:
     result = ras_ode_system(
-        t=auto_convert(os.environ.get("PARAM_T", "")),
-        y=auto_convert(os.environ.get("PARAM_Y", "")),
+        ras_gdp=auto_convert(os.environ.get("PARAM_RAS_GDP", "")),
+        ras_gtp=auto_convert(os.environ.get("PARAM_RAS_GTP", "")),
+        gef_rate=auto_convert(os.environ.get("PARAM_GEF_RATE", "")),
+        gap_rate=auto_convert(os.environ.get("PARAM_GAP_RATE", "")),
     )
     success = True
     error_msg = None

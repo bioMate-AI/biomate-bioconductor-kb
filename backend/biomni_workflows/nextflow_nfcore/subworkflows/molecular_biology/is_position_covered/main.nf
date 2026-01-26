@@ -10,8 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.pos = null
-params.covered_regions = null
+params.position = null
+params.regions = null
 
 process IS_POSITION_COVERED {
     tag "$meta.id"
@@ -32,9 +32,10 @@ process IS_POSITION_COVERED {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_POS="${params.pos?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_COVERED_REGIONS="${params.covered_regions?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_POSITION="${params.position?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_REGIONS="${params.regions?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -85,8 +86,8 @@ def is_position_covered(position, regions):
 # Execute the function
 try:
     result = is_position_covered(
-        pos=auto_convert(os.environ.get("PARAM_POS", "")),
-        covered_regions=auto_convert(os.environ.get("PARAM_COVERED_REGIONS", "")),
+        position=auto_convert(os.environ.get("PARAM_POSITION", "")),
+        regions=auto_convert(os.environ.get("PARAM_REGIONS", "")),
     )
     success = True
     error_msg = None

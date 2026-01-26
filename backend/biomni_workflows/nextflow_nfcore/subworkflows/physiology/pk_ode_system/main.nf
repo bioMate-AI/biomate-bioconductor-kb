@@ -10,8 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.y = null
+params.c = null
+params.ka = null
+params.ke = null
+params.vd = null
 
 process PK_ODE_SYSTEM {
     tag "$meta.id"
@@ -32,9 +34,12 @@ process PK_ODE_SYSTEM {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_Y="${params.y?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_C="${params.c?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_KA="${params.ka?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_KE="${params.ke?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_VD="${params.vd?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -81,8 +86,10 @@ def pk_ode_system(c, ka, ke, vd):
 # Execute the function
 try:
     result = pk_ode_system(
-        t=auto_convert(os.environ.get("PARAM_T", "")),
-        y=auto_convert(os.environ.get("PARAM_Y", "")),
+        c=auto_convert(os.environ.get("PARAM_C", "")),
+        ka=auto_convert(os.environ.get("PARAM_KA", "")),
+        ke=auto_convert(os.environ.get("PARAM_KE", "")),
+        vd=auto_convert(os.environ.get("PARAM_VD", "")),
     )
     success = True
     error_msg = None

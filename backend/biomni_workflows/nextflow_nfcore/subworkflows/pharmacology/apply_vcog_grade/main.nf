@@ -10,9 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.symptom = null
-params.severity = null
-params.measurement = null
+params.event_type = null
+params.severity_value = null
+params.species = null
 
 process APPLY_VCOG_GRADE {
     tag "$meta.id"
@@ -33,10 +33,11 @@ process APPLY_VCOG_GRADE {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_SYMPTOM="${params.symptom?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_SEVERITY="${params.severity?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_MEASUREMENT="${params.measurement?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_EVENT_TYPE="${params.event_type?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_SEVERITY_VALUE="${params.severity_value?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_SPECIES="${params.species?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -93,9 +94,9 @@ def apply_vcog_grade(event_type, severity_value, species="canine"):
 # Execute the function
 try:
     result = apply_vcog_grade(
-        symptom=auto_convert(os.environ.get("PARAM_SYMPTOM", "")),
-        severity=auto_convert(os.environ.get("PARAM_SEVERITY", "")),
-        measurement=auto_convert(os.environ.get("PARAM_MEASUREMENT", "")),
+        event_type=auto_convert(os.environ.get("PARAM_EVENT_TYPE", "")),
+        severity_value=auto_convert(os.environ.get("PARAM_SEVERITY_VALUE", "")),
+        species=auto_convert(os.environ.get("PARAM_SPECIES", "")),
     )
     success = True
     error_msg = None

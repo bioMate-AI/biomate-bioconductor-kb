@@ -11,9 +11,9 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 params.t = null
-params.lag = null
-params.mu_max = null
-params.A = null
+params.a = null
+params.b = null
+params.c = null
 
 process GOMPERTZ_MODEL {
     tag "$meta.id"
@@ -34,11 +34,12 @@ process GOMPERTZ_MODEL {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_LAG="${params.lag?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_MU_MAX="${params.mu_max?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_A="${params.A?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_A="${params.a?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_B="${params.b?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_C="${params.c?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -86,9 +87,9 @@ def gompertz_model(t, a, b, c):
 try:
     result = gompertz_model(
         t=auto_convert(os.environ.get("PARAM_T", "")),
-        lag=auto_convert(os.environ.get("PARAM_LAG", "")),
-        mu_max=auto_convert(os.environ.get("PARAM_MU_MAX", "")),
-        A=auto_convert(os.environ.get("PARAM_A", "")),
+        a=auto_convert(os.environ.get("PARAM_A", "")),
+        b=auto_convert(os.environ.get("PARAM_B", "")),
+        c=auto_convert(os.environ.get("PARAM_C", "")),
     )
     success = True
     error_msg = None

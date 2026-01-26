@@ -10,10 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.sequence = null
-params.forward_primer = null
-params.reverse_primer = null
-params.circular = null
+params.long_seq = null
+params.short_seqs = null
 
 process PCR_SIMPLE {
     tag "$meta.id"
@@ -34,11 +32,10 @@ process PCR_SIMPLE {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_SEQUENCE="${params.sequence?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_FORWARD_PRIMER="${params.forward_primer?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_REVERSE_PRIMER="${params.reverse_primer?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_CIRCULAR="${params.circular?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_LONG_SEQ="${params.long_seq?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_SHORT_SEQS="${params.short_seqs?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

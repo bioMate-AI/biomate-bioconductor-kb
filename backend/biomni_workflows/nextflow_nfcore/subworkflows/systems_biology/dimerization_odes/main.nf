@@ -10,8 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.y = null
+params.monomer = null
+params.dimer = null
+params.kon = null
+params.koff = null
 
 process DIMERIZATION_ODES {
     tag "$meta.id"
@@ -32,9 +34,12 @@ process DIMERIZATION_ODES {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_Y="${params.y?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_MONOMER="${params.monomer?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_DIMER="${params.dimer?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_KON="${params.kon?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_KOFF="${params.koff?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -82,8 +87,10 @@ def dimerization_odes(monomer, dimer, kon, koff):
 # Execute the function
 try:
     result = dimerization_odes(
-        t=auto_convert(os.environ.get("PARAM_T", "")),
-        y=auto_convert(os.environ.get("PARAM_Y", "")),
+        monomer=auto_convert(os.environ.get("PARAM_MONOMER", "")),
+        dimer=auto_convert(os.environ.get("PARAM_DIMER", "")),
+        kon=auto_convert(os.environ.get("PARAM_KON", "")),
+        koff=auto_convert(os.environ.get("PARAM_KOFF", "")),
     )
     success = True
     error_msg = None

@@ -14,6 +14,7 @@ params.t = null
 params.mesor = null
 params.amplitude = null
 params.acrophase = null
+params.period = null
 
 process COSINOR_MODEL {
     tag "$meta.id"
@@ -34,11 +35,13 @@ process COSINOR_MODEL {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_MESOR="${params.mesor?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_AMPLITUDE="${params.amplitude?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_ACROPHASE="${params.acrophase?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_PERIOD="${params.period?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -89,6 +92,7 @@ try:
         mesor=auto_convert(os.environ.get("PARAM_MESOR", "")),
         amplitude=auto_convert(os.environ.get("PARAM_AMPLITUDE", "")),
         acrophase=auto_convert(os.environ.get("PARAM_ACROPHASE", "")),
+        period=auto_convert(os.environ.get("PARAM_PERIOD", "")),
     )
     success = True
     error_msg = None

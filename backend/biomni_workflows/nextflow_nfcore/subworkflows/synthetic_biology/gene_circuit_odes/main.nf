@@ -10,8 +10,12 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.state = null
+params.protein_level = null
+params.production_rate = null
+params.degradation_rate = null
+params.inducer = null
+params.hill_coef = null
+params.k_half = null
 
 process GENE_CIRCUIT_ODES {
     tag "$meta.id"
@@ -32,9 +36,14 @@ process GENE_CIRCUIT_ODES {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_STATE="${params.state?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_PROTEIN_LEVEL="${params.protein_level?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_PRODUCTION_RATE="${params.production_rate?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_DEGRADATION_RATE="${params.degradation_rate?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_INDUCER="${params.inducer?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_HILL_COEF="${params.hill_coef?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_K_HALF="${params.k_half?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -85,8 +94,12 @@ def gene_circuit_odes(protein_level, production_rate, degradation_rate, inducer=
 # Execute the function
 try:
     result = gene_circuit_odes(
-        t=auto_convert(os.environ.get("PARAM_T", "")),
-        state=auto_convert(os.environ.get("PARAM_STATE", "")),
+        protein_level=auto_convert(os.environ.get("PARAM_PROTEIN_LEVEL", "")),
+        production_rate=auto_convert(os.environ.get("PARAM_PRODUCTION_RATE", "")),
+        degradation_rate=auto_convert(os.environ.get("PARAM_DEGRADATION_RATE", "")),
+        inducer=auto_convert(os.environ.get("PARAM_INDUCER", "")),
+        hill_coef=auto_convert(os.environ.get("PARAM_HILL_COEF", "")),
+        k_half=auto_convert(os.environ.get("PARAM_K_HALF", "")),
     )
     success = True
     error_msg = None

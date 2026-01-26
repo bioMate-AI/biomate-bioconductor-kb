@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image = null
+params.image_path = null
+params.output_path = null
 params.denoise = null
 params.normalize = null
 
@@ -33,10 +34,12 @@ process PREPROCESS_IMAGE {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_IMAGE="${params.image?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_IMAGE_PATH="${params.image_path?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_OUTPUT_PATH="${params.output_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_DENOISE="${params.denoise?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_NORMALIZE="${params.normalize?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -95,7 +98,8 @@ def preprocess_image(image_path: str, output_path: str, denoise: bool = True, no
 # Execute the function
 try:
     result = preprocess_image(
-        image=auto_convert(os.environ.get("PARAM_IMAGE", "")),
+        image_path=auto_convert(os.environ.get("PARAM_IMAGE_PATH", "")),
+        output_path=auto_convert(os.environ.get("PARAM_OUTPUT_PATH", "")),
         denoise=auto_convert(os.environ.get("PARAM_DENOISE", "")),
         normalize=auto_convert(os.environ.get("PARAM_NORMALIZE", "")),
     )

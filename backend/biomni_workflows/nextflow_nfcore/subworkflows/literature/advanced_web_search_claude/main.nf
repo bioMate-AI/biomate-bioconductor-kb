@@ -11,8 +11,7 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 params.query = null
-params.max_searches = 1
-params.max_retries = 3
+params.max_results = null
 
 process ADVANCED_WEB_SEARCH_CLAUDE {
     tag "$meta.id"
@@ -33,10 +32,10 @@ process ADVANCED_WEB_SEARCH_CLAUDE {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_QUERY="${params.query?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_MAX_SEARCHES="${params.max_searches?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_MAX_RETRIES="${params.max_retries?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_MAX_RESULTS="${params.max_results?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -84,8 +83,7 @@ def advanced_web_search_claude(query, max_results=10):
 try:
     result = advanced_web_search_claude(
         query=auto_convert(os.environ.get("PARAM_QUERY", "")),
-        max_searches=auto_convert(os.environ.get("PARAM_MAX_SEARCHES", "1")),
-        max_retries=auto_convert(os.environ.get("PARAM_MAX_RETRIES", "3")),
+        max_results=auto_convert(os.environ.get("PARAM_MAX_RESULTS", "")),
     )
     success = True
     error_msg = None

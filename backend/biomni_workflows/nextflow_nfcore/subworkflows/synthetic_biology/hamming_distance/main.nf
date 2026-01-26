@@ -10,8 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.s1 = null
-params.s2 = null
+params.seq1 = null
+params.seq2 = null
 
 process HAMMING_DISTANCE {
     tag "$meta.id"
@@ -32,9 +32,10 @@ process HAMMING_DISTANCE {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_S1="${params.s1?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_S2="${params.s2?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_SEQ1="${params.seq1?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_SEQ2="${params.seq2?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -83,8 +84,8 @@ def hamming_distance(seq1, seq2):
 # Execute the function
 try:
     result = hamming_distance(
-        s1=auto_convert(os.environ.get("PARAM_S1", "")),
-        s2=auto_convert(os.environ.get("PARAM_S2", "")),
+        seq1=auto_convert(os.environ.get("PARAM_SEQ1", "")),
+        seq2=auto_convert(os.environ.get("PARAM_SEQ2", "")),
     )
     success = True
     error_msg = None

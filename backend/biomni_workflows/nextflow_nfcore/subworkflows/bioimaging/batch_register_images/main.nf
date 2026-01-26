@@ -11,13 +11,15 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 params.fixed_image_path = null
-params.moving_images_dir = null
+params.moving_image_path = null
 params.output_dir = null
-params.transform_type = 'rigid'
-params.metric = 'mutual_information'
-params.optimizer = 'gradient_descent'
+params.metric = null
+params.optimizer = null
 params.preprocess = null
 params.create_visualizations = null
+params.learning_rate = null
+params.number_of_iterations = null
+params.gradient_convergence_tolerance = null
 params.learning_rate = 0.01
 params.number_of_iterations = 100
 params.gradient_convergence_tolerance = 1e-06
@@ -41,11 +43,10 @@ process BATCH_REGISTER_IMAGES {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_FIXED_IMAGE_PATH="${params.fixed_image_path?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_MOVING_IMAGES_DIR="${params.moving_images_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_MOVING_IMAGE_PATH="${params.moving_image_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_TRANSFORM_TYPE="${params.transform_type?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_METRIC="${params.metric?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OPTIMIZER="${params.optimizer?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_PREPROCESS="${params.preprocess?.toString()?.replace('"', '\\"') ?: 'null'}"
@@ -53,6 +54,7 @@ process BATCH_REGISTER_IMAGES {
     export PARAM_LEARNING_RATE="${params.learning_rate?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_NUMBER_OF_ITERATIONS="${params.number_of_iterations?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_GRADIENT_CONVERGENCE_TOLERANCE="${params.gradient_convergence_tolerance?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -380,17 +382,17 @@ def batch_register_images(
         try:
             if transform_type == "rigid":
                 result = quick_rigid_registration(
-                    fixed_image_path,
-                    moving_image_path,
-                    individual_output_dir,
-                    metric,
-                    optimizer,
-                    preprocess,
-                    create_visualizations,
-                    learning_rate,
-                    number_of_iterations,
-                    gradient_convergence_tolerance,
-                )
+        fixed_image_path=auto_convert(os.environ.get("PARAM_FIXED_IMAGE_PATH", "")),
+        moving_image_path=auto_convert(os.environ.get("PARAM_MOVING_IMAGE_PATH", "")),
+        output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "")),
+        metric=auto_convert(os.environ.get("PARAM_METRIC", "")),
+        optimizer=auto_convert(os.environ.get("PARAM_OPTIMIZER", "")),
+        preprocess=auto_convert(os.environ.get("PARAM_PREPROCESS", "")),
+        create_visualizations=auto_convert(os.environ.get("PARAM_CREATE_VISUALIZATIONS", "")),
+        learning_rate=auto_convert(os.environ.get("PARAM_LEARNING_RATE", "")),
+        number_of_iterations=auto_convert(os.environ.get("PARAM_NUMBER_OF_ITERATIONS", "")),
+        gradient_convergence_tolerance=auto_convert(os.environ.get("PARAM_GRADIENT_CONVERGENCE_TOLERANCE", "")),
+    )
             elif transform_type == "affine":
                 result = quick_affine_registration(
                     fixed_image_path,

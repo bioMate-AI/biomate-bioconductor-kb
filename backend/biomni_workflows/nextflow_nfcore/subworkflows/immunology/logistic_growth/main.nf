@@ -10,10 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.k = null
-params.n0 = null
+params.n = null
 params.r = null
+params.k = null
 
 process LOGISTIC_GROWTH {
     tag "$meta.id"
@@ -34,11 +33,11 @@ process LOGISTIC_GROWTH {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_K="${params.k?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_N0="${params.n0?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_N="${params.n?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_R="${params.r?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_K="${params.k?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -85,10 +84,9 @@ def logistic_growth(n, r, k):
 # Execute the function
 try:
     result = logistic_growth(
-        t=auto_convert(os.environ.get("PARAM_T", "")),
-        k=auto_convert(os.environ.get("PARAM_K", "")),
-        n0=auto_convert(os.environ.get("PARAM_N0", "")),
+        n=auto_convert(os.environ.get("PARAM_N", "")),
         r=auto_convert(os.environ.get("PARAM_R", "")),
+        k=auto_convert(os.environ.get("PARAM_K", "")),
     )
     success = True
     error_msg = None

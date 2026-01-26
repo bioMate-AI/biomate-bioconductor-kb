@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.gene_id = null
+params.gene_symbol = null
+params.organism = null
 
 process GET_REFSEQ_ID {
     tag "$meta.id"
@@ -31,8 +32,10 @@ process GET_REFSEQ_ID {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_GENE_ID="${params.gene_id?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_GENE_SYMBOL="${params.gene_symbol?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_ORGANISM="${params.organism?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -80,7 +83,8 @@ def get_refseq_id(gene_symbol, organism="human"):
 # Execute the function
 try:
     result = get_refseq_id(
-        gene_id=auto_convert(os.environ.get("PARAM_GENE_ID", "")),
+        gene_symbol=auto_convert(os.environ.get("PARAM_GENE_SYMBOL", "")),
+        organism=auto_convert(os.environ.get("PARAM_ORGANISM", "")),
     )
     success = True
     error_msg = None

@@ -88,9 +88,9 @@ def bi_exp_model(t, a, alpha, b, beta):
 try:
     result = bi_exp_model(
         t=auto_convert(os.environ.get("PARAM_T", "")),
-        A=auto_convert(os.environ.get("PARAM_A", "")),
+        a=auto_convert(os.environ.get("PARAM_A", "")),
         alpha=auto_convert(os.environ.get("PARAM_ALPHA", "")),
-        B=auto_convert(os.environ.get("PARAM_B", "")),
+        b=auto_convert(os.environ.get("PARAM_B", "")),
         beta=auto_convert(os.environ.get("PARAM_BETA", "")),
     )
     success = True

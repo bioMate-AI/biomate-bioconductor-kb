@@ -10,10 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.z_scores = null
-params.ld_matrix = null
-params.pips = null
-params.n_samples = '10'
+params.reconstruction_loss = null
+params.kl_divergence = null
+params.beta = null
 
 process ELBO_LOSS {
     tag "$meta.id"
@@ -34,11 +33,11 @@ process ELBO_LOSS {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_Z_SCORES="${params.z_scores?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_LD_MATRIX="${params.ld_matrix?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_PIPS="${params.pips?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_N_SAMPLES="${params.n_samples?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_RECONSTRUCTION_LOSS="${params.reconstruction_loss?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_KL_DIVERGENCE="${params.kl_divergence?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_BETA="${params.beta?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -85,10 +84,9 @@ def elbo_loss(reconstruction_loss, kl_divergence, beta=1.0):
 # Execute the function
 try:
     result = elbo_loss(
-        z_scores=auto_convert(os.environ.get("PARAM_Z_SCORES", "")),
-        ld_matrix=auto_convert(os.environ.get("PARAM_LD_MATRIX", "")),
-        pips=auto_convert(os.environ.get("PARAM_PIPS", "")),
-        n_samples=auto_convert(os.environ.get("PARAM_N_SAMPLES", "10")),
+        reconstruction_loss=auto_convert(os.environ.get("PARAM_RECONSTRUCTION_LOSS", "")),
+        kl_divergence=auto_convert(os.environ.get("PARAM_KL_DIVERGENCE", "")),
+        beta=auto_convert(os.environ.get("PARAM_BETA", "")),
     )
     success = True
     error_msg = None

@@ -10,9 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.drug = null
-params.task = null
-params.unit = null
+params.smiles = null
 
 process ADMET_PRED {
     tag "$meta.id"
@@ -33,10 +31,9 @@ process ADMET_PRED {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_DRUG="${params.drug?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_TASK="${params.task?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_UNIT="${params.unit?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_SMILES="${params.smiles?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -85,9 +82,7 @@ def ADMET_pred(smiles):
 # Execute the function
 try:
     result = ADMET_pred(
-        drug=auto_convert(os.environ.get("PARAM_DRUG", "")),
-        task=auto_convert(os.environ.get("PARAM_TASK", "")),
-        unit=auto_convert(os.environ.get("PARAM_UNIT", "")),
+        smiles=auto_convert(os.environ.get("PARAM_SMILES", "")),
     )
     success = True
     error_msg = None

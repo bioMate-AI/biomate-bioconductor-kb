@@ -97,8 +97,8 @@ def one_site_model(x, kd, dh, n):
 try:
     result = one_site_model(
         x=auto_convert(os.environ.get("PARAM_X", "")),
-        Kd=auto_convert(os.environ.get("PARAM_KD", "")),
-        dH=auto_convert(os.environ.get("PARAM_DH", "")),
+        kd=auto_convert(os.environ.get("PARAM_KD", "")),
+        dh=auto_convert(os.environ.get("PARAM_DH", "")),
         n=auto_convert(os.environ.get("PARAM_N", "")),
     )
     success = True

@@ -10,6 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
+params.sequence = null
+params.pattern = null
+params.case_sensitive = null
 // No value parameters
 
 process SEARCH_GENE {
@@ -31,7 +34,11 @@ process SEARCH_GENE {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
+    export PARAM_SEQUENCE="${params.sequence?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_PATTERN="${params.pattern?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_CASE_SENSITIVE="${params.case_sensitive?.toString()?.replace('"', '\\"') ?: 'null'}"
+
     # No value parameters
 
     python3 << 'PYEOF'
@@ -82,7 +89,9 @@ def search_gene(sequence, pattern, case_sensitive=False):
 # Execute the function
 try:
     result = search_gene(
-
+        sequence=auto_convert(os.environ.get("PARAM_SEQUENCE", "")),
+        pattern=auto_convert(os.environ.get("PARAM_PATTERN", "")),
+        case_sensitive=auto_convert(os.environ.get("PARAM_CASE_SENSITIVE", "")),
     )
     success = True
     error_msg = None

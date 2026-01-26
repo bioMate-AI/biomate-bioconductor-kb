@@ -10,8 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image1 = null
-params.image2 = null
+params.image1_path = null
+params.image2_path = null
 
 process CALCULATE_SIMILARITY_METRICS {
     tag "$meta.id"
@@ -32,9 +32,10 @@ process CALCULATE_SIMILARITY_METRICS {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_IMAGE1="${params.image1?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_IMAGE2="${params.image2?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_IMAGE1_PATH="${params.image1_path?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_IMAGE2_PATH="${params.image2_path?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -90,8 +91,8 @@ def calculate_similarity_metrics(image1_path: str, image2_path: str) -> dict[str
 # Execute the function
 try:
     result = calculate_similarity_metrics(
-        image1=auto_convert(os.environ.get("PARAM_IMAGE1", "")),
-        image2=auto_convert(os.environ.get("PARAM_IMAGE2", "")),
+        image1_path=auto_convert(os.environ.get("PARAM_IMAGE1_PATH", "")),
+        image2_path=auto_convert(os.environ.get("PARAM_IMAGE2_PATH", "")),
     )
     success = True
     error_msg = None

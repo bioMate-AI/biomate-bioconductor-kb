@@ -11,7 +11,7 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 params.t = null
-params.k = null
+params.kh = null
 
 process HIGUCHI {
     tag "$meta.id"
@@ -32,9 +32,10 @@ process HIGUCHI {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_K="${params.k?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_KH="${params.kh?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -81,7 +82,7 @@ def higuchi(t, kh):
 try:
     result = higuchi(
         t=auto_convert(os.environ.get("PARAM_T", "")),
-        k=auto_convert(os.environ.get("PARAM_K", "")),
+        kh=auto_convert(os.environ.get("PARAM_KH", "")),
     )
     success = True
     error_msg = None

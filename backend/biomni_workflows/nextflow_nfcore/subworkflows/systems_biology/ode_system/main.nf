@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.y = null
+params.state = null
+params.rates = null
+params.stoichiometry = null
 
 process ODE_SYSTEM {
     tag "$meta.id"
@@ -32,9 +33,11 @@ process ODE_SYSTEM {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_Y="${params.y?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_STATE="${params.state?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_RATES="${params.rates?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_STOICHIOMETRY="${params.stoichiometry?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -86,8 +89,9 @@ def ode_system(state, rates, stoichiometry=None):
 # Execute the function
 try:
     result = ode_system(
-        t=auto_convert(os.environ.get("PARAM_T", "")),
-        y=auto_convert(os.environ.get("PARAM_Y", "")),
+        state=auto_convert(os.environ.get("PARAM_STATE", "")),
+        rates=auto_convert(os.environ.get("PARAM_RATES", "")),
+        stoichiometry=auto_convert(os.environ.get("PARAM_STOICHIOMETRY", "")),
     )
     success = True
     error_msg = None

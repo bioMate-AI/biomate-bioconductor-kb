@@ -11,6 +11,9 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 params.x = null
+params.weights = null
+params.bias = null
+params.activation = null
 
 process FORWARD {
     tag "$meta.id"
@@ -31,8 +34,12 @@ process FORWARD {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_X="${params.x?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_WEIGHTS="${params.weights?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_BIAS="${params.bias?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_ACTIVATION="${params.activation?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -96,6 +103,9 @@ def forward(x, weights, bias, activation="relu"):
 try:
     result = forward(
         x=auto_convert(os.environ.get("PARAM_X", "")),
+        weights=auto_convert(os.environ.get("PARAM_WEIGHTS", "")),
+        bias=auto_convert(os.environ.get("PARAM_BIAS", "")),
+        activation=auto_convert(os.environ.get("PARAM_ACTIVATION", "")),
     )
     success = True
     error_msg = None

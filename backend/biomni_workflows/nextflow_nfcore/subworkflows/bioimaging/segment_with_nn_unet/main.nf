@@ -13,15 +13,14 @@ params.outdir = './results'
 params.image_path = null
 params.output_dir = null
 params.task_id = null
-params.model_type = '3d_fullres'
+params.model_type = null
 params.folds = null
-params.use_tta = 'False'
-params.num_threads = '1'
-params.mixed_precision = 'True'
-params.verbose = 'True'
-params.auto_prepare_input = 'True'
+params.use_tta = null
+params.num_threads = null
+params.mixed_precision = null
+params.verbose = null
+params.auto_prepare_input = null
 params.results_folder = null
-params.auto_download = 'True'
 
 process SEGMENT_WITH_NN_UNET {
     tag "$meta.id"
@@ -42,7 +41,7 @@ process SEGMENT_WITH_NN_UNET {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_IMAGE_PATH="${params.image_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_TASK_ID="${params.task_id?.toString()?.replace('"', '\\"') ?: 'null'}"
@@ -54,7 +53,7 @@ process SEGMENT_WITH_NN_UNET {
     export PARAM_VERBOSE="${params.verbose?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_AUTO_PREPARE_INPUT="${params.auto_prepare_input?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_RESULTS_FOLDER="${params.results_folder?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_AUTO_DOWNLOAD="${params.auto_download?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -126,15 +125,14 @@ try:
         image_path=auto_convert(os.environ.get("PARAM_IMAGE_PATH", "")),
         output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "")),
         task_id=auto_convert(os.environ.get("PARAM_TASK_ID", "")),
-        model_type=auto_convert(os.environ.get("PARAM_MODEL_TYPE", "3d_fullres")),
+        model_type=auto_convert(os.environ.get("PARAM_MODEL_TYPE", "")),
         folds=auto_convert(os.environ.get("PARAM_FOLDS", "")),
-        use_tta=auto_convert(os.environ.get("PARAM_USE_TTA", "False")),
-        num_threads=auto_convert(os.environ.get("PARAM_NUM_THREADS", "1")),
-        mixed_precision=auto_convert(os.environ.get("PARAM_MIXED_PRECISION", "True")),
-        verbose=auto_convert(os.environ.get("PARAM_VERBOSE", "True")),
-        auto_prepare_input=auto_convert(os.environ.get("PARAM_AUTO_PREPARE_INPUT", "True")),
+        use_tta=auto_convert(os.environ.get("PARAM_USE_TTA", "")),
+        num_threads=auto_convert(os.environ.get("PARAM_NUM_THREADS", "")),
+        mixed_precision=auto_convert(os.environ.get("PARAM_MIXED_PRECISION", "")),
+        verbose=auto_convert(os.environ.get("PARAM_VERBOSE", "")),
+        auto_prepare_input=auto_convert(os.environ.get("PARAM_AUTO_PREPARE_INPUT", "")),
         results_folder=auto_convert(os.environ.get("PARAM_RESULTS_FOLDER", "")),
-        auto_download=auto_convert(os.environ.get("PARAM_AUTO_DOWNLOAD", "True")),
     )
     success = True
     error_msg = None

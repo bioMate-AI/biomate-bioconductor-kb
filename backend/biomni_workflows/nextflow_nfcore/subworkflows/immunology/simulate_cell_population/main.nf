@@ -10,11 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.time_points = null
-params.g1_duration = null
-params.s_duration = null
-params.g2m_duration = null
+params.initial_count = null
+params.growth_rate = null
 params.death_rate = null
+params.time_points = null
 
 process SIMULATE_CELL_POPULATION {
     tag "$meta.id"
@@ -35,12 +34,12 @@ process SIMULATE_CELL_POPULATION {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_TIME_POINTS="${params.time_points?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_G1_DURATION="${params.g1_duration?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_S_DURATION="${params.s_duration?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_G2M_DURATION="${params.g2m_duration?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_INITIAL_COUNT="${params.initial_count?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_GROWTH_RATE="${params.growth_rate?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_DEATH_RATE="${params.death_rate?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_TIME_POINTS="${params.time_points?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -91,11 +90,10 @@ def simulate_cell_population(initial_count, growth_rate, death_rate, time_points
 # Execute the function
 try:
     result = simulate_cell_population(
-        time_points=auto_convert(os.environ.get("PARAM_TIME_POINTS", "")),
-        g1_duration=auto_convert(os.environ.get("PARAM_G1_DURATION", "")),
-        s_duration=auto_convert(os.environ.get("PARAM_S_DURATION", "")),
-        g2m_duration=auto_convert(os.environ.get("PARAM_G2M_DURATION", "")),
+        initial_count=auto_convert(os.environ.get("PARAM_INITIAL_COUNT", "")),
+        growth_rate=auto_convert(os.environ.get("PARAM_GROWTH_RATE", "")),
         death_rate=auto_convert(os.environ.get("PARAM_DEATH_RATE", "")),
+        time_points=auto_convert(os.environ.get("PARAM_TIME_POINTS", "")),
     )
     success = True
     error_msg = None

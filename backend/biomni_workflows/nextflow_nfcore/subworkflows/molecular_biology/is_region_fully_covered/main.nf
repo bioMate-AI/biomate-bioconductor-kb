@@ -10,9 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.covered_regions = null
-params.start = null
-params.end = null
+params.query_start = null
+params.query_end = null
+params.regions = null
 
 process IS_REGION_FULLY_COVERED {
     tag "$meta.id"
@@ -33,10 +33,11 @@ process IS_REGION_FULLY_COVERED {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_COVERED_REGIONS="${params.covered_regions?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_START="${params.start?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_END="${params.end?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_QUERY_START="${params.query_start?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_QUERY_END="${params.query_end?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_REGIONS="${params.regions?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -96,9 +97,9 @@ def is_region_fully_covered(query_start, query_end, regions):
 # Execute the function
 try:
     result = is_region_fully_covered(
-        covered_regions=auto_convert(os.environ.get("PARAM_COVERED_REGIONS", "")),
-        start=auto_convert(os.environ.get("PARAM_START", "")),
-        end=auto_convert(os.environ.get("PARAM_END", "")),
+        query_start=auto_convert(os.environ.get("PARAM_QUERY_START", "")),
+        query_end=auto_convert(os.environ.get("PARAM_QUERY_END", "")),
+        regions=auto_convert(os.environ.get("PARAM_REGIONS", "")),
     )
     success = True
     error_msg = None

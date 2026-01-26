@@ -10,7 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.res_json = null
+params.text = null
+params.max_tokens = null
+params.method = null
 
 process REDUCE_TOKENS {
     tag "$meta.id"
@@ -31,8 +33,11 @@ process REDUCE_TOKENS {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_RES_JSON="${params.res_json?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_TEXT="${params.text?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_MAX_TOKENS="${params.max_tokens?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_METHOD="${params.method?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -88,7 +93,9 @@ def reduce_tokens(text, max_tokens=4000, method="truncate"):
 # Execute the function
 try:
     result = reduce_tokens(
-        res_json=auto_convert(os.environ.get("PARAM_RES_JSON", "")),
+        text=auto_convert(os.environ.get("PARAM_TEXT", "")),
+        max_tokens=auto_convert(os.environ.get("PARAM_MAX_TOKENS", "")),
+        method=auto_convert(os.environ.get("PARAM_METHOD", "")),
     )
     success = True
     error_msg = None

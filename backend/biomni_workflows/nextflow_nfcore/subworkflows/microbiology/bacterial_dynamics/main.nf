@@ -10,8 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.N = null
+params.n = null
+params.r = null
+params.k = null
+params.d = null
 
 process BACTERIAL_DYNAMICS {
     tag "$meta.id"
@@ -32,9 +34,12 @@ process BACTERIAL_DYNAMICS {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_N="${params.N?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_N="${params.n?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_R="${params.r?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_K="${params.k?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_D="${params.d?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -81,8 +86,10 @@ def bacterial_dynamics(n, r, k, d):
 # Execute the function
 try:
     result = bacterial_dynamics(
-        t=auto_convert(os.environ.get("PARAM_T", "")),
-        N=auto_convert(os.environ.get("PARAM_N", "")),
+        n=auto_convert(os.environ.get("PARAM_N", "")),
+        r=auto_convert(os.environ.get("PARAM_R", "")),
+        k=auto_convert(os.environ.get("PARAM_K", "")),
+        d=auto_convert(os.environ.get("PARAM_D", "")),
     )
     success = True
     error_msg = None

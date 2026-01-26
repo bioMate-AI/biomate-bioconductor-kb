@@ -11,7 +11,7 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 params.t = null
-params.k = null
+params.k0 = null
 
 process ZERO_ORDER {
     tag "$meta.id"
@@ -32,9 +32,10 @@ process ZERO_ORDER {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_K="${params.k?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_K0="${params.k0?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -81,7 +82,7 @@ def zero_order(t, k0):
 try:
     result = zero_order(
         t=auto_convert(os.environ.get("PARAM_T", "")),
-        k=auto_convert(os.environ.get("PARAM_K", "")),
+        k0=auto_convert(os.environ.get("PARAM_K0", "")),
     )
     success = True
     error_msg = None

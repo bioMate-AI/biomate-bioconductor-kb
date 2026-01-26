@@ -10,7 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.x = null
+params.chrom = null
 
 process NORM_CHR {
     tag "$meta.id"
@@ -31,8 +31,9 @@ process NORM_CHR {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_X="${params.x?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_CHROM="${params.chrom?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -91,7 +92,7 @@ def norm_chr(chrom):
 # Execute the function
 try:
     result = norm_chr(
-        x=auto_convert(os.environ.get("PARAM_X", "")),
+        chrom=auto_convert(os.environ.get("PARAM_CHROM", "")),
     )
     success = True
     error_msg = None

@@ -10,9 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.seq_str = null
+params.sequence = null
 params.frame = null
-params.strand = null
+params.min_length = null
 
 process FIND_ORFS_IN_FRAME {
     tag "$meta.id"
@@ -33,10 +33,11 @@ process FIND_ORFS_IN_FRAME {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_SEQ_STR="${params.seq_str?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_SEQUENCE="${params.sequence?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_FRAME="${params.frame?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_STRAND="${params.strand?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_MIN_LENGTH="${params.min_length?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -100,9 +101,9 @@ def find_orfs_in_frame(sequence, frame=1, min_length=100):
 # Execute the function
 try:
     result = find_orfs_in_frame(
-        seq_str=auto_convert(os.environ.get("PARAM_SEQ_STR", "")),
+        sequence=auto_convert(os.environ.get("PARAM_SEQUENCE", "")),
         frame=auto_convert(os.environ.get("PARAM_FRAME", "")),
-        strand=auto_convert(os.environ.get("PARAM_STRAND", "")),
+        min_length=auto_convert(os.environ.get("PARAM_MIN_LENGTH", "")),
     )
     success = True
     error_msg = None

@@ -11,7 +11,8 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 params.t = null
-params.k = null
+params.k1 = null
+params.q0 = null
 
 process FIRST_ORDER {
     tag "$meta.id"
@@ -32,9 +33,11 @@ process FIRST_ORDER {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_K="${params.k?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_K1="${params.k1?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_Q0="${params.q0?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -81,7 +84,8 @@ def first_order(t, k1, q0):
 try:
     result = first_order(
         t=auto_convert(os.environ.get("PARAM_T", "")),
-        k=auto_convert(os.environ.get("PARAM_K", "")),
+        k1=auto_convert(os.environ.get("PARAM_K1", "")),
+        q0=auto_convert(os.environ.get("PARAM_Q0", "")),
     )
     success = True
     error_msg = None

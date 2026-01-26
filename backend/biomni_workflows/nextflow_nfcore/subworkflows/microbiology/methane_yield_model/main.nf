@@ -10,7 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.params = null
+params.substrate = null
+params.yield_coefficient = null
+params.inhibition_constant = null
 
 process METHANE_YIELD_MODEL {
     tag "$meta.id"
@@ -31,8 +33,11 @@ process METHANE_YIELD_MODEL {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_PARAMS="${params.params?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_SUBSTRATE="${params.substrate?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_YIELD_COEFFICIENT="${params.yield_coefficient?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_INHIBITION_CONSTANT="${params.inhibition_constant?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -82,7 +87,9 @@ def methane_yield_model(substrate, yield_coefficient, inhibition_constant=None):
 # Execute the function
 try:
     result = methane_yield_model(
-        params=auto_convert(os.environ.get("PARAM_PARAMS", "")),
+        substrate=auto_convert(os.environ.get("PARAM_SUBSTRATE", "")),
+        yield_coefficient=auto_convert(os.environ.get("PARAM_YIELD_COEFFICIENT", "")),
+        inhibition_constant=auto_convert(os.environ.get("PARAM_INHIBITION_CONSTANT", "")),
     )
     success = True
     error_msg = None

@@ -10,8 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.abundances = null
-params.t = null
+params.populations = null
 params.growth_rates = null
 params.interaction_matrix = null
 
@@ -34,11 +33,11 @@ process GLV_EQUATIONS {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_ABUNDANCES="${params.abundances?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_POPULATIONS="${params.populations?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_GROWTH_RATES="${params.growth_rates?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_INTERACTION_MATRIX="${params.interaction_matrix?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -97,8 +96,7 @@ def glv_equations(populations, growth_rates, interaction_matrix):
 # Execute the function
 try:
     result = glv_equations(
-        abundances=auto_convert(os.environ.get("PARAM_ABUNDANCES", "")),
-        t=auto_convert(os.environ.get("PARAM_T", "")),
+        populations=auto_convert(os.environ.get("PARAM_POPULATIONS", "")),
         growth_rates=auto_convert(os.environ.get("PARAM_GROWTH_RATES", "")),
         interaction_matrix=auto_convert(os.environ.get("PARAM_INTERACTION_MATRIX", "")),
     )

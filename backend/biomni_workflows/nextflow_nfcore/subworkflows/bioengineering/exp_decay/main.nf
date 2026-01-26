@@ -10,10 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.x = null
+params.t = null
 params.a = null
-params.tau = null
-params.c = null
+params.k = null
 
 process EXP_DECAY {
     tag "$meta.id"
@@ -34,11 +33,11 @@ process EXP_DECAY {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_X="${params.x?.toString()?.replace('"', '\\"') ?: 'null'}"
+        # Export parameters as environment variables
+    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_A="${params.a?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_TAU="${params.tau?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_C="${params.c?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_K="${params.k?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -84,10 +83,9 @@ def exp_decay(t, a, k):
 # Execute the function
 try:
     result = exp_decay(
-        x=auto_convert(os.environ.get("PARAM_X", "")),
+        t=auto_convert(os.environ.get("PARAM_T", "")),
         a=auto_convert(os.environ.get("PARAM_A", "")),
-        tau=auto_convert(os.environ.get("PARAM_TAU", "")),
-        c=auto_convert(os.environ.get("PARAM_C", "")),
+        k=auto_convert(os.environ.get("PARAM_K", "")),
     )
     success = True
     error_msg = None

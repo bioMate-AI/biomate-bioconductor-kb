@@ -1,0 +1,5670 @@
+{
+  "_generated": "Auto-generated from main.nf files",
+  "workflows": {
+    "biochemistry/analyze_circular_dichroism_spectra": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sample_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "sample_type": {
+          "type": "unknown",
+          "default": null
+        },
+        "wavelength_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "cd_signal_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "temperature_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "thermal_cd_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "biochemistry/analyze_enzyme_kinetics_assay": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "enzyme_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "substrate_concentrations": {
+          "type": "unknown",
+          "default": null
+        },
+        "enzyme_concentration": {
+          "type": "unknown",
+          "default": null
+        },
+        "modulators": {
+          "type": "unknown",
+          "default": null
+        },
+        "time_points": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "biochemistry/analyze_itc_binding_thermodynamics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "itc_data_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "itc_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "temperature": {
+          "type": "string",
+          "default": "298.15"
+        },
+        "protein_concentration": {
+          "type": "unknown",
+          "default": null
+        },
+        "ligand_concentration": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "biochemistry/analyze_protease_kinetics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "time_points": {
+          "type": "unknown",
+          "default": null
+        },
+        "fluorescence_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "substrate_concentrations": {
+          "type": "unknown",
+          "default": null
+        },
+        "enzyme_concentration": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_prefix": {
+          "type": "string",
+          "default": "protease_kinetics"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "biochemistry/analyze_protein_conservation": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "protein_sequences": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "biochemistry/analyze_rna_secondary_structure_features": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "dot_bracket_structure": {
+          "type": "unknown",
+          "default": null
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "biochemistry/dose_response": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "x": {
+          "type": "unknown",
+          "default": null
+        },
+        "ic50": {
+          "type": "unknown",
+          "default": null
+        },
+        "hill": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "biochemistry/michaelis_menten": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "s": {
+          "type": "unknown",
+          "default": null
+        },
+        "vmax": {
+          "type": "unknown",
+          "default": null
+        },
+        "km": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "biochemistry/one_site_model": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "x": {
+          "type": "unknown",
+          "default": null
+        },
+        "Kd": {
+          "type": "unknown",
+          "default": null
+        },
+        "dH": {
+          "type": "unknown",
+          "default": null
+        },
+        "n": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioengineering/analyze_calcium_imaging_data": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_stack_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "bioengineering/analyze_cell_migration_metrics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_sequence_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "pixel_size_um": {
+          "type": "string",
+          "default": "1.0"
+        },
+        "time_interval_min": {
+          "type": "string",
+          "default": "1.0"
+        },
+        "min_track_length": {
+          "type": "string",
+          "default": "10"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "bioengineering/analyze_in_vitro_drug_release_kinetics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "time_points": {
+          "type": "unknown",
+          "default": null
+        },
+        "concentration_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "drug_name": {
+          "type": "string",
+          "default": "Drug"
+        },
+        "total_drug_loaded": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "bioengineering/analyze_myofiber_morphology": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "nuclei_channel": {
+          "type": "string",
+          "default": "2"
+        },
+        "myofiber_channel": {
+          "type": "string",
+          "default": "1"
+        },
+        "threshold_method": {
+          "type": "string",
+          "default": "otsu"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "bioengineering/decode_behavior_from_neural_trajectories": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "neural_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "behavioral_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "n_components": {
+          "type": "string",
+          "default": "10"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "bioengineering/default_whole_cell_model": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "t": {
+          "type": "unknown",
+          "default": null
+        },
+        "y": {
+          "type": "unknown",
+          "default": null
+        },
+        "params": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioengineering/exp_decay": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "t": {
+          "type": "unknown",
+          "default": null
+        },
+        "a": {
+          "type": "unknown",
+          "default": null
+        },
+        "k": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioengineering/first_order": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "t": {
+          "type": "unknown",
+          "default": null
+        },
+        "k1": {
+          "type": "unknown",
+          "default": null
+        },
+        "q0": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioengineering/higuchi": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "t": {
+          "type": "unknown",
+          "default": null
+        },
+        "kh": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioengineering/korsmeyer_peppas": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "t": {
+          "type": "unknown",
+          "default": null
+        },
+        "k": {
+          "type": "unknown",
+          "default": null
+        },
+        "n": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioengineering/perform_crispr_cas9_genome_editing": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "guide_rna_sequences": {
+          "type": "unknown",
+          "default": null
+        },
+        "target_genomic_loci": {
+          "type": "unknown",
+          "default": null
+        },
+        "cell_tissue_type": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioengineering/simulate_whole_cell_ode_model": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "initial_conditions": {
+          "type": "unknown",
+          "default": null
+        },
+        "parameters": {
+          "type": "unknown",
+          "default": null
+        },
+        "ode_function": {
+          "type": "unknown",
+          "default": null
+        },
+        "time_span": {
+          "type": "unknown",
+          "default": null
+        },
+        "time_points": {
+          "type": "string",
+          "default": "1000"
+        },
+        "method": {
+          "type": "string",
+          "default": "LSODA"
+        }
+      }
+    },
+    "bioengineering/zero_order": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "t": {
+          "type": "unknown",
+          "default": null
+        },
+        "k0": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/batch_register_images": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fixed_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "moving_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "metric": {
+          "type": "unknown",
+          "default": null
+        },
+        "optimizer": {
+          "type": "unknown",
+          "default": null
+        },
+        "preprocess": {
+          "type": "unknown",
+          "default": null
+        },
+        "create_visualizations": {
+          "type": "unknown",
+          "default": null
+        },
+        "learning_rate": {
+          "type": "float",
+          "default": 0.01
+        },
+        "number_of_iterations": {
+          "type": "integer",
+          "default": 100
+        },
+        "gradient_convergence_tolerance": {
+          "type": "string",
+          "default": "1e-06"
+        }
+      }
+    },
+    "bioimaging/calculate_similarity_metrics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image1_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "image2_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/check_model_files_exist": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "model_folder": {
+          "type": "unknown",
+          "default": null
+        },
+        "folds": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/command_iteration": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "bioimaging/create_affine_transform": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fixed_image": {
+          "type": "unknown",
+          "default": null
+        },
+        "moving_image": {
+          "type": "unknown",
+          "default": null
+        },
+        "initial_transform": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/create_deformable_transform": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fixed_image": {
+          "type": "unknown",
+          "default": null
+        },
+        "moving_image": {
+          "type": "unknown",
+          "default": null
+        },
+        "number_of_control_points": {
+          "type": "integer",
+          "default": 4
+        }
+      }
+    },
+    "bioimaging/create_rigid_transform": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fixed_image": {
+          "type": "unknown",
+          "default": null
+        },
+        "moving_image": {
+          "type": "unknown",
+          "default": null
+        },
+        "initial_transform": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/create_segmentation_visualization": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "original_mri": {
+          "type": "unknown",
+          "default": null
+        },
+        "segmentation": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./visualization_output"
+        }
+      }
+    },
+    "bioimaging/load_image": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/patched_torch_load": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "bioimaging/prepare_input_for_nnunet": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "input_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "case_name": {
+          "type": "string",
+          "default": "BRAT"
+        }
+      }
+    },
+    "bioimaging/preprocess_image": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "denoise": {
+          "type": "unknown",
+          "default": null
+        },
+        "normalize": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/quick_affine_registration": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fixed_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "moving_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "metric": {
+          "type": "string",
+          "default": "mutual_information"
+        },
+        "optimizer": {
+          "type": "string",
+          "default": "gradient_descent"
+        },
+        "preprocess": {
+          "type": "unknown",
+          "default": null
+        },
+        "create_visualizations": {
+          "type": "unknown",
+          "default": null
+        },
+        "learning_rate": {
+          "type": "float",
+          "default": 0.01
+        },
+        "number_of_iterations": {
+          "type": "integer",
+          "default": 100
+        },
+        "gradient_convergence_tolerance": {
+          "type": "string",
+          "default": "1e-06"
+        }
+      }
+    },
+    "bioimaging/quick_deformable_registration": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fixed_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "moving_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "metric": {
+          "type": "string",
+          "default": "mutual_information"
+        },
+        "optimizer": {
+          "type": "string",
+          "default": "gradient_descent"
+        },
+        "preprocess": {
+          "type": "unknown",
+          "default": null
+        },
+        "create_visualizations": {
+          "type": "unknown",
+          "default": null
+        },
+        "learning_rate": {
+          "type": "float",
+          "default": 0.01
+        },
+        "number_of_iterations": {
+          "type": "integer",
+          "default": 100
+        },
+        "gradient_convergence_tolerance": {
+          "type": "string",
+          "default": "1e-06"
+        },
+        "number_of_control_points": {
+          "type": "integer",
+          "default": 4
+        }
+      }
+    },
+    "bioimaging/quick_rigid_registration": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fixed_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "moving_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "metric": {
+          "type": "string",
+          "default": "mutual_information"
+        },
+        "optimizer": {
+          "type": "string",
+          "default": "gradient_descent"
+        },
+        "preprocess": {
+          "type": "unknown",
+          "default": null
+        },
+        "create_visualizations": {
+          "type": "unknown",
+          "default": null
+        },
+        "learning_rate": {
+          "type": "float",
+          "default": 0.01
+        },
+        "number_of_iterations": {
+          "type": "integer",
+          "default": 100
+        },
+        "gradient_convergence_tolerance": {
+          "type": "string",
+          "default": "1e-06"
+        }
+      }
+    },
+    "bioimaging/register_images": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fixed_image": {
+          "type": "unknown",
+          "default": null
+        },
+        "moving_image": {
+          "type": "unknown",
+          "default": null
+        },
+        "transform": {
+          "type": "unknown",
+          "default": null
+        },
+        "registration_method": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/save_image": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/segment_with_nn_unet": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "task_id": {
+          "type": "unknown",
+          "default": null
+        },
+        "model_type": {
+          "type": "unknown",
+          "default": null
+        },
+        "folds": {
+          "type": "unknown",
+          "default": null
+        },
+        "use_tta": {
+          "type": "unknown",
+          "default": null
+        },
+        "num_threads": {
+          "type": "unknown",
+          "default": null
+        },
+        "mixed_precision": {
+          "type": "unknown",
+          "default": null
+        },
+        "verbose": {
+          "type": "unknown",
+          "default": null
+        },
+        "auto_prepare_input": {
+          "type": "unknown",
+          "default": null
+        },
+        "results_folder": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/setup_nnunet_environment": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "results_folder": {
+          "type": "unknown",
+          "default": null
+        },
+        "raw_data_base": {
+          "type": "unknown",
+          "default": null
+        },
+        "preprocessed": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "bioimaging/setup_registration_method": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "transform": {
+          "type": "unknown",
+          "default": null
+        },
+        "metric": {
+          "type": "string",
+          "default": "mutual_information"
+        },
+        "optimizer": {
+          "type": "string",
+          "default": "gradient_descent"
+        },
+        "learning_rate": {
+          "type": "float",
+          "default": 0.01
+        },
+        "number_of_iterations": {
+          "type": "integer",
+          "default": 100
+        },
+        "gradient_convergence_tolerance": {
+          "type": "string",
+          "default": "1e-06"
+        }
+      }
+    },
+    "bioimaging/split_modalities": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "input_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "case_name": {
+          "type": "string",
+          "default": "BRAT"
+        }
+      }
+    },
+    "bioimaging/verify_nifti_input": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "biophysics/analyze_cell_morphology_and_cytoskeleton": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "threshold_method": {
+          "type": "string",
+          "default": "otsu"
+        }
+      }
+    },
+    "biophysics/analyze_tissue_deformation_flow": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "results"
+        },
+        "pixel_scale": {
+          "type": "string",
+          "default": "1.0"
+        }
+      }
+    },
+    "biophysics/predict_protein_disorder_regions": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "protein_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "threshold": {
+          "type": "string",
+          "default": "0.5"
+        },
+        "output_file": {
+          "type": "string",
+          "default": "disorder_prediction_results.csv"
+        }
+      }
+    },
+    "cancer_biology/analyze_cell_senescence_and_apoptosis": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fcs_file_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "cancer_biology/analyze_copy_number_purity_ploidy_and_focal_events": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "tumor_bam": {
+          "type": "unknown",
+          "default": null
+        },
+        "reference_genome": {
+          "type": "unknown",
+          "default": null
+        },
+        "normal_bam": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "cn_analysis_results"
+        },
+        "targets_bed": {
+          "type": "unknown",
+          "default": null
+        },
+        "antitargets_bed": {
+          "type": "unknown",
+          "default": null
+        },
+        "gene_bed": {
+          "type": "unknown",
+          "default": null
+        },
+        "focal_genes": {
+          "type": "unknown",
+          "default": null
+        },
+        "log2_amp_threshold": {
+          "type": "string",
+          "default": "1.0"
+        },
+        "log2_del_threshold": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "cancer_biology/analyze_ddr_network_in_cancer": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "expression_data_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "mutation_data_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "cancer_biology/detect_and_annotate_somatic_mutations": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "tumor_bam": {
+          "type": "unknown",
+          "default": null
+        },
+        "normal_bam": {
+          "type": "unknown",
+          "default": null
+        },
+        "reference_genome": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_prefix": {
+          "type": "unknown",
+          "default": null
+        },
+        "snpeff_database": {
+          "type": "string",
+          "default": "GRCh38.105"
+        }
+      }
+    },
+    "cancer_biology/detect_and_characterize_structural_variations": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "bam_file_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "reference_genome_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "cosmic_db_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "clinvar_db_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "cancer_biology/norm_chr": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "chrom": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "cancer_biology/perform_gene_expression_nmf_analysis": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "expression_data_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "n_components": {
+          "type": "string",
+          "default": "10"
+        },
+        "normalize": {
+          "type": "string",
+          "default": "True"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "nmf_results"
+        },
+        "random_state": {
+          "type": "string",
+          "default": "42"
+        }
+      }
+    },
+    "cell_biology/analyze_flow_cytometry_immunophenotyping": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fcs_file_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "gating_strategy": {
+          "type": "unknown",
+          "default": null
+        },
+        "compensation_matrix": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "cell_biology/analyze_mitochondrial_morphology_and_potential": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "morphology_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "potential_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        }
+      }
+    },
+    "cell_biology/perform_facs_cell_sorting": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "cell_suspension_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "fluorescence_parameter": {
+          "type": "unknown",
+          "default": null
+        },
+        "threshold_min": {
+          "type": "unknown",
+          "default": null
+        },
+        "threshold_max": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_file": {
+          "type": "string",
+          "default": "sorted_cells.csv"
+        }
+      }
+    },
+    "cell_biology/quantify_and_cluster_cell_motility": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_sequence_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "num_clusters": {
+          "type": "string",
+          "default": "3"
+        }
+      }
+    },
+    "cell_biology/quantify_cell_cycle_phases_from_microscopy": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_paths": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "database/blast_sequence": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "database": {
+          "type": "unknown",
+          "default": null
+        },
+        "program": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "database/get_genes_near_ccre": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "accession": {
+          "type": "unknown",
+          "default": null
+        },
+        "assembly": {
+          "type": "unknown",
+          "default": null
+        },
+        "chromosome": {
+          "type": "unknown",
+          "default": null
+        },
+        "k": {
+          "type": "integer",
+          "default": 10
+        }
+      }
+    },
+    "database/get_hpo_names": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "hpo_terms": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_lake_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "database/reduce_tokens": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "text": {
+          "type": "unknown",
+          "default": null
+        },
+        "max_tokens": {
+          "type": "unknown",
+          "default": null
+        },
+        "method": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "database/region_to_ccre_screen": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "coord_chrom": {
+          "type": "unknown",
+          "default": null
+        },
+        "coord_start": {
+          "type": "unknown",
+          "default": null
+        },
+        "coord_end": {
+          "type": "unknown",
+          "default": null
+        },
+        "assembly": {
+          "type": "string",
+          "default": "GRCh38"
+        }
+      }
+    },
+    "genetics/analyze_cas9_mutation_outcomes": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "reference_sequences": {
+          "type": "unknown",
+          "default": null
+        },
+        "edited_sequences": {
+          "type": "unknown",
+          "default": null
+        },
+        "cell_line_info": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_prefix": {
+          "type": "string",
+          "default": "cas9_mutation_analysis"
+        }
+      }
+    },
+    "genetics/analyze_crispr_genome_editing": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "original_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "edited_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "guide_rna": {
+          "type": "unknown",
+          "default": null
+        },
+        "repair_template": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genetics/analyze_protein_phylogeny": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fasta_sequences": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        },
+        "alignment_method": {
+          "type": "string",
+          "default": "clustalw"
+        },
+        "tree_method": {
+          "type": "string",
+          "default": "fasttree"
+        }
+      }
+    },
+    "genetics/bayesian_finemapping_with_deep_vi": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "gwas_summary_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "ld_matrix": {
+          "type": "unknown",
+          "default": null
+        },
+        "n_iterations": {
+          "type": "string",
+          "default": "5000"
+        },
+        "learning_rate": {
+          "type": "string",
+          "default": "0.01"
+        },
+        "hidden_dim": {
+          "type": "string",
+          "default": "64"
+        },
+        "credible_threshold": {
+          "type": "string",
+          "default": "0.95"
+        }
+      }
+    },
+    "genetics/elbo_loss": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "reconstruction_loss": {
+          "type": "unknown",
+          "default": null
+        },
+        "kl_divergence": {
+          "type": "unknown",
+          "default": null
+        },
+        "beta": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genetics/fit_genomic_prediction_model": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "genotypes": {
+          "type": "unknown",
+          "default": null
+        },
+        "phenotypes": {
+          "type": "unknown",
+          "default": null
+        },
+        "fixed_effects": {
+          "type": "unknown",
+          "default": null
+        },
+        "model_type": {
+          "type": "string",
+          "default": "additive"
+        },
+        "output_file": {
+          "type": "string",
+          "default": "genomic_prediction_results.csv"
+        }
+      }
+    },
+    "genetics/forward": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "x": {
+          "type": "unknown",
+          "default": null
+        },
+        "weights": {
+          "type": "unknown",
+          "default": null
+        },
+        "bias": {
+          "type": "unknown",
+          "default": null
+        },
+        "activation": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genetics/identify_transcription_factor_binding_sites": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "tf_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "threshold": {
+          "type": "string",
+          "default": "0.8"
+        },
+        "output_file": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genetics/liftover_coordinates": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "chromosome": {
+          "type": "unknown",
+          "default": null
+        },
+        "position": {
+          "type": "unknown",
+          "default": null
+        },
+        "input_format": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_format": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genetics/perform_pcr_and_gel_electrophoresis": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "genomic_dna": {
+          "type": "unknown",
+          "default": null
+        },
+        "forward_primer": {
+          "type": "unknown",
+          "default": null
+        },
+        "reverse_primer": {
+          "type": "unknown",
+          "default": null
+        },
+        "target_region": {
+          "type": "unknown",
+          "default": null
+        },
+        "annealing_temp": {
+          "type": "string",
+          "default": "58"
+        },
+        "extension_time": {
+          "type": "string",
+          "default": "30"
+        },
+        "cycles": {
+          "type": "string",
+          "default": "35"
+        },
+        "gel_percentage": {
+          "type": "string",
+          "default": "2.0"
+        },
+        "output_prefix": {
+          "type": "string",
+          "default": "pcr_result"
+        }
+      }
+    },
+    "genetics/simulate_demographic_history": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "num_samples": {
+          "type": "string",
+          "default": "10"
+        },
+        "sequence_length": {
+          "type": "string",
+          "default": "100000"
+        },
+        "recombination_rate": {
+          "type": "string",
+          "default": "1e-08"
+        },
+        "mutation_rate": {
+          "type": "string",
+          "default": "1e-08"
+        },
+        "demographic_model": {
+          "type": "string",
+          "default": "constant"
+        },
+        "demographic_params": {
+          "type": "unknown",
+          "default": null
+        },
+        "coalescent_model": {
+          "type": "string",
+          "default": "kingman"
+        },
+        "beta_coalescent_param": {
+          "type": "unknown",
+          "default": null
+        },
+        "random_seed": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_file": {
+          "type": "string",
+          "default": "simulated_sequences.vcf"
+        }
+      }
+    },
+    "genomics/analyze_chromatin_interactions": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "hic_file_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "regulatory_elements_bed": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        }
+      }
+    },
+    "genomics/analyze_comparative_genomics_and_haplotypes": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sample_fasta_files": {
+          "type": "unknown",
+          "default": null
+        },
+        "reference_genome_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        }
+      }
+    },
+    "genomics/analyze_genomic_region_overlap": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "region_sets": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_prefix": {
+          "type": "string",
+          "default": "overlap_analysis"
+        }
+      }
+    },
+    "genomics/annotate_celltype_scRNA": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "adata_filename": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_info": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_lake_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "cluster": {
+          "type": "string",
+          "default": "leiden"
+        },
+        "llm": {
+          "type": "string",
+          "default": "claude-sonnet-4-5"
+        },
+        "composition": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/annotate_celltype_with_panhumanpy": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "adata_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "feature_names_col": {
+          "type": "unknown",
+          "default": null
+        },
+        "refine": {
+          "type": "string",
+          "default": "True"
+        },
+        "umap": {
+          "type": "string",
+          "default": "True"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        }
+      }
+    },
+    "genomics/check_ensembl_patterns": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "gene_index": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/conda_env_exists": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "env_name": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/create_harmony_embeddings_scRNA": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "adata_filename": {
+          "type": "unknown",
+          "default": null
+        },
+        "batch_key": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_dir": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/create_panhumanpy_env": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "env_name": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/create_scvi_embeddings_scRNA": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "adata_filename": {
+          "type": "unknown",
+          "default": null
+        },
+        "batch_key": {
+          "type": "unknown",
+          "default": null
+        },
+        "label_key": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_dir": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/custom_mode": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "x": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/find_enriched_motifs_with_homer": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "peak_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "genome": {
+          "type": "unknown",
+          "default": null
+        },
+        "background_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "motif_length": {
+          "type": "unknown",
+          "default": null
+        },
+        "10": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "num_motifs": {
+          "type": "unknown",
+          "default": null
+        },
+        "threads": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/gene_set_enrichment_analysis": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "genes": {
+          "type": "unknown",
+          "default": null
+        },
+        "top_k": {
+          "type": "integer",
+          "default": 10
+        },
+        "database": {
+          "type": "string",
+          "default": "ontology"
+        },
+        "background_list": {
+          "type": "unknown",
+          "default": null
+        },
+        "plot": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/generate_embeddings_with_state": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "adata_filename": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "model_folder": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_filename": {
+          "type": "unknown",
+          "default": null
+        },
+        "checkpoint": {
+          "type": "unknown",
+          "default": null
+        },
+        "embed_key": {
+          "type": "string",
+          "default": "X_state"
+        },
+        "protein_embeddings": {
+          "type": "unknown",
+          "default": null
+        },
+        "batch_size": {
+          "type": "string",
+          "default": "500"
+        }
+      }
+    },
+    "genomics/generate_gene_embeddings_with_ESM_models": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "ensembl_gene_ids": {
+          "type": "unknown",
+          "default": null
+        },
+        "model_name": {
+          "type": "string",
+          "default": "esm2_t6_8M_UR50D"
+        },
+        "layer": {
+          "type": "integer",
+          "default": 6
+        },
+        "save_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "batch_size": {
+          "type": "integer",
+          "default": 1
+        },
+        "max_sequence_length": {
+          "type": "integer",
+          "default": 1024
+        }
+      }
+    },
+    "genomics/generate_transcriptformer_embeddings": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "adata_filename": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_filename": {
+          "type": "unknown",
+          "default": null
+        },
+        "model_type": {
+          "type": "string",
+          "default": "tf-sapiens"
+        },
+        "checkpoint_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "batch_size": {
+          "type": "integer",
+          "default": 8
+        },
+        "precision": {
+          "type": "string",
+          "default": "16-mixed"
+        },
+        "clip_counts": {
+          "type": "integer",
+          "default": 30
+        },
+        "embedding_layer_index": {
+          "type": "unknown",
+          "default": null
+        },
+        "num_gpus": {
+          "type": "integer",
+          "default": 1
+        },
+        "n_data_workers": {
+          "type": "integer",
+          "default": 0
+        },
+        "gene_col_name": {
+          "type": "string",
+          "default": "ensembl_id"
+        },
+        "pretrained_embedding": {
+          "type": "unknown",
+          "default": null
+        },
+        "filter_to_vocabs": {
+          "type": "unknown",
+          "default": null
+        },
+        "use_raw": {
+          "type": "string",
+          "default": "None"
+        },
+        "emb_type": {
+          "type": "string",
+          "default": "cell"
+        },
+        "remove_duplicate_genes": {
+          "type": "unknown",
+          "default": null
+        },
+        "oom_dataloader": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/get_gene_set_enrichment_analysis_supported_database_list": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "genomics/get_matrix": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "chrom": {
+          "type": "unknown",
+          "default": null
+        },
+        "balance_if_possible": {
+          "type": "string",
+          "default": "True"
+        }
+      }
+    },
+    "genomics/get_rna_seq_archs4": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "gene_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "K": {
+          "type": "integer",
+          "default": 10
+        }
+      }
+    },
+    "genomics/get_uce_embeddings_scRNA": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "adata_filename": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "DATA_ROOT": {
+          "type": "string",
+          "default": "/dfs/project/bioagentos/data/singlecell/"
+        },
+        "custom_args": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/interspecies_gene_conversion": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "gene_list": {
+          "type": "unknown",
+          "default": null
+        },
+        "source_species": {
+          "type": "unknown",
+          "default": null
+        },
+        "target_species": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/is_model_downloaded": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "checkpoint_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "model_type": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/map_to_ima_interpret_scRNA": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "adata_filename": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "custom_args": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "genomics/perform_chipseq_peak_calling_with_macs2": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "chip_seq_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "control_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_name": {
+          "type": "string",
+          "default": "macs2_output"
+        },
+        "genome_size": {
+          "type": "string",
+          "default": "hs"
+        },
+        "q_value": {
+          "type": "string",
+          "default": "0.05"
+        }
+      }
+    },
+    "genomics/unsupervised_celltype_transfer_between_scRNA_datasets": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "path_to_annotated_h5ad": {
+          "type": "unknown",
+          "default": null
+        },
+        "path_to_not_annotated_h5ad": {
+          "type": "unknown",
+          "default": null
+        },
+        "ref_labels_key": {
+          "type": "unknown",
+          "default": null
+        },
+        "query_batch_key": {
+          "type": "unknown",
+          "default": null
+        },
+        "ref_batch_key": {
+          "type": "unknown",
+          "default": null
+        },
+        "CELLTYPIST": {
+          "type": "string",
+          "default": "False"
+        },
+        "KNN_BBKNN": {
+          "type": "string",
+          "default": "False"
+        },
+        "KNN_HARMONY": {
+          "type": "string",
+          "default": "False"
+        },
+        "KNN_SCANORAMA": {
+          "type": "string",
+          "default": "False"
+        },
+        "KNN_SCVI": {
+          "type": "string",
+          "default": "False"
+        },
+        "ONCLASS": {
+          "type": "string",
+          "default": "False"
+        },
+        "Random_Forest": {
+          "type": "string",
+          "default": "False"
+        },
+        "SCANVI_POPV": {
+          "type": "string",
+          "default": "True"
+        },
+        "Support_Vector": {
+          "type": "string",
+          "default": "False"
+        },
+        "XGboost": {
+          "type": "string",
+          "default": "False"
+        },
+        "n_jobs": {
+          "type": "integer",
+          "default": 1
+        },
+        "output_folder": {
+          "type": "string",
+          "default": "./tmp/"
+        },
+        "n_samples_per_label": {
+          "type": "integer",
+          "default": 10
+        }
+      }
+    },
+    "glycoengineering/find_n_glycosylation_motifs": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "allow_overlap": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "glycoengineering/list_glycoengineering_resources": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "glycoengineering/predict_o_glycosylation_hotspots": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "window": {
+          "type": "integer",
+          "default": 7
+        },
+        "min_st_fraction": {
+          "type": "float",
+          "default": 0.4
+        },
+        "disallow_proline_next": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "immunology/analyze_atac_seq_differential_accessibility": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "treatment_bam": {
+          "type": "unknown",
+          "default": null
+        },
+        "control_bam": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./atac_results"
+        },
+        "genome_size": {
+          "type": "string",
+          "default": "hs"
+        },
+        "q_value": {
+          "type": "string",
+          "default": "0.05"
+        },
+        "name_prefix": {
+          "type": "string",
+          "default": "atac"
+        }
+      }
+    },
+    "immunology/analyze_bacterial_growth_curve": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "time_points": {
+          "type": "unknown",
+          "default": null
+        },
+        "od_values": {
+          "type": "unknown",
+          "default": null
+        },
+        "strain_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "."
+        }
+      }
+    },
+    "immunology/analyze_cfse_cell_proliferation": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fcs_file_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "cfse_channel": {
+          "type": "string",
+          "default": "FL1-A"
+        },
+        "lymphocyte_gate": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "immunology/analyze_cns_lesion_histology": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        },
+        "stain_type": {
+          "type": "string",
+          "default": "H&E"
+        }
+      }
+    },
+    "immunology/analyze_cytokine_production_in_cd4_tcells": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "fcs_files_dict": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "immunology/analyze_ebv_antibody_titers": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "raw_od_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "standard_curve_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "sample_metadata": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "immunology/analyze_immunohistochemistry_image": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "protein_name": {
+          "type": "string",
+          "default": "Unknown"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./ihc_results/"
+        }
+      }
+    },
+    "immunology/estimate_cell_cycle_phase_durations": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "flow_cytometry_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "initial_estimates": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "immunology/isolate_purify_immune_cells": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "tissue_type": {
+          "type": "unknown",
+          "default": null
+        },
+        "target_cell_type": {
+          "type": "unknown",
+          "default": null
+        },
+        "enzyme_type": {
+          "type": "string",
+          "default": "collagenase"
+        },
+        "macs_antibody": {
+          "type": "unknown",
+          "default": null
+        },
+        "digestion_time_min": {
+          "type": "string",
+          "default": "45"
+        }
+      }
+    },
+    "immunology/logistic_growth": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "n": {
+          "type": "unknown",
+          "default": null
+        },
+        "r": {
+          "type": "unknown",
+          "default": null
+        },
+        "k": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "immunology/objective_function": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "params": {
+          "type": "unknown",
+          "default": null
+        },
+        "data": {
+          "type": "unknown",
+          "default": null
+        },
+        "model_type": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "immunology/simulate_cell_population": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "initial_count": {
+          "type": "unknown",
+          "default": null
+        },
+        "growth_rate": {
+          "type": "unknown",
+          "default": null
+        },
+        "death_rate": {
+          "type": "unknown",
+          "default": null
+        },
+        "time_points": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "immunology/track_immune_cells_under_flow": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_sequence_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        },
+        "pixel_size_um": {
+          "type": "string",
+          "default": "1.0"
+        },
+        "time_interval_sec": {
+          "type": "string",
+          "default": "1.0"
+        },
+        "flow_direction": {
+          "type": "string",
+          "default": "right"
+        }
+      }
+    },
+    "lab_automation/get_pylabrobot_documentation_liquid": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "lab_automation/get_pylabrobot_documentation_material": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "lab_automation/pick_first": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "keywords": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "lab_automation/run_async": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "lab_automation/target": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "lab_automation/test_pylabrobot_script": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "script_input": {
+          "type": "unknown",
+          "default": null
+        },
+        "enable_tracking": {
+          "type": "unknown",
+          "default": null
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "default": 60
+        },
+        "save_test_report": {
+          "type": "unknown",
+          "default": null
+        },
+        "test_report_dir": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "literature/advanced_web_search_claude": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "query": {
+          "type": "unknown",
+          "default": null
+        },
+        "max_results": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "literature/extract_pdf_content": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "url": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "literature/extract_url_content": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "url": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "literature/fetch_supplementary_info_from_doi": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "doi": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "supplementary_info"
+        }
+      }
+    },
+    "microbiology/analyze_arsenic_speciation_hplc_icpms": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sample_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "sample_name": {
+          "type": "string",
+          "default": "Unknown Sample"
+        },
+        "calibration_data": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "microbiology/annotate_bacterial_genome": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "genome_file_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "annotation_results"
+        },
+        "genus": {
+          "type": "unknown",
+          "default": null
+        },
+        "species": {
+          "type": "unknown",
+          "default": null
+        },
+        "strain": {
+          "type": "unknown",
+          "default": null
+        },
+        "prefix": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "microbiology/bacterial_dynamics": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "n": {
+          "type": "unknown",
+          "default": null
+        },
+        "r": {
+          "type": "unknown",
+          "default": null
+        },
+        "k": {
+          "type": "unknown",
+          "default": null
+        },
+        "d": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "microbiology/count_bacterial_colonies": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "dilution_factor": {
+          "type": "string",
+          "default": "1"
+        },
+        "plate_area_cm2": {
+          "type": "string",
+          "default": "65.0"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        }
+      }
+    },
+    "microbiology/enumerate_bacterial_cfu_by_serial_dilution": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "initial_sample_volume_ml": {
+          "type": "string",
+          "default": "1.0"
+        },
+        "estimated_concentration": {
+          "type": "string",
+          "default": "100000000.0"
+        },
+        "dilution_factor": {
+          "type": "string",
+          "default": "10"
+        },
+        "num_dilutions": {
+          "type": "string",
+          "default": "8"
+        },
+        "spots_per_dilution": {
+          "type": "string",
+          "default": "3"
+        },
+        "output_file": {
+          "type": "string",
+          "default": "cfu_enumeration_results.csv"
+        }
+      }
+    },
+    "microbiology/glv_equations": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "populations": {
+          "type": "unknown",
+          "default": null
+        },
+        "growth_rates": {
+          "type": "unknown",
+          "default": null
+        },
+        "interaction_matrix": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "microbiology/methane_yield_model": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "substrate": {
+          "type": "unknown",
+          "default": null
+        },
+        "yield_coefficient": {
+          "type": "unknown",
+          "default": null
+        },
+        "inhibition_constant": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "microbiology/model_bacterial_growth_dynamics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "initial_population": {
+          "type": "unknown",
+          "default": null
+        },
+        "growth_rate": {
+          "type": "unknown",
+          "default": null
+        },
+        "clearance_rate": {
+          "type": "unknown",
+          "default": null
+        },
+        "niche_size": {
+          "type": "unknown",
+          "default": null
+        },
+        "simulation_time": {
+          "type": "string",
+          "default": "24"
+        },
+        "time_step": {
+          "type": "string",
+          "default": "0.1"
+        }
+      }
+    },
+    "microbiology/optimize_anaerobic_digestion_process": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "waste_characteristics": {
+          "type": "unknown",
+          "default": null
+        },
+        "operational_parameters": {
+          "type": "unknown",
+          "default": null
+        },
+        "target_output": {
+          "type": "string",
+          "default": "methane_yield"
+        },
+        "optimization_method": {
+          "type": "string",
+          "default": "rsm"
+        }
+      }
+    },
+    "microbiology/predict_rna_secondary_structure": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "rna_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_prefix": {
+          "type": "string",
+          "default": "rna_structure"
+        }
+      }
+    },
+    "microbiology/quantify_biofilm_biomass_crystal_violet": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "od_values": {
+          "type": "unknown",
+          "default": null
+        },
+        "sample_names": {
+          "type": "unknown",
+          "default": null
+        },
+        "control_index": {
+          "type": "string",
+          "default": "0"
+        },
+        "save_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "microbiology/segment_and_analyze_microbial_cells": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        },
+        "min_cell_size": {
+          "type": "string",
+          "default": "50"
+        }
+      }
+    },
+    "microbiology/segment_cells_with_deep_learning": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "model_type": {
+          "type": "string",
+          "default": "bact_fluor_omni"
+        },
+        "diameter": {
+          "type": "unknown",
+          "default": null
+        },
+        "save_dir": {
+          "type": "string",
+          "default": "segmentation_results"
+        }
+      }
+    },
+    "microbiology/simulate_generalized_lotka_volterra_dynamics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "initial_abundances": {
+          "type": "unknown",
+          "default": null
+        },
+        "growth_rates": {
+          "type": "unknown",
+          "default": null
+        },
+        "interaction_matrix": {
+          "type": "unknown",
+          "default": null
+        },
+        "time_points": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_file": {
+          "type": "string",
+          "default": "glv_simulation_results.csv"
+        }
+      }
+    },
+    "microbiology/simulate_microbial_population_dynamics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "initial_populations": {
+          "type": "unknown",
+          "default": null
+        },
+        "growth_rates": {
+          "type": "unknown",
+          "default": null
+        },
+        "clearance_rates": {
+          "type": "unknown",
+          "default": null
+        },
+        "carrying_capacities": {
+          "type": "unknown",
+          "default": null
+        },
+        "max_time": {
+          "type": "string",
+          "default": "100"
+        },
+        "num_simulations": {
+          "type": "string",
+          "default": "100"
+        },
+        "time_points": {
+          "type": "string",
+          "default": "100"
+        }
+      }
+    },
+    "microbiology/vfa_production_model": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "substrate": {
+          "type": "unknown",
+          "default": null
+        },
+        "max_rate": {
+          "type": "unknown",
+          "default": null
+        },
+        "ks": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/align_sequences": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "long_seq": {
+          "type": "unknown",
+          "default": null
+        },
+        "short_seqs": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/annotate_open_reading_frames": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "min_length": {
+          "type": "unknown",
+          "default": null
+        },
+        "search_reverse": {
+          "type": "string",
+          "default": "False"
+        },
+        "filter_subsets": {
+          "type": "string",
+          "default": "False"
+        }
+      }
+    },
+    "molecular_biology/annotate_plasmid": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "is_circular": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/design_golden_gate_oligos": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "backbone_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "insert_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "enzyme_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "is_circular": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/design_knockout_sgrna": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "gene_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_lake_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "species": {
+          "type": "string",
+          "default": "human"
+        },
+        "num_guides": {
+          "type": "integer",
+          "default": 1
+        }
+      }
+    },
+    "molecular_biology/design_primer": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "start_pos": {
+          "type": "unknown",
+          "default": null
+        },
+        "primer_length": {
+          "type": "integer",
+          "default": 20
+        },
+        "min_gc": {
+          "type": "float",
+          "default": 0.4
+        },
+        "max_gc": {
+          "type": "float",
+          "default": 0.6
+        },
+        "min_tm": {
+          "type": "float",
+          "default": 55.0
+        },
+        "max_tm": {
+          "type": "float",
+          "default": 65.0
+        },
+        "search_window": {
+          "type": "integer",
+          "default": 100
+        }
+      }
+    },
+    "molecular_biology/design_verification_primers": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "plasmid_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "target_region": {
+          "type": "unknown",
+          "default": null
+        },
+        "existing_primers": {
+          "type": "unknown",
+          "default": null
+        },
+        "is_circular": {
+          "type": "unknown",
+          "default": null
+        },
+        "coverage_length": {
+          "type": "integer",
+          "default": 800
+        },
+        "primer_length": {
+          "type": "integer",
+          "default": 20
+        },
+        "min_gc": {
+          "type": "float",
+          "default": 0.4
+        },
+        "max_gc": {
+          "type": "float",
+          "default": 0.6
+        },
+        "min_tm": {
+          "type": "float",
+          "default": 55.0
+        },
+        "max_tm": {
+          "type": "float",
+          "default": 65.0
+        }
+      }
+    },
+    "molecular_biology/digest_sequence": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "dna_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "enzyme_names": {
+          "type": "unknown",
+          "default": null
+        },
+        "is_circular": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/find_orfs_in_frame": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "frame": {
+          "type": "unknown",
+          "default": null
+        },
+        "min_length": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/find_restriction_enzymes": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "is_circular": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/find_restriction_sites": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "dna_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "enzymes": {
+          "type": "unknown",
+          "default": null
+        },
+        "is_circular": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/find_sequence_mutations": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "query_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "reference_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "query_start": {
+          "type": "string",
+          "default": "1"
+        }
+      }
+    },
+    "molecular_biology/get_bacterial_transformation_protocol": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "antibiotic": {
+          "type": "string",
+          "default": "ampicillin"
+        },
+        "is_repetitive": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/get_coding_sequences": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "min_length": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/get_gene_coding_sequence": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "gene_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "organism": {
+          "type": "unknown",
+          "default": null
+        },
+        "email": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/get_golden_gate_assembly_protocol": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "num_inserts": {
+          "type": "integer",
+          "default": 1
+        },
+        "enzyme_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "vector_length": {
+          "type": "unknown",
+          "default": null
+        },
+        "vector_amount_ng": {
+          "type": "float",
+          "default": 75.0
+        },
+        "insert_lengths": {
+          "type": "unknown",
+          "default": null
+        },
+        "is_library_prep": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/get_oligo_annealing_protocol": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "molecular_biology/get_plasmid_sequence": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "identifier": {
+          "type": "unknown",
+          "default": null
+        },
+        "is_addgene": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/get_refseq_id": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "gene_symbol": {
+          "type": "unknown",
+          "default": null
+        },
+        "organism": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/golden_gate_assembly": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "backbone_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "enzyme_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "fragments": {
+          "type": "unknown",
+          "default": null
+        },
+        "is_circular": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/is_position_covered": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "position": {
+          "type": "unknown",
+          "default": null
+        },
+        "regions": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/is_region_fully_covered": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "query_start": {
+          "type": "unknown",
+          "default": null
+        },
+        "query_end": {
+          "type": "unknown",
+          "default": null
+        },
+        "regions": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/merge_overlapping_regions": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "regions": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/pcr_simple": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "long_seq": {
+          "type": "unknown",
+          "default": null
+        },
+        "short_seqs": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/reverse_complement": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "seq": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "molecular_biology/search_gene": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "pattern": {
+          "type": "unknown",
+          "default": null
+        },
+        "case_sensitive": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pathology/analyze_aortic_diameter_and_geometry": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        }
+      }
+    },
+    "pathology/analyze_atp_luminescence_assay": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "data_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "standard_curve_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "normalization_method": {
+          "type": "string",
+          "default": "cell_count"
+        },
+        "normalization_data": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pathology/analyze_bone_microct_morphometry": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "input_file_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "threshold_value": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pathology/analyze_intracellular_calcium_with_rhod2": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "background_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "control_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "sample_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        }
+      }
+    },
+    "pathology/analyze_thrombus_histology": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        }
+      }
+    },
+    "pathology/quantify_corneal_nerve_fibers": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "marker_type": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        },
+        "threshold_method": {
+          "type": "string",
+          "default": "otsu"
+        }
+      }
+    },
+    "pathology/segment_and_quantify_cells_in_multiplexed_images": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "markers_list": {
+          "type": "unknown",
+          "default": null
+        },
+        "nuclear_channel_index": {
+          "type": "string",
+          "default": "0"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        }
+      }
+    },
+    "pharmacology/ADMET_pred": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "smiles": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/analyze_accelerated_stability_of_pharmaceutical_formulations": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "formulations": {
+          "type": "unknown",
+          "default": null
+        },
+        "storage_conditions": {
+          "type": "unknown",
+          "default": null
+        },
+        "time_points": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/analyze_fda_safety_signals": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "drug_list": {
+          "type": "unknown",
+          "default": null
+        },
+        "comparison_period": {
+          "type": "unknown",
+          "default": null
+        },
+        "signal_threshold": {
+          "type": "float",
+          "default": 2.0
+        }
+      }
+    },
+    "pharmacology/analyze_interaction_mechanisms": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "drug_pair": {
+          "type": "unknown",
+          "default": null
+        },
+        "detailed_analysis": {
+          "type": "string",
+          "default": "True"
+        },
+        "data_lake_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/analyze_radiolabeled_antibody_biodistribution": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "time_points": {
+          "type": "unknown",
+          "default": null
+        },
+        "tissue_data": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/analyze_western_blot": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "blot_image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "target_bands": {
+          "type": "unknown",
+          "default": null
+        },
+        "loading_control_band": {
+          "type": "unknown",
+          "default": null
+        },
+        "antibody_info": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "pharmacology/analyze_xenograft_tumor_growth_inhibition": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "data_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "time_column": {
+          "type": "unknown",
+          "default": null
+        },
+        "volume_column": {
+          "type": "unknown",
+          "default": null
+        },
+        "group_column": {
+          "type": "unknown",
+          "default": null
+        },
+        "subject_column": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "pharmacology/apply_vcog_grade": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "event_type": {
+          "type": "unknown",
+          "default": null
+        },
+        "severity_value": {
+          "type": "unknown",
+          "default": null
+        },
+        "species": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/bi_exp_model": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "t": {
+          "type": "unknown",
+          "default": null
+        },
+        "A": {
+          "type": "unknown",
+          "default": null
+        },
+        "alpha": {
+          "type": "unknown",
+          "default": null
+        },
+        "B": {
+          "type": "unknown",
+          "default": null
+        },
+        "beta": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/calculate_physicochemical_properties": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "smiles_string": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/check_drug_combination_safety": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "drug_list": {
+          "type": "unknown",
+          "default": null
+        },
+        "include_mechanisms": {
+          "type": "string",
+          "default": "True"
+        },
+        "include_management": {
+          "type": "string",
+          "default": "True"
+        },
+        "data_lake_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/check_fda_drug_recalls": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "drug_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "classification": {
+          "type": "unknown",
+          "default": null
+        },
+        "date_range": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/docking_autodock_vina": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "smiles_list": {
+          "type": "unknown",
+          "default": null
+        },
+        "receptor_pdb_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "box_center": {
+          "type": "unknown",
+          "default": null
+        },
+        "box_size": {
+          "type": "unknown",
+          "default": null
+        },
+        "ncpu": {
+          "type": "string",
+          "default": "1"
+        }
+      }
+    },
+    "pharmacology/estimate_alpha_particle_radiotherapy_dosimetry": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "biodistribution_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "radiation_parameters": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_file": {
+          "type": "string",
+          "default": "dosimetry_results.csv"
+        }
+      }
+    },
+    "pharmacology/find_alternative_drugs_ddinter": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "target_drug": {
+          "type": "unknown",
+          "default": null
+        },
+        "contraindicated_drugs": {
+          "type": "unknown",
+          "default": null
+        },
+        "therapeutic_class": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_lake_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/get_fda_drug_label_info": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "drug_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "sections": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/grade_adverse_events_using_vcog_ctcae": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "clinical_data_file": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "pharmacology/perform_mwas_cyp2c19_metabolizer_status": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "methylation_data_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "metabolizer_status_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "covariates_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "pvalue_threshold": {
+          "type": "string",
+          "default": "0.05"
+        },
+        "output_file": {
+          "type": "string",
+          "default": "significant_cpg_sites.csv"
+        }
+      }
+    },
+    "pharmacology/predict_admet_properties": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "smiles_list": {
+          "type": "unknown",
+          "default": null
+        },
+        "ADMET_model_type": {
+          "type": "string",
+          "default": "MPNN"
+        }
+      }
+    },
+    "pharmacology/predict_binding_affinity_protein_1d_sequence": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "smiles_list": {
+          "type": "unknown",
+          "default": null
+        },
+        "amino_acid_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "affinity_model_type": {
+          "type": "string",
+          "default": "MPNN-CNN"
+        }
+      }
+    },
+    "pharmacology/retrieve_topk_repurposing_drugs_from_disease_txgnn": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "disease_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "data_lake_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "k": {
+          "type": "string",
+          "default": "5"
+        }
+      }
+    },
+    "pharmacology/run_3d_chondrogenic_aggregate_assay": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "chondrocyte_cells": {
+          "type": "unknown",
+          "default": null
+        },
+        "test_compounds": {
+          "type": "unknown",
+          "default": null
+        },
+        "culture_duration_days": {
+          "type": "string",
+          "default": "21"
+        },
+        "measurement_intervals": {
+          "type": "string",
+          "default": "7"
+        }
+      }
+    },
+    "pharmacology/run_autosite": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "pdb_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "spacing": {
+          "type": "string",
+          "default": "1.0"
+        }
+      }
+    },
+    "pharmacology/run_diffdock_with_smiles": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "pdb_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "smiles_string": {
+          "type": "unknown",
+          "default": null
+        },
+        "local_output_dir": {
+          "type": "unknown",
+          "default": null
+        },
+        "gpu_device": {
+          "type": "string",
+          "default": "0"
+        },
+        "use_gpu": {
+          "type": "string",
+          "default": "True"
+        }
+      }
+    },
+    "pharmacology/sigmoid": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "x": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "physiology/analyze_abr_waveform_p1_metrics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "time_ms": {
+          "type": "unknown",
+          "default": null
+        },
+        "amplitude_uv": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "physiology/analyze_ciliary_beat_frequency": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "video_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "roi_count": {
+          "type": "string",
+          "default": "5"
+        },
+        "min_freq": {
+          "type": "string",
+          "default": "0"
+        },
+        "max_freq": {
+          "type": "string",
+          "default": "30"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "physiology/analyze_endolysosomal_calcium_dynamics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "time_points": {
+          "type": "unknown",
+          "default": null
+        },
+        "luminescence_values": {
+          "type": "unknown",
+          "default": null
+        },
+        "treatment_time": {
+          "type": "unknown",
+          "default": null
+        },
+        "cell_type": {
+          "type": "unknown",
+          "default": null
+        },
+        "treatment_name": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_file": {
+          "type": "string",
+          "default": "calcium_analysis_results.txt"
+        }
+      }
+    },
+    "physiology/analyze_fatty_acid_composition_by_gc": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "gc_data_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "tissue_type": {
+          "type": "unknown",
+          "default": null
+        },
+        "sample_id": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_directory": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "physiology/analyze_hemodynamic_data": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "pressure_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "sampling_rate": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_file": {
+          "type": "string",
+          "default": "hemodynamic_results.csv"
+        }
+      }
+    },
+    "physiology/analyze_protein_colocalization": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "channel1_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "channel2_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        },
+        "threshold_method": {
+          "type": "string",
+          "default": "otsu"
+        }
+      }
+    },
+    "physiology/calculate_brain_adc_map": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "dwi_file_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "b_values": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_path": {
+          "type": "string",
+          "default": "adc_map.nii.gz"
+        },
+        "mask_file_path": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "physiology/cosinor_model": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "t": {
+          "type": "unknown",
+          "default": null
+        },
+        "mesor": {
+          "type": "unknown",
+          "default": null
+        },
+        "amplitude": {
+          "type": "unknown",
+          "default": null
+        },
+        "acrophase": {
+          "type": "unknown",
+          "default": null
+        },
+        "period": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "physiology/mono_exp_model": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "t": {
+          "type": "unknown",
+          "default": null
+        },
+        "a": {
+          "type": "unknown",
+          "default": null
+        },
+        "k": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "physiology/perform_cosinor_analysis": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "time_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "physiological_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "period": {
+          "type": "string",
+          "default": "24.0"
+        }
+      }
+    },
+    "physiology/pk_ode_system": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "c": {
+          "type": "unknown",
+          "default": null
+        },
+        "ka": {
+          "type": "unknown",
+          "default": null
+        },
+        "ke": {
+          "type": "unknown",
+          "default": null
+        },
+        "vd": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "physiology/quantify_amyloid_beta_plaques": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "image_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "threshold_method": {
+          "type": "string",
+          "default": "otsu"
+        },
+        "min_plaque_size": {
+          "type": "string",
+          "default": "50"
+        },
+        "manual_threshold": {
+          "type": "string",
+          "default": "127"
+        }
+      }
+    },
+    "physiology/reconstruct_3d_face_from_mri": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "mri_file_path": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./output"
+        },
+        "subject_id": {
+          "type": "string",
+          "default": "subject"
+        },
+        "threshold_value": {
+          "type": "string",
+          "default": "300"
+        }
+      }
+    },
+    "physiology/simulate_thyroid_hormone_pharmacokinetics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "parameters": {
+          "type": "unknown",
+          "default": null
+        },
+        "initial_conditions": {
+          "type": "unknown",
+          "default": null
+        },
+        "time_span": {
+          "type": "unknown",
+          "default": null
+        },
+        "time_points": {
+          "type": "string",
+          "default": "100"
+        }
+      }
+    },
+    "synthetic_biology/analyze_bacterial_growth_rate": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "time_points": {
+          "type": "unknown",
+          "default": null
+        },
+        "od_measurements": {
+          "type": "unknown",
+          "default": null
+        },
+        "strain_name": {
+          "type": "string",
+          "default": "Unknown strain"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "synthetic_biology/analyze_barcode_sequencing_data": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "input_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "barcode_pattern": {
+          "type": "unknown",
+          "default": null
+        },
+        "flanking_seq_5prime": {
+          "type": "unknown",
+          "default": null
+        },
+        "flanking_seq_3prime": {
+          "type": "unknown",
+          "default": null
+        },
+        "min_count": {
+          "type": "string",
+          "default": "5"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./results"
+        }
+      }
+    },
+    "synthetic_biology/analyze_bifurcation_diagram": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "time_series_data": {
+          "type": "unknown",
+          "default": null
+        },
+        "parameter_values": {
+          "type": "unknown",
+          "default": null
+        },
+        "system_name": {
+          "type": "string",
+          "default": "Dynamical System"
+        },
+        "output_dir": {
+          "type": "string",
+          "default": "./"
+        }
+      }
+    },
+    "synthetic_biology/create_biochemical_network_sbml_model": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "reaction_network": {
+          "type": "unknown",
+          "default": null
+        },
+        "kinetic_parameters": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_file": {
+          "type": "string",
+          "default": "biochemical_model.xml"
+        }
+      }
+    },
+    "synthetic_biology/engineer_bacterial_genome_for_therapeutic_delivery": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "bacterial_genome_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "genetic_parts": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "synthetic_biology/gene_circuit_odes": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "protein_level": {
+          "type": "unknown",
+          "default": null
+        },
+        "production_rate": {
+          "type": "unknown",
+          "default": null
+        },
+        "degradation_rate": {
+          "type": "unknown",
+          "default": null
+        },
+        "inducer": {
+          "type": "unknown",
+          "default": null
+        },
+        "hill_coef": {
+          "type": "unknown",
+          "default": null
+        },
+        "k_half": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "synthetic_biology/gompertz_model": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "t": {
+          "type": "unknown",
+          "default": null
+        },
+        "a": {
+          "type": "unknown",
+          "default": null
+        },
+        "b": {
+          "type": "unknown",
+          "default": null
+        },
+        "c": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "synthetic_biology/hamming_distance": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "seq1": {
+          "type": "unknown",
+          "default": null
+        },
+        "seq2": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "synthetic_biology/identify_fas_functional_domains": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "sequence_type": {
+          "type": "string",
+          "default": "protein"
+        },
+        "output_file": {
+          "type": "string",
+          "default": "fas_domains_report.txt"
+        }
+      }
+    },
+    "synthetic_biology/optimize_codons_for_heterologous_expression": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "target_sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "host_codon_usage": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "synthetic_biology/simulate_gene_circuit_with_growth_feedback": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "circuit_topology": {
+          "type": "unknown",
+          "default": null
+        },
+        "kinetic_params": {
+          "type": "unknown",
+          "default": null
+        },
+        "growth_params": {
+          "type": "unknown",
+          "default": null
+        },
+        "simulation_time": {
+          "type": "string",
+          "default": "100"
+        },
+        "time_points": {
+          "type": "string",
+          "default": "1000"
+        }
+      }
+    },
+    "systems_biology/compare_protein_structures": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "pdb_file1": {
+          "type": "unknown",
+          "default": null
+        },
+        "pdb_file2": {
+          "type": "unknown",
+          "default": null
+        },
+        "chain_id1": {
+          "type": "string",
+          "default": "A"
+        },
+        "chain_id2": {
+          "type": "string",
+          "default": "A"
+        },
+        "output_prefix": {
+          "type": "string",
+          "default": "protein_comparison"
+        }
+      }
+    },
+    "systems_biology/dimerization_odes": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "monomer": {
+          "type": "unknown",
+          "default": null
+        },
+        "dimer": {
+          "type": "unknown",
+          "default": null
+        },
+        "kon": {
+          "type": "unknown",
+          "default": null
+        },
+        "koff": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "systems_biology/hill_function": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "x": {
+          "type": "unknown",
+          "default": null
+        },
+        "n": {
+          "type": "unknown",
+          "default": null
+        },
+        "ec50": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "systems_biology/mass_action_kinetics": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "k": {
+          "type": "unknown",
+          "default": null
+        },
+        "concentrations": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "systems_biology/model_protein_dimerization_network": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "monomer_concentrations": {
+          "type": "unknown",
+          "default": null
+        },
+        "dimerization_affinities": {
+          "type": "unknown",
+          "default": null
+        },
+        "network_topology": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "systems_biology/ode_system": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "state": {
+          "type": "unknown",
+          "default": null
+        },
+        "rates": {
+          "type": "unknown",
+          "default": null
+        },
+        "stoichiometry": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "systems_biology/perform_flux_balance_analysis": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "model_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "constraints": {
+          "type": "unknown",
+          "default": null
+        },
+        "objective_reaction": {
+          "type": "unknown",
+          "default": null
+        },
+        "output_file": {
+          "type": "string",
+          "default": "fba_results.csv"
+        }
+      }
+    },
+    "systems_biology/query_chatnt": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "question": {
+          "type": "unknown",
+          "default": null
+        },
+        "sequence": {
+          "type": "unknown",
+          "default": null
+        },
+        "device": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "systems_biology/ras_ode_system": {
+      "description": "* nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "ras_gdp": {
+          "type": "unknown",
+          "default": null
+        },
+        "ras_gtp": {
+          "type": "unknown",
+          "default": null
+        },
+        "gef_rate": {
+          "type": "unknown",
+          "default": null
+        },
+        "gap_rate": {
+          "type": "unknown",
+          "default": null
+        }
+      }
+    },
+    "systems_biology/simulate_metabolic_network_perturbation": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "model_file": {
+          "type": "unknown",
+          "default": null
+        },
+        "initial_concentrations": {
+          "type": "unknown",
+          "default": null
+        },
+        "perturbation_params": {
+          "type": "unknown",
+          "default": null
+        },
+        "simulation_time": {
+          "type": "string",
+          "default": "100"
+        },
+        "time_points": {
+          "type": "string",
+          "default": "1000"
+        }
+      }
+    },
+    "systems_biology/simulate_protein_signaling_network": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "network_structure": {
+          "type": "unknown",
+          "default": null
+        },
+        "reaction_params": {
+          "type": "unknown",
+          "default": null
+        },
+        "species_params": {
+          "type": "unknown",
+          "default": null
+        },
+        "simulation_time": {
+          "type": "string",
+          "default": "100"
+        },
+        "time_points": {
+          "type": "string",
+          "default": "1000"
+        }
+      }
+    },
+    "systems_biology/simulate_renin_angiotensin_system_dynamics": {
+      "description": "nf-core style module generated from tested Galaxy wrapper",
+      "params": {
+        "outdir": {
+          "type": "string",
+          "default": "./results"
+        },
+        "initial_concentrations": {
+          "type": "unknown",
+          "default": null
+        },
+        "rate_constants": {
+          "type": "unknown",
+          "default": null
+        },
+        "feedback_params": {
+          "type": "unknown",
+          "default": null
+        },
+        "simulation_time": {
+          "type": "string",
+          "default": "48"
+        },
+        "time_points": {
+          "type": "string",
+          "default": "100"
+        }
+      }
+    }
+  }
+}

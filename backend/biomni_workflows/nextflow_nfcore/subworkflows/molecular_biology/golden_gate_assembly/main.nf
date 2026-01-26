@@ -13,6 +13,7 @@ params.outdir = './results'
 params.backbone_sequence = null
 params.enzyme_name = null
 params.fragments = null
+params.str]] = null
 params.is_circular = null
 
 process GOLDEN_GATE_ASSEMBLY {
@@ -34,11 +35,13 @@ process GOLDEN_GATE_ASSEMBLY {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
+        # Export parameters as environment variables
     export PARAM_BACKBONE_SEQUENCE="${params.backbone_sequence?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_ENZYME_NAME="${params.enzyme_name?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_FRAGMENTS="${params.fragments?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_STR]]="${params.str]]?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_IS_CIRCULAR="${params.is_circular?.toString()?.replace('"', '\\"') ?: 'null'}"
+
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -456,6 +459,7 @@ try:
         backbone_sequence=auto_convert(os.environ.get("PARAM_BACKBONE_SEQUENCE", "")),
         enzyme_name=auto_convert(os.environ.get("PARAM_ENZYME_NAME", "")),
         fragments=auto_convert(os.environ.get("PARAM_FRAGMENTS", "")),
+        str]]=auto_convert(os.environ.get("PARAM_STR]]", "")),
         is_circular=auto_convert(os.environ.get("PARAM_IS_CIRCULAR", "")),
     )
     success = True
