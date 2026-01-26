@@ -61,6 +61,13 @@ process SEGMENT_WITH_NN_UNET {
 import json
 import os
 
+
+class SegmentationTool:
+    """Stub for SegmentationTool - requires nnU-Net."""
+    def __init__(self):
+        raise NotImplementedError("SegmentationTool requires nnU-Net and full biomni installation")
+
+
 def auto_convert(val):
     # Auto-convert string to appropriate type
     if val is None or val == '' or val == 'null':

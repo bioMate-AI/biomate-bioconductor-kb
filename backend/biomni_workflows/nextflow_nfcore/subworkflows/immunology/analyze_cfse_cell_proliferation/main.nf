@@ -43,6 +43,7 @@ process ANALYZE_CFSE_CELL_PROLIFERATION {
 
 import json
 import os
+from collections.abc import MutableMapping
 
 def auto_convert(val):
     # Auto-convert string to appropriate type
@@ -107,12 +108,12 @@ def analyze_cfse_cell_proliferation(fcs_file_path, cfse_channel="FL1-A", lymphoc
 
     # Try to import FlowCytometryTools with compatibility fix
     try:
-        # First attempt to patch collections.MutableMapping for compatibility
+        # First attempt to patch MutableMapping for compatibility
         import collections
         import collections.abc
 
         if not hasattr(collections, "MutableMapping"):
-            collections.MutableMapping = collections.abc.MutableMapping
+            MutableMapping = collections.abc.MutableMapping
 
         from FlowCytometryTools import FCMeasurement
 

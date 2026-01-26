@@ -1,0 +1,4444 @@
+[
+  {
+    "workflow": "biochemistry/analyze_circular_dichroism_spectra",
+    "nf_params": [
+      "sample_name",
+      "sample_type",
+      "wavelength_data",
+      "cd_signal_data",
+      "temperature_data",
+      "thermal_cd_data"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sample_type",
+      "wavelength_data",
+      "cd_signal_data",
+      "sample_name",
+      "temperature_data",
+      "thermal_cd_data"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biochemistry/analyze_enzyme_kinetics_assay",
+    "nf_params": [
+      "enzyme_name",
+      "substrate_concentrations",
+      "enzyme_concentration",
+      "modulators",
+      "time_points"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "substrate_concentrations",
+      "modulators",
+      "enzyme_concentration",
+      "time_points",
+      "enzyme_name"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biochemistry/analyze_itc_binding_thermodynamics",
+    "nf_params": [
+      "itc_data_path",
+      "itc_data",
+      "protein_concentration",
+      "ligand_concentration"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "itc_data",
+      "protein_concentration",
+      "itc_data_path",
+      "ligand_concentration"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biochemistry/analyze_protease_kinetics",
+    "nf_params": [
+      "time_points",
+      "fluorescence_data",
+      "substrate_concentrations",
+      "enzyme_concentration"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "substrate_concentrations",
+      "time_points",
+      "fluorescence_data",
+      "enzyme_concentration"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biochemistry/analyze_protein_conservation",
+    "nf_params": [
+      "protein_sequences"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "protein_sequences"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biochemistry/analyze_rna_secondary_structure_features",
+    "nf_params": [
+      "dot_bracket_structure",
+      "sequence"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "dot_bracket_structure"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biochemistry/dose_response",
+    "nf_params": [
+      "x",
+      "ic50",
+      "hill"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "ic50",
+      "x",
+      "hill"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biochemistry/michaelis_menten",
+    "nf_params": [
+      "s",
+      "vmax",
+      "km"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "vmax",
+      "km",
+      "s"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biochemistry/one_site_model",
+    "nf_params": [
+      "x",
+      "Kd",
+      "dH",
+      "n"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "n",
+      "Kd",
+      "x",
+      "dH"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/analyze_calcium_imaging_data",
+    "nf_params": [
+      "image_stack_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_stack_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/analyze_cell_migration_metrics",
+    "nf_params": [
+      "image_sequence_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_sequence_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/analyze_in_vitro_drug_release_kinetics",
+    "nf_params": [
+      "time_points",
+      "concentration_data",
+      "total_drug_loaded"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "concentration_data",
+      "time_points",
+      "total_drug_loaded"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/analyze_myofiber_morphology",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/decode_behavior_from_neural_trajectories",
+    "nf_params": [
+      "neural_data",
+      "behavioral_data"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "neural_data",
+      "behavioral_data"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/default_whole_cell_model",
+    "nf_params": [
+      "t",
+      "y",
+      "params"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "y",
+      "t",
+      "params"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/exp_decay",
+    "nf_params": [
+      "x",
+      "a",
+      "tau",
+      "c"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "x",
+      "tau",
+      "c",
+      "a"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/first_order",
+    "nf_params": [
+      "t",
+      "k"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "t",
+      "k"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/higuchi",
+    "nf_params": [
+      "t",
+      "k"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "t",
+      "k"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/korsmeyer_peppas",
+    "nf_params": [
+      "t",
+      "k",
+      "n"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "n",
+      "t",
+      "k"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/perform_crispr_cas9_genome_editing",
+    "nf_params": [
+      "guide_rna_sequences",
+      "target_genomic_loci",
+      "cell_tissue_type"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "guide_rna_sequences",
+      "target_genomic_loci",
+      "cell_tissue_type"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/simulate_whole_cell_ode_model",
+    "nf_params": [
+      "initial_conditions",
+      "parameters",
+      "ode_function",
+      "time_span"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "time_span",
+      "parameters",
+      "ode_function",
+      "initial_conditions"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioengineering/zero_order",
+    "nf_params": [
+      "t",
+      "k"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "t",
+      "k"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/batch_register_images",
+    "nf_params": [
+      "fixed_image_path",
+      "moving_images_dir",
+      "output_dir",
+      "preprocess",
+      "create_visualizations"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "moving_images_dir",
+      "preprocess",
+      "output_dir",
+      "create_visualizations",
+      "fixed_image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/calculate_similarity_metrics",
+    "nf_params": [
+      "image1",
+      "image2"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image2",
+      "image1"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/check_model_files_exist",
+    "nf_params": [
+      "model_folder",
+      "folds"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "model_folder",
+      "folds"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/command_iteration",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/create_affine_transform",
+    "nf_params": [
+      "fixed_image",
+      "moving_image",
+      "initial_transform"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "moving_image",
+      "fixed_image",
+      "initial_transform"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/create_deformable_transform",
+    "nf_params": [
+      "fixed_image",
+      "moving_image"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "moving_image",
+      "fixed_image"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/create_rigid_transform",
+    "nf_params": [
+      "fixed_image",
+      "moving_image",
+      "initial_transform"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "moving_image",
+      "fixed_image",
+      "initial_transform"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/create_segmentation_visualization",
+    "nf_params": [
+      "original_mri",
+      "segmentation"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "segmentation",
+      "original_mri"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/load_image",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/patched_torch_load",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/prepare_input_for_nnunet",
+    "nf_params": [
+      "input_path",
+      "output_dir"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "output_dir",
+      "input_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/preprocess_image",
+    "nf_params": [
+      "image",
+      "denoise",
+      "normalize"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image",
+      "denoise",
+      "normalize"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/quick_affine_registration",
+    "nf_params": [
+      "fixed_image_path",
+      "moving_image_path",
+      "output_dir",
+      "preprocess",
+      "create_visualizations"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "preprocess",
+      "output_dir",
+      "create_visualizations",
+      "fixed_image_path",
+      "moving_image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/quick_deformable_registration",
+    "nf_params": [
+      "fixed_image_path",
+      "moving_image_path",
+      "output_dir",
+      "preprocess",
+      "create_visualizations"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "preprocess",
+      "output_dir",
+      "create_visualizations",
+      "fixed_image_path",
+      "moving_image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/quick_rigid_registration",
+    "nf_params": [
+      "fixed_image_path",
+      "moving_image_path",
+      "output_dir",
+      "preprocess",
+      "create_visualizations"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "preprocess",
+      "output_dir",
+      "create_visualizations",
+      "fixed_image_path",
+      "moving_image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/register_images",
+    "nf_params": [
+      "fixed_image",
+      "moving_image",
+      "transform",
+      "registration_method"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "registration_method",
+      "moving_image",
+      "fixed_image",
+      "transform"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/save_image",
+    "nf_params": [
+      "image",
+      "output_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "output_path",
+      "image"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/segment_with_nn_unet",
+    "nf_params": [
+      "image_path",
+      "output_dir",
+      "task_id",
+      "folds",
+      "results_folder"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path",
+      "task_id",
+      "output_dir",
+      "folds",
+      "results_folder"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/setup_nnunet_environment",
+    "nf_params": [
+      "results_folder",
+      "raw_data_base",
+      "preprocessed"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "results_folder",
+      "raw_data_base",
+      "preprocessed"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/setup_registration_method",
+    "nf_params": [
+      "transform"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "transform"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/split_modalities",
+    "nf_params": [
+      "input_file",
+      "output_dir"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "output_dir",
+      "input_file"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "bioimaging/verify_nifti_input",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biophysics/analyze_cell_morphology_and_cytoskeleton",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biophysics/analyze_tissue_deformation_flow",
+    "nf_params": [
+      "image_sequence"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "biophysics/predict_protein_disorder_regions",
+    "nf_params": [
+      "protein_sequence"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "protein_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cancer_biology/analyze_cell_senescence_and_apoptosis",
+    "nf_params": [
+      "fcs_file_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "fcs_file_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cancer_biology/analyze_copy_number_purity_ploidy_and_focal_events",
+    "nf_params": [
+      "tumor_bam",
+      "reference_genome",
+      "normal_bam",
+      "targets_bed",
+      "antitargets_bed",
+      "gene_bed",
+      "focal_genes",
+      "log2_del_threshold"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "focal_genes",
+      "normal_bam",
+      "reference_genome",
+      "antitargets_bed",
+      "gene_bed",
+      "tumor_bam",
+      "log2_del_threshold",
+      "targets_bed"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cancer_biology/analyze_ddr_network_in_cancer",
+    "nf_params": [
+      "expression_data_path",
+      "mutation_data_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "expression_data_path",
+      "mutation_data_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cancer_biology/detect_and_annotate_somatic_mutations",
+    "nf_params": [
+      "tumor_bam",
+      "normal_bam",
+      "reference_genome",
+      "output_prefix"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "output_prefix",
+      "reference_genome",
+      "tumor_bam",
+      "normal_bam"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cancer_biology/detect_and_characterize_structural_variations",
+    "nf_params": [
+      "bam_file_path",
+      "reference_genome_path",
+      "output_dir",
+      "cosmic_db_path",
+      "clinvar_db_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "bam_file_path",
+      "output_dir",
+      "clinvar_db_path",
+      "reference_genome_path",
+      "cosmic_db_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cancer_biology/norm_chr",
+    "nf_params": [
+      "x"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "x"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cancer_biology/perform_gene_expression_nmf_analysis",
+    "nf_params": [
+      "expression_data_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "expression_data_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cell_biology/analyze_flow_cytometry_immunophenotyping",
+    "nf_params": [
+      "fcs_file_path",
+      "gating_strategy",
+      "compensation_matrix"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "fcs_file_path",
+      "compensation_matrix",
+      "gating_strategy"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cell_biology/analyze_mitochondrial_morphology_and_potential",
+    "nf_params": [
+      "morphology_image_path",
+      "potential_image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "potential_image_path",
+      "morphology_image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cell_biology/perform_facs_cell_sorting",
+    "nf_params": [
+      "cell_suspension_data",
+      "fluorescence_parameter",
+      "threshold_min",
+      "threshold_max"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "fluorescence_parameter",
+      "cell_suspension_data",
+      "threshold_max",
+      "threshold_min"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cell_biology/quantify_and_cluster_cell_motility",
+    "nf_params": [
+      "image_sequence_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_sequence_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "cell_biology/quantify_cell_cycle_phases_from_microscopy",
+    "nf_params": [
+      "image_paths"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_paths"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "database/blast_sequence",
+    "nf_params": [
+      "sequence",
+      "database",
+      "program"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "database",
+      "program"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "database/get_genes_near_ccre",
+    "nf_params": [
+      "accession",
+      "assembly",
+      "chromosome"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "assembly",
+      "accession",
+      "chromosome"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "database/get_hpo_names",
+    "nf_params": [
+      "hpo_terms",
+      "data_lake_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "hpo_terms",
+      "data_lake_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "database/reduce_tokens",
+    "nf_params": [
+      "res_json"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "res_json"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "database/region_to_ccre_screen",
+    "nf_params": [
+      "coord_chrom",
+      "coord_start",
+      "coord_end"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "coord_start",
+      "coord_chrom",
+      "coord_end"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/analyze_cas9_mutation_outcomes",
+    "nf_params": [
+      "reference_sequences",
+      "edited_sequences",
+      "cell_line_info"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "reference_sequences",
+      "edited_sequences",
+      "cell_line_info"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/analyze_crispr_genome_editing",
+    "nf_params": [
+      "original_sequence",
+      "edited_sequence",
+      "guide_rna",
+      "repair_template"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "edited_sequence",
+      "repair_template",
+      "original_sequence",
+      "guide_rna"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/analyze_protein_phylogeny",
+    "nf_params": [
+      "fasta_sequences"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "fasta_sequences"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/bayesian_finemapping_with_deep_vi",
+    "nf_params": [
+      "gwas_summary_path",
+      "ld_matrix"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "gwas_summary_path",
+      "ld_matrix"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/elbo_loss",
+    "nf_params": [
+      "z_scores",
+      "ld_matrix",
+      "pips"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "z_scores",
+      "pips",
+      "ld_matrix"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/fit_genomic_prediction_model",
+    "nf_params": [
+      "genotypes",
+      "phenotypes",
+      "fixed_effects"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "phenotypes",
+      "genotypes",
+      "fixed_effects"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/forward",
+    "nf_params": [
+      "x"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "x"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/identify_transcription_factor_binding_sites",
+    "nf_params": [
+      "sequence",
+      "tf_name",
+      "output_file"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "tf_name",
+      "output_file"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/liftover_coordinates",
+    "nf_params": [
+      "chromosome",
+      "position",
+      "input_format",
+      "output_format",
+      "data_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "position",
+      "input_format",
+      "output_format",
+      "chromosome",
+      "data_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/perform_pcr_and_gel_electrophoresis",
+    "nf_params": [
+      "genomic_dna",
+      "forward_primer",
+      "reverse_primer",
+      "target_region"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "target_region",
+      "forward_primer",
+      "genomic_dna",
+      "reverse_primer"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genetics/simulate_demographic_history",
+    "nf_params": [
+      "demographic_params",
+      "beta_coalescent_param",
+      "random_seed"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "beta_coalescent_param",
+      "demographic_params",
+      "random_seed"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/analyze_chromatin_interactions",
+    "nf_params": [
+      "hic_file_path",
+      "regulatory_elements_bed"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "regulatory_elements_bed",
+      "hic_file_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/analyze_comparative_genomics_and_haplotypes",
+    "nf_params": [
+      "sample_fasta_files",
+      "reference_genome_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "reference_genome_path",
+      "sample_fasta_files"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/analyze_genomic_region_overlap",
+    "nf_params": [
+      "region_sets"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "region_sets"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/annotate_celltype_scRNA",
+    "nf_params": [
+      "adata_filename",
+      "data_dir",
+      "data_info",
+      "data_lake_path",
+      "composition"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "data_dir",
+      "data_lake_path",
+      "composition",
+      "data_info",
+      "adata_filename"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/annotate_celltype_with_panhumanpy",
+    "nf_params": [
+      "adata_path",
+      "feature_names_col"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "adata_path",
+      "feature_names_col"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/check_ensembl_patterns",
+    "nf_params": [
+      "gene_index"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "gene_index"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/conda_env_exists",
+    "nf_params": [
+      "env_name"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "env_name"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/create_harmony_embeddings_scRNA",
+    "nf_params": [
+      "adata_filename",
+      "batch_key",
+      "data_dir"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "data_dir",
+      "adata_filename",
+      "batch_key"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/create_panhumanpy_env",
+    "nf_params": [
+      "env_name"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "env_name"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/create_scvi_embeddings_scRNA",
+    "nf_params": [
+      "adata_filename",
+      "batch_key",
+      "label_key",
+      "data_dir"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "data_dir",
+      "label_key",
+      "adata_filename",
+      "batch_key"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/custom_mode",
+    "nf_params": [
+      "x"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "x"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/find_enriched_motifs_with_homer",
+    "nf_params": [
+      "peak_file",
+      "background_file"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "background_file",
+      "peak_file"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/gene_set_enrichment_analysis",
+    "nf_params": [
+      "gene_names",
+      "background_list",
+      "plot"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "gene_names",
+      "plot",
+      "background_list"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/generate_embeddings_with_state",
+    "nf_params": [
+      "adata_filename",
+      "data_dir",
+      "model_folder",
+      "output_filename",
+      "checkpoint",
+      "protein_embeddings"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "checkpoint",
+      "data_dir",
+      "output_filename",
+      "model_folder",
+      "adata_filename",
+      "protein_embeddings"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/generate_gene_embeddings_with_ESM_models",
+    "nf_params": [
+      "ensembl_gene_ids",
+      "save_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "ensembl_gene_ids",
+      "save_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/generate_transcriptformer_embeddings",
+    "nf_params": [
+      "adata_filename",
+      "data_dir",
+      "output_filename",
+      "checkpoint_path",
+      "embedding_layer_index",
+      "pretrained_embedding",
+      "filter_to_vocabs",
+      "remove_duplicate_genes",
+      "oom_dataloader"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "remove_duplicate_genes",
+      "pretrained_embedding",
+      "checkpoint_path",
+      "data_dir",
+      "embedding_layer_index",
+      "filter_to_vocabs",
+      "oom_dataloader",
+      "adata_filename",
+      "output_filename"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/get_gene_set_enrichment_analysis_supported_database_list",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/get_matrix",
+    "nf_params": [
+      "chrom"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "chrom"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/get_rna_seq_archs4",
+    "nf_params": [
+      "gene_name"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "gene_name"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/get_uce_embeddings_scRNA",
+    "nf_params": [
+      "adata_filename",
+      "data_dir",
+      "custom_args"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "data_dir",
+      "custom_args",
+      "adata_filename"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/interspecies_gene_conversion",
+    "nf_params": [
+      "gene_names",
+      "source_species",
+      "target_species"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "gene_names",
+      "target_species",
+      "source_species"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/is_model_downloaded",
+    "nf_params": [
+      "checkpoint_path",
+      "model_type"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "model_type",
+      "checkpoint_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/map_to_ima_interpret_scRNA",
+    "nf_params": [
+      "adata_filename",
+      "data_dir",
+      "custom_args"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "data_dir",
+      "custom_args",
+      "adata_filename"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/perform_chipseq_peak_calling_with_macs2",
+    "nf_params": [
+      "chip_seq_file",
+      "control_file"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "chip_seq_file",
+      "control_file"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "genomics/unsupervised_celltype_transfer_between_scRNA_datasets",
+    "nf_params": [
+      "path_to_annotated_h5ad",
+      "path_to_not_annotated_h5ad",
+      "ref_labels_key",
+      "query_batch_key",
+      "ref_batch_key"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "ref_labels_key",
+      "query_batch_key",
+      "path_to_not_annotated_h5ad",
+      "path_to_annotated_h5ad",
+      "ref_batch_key"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "glycoengineering/find_n_glycosylation_motifs",
+    "nf_params": [
+      "sequence",
+      "allow_overlap"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "allow_overlap"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "glycoengineering/list_glycoengineering_resources",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "glycoengineering/predict_o_glycosylation_hotspots",
+    "nf_params": [
+      "sequence",
+      "disallow_proline_next"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "disallow_proline_next"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/analyze_atac_seq_differential_accessibility",
+    "nf_params": [
+      "treatment_bam",
+      "control_bam"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "treatment_bam",
+      "control_bam"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/analyze_bacterial_growth_curve",
+    "nf_params": [
+      "time_points",
+      "od_values",
+      "strain_name"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "strain_name",
+      "od_values",
+      "time_points"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/analyze_cfse_cell_proliferation",
+    "nf_params": [
+      "fcs_file_path",
+      "lymphocyte_gate"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "fcs_file_path",
+      "lymphocyte_gate"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/analyze_cns_lesion_histology",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/analyze_cytokine_production_in_cd4_tcells",
+    "nf_params": [
+      "fcs_files_dict"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "fcs_files_dict"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/analyze_ebv_antibody_titers",
+    "nf_params": [
+      "raw_od_data",
+      "standard_curve_data",
+      "sample_metadata"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sample_metadata",
+      "raw_od_data",
+      "standard_curve_data"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/analyze_immunohistochemistry_image",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/estimate_cell_cycle_phase_durations",
+    "nf_params": [
+      "flow_cytometry_data",
+      "initial_estimates"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "flow_cytometry_data",
+      "initial_estimates"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/isolate_purify_immune_cells",
+    "nf_params": [
+      "tissue_type",
+      "target_cell_type",
+      "macs_antibody"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "macs_antibody",
+      "tissue_type",
+      "target_cell_type"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/logistic_growth",
+    "nf_params": [
+      "t",
+      "k",
+      "n0",
+      "r"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "t",
+      "n0",
+      "r",
+      "k"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/objective_function",
+    "nf_params": [
+      "params"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "params"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/simulate_cell_population",
+    "nf_params": [
+      "time_points",
+      "g1_duration",
+      "s_duration",
+      "g2m_duration",
+      "death_rate"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "g1_duration",
+      "time_points",
+      "s_duration",
+      "death_rate",
+      "g2m_duration"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "immunology/track_immune_cells_under_flow",
+    "nf_params": [
+      "image_sequence_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_sequence_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "lab_automation/get_pylabrobot_documentation_liquid",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "lab_automation/get_pylabrobot_documentation_material",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "lab_automation/pick_first",
+    "nf_params": [
+      "keywords"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "keywords"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "lab_automation/run_async",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "lab_automation/target",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "lab_automation/test_pylabrobot_script",
+    "nf_params": [
+      "script_input",
+      "enable_tracking",
+      "save_test_report",
+      "test_report_dir"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "save_test_report",
+      "script_input",
+      "test_report_dir",
+      "enable_tracking"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "literature/advanced_web_search_claude",
+    "nf_params": [
+      "query"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "query"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "literature/extract_pdf_content",
+    "nf_params": [
+      "url"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "url"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "literature/extract_url_content",
+    "nf_params": [
+      "url"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "url"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "literature/fetch_supplementary_info_from_doi",
+    "nf_params": [
+      "doi"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "doi"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/analyze_arsenic_speciation_hplc_icpms",
+    "nf_params": [
+      "sample_data",
+      "calibration_data"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sample_data",
+      "calibration_data"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/annotate_bacterial_genome",
+    "nf_params": [
+      "genome_file_path",
+      "genus",
+      "organism",
+      "strain",
+      "prefix"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "genome_file_path",
+      "strain",
+      "genus",
+      "prefix",
+      "organism"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/bacterial_dynamics",
+    "nf_params": [
+      "t",
+      "N"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "t",
+      "N"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/count_bacterial_colonies",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/enumerate_bacterial_cfu_by_serial_dilution",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/glv_equations",
+    "nf_params": [
+      "abundances",
+      "t",
+      "growth_rates",
+      "interaction_matrix"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "abundances",
+      "t",
+      "growth_rates",
+      "interaction_matrix"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/methane_yield_model",
+    "nf_params": [
+      "params"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "params"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/model_bacterial_growth_dynamics",
+    "nf_params": [
+      "initial_population",
+      "growth_rate",
+      "clearance_rate",
+      "niche_size"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "growth_rate",
+      "initial_population",
+      "clearance_rate",
+      "niche_size"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/optimize_anaerobic_digestion_process",
+    "nf_params": [
+      "waste_characteristics",
+      "operational_parameters"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "waste_characteristics",
+      "operational_parameters"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/predict_rna_secondary_structure",
+    "nf_params": [
+      "rna_sequence"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "rna_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/quantify_biofilm_biomass_crystal_violet",
+    "nf_params": [
+      "od_values",
+      "sample_names",
+      "save_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sample_names",
+      "od_values",
+      "save_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/segment_and_analyze_microbial_cells",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/segment_cells_with_deep_learning",
+    "nf_params": [
+      "image_path",
+      "diameter"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path",
+      "diameter"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/simulate_generalized_lotka_volterra_dynamics",
+    "nf_params": [
+      "initial_abundances",
+      "growth_rates",
+      "interaction_matrix",
+      "time_points"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "initial_abundances",
+      "growth_rates",
+      "time_points",
+      "interaction_matrix"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/simulate_microbial_population_dynamics",
+    "nf_params": [
+      "initial_populations",
+      "growth_rates",
+      "clearance_rates",
+      "carrying_capacities"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "growth_rates",
+      "carrying_capacities",
+      "initial_populations",
+      "clearance_rates"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "microbiology/vfa_production_model",
+    "nf_params": [
+      "params"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "params"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/align_sequences",
+    "nf_params": [
+      "long_seq",
+      "short_seqs"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "short_seqs",
+      "long_seq"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/annotate_open_reading_frames",
+    "nf_params": [
+      "sequence",
+      "min_length"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "min_length"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/annotate_plasmid",
+    "nf_params": [
+      "sequence",
+      "is_circular"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "is_circular"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/design_golden_gate_oligos",
+    "nf_params": [
+      "backbone_sequence",
+      "insert_sequence",
+      "enzyme_name",
+      "is_circular"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "backbone_sequence",
+      "enzyme_name",
+      "is_circular",
+      "insert_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/design_knockout_sgrna",
+    "nf_params": [
+      "gene_name",
+      "data_lake_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "data_lake_path",
+      "gene_name"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/design_primer",
+    "nf_params": [
+      "sequence",
+      "start_pos"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "start_pos"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/design_verification_primers",
+    "nf_params": [
+      "plasmid_sequence",
+      "target_region",
+      "existing_primers",
+      "is_circular"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "existing_primers",
+      "target_region",
+      "is_circular",
+      "plasmid_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/digest_sequence",
+    "nf_params": [
+      "dna_sequence",
+      "enzyme_names",
+      "is_circular"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "is_circular",
+      "enzyme_names",
+      "dna_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/find_orfs_in_frame",
+    "nf_params": [
+      "dna_sequence",
+      "frame",
+      "strand"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "strand",
+      "frame",
+      "dna_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/find_restriction_enzymes",
+    "nf_params": [
+      "sequence",
+      "is_circular"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "is_circular"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/find_restriction_sites",
+    "nf_params": [
+      "dna_sequence",
+      "enzyme_names",
+      "is_circular"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "is_circular",
+      "enzyme_names",
+      "dna_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/find_sequence_mutations",
+    "nf_params": [
+      "query_sequence",
+      "reference_sequence"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "reference_sequence",
+      "query_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/get_bacterial_transformation_protocol",
+    "nf_params": [
+      "is_repetitive"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "is_repetitive"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/get_coding_sequences",
+    "nf_params": [
+      "refseq_id"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "refseq_id"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/get_gene_coding_sequence",
+    "nf_params": [
+      "gene_name",
+      "organism",
+      "email"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "organism",
+      "email",
+      "gene_name"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/get_golden_gate_assembly_protocol",
+    "nf_params": [
+      "enzyme_name",
+      "vector_length",
+      "insert_lengths",
+      "is_library_prep"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "is_library_prep",
+      "insert_lengths",
+      "enzyme_name",
+      "vector_length"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/get_oligo_annealing_protocol",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/get_plasmid_sequence",
+    "nf_params": [
+      "identifier",
+      "is_addgene"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "is_addgene",
+      "identifier"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/get_refseq_id",
+    "nf_params": [
+      "gene_id"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "gene_id"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/golden_gate_assembly",
+    "nf_params": [
+      "backbone_sequence",
+      "enzyme_name",
+      "fragments",
+      "is_circular"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "backbone_sequence",
+      "enzyme_name",
+      "is_circular",
+      "fragments"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/is_position_covered",
+    "nf_params": [
+      "position",
+      "covered_regions"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "position",
+      "covered_regions"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/is_region_fully_covered",
+    "nf_params": [
+      "covered_regions",
+      "start",
+      "end"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "end",
+      "covered_regions",
+      "start"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/merge_overlapping_regions",
+    "nf_params": [
+      "regions"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "regions"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/pcr_simple",
+    "nf_params": [
+      "sequence",
+      "forward_primer",
+      "reverse_primer",
+      "is_circular"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "forward_primer",
+      "reverse_primer",
+      "is_circular"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/reverse_complement",
+    "nf_params": [
+      "dna_sequence"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "dna_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "molecular_biology/search_gene",
+    "nf_params": [],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pathology/analyze_aortic_diameter_and_geometry",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pathology/analyze_atp_luminescence_assay",
+    "nf_params": [
+      "data_file",
+      "standard_curve_file",
+      "normalization_data"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "standard_curve_file",
+      "normalization_data",
+      "data_file"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pathology/analyze_bone_microct_morphometry",
+    "nf_params": [
+      "input_file_path",
+      "threshold_value"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "input_file_path",
+      "threshold_value"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pathology/analyze_intracellular_calcium_with_rhod2",
+    "nf_params": [
+      "background_image_path",
+      "control_image_path",
+      "sample_image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "control_image_path",
+      "sample_image_path",
+      "background_image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pathology/analyze_thrombus_histology",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pathology/quantify_corneal_nerve_fibers",
+    "nf_params": [
+      "image_path",
+      "marker_type"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path",
+      "marker_type"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pathology/segment_and_quantify_cells_in_multiplexed_images",
+    "nf_params": [
+      "image_path",
+      "markers_list"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "markers_list",
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/ADMET_pred",
+    "nf_params": [
+      "drug",
+      "task",
+      "unit"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "unit",
+      "drug",
+      "task"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/analyze_accelerated_stability_of_pharmaceutical_formulations",
+    "nf_params": [
+      "formulations",
+      "storage_conditions",
+      "time_points"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "storage_conditions",
+      "time_points",
+      "formulations"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/analyze_fda_safety_signals",
+    "nf_params": [
+      "drug_list",
+      "comparison_period"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "drug_list",
+      "comparison_period"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/analyze_interaction_mechanisms",
+    "nf_params": [
+      "drug_pair",
+      "data_lake_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "data_lake_path",
+      "drug_pair"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/analyze_radiolabeled_antibody_biodistribution",
+    "nf_params": [
+      "time_points",
+      "tissue_data"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "time_points",
+      "tissue_data"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/analyze_western_blot",
+    "nf_params": [
+      "blot_image_path",
+      "target_bands",
+      "loading_control_band",
+      "antibody_info"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "target_bands",
+      "antibody_info",
+      "loading_control_band",
+      "blot_image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/analyze_xenograft_tumor_growth_inhibition",
+    "nf_params": [
+      "data_path",
+      "time_column",
+      "volume_column",
+      "group_column",
+      "subject_column"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "group_column",
+      "volume_column",
+      "subject_column",
+      "time_column",
+      "data_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/apply_vcog_grade",
+    "nf_params": [
+      "symptom",
+      "severity",
+      "measurement"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "measurement",
+      "symptom",
+      "severity"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/bi_exp_model",
+    "nf_params": [
+      "t",
+      "A",
+      "alpha",
+      "B",
+      "beta"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "t",
+      "B",
+      "A",
+      "alpha",
+      "beta"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/calculate_physicochemical_properties",
+    "nf_params": [
+      "smiles_string"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "smiles_string"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/check_drug_combination_safety",
+    "nf_params": [
+      "drug_list",
+      "data_lake_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "drug_list",
+      "data_lake_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/check_fda_drug_recalls",
+    "nf_params": [
+      "drug_name",
+      "classification",
+      "date_range"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "drug_name",
+      "date_range",
+      "classification"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/docking_autodock_vina",
+    "nf_params": [
+      "smiles_list",
+      "receptor_pdb_file",
+      "box_center",
+      "box_size"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "smiles_list",
+      "receptor_pdb_file",
+      "box_center",
+      "box_size"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/estimate_alpha_particle_radiotherapy_dosimetry",
+    "nf_params": [
+      "biodistribution_data",
+      "radiation_parameters"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "biodistribution_data",
+      "radiation_parameters"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/find_alternative_drugs_ddinter",
+    "nf_params": [
+      "target_drug",
+      "contraindicated_drugs",
+      "therapeutic_class",
+      "data_lake_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "therapeutic_class",
+      "data_lake_path",
+      "target_drug",
+      "contraindicated_drugs"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/get_fda_drug_label_info",
+    "nf_params": [
+      "drug_name",
+      "sections"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sections",
+      "drug_name"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/grade_adverse_events_using_vcog_ctcae",
+    "nf_params": [
+      "clinical_data_file"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "clinical_data_file"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/perform_mwas_cyp2c19_metabolizer_status",
+    "nf_params": [
+      "methylation_data_path",
+      "metabolizer_status_path",
+      "covariates_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "metabolizer_status_path",
+      "methylation_data_path",
+      "covariates_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/predict_admet_properties",
+    "nf_params": [
+      "smiles_list"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "smiles_list"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/predict_binding_affinity_protein_1d_sequence",
+    "nf_params": [
+      "smiles_list",
+      "amino_acid_sequence"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "smiles_list",
+      "amino_acid_sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/retrieve_topk_repurposing_drugs_from_disease_txgnn",
+    "nf_params": [
+      "disease_name",
+      "data_lake_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "data_lake_path",
+      "disease_name"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/run_3d_chondrogenic_aggregate_assay",
+    "nf_params": [
+      "chondrocyte_cells",
+      "test_compounds"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "chondrocyte_cells",
+      "test_compounds"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/run_autosite",
+    "nf_params": [
+      "pdb_file",
+      "output_dir"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "pdb_file",
+      "output_dir"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/run_diffdock_with_smiles",
+    "nf_params": [
+      "pdb_path",
+      "smiles_string",
+      "local_output_dir"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "pdb_path",
+      "local_output_dir",
+      "smiles_string"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "pharmacology/sigmoid",
+    "nf_params": [
+      "x"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "x"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/analyze_abr_waveform_p1_metrics",
+    "nf_params": [
+      "time_ms",
+      "amplitude_uv"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "amplitude_uv",
+      "time_ms"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/analyze_ciliary_beat_frequency",
+    "nf_params": [
+      "video_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "video_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/analyze_endolysosomal_calcium_dynamics",
+    "nf_params": [
+      "time_points",
+      "luminescence_values",
+      "treatment_time",
+      "cell_type",
+      "treatment_name"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "cell_type",
+      "time_points",
+      "treatment_time",
+      "luminescence_values",
+      "treatment_name"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/analyze_fatty_acid_composition_by_gc",
+    "nf_params": [
+      "gc_data_file",
+      "tissue_type",
+      "sample_id"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sample_id",
+      "gc_data_file",
+      "tissue_type"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/analyze_hemodynamic_data",
+    "nf_params": [
+      "pressure_data",
+      "sampling_rate"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sampling_rate",
+      "pressure_data"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/analyze_protein_colocalization",
+    "nf_params": [
+      "channel1_path",
+      "channel2_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "channel1_path",
+      "channel2_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/calculate_brain_adc_map",
+    "nf_params": [
+      "dwi_file_path",
+      "b_values",
+      "mask_file_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "dwi_file_path",
+      "b_values",
+      "mask_file_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/cosinor_model",
+    "nf_params": [
+      "t",
+      "mesor",
+      "amplitude",
+      "acrophase"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "amplitude",
+      "t",
+      "acrophase",
+      "mesor"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/mono_exp_model",
+    "nf_params": [
+      "b",
+      "S0",
+      "ADC"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "S0",
+      "b",
+      "ADC"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/perform_cosinor_analysis",
+    "nf_params": [
+      "time_data",
+      "physiological_data"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "time_data",
+      "physiological_data"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/pk_ode_system",
+    "nf_params": [
+      "t",
+      "y"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "y",
+      "t"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/quantify_amyloid_beta_plaques",
+    "nf_params": [
+      "image_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "image_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/reconstruct_3d_face_from_mri",
+    "nf_params": [
+      "mri_file_path"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "mri_file_path"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "physiology/simulate_thyroid_hormone_pharmacokinetics",
+    "nf_params": [
+      "parameters",
+      "initial_conditions",
+      "time_span"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "time_span",
+      "parameters",
+      "initial_conditions"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/analyze_bacterial_growth_rate",
+    "nf_params": [
+      "time_points",
+      "od_measurements"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "od_measurements",
+      "time_points"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/analyze_barcode_sequencing_data",
+    "nf_params": [
+      "input_file",
+      "barcode_pattern",
+      "flanking_seq_5prime",
+      "flanking_seq_3prime"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "flanking_seq_5prime",
+      "flanking_seq_3prime",
+      "barcode_pattern",
+      "input_file"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/analyze_bifurcation_diagram",
+    "nf_params": [
+      "time_series_data",
+      "parameter_values"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "time_series_data",
+      "parameter_values"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/create_biochemical_network_sbml_model",
+    "nf_params": [
+      "reaction_network",
+      "kinetic_parameters"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "reaction_network",
+      "kinetic_parameters"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/engineer_bacterial_genome_for_therapeutic_delivery",
+    "nf_params": [
+      "bacterial_genome_file",
+      "genetic_parts"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "genetic_parts",
+      "bacterial_genome_file"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/gene_circuit_odes",
+    "nf_params": [
+      "t",
+      "state"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "state",
+      "t"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/gompertz_model",
+    "nf_params": [
+      "t",
+      "lag",
+      "mu_max",
+      "A"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "A",
+      "lag",
+      "t",
+      "mu_max"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/hamming_distance",
+    "nf_params": [
+      "s1",
+      "s2"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "s2",
+      "s1"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/identify_fas_functional_domains",
+    "nf_params": [
+      "sequence"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/optimize_codons_for_heterologous_expression",
+    "nf_params": [
+      "target_sequence",
+      "host_codon_usage"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "target_sequence",
+      "host_codon_usage"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "synthetic_biology/simulate_gene_circuit_with_growth_feedback",
+    "nf_params": [
+      "circuit_topology",
+      "kinetic_params",
+      "growth_params"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "growth_params",
+      "circuit_topology",
+      "kinetic_params"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/compare_protein_structures",
+    "nf_params": [
+      "pdb_file1",
+      "pdb_file2"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "pdb_file1",
+      "pdb_file2"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/dimerization_odes",
+    "nf_params": [
+      "t",
+      "y"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "y",
+      "t"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/hill_function",
+    "nf_params": [
+      "x",
+      "n",
+      "ec50"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "n",
+      "x",
+      "ec50"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/mass_action_kinetics",
+    "nf_params": [
+      "reaction",
+      "concentrations",
+      "metabolite_ids"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "metabolite_ids",
+      "reaction",
+      "concentrations"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/model_protein_dimerization_network",
+    "nf_params": [
+      "monomer_concentrations",
+      "dimerization_affinities",
+      "network_topology"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "network_topology",
+      "monomer_concentrations",
+      "dimerization_affinities"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/ode_system",
+    "nf_params": [
+      "t",
+      "y"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "y",
+      "t"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/perform_flux_balance_analysis",
+    "nf_params": [
+      "model_file",
+      "constraints",
+      "objective_reaction"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "constraints",
+      "model_file",
+      "objective_reaction"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/query_chatnt",
+    "nf_params": [
+      "question",
+      "sequence",
+      "device"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "sequence",
+      "question",
+      "device"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/ras_ode_system",
+    "nf_params": [
+      "t",
+      "y"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "y",
+      "t"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/simulate_metabolic_network_perturbation",
+    "nf_params": [
+      "model_file",
+      "initial_concentrations",
+      "perturbation_params"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "perturbation_params",
+      "model_file",
+      "initial_concentrations"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/simulate_protein_signaling_network",
+    "nf_params": [
+      "network_structure",
+      "reaction_params",
+      "species_params"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "network_structure",
+      "reaction_params",
+      "species_params"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  },
+  {
+    "workflow": "systems_biology/simulate_renin_angiotensin_system_dynamics",
+    "nf_params": [
+      "initial_concentrations",
+      "rate_constants",
+      "feedback_params"
+    ],
+    "py_params": [
+      "val"
+    ],
+    "func_name": "auto_convert",
+    "only_in_nf": [
+      "rate_constants",
+      "feedback_params",
+      "initial_concentrations"
+    ],
+    "only_in_py": [
+      "val"
+    ]
+  }
+]

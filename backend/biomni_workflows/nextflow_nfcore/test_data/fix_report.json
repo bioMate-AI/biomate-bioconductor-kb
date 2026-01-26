@@ -1,0 +1,3896 @@
+{
+  "fixed": [
+    {
+      "workflow": "biochemistry/analyze_circular_dichroism_spectra",
+      "func_name": "analyze_circular_dichroism_spectra",
+      "func_params": [
+        "sample_name",
+        "sample_type",
+        "wavelength_data",
+        "cd_signal_data",
+        "temperature_data",
+        "thermal_cd_data",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "sample_name",
+        "sample_type",
+        "wavelength_data",
+        "cd_signal_data",
+        "temperature_data",
+        "thermal_cd_data"
+      ],
+      "old_call_params": [
+        "sample_name"
+      ]
+    },
+    {
+      "workflow": "biochemistry/analyze_enzyme_kinetics_assay",
+      "func_name": "analyze_enzyme_kinetics_assay",
+      "func_params": [
+        "enzyme_name",
+        "substrate_concentrations",
+        "enzyme_concentration",
+        "modulators",
+        "time_points",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "enzyme_name",
+        "substrate_concentrations",
+        "enzyme_concentration",
+        "modulators",
+        "time_points"
+      ],
+      "old_call_params": [
+        "enzyme_name"
+      ]
+    },
+    {
+      "workflow": "biochemistry/analyze_itc_binding_thermodynamics",
+      "func_name": "analyze_itc_binding_thermodynamics",
+      "func_params": [
+        "itc_data_path",
+        "itc_data",
+        "temperature",
+        "protein_concentration",
+        "ligand_concentration"
+      ],
+      "old_nf_params": [
+        "temperature",
+        "itc_data_path",
+        "itc_data",
+        "protein_concentration",
+        "ligand_concentration"
+      ],
+      "old_call_params": [
+        "itc_data_path"
+      ]
+    },
+    {
+      "workflow": "biochemistry/analyze_protease_kinetics",
+      "func_name": "analyze_protease_kinetics",
+      "func_params": [
+        "time_points",
+        "fluorescence_data",
+        "substrate_concentrations",
+        "enzyme_concentration",
+        "output_prefix",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "output_prefix",
+        "time_points",
+        "fluorescence_data",
+        "substrate_concentrations",
+        "enzyme_concentration"
+      ],
+      "old_call_params": [
+        "time_points"
+      ]
+    },
+    {
+      "workflow": "biochemistry/analyze_protein_conservation",
+      "func_name": "analyze_protein_conservation",
+      "func_params": [
+        "protein_sequences",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "protein_sequences"
+      ],
+      "old_call_params": [
+        "protein_sequences"
+      ]
+    },
+    {
+      "workflow": "biochemistry/analyze_rna_secondary_structure_features",
+      "func_name": "analyze_rna_secondary_structure_features",
+      "func_params": [
+        "dot_bracket_structure",
+        "sequence"
+      ],
+      "old_nf_params": [
+        "dot_bracket_structure",
+        "sequence"
+      ],
+      "old_call_params": [
+        "dot_bracket_structure"
+      ]
+    },
+    {
+      "workflow": "biochemistry/dose_response",
+      "func_name": "dose_response",
+      "func_params": [
+        "x",
+        "ic50",
+        "hill"
+      ],
+      "old_nf_params": [
+        "x",
+        "ic50",
+        "hill"
+      ],
+      "old_call_params": [
+        "x"
+      ]
+    },
+    {
+      "workflow": "biochemistry/michaelis_menten",
+      "func_name": "michaelis_menten",
+      "func_params": [
+        "s",
+        "vmax",
+        "km"
+      ],
+      "old_nf_params": [
+        "s",
+        "vmax",
+        "km"
+      ],
+      "old_call_params": [
+        "s"
+      ]
+    },
+    {
+      "workflow": "biochemistry/one_site_model",
+      "func_name": "one_site_model",
+      "func_params": [
+        "x",
+        "kd",
+        "dh",
+        "n"
+      ],
+      "old_nf_params": [
+        "dh",
+        "kd",
+        "x",
+        "n"
+      ],
+      "old_call_params": [
+        "x"
+      ]
+    },
+    {
+      "workflow": "bioengineering/analyze_calcium_imaging_data",
+      "func_name": "analyze_calcium_imaging_data",
+      "func_params": [
+        "image_stack_path",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "image_stack_path"
+      ],
+      "old_call_params": [
+        "image_stack_path"
+      ]
+    },
+    {
+      "workflow": "bioengineering/analyze_cell_migration_metrics",
+      "func_name": "analyze_cell_migration_metrics",
+      "func_params": [
+        "image_sequence_path",
+        "pixel_size_um",
+        "time_interval_min",
+        "min_track_length",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "min_track_length",
+        "time_interval_min",
+        "pixel_size_um",
+        "image_sequence_path"
+      ],
+      "old_call_params": [
+        "image_sequence_path"
+      ]
+    },
+    {
+      "workflow": "bioengineering/analyze_in_vitro_drug_release_kinetics",
+      "func_name": "analyze_in_vitro_drug_release_kinetics",
+      "func_params": [
+        "time_points",
+        "concentration_data",
+        "drug_name",
+        "total_drug_loaded",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "drug_name",
+        "time_points",
+        "concentration_data",
+        "total_drug_loaded"
+      ],
+      "old_call_params": [
+        "time_points"
+      ]
+    },
+    {
+      "workflow": "bioengineering/analyze_myofiber_morphology",
+      "func_name": "analyze_myofiber_morphology",
+      "func_params": [
+        "image_path",
+        "nuclei_channel",
+        "myofiber_channel",
+        "threshold_method",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "threshold_method",
+        "myofiber_channel",
+        "nuclei_channel",
+        "image_path"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "bioengineering/decode_behavior_from_neural_trajectories",
+      "func_name": "decode_behavior_from_neural_trajectories",
+      "func_params": [
+        "neural_data",
+        "behavioral_data",
+        "n_components",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "n_components",
+        "neural_data",
+        "behavioral_data"
+      ],
+      "old_call_params": [
+        "neural_data"
+      ]
+    },
+    {
+      "workflow": "bioengineering/exp_decay",
+      "func_name": "exp_decay",
+      "func_params": [
+        "t",
+        "a",
+        "k"
+      ],
+      "old_nf_params": [
+        "k",
+        "t",
+        "a"
+      ],
+      "old_call_params": [
+        "t"
+      ]
+    },
+    {
+      "workflow": "bioengineering/first_order",
+      "func_name": "first_order",
+      "func_params": [
+        "t",
+        "k1",
+        "q0"
+      ],
+      "old_nf_params": [
+        "q0",
+        "k1",
+        "t"
+      ],
+      "old_call_params": [
+        "t"
+      ]
+    },
+    {
+      "workflow": "bioengineering/higuchi",
+      "func_name": "higuchi",
+      "func_params": [
+        "t",
+        "kh"
+      ],
+      "old_nf_params": [
+        "kh",
+        "t"
+      ],
+      "old_call_params": [
+        "t"
+      ]
+    },
+    {
+      "workflow": "bioengineering/korsmeyer_peppas",
+      "func_name": "korsmeyer_peppas",
+      "func_params": [
+        "t",
+        "k",
+        "n"
+      ],
+      "old_nf_params": [
+        "t",
+        "k",
+        "n"
+      ],
+      "old_call_params": [
+        "t"
+      ]
+    },
+    {
+      "workflow": "bioengineering/perform_crispr_cas9_genome_editing",
+      "func_name": "perform_crispr_cas9_genome_editing",
+      "func_params": [
+        "guide_rna_sequences",
+        "target_genomic_loci",
+        "cell_tissue_type"
+      ],
+      "old_nf_params": [
+        "guide_rna_sequences",
+        "target_genomic_loci",
+        "cell_tissue_type"
+      ],
+      "old_call_params": [
+        "guide_rna_sequences"
+      ]
+    },
+    {
+      "workflow": "bioengineering/zero_order",
+      "func_name": "zero_order",
+      "func_params": [
+        "t",
+        "k0"
+      ],
+      "old_nf_params": [
+        "k0",
+        "t"
+      ],
+      "old_call_params": [
+        "t"
+      ]
+    },
+    {
+      "workflow": "bioimaging/batch_register_images",
+      "func_name": "quick_rigid_registration",
+      "func_params": [
+        "fixed_image_path",
+        "moving_image_path",
+        "output_dir",
+        "metric",
+        "optimizer",
+        "preprocess",
+        "create_visualizations",
+        "learning_rate",
+        "number_of_iterations",
+        "gradient_convergence_tolerance"
+      ],
+      "old_nf_params": [
+        "fixed_image_path",
+        "moving_images_dir",
+        "output_dir",
+        "preprocess",
+        "create_visualizations"
+      ],
+      "old_call_params": []
+    },
+    {
+      "workflow": "bioimaging/calculate_similarity_metrics",
+      "func_name": "calculate_similarity_metrics",
+      "func_params": [
+        "image1_path",
+        "image2_path"
+      ],
+      "old_nf_params": [
+        "image1",
+        "image2"
+      ],
+      "old_call_params": [
+        "image1"
+      ]
+    },
+    {
+      "workflow": "bioimaging/check_model_files_exist",
+      "func_name": "check_model_files_exist",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/command_iteration",
+      "func_name": "command_iteration",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/create_affine_transform",
+      "func_name": "create_affine_transform",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/create_deformable_transform",
+      "func_name": "create_deformable_transform",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/create_rigid_transform",
+      "func_name": "create_rigid_transform",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/create_segmentation_visualization",
+      "func_name": "create_segmentation_visualization",
+      "func_params": [
+        "original_mri",
+        "segmentation",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "original_mri",
+        "segmentation"
+      ],
+      "old_call_params": [
+        "original_mri"
+      ]
+    },
+    {
+      "workflow": "bioimaging/load_image",
+      "func_name": "load_image",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/patched_torch_load",
+      "func_name": "patched_torch_load",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/prepare_input_for_nnunet",
+      "func_name": "prepare_input_for_nnunet",
+      "func_params": [
+        "input_path",
+        "output_dir",
+        "case_name"
+      ],
+      "old_nf_params": [
+        "case_name",
+        "input_path",
+        "output_dir"
+      ],
+      "old_call_params": [
+        "input_path"
+      ]
+    },
+    {
+      "workflow": "bioimaging/preprocess_image",
+      "func_name": "preprocess_image",
+      "func_params": [
+        "image_path",
+        "output_path",
+        "denoise",
+        "normalize"
+      ],
+      "old_nf_params": [
+        "image",
+        "denoise",
+        "normalize"
+      ],
+      "old_call_params": [
+        "image"
+      ]
+    },
+    {
+      "workflow": "bioimaging/quick_affine_registration",
+      "func_name": "quick_affine_registration",
+      "func_params": [
+        "fixed_image_path",
+        "moving_image_path",
+        "output_dir",
+        "metric",
+        "optimizer",
+        "preprocess",
+        "create_visualizations",
+        "learning_rate",
+        "number_of_iterations",
+        "gradient_convergence_tolerance"
+      ],
+      "old_nf_params": [
+        "fixed_image_path",
+        "moving_image_path",
+        "output_dir",
+        "preprocess",
+        "create_visualizations"
+      ],
+      "old_call_params": [
+        "fixed_image_path"
+      ]
+    },
+    {
+      "workflow": "bioimaging/quick_deformable_registration",
+      "func_name": "quick_deformable_registration",
+      "func_params": [
+        "fixed_image_path",
+        "moving_image_path",
+        "output_dir",
+        "metric",
+        "optimizer",
+        "preprocess",
+        "create_visualizations",
+        "learning_rate",
+        "number_of_iterations",
+        "gradient_convergence_tolerance",
+        "number_of_control_points"
+      ],
+      "old_nf_params": [
+        "fixed_image_path",
+        "moving_image_path",
+        "output_dir",
+        "preprocess",
+        "create_visualizations"
+      ],
+      "old_call_params": [
+        "fixed_image_path"
+      ]
+    },
+    {
+      "workflow": "bioimaging/quick_rigid_registration",
+      "func_name": "quick_rigid_registration",
+      "func_params": [
+        "fixed_image_path",
+        "moving_image_path",
+        "output_dir",
+        "metric",
+        "optimizer",
+        "preprocess",
+        "create_visualizations",
+        "learning_rate",
+        "number_of_iterations",
+        "gradient_convergence_tolerance"
+      ],
+      "old_nf_params": [
+        "fixed_image_path",
+        "moving_image_path",
+        "output_dir",
+        "preprocess",
+        "create_visualizations"
+      ],
+      "old_call_params": [
+        "fixed_image_path"
+      ]
+    },
+    {
+      "workflow": "bioimaging/register_images",
+      "func_name": "register_images",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/save_image",
+      "func_name": "save_image",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/segment_with_nn_unet",
+      "func_name": "segment_with_nn_unet",
+      "func_params": [
+        "image_path",
+        "output_dir",
+        "task_id",
+        "model_type",
+        "folds",
+        "use_tta",
+        "num_threads",
+        "mixed_precision",
+        "verbose",
+        "auto_prepare_input",
+        "results_folder"
+      ],
+      "old_nf_params": [
+        "auto_prepare_input",
+        "verbose",
+        "mixed_precision",
+        "num_threads",
+        "use_tta",
+        "model_type",
+        "image_path",
+        "output_dir",
+        "task_id",
+        "folds",
+        "results_folder"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "bioimaging/setup_nnunet_environment",
+      "func_name": "setup_nnunet_environment",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/setup_registration_method",
+      "func_name": "setup_registration_method",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "bioimaging/split_modalities",
+      "func_name": "split_modalities",
+      "func_params": [
+        "input_file",
+        "output_dir",
+        "case_name"
+      ],
+      "old_nf_params": [
+        "case_name",
+        "input_file",
+        "output_dir"
+      ],
+      "old_call_params": [
+        "input_file"
+      ]
+    },
+    {
+      "workflow": "bioimaging/verify_nifti_input",
+      "func_name": "verify_nifti_input",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "biophysics/analyze_cell_morphology_and_cytoskeleton",
+      "func_name": "analyze_cell_morphology_and_cytoskeleton",
+      "func_params": [
+        "image_path",
+        "output_dir",
+        "threshold_method"
+      ],
+      "old_nf_params": [
+        "threshold_method",
+        "output_dir",
+        "image_path"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "biophysics/analyze_tissue_deformation_flow",
+      "func_name": "analyze_tissue_deformation_flow",
+      "func_params": [
+        "image_sequence",
+        "output_dir",
+        "pixel_scale"
+      ],
+      "old_nf_params": [
+        "pixel_scale",
+        "output_dir",
+        "image_sequence"
+      ],
+      "old_call_params": [
+        "image_sequence"
+      ]
+    },
+    {
+      "workflow": "biophysics/predict_protein_disorder_regions",
+      "func_name": "predict_protein_disorder_regions",
+      "func_params": [
+        "protein_sequence",
+        "threshold",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "threshold",
+        "protein_sequence"
+      ],
+      "old_call_params": [
+        "protein_sequence"
+      ]
+    },
+    {
+      "workflow": "cancer_biology/analyze_copy_number_purity_ploidy_and_focal_events",
+      "func_name": "analyze_copy_number_purity_ploidy_and_focal_events",
+      "func_params": [
+        "tumor_bam",
+        "reference_genome",
+        "normal_bam",
+        "output_dir",
+        "targets_bed",
+        "antitargets_bed",
+        "gene_bed",
+        "focal_genes",
+        "log2_amp_threshold",
+        "log2_del_threshold"
+      ],
+      "old_nf_params": [
+        "log2_amp_threshold",
+        "output_dir",
+        "tumor_bam",
+        "reference_genome",
+        "normal_bam",
+        "targets_bed",
+        "antitargets_bed",
+        "gene_bed",
+        "focal_genes",
+        "log2_del_threshold"
+      ],
+      "old_call_params": [
+        "tumor_bam"
+      ]
+    },
+    {
+      "workflow": "cancer_biology/analyze_ddr_network_in_cancer",
+      "func_name": "analyze_ddr_network_in_cancer",
+      "func_params": [
+        "expression_data_path",
+        "mutation_data_path",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "expression_data_path",
+        "mutation_data_path"
+      ],
+      "old_call_params": [
+        "expression_data_path"
+      ]
+    },
+    {
+      "workflow": "cancer_biology/detect_and_annotate_somatic_mutations",
+      "func_name": "detect_and_annotate_somatic_mutations",
+      "func_params": [
+        "tumor_bam",
+        "normal_bam",
+        "reference_genome",
+        "output_prefix",
+        "snpeff_database"
+      ],
+      "old_nf_params": [
+        "snpeff_database",
+        "tumor_bam",
+        "normal_bam",
+        "reference_genome",
+        "output_prefix"
+      ],
+      "old_call_params": [
+        "tumor_bam"
+      ]
+    },
+    {
+      "workflow": "cancer_biology/detect_and_characterize_structural_variations",
+      "func_name": "detect_and_characterize_structural_variations",
+      "func_params": [
+        "bam_file_path",
+        "reference_genome_path",
+        "output_dir",
+        "cosmic_db_path",
+        "clinvar_db_path"
+      ],
+      "old_nf_params": [
+        "bam_file_path",
+        "reference_genome_path",
+        "output_dir",
+        "cosmic_db_path",
+        "clinvar_db_path"
+      ],
+      "old_call_params": [
+        "bam_file_path"
+      ]
+    },
+    {
+      "workflow": "cancer_biology/perform_gene_expression_nmf_analysis",
+      "func_name": "perform_gene_expression_nmf_analysis",
+      "func_params": [
+        "expression_data_path",
+        "n_components",
+        "normalize",
+        "output_dir",
+        "random_state"
+      ],
+      "old_nf_params": [
+        "random_state",
+        "output_dir",
+        "normalize",
+        "n_components",
+        "expression_data_path"
+      ],
+      "old_call_params": [
+        "expression_data_path"
+      ]
+    },
+    {
+      "workflow": "cell_biology/analyze_flow_cytometry_immunophenotyping",
+      "func_name": "analyze_flow_cytometry_immunophenotyping",
+      "func_params": [
+        "fcs_file_path",
+        "gating_strategy",
+        "compensation_matrix",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "fcs_file_path",
+        "gating_strategy",
+        "compensation_matrix"
+      ],
+      "old_call_params": [
+        "fcs_file_path"
+      ]
+    },
+    {
+      "workflow": "cell_biology/analyze_mitochondrial_morphology_and_potential",
+      "func_name": "analyze_mitochondrial_morphology_and_potential",
+      "func_params": [
+        "morphology_image_path",
+        "potential_image_path",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "morphology_image_path",
+        "potential_image_path"
+      ],
+      "old_call_params": [
+        "morphology_image_path"
+      ]
+    },
+    {
+      "workflow": "cell_biology/perform_facs_cell_sorting",
+      "func_name": "perform_facs_cell_sorting",
+      "func_params": [
+        "cell_suspension_data",
+        "fluorescence_parameter",
+        "threshold_min",
+        "threshold_max",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "cell_suspension_data",
+        "fluorescence_parameter",
+        "threshold_min",
+        "threshold_max"
+      ],
+      "old_call_params": [
+        "cell_suspension_data"
+      ]
+    },
+    {
+      "workflow": "cell_biology/quantify_and_cluster_cell_motility",
+      "func_name": "quantify_and_cluster_cell_motility",
+      "func_params": [
+        "image_sequence_path",
+        "output_dir",
+        "num_clusters"
+      ],
+      "old_nf_params": [
+        "num_clusters",
+        "output_dir",
+        "image_sequence_path"
+      ],
+      "old_call_params": [
+        "image_sequence_path"
+      ]
+    },
+    {
+      "workflow": "cell_biology/quantify_cell_cycle_phases_from_microscopy",
+      "func_name": "quantify_cell_cycle_phases_from_microscopy",
+      "func_params": [
+        "image_paths",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "image_paths"
+      ],
+      "old_call_params": [
+        "image_paths"
+      ]
+    },
+    {
+      "workflow": "database/blast_sequence",
+      "func_name": "blast_sequence",
+      "func_params": [
+        "sequence",
+        "database",
+        "program"
+      ],
+      "old_nf_params": [
+        "sequence",
+        "database",
+        "program"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "database/get_genes_near_ccre",
+      "func_name": "get_genes_near_ccre",
+      "func_params": [
+        "accession",
+        "assembly",
+        "chromosome",
+        "k"
+      ],
+      "old_nf_params": [
+        "accession",
+        "assembly",
+        "chromosome"
+      ],
+      "old_call_params": [
+        "accession"
+      ]
+    },
+    {
+      "workflow": "database/get_hpo_names",
+      "func_name": "get_hpo_names",
+      "func_params": [
+        "hpo_terms",
+        "data_lake_path"
+      ],
+      "old_nf_params": [
+        "hpo_terms",
+        "data_lake_path"
+      ],
+      "old_call_params": [
+        "hpo_terms"
+      ]
+    },
+    {
+      "workflow": "database/reduce_tokens",
+      "func_name": "reduce_tokens",
+      "func_params": [
+        "text",
+        "max_tokens",
+        "method"
+      ],
+      "old_nf_params": [
+        "method",
+        "max_tokens",
+        "text"
+      ],
+      "old_call_params": [
+        "text"
+      ]
+    },
+    {
+      "workflow": "database/region_to_ccre_screen",
+      "func_name": "region_to_ccre_screen",
+      "func_params": [
+        "coord_chrom",
+        "coord_start",
+        "coord_end",
+        "assembly"
+      ],
+      "old_nf_params": [
+        "res_json"
+      ],
+      "old_call_params": [
+        "coord_chrom"
+      ]
+    },
+    {
+      "workflow": "genetics/analyze_cas9_mutation_outcomes",
+      "func_name": "analyze_cas9_mutation_outcomes",
+      "func_params": [
+        "reference_sequences",
+        "edited_sequences",
+        "cell_line_info",
+        "output_prefix"
+      ],
+      "old_nf_params": [
+        "output_prefix",
+        "reference_sequences",
+        "edited_sequences",
+        "cell_line_info"
+      ],
+      "old_call_params": [
+        "reference_sequences"
+      ]
+    },
+    {
+      "workflow": "genetics/analyze_crispr_genome_editing",
+      "func_name": "analyze_crispr_genome_editing",
+      "func_params": [
+        "original_sequence",
+        "edited_sequence",
+        "guide_rna",
+        "repair_template"
+      ],
+      "old_nf_params": [
+        "original_sequence",
+        "edited_sequence",
+        "guide_rna",
+        "repair_template"
+      ],
+      "old_call_params": [
+        "original_sequence"
+      ]
+    },
+    {
+      "workflow": "genetics/analyze_protein_phylogeny",
+      "func_name": "analyze_protein_phylogeny",
+      "func_params": [
+        "fasta_sequences",
+        "output_dir",
+        "alignment_method",
+        "tree_method"
+      ],
+      "old_nf_params": [
+        "tree_method",
+        "alignment_method",
+        "output_dir",
+        "fasta_sequences"
+      ],
+      "old_call_params": [
+        "fasta_sequences"
+      ]
+    },
+    {
+      "workflow": "genetics/bayesian_finemapping_with_deep_vi",
+      "func_name": "bayesian_finemapping_with_deep_vi",
+      "func_params": [
+        "gwas_summary_path",
+        "ld_matrix",
+        "n_iterations",
+        "learning_rate",
+        "hidden_dim",
+        "credible_threshold"
+      ],
+      "old_nf_params": [
+        "credible_threshold",
+        "hidden_dim",
+        "learning_rate",
+        "n_iterations",
+        "gwas_summary_path",
+        "ld_matrix"
+      ],
+      "old_call_params": [
+        "gwas_summary_path"
+      ]
+    },
+    {
+      "workflow": "genetics/elbo_loss",
+      "func_name": "elbo_loss",
+      "func_params": [
+        "reconstruction_loss",
+        "kl_divergence",
+        "beta"
+      ],
+      "old_nf_params": [
+        "beta",
+        "kl_divergence",
+        "reconstruction_loss"
+      ],
+      "old_call_params": [
+        "reconstruction_loss"
+      ]
+    },
+    {
+      "workflow": "genetics/fit_genomic_prediction_model",
+      "func_name": "fit_genomic_prediction_model",
+      "func_params": [
+        "genotypes",
+        "phenotypes",
+        "fixed_effects",
+        "model_type",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "model_type",
+        "genotypes",
+        "phenotypes",
+        "fixed_effects"
+      ],
+      "old_call_params": [
+        "genotypes"
+      ]
+    },
+    {
+      "workflow": "genetics/forward",
+      "func_name": "forward",
+      "func_params": [
+        "x",
+        "weights",
+        "bias",
+        "activation"
+      ],
+      "old_nf_params": [
+        "activation",
+        "bias",
+        "weights",
+        "x"
+      ],
+      "old_call_params": [
+        "x"
+      ]
+    },
+    {
+      "workflow": "genetics/identify_transcription_factor_binding_sites",
+      "func_name": "identify_transcription_factor_binding_sites",
+      "func_params": [
+        "sequence",
+        "tf_name",
+        "threshold",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "threshold",
+        "sequence",
+        "tf_name",
+        "output_file"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "genetics/liftover_coordinates",
+      "func_name": "liftover_coordinates",
+      "func_params": [
+        "chromosome",
+        "position",
+        "input_format",
+        "output_format",
+        "data_path"
+      ],
+      "old_nf_params": [
+        "chromosome",
+        "position",
+        "input_format",
+        "output_format",
+        "data_path"
+      ],
+      "old_call_params": [
+        "chromosome"
+      ]
+    },
+    {
+      "workflow": "genetics/perform_pcr_and_gel_electrophoresis",
+      "func_name": "perform_pcr_and_gel_electrophoresis",
+      "func_params": [
+        "genomic_dna",
+        "forward_primer",
+        "reverse_primer",
+        "target_region",
+        "annealing_temp",
+        "extension_time",
+        "cycles",
+        "gel_percentage",
+        "output_prefix"
+      ],
+      "old_nf_params": [
+        "output_prefix",
+        "gel_percentage",
+        "cycles",
+        "extension_time",
+        "annealing_temp",
+        "genomic_dna",
+        "forward_primer",
+        "reverse_primer",
+        "target_region"
+      ],
+      "old_call_params": [
+        "genomic_dna"
+      ]
+    },
+    {
+      "workflow": "genetics/simulate_demographic_history",
+      "func_name": "simulate_demographic_history",
+      "func_params": [
+        "num_samples",
+        "sequence_length",
+        "recombination_rate",
+        "mutation_rate",
+        "demographic_model",
+        "demographic_params",
+        "coalescent_model",
+        "beta_coalescent_param",
+        "random_seed",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "coalescent_model",
+        "demographic_model",
+        "mutation_rate",
+        "recombination_rate",
+        "sequence_length",
+        "num_samples",
+        "demographic_params",
+        "beta_coalescent_param",
+        "random_seed"
+      ],
+      "old_call_params": [
+        "num_samples"
+      ]
+    },
+    {
+      "workflow": "genomics/analyze_chromatin_interactions",
+      "func_name": "analyze_chromatin_interactions",
+      "func_params": [
+        "hic_file_path",
+        "regulatory_elements_bed",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "hic_file_path",
+        "regulatory_elements_bed"
+      ],
+      "old_call_params": [
+        "hic_file_path"
+      ]
+    },
+    {
+      "workflow": "genomics/analyze_comparative_genomics_and_haplotypes",
+      "func_name": "analyze_comparative_genomics_and_haplotypes",
+      "func_params": [
+        "sample_fasta_files",
+        "reference_genome_path",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "sample_fasta_files",
+        "reference_genome_path"
+      ],
+      "old_call_params": [
+        "sample_fasta_files"
+      ]
+    },
+    {
+      "workflow": "genomics/analyze_genomic_region_overlap",
+      "func_name": "analyze_genomic_region_overlap",
+      "func_params": [
+        "region_sets",
+        "output_prefix"
+      ],
+      "old_nf_params": [
+        "output_prefix",
+        "region_sets"
+      ],
+      "old_call_params": [
+        "region_sets"
+      ]
+    },
+    {
+      "workflow": "genomics/annotate_celltype_scRNA",
+      "func_name": "annotate_celltype_scRNA",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "genomics/annotate_celltype_with_panhumanpy",
+      "func_name": "annotate_celltype_with_panhumanpy",
+      "func_params": [
+        "adata_path",
+        "feature_names_col",
+        "refine",
+        "umap",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "umap",
+        "refine",
+        "adata_path",
+        "feature_names_col"
+      ],
+      "old_call_params": [
+        "adata_path"
+      ]
+    },
+    {
+      "workflow": "genomics/check_ensembl_patterns",
+      "func_name": "check_ensembl_patterns",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "genomics/conda_env_exists",
+      "func_name": "conda_env_exists",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "genomics/create_harmony_embeddings_scRNA",
+      "func_name": "create_harmony_embeddings_scRNA",
+      "func_params": [
+        "adata_filename",
+        "batch_key",
+        "data_dir"
+      ],
+      "old_nf_params": [
+        "adata_filename",
+        "batch_key",
+        "data_dir"
+      ],
+      "old_call_params": [
+        "adata_filename"
+      ]
+    },
+    {
+      "workflow": "genomics/create_panhumanpy_env",
+      "func_name": "create_panhumanpy_env",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "genomics/create_scvi_embeddings_scRNA",
+      "func_name": "create_scvi_embeddings_scRNA",
+      "func_params": [
+        "adata_filename",
+        "batch_key",
+        "label_key",
+        "data_dir"
+      ],
+      "old_nf_params": [
+        "adata_filename",
+        "batch_key",
+        "label_key",
+        "data_dir"
+      ],
+      "old_call_params": [
+        "adata_filename"
+      ]
+    },
+    {
+      "workflow": "genomics/custom_mode",
+      "func_name": "custom_mode",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "genomics/find_enriched_motifs_with_homer",
+      "func_name": "find_enriched_motifs_with_homer",
+      "func_params": [
+        "peak_file",
+        "genome",
+        "background_file",
+        "motif_length",
+        "10",
+        "12\"",
+        "output_dir",
+        "num_motifs",
+        "threads"
+      ],
+      "old_nf_params": [
+        "threads",
+        "num_motifs",
+        "output_dir",
+        "10",
+        "motif_length",
+        "genome",
+        "peak_file",
+        "background_file"
+      ],
+      "old_call_params": [
+        "peak_file"
+      ]
+    },
+    {
+      "workflow": "genomics/gene_set_enrichment_analysis",
+      "func_name": "gene_set_enrichment_analysis",
+      "func_params": [
+        "gene_names",
+        "top_k",
+        "database",
+        "background_list",
+        "plot"
+      ],
+      "old_nf_params": [
+        "gene_names",
+        "background_list",
+        "plot"
+      ],
+      "old_call_params": [
+        "gene_names"
+      ]
+    },
+    {
+      "workflow": "genomics/generate_embeddings_with_state",
+      "func_name": "generate_embeddings_with_state",
+      "func_params": [
+        "adata_filename",
+        "data_dir",
+        "model_folder",
+        "output_filename",
+        "checkpoint",
+        "embed_key",
+        "protein_embeddings",
+        "batch_size"
+      ],
+      "old_nf_params": [
+        "batch_size",
+        "embed_key",
+        "adata_filename",
+        "data_dir",
+        "model_folder",
+        "output_filename",
+        "checkpoint",
+        "protein_embeddings"
+      ],
+      "old_call_params": [
+        "adata_filename"
+      ]
+    },
+    {
+      "workflow": "genomics/generate_gene_embeddings_with_ESM_models",
+      "func_name": "_fetch_isoform_sequences",
+      "func_params": [
+        "ensembl_gene_id"
+      ],
+      "old_nf_params": [
+        "ensembl_gene_ids",
+        "save_path"
+      ],
+      "old_call_params": []
+    },
+    {
+      "workflow": "genomics/generate_transcriptformer_embeddings",
+      "func_name": "generate_transcriptformer_embeddings",
+      "func_params": [
+        "adata_filename",
+        "data_dir",
+        "output_filename",
+        "model_type",
+        "checkpoint_path",
+        "batch_size",
+        "precision",
+        "clip_counts",
+        "embedding_layer_index",
+        "num_gpus",
+        "n_data_workers",
+        "gene_col_name",
+        "pretrained_embedding",
+        "filter_to_vocabs",
+        "use_raw",
+        "emb_type",
+        "remove_duplicate_genes",
+        "oom_dataloader"
+      ],
+      "old_nf_params": [
+        "model_type",
+        "checkpoint_path"
+      ],
+      "old_call_params": [
+        "adata_filename"
+      ]
+    },
+    {
+      "workflow": "genomics/get_matrix",
+      "func_name": "get_matrix",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "genomics/get_rna_seq_archs4",
+      "func_name": "get_rna_seq_archs4",
+      "func_params": [
+        "gene_name",
+        "K"
+      ],
+      "old_nf_params": [
+        "gene_name"
+      ],
+      "old_call_params": [
+        "gene_name"
+      ]
+    },
+    {
+      "workflow": "genomics/get_uce_embeddings_scRNA",
+      "func_name": "get_uce_embeddings_scRNA",
+      "func_params": [
+        "adata_filename",
+        "data_dir",
+        "DATA_ROOT",
+        "custom_args"
+      ],
+      "old_nf_params": [
+        "DATA_ROOT",
+        "adata_filename",
+        "data_dir",
+        "custom_args"
+      ],
+      "old_call_params": [
+        "adata_filename"
+      ]
+    },
+    {
+      "workflow": "genomics/interspecies_gene_conversion",
+      "func_name": "interspecies_gene_conversion",
+      "func_params": [
+        "gene_names",
+        "source_species",
+        "target_species"
+      ],
+      "old_nf_params": [
+        "gene_names",
+        "source_species",
+        "target_species"
+      ],
+      "old_call_params": [
+        "gene_names"
+      ]
+    },
+    {
+      "workflow": "genomics/is_model_downloaded",
+      "func_name": "is_model_downloaded",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "genomics/map_to_ima_interpret_scRNA",
+      "func_name": "map_to_ima_interpret_scRNA",
+      "func_params": [
+        "adata_filename",
+        "data_dir",
+        "custom_args"
+      ],
+      "old_nf_params": [
+        "adata_filename",
+        "data_dir",
+        "custom_args"
+      ],
+      "old_call_params": [
+        "adata_filename"
+      ]
+    },
+    {
+      "workflow": "genomics/perform_chipseq_peak_calling_with_macs2",
+      "func_name": "perform_chipseq_peak_calling_with_macs2",
+      "func_params": [
+        "chip_seq_file",
+        "control_file",
+        "output_name",
+        "genome_size",
+        "q_value"
+      ],
+      "old_nf_params": [
+        "q_value",
+        "genome_size",
+        "output_name",
+        "chip_seq_file",
+        "control_file"
+      ],
+      "old_call_params": [
+        "chip_seq_file"
+      ]
+    },
+    {
+      "workflow": "genomics/unsupervised_celltype_transfer_between_scRNA_datasets",
+      "func_name": "unsupervised_celltype_transfer_between_scRNA_datasets",
+      "func_params": [
+        "path_to_annotated_h5ad",
+        "path_to_not_annotated_h5ad",
+        "ref_labels_key",
+        "query_batch_key",
+        "ref_batch_key",
+        "CELLTYPIST",
+        "KNN_BBKNN",
+        "KNN_HARMONY",
+        "KNN_SCANORAMA",
+        "KNN_SCVI",
+        "ONCLASS",
+        "Random_Forest",
+        "SCANVI_POPV",
+        "Support_Vector",
+        "XGboost",
+        "n_jobs",
+        "output_folder",
+        "n_samples_per_label"
+      ],
+      "old_nf_params": [
+        "XGboost",
+        "Support_Vector",
+        "SCANVI_POPV",
+        "Random_Forest",
+        "ONCLASS",
+        "KNN_SCVI",
+        "KNN_SCANORAMA",
+        "KNN_HARMONY",
+        "KNN_BBKNN",
+        "CELLTYPIST"
+      ],
+      "old_call_params": [
+        "str"
+      ]
+    },
+    {
+      "workflow": "glycoengineering/find_n_glycosylation_motifs",
+      "func_name": "find_n_glycosylation_motifs",
+      "func_params": [
+        "sequence",
+        "allow_overlap"
+      ],
+      "old_nf_params": [
+        "sequence",
+        "allow_overlap"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "glycoengineering/predict_o_glycosylation_hotspots",
+      "func_name": "predict_o_glycosylation_hotspots",
+      "func_params": [
+        "sequence",
+        "window",
+        "min_st_fraction",
+        "disallow_proline_next"
+      ],
+      "old_nf_params": [
+        "sequence",
+        "disallow_proline_next"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "immunology/analyze_atac_seq_differential_accessibility",
+      "func_name": "analyze_atac_seq_differential_accessibility",
+      "func_params": [
+        "treatment_bam",
+        "control_bam",
+        "output_dir",
+        "genome_size",
+        "q_value",
+        "name_prefix"
+      ],
+      "old_nf_params": [
+        "name_prefix",
+        "q_value",
+        "genome_size",
+        "output_dir",
+        "treatment_bam",
+        "control_bam"
+      ],
+      "old_call_params": [
+        "treatment_bam"
+      ]
+    },
+    {
+      "workflow": "immunology/analyze_bacterial_growth_curve",
+      "func_name": "analyze_bacterial_growth_curve",
+      "func_params": [
+        "time_points",
+        "od_values",
+        "strain_name",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "time_points",
+        "od_values",
+        "strain_name"
+      ],
+      "old_call_params": [
+        "time_points"
+      ]
+    },
+    {
+      "workflow": "immunology/analyze_cfse_cell_proliferation",
+      "func_name": "analyze_cfse_cell_proliferation",
+      "func_params": [
+        "fcs_file_path",
+        "cfse_channel",
+        "lymphocyte_gate"
+      ],
+      "old_nf_params": [
+        "cfse_channel",
+        "fcs_file_path",
+        "lymphocyte_gate"
+      ],
+      "old_call_params": [
+        "fcs_file_path"
+      ]
+    },
+    {
+      "workflow": "immunology/analyze_cns_lesion_histology",
+      "func_name": "analyze_cns_lesion_histology",
+      "func_params": [
+        "image_path",
+        "output_dir",
+        "stain_type"
+      ],
+      "old_nf_params": [
+        "stain_type",
+        "output_dir",
+        "image_path"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "immunology/analyze_cytokine_production_in_cd4_tcells",
+      "func_name": "analyze_cytokine_production_in_cd4_tcells",
+      "func_params": [
+        "fcs_files_dict",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "fcs_files_dict"
+      ],
+      "old_call_params": [
+        "fcs_files_dict"
+      ]
+    },
+    {
+      "workflow": "immunology/analyze_ebv_antibody_titers",
+      "func_name": "analyze_ebv_antibody_titers",
+      "func_params": [
+        "raw_od_data",
+        "standard_curve_data",
+        "sample_metadata",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "raw_od_data",
+        "standard_curve_data",
+        "sample_metadata"
+      ],
+      "old_call_params": [
+        "raw_od_data"
+      ]
+    },
+    {
+      "workflow": "immunology/analyze_immunohistochemistry_image",
+      "func_name": "analyze_immunohistochemistry_image",
+      "func_params": [
+        "image_path",
+        "protein_name",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "protein_name",
+        "image_path"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "immunology/estimate_cell_cycle_phase_durations",
+      "func_name": "estimate_cell_cycle_phase_durations",
+      "func_params": [
+        "flow_cytometry_data",
+        "initial_estimates"
+      ],
+      "old_nf_params": [
+        "flow_cytometry_data",
+        "initial_estimates"
+      ],
+      "old_call_params": [
+        "flow_cytometry_data"
+      ]
+    },
+    {
+      "workflow": "immunology/isolate_purify_immune_cells",
+      "func_name": "isolate_purify_immune_cells",
+      "func_params": [
+        "tissue_type",
+        "target_cell_type",
+        "enzyme_type",
+        "macs_antibody",
+        "digestion_time_min"
+      ],
+      "old_nf_params": [
+        "digestion_time_min",
+        "enzyme_type",
+        "tissue_type",
+        "target_cell_type",
+        "macs_antibody"
+      ],
+      "old_call_params": [
+        "tissue_type"
+      ]
+    },
+    {
+      "workflow": "immunology/logistic_growth",
+      "func_name": "logistic_growth",
+      "func_params": [
+        "n",
+        "r",
+        "k"
+      ],
+      "old_nf_params": [
+        "n",
+        "k",
+        "r"
+      ],
+      "old_call_params": [
+        "n"
+      ]
+    },
+    {
+      "workflow": "immunology/objective_function",
+      "func_name": "objective_function",
+      "func_params": [
+        "params",
+        "data",
+        "model_type"
+      ],
+      "old_nf_params": [
+        "model_type",
+        "data",
+        "params"
+      ],
+      "old_call_params": [
+        "params"
+      ]
+    },
+    {
+      "workflow": "immunology/simulate_cell_population",
+      "func_name": "simulate_cell_population",
+      "func_params": [
+        "initial_count",
+        "growth_rate",
+        "death_rate",
+        "time_points"
+      ],
+      "old_nf_params": [
+        "growth_rate",
+        "initial_count",
+        "time_points",
+        "death_rate"
+      ],
+      "old_call_params": [
+        "initial_count"
+      ]
+    },
+    {
+      "workflow": "immunology/track_immune_cells_under_flow",
+      "func_name": "track_immune_cells_under_flow",
+      "func_params": [
+        "image_sequence_path",
+        "output_dir",
+        "pixel_size_um",
+        "time_interval_sec",
+        "flow_direction"
+      ],
+      "old_nf_params": [
+        "flow_direction",
+        "time_interval_sec",
+        "pixel_size_um",
+        "output_dir",
+        "image_sequence_path"
+      ],
+      "old_call_params": [
+        "image_sequence_path"
+      ]
+    },
+    {
+      "workflow": "lab_automation/get_pylabrobot_documentation_liquid",
+      "func_name": "_load_pylabrobot_tutorial_content",
+      "func_params": [
+        "section"
+      ],
+      "old_nf_params": [],
+      "old_call_params": []
+    },
+    {
+      "workflow": "lab_automation/get_pylabrobot_documentation_material",
+      "func_name": "_load_pylabrobot_tutorial_content",
+      "func_params": [
+        "section"
+      ],
+      "old_nf_params": [],
+      "old_call_params": []
+    },
+    {
+      "workflow": "lab_automation/pick_first",
+      "func_name": "pick_first",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "lab_automation/run_async",
+      "func_name": "run_async",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "lab_automation/target",
+      "func_name": "target",
+      "func_params": [
+        "**kwargs"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "kwargs"
+      ]
+    },
+    {
+      "workflow": "lab_automation/test_pylabrobot_script",
+      "func_name": "_validate_pylabrobot_imports",
+      "func_params": [
+        "script_content"
+      ],
+      "old_nf_params": [],
+      "old_call_params": []
+    },
+    {
+      "workflow": "literature/advanced_web_search_claude",
+      "func_name": "advanced_web_search_claude",
+      "func_params": [
+        "query",
+        "max_results"
+      ],
+      "old_nf_params": [
+        "max_results",
+        "query"
+      ],
+      "old_call_params": [
+        "query"
+      ]
+    },
+    {
+      "workflow": "literature/fetch_supplementary_info_from_doi",
+      "func_name": "fetch_supplementary_info_from_doi",
+      "func_params": [
+        "doi",
+        "output_dir"
+      ],
+      "old_nf_params": [],
+      "old_call_params": [
+        "str"
+      ]
+    },
+    {
+      "workflow": "microbiology/analyze_arsenic_speciation_hplc_icpms",
+      "func_name": "analyze_arsenic_speciation_hplc_icpms",
+      "func_params": [
+        "sample_data",
+        "sample_name",
+        "calibration_data"
+      ],
+      "old_nf_params": [
+        "sample_name",
+        "sample_data",
+        "calibration_data"
+      ],
+      "old_call_params": [
+        "sample_data"
+      ]
+    },
+    {
+      "workflow": "microbiology/annotate_bacterial_genome",
+      "func_name": "annotate_bacterial_genome",
+      "func_params": [
+        "genome_file_path",
+        "output_dir",
+        "genus",
+        "species",
+        "strain",
+        "prefix"
+      ],
+      "old_nf_params": [
+        "species",
+        "output_dir",
+        "genome_file_path",
+        "genus",
+        "strain",
+        "prefix"
+      ],
+      "old_call_params": [
+        "genome_file_path"
+      ]
+    },
+    {
+      "workflow": "microbiology/bacterial_dynamics",
+      "func_name": "bacterial_dynamics",
+      "func_params": [
+        "n",
+        "r",
+        "k",
+        "d"
+      ],
+      "old_nf_params": [
+        "d",
+        "k",
+        "r",
+        "n"
+      ],
+      "old_call_params": [
+        "n"
+      ]
+    },
+    {
+      "workflow": "microbiology/count_bacterial_colonies",
+      "func_name": "count_bacterial_colonies",
+      "func_params": [
+        "image_path",
+        "dilution_factor",
+        "plate_area_cm2",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "plate_area_cm2",
+        "dilution_factor",
+        "image_path"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "microbiology/enumerate_bacterial_cfu_by_serial_dilution",
+      "func_name": "enumerate_bacterial_cfu_by_serial_dilution",
+      "func_params": [
+        "initial_sample_volume_ml",
+        "estimated_concentration",
+        "dilution_factor",
+        "num_dilutions",
+        "spots_per_dilution",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "spots_per_dilution",
+        "num_dilutions",
+        "dilution_factor",
+        "estimated_concentration",
+        "initial_sample_volume_ml"
+      ],
+      "old_call_params": [
+        "initial_sample_volume_ml"
+      ]
+    },
+    {
+      "workflow": "microbiology/glv_equations",
+      "func_name": "glv_equations",
+      "func_params": [
+        "populations",
+        "growth_rates",
+        "interaction_matrix"
+      ],
+      "old_nf_params": [
+        "populations",
+        "growth_rates",
+        "interaction_matrix"
+      ],
+      "old_call_params": [
+        "populations"
+      ]
+    },
+    {
+      "workflow": "microbiology/methane_yield_model",
+      "func_name": "methane_yield_model",
+      "func_params": [
+        "substrate",
+        "yield_coefficient",
+        "inhibition_constant"
+      ],
+      "old_nf_params": [
+        "inhibition_constant",
+        "yield_coefficient",
+        "substrate"
+      ],
+      "old_call_params": [
+        "substrate"
+      ]
+    },
+    {
+      "workflow": "microbiology/optimize_anaerobic_digestion_process",
+      "func_name": "optimize_anaerobic_digestion_process",
+      "func_params": [
+        "waste_characteristics",
+        "operational_parameters",
+        "target_output",
+        "optimization_method"
+      ],
+      "old_nf_params": [
+        "optimization_method",
+        "target_output",
+        "waste_characteristics",
+        "operational_parameters"
+      ],
+      "old_call_params": [
+        "waste_characteristics"
+      ]
+    },
+    {
+      "workflow": "microbiology/predict_rna_secondary_structure",
+      "func_name": "predict_rna_secondary_structure",
+      "func_params": [
+        "rna_sequence",
+        "output_prefix"
+      ],
+      "old_nf_params": [
+        "output_prefix",
+        "rna_sequence"
+      ],
+      "old_call_params": [
+        "rna_sequence"
+      ]
+    },
+    {
+      "workflow": "microbiology/quantify_biofilm_biomass_crystal_violet",
+      "func_name": "quantify_biofilm_biomass_crystal_violet",
+      "func_params": [
+        "od_values",
+        "sample_names",
+        "control_index",
+        "save_path"
+      ],
+      "old_nf_params": [
+        "control_index",
+        "od_values",
+        "sample_names",
+        "save_path"
+      ],
+      "old_call_params": [
+        "od_values"
+      ]
+    },
+    {
+      "workflow": "microbiology/segment_and_analyze_microbial_cells",
+      "func_name": "segment_and_analyze_microbial_cells",
+      "func_params": [
+        "image_path",
+        "output_dir",
+        "min_cell_size"
+      ],
+      "old_nf_params": [
+        "min_cell_size",
+        "output_dir",
+        "image_path"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "microbiology/segment_cells_with_deep_learning",
+      "func_name": "segment_cells_with_deep_learning",
+      "func_params": [
+        "image_path",
+        "model_type",
+        "diameter",
+        "save_dir"
+      ],
+      "old_nf_params": [
+        "save_dir",
+        "model_type",
+        "image_path",
+        "diameter"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "microbiology/simulate_generalized_lotka_volterra_dynamics",
+      "func_name": "simulate_generalized_lotka_volterra_dynamics",
+      "func_params": [
+        "initial_abundances",
+        "growth_rates",
+        "interaction_matrix",
+        "time_points",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "initial_abundances",
+        "growth_rates",
+        "interaction_matrix",
+        "time_points"
+      ],
+      "old_call_params": [
+        "initial_abundances"
+      ]
+    },
+    {
+      "workflow": "microbiology/simulate_microbial_population_dynamics",
+      "func_name": "simulate_microbial_population_dynamics",
+      "func_params": [
+        "initial_populations",
+        "growth_rates",
+        "clearance_rates",
+        "carrying_capacities",
+        "max_time",
+        "num_simulations",
+        "time_points"
+      ],
+      "old_nf_params": [
+        "time_points",
+        "num_simulations",
+        "max_time",
+        "initial_populations",
+        "growth_rates",
+        "clearance_rates",
+        "carrying_capacities"
+      ],
+      "old_call_params": [
+        "initial_populations"
+      ]
+    },
+    {
+      "workflow": "microbiology/vfa_production_model",
+      "func_name": "vfa_production_model",
+      "func_params": [
+        "substrate",
+        "max_rate",
+        "ks"
+      ],
+      "old_nf_params": [
+        "ks",
+        "max_rate",
+        "substrate"
+      ],
+      "old_call_params": [
+        "substrate"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/align_sequences",
+      "func_name": "align_sequences",
+      "func_params": [
+        "long_seq",
+        "short_seqs"
+      ],
+      "old_nf_params": [
+        "seq"
+      ],
+      "old_call_params": [
+        "long_seq"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/annotate_open_reading_frames",
+      "func_name": "annotate_open_reading_frames",
+      "func_params": [
+        "sequence",
+        "min_length",
+        "search_reverse",
+        "filter_subsets"
+      ],
+      "old_nf_params": [
+        "filter_subsets",
+        "search_reverse",
+        "sequence",
+        "min_length"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/annotate_plasmid",
+      "func_name": "annotate_plasmid",
+      "func_params": [
+        "sequence",
+        "is_circular"
+      ],
+      "old_nf_params": [
+        "sequence",
+        "is_circular"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/design_golden_gate_oligos",
+      "func_name": "design_golden_gate_oligos",
+      "func_params": [
+        "backbone_sequence",
+        "insert_sequence",
+        "enzyme_name",
+        "is_circular"
+      ],
+      "old_nf_params": [
+        "seq"
+      ],
+      "old_call_params": [
+        "backbone_sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/design_knockout_sgrna",
+      "func_name": "design_knockout_sgrna",
+      "func_params": [
+        "gene_name",
+        "data_lake_path",
+        "organism",
+        "num_guides"
+      ],
+      "old_nf_params": [
+        "gene_name",
+        "data_lake_path"
+      ],
+      "old_call_params": [
+        "gene_name"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/design_primer",
+      "func_name": "design_primer",
+      "func_params": [
+        "sequence",
+        "start_pos",
+        "primer_length",
+        "min_gc",
+        "max_gc",
+        "min_tm",
+        "max_tm",
+        "search_window"
+      ],
+      "old_nf_params": [
+        "sequence",
+        "start_pos"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/design_verification_primers",
+      "func_name": "align_sequences",
+      "func_params": [
+        "long_seq",
+        "short_seqs"
+      ],
+      "old_nf_params": [
+        "seq"
+      ],
+      "old_call_params": []
+    },
+    {
+      "workflow": "molecular_biology/digest_sequence",
+      "func_name": "digest_sequence",
+      "func_params": [
+        "dna_sequence",
+        "enzyme_names",
+        "is_circular"
+      ],
+      "old_nf_params": [
+        "dna_sequence",
+        "enzyme_names",
+        "is_circular"
+      ],
+      "old_call_params": [
+        "dna_sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/find_orfs_in_frame",
+      "func_name": "find_orfs_in_frame",
+      "func_params": [
+        "dna_sequence",
+        "frame",
+        "strand",
+        "min_length"
+      ],
+      "old_nf_params": [
+        "min_length",
+        "dna_sequence",
+        "frame",
+        "strand"
+      ],
+      "old_call_params": [
+        "dna_sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/find_restriction_enzymes",
+      "func_name": "find_restriction_enzymes",
+      "func_params": [
+        "sequence",
+        "is_circular"
+      ],
+      "old_nf_params": [
+        "sequence",
+        "is_circular"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/find_restriction_sites",
+      "func_name": "find_restriction_sites",
+      "func_params": [
+        "dna_sequence",
+        "enzyme_names",
+        "is_circular"
+      ],
+      "old_nf_params": [
+        "dna_sequence",
+        "enzyme_names",
+        "is_circular"
+      ],
+      "old_call_params": [
+        "dna_sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/find_sequence_mutations",
+      "func_name": "find_sequence_mutations",
+      "func_params": [
+        "query_sequence",
+        "reference_sequence",
+        "query_start"
+      ],
+      "old_nf_params": [
+        "query_start",
+        "query_sequence",
+        "reference_sequence"
+      ],
+      "old_call_params": [
+        "query_sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/get_bacterial_transformation_protocol",
+      "func_name": "get_bacterial_transformation_protocol",
+      "func_params": [
+        "antibiotic",
+        "is_repetitive"
+      ],
+      "old_nf_params": [
+        "is_repetitive"
+      ],
+      "old_call_params": [
+        "antibiotic"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/get_coding_sequences",
+      "func_name": "get_coding_sequences",
+      "func_params": [
+        "sequence",
+        "min_length"
+      ],
+      "old_nf_params": [
+        "min_length",
+        "sequence"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/get_gene_coding_sequence",
+      "func_name": "get_gene_coding_sequence",
+      "func_params": [
+        "gene_name",
+        "organism",
+        "email"
+      ],
+      "old_nf_params": [
+        "gene_name",
+        "organism",
+        "email"
+      ],
+      "old_call_params": [
+        "gene_name"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/get_golden_gate_assembly_protocol",
+      "func_name": "get_golden_gate_assembly_protocol",
+      "func_params": [
+        "num_inserts",
+        "enzyme_name",
+        "vector_length",
+        "vector_amount_ng",
+        "insert_lengths",
+        "is_library_prep"
+      ],
+      "old_nf_params": [
+        "enzyme_name",
+        "vector_length",
+        "insert_lengths",
+        "is_library_prep"
+      ],
+      "old_call_params": [
+        "num_inserts"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/get_plasmid_sequence",
+      "func_name": "get_plasmid_sequence",
+      "func_params": [
+        "identifier",
+        "is_addgene"
+      ],
+      "old_nf_params": [
+        "identifier",
+        "is_addgene"
+      ],
+      "old_call_params": [
+        "identifier"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/get_refseq_id",
+      "func_name": "get_refseq_id",
+      "func_params": [
+        "gene_symbol",
+        "organism"
+      ],
+      "old_nf_params": [
+        "organism",
+        "gene_symbol"
+      ],
+      "old_call_params": [
+        "gene_symbol"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/golden_gate_assembly",
+      "func_name": "golden_gate_assembly",
+      "func_params": [
+        "backbone_sequence",
+        "enzyme_name",
+        "fragments",
+        "str]]",
+        "is_circular"
+      ],
+      "old_nf_params": [
+        "seq"
+      ],
+      "old_call_params": [
+        "backbone_sequence"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/is_position_covered",
+      "func_name": "is_position_covered",
+      "func_params": [
+        "position",
+        "regions"
+      ],
+      "old_nf_params": [
+        "regions",
+        "position"
+      ],
+      "old_call_params": [
+        "position"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/is_region_fully_covered",
+      "func_name": "is_region_fully_covered",
+      "func_params": [
+        "query_start",
+        "query_end",
+        "regions"
+      ],
+      "old_nf_params": [
+        "regions",
+        "query_end",
+        "query_start"
+      ],
+      "old_call_params": [
+        "query_start"
+      ]
+    },
+    {
+      "workflow": "molecular_biology/pcr_simple",
+      "func_name": "align_sequences",
+      "func_params": [
+        "long_seq",
+        "short_seqs"
+      ],
+      "old_nf_params": [
+        "seq"
+      ],
+      "old_call_params": []
+    },
+    {
+      "workflow": "molecular_biology/search_gene",
+      "func_name": "search_gene",
+      "func_params": [
+        "sequence",
+        "pattern",
+        "case_sensitive"
+      ],
+      "old_nf_params": [
+        "case_sensitive",
+        "pattern",
+        "sequence"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "pathology/analyze_aortic_diameter_and_geometry",
+      "func_name": "analyze_aortic_diameter_and_geometry",
+      "func_params": [
+        "image_path",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "image_path"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "pathology/analyze_atp_luminescence_assay",
+      "func_name": "analyze_atp_luminescence_assay",
+      "func_params": [
+        "data_file",
+        "standard_curve_file",
+        "normalization_method",
+        "normalization_data"
+      ],
+      "old_nf_params": [
+        "normalization_method",
+        "data_file",
+        "standard_curve_file",
+        "normalization_data"
+      ],
+      "old_call_params": [
+        "data_file"
+      ]
+    },
+    {
+      "workflow": "pathology/analyze_bone_microct_morphometry",
+      "func_name": "analyze_bone_microct_morphometry",
+      "func_params": [
+        "input_file_path",
+        "output_dir",
+        "threshold_value"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "input_file_path",
+        "threshold_value"
+      ],
+      "old_call_params": [
+        "input_file_path"
+      ]
+    },
+    {
+      "workflow": "pathology/analyze_intracellular_calcium_with_rhod2",
+      "func_name": "analyze_intracellular_calcium_with_rhod2",
+      "func_params": [
+        "background_image_path",
+        "control_image_path",
+        "sample_image_path",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "background_image_path",
+        "control_image_path",
+        "sample_image_path"
+      ],
+      "old_call_params": [
+        "background_image_path"
+      ]
+    },
+    {
+      "workflow": "pathology/analyze_thrombus_histology",
+      "func_name": "analyze_thrombus_histology",
+      "func_params": [
+        "image_path",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "image_path"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "pathology/quantify_corneal_nerve_fibers",
+      "func_name": "quantify_corneal_nerve_fibers",
+      "func_params": [
+        "image_path",
+        "marker_type",
+        "output_dir",
+        "threshold_method"
+      ],
+      "old_nf_params": [
+        "threshold_method",
+        "output_dir",
+        "image_path",
+        "marker_type"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "pathology/segment_and_quantify_cells_in_multiplexed_images",
+      "func_name": "segment_and_quantify_cells_in_multiplexed_images",
+      "func_params": [
+        "image_path",
+        "markers_list",
+        "nuclear_channel_index",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "nuclear_channel_index",
+        "image_path",
+        "markers_list"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "pharmacology/analyze_accelerated_stability_of_pharmaceutical_formulations",
+      "func_name": "analyze_accelerated_stability_of_pharmaceutical_formulations",
+      "func_params": [
+        "formulations",
+        "storage_conditions",
+        "time_points"
+      ],
+      "old_nf_params": [
+        "formulations",
+        "storage_conditions",
+        "time_points"
+      ],
+      "old_call_params": [
+        "formulations"
+      ]
+    },
+    {
+      "workflow": "pharmacology/analyze_fda_safety_signals",
+      "func_name": "_standardize_drug_name_fda",
+      "func_params": [
+        "drug_name"
+      ],
+      "old_nf_params": [
+        "drug_list",
+        "comparison_period"
+      ],
+      "old_call_params": []
+    },
+    {
+      "workflow": "pharmacology/analyze_radiolabeled_antibody_biodistribution",
+      "func_name": "analyze_radiolabeled_antibody_biodistribution",
+      "func_params": [
+        "time_points",
+        "tissue_data"
+      ],
+      "old_nf_params": [
+        "time_points",
+        "tissue_data"
+      ],
+      "old_call_params": [
+        "time_points"
+      ]
+    },
+    {
+      "workflow": "pharmacology/analyze_western_blot",
+      "func_name": "analyze_western_blot",
+      "func_params": [
+        "blot_image_path",
+        "target_bands",
+        "loading_control_band",
+        "antibody_info",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "blot_image_path",
+        "target_bands",
+        "loading_control_band",
+        "antibody_info"
+      ],
+      "old_call_params": [
+        "blot_image_path"
+      ]
+    },
+    {
+      "workflow": "pharmacology/analyze_xenograft_tumor_growth_inhibition",
+      "func_name": "analyze_xenograft_tumor_growth_inhibition",
+      "func_params": [
+        "data_path",
+        "time_column",
+        "volume_column",
+        "group_column",
+        "subject_column",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "data_path",
+        "time_column",
+        "volume_column",
+        "group_column",
+        "subject_column"
+      ],
+      "old_call_params": [
+        "data_path"
+      ]
+    },
+    {
+      "workflow": "pharmacology/apply_vcog_grade",
+      "func_name": "apply_vcog_grade",
+      "func_params": [
+        "event_type",
+        "severity_value",
+        "species"
+      ],
+      "old_nf_params": [
+        "species",
+        "severity_value",
+        "event_type"
+      ],
+      "old_call_params": [
+        "event_type"
+      ]
+    },
+    {
+      "workflow": "pharmacology/bi_exp_model",
+      "func_name": "bi_exp_model",
+      "func_params": [
+        "t",
+        "a",
+        "alpha",
+        "b",
+        "beta"
+      ],
+      "old_nf_params": [
+        "b",
+        "a",
+        "t",
+        "alpha",
+        "beta"
+      ],
+      "old_call_params": [
+        "t"
+      ]
+    },
+    {
+      "workflow": "pharmacology/check_fda_drug_recalls",
+      "func_name": "_standardize_drug_name_fda",
+      "func_params": [
+        "drug_name"
+      ],
+      "old_nf_params": [
+        "drug_name",
+        "classification",
+        "date_range"
+      ],
+      "old_call_params": []
+    },
+    {
+      "workflow": "pharmacology/docking_autodock_vina",
+      "func_name": "docking_autodock_vina",
+      "func_params": [
+        "smiles_list",
+        "receptor_pdb_file",
+        "box_center",
+        "box_size",
+        "ncpu"
+      ],
+      "old_nf_params": [
+        "ncpu",
+        "smiles_list",
+        "receptor_pdb_file",
+        "box_center",
+        "box_size"
+      ],
+      "old_call_params": [
+        "smiles_list"
+      ]
+    },
+    {
+      "workflow": "pharmacology/estimate_alpha_particle_radiotherapy_dosimetry",
+      "func_name": "estimate_alpha_particle_radiotherapy_dosimetry",
+      "func_params": [
+        "biodistribution_data",
+        "radiation_parameters",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "biodistribution_data",
+        "radiation_parameters"
+      ],
+      "old_call_params": [
+        "biodistribution_data"
+      ]
+    },
+    {
+      "workflow": "pharmacology/get_fda_drug_label_info",
+      "func_name": "_standardize_drug_name_fda",
+      "func_params": [
+        "drug_name"
+      ],
+      "old_nf_params": [
+        "drug_name",
+        "sections"
+      ],
+      "old_call_params": []
+    },
+    {
+      "workflow": "pharmacology/perform_mwas_cyp2c19_metabolizer_status",
+      "func_name": "perform_mwas_cyp2c19_metabolizer_status",
+      "func_params": [
+        "methylation_data_path",
+        "metabolizer_status_path",
+        "covariates_path",
+        "pvalue_threshold",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "pvalue_threshold",
+        "methylation_data_path",
+        "metabolizer_status_path",
+        "covariates_path"
+      ],
+      "old_call_params": [
+        "methylation_data_path"
+      ]
+    },
+    {
+      "workflow": "pharmacology/predict_admet_properties",
+      "func_name": "predict_admet_properties",
+      "func_params": [
+        "smiles_list",
+        "ADMET_model_type"
+      ],
+      "old_nf_params": [
+        "ADMET_model_type",
+        "smiles_list"
+      ],
+      "old_call_params": [
+        "smiles_list"
+      ]
+    },
+    {
+      "workflow": "pharmacology/predict_binding_affinity_protein_1d_sequence",
+      "func_name": "predict_binding_affinity_protein_1d_sequence",
+      "func_params": [
+        "smiles_list",
+        "amino_acid_sequence",
+        "affinity_model_type"
+      ],
+      "old_nf_params": [
+        "affinity_model_type",
+        "smiles_list",
+        "amino_acid_sequence"
+      ],
+      "old_call_params": [
+        "smiles_list"
+      ]
+    },
+    {
+      "workflow": "pharmacology/retrieve_topk_repurposing_drugs_from_disease_txgnn",
+      "func_name": "retrieve_topk_repurposing_drugs_from_disease_txgnn",
+      "func_params": [
+        "disease_name",
+        "data_lake_path",
+        "k"
+      ],
+      "old_nf_params": [
+        "k",
+        "disease_name",
+        "data_lake_path"
+      ],
+      "old_call_params": [
+        "disease_name"
+      ]
+    },
+    {
+      "workflow": "pharmacology/run_3d_chondrogenic_aggregate_assay",
+      "func_name": "run_3d_chondrogenic_aggregate_assay",
+      "func_params": [
+        "chondrocyte_cells",
+        "test_compounds",
+        "culture_duration_days",
+        "measurement_intervals"
+      ],
+      "old_nf_params": [
+        "measurement_intervals",
+        "culture_duration_days",
+        "chondrocyte_cells",
+        "test_compounds"
+      ],
+      "old_call_params": [
+        "chondrocyte_cells"
+      ]
+    },
+    {
+      "workflow": "pharmacology/run_autosite",
+      "func_name": "run_autosite",
+      "func_params": [
+        "pdb_file",
+        "output_dir",
+        "spacing"
+      ],
+      "old_nf_params": [
+        "spacing",
+        "pdb_file",
+        "output_dir"
+      ],
+      "old_call_params": [
+        "pdb_file"
+      ]
+    },
+    {
+      "workflow": "pharmacology/run_diffdock_with_smiles",
+      "func_name": "run_diffdock_with_smiles",
+      "func_params": [
+        "pdb_path",
+        "smiles_string",
+        "local_output_dir",
+        "gpu_device",
+        "use_gpu"
+      ],
+      "old_nf_params": [
+        "use_gpu",
+        "gpu_device",
+        "pdb_path",
+        "smiles_string",
+        "local_output_dir"
+      ],
+      "old_call_params": [
+        "pdb_path"
+      ]
+    },
+    {
+      "workflow": "physiology/analyze_abr_waveform_p1_metrics",
+      "func_name": "analyze_abr_waveform_p1_metrics",
+      "func_params": [
+        "time_ms",
+        "amplitude_uv"
+      ],
+      "old_nf_params": [
+        "time_ms",
+        "amplitude_uv"
+      ],
+      "old_call_params": [
+        "time_ms"
+      ]
+    },
+    {
+      "workflow": "physiology/analyze_ciliary_beat_frequency",
+      "func_name": "analyze_ciliary_beat_frequency",
+      "func_params": [
+        "video_path",
+        "roi_count",
+        "min_freq",
+        "max_freq",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "max_freq",
+        "min_freq",
+        "roi_count",
+        "video_path"
+      ],
+      "old_call_params": [
+        "video_path"
+      ]
+    },
+    {
+      "workflow": "physiology/analyze_endolysosomal_calcium_dynamics",
+      "func_name": "analyze_endolysosomal_calcium_dynamics",
+      "func_params": [
+        "time_points",
+        "luminescence_values",
+        "treatment_time",
+        "cell_type",
+        "treatment_name",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "time_points",
+        "luminescence_values",
+        "treatment_time",
+        "cell_type",
+        "treatment_name"
+      ],
+      "old_call_params": [
+        "time_points"
+      ]
+    },
+    {
+      "workflow": "physiology/analyze_fatty_acid_composition_by_gc",
+      "func_name": "analyze_fatty_acid_composition_by_gc",
+      "func_params": [
+        "gc_data_file",
+        "tissue_type",
+        "sample_id",
+        "output_directory"
+      ],
+      "old_nf_params": [
+        "output_directory",
+        "gc_data_file",
+        "tissue_type",
+        "sample_id"
+      ],
+      "old_call_params": [
+        "gc_data_file"
+      ]
+    },
+    {
+      "workflow": "physiology/analyze_hemodynamic_data",
+      "func_name": "analyze_hemodynamic_data",
+      "func_params": [
+        "pressure_data",
+        "sampling_rate",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "pressure_data",
+        "sampling_rate"
+      ],
+      "old_call_params": [
+        "pressure_data"
+      ]
+    },
+    {
+      "workflow": "physiology/analyze_protein_colocalization",
+      "func_name": "analyze_protein_colocalization",
+      "func_params": [
+        "channel1_path",
+        "channel2_path",
+        "output_dir",
+        "threshold_method"
+      ],
+      "old_nf_params": [
+        "threshold_method",
+        "output_dir",
+        "channel1_path",
+        "channel2_path"
+      ],
+      "old_call_params": [
+        "channel1_path"
+      ]
+    },
+    {
+      "workflow": "physiology/calculate_brain_adc_map",
+      "func_name": "calculate_brain_adc_map",
+      "func_params": [
+        "dwi_file_path",
+        "b_values",
+        "output_path",
+        "mask_file_path"
+      ],
+      "old_nf_params": [
+        "output_path",
+        "dwi_file_path",
+        "b_values",
+        "mask_file_path"
+      ],
+      "old_call_params": [
+        "dwi_file_path"
+      ]
+    },
+    {
+      "workflow": "physiology/cosinor_model",
+      "func_name": "cosinor_model",
+      "func_params": [
+        "t",
+        "mesor",
+        "amplitude",
+        "acrophase",
+        "period"
+      ],
+      "old_nf_params": [
+        "period",
+        "t",
+        "mesor",
+        "amplitude",
+        "acrophase"
+      ],
+      "old_call_params": [
+        "t"
+      ]
+    },
+    {
+      "workflow": "physiology/mono_exp_model",
+      "func_name": "mono_exp_model",
+      "func_params": [
+        "t",
+        "a",
+        "k"
+      ],
+      "old_nf_params": [
+        "k",
+        "a",
+        "t"
+      ],
+      "old_call_params": [
+        "t"
+      ]
+    },
+    {
+      "workflow": "physiology/perform_cosinor_analysis",
+      "func_name": "perform_cosinor_analysis",
+      "func_params": [
+        "time_data",
+        "physiological_data",
+        "period"
+      ],
+      "old_nf_params": [
+        "period",
+        "time_data",
+        "physiological_data"
+      ],
+      "old_call_params": [
+        "time_data"
+      ]
+    },
+    {
+      "workflow": "physiology/pk_ode_system",
+      "func_name": "pk_ode_system",
+      "func_params": [
+        "c",
+        "ka",
+        "ke",
+        "vd"
+      ],
+      "old_nf_params": [
+        "vd",
+        "ke",
+        "ka",
+        "c"
+      ],
+      "old_call_params": [
+        "c"
+      ]
+    },
+    {
+      "workflow": "physiology/quantify_amyloid_beta_plaques",
+      "func_name": "quantify_amyloid_beta_plaques",
+      "func_params": [
+        "image_path",
+        "output_dir",
+        "threshold_method",
+        "min_plaque_size",
+        "manual_threshold"
+      ],
+      "old_nf_params": [
+        "manual_threshold",
+        "min_plaque_size",
+        "threshold_method",
+        "output_dir",
+        "image_path"
+      ],
+      "old_call_params": [
+        "image_path"
+      ]
+    },
+    {
+      "workflow": "physiology/reconstruct_3d_face_from_mri",
+      "func_name": "reconstruct_3d_face_from_mri",
+      "func_params": [
+        "mri_file_path",
+        "output_dir",
+        "subject_id",
+        "threshold_value"
+      ],
+      "old_nf_params": [
+        "threshold_value",
+        "subject_id",
+        "output_dir",
+        "mri_file_path"
+      ],
+      "old_call_params": [
+        "mri_file_path"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/analyze_bacterial_growth_rate",
+      "func_name": "analyze_bacterial_growth_rate",
+      "func_params": [
+        "time_points",
+        "od_measurements",
+        "strain_name",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "strain_name",
+        "time_points",
+        "od_measurements"
+      ],
+      "old_call_params": [
+        "time_points"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/analyze_barcode_sequencing_data",
+      "func_name": "analyze_barcode_sequencing_data",
+      "func_params": [
+        "input_file",
+        "barcode_pattern",
+        "flanking_seq_5prime",
+        "flanking_seq_3prime",
+        "min_count",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "min_count",
+        "input_file",
+        "barcode_pattern",
+        "flanking_seq_5prime",
+        "flanking_seq_3prime"
+      ],
+      "old_call_params": [
+        "input_file"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/analyze_bifurcation_diagram",
+      "func_name": "analyze_bifurcation_diagram",
+      "func_params": [
+        "time_series_data",
+        "parameter_values",
+        "system_name",
+        "output_dir"
+      ],
+      "old_nf_params": [
+        "output_dir",
+        "system_name",
+        "time_series_data",
+        "parameter_values"
+      ],
+      "old_call_params": [
+        "time_series_data"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/create_biochemical_network_sbml_model",
+      "func_name": "create_biochemical_network_sbml_model",
+      "func_params": [
+        "reaction_network",
+        "kinetic_parameters",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "reaction_network",
+        "kinetic_parameters"
+      ],
+      "old_call_params": [
+        "reaction_network"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/engineer_bacterial_genome_for_therapeutic_delivery",
+      "func_name": "engineer_bacterial_genome_for_therapeutic_delivery",
+      "func_params": [
+        "bacterial_genome_file",
+        "genetic_parts"
+      ],
+      "old_nf_params": [
+        "bacterial_genome_file",
+        "genetic_parts"
+      ],
+      "old_call_params": [
+        "bacterial_genome_file"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/gene_circuit_odes",
+      "func_name": "gene_circuit_odes",
+      "func_params": [
+        "protein_level",
+        "production_rate",
+        "degradation_rate",
+        "inducer",
+        "hill_coef",
+        "k_half"
+      ],
+      "old_nf_params": [
+        "k_half",
+        "hill_coef",
+        "inducer",
+        "degradation_rate",
+        "production_rate",
+        "protein_level"
+      ],
+      "old_call_params": [
+        "protein_level"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/gompertz_model",
+      "func_name": "gompertz_model",
+      "func_params": [
+        "t",
+        "a",
+        "b",
+        "c"
+      ],
+      "old_nf_params": [
+        "c",
+        "b",
+        "a",
+        "t"
+      ],
+      "old_call_params": [
+        "t"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/hamming_distance",
+      "func_name": "hamming_distance",
+      "func_params": [
+        "seq1",
+        "seq2"
+      ],
+      "old_nf_params": [
+        "seq2",
+        "seq1"
+      ],
+      "old_call_params": [
+        "seq1"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/identify_fas_functional_domains",
+      "func_name": "identify_fas_functional_domains",
+      "func_params": [
+        "sequence",
+        "sequence_type",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "sequence_type",
+        "sequence"
+      ],
+      "old_call_params": [
+        "sequence"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/optimize_codons_for_heterologous_expression",
+      "func_name": "optimize_codons_for_heterologous_expression",
+      "func_params": [
+        "target_sequence",
+        "host_codon_usage"
+      ],
+      "old_nf_params": [
+        "target_sequence",
+        "host_codon_usage"
+      ],
+      "old_call_params": [
+        "target_sequence"
+      ]
+    },
+    {
+      "workflow": "synthetic_biology/simulate_gene_circuit_with_growth_feedback",
+      "func_name": "simulate_gene_circuit_with_growth_feedback",
+      "func_params": [
+        "circuit_topology",
+        "kinetic_params",
+        "growth_params",
+        "simulation_time",
+        "time_points"
+      ],
+      "old_nf_params": [
+        "time_points",
+        "simulation_time",
+        "circuit_topology",
+        "kinetic_params",
+        "growth_params"
+      ],
+      "old_call_params": [
+        "circuit_topology"
+      ]
+    },
+    {
+      "workflow": "systems_biology/compare_protein_structures",
+      "func_name": "compare_protein_structures",
+      "func_params": [
+        "pdb_file1",
+        "pdb_file2",
+        "chain_id1",
+        "chain_id2",
+        "output_prefix"
+      ],
+      "old_nf_params": [
+        "output_prefix",
+        "chain_id2",
+        "chain_id1",
+        "pdb_file1",
+        "pdb_file2"
+      ],
+      "old_call_params": [
+        "pdb_file1"
+      ]
+    },
+    {
+      "workflow": "systems_biology/dimerization_odes",
+      "func_name": "dimerization_odes",
+      "func_params": [
+        "monomer",
+        "dimer",
+        "kon",
+        "koff"
+      ],
+      "old_nf_params": [
+        "koff",
+        "kon",
+        "dimer",
+        "monomer"
+      ],
+      "old_call_params": [
+        "monomer"
+      ]
+    },
+    {
+      "workflow": "systems_biology/hill_function",
+      "func_name": "hill_function",
+      "func_params": [
+        "x",
+        "n",
+        "ec50"
+      ],
+      "old_nf_params": [
+        "x",
+        "n",
+        "ec50"
+      ],
+      "old_call_params": [
+        "x"
+      ]
+    },
+    {
+      "workflow": "systems_biology/mass_action_kinetics",
+      "func_name": "mass_action_kinetics",
+      "func_params": [
+        "k",
+        "concentrations"
+      ],
+      "old_nf_params": [
+        "k",
+        "concentrations"
+      ],
+      "old_call_params": [
+        "k"
+      ]
+    },
+    {
+      "workflow": "systems_biology/model_protein_dimerization_network",
+      "func_name": "model_protein_dimerization_network",
+      "func_params": [
+        "monomer_concentrations",
+        "dimerization_affinities",
+        "network_topology"
+      ],
+      "old_nf_params": [
+        "monomer_concentrations",
+        "dimerization_affinities",
+        "network_topology"
+      ],
+      "old_call_params": [
+        "monomer_concentrations"
+      ]
+    },
+    {
+      "workflow": "systems_biology/ode_system",
+      "func_name": "ode_system",
+      "func_params": [
+        "state",
+        "rates",
+        "stoichiometry"
+      ],
+      "old_nf_params": [
+        "stoichiometry",
+        "rates",
+        "state"
+      ],
+      "old_call_params": [
+        "state"
+      ]
+    },
+    {
+      "workflow": "systems_biology/perform_flux_balance_analysis",
+      "func_name": "perform_flux_balance_analysis",
+      "func_params": [
+        "model_file",
+        "constraints",
+        "objective_reaction",
+        "output_file"
+      ],
+      "old_nf_params": [
+        "output_file",
+        "model_file",
+        "constraints",
+        "objective_reaction"
+      ],
+      "old_call_params": [
+        "model_file"
+      ]
+    },
+    {
+      "workflow": "systems_biology/query_chatnt",
+      "func_name": "query_chatnt",
+      "func_params": [
+        "question",
+        "sequence",
+        "device"
+      ],
+      "old_nf_params": [
+        "question",
+        "sequence",
+        "device"
+      ],
+      "old_call_params": [
+        "question"
+      ]
+    },
+    {
+      "workflow": "systems_biology/ras_ode_system",
+      "func_name": "ras_ode_system",
+      "func_params": [
+        "ras_gdp",
+        "ras_gtp",
+        "gef_rate",
+        "gap_rate"
+      ],
+      "old_nf_params": [
+        "gap_rate",
+        "gef_rate",
+        "ras_gtp",
+        "ras_gdp"
+      ],
+      "old_call_params": [
+        "ras_gdp"
+      ]
+    },
+    {
+      "workflow": "systems_biology/simulate_metabolic_network_perturbation",
+      "func_name": "simulate_metabolic_network_perturbation",
+      "func_params": [
+        "model_file",
+        "initial_concentrations",
+        "perturbation_params",
+        "simulation_time",
+        "time_points"
+      ],
+      "old_nf_params": [
+        "time_points",
+        "simulation_time",
+        "model_file",
+        "initial_concentrations",
+        "perturbation_params"
+      ],
+      "old_call_params": [
+        "model_file"
+      ]
+    },
+    {
+      "workflow": "systems_biology/simulate_protein_signaling_network",
+      "func_name": "simulate_protein_signaling_network",
+      "func_params": [
+        "network_structure",
+        "reaction_params",
+        "species_params",
+        "simulation_time",
+        "time_points"
+      ],
+      "old_nf_params": [
+        "time_points",
+        "simulation_time",
+        "network_structure",
+        "reaction_params",
+        "species_params"
+      ],
+      "old_call_params": [
+        "network_structure"
+      ]
+    },
+    {
+      "workflow": "systems_biology/simulate_renin_angiotensin_system_dynamics",
+      "func_name": "simulate_renin_angiotensin_system_dynamics",
+      "func_params": [
+        "initial_concentrations",
+        "rate_constants",
+        "feedback_params",
+        "simulation_time",
+        "time_points"
+      ],
+      "old_nf_params": [
+        "time_points",
+        "simulation_time",
+        "initial_concentrations",
+        "rate_constants",
+        "feedback_params"
+      ],
+      "old_call_params": [
+        "initial_concentrations"
+      ]
+    }
+  ],
+  "skipped": [
+    "bioengineering/default_whole_cell_model",
+    "cancer_biology/analyze_cell_senescence_and_apoptosis",
+    "cancer_biology/norm_chr",
+    "genomics/get_gene_set_enrichment_analysis_supported_database_list",
+    "glycoengineering/list_glycoengineering_resources",
+    "literature/extract_pdf_content",
+    "literature/extract_url_content",
+    "molecular_biology/get_oligo_annealing_protocol",
+    "molecular_biology/merge_overlapping_regions",
+    "molecular_biology/reverse_complement",
+    "pharmacology/ADMET_pred",
+    "pharmacology/calculate_physicochemical_properties",
+    "pharmacology/grade_adverse_events_using_vcog_ctcae",
+    "pharmacology/sigmoid"
+  ],
+  "errors": [
+    {
+      "workflow": "bioengineering/simulate_whole_cell_ode_model",
+      "error": "No changes needed"
+    },
+    {
+      "workflow": "microbiology/model_bacterial_growth_dynamics",
+      "error": "No changes needed"
+    },
+    {
+      "workflow": "pharmacology/analyze_interaction_mechanisms",
+      "error": "No changes needed"
+    },
+    {
+      "workflow": "pharmacology/check_drug_combination_safety",
+      "error": "No changes needed"
+    },
+    {
+      "workflow": "pharmacology/find_alternative_drugs_ddinter",
+      "error": "No changes needed"
+    },
+    {
+      "workflow": "physiology/simulate_thyroid_hormone_pharmacokinetics",
+      "error": "No changes needed"
+    }
+  ]
+}

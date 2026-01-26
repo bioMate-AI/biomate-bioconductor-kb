@@ -43,6 +43,8 @@ import io
 import json
 import os
 
+MAX_DOC_CHARS = 50000  # Maximum documentation characters
+
 def auto_convert(val):
     # Auto-convert string to appropriate type
     if val is None or val == '' or val == 'null':

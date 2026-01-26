@@ -59,6 +59,17 @@ import SimpleITK as sitk
 import json
 import os
 
+
+class ImageRegistrationTool:
+    """Stub for ImageRegistrationTool - requires SimpleITK."""
+    def __init__(self):
+        raise NotImplementedError("ImageRegistrationTool requires SimpleITK and full biomni installation")
+    def load_image(self, path):
+        pass
+    def calculate_similarity_metrics(self, img1, img2):
+        return {"error": "ImageRegistrationTool not available"}
+
+
 def auto_convert(val):
     # Auto-convert string to appropriate type
     if val is None or val == '' or val == 'null':

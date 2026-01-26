@@ -30,6 +30,8 @@
     "flanking_seq_3prime": "GCTAGCTAGCTAG",
     "s1": "ATGCGATCGATCG",
     "s2": "ATGCGATCGTTCG",
+    "seq1": "ATGCGATCGATCG",
+    "seq2": "ATGCGATCGTTCG",
 
     "enzyme_names": ["EcoRI"],
     "enzyme_name": "EcoRI",
@@ -364,6 +366,12 @@
     "monomer_concentrations": [1.0, 2.0],
     "dimerization_affinities": [0.01, 0.001],
     "initial_concentrations": {"A": 1.0, "B": 0.0},
+    "monomer": 1.0,
+    "dimer": 0.5,
+    "kon": 0.1,
+    "koff": 0.01,
+    "rates": [0.1, 0.2, 0.05],
+    "stoichiometry": [[1, -1], [-1, 1]],
 
     "device": "cpu",
     "question": "What is the function of this protein?",

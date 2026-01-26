@@ -42,6 +42,10 @@ process GET_HPO_NAMES {
 import json
 import os
 
+def parse_hpo_obo(obo_file):
+    """Parse HPO OBO file."""
+    return {}  # Placeholder - needs full implementation
+
 def auto_convert(val):
     # Auto-convert string to appropriate type
     if val is None or val == '' or val == 'null':
