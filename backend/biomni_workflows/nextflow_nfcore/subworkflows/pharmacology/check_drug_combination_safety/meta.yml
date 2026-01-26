@@ -1,0 +1,43 @@
+name: "check_drug_combination_safety"
+description: "Load DDInter datasets from pickle files, processing if needed."
+keywords:
+  - pharmacology
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: drug_list
+    type: string
+    description: Parameter drug_list
+  - name: data_lake_path
+    type: string
+    description: Parameter data_lake_path
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

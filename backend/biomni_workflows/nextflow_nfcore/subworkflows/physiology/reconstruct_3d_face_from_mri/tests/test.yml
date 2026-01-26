@@ -1,0 +1,7 @@
+- name: "reconstruct_3d_face_from_mri test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      mri_file_path: 10.0
+  tags:
+    - physiology
+    - reconstruct_3d_face_from_mri

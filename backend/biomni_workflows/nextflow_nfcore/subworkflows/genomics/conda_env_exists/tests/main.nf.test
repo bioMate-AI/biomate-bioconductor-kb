@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process CONDA_ENV_EXISTS"
+    script "../main.nf"
+    process "CONDA_ENV_EXISTS"
+
+    test("Should run conda_env_exists successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

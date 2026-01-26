@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GOLDEN_GATE_ASSEMBLY"
+    script "../main.nf"
+    process "GOLDEN_GATE_ASSEMBLY"
+
+    test("Should run golden_gate_assembly successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

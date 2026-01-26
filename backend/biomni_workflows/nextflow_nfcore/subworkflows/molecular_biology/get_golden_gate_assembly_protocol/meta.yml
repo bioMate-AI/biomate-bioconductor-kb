@@ -1,0 +1,9 @@
+name: get_golden_gate_assembly_protocol
+description: Return a customized protocol for Golden Gate assembly based on the number of inserts
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

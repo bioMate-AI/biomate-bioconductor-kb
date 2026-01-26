@@ -1,0 +1,9 @@
+name: find_enriched_motifs_with_homer
+description: Find DNA sequence motifs enriched in genomic regions using the HOMER motif discovery software.
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

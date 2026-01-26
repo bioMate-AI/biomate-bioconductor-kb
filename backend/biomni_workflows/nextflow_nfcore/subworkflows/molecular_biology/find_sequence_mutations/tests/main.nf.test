@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process FIND_SEQUENCE_MUTATIONS"
+    script "../main.nf"
+    process "FIND_SEQUENCE_MUTATIONS"
+
+    test("Should run find_sequence_mutations successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

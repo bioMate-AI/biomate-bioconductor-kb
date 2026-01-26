@@ -1,0 +1,8 @@
+- name: "analyze_fda_safety_signals test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      drug_list: ["aspirin", "ibuprofen", "acetaminophen"]
+      comparison_period: 3
+  tags:
+    - pharmacology
+    - analyze_fda_safety_signals

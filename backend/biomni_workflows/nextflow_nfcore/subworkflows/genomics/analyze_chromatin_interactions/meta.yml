@@ -1,0 +1,43 @@
+name: "analyze_chromatin_interactions"
+description: "Analyze chromatin interactions from Hi-C data to identify enhancer-promoter interactions and TADs."
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: hic_file_path
+    type: string
+    description: Parameter hic_file_path
+  - name: regulatory_elements_bed
+    type: string
+    description: Parameter regulatory_elements_bed
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

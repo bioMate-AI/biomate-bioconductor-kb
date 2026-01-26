@@ -1,0 +1,9 @@
+name: gompertz_model
+description: Gompertz growth model.
+keywords:
+  - synthetic_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

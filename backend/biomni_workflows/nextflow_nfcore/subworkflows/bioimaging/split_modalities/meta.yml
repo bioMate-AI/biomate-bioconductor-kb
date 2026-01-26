@@ -1,0 +1,9 @@
+name: split_modalities
+description: Split a 4D NIfTI file into separate modality files for nnUNet
+keywords:
+  - bioimaging
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

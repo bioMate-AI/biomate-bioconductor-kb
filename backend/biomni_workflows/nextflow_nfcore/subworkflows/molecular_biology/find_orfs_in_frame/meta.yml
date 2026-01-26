@@ -1,0 +1,9 @@
+name: find_orfs_in_frame
+description: Helper function to find ORFs in a specific frame.
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

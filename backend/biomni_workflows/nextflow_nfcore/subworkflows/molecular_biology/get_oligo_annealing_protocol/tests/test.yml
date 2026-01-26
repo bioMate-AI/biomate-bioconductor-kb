@@ -1,0 +1,6 @@
+- name: "get_oligo_annealing_protocol test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - molecular_biology
+    - get_oligo_annealing_protocol

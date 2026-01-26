@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GET_RNA_SEQ_ARCHS4"
+    script "../main.nf"
+    process "GET_RNA_SEQ_ARCHS4"
+
+    test("Should run get_rna_seq_archs4 successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

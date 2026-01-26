@@ -1,0 +1,9 @@
+- name: "hill_function test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      x: 1.0
+      n: 3
+      ec50: 0.5
+  tags:
+    - systems_biology
+    - hill_function

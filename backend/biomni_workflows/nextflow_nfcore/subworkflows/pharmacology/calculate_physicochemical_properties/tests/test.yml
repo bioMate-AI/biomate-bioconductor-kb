@@ -1,0 +1,7 @@
+- name: "calculate_physicochemical_properties test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      smiles_string: "CCO"
+  tags:
+    - pharmacology
+    - calculate_physicochemical_properties

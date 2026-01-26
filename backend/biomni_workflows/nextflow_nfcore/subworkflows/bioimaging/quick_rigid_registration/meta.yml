@@ -1,0 +1,9 @@
+name: quick_rigid_registration
+description: Quick rigid registration function for Biomni integration.
+keywords:
+  - bioimaging
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

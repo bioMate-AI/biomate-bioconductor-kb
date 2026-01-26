@@ -1,0 +1,9 @@
+name: analyze_flow_cytometry_immunophenotyping
+description: Analyze flow cytometry data to identify and quantify specific cell populations based on surface markers.
+keywords:
+  - cell_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

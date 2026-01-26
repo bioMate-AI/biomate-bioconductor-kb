@@ -1,0 +1,6 @@
+- name: "target test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - lab_automation
+    - target

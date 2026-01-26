@@ -1,0 +1,9 @@
+name: blast_sequence
+description: Identifies a DNA sequence using NCBI BLAST with improved error handling, timeout management, and debugging.
+keywords:
+  - database
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

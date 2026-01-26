@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process COUNT_BACTERIAL_COLONIES"
+    script "../main.nf"
+    process "COUNT_BACTERIAL_COLONIES"
+
+    test("Should run count_bacterial_colonies successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

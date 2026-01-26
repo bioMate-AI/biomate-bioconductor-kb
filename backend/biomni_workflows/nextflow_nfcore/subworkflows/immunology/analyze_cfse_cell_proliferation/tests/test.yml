@@ -1,0 +1,8 @@
+- name: "analyze_cfse_cell_proliferation test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      fcs_file_path: "sample.fcs"
+      lymphocyte_gate: 7.4
+  tags:
+    - immunology
+    - analyze_cfse_cell_proliferation

@@ -1,0 +1,9 @@
+name: create_harmony_embeddings_scRNA
+description: 
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

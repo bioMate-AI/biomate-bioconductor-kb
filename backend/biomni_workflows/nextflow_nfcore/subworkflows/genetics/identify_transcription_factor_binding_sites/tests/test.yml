@@ -1,0 +1,9 @@
+- name: "identify_transcription_factor_binding_sites test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: "ATGCGATCGATCGATCGATCG"
+      tf_name: 10.0
+      output_file: "output.txt"
+  tags:
+    - genetics
+    - identify_transcription_factor_binding_sites

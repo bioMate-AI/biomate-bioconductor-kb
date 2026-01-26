@@ -1,0 +1,9 @@
+- name: "create_rigid_transform test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      fixed_image: "test_image.png"
+      moving_image: "test_image.png"
+      initial_transform: 10.0
+  tags:
+    - bioimaging
+    - create_rigid_transform

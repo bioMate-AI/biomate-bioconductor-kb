@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process LIST_GLYCOENGINEERING_RESOURCES"
+    script "../main.nf"
+    process "LIST_GLYCOENGINEERING_RESOURCES"
+
+    test("Should run list_glycoengineering_resources successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

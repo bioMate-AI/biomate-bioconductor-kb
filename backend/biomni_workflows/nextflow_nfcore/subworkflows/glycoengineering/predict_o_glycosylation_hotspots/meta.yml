@@ -1,0 +1,43 @@
+name: "predict_o_glycosylation_hotspots"
+description: "predict_o_glycosylation_hotspots function"
+keywords:
+  - glycoengineering
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: sequence
+    type: string
+    description: Parameter sequence
+  - name: disallow_proline_next
+    type: string
+    description: Parameter disallow_proline_next
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

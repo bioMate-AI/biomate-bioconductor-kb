@@ -1,0 +1,9 @@
+name: analyze_crispr_genome_editing
+description: Analyzes CRISPR-Cas9 genome editing results by comparing original and edited sequences.
+keywords:
+  - genetics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

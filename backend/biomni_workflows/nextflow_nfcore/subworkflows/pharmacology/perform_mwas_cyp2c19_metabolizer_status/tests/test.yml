@@ -1,0 +1,9 @@
+- name: "perform_mwas_cyp2c19_metabolizer_status test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      methylation_data_path: 2.0
+      metabolizer_status_path: 10.0
+      covariates_path: 10.0
+  tags:
+    - pharmacology
+    - perform_mwas_cyp2c19_metabolizer_status

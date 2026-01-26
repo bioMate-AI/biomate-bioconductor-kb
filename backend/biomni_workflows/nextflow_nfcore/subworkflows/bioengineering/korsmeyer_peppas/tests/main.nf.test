@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process KORSMEYER_PEPPAS"
+    script "../main.nf"
+    process "KORSMEYER_PEPPAS"
+
+    test("Should run korsmeyer_peppas successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

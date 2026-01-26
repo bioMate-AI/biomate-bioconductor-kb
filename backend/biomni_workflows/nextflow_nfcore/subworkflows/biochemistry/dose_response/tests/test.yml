@@ -1,0 +1,9 @@
+- name: "dose_response test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      x: 1.0
+      ic50: 1.0
+      hill: 1.0
+  tags:
+    - biochemistry
+    - dose_response

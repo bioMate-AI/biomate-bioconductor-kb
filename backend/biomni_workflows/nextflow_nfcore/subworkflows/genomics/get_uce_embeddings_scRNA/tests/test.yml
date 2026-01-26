@@ -1,0 +1,9 @@
+- name: "get_uce_embeddings_scRNA test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      adata_filename: "adata.h5ad"
+      data_dir: "./data"
+      custom_args: ""
+  tags:
+    - genomics
+    - get_uce_embeddings_scRNA

@@ -1,0 +1,9 @@
+name: quick_deformable_registration
+description: Quick deformable registration function for Biomni integration.
+keywords:
+  - bioimaging
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

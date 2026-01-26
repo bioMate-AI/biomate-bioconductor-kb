@@ -1,0 +1,9 @@
+name: optimize_anaerobic_digestion_process
+description: Optimize anaerobic digestion process conditions to maximize VFA production or methane yield.
+keywords:
+  - microbiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

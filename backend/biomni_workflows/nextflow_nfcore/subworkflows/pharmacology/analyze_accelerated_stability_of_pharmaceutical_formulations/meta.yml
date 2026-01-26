@@ -1,0 +1,9 @@
+name: analyze_accelerated_stability_of_pharmaceutical_formulations
+description: Analyzes the stability of pharmaceutical formulations under accelerated storage conditions.
+keywords:
+  - pharmacology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

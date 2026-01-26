@@ -1,0 +1,9 @@
+name: batch_register_images
+description: Batch registration of multiple images to a single reference.
+keywords:
+  - bioimaging
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

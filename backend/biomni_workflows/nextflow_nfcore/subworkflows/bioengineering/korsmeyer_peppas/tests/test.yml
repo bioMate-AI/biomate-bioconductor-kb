@@ -1,0 +1,9 @@
+- name: "korsmeyer_peppas test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      t: 10.0
+      k: 0.5
+      n: 3
+  tags:
+    - bioengineering
+    - korsmeyer_peppas

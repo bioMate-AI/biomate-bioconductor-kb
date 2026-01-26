@@ -1,0 +1,9 @@
+name: unsupervised_celltype_transfer_between_scRNA_datasets
+description: 
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

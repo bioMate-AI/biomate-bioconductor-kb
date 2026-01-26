@@ -1,0 +1,9 @@
+name: simulate_microbial_population_dynamics
+description: Performs stochastic simulation of microbial population dynamics using the Gillespie algorithm.
+keywords:
+  - microbiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

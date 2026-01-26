@@ -1,0 +1,9 @@
+name: apply_vcog_grade
+description: Apply VCOG-CTCAE grading criteria to an adverse event.
+keywords:
+  - pharmacology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

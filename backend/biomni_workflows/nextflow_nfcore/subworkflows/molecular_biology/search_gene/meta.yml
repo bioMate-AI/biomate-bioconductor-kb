@@ -1,0 +1,9 @@
+name: search_gene
+description: Search for gene ID in NCBI database.
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

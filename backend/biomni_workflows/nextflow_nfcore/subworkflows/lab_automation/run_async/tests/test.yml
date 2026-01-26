@@ -1,0 +1,6 @@
+- name: "run_async test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - lab_automation
+    - run_async

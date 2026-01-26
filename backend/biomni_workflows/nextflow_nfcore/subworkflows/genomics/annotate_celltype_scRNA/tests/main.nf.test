@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANNOTATE_CELLTYPE_SCRNA"
+    script "../main.nf"
+    process "ANNOTATE_CELLTYPE_SCRNA"
+
+    test("Should run annotate_celltype_scRNA successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

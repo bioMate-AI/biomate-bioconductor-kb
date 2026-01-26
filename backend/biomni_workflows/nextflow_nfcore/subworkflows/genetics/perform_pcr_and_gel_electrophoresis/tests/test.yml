@@ -1,0 +1,10 @@
+- name: "perform_pcr_and_gel_electrophoresis test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      genomic_dna: "ATGCGATCGATCGATCGATCGATCGATCGATCGATCG"
+      forward_primer: "ATGCGATCGATCG"
+      reverse_primer: "CGATCGATCGCAT"
+      target_region: {"start": 100, "end": 500}
+  tags:
+    - genetics
+    - perform_pcr_and_gel_electrophoresis

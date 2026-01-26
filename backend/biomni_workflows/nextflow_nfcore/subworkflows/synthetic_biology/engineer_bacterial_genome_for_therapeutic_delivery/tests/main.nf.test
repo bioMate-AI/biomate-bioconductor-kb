@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ENGINEER_BACTERIAL_GENOME_FOR_THERAPEUTIC_DELIVERY"
+    script "../main.nf"
+    process "ENGINEER_BACTERIAL_GENOME_FOR_THERAPEUTIC_DELIVERY"
+
+    test("Should run engineer_bacterial_genome_for_therapeutic_delivery successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

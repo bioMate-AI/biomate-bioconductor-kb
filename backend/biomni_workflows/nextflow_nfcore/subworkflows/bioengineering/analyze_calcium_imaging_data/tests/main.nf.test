@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_CALCIUM_IMAGING_DATA"
+    script "../main.nf"
+    process "ANALYZE_CALCIUM_IMAGING_DATA"
+
+    test("Should run analyze_calcium_imaging_data successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

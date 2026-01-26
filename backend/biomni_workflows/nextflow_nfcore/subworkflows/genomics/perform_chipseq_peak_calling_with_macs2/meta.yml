@@ -1,0 +1,9 @@
+name: perform_chipseq_peak_calling_with_macs2
+description: Perform ChIP-seq peak calling using MACS2 to identify genomic regions with significant binding.
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

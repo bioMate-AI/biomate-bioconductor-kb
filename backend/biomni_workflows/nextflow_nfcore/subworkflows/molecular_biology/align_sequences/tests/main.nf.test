@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ALIGN_SEQUENCES"
+    script "../main.nf"
+    process "ALIGN_SEQUENCES"
+
+    test("Should run align_sequences successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

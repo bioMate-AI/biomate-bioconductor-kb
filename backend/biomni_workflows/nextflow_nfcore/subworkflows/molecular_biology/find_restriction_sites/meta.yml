@@ -1,0 +1,9 @@
+name: find_restriction_sites
+description: Identifies restriction enzyme sites in a given DNA sequence for specified enzymes.
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

@@ -1,0 +1,10 @@
+- name: "analyze_itc_binding_thermodynamics test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      itc_data_path: 10.0
+      itc_data: 10.0
+      protein_concentration: 0.0001
+      ligand_concentration: 0.001
+  tags:
+    - biochemistry
+    - analyze_itc_binding_thermodynamics

@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process FIND_ALTERNATIVE_DRUGS_DDINTER"
+    script "../main.nf"
+    process "FIND_ALTERNATIVE_DRUGS_DDINTER"
+
+    test("Should run find_alternative_drugs_ddinter successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

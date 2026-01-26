@@ -1,0 +1,9 @@
+name: retrieve_topk_repurposing_drugs_from_disease_txgnn
+description: This function computes TxGNN model predictions for drug repurposing. It takes in the paths to the data,
+keywords:
+  - pharmacology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

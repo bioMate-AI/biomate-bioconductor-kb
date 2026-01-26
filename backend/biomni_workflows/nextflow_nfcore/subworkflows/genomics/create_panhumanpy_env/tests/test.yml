@@ -1,0 +1,7 @@
+- name: "create_panhumanpy_env test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      env_name: 3
+  tags:
+    - genomics
+    - create_panhumanpy_env

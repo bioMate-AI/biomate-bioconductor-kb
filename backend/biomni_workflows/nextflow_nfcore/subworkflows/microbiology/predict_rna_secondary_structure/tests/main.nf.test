@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process PREDICT_RNA_SECONDARY_STRUCTURE"
+    script "../main.nf"
+    process "PREDICT_RNA_SECONDARY_STRUCTURE"
+
+    test("Should run predict_rna_secondary_structure successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

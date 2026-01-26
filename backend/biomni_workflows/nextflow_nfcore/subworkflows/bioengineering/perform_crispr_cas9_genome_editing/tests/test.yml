@@ -1,0 +1,9 @@
+- name: "perform_crispr_cas9_genome_editing test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      guide_rna_sequences: "ATGCGATCGATCGATCGATCG"
+      target_genomic_loci: 10.0
+      cell_tissue_type: 2.0
+  tags:
+    - bioengineering
+    - perform_crispr_cas9_genome_editing

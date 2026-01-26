@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process PERFORM_MWAS_CYP2C19_METABOLIZER_STATUS"
+    script "../main.nf"
+    process "PERFORM_MWAS_CYP2C19_METABOLIZER_STATUS"
+
+    test("Should run perform_mwas_cyp2c19_metabolizer_status successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,9 @@
+name: simulate_protein_signaling_network
+description: Simulate protein signaling network dynamics using ODE-based logic modeling with normalized Hill functions.
+keywords:
+  - systems_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

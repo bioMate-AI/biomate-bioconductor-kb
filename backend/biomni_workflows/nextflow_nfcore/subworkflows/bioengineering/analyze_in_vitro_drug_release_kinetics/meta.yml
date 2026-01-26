@@ -1,0 +1,9 @@
+name: analyze_in_vitro_drug_release_kinetics
+description: Analyzes in vitro drug release kinetics from biomaterial formulations.
+keywords:
+  - bioengineering
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

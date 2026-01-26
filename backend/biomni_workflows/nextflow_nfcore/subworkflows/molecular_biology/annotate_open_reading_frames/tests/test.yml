@@ -1,0 +1,8 @@
+- name: "annotate_open_reading_frames test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: "ATGCGATCGATCGATCGATCG"
+      min_length: 10.0
+  tags:
+    - molecular_biology
+    - annotate_open_reading_frames

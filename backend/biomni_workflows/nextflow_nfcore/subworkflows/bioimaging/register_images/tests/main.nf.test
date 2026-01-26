@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process REGISTER_IMAGES"
+    script "../main.nf"
+    process "REGISTER_IMAGES"
+
+    test("Should run register_images successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,9 @@
+- name: "get_gene_coding_sequence test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      gene_name: "TP53"
+      organism: "human"
+      email: 1.0
+  tags:
+    - molecular_biology
+    - get_gene_coding_sequence

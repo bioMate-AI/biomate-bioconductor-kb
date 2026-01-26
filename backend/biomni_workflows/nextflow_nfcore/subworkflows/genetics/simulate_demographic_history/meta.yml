@@ -1,0 +1,9 @@
+name: simulate_demographic_history
+description: Simulate DNA sequences with specified demographic and coalescent histories using msprime.
+keywords:
+  - genetics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

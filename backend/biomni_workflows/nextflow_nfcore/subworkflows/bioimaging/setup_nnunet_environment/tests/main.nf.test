@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process SETUP_NNUNET_ENVIRONMENT"
+    script "../main.nf"
+    process "SETUP_NNUNET_ENVIRONMENT"
+
+    test("Should run setup_nnunet_environment successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

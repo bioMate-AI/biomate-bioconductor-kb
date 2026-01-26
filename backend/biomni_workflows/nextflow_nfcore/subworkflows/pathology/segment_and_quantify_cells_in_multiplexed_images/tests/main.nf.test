@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process SEGMENT_AND_QUANTIFY_CELLS_IN_MULTIPLEXED_IMAGES"
+    script "../main.nf"
+    process "SEGMENT_AND_QUANTIFY_CELLS_IN_MULTIPLEXED_IMAGES"
+
+    test("Should run segment_and_quantify_cells_in_multiplexed_images successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

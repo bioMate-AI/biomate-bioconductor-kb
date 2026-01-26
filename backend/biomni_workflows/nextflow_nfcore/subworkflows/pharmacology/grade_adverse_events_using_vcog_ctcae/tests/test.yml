@@ -1,0 +1,7 @@
+- name: "grade_adverse_events_using_vcog_ctcae test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      clinical_data_file: 10.0
+  tags:
+    - pharmacology
+    - grade_adverse_events_using_vcog_ctcae

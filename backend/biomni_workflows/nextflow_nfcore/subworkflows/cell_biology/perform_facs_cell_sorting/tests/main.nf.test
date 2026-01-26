@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process PERFORM_FACS_CELL_SORTING"
+    script "../main.nf"
+    process "PERFORM_FACS_CELL_SORTING"
+
+    test("Should run perform_facs_cell_sorting successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,6 @@
+- name: "patched_torch_load test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - bioimaging
+    - patched_torch_load

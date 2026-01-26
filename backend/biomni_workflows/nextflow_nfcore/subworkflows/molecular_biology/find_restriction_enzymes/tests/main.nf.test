@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process FIND_RESTRICTION_ENZYMES"
+    script "../main.nf"
+    process "FIND_RESTRICTION_ENZYMES"
+
+    test("Should run find_restriction_enzymes successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

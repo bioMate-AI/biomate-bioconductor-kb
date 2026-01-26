@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process SETUP_REGISTRATION_METHOD"
+    script "../main.nf"
+    process "SETUP_REGISTRATION_METHOD"
+
+    test("Should run setup_registration_method successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

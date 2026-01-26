@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ISOLATE_PURIFY_IMMUNE_CELLS"
+    script "../main.nf"
+    process "ISOLATE_PURIFY_IMMUNE_CELLS"
+
+    test("Should run isolate_purify_immune_cells successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

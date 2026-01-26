@@ -1,0 +1,8 @@
+- name: "segment_and_quantify_cells_in_multiplexed_images test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_path: "test_image.png"
+      markers_list: 10.0
+  tags:
+    - pathology
+    - segment_and_quantify_cells_in_multiplexed_images

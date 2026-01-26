@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process LIFTOVER_COORDINATES"
+    script "../main.nf"
+    process "LIFTOVER_COORDINATES"
+
+    test("Should run liftover_coordinates successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

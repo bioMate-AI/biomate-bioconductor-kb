@@ -1,0 +1,7 @@
+- name: "analyze_aortic_diameter_and_geometry test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_path: "test_image.png"
+  tags:
+    - pathology
+    - analyze_aortic_diameter_and_geometry

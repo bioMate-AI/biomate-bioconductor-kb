@@ -1,0 +1,7 @@
+- name: "analyze_tissue_deformation_flow test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_sequence: "ATGCGATCGATCGATCGATCG"
+  tags:
+    - biophysics
+    - analyze_tissue_deformation_flow

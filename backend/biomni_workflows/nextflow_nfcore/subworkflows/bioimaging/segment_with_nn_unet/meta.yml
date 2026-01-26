@@ -1,0 +1,9 @@
+name: segment_with_nn_unet
+description: Segment images using nnUNet with proper environment setup and automatic model downloading
+keywords:
+  - bioimaging
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

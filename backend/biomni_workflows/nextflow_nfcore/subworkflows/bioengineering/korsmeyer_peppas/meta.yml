@@ -1,0 +1,46 @@
+name: "korsmeyer_peppas"
+description: "* nf-core style module generated from tested Galaxy wrapper"
+keywords:
+  - bioengineering
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: t
+    type: string
+    description: Parameter t
+  - name: k
+    type: string
+    description: Parameter k
+  - name: n
+    type: string
+    description: Parameter n
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

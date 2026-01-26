@@ -1,0 +1,10 @@
+- name: "golden_gate_assembly test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      backbone_sequence: "ATGCGGTCTCAAAAAATGCATGCATGCGAGACGATGC"
+      enzyme_name: "EcoRI"
+      fragments: [{"name": "insert1", "fwd_oligo": "AAAAGCTAGCATGC", "rev_oligo": "GCATGCTAGCTTTT"}]
+      is_circular: false
+  tags:
+    - molecular_biology
+    - golden_gate_assembly

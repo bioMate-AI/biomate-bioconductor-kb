@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_ITC_BINDING_THERMODYNAMICS"
+    script "../main.nf"
+    process "ANALYZE_ITC_BINDING_THERMODYNAMICS"
+
+    test("Should run analyze_itc_binding_thermodynamics successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

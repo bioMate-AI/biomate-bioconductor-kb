@@ -1,0 +1,8 @@
+- name: "quantify_corneal_nerve_fibers test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_path: "test_image.png"
+      marker_type: "nucleus"
+  tags:
+    - pathology
+    - quantify_corneal_nerve_fibers

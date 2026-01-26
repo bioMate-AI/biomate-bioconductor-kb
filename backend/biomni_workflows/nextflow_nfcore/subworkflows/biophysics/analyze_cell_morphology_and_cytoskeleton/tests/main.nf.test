@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_CELL_MORPHOLOGY_AND_CYTOSKELETON"
+    script "../main.nf"
+    process "ANALYZE_CELL_MORPHOLOGY_AND_CYTOSKELETON"
+
+    test("Should run analyze_cell_morphology_and_cytoskeleton successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

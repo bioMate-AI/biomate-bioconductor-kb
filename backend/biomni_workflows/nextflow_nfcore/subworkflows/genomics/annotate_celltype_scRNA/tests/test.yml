@@ -1,0 +1,11 @@
+- name: "annotate_celltype_scRNA test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      adata_filename: "adata.h5ad"
+      data_dir: "./data"
+      data_info: 10.0
+      data_lake_path: "/data"
+      composition: 10.0
+  tags:
+    - genomics
+    - annotate_celltype_scRNA

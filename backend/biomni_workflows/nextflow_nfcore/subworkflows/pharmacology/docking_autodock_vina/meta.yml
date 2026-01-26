@@ -1,0 +1,9 @@
+name: docking_autodock_vina
+description: 
+keywords:
+  - pharmacology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

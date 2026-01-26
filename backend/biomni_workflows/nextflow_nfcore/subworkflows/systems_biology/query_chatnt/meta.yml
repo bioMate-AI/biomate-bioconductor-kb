@@ -1,0 +1,9 @@
+name: query_chatnt
+description: Call ChatNT to answer a question about a DNA sequence.
+keywords:
+  - systems_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

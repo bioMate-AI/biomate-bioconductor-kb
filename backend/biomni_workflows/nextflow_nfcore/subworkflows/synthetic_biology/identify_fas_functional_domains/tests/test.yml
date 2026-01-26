@@ -1,0 +1,7 @@
+- name: "identify_fas_functional_domains test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: "ATGCGATCGATCGATCGATCG"
+  tags:
+    - synthetic_biology
+    - identify_fas_functional_domains

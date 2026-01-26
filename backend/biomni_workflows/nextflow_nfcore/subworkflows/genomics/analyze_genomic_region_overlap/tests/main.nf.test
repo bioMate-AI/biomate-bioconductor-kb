@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_GENOMIC_REGION_OVERLAP"
+    script "../main.nf"
+    process "ANALYZE_GENOMIC_REGION_OVERLAP"
+
+    test("Should run analyze_genomic_region_overlap successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

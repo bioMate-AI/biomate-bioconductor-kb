@@ -1,0 +1,9 @@
+name: predict_binding_affinity_protein_1d_sequence
+description: 
+keywords:
+  - pharmacology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

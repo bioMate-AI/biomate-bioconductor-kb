@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process CHECK_ENSEMBL_PATTERNS"
+    script "../main.nf"
+    process "CHECK_ENSEMBL_PATTERNS"
+
+    test("Should run check_ensembl_patterns successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

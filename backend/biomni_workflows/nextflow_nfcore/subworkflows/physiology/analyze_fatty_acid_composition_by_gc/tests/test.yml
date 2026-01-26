@@ -1,0 +1,9 @@
+- name: "analyze_fatty_acid_composition_by_gc test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      gc_data_file: 10.0
+      tissue_type: "blood"
+      sample_id: 1.0
+  tags:
+    - physiology
+    - analyze_fatty_acid_composition_by_gc

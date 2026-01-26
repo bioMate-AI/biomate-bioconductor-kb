@@ -1,0 +1,43 @@
+name: "bayesian_finemapping_with_deep_vi"
+description: "Performs Bayesian fine-mapping from GWAS summary statistics using deep variational inference."
+keywords:
+  - genetics
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: gwas_summary_path
+    type: string
+    description: Parameter gwas_summary_path
+  - name: ld_matrix
+    type: string
+    description: Parameter ld_matrix
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

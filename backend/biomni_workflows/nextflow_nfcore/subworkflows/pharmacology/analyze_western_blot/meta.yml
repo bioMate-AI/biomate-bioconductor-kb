@@ -1,0 +1,9 @@
+name: analyze_western_blot
+description: Performs densitometric analysis of Western blot images to quantify relative protein expression.
+keywords:
+  - pharmacology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

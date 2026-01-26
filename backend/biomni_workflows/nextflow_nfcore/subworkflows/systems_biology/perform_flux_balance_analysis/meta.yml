@@ -1,0 +1,9 @@
+name: perform_flux_balance_analysis
+description: Perform Flux Balance Analysis (FBA) on a genome-scale metabolic network model.
+keywords:
+  - systems_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

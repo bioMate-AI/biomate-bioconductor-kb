@@ -1,0 +1,46 @@
+name: "digest_sequence"
+description: "digest_sequence function"
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: dna_sequence
+    type: string
+    description: Parameter dna_sequence
+  - name: enzyme_names
+    type: string
+    description: Parameter enzyme_names
+  - name: is_circular
+    type: string
+    description: Parameter is_circular
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

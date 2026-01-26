@@ -1,0 +1,7 @@
+- name: "get_rna_seq_archs4 test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      gene_name: "TP53"
+  tags:
+    - genomics
+    - get_rna_seq_archs4

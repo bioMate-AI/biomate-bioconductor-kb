@@ -1,0 +1,9 @@
+name: segment_cells_with_deep_learning
+description: Perform cell segmentation on fluorescence microscopy images using deep learning.
+keywords:
+  - microbiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

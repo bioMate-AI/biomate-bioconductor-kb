@@ -1,0 +1,9 @@
+name: estimate_cell_cycle_phase_durations
+description: Estimate cell cycle phase durations using dual-nucleoside pulse labeling data and mathematical modeling.
+keywords:
+  - immunology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

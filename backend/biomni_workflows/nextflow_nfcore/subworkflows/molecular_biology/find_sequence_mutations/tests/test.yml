@@ -1,0 +1,8 @@
+- name: "find_sequence_mutations test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      query_sequence: "ATGCGATCGATCGATCGATCG"
+      reference_sequence: "ATGCGATCGATCGATCGATCG"
+  tags:
+    - molecular_biology
+    - find_sequence_mutations

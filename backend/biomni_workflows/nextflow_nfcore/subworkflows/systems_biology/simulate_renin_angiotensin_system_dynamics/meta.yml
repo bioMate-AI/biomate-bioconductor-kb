@@ -1,0 +1,9 @@
+name: simulate_renin_angiotensin_system_dynamics
+description: Simulate the time-dependent concentrations of renin-angiotensin system (RAS) components.
+keywords:
+  - systems_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

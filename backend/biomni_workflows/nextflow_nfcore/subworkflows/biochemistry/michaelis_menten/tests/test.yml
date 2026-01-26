@@ -1,0 +1,9 @@
+- name: "michaelis_menten test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      s: 1.0
+      vmax: 10.0
+      km: 0.5
+  tags:
+    - biochemistry
+    - michaelis_menten

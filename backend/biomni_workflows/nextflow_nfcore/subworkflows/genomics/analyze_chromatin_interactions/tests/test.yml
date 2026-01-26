@@ -1,0 +1,8 @@
+- name: "analyze_chromatin_interactions test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      hic_file_path: 10.0
+      regulatory_elements_bed: 2.0
+  tags:
+    - genomics
+    - analyze_chromatin_interactions

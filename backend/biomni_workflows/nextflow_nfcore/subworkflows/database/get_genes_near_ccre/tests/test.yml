@@ -1,0 +1,9 @@
+- name: "get_genes_near_ccre test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      accession: 3
+      assembly: "GRCh38"
+      chromosome: "chr1"
+  tags:
+    - database
+    - get_genes_near_ccre

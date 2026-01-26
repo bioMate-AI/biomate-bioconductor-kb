@@ -1,0 +1,7 @@
+- name: "get_bacterial_transformation_protocol test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      is_repetitive: 10.0
+  tags:
+    - molecular_biology
+    - get_bacterial_transformation_protocol

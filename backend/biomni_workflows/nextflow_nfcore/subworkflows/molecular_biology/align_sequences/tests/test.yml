@@ -1,0 +1,8 @@
+- name: "align_sequences test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      long_seq: "ATGCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG"
+      short_seqs: ["ATGC", "GCTA", "CGAT"]
+  tags:
+    - molecular_biology
+    - align_sequences

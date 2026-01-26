@@ -1,0 +1,8 @@
+- name: "design_primer test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: "ATGCGATCGATCGATCGATCG"
+      start_pos: 100
+  tags:
+    - molecular_biology
+    - design_primer

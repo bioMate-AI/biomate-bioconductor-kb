@@ -1,0 +1,9 @@
+name: model_bacterial_growth_dynamics
+description: Model bacterial population dynamics over time using ordinary differential equations.
+keywords:
+  - microbiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

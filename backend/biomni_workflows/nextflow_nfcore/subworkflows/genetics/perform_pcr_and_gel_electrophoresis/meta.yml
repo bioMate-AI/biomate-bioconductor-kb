@@ -1,0 +1,49 @@
+name: "perform_pcr_and_gel_electrophoresis"
+description: "Performs PCR amplification of a target transgene and visualizes results using agarose gel electrophoresis."
+keywords:
+  - genetics
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: genomic_dna
+    type: string
+    description: Parameter genomic_dna
+  - name: forward_primer
+    type: string
+    description: Parameter forward_primer
+  - name: reverse_primer
+    type: string
+    description: Parameter reverse_primer
+  - name: target_region
+    type: string
+    description: Parameter target_region
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

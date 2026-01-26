@@ -1,0 +1,9 @@
+name: analyze_cytokine_production_in_cd4_tcells
+description: Analyze cytokine production (IFN-γ, IL-17) in CD4+ T cells after antigen stimulation.
+keywords:
+  - immunology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

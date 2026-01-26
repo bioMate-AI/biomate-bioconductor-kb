@@ -1,0 +1,9 @@
+name: analyze_copy_number_purity_ploidy_and_focal_events
+description: CNVkit-based copy number workflow: CNV segmentation, purity/ploidy & HRD approximation, focal events.
+keywords:
+  - cancer_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

@@ -1,0 +1,9 @@
+name: analyze_cell_senescence_and_apoptosis
+description: Analyze flow cytometry data to quantify senescent and apoptotic cell populations.
+keywords:
+  - cancer_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

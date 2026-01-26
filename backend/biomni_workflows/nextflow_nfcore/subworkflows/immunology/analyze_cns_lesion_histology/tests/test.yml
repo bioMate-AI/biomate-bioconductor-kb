@@ -1,0 +1,7 @@
+- name: "analyze_cns_lesion_histology test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_path: "test_image.png"
+  tags:
+    - immunology
+    - analyze_cns_lesion_histology

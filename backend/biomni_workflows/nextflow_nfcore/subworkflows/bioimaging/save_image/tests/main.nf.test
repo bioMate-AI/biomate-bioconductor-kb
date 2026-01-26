@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process SAVE_IMAGE"
+    script "../main.nf"
+    process "SAVE_IMAGE"
+
+    test("Should run save_image successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,9 @@
+- name: "region_to_ccre_screen test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      coord_chrom: 0.5
+      coord_start: 100000
+      coord_end: 100100
+  tags:
+    - database
+    - region_to_ccre_screen

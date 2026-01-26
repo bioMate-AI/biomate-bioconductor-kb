@@ -1,0 +1,9 @@
+name: fit_genomic_prediction_model
+description: Fit a linear mixed model for genomic prediction using genotype and phenotype data.
+keywords:
+  - genetics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

@@ -1,0 +1,9 @@
+name: detect_and_characterize_structural_variations
+description: Detects and characterizes structural variations (SVs) in genomic sequencing data.
+keywords:
+  - cancer_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

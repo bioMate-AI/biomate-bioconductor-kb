@@ -1,0 +1,9 @@
+name: analyze_ciliary_beat_frequency
+description: Analyze ciliary beat frequency from high-speed video microscopy data using FFT analysis.
+keywords:
+  - physiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

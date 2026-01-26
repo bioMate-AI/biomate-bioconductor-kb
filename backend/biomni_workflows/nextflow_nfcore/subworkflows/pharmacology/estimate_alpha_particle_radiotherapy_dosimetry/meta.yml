@@ -1,0 +1,9 @@
+name: estimate_alpha_particle_radiotherapy_dosimetry
+description: Estimate radiation absorbed doses to tumor and normal organs for alpha-particle radiotherapeutics.
+keywords:
+  - pharmacology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

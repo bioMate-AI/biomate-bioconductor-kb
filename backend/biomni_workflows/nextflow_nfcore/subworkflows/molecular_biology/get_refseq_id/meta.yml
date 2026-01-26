@@ -1,0 +1,9 @@
+name: get_refseq_id
+description: Get RefSeq ID from gene record.
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

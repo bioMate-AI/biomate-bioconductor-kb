@@ -1,0 +1,8 @@
+- name: "is_model_downloaded test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      checkpoint_path: "./checkpoints/model.pt"
+      model_type: 2.0
+  tags:
+    - genomics
+    - is_model_downloaded

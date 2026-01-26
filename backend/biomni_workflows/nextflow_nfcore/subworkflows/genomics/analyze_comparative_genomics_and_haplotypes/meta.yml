@@ -1,0 +1,9 @@
+name: analyze_comparative_genomics_and_haplotypes
+description: Perform comparative genomics and haplotype analysis on multiple genome samples.
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

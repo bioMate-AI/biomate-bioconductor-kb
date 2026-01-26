@@ -1,0 +1,9 @@
+name: get_hpo_names
+description: Retrieve the names of given HPO terms.
+keywords:
+  - database
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

@@ -1,0 +1,7 @@
+- name: "analyze_cell_morphology_and_cytoskeleton test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_path: "test_image.png"
+  tags:
+    - biophysics
+    - analyze_cell_morphology_and_cytoskeleton

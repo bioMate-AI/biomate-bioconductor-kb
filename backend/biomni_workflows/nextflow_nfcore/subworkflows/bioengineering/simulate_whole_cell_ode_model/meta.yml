@@ -1,0 +1,9 @@
+name: simulate_whole_cell_ode_model
+description: Simulate a whole-cell model represented as a system of ordinary differential equations (ODEs).
+keywords:
+  - bioengineering
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

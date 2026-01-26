@@ -1,0 +1,9 @@
+name: vfa_production_model
+description: 
+keywords:
+  - microbiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

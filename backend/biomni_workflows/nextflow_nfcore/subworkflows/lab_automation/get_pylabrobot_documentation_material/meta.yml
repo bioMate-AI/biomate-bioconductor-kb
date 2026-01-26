@@ -1,0 +1,9 @@
+name: get_pylabrobot_documentation_material
+description: 
+keywords:
+  - lab_automation
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

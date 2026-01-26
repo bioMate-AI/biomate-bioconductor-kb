@@ -1,0 +1,9 @@
+- name: "run_diffdock_with_smiles test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      pdb_path: 10.0
+      smiles_string: "CCO"
+      local_output_dir: "./output"
+  tags:
+    - pharmacology
+    - run_diffdock_with_smiles

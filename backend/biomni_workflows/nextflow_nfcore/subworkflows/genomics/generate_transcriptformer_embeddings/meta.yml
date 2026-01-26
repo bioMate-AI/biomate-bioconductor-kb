@@ -1,0 +1,9 @@
+name: generate_transcriptformer_embeddings
+description: Generate Transcriptformer embeddings for single-cell RNA-seq data.
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

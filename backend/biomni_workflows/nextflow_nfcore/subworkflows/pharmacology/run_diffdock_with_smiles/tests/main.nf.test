@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process RUN_DIFFDOCK_WITH_SMILES"
+    script "../main.nf"
+    process "RUN_DIFFDOCK_WITH_SMILES"
+
+    test("Should run run_diffdock_with_smiles successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

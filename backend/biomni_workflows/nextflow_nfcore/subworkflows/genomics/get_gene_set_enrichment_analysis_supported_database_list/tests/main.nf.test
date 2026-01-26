@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GET_GENE_SET_ENRICHMENT_ANALYSIS_SUPPORTED_DATABASE_LIST"
+    script "../main.nf"
+    process "GET_GENE_SET_ENRICHMENT_ANALYSIS_SUPPORTED_DATABASE_LIST"
+
+    test("Should run get_gene_set_enrichment_analysis_supported_database_list successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

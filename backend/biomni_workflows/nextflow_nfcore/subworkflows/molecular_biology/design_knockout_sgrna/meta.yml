@@ -1,0 +1,9 @@
+name: design_knockout_sgrna
+description: Design sgRNAs for CRISPR knockout by searching pre-computed sgRNA libraries.
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

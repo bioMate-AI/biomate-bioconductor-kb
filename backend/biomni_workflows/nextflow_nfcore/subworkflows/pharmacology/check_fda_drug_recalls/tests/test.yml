@@ -1,0 +1,9 @@
+- name: "check_fda_drug_recalls test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      drug_name: "aspirin"
+      classification: 10.0
+      date_range: 10.0
+  tags:
+    - pharmacology
+    - check_fda_drug_recalls

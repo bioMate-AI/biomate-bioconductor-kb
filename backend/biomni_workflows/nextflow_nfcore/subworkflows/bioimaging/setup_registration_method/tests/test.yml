@@ -1,0 +1,7 @@
+- name: "setup_registration_method test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      transform: 10.0
+  tags:
+    - bioimaging
+    - setup_registration_method

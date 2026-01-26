@@ -1,0 +1,10 @@
+- name: "test_pylabrobot_script test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      script_input: 10.0
+      enable_tracking: 10.0
+      save_test_report: 10.0
+      test_report_dir: 10.0
+  tags:
+    - lab_automation
+    - test_pylabrobot_script

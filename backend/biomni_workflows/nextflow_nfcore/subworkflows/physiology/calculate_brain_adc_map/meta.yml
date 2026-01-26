@@ -1,0 +1,9 @@
+name: calculate_brain_adc_map
+description: Calculate Apparent Diffusion Coefficient (ADC) map from diffusion-weighted MRI data.
+keywords:
+  - physiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

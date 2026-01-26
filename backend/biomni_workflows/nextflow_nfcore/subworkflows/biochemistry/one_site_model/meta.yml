@@ -1,0 +1,9 @@
+name: one_site_model
+description: One-site binding model for ITC data.
+keywords:
+  - biochemistry
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

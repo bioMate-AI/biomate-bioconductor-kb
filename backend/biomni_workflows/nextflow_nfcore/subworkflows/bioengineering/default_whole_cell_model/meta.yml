@@ -1,0 +1,9 @@
+name: default_whole_cell_model
+description: 
+keywords:
+  - bioengineering
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

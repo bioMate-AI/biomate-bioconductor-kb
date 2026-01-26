@@ -1,0 +1,10 @@
+- name: "pcr_simple test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: "ATGCGATCGATCGATCGATCG"
+      forward_primer: "ATGCGATCGATCG"
+      reverse_primer: "CGATCGATCGCAT"
+      circular: false
+  tags:
+    - molecular_biology
+    - pcr_simple

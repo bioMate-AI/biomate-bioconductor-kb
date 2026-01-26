@@ -1,0 +1,9 @@
+name: dimerization_odes
+description: 
+keywords:
+  - systems_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

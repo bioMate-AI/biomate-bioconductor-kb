@@ -1,0 +1,6 @@
+- name: "get_gene_set_enrichment_analysis_supported_database_list test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - genomics
+    - get_gene_set_enrichment_analysis_supported_database_list

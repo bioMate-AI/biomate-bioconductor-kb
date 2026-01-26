@@ -1,0 +1,46 @@
+name: "get_gene_coding_sequence"
+description: "get_gene_coding_sequence function"
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: gene_name
+    type: string
+    description: Parameter gene_name
+  - name: organism
+    type: string
+    description: Parameter organism
+  - name: email
+    type: string
+    description: Parameter email
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

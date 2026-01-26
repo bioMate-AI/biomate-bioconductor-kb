@@ -1,0 +1,10 @@
+- name: "find_alternative_drugs_ddinter test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      target_drug: "warfarin"
+      contraindicated_drugs: ["warfarin", "heparin"]
+      therapeutic_class: "analgesic"
+      data_lake_path: "/data"
+  tags:
+    - pharmacology
+    - find_alternative_drugs_ddinter

@@ -1,0 +1,9 @@
+name: analyze_atac_seq_differential_accessibility
+description: Perform ATAC-seq peak calling and differential accessibility analysis using MACS2.
+keywords:
+  - immunology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

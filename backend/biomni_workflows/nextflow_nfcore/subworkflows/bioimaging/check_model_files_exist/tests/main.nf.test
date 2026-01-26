@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process CHECK_MODEL_FILES_EXIST"
+    script "../main.nf"
+    process "CHECK_MODEL_FILES_EXIST"
+
+    test("Should run check_model_files_exist successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

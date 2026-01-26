@@ -1,0 +1,9 @@
+name: annotate_celltype_with_panhumanpy
+description: Perform hierarchical cell type annotation using panhumanpy and Azimuth Neural Network.
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

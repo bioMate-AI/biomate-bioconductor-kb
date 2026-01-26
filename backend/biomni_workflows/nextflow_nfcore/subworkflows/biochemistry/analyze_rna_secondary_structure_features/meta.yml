@@ -1,0 +1,9 @@
+name: analyze_rna_secondary_structure_features
+description: Calculate numeric values for various structural features of an RNA secondary structure.
+keywords:
+  - biochemistry
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

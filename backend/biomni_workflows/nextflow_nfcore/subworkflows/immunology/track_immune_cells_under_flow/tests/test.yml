@@ -1,0 +1,7 @@
+- name: "track_immune_cells_under_flow test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_sequence_path: "./image_sequence"
+  tags:
+    - immunology
+    - track_immune_cells_under_flow

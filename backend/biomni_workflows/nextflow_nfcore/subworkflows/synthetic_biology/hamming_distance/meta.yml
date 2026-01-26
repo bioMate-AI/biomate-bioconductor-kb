@@ -1,0 +1,9 @@
+name: hamming_distance
+description: 
+keywords:
+  - synthetic_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

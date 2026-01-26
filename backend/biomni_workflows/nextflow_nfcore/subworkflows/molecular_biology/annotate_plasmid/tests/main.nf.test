@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANNOTATE_PLASMID"
+    script "../main.nf"
+    process "ANNOTATE_PLASMID"
+
+    test("Should run annotate_plasmid successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

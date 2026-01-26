@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process CREATE_DEFORMABLE_TRANSFORM"
+    script "../main.nf"
+    process "CREATE_DEFORMABLE_TRANSFORM"
+
+    test("Should run create_deformable_transform successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

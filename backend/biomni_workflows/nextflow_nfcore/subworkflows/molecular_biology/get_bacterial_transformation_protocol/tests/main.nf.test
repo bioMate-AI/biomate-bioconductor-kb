@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GET_BACTERIAL_TRANSFORMATION_PROTOCOL"
+    script "../main.nf"
+    process "GET_BACTERIAL_TRANSFORMATION_PROTOCOL"
+
+    test("Should run get_bacterial_transformation_protocol successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

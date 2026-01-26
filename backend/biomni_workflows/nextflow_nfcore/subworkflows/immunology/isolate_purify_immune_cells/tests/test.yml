@@ -1,0 +1,9 @@
+- name: "isolate_purify_immune_cells test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      tissue_type: "blood"
+      target_cell_type: "T cell"
+      macs_antibody: "CD4"
+  tags:
+    - immunology
+    - isolate_purify_immune_cells

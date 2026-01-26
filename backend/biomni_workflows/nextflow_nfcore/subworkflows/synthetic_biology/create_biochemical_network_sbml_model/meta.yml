@@ -1,0 +1,9 @@
+name: create_biochemical_network_sbml_model
+description: Generate a mathematical model of a biochemical network in SBML format.
+keywords:
+  - synthetic_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

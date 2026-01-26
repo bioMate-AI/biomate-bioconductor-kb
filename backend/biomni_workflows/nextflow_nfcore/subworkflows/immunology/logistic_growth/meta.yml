@@ -1,0 +1,9 @@
+name: logistic_growth
+description: Logistic growth model: N(t) = K / (1 + ((K - N0) / N0) * exp(-r*t)).
+keywords:
+  - immunology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

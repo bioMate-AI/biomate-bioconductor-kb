@@ -1,0 +1,7 @@
+- name: "check_ensembl_patterns test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      gene_index: 1.0
+  tags:
+    - genomics
+    - check_ensembl_patterns

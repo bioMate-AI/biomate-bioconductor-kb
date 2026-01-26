@@ -1,0 +1,9 @@
+name: create_segmentation_visualization
+description: Create and save visualization of segmentation results using nilearn
+keywords:
+  - bioimaging
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

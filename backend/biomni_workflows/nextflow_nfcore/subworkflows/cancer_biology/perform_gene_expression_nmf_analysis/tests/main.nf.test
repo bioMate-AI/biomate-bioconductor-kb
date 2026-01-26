@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process PERFORM_GENE_EXPRESSION_NMF_ANALYSIS"
+    script "../main.nf"
+    process "PERFORM_GENE_EXPRESSION_NMF_ANALYSIS"
+
+    test("Should run perform_gene_expression_nmf_analysis successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

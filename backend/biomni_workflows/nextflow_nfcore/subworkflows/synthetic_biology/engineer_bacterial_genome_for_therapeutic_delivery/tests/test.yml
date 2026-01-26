@@ -1,0 +1,8 @@
+- name: "engineer_bacterial_genome_for_therapeutic_delivery test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      bacterial_genome_file: 10.0
+      genetic_parts: 10.0
+  tags:
+    - synthetic_biology
+    - engineer_bacterial_genome_for_therapeutic_delivery

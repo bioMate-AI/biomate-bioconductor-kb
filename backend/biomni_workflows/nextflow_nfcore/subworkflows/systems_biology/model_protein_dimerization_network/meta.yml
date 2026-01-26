@@ -1,0 +1,9 @@
+name: model_protein_dimerization_network
+description: Model protein dimerization networks to find equilibrium concentrations of dimers.
+keywords:
+  - systems_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

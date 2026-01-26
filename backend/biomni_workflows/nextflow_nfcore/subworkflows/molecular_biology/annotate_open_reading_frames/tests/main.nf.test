@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANNOTATE_OPEN_READING_FRAMES"
+    script "../main.nf"
+    process "ANNOTATE_OPEN_READING_FRAMES"
+
+    test("Should run annotate_open_reading_frames successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

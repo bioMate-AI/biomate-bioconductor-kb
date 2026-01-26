@@ -1,0 +1,8 @@
+- name: "get_plasmid_sequence test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      identifier: 10.0
+      is_addgene: false
+  tags:
+    - molecular_biology
+    - get_plasmid_sequence

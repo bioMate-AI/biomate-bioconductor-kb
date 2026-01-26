@@ -1,0 +1,10 @@
+- name: "register_images test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      fixed_image: "test_image.png"
+      moving_image: "test_image.png"
+      transform: 10.0
+      registration_method: 10.0
+  tags:
+    - bioimaging
+    - register_images

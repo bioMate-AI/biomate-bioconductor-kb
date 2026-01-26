@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process DESIGN_GOLDEN_GATE_OLIGOS"
+    script "../main.nf"
+    process "DESIGN_GOLDEN_GATE_OLIGOS"
+
+    test("Should run design_golden_gate_oligos successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

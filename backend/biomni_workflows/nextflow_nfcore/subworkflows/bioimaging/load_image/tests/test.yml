@@ -1,0 +1,7 @@
+- name: "load_image test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_path: "test_image.png"
+  tags:
+    - bioimaging
+    - load_image

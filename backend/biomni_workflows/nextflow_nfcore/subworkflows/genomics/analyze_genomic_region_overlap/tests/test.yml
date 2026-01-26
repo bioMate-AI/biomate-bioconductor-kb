@@ -1,0 +1,7 @@
+- name: "analyze_genomic_region_overlap test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      region_sets: "chr1:100000-100100"
+  tags:
+    - genomics
+    - analyze_genomic_region_overlap

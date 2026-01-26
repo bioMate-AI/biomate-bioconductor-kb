@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_XENOGRAFT_TUMOR_GROWTH_INHIBITION"
+    script "../main.nf"
+    process "ANALYZE_XENOGRAFT_TUMOR_GROWTH_INHIBITION"
+
+    test("Should run analyze_xenograft_tumor_growth_inhibition successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

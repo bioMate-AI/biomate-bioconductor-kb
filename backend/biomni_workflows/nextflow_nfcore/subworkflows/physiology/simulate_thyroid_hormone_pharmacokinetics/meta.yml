@@ -1,0 +1,9 @@
+name: simulate_thyroid_hormone_pharmacokinetics
+description: Simulates the transport and binding of thyroid hormones across different tissue compartments
+keywords:
+  - physiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

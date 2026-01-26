@@ -1,0 +1,9 @@
+name: get_pylabrobot_documentation_liquid
+description: Get the documentation for a specific section of the PyLabRobot tutorial.
+keywords:
+  - lab_automation
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

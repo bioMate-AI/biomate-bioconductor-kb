@@ -1,0 +1,9 @@
+name: optimize_codons_for_heterologous_expression
+description: Analyzes and optimizes a DNA/RNA sequence for improved expression in a heterologous host organism.
+keywords:
+  - synthetic_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

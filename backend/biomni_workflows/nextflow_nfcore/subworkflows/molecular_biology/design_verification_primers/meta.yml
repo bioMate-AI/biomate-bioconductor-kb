@@ -1,0 +1,9 @@
+name: design_verification_primers
+description: Design Sanger sequencing primers to verify a specific region in a plasmid.
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

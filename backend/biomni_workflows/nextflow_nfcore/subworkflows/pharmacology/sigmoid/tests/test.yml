@@ -1,0 +1,7 @@
+- name: "sigmoid test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      x: 1.0
+  tags:
+    - pharmacology
+    - sigmoid

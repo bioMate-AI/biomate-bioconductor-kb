@@ -1,0 +1,7 @@
+- name: "analyze_calcium_imaging_data test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_stack_path: "test_image.png"
+  tags:
+    - bioengineering
+    - analyze_calcium_imaging_data

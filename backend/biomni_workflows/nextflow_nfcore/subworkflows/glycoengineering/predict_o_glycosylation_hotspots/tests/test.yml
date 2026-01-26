@@ -1,0 +1,8 @@
+- name: "predict_o_glycosylation_hotspots test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: "ATGCGATCGATCGATCGATCG"
+      disallow_proline_next: 1.0
+  tags:
+    - glycoengineering
+    - predict_o_glycosylation_hotspots

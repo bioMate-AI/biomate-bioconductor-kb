@@ -1,0 +1,9 @@
+name: analyze_abr_waveform_p1_metrics
+description: Extracts P1 amplitude and latency from Auditory Brainstem Response (ABR) waveform data.
+keywords:
+  - physiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

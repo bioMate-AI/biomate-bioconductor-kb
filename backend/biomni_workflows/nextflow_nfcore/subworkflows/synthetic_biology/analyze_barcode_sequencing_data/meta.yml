@@ -1,0 +1,9 @@
+name: analyze_barcode_sequencing_data
+description: Analyze sequencing data to extract, quantify and determine lineage relationships of barcodes.
+keywords:
+  - synthetic_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

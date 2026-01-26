@@ -1,0 +1,8 @@
+- name: "get_fda_drug_label_info test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      drug_name: "aspirin"
+      sections: 10.0
+  tags:
+    - pharmacology
+    - get_fda_drug_label_info

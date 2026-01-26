@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process PERFORM_PCR_AND_GEL_ELECTROPHORESIS"
+    script "../main.nf"
+    process "PERFORM_PCR_AND_GEL_ELECTROPHORESIS"
+
+    test("Should run perform_pcr_and_gel_electrophoresis successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

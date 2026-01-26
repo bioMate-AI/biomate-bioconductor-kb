@@ -1,0 +1,11 @@
+- name: "liftover_coordinates test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      chromosome: "chr1"
+      position: 150
+      input_format: 10.0
+      output_format: 10.0
+      data_path: 10.0
+  tags:
+    - genetics
+    - liftover_coordinates

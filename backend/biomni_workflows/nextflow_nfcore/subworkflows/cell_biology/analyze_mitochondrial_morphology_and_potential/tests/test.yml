@@ -1,0 +1,8 @@
+- name: "analyze_mitochondrial_morphology_and_potential test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      morphology_image_path: 7.4
+      potential_image_path: "test_image.png"
+  tags:
+    - cell_biology
+    - analyze_mitochondrial_morphology_and_potential

@@ -1,0 +1,8 @@
+- name: "save_image test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image: "test_image.png"
+      output_path: 10.0
+  tags:
+    - bioimaging
+    - save_image

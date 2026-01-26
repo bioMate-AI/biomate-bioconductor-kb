@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_BONE_MICROCT_MORPHOMETRY"
+    script "../main.nf"
+    process "ANALYZE_BONE_MICROCT_MORPHOMETRY"
+
+    test("Should run analyze_bone_microct_morphometry successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

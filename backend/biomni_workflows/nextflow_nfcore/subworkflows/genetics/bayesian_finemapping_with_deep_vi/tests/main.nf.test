@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process BAYESIAN_FINEMAPPING_WITH_DEEP_VI"
+    script "../main.nf"
+    process "BAYESIAN_FINEMAPPING_WITH_DEEP_VI"
+
+    test("Should run bayesian_finemapping_with_deep_vi successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

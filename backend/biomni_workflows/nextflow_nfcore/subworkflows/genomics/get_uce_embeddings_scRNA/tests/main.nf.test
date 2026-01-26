@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GET_UCE_EMBEDDINGS_SCRNA"
+    script "../main.nf"
+    process "GET_UCE_EMBEDDINGS_SCRNA"
+
+    test("Should run get_uce_embeddings_scRNA successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

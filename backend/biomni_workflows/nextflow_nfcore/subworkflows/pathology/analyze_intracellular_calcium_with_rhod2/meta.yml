@@ -1,0 +1,9 @@
+name: analyze_intracellular_calcium_with_rhod2
+description: Analyzes intracellular calcium concentration using Rhod-2 fluorescent indicator from microscopy images.
+keywords:
+  - pathology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

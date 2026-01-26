@@ -1,0 +1,9 @@
+name: is_position_covered
+description: Check if a position is covered by any region.
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

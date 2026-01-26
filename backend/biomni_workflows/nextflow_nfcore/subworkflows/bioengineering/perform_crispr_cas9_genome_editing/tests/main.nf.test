@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process PERFORM_CRISPR_CAS9_GENOME_EDITING"
+    script "../main.nf"
+    process "PERFORM_CRISPR_CAS9_GENOME_EDITING"
+
+    test("Should run perform_crispr_cas9_genome_editing successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

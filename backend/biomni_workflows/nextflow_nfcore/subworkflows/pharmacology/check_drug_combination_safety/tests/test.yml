@@ -1,0 +1,8 @@
+- name: "check_drug_combination_safety test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      drug_list: ["aspirin", "ibuprofen", "acetaminophen"]
+      data_lake_path: "/data"
+  tags:
+    - pharmacology
+    - check_drug_combination_safety

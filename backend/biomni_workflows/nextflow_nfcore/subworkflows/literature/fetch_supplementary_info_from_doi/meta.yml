@@ -1,0 +1,9 @@
+name: fetch_supplementary_info_from_doi
+description: Fetches supplementary information for a paper given its DOI and returns a research log.
+keywords:
+  - literature
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

@@ -1,0 +1,7 @@
+- name: "count_bacterial_colonies test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_path: "test_image.png"
+  tags:
+    - microbiology
+    - count_bacterial_colonies

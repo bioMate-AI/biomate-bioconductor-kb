@@ -1,0 +1,7 @@
+- name: "predict_rna_secondary_structure test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      rna_sequence: "AUGCGAAUCGAUCGAUCGAU"
+  tags:
+    - microbiology
+    - predict_rna_secondary_structure

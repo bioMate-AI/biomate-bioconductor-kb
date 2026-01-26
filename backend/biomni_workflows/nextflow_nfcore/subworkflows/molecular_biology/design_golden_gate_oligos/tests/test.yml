@@ -1,0 +1,10 @@
+- name: "design_golden_gate_oligos test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      backbone_sequence: "ATGCGGTCTCAAAAAATGCATGCATGCGAGACGATGC"
+      insert_sequence: "ATGCATGCATGC"
+      enzyme_name: "EcoRI"
+      is_circular: false
+  tags:
+    - molecular_biology
+    - design_golden_gate_oligos

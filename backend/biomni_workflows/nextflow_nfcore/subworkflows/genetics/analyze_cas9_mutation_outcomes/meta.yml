@@ -1,0 +1,9 @@
+name: analyze_cas9_mutation_outcomes
+description: Analyzes and categorizes mutations induced by Cas9 at target sites.
+keywords:
+  - genetics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

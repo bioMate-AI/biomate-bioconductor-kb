@@ -1,0 +1,11 @@
+- name: "analyze_xenograft_tumor_growth_inhibition test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      data_path: 10.0
+      time_column: 10.0
+      volume_column: 3
+      group_column: 3
+      subject_column: 10.0
+  tags:
+    - pharmacology
+    - analyze_xenograft_tumor_growth_inhibition

@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process SIGMOID"
+    script "../main.nf"
+    process "SIGMOID"
+
+    test("Should run sigmoid successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

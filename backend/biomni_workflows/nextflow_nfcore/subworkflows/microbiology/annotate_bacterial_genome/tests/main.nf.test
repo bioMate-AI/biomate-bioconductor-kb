@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANNOTATE_BACTERIAL_GENOME"
+    script "../main.nf"
+    process "ANNOTATE_BACTERIAL_GENOME"
+
+    test("Should run annotate_bacterial_genome successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

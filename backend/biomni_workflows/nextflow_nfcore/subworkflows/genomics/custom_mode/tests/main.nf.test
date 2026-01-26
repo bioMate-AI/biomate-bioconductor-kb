@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process CUSTOM_MODE"
+    script "../main.nf"
+    process "CUSTOM_MODE"
+
+    test("Should run custom_mode successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

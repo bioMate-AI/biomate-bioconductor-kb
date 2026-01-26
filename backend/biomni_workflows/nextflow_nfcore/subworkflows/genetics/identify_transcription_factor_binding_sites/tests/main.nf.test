@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process IDENTIFY_TRANSCRIPTION_FACTOR_BINDING_SITES"
+    script "../main.nf"
+    process "IDENTIFY_TRANSCRIPTION_FACTOR_BINDING_SITES"
+
+    test("Should run identify_transcription_factor_binding_sites successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

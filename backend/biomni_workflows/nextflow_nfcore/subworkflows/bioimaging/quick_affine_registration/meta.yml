@@ -1,0 +1,9 @@
+name: quick_affine_registration
+description: Quick affine registration function for Biomni integration.
+keywords:
+  - bioimaging
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

@@ -1,0 +1,7 @@
+- name: "pick_first test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      keywords: 2.0
+  tags:
+    - lab_automation
+    - pick_first

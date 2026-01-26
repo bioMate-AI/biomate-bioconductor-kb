@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process RECONSTRUCT_3D_FACE_FROM_MRI"
+    script "../main.nf"
+    process "RECONSTRUCT_3D_FACE_FROM_MRI"
+
+    test("Should run reconstruct_3d_face_from_mri successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,7 @@
+- name: "perform_gene_expression_nmf_analysis test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      expression_data_path: 1.0
+  tags:
+    - cancer_biology
+    - perform_gene_expression_nmf_analysis

@@ -1,0 +1,8 @@
+- name: "find_restriction_enzymes test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: "ATGCGATCGATCGATCGATCG"
+      is_circular: false
+  tags:
+    - molecular_biology
+    - find_restriction_enzymes

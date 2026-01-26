@@ -1,0 +1,9 @@
+- name: "analyze_atp_luminescence_assay test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      data_file: 10.0
+      standard_curve_file: 10.0
+      normalization_data: 10.0
+  tags:
+    - pathology
+    - analyze_atp_luminescence_assay

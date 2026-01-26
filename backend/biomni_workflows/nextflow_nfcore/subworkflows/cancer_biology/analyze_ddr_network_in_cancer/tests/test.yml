@@ -1,0 +1,8 @@
+- name: "analyze_ddr_network_in_cancer test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      expression_data_path: 1.0
+      mutation_data_path: 10.0
+  tags:
+    - cancer_biology
+    - analyze_ddr_network_in_cancer

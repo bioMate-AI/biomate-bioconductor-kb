@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process PCR_SIMPLE"
+    script "../main.nf"
+    process "PCR_SIMPLE"
+
+    test("Should run pcr_simple successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

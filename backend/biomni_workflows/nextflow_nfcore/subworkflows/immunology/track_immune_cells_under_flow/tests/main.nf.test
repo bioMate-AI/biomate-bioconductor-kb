@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process TRACK_IMMUNE_CELLS_UNDER_FLOW"
+    script "../main.nf"
+    process "TRACK_IMMUNE_CELLS_UNDER_FLOW"
+
+    test("Should run track_immune_cells_under_flow successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

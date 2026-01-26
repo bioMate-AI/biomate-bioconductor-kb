@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process PATCHED_TORCH_LOAD"
+    script "../main.nf"
+    process "PATCHED_TORCH_LOAD"
+
+    test("Should run patched_torch_load successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,9 @@
+name: reverse_complement
+description: Get the reverse complement of a DNA sequence.
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

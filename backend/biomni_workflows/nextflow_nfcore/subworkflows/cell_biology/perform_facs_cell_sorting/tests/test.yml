@@ -1,0 +1,10 @@
+- name: "perform_facs_cell_sorting test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      cell_suspension_data: 10.0
+      fluorescence_parameter: 10.0
+      threshold_min: 0.5
+      threshold_max: 0.5
+  tags:
+    - cell_biology
+    - perform_facs_cell_sorting

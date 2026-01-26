@@ -1,0 +1,9 @@
+name: analyze_myofiber_morphology
+description: Quantifies morphological properties of myofibers in microscopy images of tissue sections.
+keywords:
+  - bioengineering
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

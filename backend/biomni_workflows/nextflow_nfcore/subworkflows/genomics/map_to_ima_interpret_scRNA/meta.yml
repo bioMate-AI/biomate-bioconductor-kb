@@ -1,0 +1,9 @@
+name: map_to_ima_interpret_scRNA
+description: Map cell embeddings from the input dataset to the Integrated Megascale Atlas reference dataset using UCE embeddings.
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

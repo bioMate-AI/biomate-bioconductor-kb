@@ -1,0 +1,52 @@
+name: "annotate_celltype_scRNA"
+description: "Placeholder for annotate_celltype_scRNA. Actual implementation requires specific dependencies."
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: adata_filename
+    type: string
+    description: Parameter adata_filename
+  - name: data_dir
+    type: string
+    description: Parameter data_dir
+  - name: data_info
+    type: string
+    description: Parameter data_info
+  - name: data_lake_path
+    type: string
+    description: Parameter data_lake_path
+  - name: composition
+    type: string
+    description: Parameter composition
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

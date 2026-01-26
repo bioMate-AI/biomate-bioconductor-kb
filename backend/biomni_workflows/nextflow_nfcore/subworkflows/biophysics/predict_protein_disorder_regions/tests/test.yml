@@ -1,0 +1,7 @@
+- name: "predict_protein_disorder_regions test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      protein_sequence: "MKFLILLFNILCLFPVLAADNHGVGPQGAS"
+  tags:
+    - biophysics
+    - predict_protein_disorder_regions

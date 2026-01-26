@@ -1,0 +1,11 @@
+- name: "annotate_bacterial_genome test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      genome_file_path: "/data/genomes/genome.fa"
+      genus: "Escherichia"
+      species: "Homo sapiens"
+      strain: "K-12"
+      prefix: "test"
+  tags:
+    - microbiology
+    - annotate_bacterial_genome

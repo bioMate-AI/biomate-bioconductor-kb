@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process TEST_PYLABROBOT_SCRIPT"
+    script "../main.nf"
+    process "TEST_PYLABROBOT_SCRIPT"
+
+    test("Should run test_pylabrobot_script successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

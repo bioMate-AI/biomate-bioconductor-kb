@@ -1,0 +1,8 @@
+- name: "perform_cosinor_analysis test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      time_data: 10.0
+      physiological_data: 7.4
+  tags:
+    - physiology
+    - perform_cosinor_analysis

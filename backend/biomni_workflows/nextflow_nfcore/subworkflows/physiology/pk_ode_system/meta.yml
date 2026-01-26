@@ -1,0 +1,9 @@
+name: pk_ode_system
+description: 
+keywords:
+  - physiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

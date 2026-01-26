@@ -1,0 +1,9 @@
+name: extract_pdf_content
+description: Extract the text content of a PDF file given its URL.
+keywords:
+  - literature
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

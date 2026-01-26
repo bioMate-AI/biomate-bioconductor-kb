@@ -1,0 +1,9 @@
+name: simulate_gene_circuit_with_growth_feedback
+description: Simulate gene regulatory circuit dynamics with growth feedback.
+keywords:
+  - synthetic_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

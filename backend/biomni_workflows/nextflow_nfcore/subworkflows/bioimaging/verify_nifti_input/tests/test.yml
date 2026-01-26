@@ -1,0 +1,7 @@
+- name: "verify_nifti_input test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_path: "test_image.png"
+  tags:
+    - bioimaging
+    - verify_nifti_input

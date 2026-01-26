@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GET_PLASMID_SEQUENCE"
+    script "../main.nf"
+    process "GET_PLASMID_SEQUENCE"
+
+    test("Should run get_plasmid_sequence successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

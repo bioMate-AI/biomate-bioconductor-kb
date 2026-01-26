@@ -1,0 +1,9 @@
+name: decode_behavior_from_neural_trajectories
+description: Model neural activity trajectories and decode behavioral variables.
+keywords:
+  - bioengineering
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

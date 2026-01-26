@@ -1,0 +1,9 @@
+name: mass_action_kinetics
+description: 
+keywords:
+  - systems_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

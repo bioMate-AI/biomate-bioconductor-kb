@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process CHECK_FDA_DRUG_RECALLS"
+    script "../main.nf"
+    process "CHECK_FDA_DRUG_RECALLS"
+
+    test("Should run check_fda_drug_recalls successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

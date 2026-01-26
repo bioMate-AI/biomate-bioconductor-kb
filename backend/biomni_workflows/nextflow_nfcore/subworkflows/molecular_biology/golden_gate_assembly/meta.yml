@@ -1,0 +1,49 @@
+name: "golden_gate_assembly"
+description: "Get the reverse complement of a DNA sequence."
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: backbone_sequence
+    type: string
+    description: Parameter backbone_sequence
+  - name: enzyme_name
+    type: string
+    description: Parameter enzyme_name
+  - name: fragments
+    type: string
+    description: Parameter fragments
+  - name: is_circular
+    type: string
+    description: Parameter is_circular
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

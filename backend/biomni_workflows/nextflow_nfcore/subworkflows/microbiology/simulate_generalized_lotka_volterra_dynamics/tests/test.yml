@@ -1,0 +1,10 @@
+- name: "simulate_generalized_lotka_volterra_dynamics test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      initial_abundances: [100, 50, 25]
+      growth_rates: [0.5, 0.3, 0.4]
+      interaction_matrix: [[1.0, -0.5, 0.2], [-0.5, 1.0, 0.3], [0.2, 0.3, 1.0]]
+      time_points: [0, 1, 2, 3, 4, 5, 6]
+  tags:
+    - microbiology
+    - simulate_generalized_lotka_volterra_dynamics

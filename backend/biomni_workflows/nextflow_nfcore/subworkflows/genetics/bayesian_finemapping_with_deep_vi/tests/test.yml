@@ -1,0 +1,8 @@
+- name: "bayesian_finemapping_with_deep_vi test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      gwas_summary_path: 2.0
+      ld_matrix: [[1.0, 0.5, 0.2], [0.5, 1.0, 0.3], [0.2, 0.3, 1.0]]
+  tags:
+    - genetics
+    - bayesian_finemapping_with_deep_vi

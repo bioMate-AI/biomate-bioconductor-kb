@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process SIMULATE_GENERALIZED_LOTKA_VOLTERRA_DYNAMICS"
+    script "../main.nf"
+    process "SIMULATE_GENERALIZED_LOTKA_VOLTERRA_DYNAMICS"
+
+    test("Should run simulate_generalized_lotka_volterra_dynamics successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,9 @@
+name: is_region_fully_covered
+description: Check if the target region is fully covered.
+keywords:
+  - molecular_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

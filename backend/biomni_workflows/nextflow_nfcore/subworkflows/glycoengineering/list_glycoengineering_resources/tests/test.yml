@@ -1,0 +1,6 @@
+- name: "list_glycoengineering_resources test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - glycoengineering
+    - list_glycoengineering_resources

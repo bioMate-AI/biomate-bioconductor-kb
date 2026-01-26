@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_FATTY_ACID_COMPOSITION_BY_GC"
+    script "../main.nf"
+    process "ANALYZE_FATTY_ACID_COMPOSITION_BY_GC"
+
+    test("Should run analyze_fatty_acid_composition_by_gc successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

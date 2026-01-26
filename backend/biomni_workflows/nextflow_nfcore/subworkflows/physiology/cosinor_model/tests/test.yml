@@ -1,0 +1,10 @@
+- name: "cosinor_model test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      t: 10.0
+      mesor: 50.0
+      amplitude: 20.0
+      acrophase: 12.0
+  tags:
+    - physiology
+    - cosinor_model

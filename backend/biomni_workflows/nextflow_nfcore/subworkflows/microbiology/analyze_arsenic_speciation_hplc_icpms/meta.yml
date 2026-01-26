@@ -1,0 +1,9 @@
+name: analyze_arsenic_speciation_hplc_icpms
+description: Analyzes arsenic speciation in liquid samples using HPLC-ICP-MS technique.
+keywords:
+  - microbiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

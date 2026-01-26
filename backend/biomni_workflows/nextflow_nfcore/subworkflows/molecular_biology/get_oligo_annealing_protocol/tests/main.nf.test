@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GET_OLIGO_ANNEALING_PROTOCOL"
+    script "../main.nf"
+    process "GET_OLIGO_ANNEALING_PROTOCOL"
+
+    test("Should run get_oligo_annealing_protocol successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

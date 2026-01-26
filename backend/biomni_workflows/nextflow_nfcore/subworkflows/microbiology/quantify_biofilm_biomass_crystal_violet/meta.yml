@@ -1,0 +1,9 @@
+name: quantify_biofilm_biomass_crystal_violet
+description: Quantifies biofilm biomass using crystal violet staining assay data.
+keywords:
+  - microbiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

@@ -1,0 +1,9 @@
+name: interspecies_gene_conversion
+description: Convert ENSEMBL gene IDs between different species using BioMart homology mapping.
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

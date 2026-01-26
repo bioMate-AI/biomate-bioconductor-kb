@@ -1,0 +1,9 @@
+name: gene_set_enrichment_analysis
+description: Perform enrichment analysis for a list of genes, with optional background gene set and plotting functionality.
+keywords:
+  - genomics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

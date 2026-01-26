@@ -1,0 +1,11 @@
+- name: "analyze_enzyme_kinetics_assay test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      enzyme_name: "EcoRI"
+      substrate_concentrations: [0.1, 0.2, 0.5, 1.0, 2.0, 5.0]
+      enzyme_concentration: 1e-05
+      modulators: []
+      time_points: [0, 1, 2, 3, 4, 5, 6]
+  tags:
+    - biochemistry
+    - analyze_enzyme_kinetics_assay

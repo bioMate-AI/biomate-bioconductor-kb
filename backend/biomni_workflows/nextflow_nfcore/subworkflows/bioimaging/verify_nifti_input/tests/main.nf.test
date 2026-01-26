@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process VERIFY_NIFTI_INPUT"
+    script "../main.nf"
+    process "VERIFY_NIFTI_INPUT"
+
+    test("Should run verify_nifti_input successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

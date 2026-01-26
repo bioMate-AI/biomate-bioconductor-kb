@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_CHROMATIN_INTERACTIONS"
+    script "../main.nf"
+    process "ANALYZE_CHROMATIN_INTERACTIONS"
+
+    test("Should run analyze_chromatin_interactions successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

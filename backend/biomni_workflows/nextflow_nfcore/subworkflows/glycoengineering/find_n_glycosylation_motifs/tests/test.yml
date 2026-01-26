@@ -1,0 +1,8 @@
+- name: "find_n_glycosylation_motifs test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: "ATGCGATCGATCGATCGATCG"
+      allow_overlap: 0.5
+  tags:
+    - glycoengineering
+    - find_n_glycosylation_motifs

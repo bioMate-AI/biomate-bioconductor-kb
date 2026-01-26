@@ -1,0 +1,8 @@
+- name: "check_model_files_exist test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      model_folder: 0.5
+      folds: 5
+  tags:
+    - bioimaging
+    - check_model_files_exist

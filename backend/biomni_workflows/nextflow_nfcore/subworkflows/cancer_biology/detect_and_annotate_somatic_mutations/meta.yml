@@ -1,0 +1,9 @@
+name: detect_and_annotate_somatic_mutations
+description: Detects and annotates somatic mutations in tumor samples compared to matched normal samples.
+keywords:
+  - cancer_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

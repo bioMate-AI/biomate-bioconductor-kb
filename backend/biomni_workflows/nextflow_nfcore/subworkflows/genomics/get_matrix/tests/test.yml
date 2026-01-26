@@ -1,0 +1,7 @@
+- name: "get_matrix test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      chrom: "chr1"
+  tags:
+    - genomics
+    - get_matrix

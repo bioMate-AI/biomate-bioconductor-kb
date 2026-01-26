@@ -1,0 +1,6 @@
+- name: "command_iteration test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - bioimaging
+    - command_iteration

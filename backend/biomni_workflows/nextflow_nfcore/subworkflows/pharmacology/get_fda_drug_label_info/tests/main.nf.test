@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GET_FDA_DRUG_LABEL_INFO"
+    script "../main.nf"
+    process "GET_FDA_DRUG_LABEL_INFO"
+
+    test("Should run get_fda_drug_label_info successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

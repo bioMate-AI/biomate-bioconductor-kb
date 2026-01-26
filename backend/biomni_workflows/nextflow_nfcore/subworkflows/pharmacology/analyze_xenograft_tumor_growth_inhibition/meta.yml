@@ -1,0 +1,52 @@
+name: "analyze_xenograft_tumor_growth_inhibition"
+description: "Analyze tumor growth inhibition in xenograft models across different treatment groups."
+keywords:
+  - pharmacology
+  - biomni
+tools:
+  - biomni:
+      description: "Biomni bioinformatics tool library"
+      homepage: "https://github.com/biomate/biomni"
+      documentation: "https://github.com/biomate/biomni"
+      licence: ["MIT"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - name: data_path
+    type: string
+    description: Parameter data_path
+  - name: time_column
+    type: string
+    description: Parameter time_column
+  - name: volume_column
+    type: string
+    description: Parameter volume_column
+  - name: group_column
+    type: string
+    description: Parameter group_column
+  - name: subject_column
+    type: string
+    description: Parameter subject_column
+
+output:
+  - results:
+      type: tuple
+      description: JSON results file
+      pattern: "*_results.json"
+  - output:
+      type: tuple
+      description: Human-readable output
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomni"
+maintainers:
+  - "@biomni"

@@ -1,0 +1,9 @@
+name: extract_url_content
+description: Extract the text content of a webpage using requests and BeautifulSoup.
+keywords:
+  - literature
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

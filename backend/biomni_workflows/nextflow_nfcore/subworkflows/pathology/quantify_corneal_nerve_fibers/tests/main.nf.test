@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process QUANTIFY_CORNEAL_NERVE_FIBERS"
+    script "../main.nf"
+    process "QUANTIFY_CORNEAL_NERVE_FIBERS"
+
+    test("Should run quantify_corneal_nerve_fibers successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,9 @@
+name: segment_and_analyze_microbial_cells
+description: Perform automated cell segmentation and quantify morphological metrics from fluorescence microscopy images.
+keywords:
+  - microbiology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_IMMUNOHISTOCHEMISTRY_IMAGE"
+    script "../main.nf"
+    process "ANALYZE_IMMUNOHISTOCHEMISTRY_IMAGE"
+
+    test("Should run analyze_immunohistochemistry_image successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_BACTERIAL_GROWTH_RATE"
+    script "../main.nf"
+    process "ANALYZE_BACTERIAL_GROWTH_RATE"
+
+    test("Should run analyze_bacterial_growth_rate successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

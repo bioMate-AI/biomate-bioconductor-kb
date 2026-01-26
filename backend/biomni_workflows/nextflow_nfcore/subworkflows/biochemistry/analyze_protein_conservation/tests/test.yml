@@ -1,0 +1,7 @@
+- name: "analyze_protein_conservation test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      protein_sequences: ["MKFLILLFNILC", "MVLSPADKTNVK"]
+  tags:
+    - biochemistry
+    - analyze_protein_conservation

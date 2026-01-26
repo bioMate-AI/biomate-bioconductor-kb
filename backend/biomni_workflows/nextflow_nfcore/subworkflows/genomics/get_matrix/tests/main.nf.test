@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GET_MATRIX"
+    script "../main.nf"
+    process "GET_MATRIX"
+
+    test("Should run get_matrix successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

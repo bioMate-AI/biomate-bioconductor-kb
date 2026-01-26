@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GRADE_ADVERSE_EVENTS_USING_VCOG_CTCAE"
+    script "../main.nf"
+    process "GRADE_ADVERSE_EVENTS_USING_VCOG_CTCAE"
+
+    test("Should run grade_adverse_events_using_vcog_ctcae successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

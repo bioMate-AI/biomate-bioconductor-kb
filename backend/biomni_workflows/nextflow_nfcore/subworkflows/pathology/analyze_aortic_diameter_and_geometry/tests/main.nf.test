@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_AORTIC_DIAMETER_AND_GEOMETRY"
+    script "../main.nf"
+    process "ANALYZE_AORTIC_DIAMETER_AND_GEOMETRY"
+
+    test("Should run analyze_aortic_diameter_and_geometry successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

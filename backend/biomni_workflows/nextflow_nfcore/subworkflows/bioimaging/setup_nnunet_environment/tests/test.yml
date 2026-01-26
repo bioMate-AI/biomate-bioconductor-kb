@@ -1,0 +1,9 @@
+- name: "setup_nnunet_environment test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      results_folder: "./results"
+      raw_data_base: 10.0
+      preprocessed: 0.5
+  tags:
+    - bioimaging
+    - setup_nnunet_environment

@@ -1,0 +1,7 @@
+- name: "conda_env_exists test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      env_name: 3
+  tags:
+    - genomics
+    - conda_env_exists

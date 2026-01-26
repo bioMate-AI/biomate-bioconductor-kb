@@ -1,0 +1,8 @@
+- name: "analyze_bone_microct_morphometry test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      input_file_path: "input.txt"
+      threshold_value: 0.5
+  tags:
+    - pathology
+    - analyze_bone_microct_morphometry

@@ -1,0 +1,9 @@
+name: simulate_metabolic_network_perturbation
+description: Construct and simulate kinetic models of metabolic networks and analyze their responses to perturbations.
+keywords:
+  - systems_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

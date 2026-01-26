@@ -1,0 +1,9 @@
+name: calculate_similarity_metrics
+description: Calculate similarity metrics between two images.
+keywords:
+  - bioimaging
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

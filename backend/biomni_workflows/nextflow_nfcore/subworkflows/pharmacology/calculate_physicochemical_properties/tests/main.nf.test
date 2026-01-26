@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process CALCULATE_PHYSICOCHEMICAL_PROPERTIES"
+    script "../main.nf"
+    process "CALCULATE_PHYSICOCHEMICAL_PROPERTIES"
+
+    test("Should run calculate_physicochemical_properties successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,9 @@
+name: simulate_cell_population
+description: 
+keywords:
+  - immunology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

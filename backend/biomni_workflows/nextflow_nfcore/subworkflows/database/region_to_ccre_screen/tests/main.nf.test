@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process REGION_TO_CCRE_SCREEN"
+    script "../main.nf"
+    process "REGION_TO_CCRE_SCREEN"
+
+    test("Should run region_to_ccre_screen successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

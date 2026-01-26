@@ -1,0 +1,9 @@
+name: analyze_bifurcation_diagram
+description: Performs bifurcation analysis on a dynamical system and generates a bifurcation diagram.
+keywords:
+  - synthetic_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

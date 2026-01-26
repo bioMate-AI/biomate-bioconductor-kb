@@ -1,0 +1,9 @@
+name: compare_protein_structures
+description: Compares two protein structures to identify structural differences and conformational changes.
+keywords:
+  - systems_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

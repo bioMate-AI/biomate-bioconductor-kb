@@ -1,0 +1,9 @@
+name: quantify_cell_cycle_phases_from_microscopy
+description: Quantify the percentage of cells in each cell cycle phase using Calcofluor white stained microscopy images.
+keywords:
+  - cell_biology
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni

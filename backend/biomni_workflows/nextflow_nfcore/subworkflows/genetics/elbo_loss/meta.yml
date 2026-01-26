@@ -1,0 +1,9 @@
+name: elbo_loss
+description: 
+keywords:
+  - genetics
+  - biomni
+tools:
+  - biomni:
+      description: Biomni bioinformatics tool
+      homepage: https://github.com/biomate-ai/biomni
