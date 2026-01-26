@@ -114,6 +114,7 @@ pharmacology/grade_adverse_events_using_vcog_ctcae
 pharmacology/perform_mwas_cyp2c19_metabolizer_status
 pharmacology/run_diffdock_with_smiles
 pharmacology/sigmoid
+physiology/analyze_endolysosomal_calcium_dynamics
 physiology/analyze_fatty_acid_composition_by_gc
 physiology/cosinor_model
 physiology/mono_exp_model
@@ -129,4 +130,6 @@ synthetic_biology/identify_fas_functional_domains
 systems_biology/dimerization_odes
 systems_biology/hill_function
 systems_biology/mass_action_kinetics
+systems_biology/model_protein_dimerization_network
+systems_biology/ode_system
 systems_biology/ras_ode_system
