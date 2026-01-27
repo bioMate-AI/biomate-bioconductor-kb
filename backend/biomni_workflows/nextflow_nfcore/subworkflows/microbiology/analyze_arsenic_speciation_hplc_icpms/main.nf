@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.sample_data = null
-params.sample_name = 'Unknown Sample'
+// Default test data: HPLC-ICP-MS arsenic speciation chromatogram (sample_id -> {retention_time: intensity})
+params.sample_data = '{"Sample_A": {"2.8": 1250, "7.5": 3400, "5.3": 890}, "Sample_B": {"2.8": 980, "7.5": 2100, "5.3": 1450}}'
+params.sample_name = 'Environmental_Water_Sample'
 params.calibration_data = null
 
 process ANALYZE_ARSENIC_SPECIATION_HPLC_ICPMS {
@@ -211,8 +212,18 @@ def analyze_arsenic_speciation_hplc_icpms(sample_data, sample_name="Unknown Samp
 
 # Execute the function
 try:
+    # Convert sample_data keys from strings to floats (JSON doesn't support non-string keys)
+    sample_data_raw = auto_convert(os.environ.get("PARAM_SAMPLE_DATA", ""))
+    if isinstance(sample_data_raw, dict):
+        sample_data = {
+            sample_id: {float(rt): intensity for rt, intensity in sample.items()}
+            for sample_id, sample in sample_data_raw.items()
+        }
+    else:
+        sample_data = sample_data_raw
+
     result = analyze_arsenic_speciation_hplc_icpms(
-        sample_data=auto_convert(os.environ.get("PARAM_SAMPLE_DATA", "")),
+        sample_data=sample_data,
         sample_name=auto_convert(os.environ.get("PARAM_SAMPLE_NAME", "Unknown Sample")),
         calibration_data=auto_convert(os.environ.get("PARAM_CALIBRATION_DATA", "")),
     )

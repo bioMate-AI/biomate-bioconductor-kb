@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.od_values = null
-params.sample_names = null
+// Default test data: Crystal violet OD measurements for biofilm quantification
+params.od_values = '[0.05, 0.35, 0.42, 0.68, 0.72, 0.88, 0.95, 1.12]'
+params.sample_names = '["Negative Control", "Wild Type 1", "Wild Type 2", "Mutant A 1", "Mutant A 2", "Mutant B 1", "Mutant B 2", "Positive Control"]'
 params.control_index = '0'
 params.save_path = null
 
