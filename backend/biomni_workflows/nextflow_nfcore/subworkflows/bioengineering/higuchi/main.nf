@@ -76,6 +76,13 @@ def higuchi(t, kh):
     '''Higuchi model: Q = kH * sqrt(t)
     Args: t: time, kh: Higuchi dissolution constant
     '''
+    # Validate inputs - use defaults if None
+    if t is None:
+        t = 1.0
+    if kh is None:
+        kh = 5.0  # Higuchi constant
+    t, kh = float(t), float(kh)
+
     return {"release": float(kh * np.sqrt(t)), "t": t, "kh": kh}
 
 # Execute the function

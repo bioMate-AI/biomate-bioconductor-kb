@@ -78,6 +78,15 @@ def exp_decay(t, a, k):
     '''Exponential decay: y = A * exp(-k*t)
     Args: t: time, a: initial value, k: decay constant
     '''
+    # Validate inputs - use defaults if None
+    if t is None:
+        t = 1.0
+    if a is None:
+        a = 100.0  # initial amount
+    if k is None:
+        k = 0.1  # decay constant
+    t, a, k = float(t), float(a), float(k)
+
     return {"value": float(a * np.exp(-k * t)), "t": t, "a": a, "k": k}
 
 # Execute the function

@@ -76,6 +76,13 @@ def zero_order(t, k0):
     '''Zero-order drug release kinetics: Q = k0 * t
     Args: t: time, k0: zero-order rate constant
     '''
+    # Validate inputs - use defaults if None
+    if t is None:
+        t = 1.0
+    if k0 is None:
+        k0 = 10.0  # zero-order rate constant
+    t, k0 = float(t), float(k0)
+
     return {"release": float(k0 * t), "t": t, "k0": k0}
 
 # Execute the function

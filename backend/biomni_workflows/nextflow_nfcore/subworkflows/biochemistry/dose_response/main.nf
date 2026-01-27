@@ -84,7 +84,16 @@ def dose_response(x, ic50, hill):
     Returns:
         Response value (0-1 scale, 1 = no inhibition, 0 = full inhibition)
     '''
-    response = 1 / (1 + (x / ic50) ** hill)
+    # Validate inputs - use defaults if None
+    if x is None:
+        x = 1.0
+    if ic50 is None:
+        ic50 = 50.0
+    if hill is None:
+        hill = 1.0
+    x, ic50, hill = float(x), float(ic50), float(hill)
+
+    response = 1 / (1 + (x / ic50) ** hill) if ic50 != 0 else 0
     return {"response": float(response), "x": x, "ic50": ic50, "hill": hill}
 
 # Execute the function

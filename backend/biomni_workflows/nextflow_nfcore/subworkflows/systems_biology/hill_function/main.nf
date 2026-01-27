@@ -77,7 +77,18 @@ def hill_function(x, n, ec50):
     '''Hill function: x^n / (ec50^n + x^n)
     Args: x: concentration, n: Hill coefficient, ec50: half-maximal concentration
     '''
-    return {"response": float((x ** n) / (ec50 ** n + x ** n)), "x": x, "n": n, "ec50": ec50}
+    # Validate inputs - use defaults if None
+    if x is None:
+        x = 1.0
+    if n is None:
+        n = 1.0  # Hill coefficient
+    if ec50 is None:
+        ec50 = 1.0
+    x, n, ec50 = float(x), float(n), float(ec50)
+
+    denom = ec50 ** n + x ** n
+    response = (x ** n) / denom if denom != 0 else 0
+    return {"response": float(response), "x": x, "n": n, "ec50": ec50}
 
 # Execute the function
 try:

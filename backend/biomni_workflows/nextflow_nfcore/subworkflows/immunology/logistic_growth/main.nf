@@ -78,7 +78,16 @@ def logistic_growth(n, r, k):
     '''Logistic growth: dN/dt = r * N * (1 - N/K)
     Args: n: population, r: growth rate, k: carrying capacity
     '''
-    dndt = r * n * (1 - n / k)
+    # Validate inputs - use defaults if None
+    if n is None:
+        n = 100.0  # initial population
+    if r is None:
+        r = 0.1  # growth rate
+    if k is None:
+        k = 1000.0  # carrying capacity
+    n, r, k = float(n), float(r), float(k)
+
+    dndt = r * n * (1 - n / k) if k != 0 else 0
     return {"dN_dt": float(dndt), "N": n, "r": r, "K": k}
 
 # Execute the function

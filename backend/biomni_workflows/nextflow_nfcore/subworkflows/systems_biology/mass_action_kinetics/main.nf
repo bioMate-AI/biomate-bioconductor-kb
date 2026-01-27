@@ -77,8 +77,17 @@ def mass_action_kinetics(k, concentrations):
     Args: k: rate constant, concentrations: list of reactant concentrations
     '''
     import numpy as np
+    # Validate inputs - use defaults if None
+    if k is None:
+        k = 1.0
+    if concentrations is None:
+        concentrations = [1.0, 1.0]
+    k = float(k)
     if isinstance(concentrations, str):
         concentrations = [float(x.strip()) for x in concentrations.split(',')]
+    elif not isinstance(concentrations, list):
+        concentrations = [float(concentrations)]
+
     rate = k * np.prod(concentrations)
     return {"rate": float(rate), "k": k, "concentrations": concentrations}
 

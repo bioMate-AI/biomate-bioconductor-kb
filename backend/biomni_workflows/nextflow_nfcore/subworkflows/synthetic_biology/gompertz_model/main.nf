@@ -80,6 +80,17 @@ def gompertz_model(t, a, b, c):
     '''Gompertz: y = A * exp(-B * exp(-C*t))
     Args: t: time, a: asymptotic value, b: displacement, c: growth rate
     '''
+    # Validate inputs - use defaults if None
+    if t is None:
+        t = 1.0
+    if a is None:
+        a = 10.0  # asymptotic max population
+    if b is None:
+        b = 2.0  # displacement
+    if c is None:
+        c = 0.5  # growth rate
+    t, a, b, c = float(t), float(a), float(b), float(c)
+
     y = a * np.exp(-b * np.exp(-c * t))
     return {"value": float(y), "t": t, "a": a, "b": b, "c": c}
 

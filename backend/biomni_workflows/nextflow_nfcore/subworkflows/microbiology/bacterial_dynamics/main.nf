@@ -80,7 +80,18 @@ def bacterial_dynamics(n, r, k, d):
     '''Bacterial dynamics: dN/dt = r*N*(1-N/K) - d*N
     Args: n: population, r: growth rate, k: carrying capacity, d: death rate
     '''
-    dndt = r * n * (1 - n / k) - d * n
+    # Validate inputs - use defaults if None
+    if n is None:
+        n = 100.0  # initial population
+    if r is None:
+        r = 0.5  # growth rate
+    if k is None:
+        k = 10000.0  # carrying capacity
+    if d is None:
+        d = 0.1  # death rate
+    n, r, k, d = float(n), float(r), float(k), float(d)
+
+    dndt = r * n * (1 - n / k) - d * n if k != 0 else -d * n
     return {"dN_dt": float(dndt), "N": n, "r": r, "K": k, "d": d}
 
 # Execute the function

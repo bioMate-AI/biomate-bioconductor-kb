@@ -71,6 +71,11 @@ def auto_convert(val):
 
 def sigmoid(x):
     '''Sigmoid function: 1 / (1 + exp(-x))'''
+    # Validate inputs - use defaults if None
+    if x is None:
+        x = 0.0
+    x = float(x)
+
     return {"value": float(1 / (1 + np.exp(-x))), "x": x}
 
 # Execute the function

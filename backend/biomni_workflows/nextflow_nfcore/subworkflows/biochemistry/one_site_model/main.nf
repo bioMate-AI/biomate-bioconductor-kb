@@ -87,9 +87,20 @@ def one_site_model(x, kd, dh, n):
     Returns:
         Binding parameters and calculated heat
     '''
-    ka = 1 / kd  # Association constant
+    # Validate inputs - use defaults if None
+    if x is None:
+        x = 1.0
+    if kd is None:
+        kd = 1e-6  # 1 uM default
+    if dh is None:
+        dh = -10000.0  # -10 kcal/mol default
+    if n is None:
+        n = 1.0
+    x, kd, dh, n = float(x), float(kd), float(dh), float(n)
+
+    ka = 1 / kd if kd != 0 else 0  # Association constant
     # Simplified binding calculation
-    theta = (ka * x) / (1 + ka * x)  # Fraction bound
+    theta = (ka * x) / (1 + ka * x) if (1 + ka * x) != 0 else 0  # Fraction bound
     q = n * dh * theta  # Heat
     return {"heat": float(q), "fraction_bound": float(theta), "x": x, "kd": kd, "dh": dh, "n": n}
 

@@ -78,6 +78,15 @@ def first_order(t, k1, q0):
     '''First-order drug release kinetics: Q = Q0 * (1 - exp(-k1*t))
     Args: t: time, k1: first-order rate constant, q0: initial amount
     '''
+    # Validate inputs - use defaults if None
+    if t is None:
+        t = 1.0
+    if k1 is None:
+        k1 = 0.1  # first-order rate constant
+    if q0 is None:
+        q0 = 100.0  # initial drug amount
+    t, k1, q0 = float(t), float(k1), float(q0)
+
     return {"release": float(q0 * (1 - np.exp(-k1 * t))), "t": t, "k1": k1, "q0": q0}
 
 # Execute the function

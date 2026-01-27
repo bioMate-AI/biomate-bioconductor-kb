@@ -77,6 +77,15 @@ def korsmeyer_peppas(t, k, n):
     '''Korsmeyer-Peppas model: Q = k * t^n
     Args: t: time, k: rate constant, n: release exponent
     '''
+    # Validate inputs - use defaults if None
+    if t is None:
+        t = 1.0
+    if k is None:
+        k = 1.0  # rate constant
+    if n is None:
+        n = 0.5  # release exponent (0.5 = Fickian diffusion)
+    t, k, n = float(t), float(k), float(n)
+
     return {"release": float(k * (t ** n)), "t": t, "k": k, "n": n}
 
 # Execute the function

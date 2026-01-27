@@ -78,6 +78,15 @@ def mono_exp_model(t, a, k):
     '''Mono-exponential: y = A * exp(-k*t)
     Args: t: time, a: initial value, k: rate constant
     '''
+    # Validate inputs - use defaults if None
+    if t is None:
+        t = 1.0
+    if a is None:
+        a = 100.0
+    if k is None:
+        k = 0.1
+    t, a, k = float(t), float(a), float(k)
+
     y = a * np.exp(-k * t)
     return {"value": float(y), "t": t, "a": a, "k": k}
 
