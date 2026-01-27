@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.background_image_path = null
-params.control_image_path = null
-params.sample_image_path = null
+// Use inline-generated mock images (created in script)
+params.background_image_path = 'mock_background.png'
+params.control_image_path = 'mock_control.png'
+params.sample_image_path = 'mock_sample.png'
 params.output_dir = './output'
 
 process ANALYZE_INTRACELLULAR_CALCIUM_WITH_RHOD2 {
@@ -39,6 +40,21 @@ process ANALYZE_INTRACELLULAR_CALCIUM_WITH_RHOD2 {
     export PARAM_CONTROL_IMAGE_PATH="${params.control_image_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_SAMPLE_IMAGE_PATH="${params.sample_image_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Create mock images for testing (Rhod-2 calcium imaging simulation)
+    python3 << 'MOCKEOF'
+import numpy as np
+import cv2
+# Background: low uniform noise (autofluorescence)
+bg = np.random.normal(10, 2, (100, 100)).astype(np.uint8)
+cv2.imwrite('mock_background.png', bg)
+# Control: baseline cellular fluorescence (low calcium)
+ctrl = np.random.normal(30, 5, (100, 100)).astype(np.uint8)
+cv2.imwrite('mock_control.png', ctrl)
+# Sample: elevated calcium (brighter signal after stimulation)
+sample = np.random.normal(120, 15, (100, 100)).astype(np.uint8)
+cv2.imwrite('mock_sample.png', sample)
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

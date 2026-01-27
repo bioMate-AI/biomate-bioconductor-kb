@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.url = null
+// Demo: Example.com for testing URL content extraction
+params.url = 'https://example.com'
 
 process EXTRACT_URL_CONTENT {
     tag "$meta.id"

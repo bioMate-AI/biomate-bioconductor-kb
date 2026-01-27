@@ -1,8 +1,13 @@
 - name: "quantify_corneal_nerve_fibers test"
   command: nextflow run ../main.nf -profile docker
   params:
-      image_path: "test_image.png"
-      marker_type: "nucleus"
+    # Uses inline-generated mock corneal nerve image
+    image_path: "mock_corneal_nerve.png"
+    marker_type: "beta-III-tubulin"
+    threshold_method: "otsu"
+    output_dir: "./output"
   tags:
     - pathology
     - quantify_corneal_nerve_fibers
+  notes:
+    - "Mock image is created inline simulating nerve fiber branching pattern"

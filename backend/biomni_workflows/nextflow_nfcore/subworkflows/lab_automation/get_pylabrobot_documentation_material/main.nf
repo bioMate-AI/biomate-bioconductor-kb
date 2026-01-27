@@ -102,7 +102,7 @@ def _load_pylabrobot_tutorial_content(section: str) -> str:
         return ""
 
     text = "\\n\\n".join([d for d in docs if d])
-    if len(text) > _MAX_DOC_CHARS:
+    if len(text) > MAX_DOC_CHARS:
         text = text[:_MAX_DOC_CHARS]
     return text
 

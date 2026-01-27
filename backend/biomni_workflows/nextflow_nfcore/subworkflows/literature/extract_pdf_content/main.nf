@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.url = null
+// Demo: Nature Methods article PDF (publicly accessible)
+params.url = 'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.pdf'
 
 process EXTRACT_PDF_CONTENT {
     tag "$meta.id"
@@ -88,8 +89,9 @@ def extract_pdf_content(url: str) -> str:
             # If not, try to find a PDF link on the page
             response = requests.get(url, timeout=30)
             if response.status_code == 200:
-                # Look for PDF links in the HTML content
-                pdf_links = re.findall(r'href=[\'"]([^\'"]+\.pdf)[\'"]', response.text)
+                # Look for PDF links in the HTML content (using hex codes to avoid escaping issues)
+                quote_chars = chr(34) + chr(39)  # double and single quote
+                pdf_links = re.findall(f"href=[{quote_chars}]([^{quote_chars}]+\\.pdf)[{quote_chars}]", response.text)
                 if pdf_links:
                     # Use the first PDF link found
                     if not pdf_links[0].startswith("http"):

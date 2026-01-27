@@ -1,7 +1,8 @@
 - name: "extract_url_content test"
   command: nextflow run ../main.nf -profile docker
   params:
-      url: "https://www.ncbi.nlm.nih.gov"
+    # Example.com for testing URL content extraction
+    url: "https://example.com"
   tags:
     - literature
     - extract_url_content

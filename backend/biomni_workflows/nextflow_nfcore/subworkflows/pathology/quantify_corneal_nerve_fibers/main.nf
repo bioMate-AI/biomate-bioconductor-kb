@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_path = null
-params.marker_type = null
+// Use inline-generated mock image (created in script)
+params.image_path = 'mock_corneal_nerve.png'
+params.marker_type = 'beta-III-tubulin'
 params.output_dir = './output'
 params.threshold_method = 'otsu'
 
@@ -39,6 +40,25 @@ process QUANTIFY_CORNEAL_NERVE_FIBERS {
     export PARAM_MARKER_TYPE="${params.marker_type?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_THRESHOLD_METHOD="${params.threshold_method?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Create mock corneal nerve fiber image for testing
+    python3 << 'MOCKEOF'
+import numpy as np
+import cv2
+# Simulate nerve fiber pattern: branching lines on dark background
+img = np.zeros((256, 256), dtype=np.uint8)
+# Draw branching nerve-like structures
+pts = [(50, 128), (100, 100), (150, 120), (200, 80)]
+for i in range(len(pts)-1):
+    cv2.line(img, pts[i], pts[i+1], 180, 2)
+pts2 = [(100, 100), (120, 150), (160, 180)]
+for i in range(len(pts2)-1):
+    cv2.line(img, pts2[i], pts2[i+1], 160, 2)
+# Add noise
+noise = np.random.normal(20, 10, img.shape).astype(np.uint8)
+img = cv2.add(img, noise)
+cv2.imwrite('mock_corneal_nerve.png', img)
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
