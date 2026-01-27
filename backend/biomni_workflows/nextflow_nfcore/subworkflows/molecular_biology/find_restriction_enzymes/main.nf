@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.sequence = null
-params.is_circular = null
+// Default test data: pUC19 MCS with common restriction sites
+params.sequence = 'ATGAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTTGGCGTAATCATGGTCAT'
+params.is_circular = 'false'
 
 process FIND_RESTRICTION_ENZYMES {
     tag "$meta.id"

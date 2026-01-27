@@ -1,8 +1,9 @@
 - name: "find_restriction_enzymes test"
   command: nextflow run ../main.nf -profile docker
   params:
-      sequence: "ATGCGATCGATCGATCGATCG"
-      is_circular: false
+    # pUC19 MCS with common restriction sites (EcoRI, SacI, SmaI, BamHI, HindIII etc.)
+    sequence: 'ATGAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTTGGCGTAATCATGGTCAT'
+    is_circular: 'false'
   tags:
     - molecular_biology
     - find_restriction_enzymes
