@@ -10,11 +10,12 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.input_file = null
-params.barcode_pattern = null
-params.flanking_seq_5prime = null
-params.flanking_seq_3prime = null
-params.min_count = '5'
+// Default test data: use inline-generated FASTA with barcodes
+params.input_file = 'test_barcodes.fasta'
+params.barcode_pattern = 'ATCG[ATCG]{8}GCTA'
+params.flanking_seq_5prime = 'ATCG'
+params.flanking_seq_3prime = 'GCTA'
+params.min_count = '2'
 params.output_dir = './results'
 
 process ANALYZE_BARCODE_SEQUENCING_DATA {
@@ -36,6 +37,30 @@ process ANALYZE_BARCODE_SEQUENCING_DATA {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
+    # Create mock FASTA file with barcoded sequences for testing
+    cat > test_barcodes.fasta << 'FASTAEOF'
+>seq1
+AAAAAATCGACGTACGTGCTATTTTTT
+>seq2
+AAAAAATCGACGTACGTGCTATTTTTT
+>seq3
+AAAAAATCGACGTACGTGCTATTTTTT
+>seq4
+AAAAAATCGACGTACGTGCTATTTTTT
+>seq5
+AAAAAATCGACGTACGTGCTATTTTTT
+>seq6
+AAAAAATCGTTTTAAAAGCTATTTTTT
+>seq7
+AAAAAATCGTTTTAAAAGCTATTTTTT
+>seq8
+AAAAAATCGTTTTAAAAGCTATTTTTT
+>seq9
+AAAAAATCGGGGGCCCCGCTATTTTTT
+>seq10
+AAAAAATCGGGGGCCCCGCTATTTTTT
+FASTAEOF
+
     # Export parameters as environment variables
     export PARAM_INPUT_FILE="${params.input_file?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_BARCODE_PATTERN="${params.barcode_pattern?.toString()?.replace('"', '\\"') ?: 'null'}"
