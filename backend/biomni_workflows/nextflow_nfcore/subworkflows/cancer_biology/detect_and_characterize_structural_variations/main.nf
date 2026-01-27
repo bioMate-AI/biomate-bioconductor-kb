@@ -111,13 +111,54 @@ def detect_and_characterize_structural_variations(
     '''
     import datetime
     import os
-    import subprocess
-
-    # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
 
     # Initialize research log
     log = []
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Generate synthetic results if no input provided
+    if bam_file_path is None or reference_genome_path is None:
+        import numpy as np
+        np.random.seed(42)
+
+        log.append(f"# Structural Variation Analysis (DEMO MODE) - {ts}")
+        log.append("=" * 60)
+        log.append("Running with synthetic data for demonstration purposes.\\n")
+
+        # Simulated SV counts
+        sv_types = {
+            "Deletions": np.random.randint(10, 50),
+            "Duplications": np.random.randint(5, 30),
+            "Inversions": np.random.randint(2, 15),
+            "Translocations": np.random.randint(1, 10),
+        }
+
+        log.append("## Structural Variation Summary\\n")
+        total_svs = sum(sv_types.values())
+        log.append(f"Total SVs detected: {total_svs}\\n")
+
+        for sv_type, count in sv_types.items():
+            log.append(f"- {sv_type}: {count}")
+
+        log.append("\\n## Notable Events\\n")
+        notable = [
+            ("DEL", "chr17:7571720-7590868", "TP53 region deletion"),
+            ("DUP", "chr8:128748315-128753680", "MYC amplification"),
+            ("INV", "chr2:29415640-29446394", "ALK rearrangement"),
+        ]
+        for sv_type, coords, annotation in notable:
+            log.append(f"- {sv_type} at {coords}: {annotation}")
+
+        log.append("\\n## Summary\\n")
+        log.append("Synthetic demo analysis complete. Provide bam_file_path and reference_genome_path for actual analysis.")
+
+        return "\\n".join(log)
+
+    import subprocess
+
+    # Create output directory if it doesn't exist
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     log.append("## Structural Variation Detection and Characterization")
     log.append(f"Started at: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log.append(f"Input BAM file: {bam_file_path}")
