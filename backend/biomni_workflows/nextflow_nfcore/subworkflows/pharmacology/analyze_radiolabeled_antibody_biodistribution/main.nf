@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.time_points = null
-params.tissue_data = null
+// Demo: Radiolabeled antibody biodistribution (%IA/g over time)
+params.time_points = '[1, 4, 24, 48, 72, 96, 168]'
+params.tissue_data = '{"tumor": [5.2, 8.5, 15.3, 18.2, 16.8, 14.5, 10.2], "blood": [25.0, 18.5, 8.2, 4.5, 2.8, 1.9, 0.8], "liver": [12.5, 15.2, 10.8, 8.5, 6.2, 4.8, 3.2], "kidney": [8.5, 10.2, 6.5, 4.8, 3.5, 2.8, 1.8]}'
 
 process ANALYZE_RADIOLABELED_ANTIBODY_BIODISTRIBUTION {
     tag "$meta.id"

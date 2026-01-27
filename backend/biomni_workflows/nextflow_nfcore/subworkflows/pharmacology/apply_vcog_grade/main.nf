@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.event_type = null
-params.severity_value = null
-params.species = null
+// Demo: Anemia grading in veterinary patient (VCOG-CTCAE criteria)
+params.event_type = 'anemia'
+params.severity_value = '8.5'
+params.species = 'canine'
 
 process APPLY_VCOG_GRADE {
     tag "$meta.id"

@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.drug_pair = null
+// Demo: Aspirin-Warfarin interaction (well-documented clinically significant interaction)
+params.drug_pair = '["Aspirin", "Warfarin"]'
 params.detailed_analysis = 'True'
 params.data_lake_path = null
 

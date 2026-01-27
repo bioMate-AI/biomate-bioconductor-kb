@@ -1,8 +1,9 @@
 - name: "analyze_interaction_mechanisms test"
   command: nextflow run ../main.nf -profile docker
   params:
-      drug_pair: ["aspirin", "warfarin"]
-      data_lake_path: "/data"
+    # Aspirin-Warfarin interaction (clinically significant)
+    drug_pair: '["Aspirin", "Warfarin"]'
+    detailed_analysis: "True"
   tags:
     - pharmacology
     - analyze_interaction_mechanisms
