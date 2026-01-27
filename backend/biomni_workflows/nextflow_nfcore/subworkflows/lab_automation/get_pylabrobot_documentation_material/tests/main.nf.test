@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process GET_PYLABROBOT_DOCUMENTATION_MATERIAL"
+    script "../main.nf"
+    process "GET_PYLABROBOT_DOCUMENTATION_MATERIAL"
+
+    test("Should run get_pylabrobot_documentation_material with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

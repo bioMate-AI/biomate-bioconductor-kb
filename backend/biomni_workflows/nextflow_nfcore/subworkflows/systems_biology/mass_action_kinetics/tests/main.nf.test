@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process MASS_ACTION_KINETICS"
+    script "../main.nf"
+    process "MASS_ACTION_KINETICS"
+
+    test("Should run mass_action_kinetics successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

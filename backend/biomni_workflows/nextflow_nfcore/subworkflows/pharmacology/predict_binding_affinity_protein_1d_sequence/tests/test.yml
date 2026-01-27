@@ -1,0 +1,5 @@
+- name: "predict_binding_affinity_protein_1d_sequence test"
+  command: nextflow run ./main.nf
+  tags:
+    - pharmacology
+    - predict_binding_affinity_protein_1d_sequence

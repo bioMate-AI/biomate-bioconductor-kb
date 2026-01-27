@@ -1,0 +1,5 @@
+- name: "quick_rigid_registration test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioimaging
+    - quick_rigid_registration

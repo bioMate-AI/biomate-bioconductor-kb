@@ -1,0 +1,7 @@
+- name: "analyze_ciliary_beat_frequency test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      output_dir: "./output"
+  tags:
+    - physiology
+    - analyze_ciliary_beat_frequency

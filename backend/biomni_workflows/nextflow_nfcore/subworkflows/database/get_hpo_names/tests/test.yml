@@ -1,0 +1,5 @@
+- name: "get_hpo_names test"
+  command: nextflow run ./main.nf
+  tags:
+    - database
+    - get_hpo_names

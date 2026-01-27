@@ -1,0 +1,10 @@
+- name: "dimerization_odes test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      monomer: 1.0
+      dimer: 0.5
+      kon: 0.1
+      koff: 0.01
+  tags:
+    - systems_biology
+    - dimerization_odes

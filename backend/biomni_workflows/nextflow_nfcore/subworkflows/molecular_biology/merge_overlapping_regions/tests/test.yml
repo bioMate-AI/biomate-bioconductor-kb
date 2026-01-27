@@ -1,0 +1,5 @@
+- name: "merge_overlapping_regions test"
+  command: nextflow run ./main.nf
+  tags:
+    - molecular_biology
+    - merge_overlapping_regions

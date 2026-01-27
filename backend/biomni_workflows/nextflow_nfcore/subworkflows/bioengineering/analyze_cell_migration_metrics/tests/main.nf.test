@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_CELL_MIGRATION_METRICS"
+    script "../main.nf"
+    process "ANALYZE_CELL_MIGRATION_METRICS"
+
+    test("Should run analyze_cell_migration_metrics with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

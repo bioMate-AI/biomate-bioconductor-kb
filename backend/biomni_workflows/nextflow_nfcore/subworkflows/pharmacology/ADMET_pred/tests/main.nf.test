@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ADMET_PRED"
+    script "../main.nf"
+    process "ADMET_PRED"
+
+    test("Should run ADMET_pred successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

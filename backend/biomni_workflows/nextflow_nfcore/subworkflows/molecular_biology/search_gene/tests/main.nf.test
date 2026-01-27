@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process SEARCH_GENE"
+    script "../main.nf"
+    process "SEARCH_GENE"
+
+    test("Should run search_gene with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

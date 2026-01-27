@@ -1,0 +1,9 @@
+- name: "logistic_growth test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      n: 3
+      r: 0.5
+      k: 0.5
+  tags:
+    - immunology
+    - logistic_growth

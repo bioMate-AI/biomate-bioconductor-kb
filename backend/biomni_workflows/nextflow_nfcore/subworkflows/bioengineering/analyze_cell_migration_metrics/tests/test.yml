@@ -1,0 +1,5 @@
+- name: "analyze_cell_migration_metrics test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioengineering
+    - analyze_cell_migration_metrics

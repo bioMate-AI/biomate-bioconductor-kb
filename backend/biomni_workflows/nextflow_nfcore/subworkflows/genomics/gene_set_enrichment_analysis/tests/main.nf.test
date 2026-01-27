@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process GENE_SET_ENRICHMENT_ANALYSIS"
+    script "../main.nf"
+    process "GENE_SET_ENRICHMENT_ANALYSIS"
+
+    test("Should run gene_set_enrichment_analysis with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

@@ -1,0 +1,7 @@
+- name: "enumerate_bacterial_cfu_by_serial_dilution test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      output_file: "output.txt"
+  tags:
+    - microbiology
+    - enumerate_bacterial_cfu_by_serial_dilution

@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ZERO_ORDER"
+    script "../main.nf"
+    process "ZERO_ORDER"
+
+    test("Should run zero_order successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

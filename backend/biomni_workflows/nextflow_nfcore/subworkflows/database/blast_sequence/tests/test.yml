@@ -1,0 +1,9 @@
+- name: "blast_sequence test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: ATGCGATCGATCGATCGATCG
+      database: nt
+      program: blastn
+  tags:
+    - database
+    - blast_sequence

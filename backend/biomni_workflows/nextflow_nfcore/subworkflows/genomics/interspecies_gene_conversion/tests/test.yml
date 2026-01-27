@@ -1,0 +1,9 @@
+- name: "interspecies_gene_conversion test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      gene_list: ["TP53", "BRCA1", "EGFR", "MYC"]
+      source_species: "human"
+      target_species: "mouse"
+  tags:
+    - genomics
+    - interspecies_gene_conversion

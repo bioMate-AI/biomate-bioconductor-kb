@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_COPY_NUMBER_PURITY_PLOIDY_AND_FOCAL_EVENTS"
+    script "../main.nf"
+    process "ANALYZE_COPY_NUMBER_PURITY_PLOIDY_AND_FOCAL_EVENTS"
+
+    test("Should run analyze_copy_number_purity_ploidy_and_focal_events successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

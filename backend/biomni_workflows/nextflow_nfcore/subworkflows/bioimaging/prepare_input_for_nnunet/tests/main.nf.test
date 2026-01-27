@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process PREPARE_INPUT_FOR_NNUNET"
+    script "../main.nf"
+    process "PREPARE_INPUT_FOR_NNUNET"
+
+    test("Should run prepare_input_for_nnunet with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

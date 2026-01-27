@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process DETECT_AND_CHARACTERIZE_STRUCTURAL_VARIATIONS"
+    script "../main.nf"
+    process "DETECT_AND_CHARACTERIZE_STRUCTURAL_VARIATIONS"
+
+    test("Should run detect_and_characterize_structural_variations with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

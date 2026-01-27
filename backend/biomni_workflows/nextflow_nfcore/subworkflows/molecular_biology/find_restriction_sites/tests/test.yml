@@ -1,0 +1,9 @@
+- name: "find_restriction_sites test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      dna_sequence: ATGCGAATTCATGCGAATTCATGC
+      enzymes: ["EcoRI"]
+      is_circular: false
+  tags:
+    - molecular_biology
+    - find_restriction_sites

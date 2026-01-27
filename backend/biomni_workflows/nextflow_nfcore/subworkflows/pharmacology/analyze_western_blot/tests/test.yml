@@ -1,0 +1,5 @@
+- name: "analyze_western_blot test"
+  command: nextflow run ./main.nf
+  tags:
+    - pharmacology
+    - analyze_western_blot

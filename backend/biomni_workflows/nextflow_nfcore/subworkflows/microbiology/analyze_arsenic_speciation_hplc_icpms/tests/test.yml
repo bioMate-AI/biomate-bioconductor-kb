@@ -1,0 +1,5 @@
+- name: "analyze_arsenic_speciation_hplc_icpms test"
+  command: nextflow run ./main.nf
+  tags:
+    - microbiology
+    - analyze_arsenic_speciation_hplc_icpms

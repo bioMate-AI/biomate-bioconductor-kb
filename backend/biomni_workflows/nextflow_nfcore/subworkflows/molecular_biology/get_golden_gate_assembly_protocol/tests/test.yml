@@ -1,0 +1,5 @@
+- name: "get_golden_gate_assembly_protocol test"
+  command: nextflow run ./main.nf
+  tags:
+    - molecular_biology
+    - get_golden_gate_assembly_protocol

@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_ABR_WAVEFORM_P1_METRICS"
+    script "../main.nf"
+    process "ANALYZE_ABR_WAVEFORM_P1_METRICS"
+
+    test("Should run analyze_abr_waveform_p1_metrics with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

@@ -1,0 +1,7 @@
+- name: "get_coding_sequences test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: ATGCGATCGATCGATCGATCG
+  tags:
+    - molecular_biology
+    - get_coding_sequences

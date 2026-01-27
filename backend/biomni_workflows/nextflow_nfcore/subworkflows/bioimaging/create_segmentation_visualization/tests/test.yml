@@ -1,0 +1,5 @@
+- name: "create_segmentation_visualization test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioimaging
+    - create_segmentation_visualization

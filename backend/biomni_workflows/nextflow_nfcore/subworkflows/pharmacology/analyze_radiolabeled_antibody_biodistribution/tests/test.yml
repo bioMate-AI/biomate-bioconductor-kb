@@ -1,0 +1,5 @@
+- name: "analyze_radiolabeled_antibody_biodistribution test"
+  command: nextflow run ./main.nf
+  tags:
+    - pharmacology
+    - analyze_radiolabeled_antibody_biodistribution

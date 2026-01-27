@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_INTRACELLULAR_CALCIUM_WITH_RHOD2"
+    script "../main.nf"
+    process "ANALYZE_INTRACELLULAR_CALCIUM_WITH_RHOD2"
+
+    test("Should run analyze_intracellular_calcium_with_rhod2 with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

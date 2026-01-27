@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process QUERY_CHATNT"
+    script "../main.nf"
+    process "QUERY_CHATNT"
+
+    test("Should run query_chatnt with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

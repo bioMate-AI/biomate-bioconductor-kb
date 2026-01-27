@@ -1,0 +1,6 @@
+- name: "norm_chr test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - cancer_biology
+    - norm_chr

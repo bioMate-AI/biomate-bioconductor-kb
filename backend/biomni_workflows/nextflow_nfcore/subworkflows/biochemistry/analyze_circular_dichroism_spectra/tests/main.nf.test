@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_CIRCULAR_DICHROISM_SPECTRA"
+    script "../main.nf"
+    process "ANALYZE_CIRCULAR_DICHROISM_SPECTRA"
+
+    test("Should run analyze_circular_dichroism_spectra with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

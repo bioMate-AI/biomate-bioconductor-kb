@@ -1,0 +1,5 @@
+- name: "simulate_demographic_history test"
+  command: nextflow run ./main.nf
+  tags:
+    - genetics
+    - simulate_demographic_history

@@ -1,0 +1,5 @@
+- name: "analyze_cas9_mutation_outcomes test"
+  command: nextflow run ./main.nf
+  tags:
+    - genetics
+    - analyze_cas9_mutation_outcomes

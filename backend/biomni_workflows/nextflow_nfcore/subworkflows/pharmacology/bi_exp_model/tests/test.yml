@@ -1,0 +1,11 @@
+- name: "bi_exp_model test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      t: 10.0
+      A: 1.0
+      alpha: 0.5
+      B: 0.5
+      beta: 0.3
+  tags:
+    - pharmacology
+    - bi_exp_model

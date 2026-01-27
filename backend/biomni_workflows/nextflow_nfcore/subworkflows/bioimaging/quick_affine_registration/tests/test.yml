@@ -1,0 +1,5 @@
+- name: "quick_affine_registration test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioimaging
+    - quick_affine_registration

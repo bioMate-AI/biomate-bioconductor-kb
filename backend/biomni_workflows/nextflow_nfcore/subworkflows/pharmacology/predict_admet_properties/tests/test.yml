@@ -1,0 +1,5 @@
+- name: "predict_admet_properties test"
+  command: nextflow run ./main.nf
+  tags:
+    - pharmacology
+    - predict_admet_properties

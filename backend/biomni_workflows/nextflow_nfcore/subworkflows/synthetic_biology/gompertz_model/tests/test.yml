@@ -1,0 +1,10 @@
+- name: "gompertz_model test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      t: 10.0
+      a: 1.0
+      b: 2.0
+      c: 0.5
+  tags:
+    - synthetic_biology
+    - gompertz_model

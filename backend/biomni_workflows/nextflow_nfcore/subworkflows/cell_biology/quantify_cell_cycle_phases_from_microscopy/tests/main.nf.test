@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY"
+    script "../main.nf"
+    process "QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY"
+
+    test("Should run quantify_cell_cycle_phases_from_microscopy with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

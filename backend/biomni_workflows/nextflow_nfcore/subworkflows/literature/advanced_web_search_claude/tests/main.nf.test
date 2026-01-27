@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ADVANCED_WEB_SEARCH_CLAUDE"
+    script "../main.nf"
+    process "ADVANCED_WEB_SEARCH_CLAUDE"
+
+    test("Should run advanced_web_search_claude successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

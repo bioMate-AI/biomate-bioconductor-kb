@@ -1,0 +1,7 @@
+- name: "higuchi test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      t: 10.0
+  tags:
+    - bioengineering
+    - higuchi

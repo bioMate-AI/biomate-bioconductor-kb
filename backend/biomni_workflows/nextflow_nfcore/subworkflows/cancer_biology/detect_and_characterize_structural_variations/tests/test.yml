@@ -1,0 +1,5 @@
+- name: "detect_and_characterize_structural_variations test"
+  command: nextflow run ./main.nf
+  tags:
+    - cancer_biology
+    - detect_and_characterize_structural_variations

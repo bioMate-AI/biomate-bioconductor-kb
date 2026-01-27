@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process DIMERIZATION_ODES"
+    script "../main.nf"
+    process "DIMERIZATION_ODES"
+
+    test("Should run dimerization_odes successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

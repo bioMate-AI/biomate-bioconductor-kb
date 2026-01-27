@@ -1,0 +1,5 @@
+- name: "is_region_fully_covered test"
+  command: nextflow run ./main.nf
+  tags:
+    - molecular_biology
+    - is_region_fully_covered

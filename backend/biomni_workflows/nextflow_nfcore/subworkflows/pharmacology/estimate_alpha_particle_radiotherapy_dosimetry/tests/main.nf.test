@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY"
+    script "../main.nf"
+    process "ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY"
+
+    test("Should run estimate_alpha_particle_radiotherapy_dosimetry with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

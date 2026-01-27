@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_CRISPR_GENOME_EDITING"
+    script "../main.nf"
+    process "ANALYZE_CRISPR_GENOME_EDITING"
+
+    test("Should run analyze_crispr_genome_editing with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

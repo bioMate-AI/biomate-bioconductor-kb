@@ -1,0 +1,5 @@
+- name: "generate_gene_embeddings_with_ESM_models test"
+  command: nextflow run ./main.nf
+  tags:
+    - genomics
+    - generate_gene_embeddings_with_ESM_models

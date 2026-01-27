@@ -1,0 +1,5 @@
+- name: "analyze_myofiber_morphology test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioengineering
+    - analyze_myofiber_morphology

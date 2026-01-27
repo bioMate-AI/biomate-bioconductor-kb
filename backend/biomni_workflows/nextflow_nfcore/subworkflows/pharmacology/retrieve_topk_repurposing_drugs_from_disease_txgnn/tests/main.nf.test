@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process RETRIEVE_TOPK_REPURPOSING_DRUGS_FROM_DISEASE_TXGNN"
+    script "../main.nf"
+    process "RETRIEVE_TOPK_REPURPOSING_DRUGS_FROM_DISEASE_TXGNN"
+
+    test("Should run retrieve_topk_repurposing_drugs_from_disease_txgnn with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

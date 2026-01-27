@@ -1,0 +1,5 @@
+- name: "estimate_cell_cycle_phase_durations test"
+  command: nextflow run ./main.nf
+  tags:
+    - immunology
+    - estimate_cell_cycle_phase_durations

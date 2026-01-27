@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION"
+    script "../main.nf"
+    process "ENUMERATE_BACTERIAL_CFU_BY_SERIAL_DILUTION"
+
+    test("Should run enumerate_bacterial_cfu_by_serial_dilution successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

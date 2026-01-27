@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process EXP_DECAY"
+    script "../main.nf"
+    process "EXP_DECAY"
+
+    test("Should run exp_decay successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

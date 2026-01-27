@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_CILIARY_BEAT_FREQUENCY"
+    script "../main.nf"
+    process "ANALYZE_CILIARY_BEAT_FREQUENCY"
+
+    test("Should run analyze_ciliary_beat_frequency successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

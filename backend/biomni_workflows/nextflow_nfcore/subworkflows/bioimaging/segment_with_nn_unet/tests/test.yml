@@ -1,0 +1,5 @@
+- name: "segment_with_nn_unet test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioimaging
+    - segment_with_nn_unet

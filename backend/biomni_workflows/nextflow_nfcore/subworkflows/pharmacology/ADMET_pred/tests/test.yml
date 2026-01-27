@@ -1,0 +1,7 @@
+- name: "ADMET_pred test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      smiles: CCO
+  tags:
+    - pharmacology
+    - ADMET_pred

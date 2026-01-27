@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process PERFORM_FLUX_BALANCE_ANALYSIS"
+    script "../main.nf"
+    process "PERFORM_FLUX_BALANCE_ANALYSIS"
+
+    test("Should run perform_flux_balance_analysis with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

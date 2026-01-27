@@ -1,0 +1,9 @@
+- name: "exp_decay test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      t: 10.0
+      a: 1.0
+      k: 0.5
+  tags:
+    - bioengineering
+    - exp_decay

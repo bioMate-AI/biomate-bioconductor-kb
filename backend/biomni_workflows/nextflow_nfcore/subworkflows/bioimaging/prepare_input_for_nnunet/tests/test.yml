@@ -1,0 +1,5 @@
+- name: "prepare_input_for_nnunet test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioimaging
+    - prepare_input_for_nnunet

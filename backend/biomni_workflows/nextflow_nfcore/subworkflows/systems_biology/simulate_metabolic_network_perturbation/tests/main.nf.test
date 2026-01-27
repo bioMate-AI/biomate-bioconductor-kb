@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process SIMULATE_METABOLIC_NETWORK_PERTURBATION"
+    script "../main.nf"
+    process "SIMULATE_METABOLIC_NETWORK_PERTURBATION"
+
+    test("Should run simulate_metabolic_network_perturbation with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

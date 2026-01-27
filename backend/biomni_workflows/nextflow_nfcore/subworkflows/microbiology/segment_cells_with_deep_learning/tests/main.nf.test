@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process SEGMENT_CELLS_WITH_DEEP_LEARNING"
+    script "../main.nf"
+    process "SEGMENT_CELLS_WITH_DEEP_LEARNING"
+
+    test("Should run segment_cells_with_deep_learning successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

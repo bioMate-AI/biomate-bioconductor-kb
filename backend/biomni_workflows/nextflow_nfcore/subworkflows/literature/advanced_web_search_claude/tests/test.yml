@@ -1,0 +1,7 @@
+- name: "advanced_web_search_claude test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      query: cancer biology
+  tags:
+    - literature
+    - advanced_web_search_claude

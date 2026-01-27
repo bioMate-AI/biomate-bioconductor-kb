@@ -1,0 +1,5 @@
+- name: "detect_and_annotate_somatic_mutations test"
+  command: nextflow run ./main.nf
+  tags:
+    - cancer_biology
+    - detect_and_annotate_somatic_mutations

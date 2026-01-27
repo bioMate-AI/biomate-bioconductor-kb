@@ -1,0 +1,7 @@
+- name: "elbo_loss test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      beta: 0.3
+  tags:
+    - genetics
+    - elbo_loss

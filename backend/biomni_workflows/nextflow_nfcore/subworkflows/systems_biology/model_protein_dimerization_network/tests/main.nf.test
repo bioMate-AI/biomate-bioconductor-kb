@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process MODEL_PROTEIN_DIMERIZATION_NETWORK"
+    script "../main.nf"
+    process "MODEL_PROTEIN_DIMERIZATION_NETWORK"
+
+    test("Should run model_protein_dimerization_network successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

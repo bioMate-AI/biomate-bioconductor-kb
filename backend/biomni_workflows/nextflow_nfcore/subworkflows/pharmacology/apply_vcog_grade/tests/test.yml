@@ -1,0 +1,7 @@
+- name: "apply_vcog_grade test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      species: Homo sapiens
+  tags:
+    - pharmacology
+    - apply_vcog_grade

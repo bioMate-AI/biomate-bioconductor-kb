@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process MERGE_OVERLAPPING_REGIONS"
+    script "../main.nf"
+    process "MERGE_OVERLAPPING_REGIONS"
+
+    test("Should run merge_overlapping_regions with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

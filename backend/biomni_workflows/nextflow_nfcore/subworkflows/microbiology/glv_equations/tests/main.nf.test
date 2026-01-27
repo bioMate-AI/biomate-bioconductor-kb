@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GLV_EQUATIONS"
+    script "../main.nf"
+    process "GLV_EQUATIONS"
+
+    test("Should run glv_equations successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,5 @@
+- name: "fit_genomic_prediction_model test"
+  command: nextflow run ./main.nf
+  tags:
+    - genetics
+    - fit_genomic_prediction_model

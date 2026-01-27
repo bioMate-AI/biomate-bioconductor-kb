@@ -1,0 +1,8 @@
+- name: "analyze_rna_secondary_structure_features test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      dot_bracket_structure: "(((...)))"
+      sequence: "ATGCGATCGATCGATCGATCG"
+  tags:
+    - biochemistry
+    - analyze_rna_secondary_structure_features

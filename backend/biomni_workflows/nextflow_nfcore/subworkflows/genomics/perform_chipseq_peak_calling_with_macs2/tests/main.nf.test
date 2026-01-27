@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2"
+    script "../main.nf"
+    process "PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2"
+
+    test("Should run perform_chipseq_peak_calling_with_macs2 with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process VFA_PRODUCTION_MODEL"
+    script "../main.nf"
+    process "VFA_PRODUCTION_MODEL"
+
+    test("Should run vfa_production_model with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

@@ -1,0 +1,5 @@
+- name: "calculate_brain_adc_map test"
+  command: nextflow run ./main.nf
+  tags:
+    - physiology
+    - calculate_brain_adc_map

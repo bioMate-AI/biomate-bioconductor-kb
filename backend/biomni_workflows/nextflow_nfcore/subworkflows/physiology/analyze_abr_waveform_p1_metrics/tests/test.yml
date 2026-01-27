@@ -1,0 +1,5 @@
+- name: "analyze_abr_waveform_p1_metrics test"
+  command: nextflow run ./main.nf
+  tags:
+    - physiology
+    - analyze_abr_waveform_p1_metrics

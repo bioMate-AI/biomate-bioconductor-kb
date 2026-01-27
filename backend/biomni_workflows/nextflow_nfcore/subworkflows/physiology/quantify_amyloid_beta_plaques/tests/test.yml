@@ -1,0 +1,5 @@
+- name: "quantify_amyloid_beta_plaques test"
+  command: nextflow run ./main.nf
+  tags:
+    - physiology
+    - quantify_amyloid_beta_plaques

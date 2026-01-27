@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_ARSENIC_SPECIATION_HPLC_ICPMS"
+    script "../main.nf"
+    process "ANALYZE_ARSENIC_SPECIATION_HPLC_ICPMS"
+
+    test("Should run analyze_arsenic_speciation_hplc_icpms with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

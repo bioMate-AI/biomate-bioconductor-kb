@@ -1,0 +1,5 @@
+- name: "map_to_ima_interpret_scRNA test"
+  command: nextflow run ./main.nf
+  tags:
+    - genomics
+    - map_to_ima_interpret_scRNA

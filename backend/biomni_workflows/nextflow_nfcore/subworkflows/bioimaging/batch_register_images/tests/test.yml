@@ -1,0 +1,5 @@
+- name: "batch_register_images test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioimaging
+    - batch_register_images

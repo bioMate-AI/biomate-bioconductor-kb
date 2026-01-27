@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process INTERSPECIES_GENE_CONVERSION"
+    script "../main.nf"
+    process "INTERSPECIES_GENE_CONVERSION"
+
+    test("Should run interspecies_gene_conversion successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process BI_EXP_MODEL"
+    script "../main.nf"
+    process "BI_EXP_MODEL"
+
+    test("Should run bi_exp_model successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

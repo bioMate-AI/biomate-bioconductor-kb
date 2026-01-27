@@ -1,0 +1,9 @@
+- name: "ode_system test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      state: [1.0, 0.5, 0.2]
+      rates: [0.1, 0.2, 0.05]
+      stoichiometry: [[1, -1], [-1, 1]]
+  tags:
+    - systems_biology
+    - ode_system

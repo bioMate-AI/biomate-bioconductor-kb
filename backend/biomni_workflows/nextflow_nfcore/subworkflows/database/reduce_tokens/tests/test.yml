@@ -1,0 +1,5 @@
+- name: "reduce_tokens test"
+  command: nextflow run ./main.nf
+  tags:
+    - database
+    - reduce_tokens

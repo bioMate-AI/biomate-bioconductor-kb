@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process RUN_3D_CHONDROGENIC_AGGREGATE_ASSAY"
+    script "../main.nf"
+    process "RUN_3D_CHONDROGENIC_AGGREGATE_ASSAY"
+
+    test("Should run run_3d_chondrogenic_aggregate_assay with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

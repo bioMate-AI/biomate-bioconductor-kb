@@ -1,0 +1,5 @@
+- name: "generate_transcriptformer_embeddings test"
+  command: nextflow run ./main.nf
+  tags:
+    - genomics
+    - generate_transcriptformer_embeddings

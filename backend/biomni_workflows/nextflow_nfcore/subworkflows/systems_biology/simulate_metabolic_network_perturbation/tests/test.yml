@@ -1,0 +1,5 @@
+- name: "simulate_metabolic_network_perturbation test"
+  command: nextflow run ./main.nf
+  tags:
+    - systems_biology
+    - simulate_metabolic_network_perturbation

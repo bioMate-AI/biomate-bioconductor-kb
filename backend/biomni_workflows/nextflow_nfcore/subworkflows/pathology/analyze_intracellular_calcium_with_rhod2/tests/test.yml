@@ -1,0 +1,5 @@
+- name: "analyze_intracellular_calcium_with_rhod2 test"
+  command: nextflow run ./main.nf
+  tags:
+    - pathology
+    - analyze_intracellular_calcium_with_rhod2

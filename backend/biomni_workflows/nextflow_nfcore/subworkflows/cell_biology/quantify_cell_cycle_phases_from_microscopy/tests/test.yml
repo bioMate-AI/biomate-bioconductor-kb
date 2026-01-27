@@ -1,0 +1,5 @@
+- name: "quantify_cell_cycle_phases_from_microscopy test"
+  command: nextflow run ./main.nf
+  tags:
+    - cell_biology
+    - quantify_cell_cycle_phases_from_microscopy

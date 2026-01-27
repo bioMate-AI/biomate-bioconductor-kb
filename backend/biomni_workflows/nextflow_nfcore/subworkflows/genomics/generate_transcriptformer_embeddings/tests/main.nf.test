@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process GENERATE_TRANSCRIPTFORMER_EMBEDDINGS"
+    script "../main.nf"
+    process "GENERATE_TRANSCRIPTFORMER_EMBEDDINGS"
+
+    test("Should run generate_transcriptformer_embeddings with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

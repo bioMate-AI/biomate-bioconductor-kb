@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process FETCH_SUPPLEMENTARY_INFO_FROM_DOI"
+    script "../main.nf"
+    process "FETCH_SUPPLEMENTARY_INFO_FROM_DOI"
+
+    test("Should run fetch_supplementary_info_from_doi successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,7 @@
+- name: "zero_order test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      t: 10.0
+  tags:
+    - bioengineering
+    - zero_order

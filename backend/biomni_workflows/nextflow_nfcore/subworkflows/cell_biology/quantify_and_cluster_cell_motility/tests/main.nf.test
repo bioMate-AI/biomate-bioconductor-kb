@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process QUANTIFY_AND_CLUSTER_CELL_MOTILITY"
+    script "../main.nf"
+    process "QUANTIFY_AND_CLUSTER_CELL_MOTILITY"
+
+    test("Should run quantify_and_cluster_cell_motility with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

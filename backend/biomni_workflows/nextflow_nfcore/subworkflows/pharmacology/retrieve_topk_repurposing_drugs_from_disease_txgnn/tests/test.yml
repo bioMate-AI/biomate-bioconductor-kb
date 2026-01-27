@@ -1,0 +1,5 @@
+- name: "retrieve_topk_repurposing_drugs_from_disease_txgnn test"
+  command: nextflow run ./main.nf
+  tags:
+    - pharmacology
+    - retrieve_topk_repurposing_drugs_from_disease_txgnn

@@ -1,0 +1,5 @@
+- name: "create_harmony_embeddings_scRNA test"
+  command: nextflow run ./main.nf
+  tags:
+    - genomics
+    - create_harmony_embeddings_scRNA

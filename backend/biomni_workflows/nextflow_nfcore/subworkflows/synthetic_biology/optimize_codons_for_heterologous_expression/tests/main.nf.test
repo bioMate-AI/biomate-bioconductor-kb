@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process OPTIMIZE_CODONS_FOR_HETEROLOGOUS_EXPRESSION"
+    script "../main.nf"
+    process "OPTIMIZE_CODONS_FOR_HETEROLOGOUS_EXPRESSION"
+
+    test("Should run optimize_codons_for_heterologous_expression with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

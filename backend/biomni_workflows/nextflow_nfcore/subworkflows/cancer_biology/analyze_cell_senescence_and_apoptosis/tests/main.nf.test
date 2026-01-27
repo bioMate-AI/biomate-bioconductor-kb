@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS"
+    script "../main.nf"
+    process "ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS"
+
+    test("Should run analyze_cell_senescence_and_apoptosis with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

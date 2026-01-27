@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ELBO_LOSS"
+    script "../main.nf"
+    process "ELBO_LOSS"
+
+    test("Should run elbo_loss successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

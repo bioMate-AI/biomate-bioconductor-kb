@@ -1,0 +1,8 @@
+- name: "fetch_supplementary_info_from_doi test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      doi: 10.1038/nature12373
+      output_dir: ./output
+  tags:
+    - literature
+    - fetch_supplementary_info_from_doi

@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ANALYZE_ENDOLYSOSOMAL_CALCIUM_DYNAMICS"
+    script "../main.nf"
+    process "ANALYZE_ENDOLYSOSOMAL_CALCIUM_DYNAMICS"
+
+    test("Should run analyze_endolysosomal_calcium_dynamics successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_WESTERN_BLOT"
+    script "../main.nf"
+    process "ANALYZE_WESTERN_BLOT"
+
+    test("Should run analyze_western_blot with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

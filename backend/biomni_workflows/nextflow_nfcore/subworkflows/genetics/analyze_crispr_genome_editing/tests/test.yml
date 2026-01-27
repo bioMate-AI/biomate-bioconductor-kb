@@ -1,0 +1,5 @@
+- name: "analyze_crispr_genome_editing test"
+  command: nextflow run ./main.nf
+  tags:
+    - genetics
+    - analyze_crispr_genome_editing

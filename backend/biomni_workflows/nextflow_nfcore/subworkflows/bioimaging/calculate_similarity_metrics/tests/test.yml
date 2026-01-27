@@ -1,0 +1,5 @@
+- name: "calculate_similarity_metrics test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioimaging
+    - calculate_similarity_metrics

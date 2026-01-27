@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process SIMULATE_DEMOGRAPHIC_HISTORY"
+    script "../main.nf"
+    process "SIMULATE_DEMOGRAPHIC_HISTORY"
+
+    test("Should run simulate_demographic_history with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

@@ -1,0 +1,5 @@
+- name: "analyze_cytokine_production_in_cd4_tcells test"
+  command: nextflow run ./main.nf
+  tags:
+    - immunology
+    - analyze_cytokine_production_in_cd4_tcells

@@ -1,0 +1,5 @@
+- name: "bacterial_dynamics test"
+  command: nextflow run ./main.nf
+  tags:
+    - microbiology
+    - bacterial_dynamics

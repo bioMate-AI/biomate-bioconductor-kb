@@ -1,0 +1,5 @@
+- name: "run_autosite test"
+  command: nextflow run ./main.nf
+  tags:
+    - pharmacology
+    - run_autosite

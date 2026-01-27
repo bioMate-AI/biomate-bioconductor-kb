@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process SIMULATE_GENE_CIRCUIT_WITH_GROWTH_FEEDBACK"
+    script "../main.nf"
+    process "SIMULATE_GENE_CIRCUIT_WITH_GROWTH_FEEDBACK"
+
+    test("Should run simulate_gene_circuit_with_growth_feedback with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

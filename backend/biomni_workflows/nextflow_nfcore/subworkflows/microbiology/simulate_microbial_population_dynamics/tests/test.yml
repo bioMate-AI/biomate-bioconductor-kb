@@ -1,0 +1,5 @@
+- name: "simulate_microbial_population_dynamics test"
+  command: nextflow run ./main.nf
+  tags:
+    - microbiology
+    - simulate_microbial_population_dynamics

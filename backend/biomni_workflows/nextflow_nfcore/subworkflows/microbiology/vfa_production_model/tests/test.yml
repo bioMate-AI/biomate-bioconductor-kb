@@ -1,0 +1,5 @@
+- name: "vfa_production_model test"
+  command: nextflow run ./main.nf
+  tags:
+    - microbiology
+    - vfa_production_model

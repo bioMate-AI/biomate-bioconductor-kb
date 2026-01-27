@@ -1,0 +1,12 @@
+- name: "analyze_protease_kinetics test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      time_points: [0, 1, 2, 3, 4, 5]
+      fluorescence_data: [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], [0.2, 0.4, 0.6, 0.8, 1.0, 1.2]]
+      substrate_concentrations: [10.0, 20.0]
+      enzyme_concentration: 1e-05
+      output_prefix: "result"
+      output_dir: "./output"
+  tags:
+    - biochemistry
+    - analyze_protease_kinetics

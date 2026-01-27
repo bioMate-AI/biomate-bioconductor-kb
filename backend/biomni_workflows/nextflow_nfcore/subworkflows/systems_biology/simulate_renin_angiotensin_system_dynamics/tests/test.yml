@@ -1,0 +1,5 @@
+- name: "simulate_renin_angiotensin_system_dynamics test"
+  command: nextflow run ./main.nf
+  tags:
+    - systems_biology
+    - simulate_renin_angiotensin_system_dynamics

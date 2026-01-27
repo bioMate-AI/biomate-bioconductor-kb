@@ -1,0 +1,5 @@
+- name: "simulate_whole_cell_ode_model test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioengineering
+    - simulate_whole_cell_ode_model

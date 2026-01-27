@@ -1,0 +1,5 @@
+- name: "docking_autodock_vina test"
+  command: nextflow run ./main.nf
+  tags:
+    - pharmacology
+    - docking_autodock_vina

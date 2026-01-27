@@ -1,0 +1,8 @@
+- name: "segment_cells_with_deep_learning test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      image_path: "test_image.png"
+      model_type: "2d"
+  tags:
+    - microbiology
+    - segment_cells_with_deep_learning

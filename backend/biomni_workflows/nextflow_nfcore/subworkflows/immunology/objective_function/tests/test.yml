@@ -1,0 +1,5 @@
+- name: "objective_function test"
+  command: nextflow run ./main.nf
+  tags:
+    - immunology
+    - objective_function

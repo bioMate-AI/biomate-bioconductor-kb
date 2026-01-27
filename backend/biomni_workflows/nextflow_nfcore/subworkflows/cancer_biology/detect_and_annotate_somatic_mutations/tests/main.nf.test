@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process DETECT_AND_ANNOTATE_SOMATIC_MUTATIONS"
+    script "../main.nf"
+    process "DETECT_AND_ANNOTATE_SOMATIC_MUTATIONS"
+
+    test("Should run detect_and_annotate_somatic_mutations with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING"
+    script "../main.nf"
+    process "ANALYZE_FLOW_CYTOMETRY_IMMUNOPHENOTYPING"
+
+    test("Should run analyze_flow_cytometry_immunophenotyping with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

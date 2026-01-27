@@ -1,0 +1,5 @@
+- name: "run_3d_chondrogenic_aggregate_assay test"
+  command: nextflow run ./main.nf
+  tags:
+    - pharmacology
+    - run_3d_chondrogenic_aggregate_assay

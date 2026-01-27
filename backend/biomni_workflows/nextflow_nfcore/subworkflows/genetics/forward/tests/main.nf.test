@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process FORWARD"
+    script "../main.nf"
+    process "FORWARD"
+
+    test("Should run forward successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

@@ -1,0 +1,5 @@
+- name: "analyze_atac_seq_differential_accessibility test"
+  command: nextflow run ./main.nf
+  tags:
+    - immunology
+    - analyze_atac_seq_differential_accessibility

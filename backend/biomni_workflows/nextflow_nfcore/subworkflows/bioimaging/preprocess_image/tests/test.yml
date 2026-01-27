@@ -1,0 +1,5 @@
+- name: "preprocess_image test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioimaging
+    - preprocess_image

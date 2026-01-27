@@ -1,0 +1,5 @@
+- name: "analyze_hemodynamic_data test"
+  command: nextflow run ./main.nf
+  tags:
+    - physiology
+    - analyze_hemodynamic_data

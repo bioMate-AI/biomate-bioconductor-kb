@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process APPLY_VCOG_GRADE"
+    script "../main.nf"
+    process "APPLY_VCOG_GRADE"
+
+    test("Should run apply_vcog_grade successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

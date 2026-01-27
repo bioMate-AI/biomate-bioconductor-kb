@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process DESIGN_VERIFICATION_PRIMERS"
+    script "../main.nf"
+    process "DESIGN_VERIFICATION_PRIMERS"
+
+    test("Should run design_verification_primers with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

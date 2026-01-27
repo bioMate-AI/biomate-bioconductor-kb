@@ -1,0 +1,5 @@
+- name: "analyze_bifurcation_diagram test"
+  command: nextflow run ./main.nf
+  tags:
+    - synthetic_biology
+    - analyze_bifurcation_diagram

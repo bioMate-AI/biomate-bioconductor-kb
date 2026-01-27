@@ -1,0 +1,12 @@
+- name: "analyze_endolysosomal_calcium_dynamics test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      time_points: [0, 1, 2, 3, 4, 5, 6]
+      luminescence_values: [100, 200, 500, 1000, 2000]
+      treatment_time: 24
+      cell_type: fibroblast
+      treatment_name: drug_A
+      output_file: output.txt
+  tags:
+    - physiology
+    - analyze_endolysosomal_calcium_dynamics

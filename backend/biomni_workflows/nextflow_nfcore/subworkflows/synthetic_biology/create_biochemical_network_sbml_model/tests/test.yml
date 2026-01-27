@@ -1,0 +1,5 @@
+- name: "create_biochemical_network_sbml_model test"
+  command: nextflow run ./main.nf
+  tags:
+    - synthetic_biology
+    - create_biochemical_network_sbml_model

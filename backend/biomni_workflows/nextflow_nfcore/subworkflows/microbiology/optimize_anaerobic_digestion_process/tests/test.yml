@@ -1,0 +1,5 @@
+- name: "optimize_anaerobic_digestion_process test"
+  command: nextflow run ./main.nf
+  tags:
+    - microbiology
+    - optimize_anaerobic_digestion_process

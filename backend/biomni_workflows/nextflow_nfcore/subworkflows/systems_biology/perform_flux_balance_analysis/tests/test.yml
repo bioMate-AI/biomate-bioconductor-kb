@@ -1,0 +1,5 @@
+- name: "perform_flux_balance_analysis test"
+  command: nextflow run ./main.nf
+  tags:
+    - systems_biology
+    - perform_flux_balance_analysis

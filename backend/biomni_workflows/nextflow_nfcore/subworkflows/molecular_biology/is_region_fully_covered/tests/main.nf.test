@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process IS_REGION_FULLY_COVERED"
+    script "../main.nf"
+    process "IS_REGION_FULLY_COVERED"
+
+    test("Should run is_region_fully_covered with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

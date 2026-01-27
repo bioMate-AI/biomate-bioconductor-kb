@@ -1,0 +1,5 @@
+- name: "segment_and_analyze_microbial_cells test"
+  command: nextflow run ./main.nf
+  tags:
+    - microbiology
+    - segment_and_analyze_microbial_cells

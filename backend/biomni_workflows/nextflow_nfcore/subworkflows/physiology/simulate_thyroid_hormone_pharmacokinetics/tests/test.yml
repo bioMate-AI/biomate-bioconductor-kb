@@ -1,0 +1,5 @@
+- name: "simulate_thyroid_hormone_pharmacokinetics test"
+  command: nextflow run ./main.nf
+  tags:
+    - physiology
+    - simulate_thyroid_hormone_pharmacokinetics

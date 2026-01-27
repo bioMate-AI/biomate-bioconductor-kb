@@ -1,0 +1,5 @@
+- name: "extract_pdf_content test"
+  command: nextflow run ./main.nf
+  tags:
+    - literature
+    - extract_pdf_content

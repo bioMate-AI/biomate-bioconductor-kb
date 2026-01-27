@@ -1,0 +1,5 @@
+- name: "design_knockout_sgrna test"
+  command: nextflow run ./main.nf
+  tags:
+    - molecular_biology
+    - design_knockout_sgrna

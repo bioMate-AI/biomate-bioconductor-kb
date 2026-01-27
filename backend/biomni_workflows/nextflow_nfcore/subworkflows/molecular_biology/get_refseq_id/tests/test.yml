@@ -1,0 +1,7 @@
+- name: "get_refseq_id test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      organism: human
+  tags:
+    - molecular_biology
+    - get_refseq_id

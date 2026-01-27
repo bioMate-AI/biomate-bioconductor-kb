@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_CYTOKINE_PRODUCTION_IN_CD4_TCELLS"
+    script "../main.nf"
+    process "ANALYZE_CYTOKINE_PRODUCTION_IN_CD4_TCELLS"
+
+    test("Should run analyze_cytokine_production_in_cd4_tcells with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

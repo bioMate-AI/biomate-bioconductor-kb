@@ -1,0 +1,5 @@
+- name: "analyze_comparative_genomics_and_haplotypes test"
+  command: nextflow run ./main.nf
+  tags:
+    - genomics
+    - analyze_comparative_genomics_and_haplotypes

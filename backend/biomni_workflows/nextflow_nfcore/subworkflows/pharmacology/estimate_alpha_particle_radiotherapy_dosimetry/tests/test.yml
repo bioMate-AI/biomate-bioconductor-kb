@@ -1,0 +1,5 @@
+- name: "estimate_alpha_particle_radiotherapy_dosimetry test"
+  command: nextflow run ./main.nf
+  tags:
+    - pharmacology
+    - estimate_alpha_particle_radiotherapy_dosimetry

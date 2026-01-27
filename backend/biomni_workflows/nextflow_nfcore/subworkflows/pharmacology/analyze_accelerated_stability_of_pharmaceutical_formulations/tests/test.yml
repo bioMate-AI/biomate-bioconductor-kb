@@ -1,0 +1,5 @@
+- name: "analyze_accelerated_stability_of_pharmaceutical_formulations test"
+  command: nextflow run ./main.nf
+  tags:
+    - pharmacology
+    - analyze_accelerated_stability_of_pharmaceutical_formulations

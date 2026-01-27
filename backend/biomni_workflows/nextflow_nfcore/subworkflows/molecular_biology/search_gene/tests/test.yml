@@ -1,0 +1,5 @@
+- name: "search_gene test"
+  command: nextflow run ./main.nf
+  tags:
+    - molecular_biology
+    - search_gene

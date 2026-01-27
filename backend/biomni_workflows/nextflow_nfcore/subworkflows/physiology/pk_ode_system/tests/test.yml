@@ -1,0 +1,7 @@
+- name: "pk_ode_system test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      c: 0.5
+  tags:
+    - physiology
+    - pk_ode_system

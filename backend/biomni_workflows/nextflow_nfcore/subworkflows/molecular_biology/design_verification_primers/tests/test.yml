@@ -1,0 +1,5 @@
+- name: "design_verification_primers test"
+  command: nextflow run ./main.nf
+  tags:
+    - molecular_biology
+    - design_verification_primers

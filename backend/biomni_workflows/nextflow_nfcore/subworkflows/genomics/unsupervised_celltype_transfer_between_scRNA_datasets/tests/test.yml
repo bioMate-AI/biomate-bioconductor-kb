@@ -1,0 +1,5 @@
+- name: "unsupervised_celltype_transfer_between_scRNA_datasets test"
+  command: nextflow run ./main.nf
+  tags:
+    - genomics
+    - unsupervised_celltype_transfer_between_scRNA_datasets

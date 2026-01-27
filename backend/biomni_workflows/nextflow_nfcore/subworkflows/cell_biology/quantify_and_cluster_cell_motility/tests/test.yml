@@ -1,0 +1,5 @@
+- name: "quantify_and_cluster_cell_motility test"
+  command: nextflow run ./main.nf
+  tags:
+    - cell_biology
+    - quantify_and_cluster_cell_motility

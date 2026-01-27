@@ -1,0 +1,5 @@
+- name: "perform_chipseq_peak_calling_with_macs2 test"
+  command: nextflow run ./main.nf
+  tags:
+    - genomics
+    - perform_chipseq_peak_calling_with_macs2

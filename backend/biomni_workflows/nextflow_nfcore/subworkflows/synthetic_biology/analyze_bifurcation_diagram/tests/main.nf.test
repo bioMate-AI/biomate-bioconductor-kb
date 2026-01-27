@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_BIFURCATION_DIAGRAM"
+    script "../main.nf"
+    process "ANALYZE_BIFURCATION_DIAGRAM"
+
+    test("Should run analyze_bifurcation_diagram with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

@@ -1,0 +1,5 @@
+- name: "quantify_biofilm_biomass_crystal_violet test"
+  command: nextflow run ./main.nf
+  tags:
+    - microbiology
+    - quantify_biofilm_biomass_crystal_violet

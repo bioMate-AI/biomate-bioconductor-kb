@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_PROTEIN_PHYLOGENY"
+    script "../main.nf"
+    process "ANALYZE_PROTEIN_PHYLOGENY"
+
+    test("Should run analyze_protein_phylogeny with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

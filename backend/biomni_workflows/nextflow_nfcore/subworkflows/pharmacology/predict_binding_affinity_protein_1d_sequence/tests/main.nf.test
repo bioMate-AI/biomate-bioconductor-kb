@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process PREDICT_BINDING_AFFINITY_PROTEIN_1D_SEQUENCE"
+    script "../main.nf"
+    process "PREDICT_BINDING_AFFINITY_PROTEIN_1D_SEQUENCE"
+
+    test("Should run predict_binding_affinity_protein_1d_sequence with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

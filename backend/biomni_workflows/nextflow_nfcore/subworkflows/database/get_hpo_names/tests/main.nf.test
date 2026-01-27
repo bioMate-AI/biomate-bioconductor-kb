@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process GET_HPO_NAMES"
+    script "../main.nf"
+    process "GET_HPO_NAMES"
+
+    test("Should run get_hpo_names with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

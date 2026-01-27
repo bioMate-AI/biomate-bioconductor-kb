@@ -1,0 +1,5 @@
+- name: "query_chatnt test"
+  command: nextflow run ./main.nf
+  tags:
+    - systems_biology
+    - query_chatnt

@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process ONE_SITE_MODEL"
+    script "../main.nf"
+    process "ONE_SITE_MODEL"
+
+    test("Should run one_site_model successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

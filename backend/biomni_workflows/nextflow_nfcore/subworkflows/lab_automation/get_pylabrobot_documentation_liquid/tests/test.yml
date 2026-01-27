@@ -1,0 +1,5 @@
+- name: "get_pylabrobot_documentation_liquid test"
+  command: nextflow run ./main.nf
+  tags:
+    - lab_automation
+    - get_pylabrobot_documentation_liquid

@@ -1,0 +1,10 @@
+- name: "analyze_copy_number_purity_ploidy_and_focal_events test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      tumor_bam: "tumor.bam"
+      reference_genome: "hg38"
+      normal_bam: "normal.bam"
+      output_dir: "./output"
+  tags:
+    - cancer_biology
+    - analyze_copy_number_purity_ploidy_and_focal_events

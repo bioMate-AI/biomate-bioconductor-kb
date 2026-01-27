@@ -1,0 +1,5 @@
+- name: "analyze_barcode_sequencing_data test"
+  command: nextflow run ./main.nf
+  tags:
+    - synthetic_biology
+    - analyze_barcode_sequencing_data

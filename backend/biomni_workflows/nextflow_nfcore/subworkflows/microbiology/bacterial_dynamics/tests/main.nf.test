@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process BACTERIAL_DYNAMICS"
+    script "../main.nf"
+    process "BACTERIAL_DYNAMICS"
+
+    test("Should run bacterial_dynamics with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

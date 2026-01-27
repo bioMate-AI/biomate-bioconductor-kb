@@ -1,0 +1,8 @@
+- name: "mass_action_kinetics test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      k: 0.5
+      concentrations: [0.1, 0.5, 1.0, 2.0, 5.0]
+  tags:
+    - systems_biology
+    - mass_action_kinetics

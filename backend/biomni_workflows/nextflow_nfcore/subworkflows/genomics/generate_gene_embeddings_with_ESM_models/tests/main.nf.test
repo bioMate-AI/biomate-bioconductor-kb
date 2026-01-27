@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process GENERATE_GENE_EMBEDDINGS_WITH_ESM_MODELS"
+    script "../main.nf"
+    process "GENERATE_GENE_EMBEDDINGS_WITH_ESM_MODELS"
+
+    test("Should run generate_gene_embeddings_with_ESM_models with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

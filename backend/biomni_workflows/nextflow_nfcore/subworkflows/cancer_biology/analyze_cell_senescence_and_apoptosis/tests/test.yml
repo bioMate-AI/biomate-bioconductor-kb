@@ -1,0 +1,5 @@
+- name: "analyze_cell_senescence_and_apoptosis test"
+  command: nextflow run ./main.nf
+  tags:
+    - cancer_biology
+    - analyze_cell_senescence_and_apoptosis

@@ -1,0 +1,5 @@
+- name: "analyze_circular_dichroism_spectra test"
+  command: nextflow run ./main.nf
+  tags:
+    - biochemistry
+    - analyze_circular_dichroism_spectra

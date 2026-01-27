@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_RADIOLABELED_ANTIBODY_BIODISTRIBUTION"
+    script "../main.nf"
+    process "ANALYZE_RADIOLABELED_ANTIBODY_BIODISTRIBUTION"
+
+    test("Should run analyze_radiolabeled_antibody_biodistribution with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

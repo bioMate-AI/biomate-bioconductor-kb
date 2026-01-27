@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process SEGMENT_AND_ANALYZE_MICROBIAL_CELLS"
+    script "../main.nf"
+    process "SEGMENT_AND_ANALYZE_MICROBIAL_CELLS"
+
+    test("Should run segment_and_analyze_microbial_cells with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

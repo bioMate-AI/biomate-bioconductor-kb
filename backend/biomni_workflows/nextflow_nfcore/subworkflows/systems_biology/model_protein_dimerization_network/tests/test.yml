@@ -1,0 +1,9 @@
+- name: "model_protein_dimerization_network test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      monomer_concentrations: {"A": 1.0, "B": 2.0}
+      dimerization_affinities: {"A-B": 0.01}
+      network_topology: [["A", "B"]]
+  tags:
+    - systems_biology
+    - model_protein_dimerization_network

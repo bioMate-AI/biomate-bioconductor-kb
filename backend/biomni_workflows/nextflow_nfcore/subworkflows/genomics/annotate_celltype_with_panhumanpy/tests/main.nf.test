@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANNOTATE_CELLTYPE_WITH_PANHUMANPY"
+    script "../main.nf"
+    process "ANNOTATE_CELLTYPE_WITH_PANHUMANPY"
+
+    test("Should run annotate_celltype_with_panhumanpy with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

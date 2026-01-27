@@ -1,0 +1,5 @@
+- name: "compare_protein_structures test"
+  command: nextflow run ./main.nf
+  tags:
+    - systems_biology
+    - compare_protein_structures

@@ -1,0 +1,5 @@
+- name: "analyze_flow_cytometry_immunophenotyping test"
+  command: nextflow run ./main.nf
+  tags:
+    - cell_biology
+    - analyze_flow_cytometry_immunophenotyping

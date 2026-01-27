@@ -1,0 +1,5 @@
+- name: "decode_behavior_from_neural_trajectories test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioengineering
+    - decode_behavior_from_neural_trajectories

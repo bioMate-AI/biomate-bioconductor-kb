@@ -1,0 +1,5 @@
+- name: "simulate_gene_circuit_with_growth_feedback test"
+  command: nextflow run ./main.nf
+  tags:
+    - synthetic_biology
+    - simulate_gene_circuit_with_growth_feedback

@@ -1,0 +1,10 @@
+- name: "one_site_model test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      x: 1.0
+      Kd: 0.001
+      dH: -50000
+      n: 3
+  tags:
+    - biochemistry
+    - one_site_model

@@ -1,0 +1,5 @@
+- name: "analyze_ebv_antibody_titers test"
+  command: nextflow run ./main.nf
+  tags:
+    - immunology
+    - analyze_ebv_antibody_titers

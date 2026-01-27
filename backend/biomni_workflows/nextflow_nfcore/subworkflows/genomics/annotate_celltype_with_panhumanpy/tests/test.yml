@@ -1,0 +1,5 @@
+- name: "annotate_celltype_with_panhumanpy test"
+  command: nextflow run ./main.nf
+  tags:
+    - genomics
+    - annotate_celltype_with_panhumanpy

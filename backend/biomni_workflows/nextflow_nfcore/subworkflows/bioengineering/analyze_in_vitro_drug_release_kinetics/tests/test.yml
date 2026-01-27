@@ -1,0 +1,5 @@
+- name: "analyze_in_vitro_drug_release_kinetics test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioengineering
+    - analyze_in_vitro_drug_release_kinetics

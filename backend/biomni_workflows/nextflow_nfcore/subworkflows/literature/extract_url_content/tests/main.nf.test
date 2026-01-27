@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process EXTRACT_URL_CONTENT"
+    script "../main.nf"
+    process "EXTRACT_URL_CONTENT"
+
+    test("Should run extract_url_content successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

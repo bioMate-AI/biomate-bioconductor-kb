@@ -1,0 +1,11 @@
+- name: "model_bacterial_growth_dynamics test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      initial_population: 1000
+      growth_rate: 0.5
+      clearance_rate: 0.1
+      niche_size: 100000
+      simulation_time: 24
+  tags:
+    - microbiology
+    - model_bacterial_growth_dynamics

@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process FIT_GENOMIC_PREDICTION_MODEL"
+    script "../main.nf"
+    process "FIT_GENOMIC_PREDICTION_MODEL"
+
+    test("Should run fit_genomic_prediction_model with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

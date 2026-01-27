@@ -1,0 +1,6 @@
+- name: "reverse_complement test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - molecular_biology
+    - reverse_complement

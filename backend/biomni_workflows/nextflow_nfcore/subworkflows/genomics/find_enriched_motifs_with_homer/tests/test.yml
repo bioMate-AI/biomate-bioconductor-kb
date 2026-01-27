@@ -1,0 +1,5 @@
+- name: "find_enriched_motifs_with_homer test"
+  command: nextflow run ./main.nf
+  tags:
+    - genomics
+    - find_enriched_motifs_with_homer

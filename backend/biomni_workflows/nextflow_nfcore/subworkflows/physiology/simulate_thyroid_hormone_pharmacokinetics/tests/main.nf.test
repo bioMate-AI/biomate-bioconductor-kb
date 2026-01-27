@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process SIMULATE_THYROID_HORMONE_PHARMACOKINETICS"
+    script "../main.nf"
+    process "SIMULATE_THYROID_HORMONE_PHARMACOKINETICS"
+
+    test("Should run simulate_thyroid_hormone_pharmacokinetics with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process SEGMENT_WITH_NN_UNET"
+    script "../main.nf"
+    process "SEGMENT_WITH_NN_UNET"
+
+    test("Should run segment_with_nn_unet with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

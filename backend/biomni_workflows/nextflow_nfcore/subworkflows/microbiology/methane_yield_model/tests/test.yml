@@ -1,0 +1,5 @@
+- name: "methane_yield_model test"
+  command: nextflow run ./main.nf
+  tags:
+    - microbiology
+    - methane_yield_model

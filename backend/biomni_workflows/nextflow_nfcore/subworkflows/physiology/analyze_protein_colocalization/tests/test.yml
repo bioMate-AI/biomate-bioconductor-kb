@@ -1,0 +1,5 @@
+- name: "analyze_protein_colocalization test"
+  command: nextflow run ./main.nf
+  tags:
+    - physiology
+    - analyze_protein_colocalization

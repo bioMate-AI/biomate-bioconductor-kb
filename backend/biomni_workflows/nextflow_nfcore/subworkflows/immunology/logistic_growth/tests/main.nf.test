@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process LOGISTIC_GROWTH"
+    script "../main.nf"
+    process "LOGISTIC_GROWTH"
+
+    test("Should run logistic_growth successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

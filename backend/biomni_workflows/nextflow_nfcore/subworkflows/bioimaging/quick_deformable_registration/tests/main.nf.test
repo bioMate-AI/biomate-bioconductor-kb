@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process QUICK_DEFORMABLE_REGISTRATION"
+    script "../main.nf"
+    process "QUICK_DEFORMABLE_REGISTRATION"
+
+    test("Should run quick_deformable_registration with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

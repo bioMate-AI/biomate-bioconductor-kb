@@ -1,0 +1,5 @@
+- name: "default_whole_cell_model test"
+  command: nextflow run ./main.nf
+  tags:
+    - bioengineering
+    - default_whole_cell_model

@@ -1,0 +1,5 @@
+- name: "analyze_protein_phylogeny test"
+  command: nextflow run ./main.nf
+  tags:
+    - genetics
+    - analyze_protein_phylogeny

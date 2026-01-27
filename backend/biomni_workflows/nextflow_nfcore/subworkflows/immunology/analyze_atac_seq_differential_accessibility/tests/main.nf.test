@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_ATAC_SEQ_DIFFERENTIAL_ACCESSIBILITY"
+    script "../main.nf"
+    process "ANALYZE_ATAC_SEQ_DIFFERENTIAL_ACCESSIBILITY"
+
+    test("Should run analyze_atac_seq_differential_accessibility with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

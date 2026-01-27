@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process METHANE_YIELD_MODEL"
+    script "../main.nf"
+    process "METHANE_YIELD_MODEL"
+
+    test("Should run methane_yield_model with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}

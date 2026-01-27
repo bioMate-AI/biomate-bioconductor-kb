@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process GET_REFSEQ_ID"
+    script "../main.nf"
+    process "GET_REFSEQ_ID"
+
+    test("Should run get_refseq_id successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

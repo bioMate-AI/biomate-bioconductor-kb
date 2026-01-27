@@ -1,0 +1,18 @@
+nextflow_process {
+    name "Test Process ANALYZE_EBV_ANTIBODY_TITERS"
+    script "../main.nf"
+    process "ANALYZE_EBV_ANTIBODY_TITERS"
+
+    test("Should run analyze_ebv_antibody_titers with default parameters") {
+        when {
+            process {
+                """
+                input[0] = [ id:'test' ]
+                """
+            }
+        }
+        then {
+            assert process.success
+        }
+    }
+}
