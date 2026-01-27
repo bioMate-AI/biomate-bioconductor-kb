@@ -10,11 +10,12 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.time_points = null
-params.luminescence_values = null
-params.treatment_time = null
-params.cell_type = null
-params.treatment_name = null
+// Default test data: ELGA probe calcium dynamics (baseline then drug treatment)
+params.time_points = '[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300]'
+params.luminescence_values = '[1.0, 1.02, 0.98, 1.01, 2.5, 3.8, 4.2, 3.9, 3.2, 2.5, 1.8]'
+params.treatment_time = '120'
+params.cell_type = 'HeLa'
+params.treatment_name = 'GPN'
 params.output_file = 'calcium_analysis_results.txt'
 
 process ANALYZE_ENDOLYSOSOMAL_CALCIUM_DYNAMICS {

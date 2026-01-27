@@ -1,12 +1,13 @@
 - name: "analyze_endolysosomal_calcium_dynamics test"
   command: nextflow run ../main.nf -profile docker
   params:
-      time_points: [0, 1, 2, 3, 4, 5, 6]
-      luminescence_values: [100, 200, 500, 1000, 2000]
-      treatment_time: 24
-      cell_type: fibroblast
-      treatment_name: drug_A
-      output_file: output.txt
+    # ELGA probe calcium dynamics: baseline (0-90s) then GPN treatment (120s+)
+    time_points: '[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300]'
+    luminescence_values: '[1.0, 1.02, 0.98, 1.01, 2.5, 3.8, 4.2, 3.9, 3.2, 2.5, 1.8]'
+    treatment_time: '120'
+    cell_type: 'HeLa'
+    treatment_name: 'GPN'
+    output_file: 'calcium_analysis_results.txt'
   tags:
     - physiology
     - analyze_endolysosomal_calcium_dynamics
