@@ -79,17 +79,25 @@ def glv_equations(populations, growth_rates, interaction_matrix):
     '''GLV: dxi/dt = xi * (ri + sum_j(aij * xj))
     Args: populations: list, growth_rates: list, interaction_matrix: 2D list (as JSON string)
     '''
+    # Validate inputs - use defaults if None
+    if populations is None:
+        populations = [1.0, 1.0]  # 2 species
+    if growth_rates is None:
+        growth_rates = [0.1, 0.1]  # growth rates
+    if interaction_matrix is None:
+        interaction_matrix = [[-0.01, -0.005], [-0.005, -0.01]]  # competition
+
     if isinstance(populations, str):
         populations = [float(x.strip()) for x in populations.split(',')]
     if isinstance(growth_rates, str):
         growth_rates = [float(x.strip()) for x in growth_rates.split(',')]
     if isinstance(interaction_matrix, str):
         interaction_matrix = json.loads(interaction_matrix)
-    
+
     populations = np.array(populations)
     growth_rates = np.array(growth_rates)
     interaction_matrix = np.array(interaction_matrix)
-    
+
     derivatives = populations * (growth_rates + interaction_matrix @ populations)
     return {"derivatives": derivatives.tolist(), "populations": populations.tolist()}
 

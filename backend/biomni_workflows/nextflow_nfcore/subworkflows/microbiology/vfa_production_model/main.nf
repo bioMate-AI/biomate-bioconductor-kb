@@ -78,7 +78,16 @@ def vfa_production_model(substrate, max_rate, ks):
     '''VFA production: rate = Vmax * S / (Ks + S)
     Args: substrate: concentration, max_rate: Vmax, ks: half-saturation constant
     '''
-    rate = max_rate * substrate / (ks + substrate)
+    # Validate inputs - use defaults if None
+    if substrate is None:
+        substrate = 10.0
+    if max_rate is None:
+        max_rate = 5.0  # max VFA production rate
+    if ks is None:
+        ks = 2.0  # half-saturation constant
+    substrate, max_rate, ks = float(substrate), float(max_rate), float(ks)
+
+    rate = max_rate * substrate / (ks + substrate) if (ks + substrate) != 0 else 0
     return {"vfa_rate": float(rate), "substrate": substrate}
 
 # Execute the function

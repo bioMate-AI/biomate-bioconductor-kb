@@ -78,7 +78,16 @@ def methane_yield_model(substrate, yield_coefficient, inhibition_constant=None):
     '''Methane yield: Y = Ymax * S / (Ks + S) with optional inhibition
     Args: substrate: concentration, yield_coefficient: max yield, inhibition_constant: optional Ki
     '''
+    # Validate inputs - use defaults if None
+    if substrate is None:
+        substrate = 10.0  # substrate concentration
+    if yield_coefficient is None:
+        yield_coefficient = 0.35  # typical methane yield
+    substrate = float(substrate)
+    yield_coefficient = float(yield_coefficient)
+
     if inhibition_constant:
+        inhibition_constant = float(inhibition_constant)
         yield_val = yield_coefficient * substrate / (substrate + inhibition_constant)
     else:
         yield_val = yield_coefficient * substrate

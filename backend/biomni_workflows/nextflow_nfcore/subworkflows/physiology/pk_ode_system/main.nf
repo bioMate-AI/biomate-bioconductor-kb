@@ -80,6 +80,17 @@ def pk_ode_system(c, ka, ke, vd):
     '''PK ODE: dC/dt = (ka*dose/Vd)*exp(-ka*t) - ke*C
     Args: c: concentration, ka: absorption rate, ke: elimination rate, vd: volume of distribution
     '''
+    # Validate inputs - use defaults if None
+    if c is None:
+        c = 10.0  # plasma concentration
+    if ka is None:
+        ka = 0.5  # absorption rate constant
+    if ke is None:
+        ke = 0.1  # elimination rate constant
+    if vd is None:
+        vd = 50.0  # volume of distribution in liters
+    c, ka, ke, vd = float(c), float(ka), float(ke), float(vd)
+
     dcdt = -ke * c  # Simplified elimination phase
     return {"dC_dt": float(dcdt), "C": c, "ka": ka, "ke": ke, "Vd": vd}
 
