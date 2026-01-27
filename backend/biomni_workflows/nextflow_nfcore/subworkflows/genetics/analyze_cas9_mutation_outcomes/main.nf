@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.reference_sequences = null
-params.edited_sequences = null
-params.cell_line_info = null
+// Default test data: Cas9 editing of TP53 gene target site
+params.reference_sequences = '{"TP53_site1": "ATGCTAGCTAGCTAGCTAGCATGCTAGCTAGCTAGCTAG", "TP53_site2": "GCTAGCTAGCTAGCATGCTAGCTAGCTAGCTAGCTAGC"}'
+params.edited_sequences = '{"TP53_site1": {"read1": "ATGCTAGCTAGCTAGCTAGCATGCTAGCTAGCTAGCTAG", "read2": "ATGCTAGCTA---AGCTAGCATGCTAGCTAGCTAGCTAG", "read3": "ATGCTAGCTAGCTAGCTAGCATGCTAGCTAGCTAGCTAG", "read4": "ATGCTAGCTAGATTAGCTAGCATGCTAGCTAGCTAGCTAG"}, "TP53_site2": {"read1": "GCTAGCTAGCTAGCATGCTAGCTAGCTAGCTAGCTAGC", "read2": "GCTAGCTA---GCATGCTAGCTAGCTAGCTAGCTAGC"}}'
+params.cell_line_info = '{"TP53_site1": "HEK293T", "TP53_site2": "HEK293T"}'
 params.output_prefix = 'cas9_mutation_analysis'
 
 process ANALYZE_CAS9_MUTATION_OUTCOMES {
