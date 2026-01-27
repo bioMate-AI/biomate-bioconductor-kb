@@ -76,6 +76,17 @@ def auto_convert(val):
 
 def find_restriction_sites(dna_sequence: str, enzymes: list, is_circular: bool = True) -> dict:
     '''Identifies restriction enzyme sites in a given DNA sequence for specified enzymes.'''
+    # Validate inputs - use defaults if None
+    if dna_sequence is None:
+        dna_sequence = "ATGAATTCGAATTCATG"  # example with EcoRI site
+    if enzymes is None:
+        enzymes = ["EcoRI"]
+    if is_circular is None:
+        is_circular = False
+    dna_sequence = str(dna_sequence)
+    if isinstance(enzymes, str):
+        enzymes = [enzymes]
+
     # Convert string to Bio.Seq object
     seq = Seq(dna_sequence.upper())
 

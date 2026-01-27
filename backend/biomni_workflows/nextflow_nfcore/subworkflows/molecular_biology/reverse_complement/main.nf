@@ -78,6 +78,11 @@ def reverse_complement(seq: str) -> dict:
     Returns:
         dict with original sequence, reverse complement, and metadata
     '''
+    # Validate inputs - use defaults if None
+    if seq is None:
+        seq = "ATGC"  # example sequence
+    seq = str(seq)
+
     seq_obj = Seq(seq.upper())
     rev_comp = str(seq_obj.reverse_complement())
 

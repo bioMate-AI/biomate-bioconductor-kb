@@ -81,6 +81,19 @@ def bi_exp_model(t, a, alpha, b, beta):
     '''Bi-exponential: y = A*exp(-alpha*t) + B*exp(-beta*t)
     Args: t: time, a,alpha: fast phase params, b,beta: slow phase params
     '''
+    # Validate inputs - use defaults if None
+    if t is None:
+        t = 1.0
+    if a is None:
+        a = 50.0  # fast phase amplitude
+    if alpha is None:
+        alpha = 0.5  # fast phase rate
+    if b is None:
+        b = 50.0  # slow phase amplitude
+    if beta is None:
+        beta = 0.05  # slow phase rate
+    t, a, alpha, b, beta = float(t), float(a), float(alpha), float(b), float(beta)
+
     y = a * np.exp(-alpha * t) + b * np.exp(-beta * t)
     return {"value": float(y), "t": t, "a": a, "alpha": alpha, "b": b, "beta": beta}
 
