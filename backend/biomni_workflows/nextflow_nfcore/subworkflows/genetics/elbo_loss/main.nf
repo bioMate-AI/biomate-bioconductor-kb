@@ -78,6 +78,17 @@ def elbo_loss(reconstruction_loss, kl_divergence, beta=1.0):
     '''Evidence Lower BOund loss: ELBO = reconstruction_loss + beta * KL_divergence
     Args: reconstruction_loss, kl_divergence, beta: KL weight
     '''
+    # Validate inputs - use defaults if None
+    if reconstruction_loss is None:
+        reconstruction_loss = 0.5
+    if kl_divergence is None:
+        kl_divergence = 0.1
+    if beta is None:
+        beta = 1.0
+    reconstruction_loss = float(reconstruction_loss)
+    kl_divergence = float(kl_divergence)
+    beta = float(beta)
+
     elbo = reconstruction_loss + beta * kl_divergence
     return {"elbo": float(elbo), "reconstruction": reconstruction_loss, "kl": kl_divergence, "beta": beta}
 

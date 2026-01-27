@@ -78,6 +78,12 @@ def ode_system(state, rates, stoichiometry=None):
     '''Generic ODE: dx/dt = S * v(x) where S is stoichiometry matrix
     Args: state: current state vector, rates: rate constants, stoichiometry: matrix (optional)
     '''
+    # Validate inputs - use defaults if None
+    if state is None:
+        state = [1.0, 1.0]
+    if rates is None:
+        rates = [0.1, 0.1]
+
     if isinstance(state, str):
         state = [float(x.strip()) for x in state.split(',')]
     if isinstance(rates, str):

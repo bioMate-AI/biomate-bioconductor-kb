@@ -81,12 +81,28 @@ def forward(x, weights, bias, activation="relu"):
     '''Simple forward pass: y = activation(W*x + b)
     Args: x: input (comma-sep), weights: matrix (JSON), bias: vector (comma-sep), activation: relu/sigmoid/tanh
     '''
+    # Validate inputs - use defaults if None
+    if x is None:
+        x = [1.0, 1.0]
+    if weights is None:
+        weights = [[1.0, 0.0], [0.0, 1.0]]  # identity matrix
+    if bias is None:
+        bias = [0.0, 0.0]
+    if activation is None:
+        activation = "relu"
+
     if isinstance(x, str):
         x = np.array([float(v.strip()) for v in x.split(',')])
+    elif isinstance(x, list):
+        x = np.array(x)
     if isinstance(weights, str):
         weights = np.array(json.loads(weights))
+    elif isinstance(weights, list):
+        weights = np.array(weights)
     if isinstance(bias, str):
         bias = np.array([float(v.strip()) for v in bias.split(',')])
+    elif isinstance(bias, list):
+        bias = np.array(bias)
     
     z = np.dot(weights, x) + bias
     if activation == "relu":

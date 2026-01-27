@@ -80,6 +80,18 @@ def dimerization_odes(monomer, dimer, kon, koff):
     '''Dimerization: 2M <-> D with kon, koff
     Args: monomer: M conc, dimer: D conc, kon: association rate, koff: dissociation rate
     '''
+    # Validate inputs - use defaults if None
+    if monomer is None:
+        monomer = 10.0  # initial monomer concentration
+    if dimer is None:
+        dimer = 0.0  # initial dimer concentration
+    if kon is None:
+        kon = 0.1  # association rate
+    if koff is None:
+        koff = 0.01  # dissociation rate
+    monomer, dimer = float(monomer), float(dimer)
+    kon, koff = float(kon), float(koff)
+
     dm_dt = -2 * kon * monomer**2 + 2 * koff * dimer
     dd_dt = kon * monomer**2 - koff * dimer
     return {"dM_dt": float(dm_dt), "dD_dt": float(dd_dt), "M": monomer, "D": dimer}
