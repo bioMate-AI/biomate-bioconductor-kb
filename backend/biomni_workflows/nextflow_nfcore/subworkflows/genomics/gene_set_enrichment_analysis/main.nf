@@ -10,11 +10,12 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.genes = null
+// Default test data: List of cell cycle related genes
+params.genes = '["CCNA2", "CCNB1", "CDK1", "CDK2", "TP53", "RB1", "E2F1", "PCNA", "MCM2", "CDC6"]'
 params.top_k = 10
 params.database = 'ontology'
 params.background_list = null
-params.plot = null
+params.plot = 'false'
 
 process GENE_SET_ENRICHMENT_ANALYSIS {
     tag "$meta.id"
