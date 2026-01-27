@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.reaction_network = null
-params.kinetic_parameters = null
+// Default test data: Simple enzymatic reaction network (A + E <-> AE -> P + E)
+params.reaction_network = '[{"id": "binding", "name": "Substrate Binding", "reactants": {"A": 1, "E": 1}, "products": {"AE": 1}, "reversible": true}, {"id": "catalysis", "name": "Catalysis", "reactants": {"AE": 1}, "products": {"P": 1, "E": 1}, "reversible": false}]'
+params.kinetic_parameters = '{"binding": {"law_type": "mass_action", "parameters": {"k_on": 0.1, "k_off": 0.01}}, "catalysis": {"law_type": "mass_action", "parameters": {"k_cat": 0.5}}}'
 params.output_file = 'biochemical_model.xml'
 
 process CREATE_BIOCHEMICAL_NETWORK_SBML_MODEL {

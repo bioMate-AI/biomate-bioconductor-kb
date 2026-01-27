@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.time_series_data = null
-params.parameter_values = null
-params.system_name = 'Dynamical System'
+// Default test data: Bifurcation analysis of logistic map (2D array: rows=parameter values, cols=time points)
+params.time_series_data = '[[0.1, 0.2, 0.35, 0.45, 0.49, 0.5, 0.5], [0.1, 0.25, 0.45, 0.55, 0.62, 0.65, 0.65], [0.1, 0.3, 0.55, 0.72, 0.58, 0.71, 0.6], [0.1, 0.35, 0.68, 0.82, 0.55, 0.93, 0.25], [0.1, 0.36, 0.73, 0.79, 0.67, 0.89, 0.39]]'
+params.parameter_values = '[2.5, 3.0, 3.3, 3.5, 3.8]'
+params.system_name = 'Logistic Map'
 params.output_dir = './'
 
 process ANALYZE_BIFURCATION_DIAGRAM {

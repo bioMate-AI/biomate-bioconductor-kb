@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.circuit_topology = null
-params.kinetic_params = null
-params.growth_params = null
+// Default test data: Toggle switch circuit (2 mutually repressing genes)
+params.circuit_topology = '[[0, -1], [-1, 0]]'
+params.kinetic_params = '{"basal_rates": [0.1, 0.1], "degradation_rates": [0.05, 0.05], "hill_coefficients": [2.0, 2.0], "threshold_constants": [0.5, 0.5]}'
+params.growth_params = '{"max_growth_rate": 0.02, "growth_inhibition": 0.01, "gene_growth_weights": [0.3, 0.3]}'
 params.simulation_time = '100'
 params.time_points = '1000'
 
@@ -257,8 +258,12 @@ FILES:
 
 # Execute the function
 try:
+    import numpy as np
+    circuit_topo = auto_convert(os.environ.get("PARAM_CIRCUIT_TOPOLOGY", ""))
+    if isinstance(circuit_topo, list):
+        circuit_topo = np.array(circuit_topo)
     result = simulate_gene_circuit_with_growth_feedback(
-        circuit_topology=auto_convert(os.environ.get("PARAM_CIRCUIT_TOPOLOGY", "")),
+        circuit_topology=circuit_topo,
         kinetic_params=auto_convert(os.environ.get("PARAM_KINETIC_PARAMS", "")),
         growth_params=auto_convert(os.environ.get("PARAM_GROWTH_PARAMS", "")),
         simulation_time=auto_convert(os.environ.get("PARAM_SIMULATION_TIME", "100")),
