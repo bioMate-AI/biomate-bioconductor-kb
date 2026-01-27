@@ -122,6 +122,19 @@ def simulate_whole_cell_ode_model(
     import pandas as pd
     from scipy.integrate import solve_ivp
 
+    # Validate inputs - use defaults if None
+    if initial_conditions is None:
+        initial_conditions = {"ATP": 1.0, "glucose": 5.0, "biomass": 0.1}
+    if parameters is None:
+        parameters = {"k_growth": 0.5, "k_uptake": 0.1, "yield": 0.4}
+    if time_span is None:
+        time_span = (0, 100)
+    if time_points is None:
+        time_points = 1000
+    if method is None:
+        method = "LSODA"
+    time_points = int(time_points)
+
     # Define a default ODE function if none is provided
     if ode_function is None:
 

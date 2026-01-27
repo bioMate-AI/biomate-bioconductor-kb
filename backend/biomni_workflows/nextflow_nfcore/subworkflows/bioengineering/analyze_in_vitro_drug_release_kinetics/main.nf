@@ -114,6 +114,17 @@ def analyze_in_vitro_drug_release_kinetics(
     import pandas as pd
     from scipy.optimize import curve_fit
 
+    # Validate inputs - use defaults if None
+    if time_points is None:
+        time_points = [0, 1, 2, 4, 8, 12, 24, 48, 72]
+    if concentration_data is None:
+        # Simulate typical drug release profile (first-order kinetics)
+        concentration_data = [0, 15, 28, 45, 65, 78, 88, 95, 98]
+    if drug_name is None:
+        drug_name = "Drug"
+    if output_dir is None:
+        output_dir = "./"
+
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
 

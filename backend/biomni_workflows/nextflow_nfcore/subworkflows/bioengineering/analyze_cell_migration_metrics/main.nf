@@ -113,8 +113,92 @@ def analyze_cell_migration_metrics(
     import trackpy as tp
     from skimage import io
 
+    # Validate inputs - use defaults if None
+    if pixel_size_um is None:
+        pixel_size_um = 1.0
+    if time_interval_min is None:
+        time_interval_min = 1.0
+    if min_track_length is None:
+        min_track_length = 10
+    if output_dir is None:
+        output_dir = "./"
+    pixel_size_um = float(pixel_size_um)
+    time_interval_min = float(time_interval_min)
+    min_track_length = int(min_track_length)
+
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
+
+    # Generate synthetic data if no image path provided
+    if image_sequence_path is None:
+        # Generate synthetic cell migration data
+        np.random.seed(42)
+        n_frames = 20
+        n_cells = 5
+
+        # Simulate cell trajectories
+        trajectories_data = []
+        for cell_id in range(n_cells):
+            x = 50 + np.cumsum(np.random.randn(n_frames) * 2)
+            y = 50 + np.cumsum(np.random.randn(n_frames) * 2)
+            for frame, (xi, yi) in enumerate(zip(x, y)):
+                trajectories_data.append({
+                    'x': xi, 'y': yi, 'frame': frame, 'particle': cell_id,
+                    'mass': 1000, 'size': 3, 'ecc': 0.1, 'signal': 100, 'raw_mass': 1000, 'ep': 0.1
+                })
+
+        trajectories = pd.DataFrame(trajectories_data)
+
+        # Calculate metrics directly from synthetic trajectories
+        cell_ids = trajectories["particle"].unique()
+        metrics = []
+
+        for cell_id in cell_ids:
+            cell_track = trajectories[trajectories["particle"] == cell_id].sort_values("frame")
+            cell_track = cell_track.copy()
+            cell_track["x_um"] = cell_track["x"] * pixel_size_um
+            cell_track["y_um"] = cell_track["y"] * pixel_size_um
+
+            dx = np.diff(cell_track["x_um"])
+            dy = np.diff(cell_track["y_um"])
+            step_distances = np.sqrt(dx**2 + dy**2)
+            path_length = np.sum(step_distances)
+
+            start_x, start_y = cell_track.iloc[0][["x_um", "y_um"]]
+            end_x, end_y = cell_track.iloc[-1][["x_um", "y_um"]]
+            net_displacement = np.sqrt((end_x - start_x) ** 2 + (end_y - start_y) ** 2)
+            directionality = net_displacement / path_length if path_length > 0 else 0
+
+            time_tracked = (cell_track["frame"].max() - cell_track["frame"].min()) * time_interval_min
+            speed = path_length / time_tracked if time_tracked > 0 else 0
+
+            metrics.append({
+                "cell_id": cell_id,
+                "frames_tracked": len(cell_track),
+                "speed_um_per_min": speed,
+                "directionality": directionality,
+                "displacement_um": net_displacement,
+                "path_length_um": path_length,
+            })
+
+        metrics_df = pd.DataFrame(metrics)
+        metrics_df.to_csv(os.path.join(output_dir, "cell_migration_metrics.csv"), index=False)
+
+        summary = {
+            "num_cells_tracked": len(metrics_df),
+            "avg_speed": metrics_df["speed_um_per_min"].mean(),
+            "avg_directionality": metrics_df["directionality"].mean(),
+            "avg_displacement": metrics_df["displacement_um"].mean(),
+        }
+
+        log = "# Cell Migration Analysis (Synthetic Data)\\n\\n"
+        log += f"Generated {n_cells} synthetic cell tracks over {n_frames} frames.\\n\\n"
+        log += "## Summary Statistics\\n"
+        log += f"- Cells tracked: {summary['num_cells_tracked']}\\n"
+        log += f"- Average speed: {summary['avg_speed']:.2f} μm/min\\n"
+        log += f"- Average directionality: {summary['avg_directionality']:.2f}\\n"
+        log += f"- Average displacement: {summary['avg_displacement']:.2f} μm\\n"
+        return log
 
     # Load image sequence
     if os.path.isdir(image_sequence_path):

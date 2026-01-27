@@ -89,11 +89,7 @@ def default_whole_cell_model():
 
 # Execute the function
 try:
-    result = default_whole_cell_model(
-        t=auto_convert(os.environ.get("PARAM_T", "")),
-        y=auto_convert(os.environ.get("PARAM_Y", "")),
-        params=auto_convert(os.environ.get("PARAM_PARAMS", "")),
-    )
+    result = default_whole_cell_model()
     success = True
     error_msg = None
 except Exception as e:

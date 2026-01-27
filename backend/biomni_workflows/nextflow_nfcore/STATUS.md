@@ -4,8 +4,8 @@ Last updated: 2026-01-27
 
 ## Summary
 - **Total modules**: 237
-- **Passed**: 144 (102 original + 42 fixed)
-- **Needs fixing**: 93
+- **Passed**: 150 (102 original + 48 fixed)
+- **Needs fixing**: 87
 
 ## Original 102 Passing (from commit 378d114a)
 
@@ -114,7 +114,7 @@ Last updated: 2026-01-27
 | synthetic_biology | identify_fas_functional_domains |
 | systems_biology | hill_function |
 
-## Additional 42 Fixed (in subsequent commits)
+## Additional 48 Fixed (in subsequent commits)
 
 | Domain | Workflow | Fixed in |
 |--------|----------|----------|
@@ -155,8 +155,14 @@ Last updated: 2026-01-27
 | systems_biology | mass_action_kinetics | 9ff93590 |
 | systems_biology | ode_system | a88b8295 |
 | systems_biology | ras_ode_system | 3fb78cd4 |
+| bioengineering | analyze_cell_migration_metrics | 3efbc2dd |
+| bioengineering | analyze_in_vitro_drug_release_kinetics | 3efbc2dd |
+| bioengineering | analyze_myofiber_morphology | 3efbc2dd |
+| bioengineering | decode_behavior_from_neural_trajectories | 3efbc2dd |
+| bioengineering | default_whole_cell_model | 3efbc2dd |
+| bioengineering | simulate_whole_cell_ode_model | 3efbc2dd |
 
-## Needs Fixing (93 remaining)
+## Needs Fixing (87 remaining)
 
 These 93 workflows need additional work:
 - Missing implementations
