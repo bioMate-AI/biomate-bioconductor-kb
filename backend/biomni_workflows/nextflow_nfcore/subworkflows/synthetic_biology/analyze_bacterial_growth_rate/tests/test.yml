@@ -1,8 +1,11 @@
 - name: "analyze_bacterial_growth_rate test"
   command: nextflow run ../main.nf -profile docker
   params:
-      time_points: [0, 1, 2, 3, 4, 5, 6]
-      od_measurements: [0.05, 0.1, 0.2, 0.4, 0.7, 0.9, 1.0]
+    # E. coli growth curve over 12 hours with typical lag, exponential, and stationary phases
+    time_points: '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]'
+    od_measurements: '[0.05, 0.06, 0.08, 0.15, 0.35, 0.65, 0.95, 1.2, 1.4, 1.5, 1.55, 1.58, 1.6]'
+    strain_name: 'E_coli_K12'
+    output_dir: './'
   tags:
     - synthetic_biology
     - analyze_bacterial_growth_rate
