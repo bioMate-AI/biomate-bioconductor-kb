@@ -10,8 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.biodistribution_data = null
-params.radiation_parameters = null
+// Default test data: Biodistribution data (organ: [(time_hours, %injected_activity), ...])
+params.biodistribution_data = '{"tumor": [[1, 5.2], [4, 8.5], [24, 12.3], [48, 10.1], [72, 7.8]], "liver": [[1, 25.1], [4, 22.3], [24, 15.2], [48, 10.5], [72, 6.8]], "kidney": [[1, 18.2], [4, 15.5], [24, 8.3], [48, 5.1], [72, 3.2]], "bone": [[1, 3.5], [4, 4.2], [24, 5.1], [48, 4.8], [72, 4.5]]}'
+// Radiation parameters for Ac-225
+params.radiation_parameters = '{"radionuclide": "Ac-225", "half_life_hours": 240, "energy_per_decay_MeV": 28.0, "radiation_weighting_factor": 20, "S_factors": {"tumor": 2.5e-12, "liver": 1.8e-12, "kidney": 3.2e-12, "bone": 1.5e-12}}'
 params.output_file = 'dosimetry_results.csv'
 
 process ESTIMATE_ALPHA_PARTICLE_RADIOTHERAPY_DOSIMETRY {

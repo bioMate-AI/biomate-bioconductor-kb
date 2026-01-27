@@ -10,8 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.flow_cytometry_data = null
-params.initial_estimates = null
+// Default test data: dual-nucleoside pulse labeling experiment over 48 hours
+params.flow_cytometry_data = '{"time_points": [0, 4, 8, 12, 24, 36, 48], "edu_positive": [5.0, 15.0, 25.0, 30.0, 35.0, 32.0, 28.0], "brdu_positive": [0.0, 8.0, 18.0, 28.0, 38.0, 42.0, 40.0], "double_positive": [0.0, 5.0, 12.0, 20.0, 25.0, 22.0, 18.0]}'
+// Default initial estimates for typical mammalian cells
+params.initial_estimates = '{"g1_duration": 10.0, "s_duration": 8.0, "g2m_duration": 4.0, "death_rate": 0.01}'
 
 process ESTIMATE_CELL_CYCLE_PHASE_DURATIONS {
     tag "$meta.id"

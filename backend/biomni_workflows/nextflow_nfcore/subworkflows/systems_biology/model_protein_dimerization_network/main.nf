@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.monomer_concentrations = null
-params.dimerization_affinities = null
-params.network_topology = null
+// Default test data: Protein dimerization network
+params.monomer_concentrations = '{"ProteinA": 10.0, "ProteinB": 8.0, "ProteinC": 5.0}'
+params.dimerization_affinities = '{"ProteinA-ProteinB": 1.5, "ProteinB-ProteinC": 2.0, "ProteinA-ProteinA": 0.8}'
+params.network_topology = '[["ProteinA", "ProteinB"], ["ProteinB", "ProteinC"], ["ProteinA", "ProteinA"]]'
 
 process MODEL_PROTEIN_DIMERIZATION_NETWORK {
     tag "$meta.id"

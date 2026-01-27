@@ -10,9 +10,12 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.initial_concentrations = null
-params.rate_constants = null
-params.feedback_params = null
+// Default test data: RAS system initial concentrations (nM)
+params.initial_concentrations = '{"renin": 1.0, "angiotensinogen": 1000.0, "angiotensin_I": 0.5, "angiotensin_II": 0.1, "ACE2_angiotensin_II": 0.05, "angiotensin_1_7": 0.02}'
+// Kinetic rate constants (per hour)
+params.rate_constants = '{"k_ren": 0.1, "k_agt": 5.0, "k_ace": 2.0, "k_ace2": 0.5, "k_at1r": 1.0, "k_mas": 0.3}'
+// Feedback parameters
+params.feedback_params = '{"fb_ang_II": 0.8, "fb_ace2": 0.5}'
 params.simulation_time = '48'
 params.time_points = '100'
 

@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.pressure_data = null
-params.sampling_rate = null
+// Default test data: Simulated blood pressure waveform (mmHg) at 1000 Hz for 2 seconds
+params.pressure_data = '[80, 85, 95, 110, 120, 118, 115, 105, 95, 85, 80, 82, 90, 108, 120, 119, 112, 100, 90, 82, 80, 83, 92, 112, 120, 117, 110, 98, 88, 81, 80, 84, 96, 115, 120, 116, 108, 96, 86, 80, 80, 85, 98, 118, 120, 115, 105, 94, 84, 80]'
+params.sampling_rate = '50'
 params.output_file = 'hemodynamic_results.csv'
 
 process ANALYZE_HEMODYNAMIC_DATA {

@@ -10,9 +10,12 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.raw_od_data = null
-params.standard_curve_data = null
-params.sample_metadata = null
+// Default test data: ELISA OD readings for EBV antibodies
+params.raw_od_data = '{"sample1": {"VCA_IgG": 0.85, "VCA_IgM": 0.12, "EA_IgG": 0.45, "EA_IgM": 0.08, "EBNA1_IgG": 0.72, "EBNA1_IgM": 0.05}, "sample2": {"VCA_IgG": 1.2, "VCA_IgM": 0.65, "EA_IgG": 0.78, "EA_IgM": 0.42, "EBNA1_IgG": 0.35, "EBNA1_IgM": 0.15}, "sample3": {"VCA_IgG": 0.25, "VCA_IgM": 0.08, "EA_IgG": 0.15, "EA_IgM": 0.05, "EBNA1_IgG": 0.18, "EBNA1_IgM": 0.03}}'
+// Standard curves for IgG and IgM quantification
+params.standard_curve_data = '{"IgG": [[10, 0.15], [50, 0.45], [100, 0.72], [200, 1.1], [400, 1.8]], "IgM": [[5, 0.08], [25, 0.25], [50, 0.42], [100, 0.68], [200, 1.2]]}'
+// Sample metadata
+params.sample_metadata = '{"sample1": {"group": "EBV_positive", "collection_date": "2024-01-15"}, "sample2": {"group": "EBV_active", "collection_date": "2024-01-15"}, "sample3": {"group": "EBV_negative", "collection_date": "2024-01-15"}}'
 params.output_dir = './'
 
 process ANALYZE_EBV_ANTIBODY_TITERS {

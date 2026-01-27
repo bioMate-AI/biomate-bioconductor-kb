@@ -4,8 +4,8 @@ Last updated: 2026-01-27
 
 ## Summary
 - **Total modules**: 237
-- **Passed**: 156 (102 original + 54 fixed)
-- **Needs fixing**: 81
+- **Passed**: 165 (102 original + 63 fixed with proper test data)
+- **Needs fixing**: 72
 
 ## Original 102 Passing (from commit 378d114a)
 
@@ -114,7 +114,9 @@ Last updated: 2026-01-27
 | synthetic_biology | identify_fas_functional_domains |
 | systems_biology | hill_function |
 
-## Additional 54 Fixed (in subsequent commits)
+## Fixed with Proper Default Test Data (63 workflows)
+
+### None handling fixes (utility functions)
 
 | Domain | Workflow | Fixed in |
 |--------|----------|----------|
@@ -126,6 +128,9 @@ Last updated: 2026-01-27
 | bioengineering | first_order | 9ff93590 |
 | bioengineering | higuchi | 9ff93590 |
 | bioengineering | zero_order | 9ff93590 |
+| bioengineering | analyze_in_vitro_drug_release_kinetics | 3efbc2dd |
+| bioengineering | default_whole_cell_model | 3efbc2dd |
+| bioengineering | simulate_whole_cell_ode_model | 3efbc2dd |
 | cancer_biology | norm_chr | 3fb78cd4 |
 | database | reduce_tokens | 3fb78cd4 |
 | genetics | elbo_loss | a88b8295 |
@@ -148,6 +153,7 @@ Last updated: 2026-01-27
 | pharmacology | bi_exp_model | 9ff93590 |
 | physiology | mono_exp_model | 9ff93590 |
 | physiology | pk_ode_system | cdf190b7 |
+| physiology | analyze_ciliary_beat_frequency | (original) |
 | synthetic_biology | gene_circuit_odes | 3fb78cd4 |
 | synthetic_biology | gompertz_model | 9ff93590 |
 | synthetic_biology | hamming_distance | 3fb78cd4 |
@@ -155,24 +161,47 @@ Last updated: 2026-01-27
 | systems_biology | mass_action_kinetics | 9ff93590 |
 | systems_biology | ode_system | a88b8295 |
 | systems_biology | ras_ode_system | 3fb78cd4 |
-| bioengineering | analyze_cell_migration_metrics | 3efbc2dd |
-| bioengineering | analyze_in_vitro_drug_release_kinetics | 3efbc2dd |
-| bioengineering | analyze_myofiber_morphology | 3efbc2dd |
-| bioengineering | decode_behavior_from_neural_trajectories | 3efbc2dd |
-| bioengineering | default_whole_cell_model | 3efbc2dd |
-| bioengineering | simulate_whole_cell_ode_model | 3efbc2dd |
-| cancer_biology | analyze_cell_senescence_and_apoptosis | e838a803 |
-| cancer_biology | analyze_copy_number_purity_ploidy_and_focal_events | e838a803 |
-| cancer_biology | detect_and_annotate_somatic_mutations | e838a803 |
-| cancer_biology | detect_and_characterize_structural_variations | e838a803 |
-| cell_biology | analyze_flow_cytometry_immunophenotyping | c128867b |
-| cell_biology | quantify_cell_cycle_phases_from_microscopy | c128867b |
 
-## Needs Fixing (81 remaining)
+### Fixed with JSON default parameters (actual test data)
 
-These 93 workflows need additional work:
-- Missing implementations
-- Docker package dependencies
-- External tool requirements
+| Domain | Workflow | Description |
+|--------|----------|-------------|
+| immunology | estimate_cell_cycle_phase_durations | Cell cycle phase estimation with flow cytometry data |
+| immunology | analyze_ebv_antibody_titers | EBV ELISA antibody quantification |
+| pharmacology | analyze_accelerated_stability_of_pharmaceutical_formulations | Pharmaceutical stability testing |
+| pharmacology | estimate_alpha_particle_radiotherapy_dosimetry | Alpha-particle dosimetry calculation |
+| physiology | analyze_hemodynamic_data | Blood pressure hemodynamic analysis |
+| physiology | simulate_thyroid_hormone_pharmacokinetics | Thyroid hormone PK simulation |
+| systems_biology | simulate_renin_angiotensin_system_dynamics | RAS dynamics simulation |
+| systems_biology | model_protein_dimerization_network | Protein dimerization modeling |
+| systems_biology | simulate_protein_signaling_network | Signaling network simulation |
+
+## Workflows Requiring External Files
+
+These workflows require external binary files (BAM, FCS, VCF, images) and need Docker container updates or test data files:
+
+| Domain | Workflow | Required Input |
+|--------|----------|----------------|
+| cancer_biology | analyze_cell_senescence_and_apoptosis | FCS file |
+| cancer_biology | analyze_copy_number_purity_ploidy_and_focal_events | BAM files |
+| cancer_biology | detect_and_annotate_somatic_mutations | BAM files |
+| cancer_biology | detect_and_characterize_structural_variations | BAM file |
+| cell_biology | analyze_flow_cytometry_immunophenotyping | FCS file |
+| cell_biology | quantify_cell_cycle_phases_from_microscopy | Image files |
+| immunology | analyze_atac_seq_differential_accessibility | BAM files |
+| immunology | analyze_cytokine_production_in_cd4_tcells | FCS files (FlowCytometryTools NumPy issue) |
+
+## Workflows with Docker Dependency Issues
+
+These workflows fail due to missing packages or library compatibility issues in the Docker container:
+
+| Domain | Workflow | Issue |
+|--------|----------|-------|
+| pharmacology | predict_admet_properties | Missing descriptastorus, pandas-flavor |
+| systems_biology | perform_flux_balance_analysis | Permission denied: /.cache |
+| systems_biology | query_chatnt | Permission denied: /.cache |
+| systems_biology | simulate_metabolic_network_perturbation | Permission denied: /.cache |
+
+## Testing
 
 Run `nextflow run subworkflows/{domain}/{workflow}/main.nf -profile docker` to test.

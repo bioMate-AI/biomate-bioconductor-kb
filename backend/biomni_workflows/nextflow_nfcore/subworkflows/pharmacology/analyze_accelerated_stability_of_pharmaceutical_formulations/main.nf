@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.formulations = null
-params.storage_conditions = null
-params.time_points = null
+// Default test data: Pharmaceutical stability testing experiment
+params.formulations = '[{"name": "FormulationA", "active_ingredient": "Ibuprofen", "concentration": 20.0, "excipients": ["microcrystalline cellulose", "magnesium stearate"]}, {"name": "FormulationB", "active_ingredient": "Ibuprofen", "concentration": 40.0, "excipients": ["lactose", "povidone", "magnesium stearate"]}]'
+params.storage_conditions = '[{"temperature": 25, "humidity": 60, "description": "Room Temperature"}, {"temperature": 40, "humidity": 75, "description": "Accelerated"}, {"temperature": 50, "humidity": 90, "description": "Stress"}]'
+params.time_points = '[0, 30, 60, 90, 180, 365]'
 
 process ANALYZE_ACCELERATED_STABILITY_OF_PHARMACEUTICAL_FORMULATIONS {
     tag "$meta.id"

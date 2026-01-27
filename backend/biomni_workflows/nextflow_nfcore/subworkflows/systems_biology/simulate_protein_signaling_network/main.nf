@@ -10,9 +10,12 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.network_structure = null
-params.reaction_params = null
-params.species_params = null
+// Default test data: Simple signaling cascade (Ligand -> Receptor -> Kinase -> Effector)
+params.network_structure = '{"Receptor": [["Ligand", 1]], "Kinase": [["Receptor", 1]], "Effector": [["Kinase", 1]], "Inhibitor": [["Effector", -1]]}'
+// Reaction parameters: {(regulator, target): {W, n, EC50}}
+params.reaction_params = '{\"Ligand_Receptor\": {\"W\": 1.0, \"n\": 2, \"EC50\": 0.5}, \"Receptor_Kinase\": {\"W\": 1.0, \"n\": 2, \"EC50\": 0.3}, \"Kinase_Effector\": {\"W\": 1.0, \"n\": 2, \"EC50\": 0.4}, \"Effector_Inhibitor\": {\"W\": 0.5, \"n\": 2, \"EC50\": 0.6}}'
+// Species parameters: {protein: {tau, y0, ymax}}
+params.species_params = '{"Ligand": {"tau": 1.0, "y0": 1.0, "ymax": 1.0}, "Receptor": {"tau": 5.0, "y0": 0.1, "ymax": 1.0}, "Kinase": {"tau": 10.0, "y0": 0.05, "ymax": 1.0}, "Effector": {"tau": 15.0, "y0": 0.02, "ymax": 1.0}, "Inhibitor": {"tau": 20.0, "y0": 0.0, "ymax": 1.0}}'
 params.simulation_time = '100'
 params.time_points = '1000'
 

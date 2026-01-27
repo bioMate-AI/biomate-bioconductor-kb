@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.parameters = null
-params.initial_conditions = null
-params.time_span = null
+// Default test data: Thyroid hormone PK model parameters
+params.parameters = '{"transport_rates": {"plasma_to_liver": 0.5, "liver_to_plasma": 0.3, "plasma_to_tissue": 0.2, "tissue_to_plasma": 0.1}, "binding_constants": {"T4_TBG_on": 1.5, "T4_TBG_off": 0.01, "T3_TBG_on": 0.8, "T3_TBG_off": 0.02}, "metabolism_rates": {"T4_to_T3_liver": 0.1, "T3_clearance": 0.05}, "volumes": {"plasma": 3.0, "liver": 1.5, "tissue": 40.0}}'
+params.initial_conditions = '{"T4_plasma": 100.0, "T3_plasma": 1.5, "T4_liver": 50.0, "T3_liver": 0.8, "T4_tissue": 20.0, "T3_tissue": 0.5}'
+params.time_span = '[0, 48]'
 params.time_points = '100'
 
 process SIMULATE_THYROID_HORMONE_PHARMACOKINETICS {
