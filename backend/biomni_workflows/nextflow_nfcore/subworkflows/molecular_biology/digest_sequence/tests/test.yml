@@ -1,9 +1,10 @@
 - name: "digest_sequence test"
   command: nextflow run ../main.nf -profile docker
   params:
-      dna_sequence: "ATGCGAATTCATGCGAATTCATGC"
-      enzyme_names: ["EcoRI"]
-      is_circular: false
+    # pUC19 MCS fragment with common restriction sites (EcoRI, BamHI, HindIII)
+    dna_sequence: 'ATGAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTT'
+    enzyme_names: '["EcoRI", "BamHI", "HindIII"]'
+    is_circular: 'false'
   tags:
     - molecular_biology
     - digest_sequence

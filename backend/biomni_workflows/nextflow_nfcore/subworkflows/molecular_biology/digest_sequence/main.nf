@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.dna_sequence = null
-params.enzyme_names = null
-params.is_circular = null
+// Default test data: pUC19 fragment with common restriction sites
+params.dna_sequence = 'ATGAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTT'
+params.enzyme_names = '["EcoRI", "BamHI", "HindIII"]'
+params.is_circular = 'false'
 
 process DIGEST_SEQUENCE {
     tag "$meta.id"
