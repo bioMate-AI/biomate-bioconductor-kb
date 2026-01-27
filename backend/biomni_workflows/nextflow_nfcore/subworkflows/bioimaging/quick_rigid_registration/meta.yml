@@ -1,9 +1,50 @@
 name: quick_rigid_registration
-description: Quick rigid registration function for Biomni integration.
+description: Perform quick rigid registration of medical images using SimpleITK
 keywords:
   - bioimaging
-  - biomni
+  - registration
+  - medical-imaging
+  - simpleitk
+  - rigid-transform
 tools:
-  - biomni:
-      description: Biomni bioinformatics tool
-      homepage: https://github.com/biomate-ai/biomni
+  - simpleitk:
+      description: SimpleITK image registration library
+      homepage: https://simpleitk.org/
+      documentation: https://simpleitk.readthedocs.io/
+      licence: ["Apache-2.0"]
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - fixed_image_path:
+      type: file
+      description: Path to the reference/fixed image (NIfTI, NRRD, MHA)
+      pattern: "*.{nii,nii.gz,nrrd,mha,mhd}"
+  - moving_image_path:
+      type: file
+      description: Path to the image to be registered
+      pattern: "*.{nii,nii.gz,nrrd,mha,mhd}"
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - results:
+      type: file
+      description: JSON file with registration results and metrics
+      pattern: "*_results.json"
+  - output:
+      type: file
+      description: Human-readable output summary
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-ai"
+maintainers:
+  - "@biomate-ai"

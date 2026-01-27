@@ -118,6 +118,27 @@ def simulate_microbial_population_dynamics(
     import numpy as np
     from scipy import stats
 
+    # Ensure parameters have correct types
+    if initial_populations is None:
+        return "Error: initial_populations is required"
+    if not isinstance(initial_populations, list):
+        initial_populations = [initial_populations]
+    if growth_rates is None:
+        growth_rates = [0.5] * len(initial_populations)
+    if not isinstance(growth_rates, list):
+        growth_rates = [growth_rates]
+    if clearance_rates is None:
+        clearance_rates = [0.1] * len(initial_populations)
+    if not isinstance(clearance_rates, list):
+        clearance_rates = [clearance_rates]
+    if carrying_capacities is None:
+        carrying_capacities = [1000] * len(initial_populations)
+    if not isinstance(carrying_capacities, list):
+        carrying_capacities = [carrying_capacities]
+    max_time = int(max_time) if max_time else 100
+    num_simulations = int(num_simulations) if num_simulations else 100
+    time_points = int(time_points) if time_points else 100
+
     # Validate inputs
     num_species = len(initial_populations)
     if not (len(growth_rates) == len(clearance_rates) == len(carrying_capacities) == num_species):

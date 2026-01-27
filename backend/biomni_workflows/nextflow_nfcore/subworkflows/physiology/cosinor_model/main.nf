@@ -82,8 +82,20 @@ def cosinor_model(t, mesor, amplitude, acrophase, period=24):
     '''Cosinor: y = mesor + amplitude * cos(2*pi*(t-acrophase)/period)
     Args: t: time, mesor: mean level, amplitude: oscillation amplitude, acrophase: peak time, period: cycle length
     '''
+    # Validate inputs - use defaults if None
+    if t is None:
+        t = 0.0
+    if mesor is None:
+        mesor = 0.0
+    if amplitude is None:
+        amplitude = 1.0
+    if acrophase is None:
+        acrophase = 0.0
+    if period is None:
+        period = 24.0
+    t, mesor, amplitude, acrophase, period = float(t), float(mesor), float(amplitude), float(acrophase), float(period)
     y = mesor + amplitude * np.cos(2 * np.pi * (t - acrophase) / period)
-    return {"value": float(y), "t": t, "mesor": mesor, "amplitude": amplitude, "acrophase": acrophase}
+    return {"value": float(y), "t": t, "mesor": mesor, "amplitude": amplitude, "acrophase": acrophase, "period": period}
 
 # Execute the function
 try:

@@ -84,7 +84,16 @@ def michaelis_menten(s, vmax, km):
     Returns:
         Reaction velocity v = vmax * s / (km + s)
     '''
-    return {"velocity": vmax * s / (km + s), "s": s, "vmax": vmax, "km": km}
+    # Validate inputs - use defaults if None
+    if s is None:
+        s = 1.0
+    if vmax is None:
+        vmax = 100.0
+    if km is None:
+        km = 10.0
+    s, vmax, km = float(s), float(vmax), float(km)
+    velocity = vmax * s / (km + s) if (km + s) != 0 else 0
+    return {"velocity": velocity, "s": s, "vmax": vmax, "km": km}
 
 # Execute the function
 try:

@@ -92,6 +92,34 @@ def optimize_codons_for_heterologous_expression(target_sequence, host_codon_usag
     '''
     from Bio.Data import CodonTable
 
+    # Validate inputs
+    if target_sequence is None:
+        return "Error: target_sequence is required"
+    if not isinstance(target_sequence, str):
+        target_sequence = str(target_sequence)
+
+    # Ensure host_codon_usage is a dict
+    if host_codon_usage is None or not isinstance(host_codon_usage, dict):
+        # Use default E. coli codon usage as fallback
+        host_codon_usage = {
+            'TTT': 0.58, 'TTC': 0.42, 'TTA': 0.14, 'TTG': 0.13,
+            'CTT': 0.12, 'CTC': 0.10, 'CTA': 0.04, 'CTG': 0.47,
+            'ATT': 0.49, 'ATC': 0.39, 'ATA': 0.11, 'ATG': 1.00,
+            'GTT': 0.28, 'GTC': 0.20, 'GTA': 0.17, 'GTG': 0.35,
+            'TCT': 0.17, 'TCC': 0.15, 'TCA': 0.14, 'TCG': 0.14,
+            'CCT': 0.18, 'CCC': 0.13, 'CCA': 0.20, 'CCG': 0.49,
+            'ACT': 0.19, 'ACC': 0.40, 'ACA': 0.17, 'ACG': 0.25,
+            'GCT': 0.18, 'GCC': 0.26, 'GCA': 0.23, 'GCG': 0.33,
+            'TAT': 0.59, 'TAC': 0.41, 'TAA': 0.61, 'TAG': 0.09,
+            'CAT': 0.57, 'CAC': 0.43, 'CAA': 0.34, 'CAG': 0.66,
+            'AAT': 0.49, 'AAC': 0.51, 'AAA': 0.74, 'AAG': 0.26,
+            'GAT': 0.63, 'GAC': 0.37, 'GAA': 0.68, 'GAG': 0.32,
+            'TGT': 0.46, 'TGC': 0.54, 'TGA': 0.30, 'TGG': 1.00,
+            'CGT': 0.36, 'CGC': 0.36, 'CGA': 0.07, 'CGG': 0.11,
+            'AGT': 0.16, 'AGC': 0.25, 'AGA': 0.07, 'AGG': 0.04,
+            'GGT': 0.35, 'GGC': 0.37, 'GGA': 0.13, 'GGG': 0.15,
+        }
+
     # Initialize research log
     log = "# Codon Optimization Analysis Research Log\\n\\n"
 

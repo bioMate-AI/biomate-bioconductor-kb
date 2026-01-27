@@ -43,8 +43,31 @@ import json
 import os
 
 def parse_hpo_obo(obo_file):
-    """Parse HPO OBO file."""
-    return {}  # Placeholder - needs full implementation
+    '''Parse HPO OBO file and return dict mapping HPO ID to name.'''
+    hp_dict = {}
+    if not os.path.exists(obo_file):
+        return hp_dict
+
+    current_id = None
+    current_name = None
+
+    with open(obo_file, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line == '[Term]':
+                if current_id and current_name:
+                    hp_dict[current_id] = current_name
+                current_id = None
+                current_name = None
+            elif line.startswith('id: HP:'):
+                current_id = line[4:]
+            elif line.startswith('name: '):
+                current_name = line[6:]
+        # Don't forget the last term
+        if current_id and current_name:
+            hp_dict[current_id] = current_name
+
+    return hp_dict
 
 def auto_convert(val):
     # Auto-convert string to appropriate type

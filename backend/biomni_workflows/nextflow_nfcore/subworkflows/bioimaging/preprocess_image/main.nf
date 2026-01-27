@@ -48,14 +48,131 @@ import json
 import os
 
 
+import logging
+import os
+import numpy as np
+import SimpleITK as sitk
+
+logger = logging.getLogger(__name__)
+
+
 class ImageRegistrationTool:
-    """Stub for ImageRegistrationTool - requires SimpleITK."""
+    '''Medical image registration using SimpleITK.'''
+
     def __init__(self):
-        raise NotImplementedError("ImageRegistrationTool requires SimpleITK and full biomni installation")
-    def load_image(self, path):
-        pass
-    def calculate_similarity_metrics(self, img1, img2):
-        return {"error": "ImageRegistrationTool not available"}
+        '''Initialize the ImageRegistrationTool.'''
+        self.supported_formats = [".nii", ".nii.gz", ".nrrd", ".mha", ".mhd"]
+
+    def load_image(self, image_path):
+        '''Load a medical image using SimpleITK.'''
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Image file not found: {image_path}")
+        return sitk.ReadImage(image_path)
+
+    def save_image(self, image, output_path):
+        '''Save a SimpleITK image to file.'''
+        if os.path.isdir(output_path):
+            raise ValueError(f"Output path is a directory: {output_path}")
+        if not os.path.splitext(output_path)[1]:
+            raise ValueError(f"Output path has no extension: {output_path}")
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        sitk.WriteImage(image, output_path)
+
+    def preprocess_image(self, image, denoise=True, normalize=True):
+        '''Preprocess an image with denoising and normalization.'''
+        processed = sitk.Image(image)
+        if denoise:
+            processed = sitk.SmoothingRecursiveGaussian(processed, sigma=1.0)
+        if normalize:
+            mm = sitk.MinimumMaximumImageFilter()
+            mm.Execute(processed)
+            if mm.GetMaximum() > mm.GetMinimum():
+                processed = sitk.IntensityWindowing(processed, windowMinimum=mm.GetMinimum(),
+                                                   windowMaximum=mm.GetMaximum(), outputMinimum=0.0, outputMaximum=1.0)
+        return processed
+
+    def create_rigid_transform(self, fixed_image, moving_image, initial_transform=None):
+        '''Create a rigid transform for registration.'''
+        return initial_transform if initial_transform else sitk.Euler3DTransform()
+
+    def create_affine_transform(self, fixed_image, moving_image, initial_transform=None):
+        '''Create an affine transform for registration.'''
+        return initial_transform if initial_transform else sitk.AffineTransform(3)
+
+    def create_deformable_transform(self, fixed_image, moving_image, number_of_control_points=4):
+        '''Create a B-spline deformable transform.'''
+        return sitk.BSplineTransformInitializer(fixed_image, [number_of_control_points] * 3, order=3)
+
+    def setup_registration_method(self, transform, metric="mutual_information", optimizer="gradient_descent",
+                                   learning_rate=0.01, number_of_iterations=100, gradient_convergence_tolerance=1e-6):
+        '''Setup the registration method.'''
+        reg = sitk.ImageRegistrationMethod()
+        if metric == "mutual_information":
+            reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins=50)
+        elif metric == "mean_squares":
+            reg.SetMetricAsMeanSquares()
+        elif metric == "correlation":
+            reg.SetMetricAsCorrelation()
+        else:
+            reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins=50)
+
+        if optimizer == "gradient_descent":
+            reg.SetOptimizerAsGradientDescent(learningRate=learning_rate, numberOfIterations=number_of_iterations,
+                                              convergenceMinimumValue=gradient_convergence_tolerance)
+        elif optimizer == "lbfgsb":
+            reg.SetOptimizerAsLBFGSB(gradientConvergenceTolerance=gradient_convergence_tolerance,
+                                     numberOfIterations=number_of_iterations)
+        elif optimizer == "powell":
+            reg.SetOptimizerAsPowell(numberOfIterations=number_of_iterations, maximumLineIterations=20)
+        else:
+            reg.SetOptimizerAsGradientDescent(learningRate=learning_rate, numberOfIterations=number_of_iterations,
+                                              convergenceMinimumValue=gradient_convergence_tolerance)
+
+        reg.SetInterpolator(sitk.sitkLinear)
+        reg.SetInitialTransform(transform, inPlace=False)
+        return reg
+
+    def register_images(self, fixed_image, moving_image, transform, registration_method):
+        '''Perform image registration.'''
+        final_transform = registration_method.Execute(fixed_image, moving_image)
+        resampler = sitk.ResampleImageFilter()
+        resampler.SetReferenceImage(fixed_image)
+        resampler.SetInterpolator(sitk.sitkLinear)
+        resampler.SetDefaultPixelValue(0)
+        resampler.SetTransform(final_transform)
+        return final_transform, resampler.Execute(moving_image)
+
+    def calculate_similarity_metrics(self, image1, image2):
+        '''Calculate similarity metrics between two images.'''
+        metrics = {"mutual_information": 0.0, "mean_squares": 0.0, "correlation": 0.0, "normalized_correlation": 0.0}
+        try:
+            a1 = sitk.GetArrayFromImage(image1).flatten()
+            a2 = sitk.GetArrayFromImage(image2).flatten()
+            valid = np.isfinite(a1) & np.isfinite(a2)
+            a1, a2 = a1[valid], a2[valid]
+            if len(a1) == 0:
+                return metrics
+
+            metrics["mean_squares"] = -np.mean((a1 - a2) ** 2)
+            if np.std(a1) > 0 and np.std(a2) > 0:
+                c = np.corrcoef(a1, a2)[0, 1]
+                metrics["correlation"] = c if not np.isnan(c) else 0.0
+                metrics["normalized_correlation"] = metrics["correlation"]
+
+            try:
+                hist, _, _ = np.histogram2d(a1, a2, bins=50)
+                hist = hist + 1e-10
+                pxy = hist / np.sum(hist)
+                px, py = np.sum(pxy, axis=1), np.sum(pxy, axis=0)
+                mi = sum(pxy[i, j] * np.log2(pxy[i, j] / (px[i] * py[j]))
+                        for i in range(len(px)) for j in range(len(py))
+                        if pxy[i, j] > 0 and px[i] > 0 and py[j] > 0)
+                metrics["mutual_information"] = mi
+            except Exception:
+                pass
+        except Exception:
+            pass
+        return metrics
 
 
 def auto_convert(val):
