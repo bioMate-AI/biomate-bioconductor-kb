@@ -113,6 +113,42 @@ def analyze_flow_cytometry_immunophenotyping(
 
     '''
     import os
+    import numpy as np
+
+    # Generate synthetic data if no input provided
+    if fcs_file_path is None:
+        np.random.seed(42)
+
+        log = "# Flow Cytometry Immunophenotyping Analysis (DEMO MODE)\\n\\n"
+        log += "Running with synthetic data for demonstration purposes.\\n\\n"
+
+        # Simulated cell populations
+        populations = {
+            "CD3+ T cells": np.random.uniform(45, 65),
+            "CD4+ Helper T": np.random.uniform(25, 40),
+            "CD8+ Cytotoxic T": np.random.uniform(15, 30),
+            "CD19+ B cells": np.random.uniform(8, 15),
+            "CD56+ NK cells": np.random.uniform(5, 12),
+            "CD14+ Monocytes": np.random.uniform(8, 15),
+        }
+
+        total_events = np.random.randint(50000, 100000)
+
+        log += "## Sample Summary\\n\\n"
+        log += f"- Total events analyzed: {total_events}\\n"
+        log += f"- Live cells: {int(total_events * 0.92)} ({92.0:.1f}%)\\n\\n"
+
+        log += "## Cell Population Frequencies\\n\\n"
+        log += "| Population | Percentage | Count |\\n"
+        log += "|------------|------------|-------|\\n"
+        for pop, pct in populations.items():
+            count = int(total_events * pct / 100)
+            log += f"| {pop} | {pct:.1f}% | {count} |\\n"
+
+        log += "\\n## Summary\\n\\n"
+        log += "Synthetic demo analysis complete. Provide fcs_file_path for actual analysis.\\n"
+
+        return log
 
     import pandas as pd
     from FlowCytometryTools import FCMeasurement

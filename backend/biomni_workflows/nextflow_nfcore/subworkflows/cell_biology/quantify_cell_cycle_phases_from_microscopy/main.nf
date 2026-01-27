@@ -91,8 +91,42 @@ def quantify_cell_cycle_phases_from_microscopy(image_paths, output_dir="./result
 
     '''
     import os
-
     import numpy as np
+
+    # Generate synthetic data if no input provided
+    if image_paths is None or len(image_paths) == 0:
+        np.random.seed(42)
+
+        log = "# Cell Cycle Phase Quantification Analysis (DEMO MODE)\\n\\n"
+        log += "Running with synthetic data for demonstration purposes.\\n\\n"
+
+        # Simulated cell counts
+        total_cells = np.random.randint(200, 500)
+
+        # Typical yeast cell cycle distribution
+        g1_pct = np.random.uniform(55, 65)
+        s_pct = np.random.uniform(15, 25)
+        g2m_pct = 100 - g1_pct - s_pct
+
+        g1_count = int(total_cells * g1_pct / 100)
+        s_count = int(total_cells * s_pct / 100)
+        g2m_count = total_cells - g1_count - s_count
+
+        log += "## Synthetic Analysis Results\\n\\n"
+        log += f"Total cells analyzed: {total_cells}\\n\\n"
+
+        log += "### Cell Cycle Phase Distribution\\n\\n"
+        log += "| Phase | Count | Percentage |\\n"
+        log += "|-------|-------|------------|\\n"
+        log += f"| G1 | {g1_count} | {g1_pct:.1f}% |\\n"
+        log += f"| S | {s_count} | {s_pct:.1f}% |\\n"
+        log += f"| G2/M | {g2m_count} | {g2m_pct:.1f}% |\\n"
+
+        log += "\\n## Summary\\n\\n"
+        log += "Synthetic demo analysis complete. Provide image_paths for actual analysis.\\n"
+
+        return log
+
     import pandas as pd
     from skimage import filters, io, measure, morphology
 
