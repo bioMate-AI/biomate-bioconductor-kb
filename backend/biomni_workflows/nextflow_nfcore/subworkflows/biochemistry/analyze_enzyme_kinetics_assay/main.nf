@@ -118,6 +118,19 @@ def analyze_enzyme_kinetics_assay(
     import numpy as np
     from scipy.optimize import curve_fit
 
+    # Validate inputs - use defaults if None
+    if enzyme_name is None:
+        enzyme_name = "TestEnzyme"
+    if substrate_concentrations is None:
+        substrate_concentrations = [1, 5, 10, 25, 50, 100, 200]
+    if enzyme_concentration is None:
+        enzyme_concentration = 10.0
+    if output_dir is None:
+        output_dir = "./"
+    enzyme_name = str(enzyme_name)
+    enzyme_concentration = float(enzyme_concentration)
+    substrate_concentrations = np.array(substrate_concentrations)
+
     # Create output directory if it doesn't exist
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)

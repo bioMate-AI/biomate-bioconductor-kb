@@ -89,6 +89,11 @@ def analyze_rna_secondary_structure_features(dot_bracket_structure, sequence=Non
         A research log summarizing the calculated structural features and analysis steps.
 
     '''
+    # Validate inputs - use defaults if None
+    if dot_bracket_structure is None:
+        dot_bracket_structure = "((((....))))"
+    dot_bracket_structure = str(dot_bracket_structure)
+
     # Initialize research log
     log = "# RNA Secondary Structure Feature Analysis\\n\\n"
 

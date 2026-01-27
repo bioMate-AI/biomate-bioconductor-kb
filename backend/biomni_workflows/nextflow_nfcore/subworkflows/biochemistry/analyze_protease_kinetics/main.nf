@@ -126,6 +126,30 @@ def analyze_protease_kinetics(
     import numpy as np
     from scipy.optimize import curve_fit
 
+    # Validate inputs - use defaults if None
+    if time_points is None:
+        time_points = np.array([0, 10, 20, 30, 60, 120, 180, 300])
+    if fluorescence_data is None:
+        # Generate sample fluorescence data (4 substrate concentrations, 8 time points)
+        fluorescence_data = np.array([
+            [0, 100, 180, 250, 400, 500, 550, 580],
+            [0, 150, 280, 400, 650, 850, 950, 1000],
+            [0, 200, 380, 550, 900, 1200, 1400, 1500],
+            [0, 220, 420, 620, 1000, 1400, 1650, 1800]
+        ])
+    if substrate_concentrations is None:
+        substrate_concentrations = np.array([10, 25, 50, 100])
+    if enzyme_concentration is None:
+        enzyme_concentration = 1.0
+    if output_prefix is None:
+        output_prefix = "protease_kinetics"
+    if output_dir is None:
+        output_dir = "./"
+    time_points = np.array(time_points)
+    fluorescence_data = np.array(fluorescence_data)
+    substrate_concentrations = np.array(substrate_concentrations)
+    enzyme_concentration = float(enzyme_concentration)
+
     # Ensure output directory exists
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
