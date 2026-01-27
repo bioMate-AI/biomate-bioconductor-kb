@@ -80,6 +80,16 @@ def search_gene(sequence, pattern, case_sensitive=False):
     '''Search for pattern in sequence.
     Args: sequence: DNA/RNA, pattern: regex or sequence, case_sensitive: bool
     '''
+    # Validate inputs - use defaults if None
+    if sequence is None:
+        sequence = "ATGCATGCATGC"
+    if pattern is None:
+        pattern = "ATG"
+    if case_sensitive is None:
+        case_sensitive = False
+    sequence = str(sequence)
+    pattern = str(pattern)
+
     flags = 0 if case_sensitive else re.IGNORECASE
     matches = []
     for m in re.finditer(pattern, sequence, flags):

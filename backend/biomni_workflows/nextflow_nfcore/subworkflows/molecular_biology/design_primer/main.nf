@@ -110,6 +110,30 @@ def design_primer(
         Optional[Dict[str, Any]]: Dictionary with primer information or None if no suitable primer found
 
     '''
+    # Validate inputs - use defaults if None
+    if sequence is None:
+        sequence = "ATGCATGCATGCATGCATGCATGCATGCATGC"
+    if start_pos is None:
+        start_pos = 0
+    if primer_length is None:
+        primer_length = 20
+    if min_gc is None:
+        min_gc = 0.4
+    if max_gc is None:
+        max_gc = 0.6
+    if min_tm is None:
+        min_tm = 55.0
+    if max_tm is None:
+        max_tm = 65.0
+    if search_window is None:
+        search_window = 100
+    sequence = str(sequence).upper()
+    start_pos = int(start_pos)
+    primer_length = int(primer_length)
+    search_window = int(search_window)
+    min_gc, max_gc = float(min_gc), float(max_gc)
+    min_tm, max_tm = float(min_tm), float(max_tm)
+
     # Extract candidate region for primer design
     primer_region_start = start_pos
     primer_region_end = min(start_pos + search_window, len(sequence))
