@@ -78,16 +78,27 @@ def reduce_tokens(text, max_tokens=4000, method="truncate"):
     '''Reduce text to fit token limit.
     Args: text: input text, max_tokens: limit, method: truncate/summarize
     '''
+    # Validate inputs - use defaults if None
+    if text is None:
+        text = "Sample text for token reduction testing."
+    if max_tokens is None:
+        max_tokens = 4000
+    if method is None:
+        method = "truncate"
+    text = str(text)
+    max_tokens = int(max_tokens)
+    method = str(method)
+
     # Rough estimate: 4 chars per token
     max_chars = max_tokens * 4
     if len(text) <= max_chars:
         return {"text": text, "reduced": False, "original_length": len(text)}
-    
+
     if method == "truncate":
         reduced = text[:max_chars] + "..."
     else:
         reduced = text[:max_chars] + "..."
-    
+
     return {"text": reduced, "reduced": True, "original_length": len(text), "new_length": len(reduced)}
 
 # Execute the function

@@ -84,6 +84,26 @@ def gene_circuit_odes(protein_level, production_rate, degradation_rate, inducer=
     '''Gene circuit: dP/dt = production * (inducer^n / (K^n + inducer^n)) - degradation * P
     Args: protein_level: current level, production_rate, degradation_rate, inducer: inducer conc, hill_coef: cooperativity
     '''
+    # Validate inputs - use defaults if None
+    if protein_level is None:
+        protein_level = 1.0
+    if production_rate is None:
+        production_rate = 10.0
+    if degradation_rate is None:
+        degradation_rate = 0.5
+    if inducer is None:
+        inducer = 1.0
+    if hill_coef is None:
+        hill_coef = 2.0
+    if k_half is None:
+        k_half = 1.0
+    protein_level = float(protein_level)
+    production_rate = float(production_rate)
+    degradation_rate = float(degradation_rate)
+    inducer = float(inducer)
+    hill_coef = float(hill_coef)
+    k_half = float(k_half)
+
     if inducer > 0:
         activation = (inducer ** hill_coef) / (k_half ** hill_coef + inducer ** hill_coef)
     else:

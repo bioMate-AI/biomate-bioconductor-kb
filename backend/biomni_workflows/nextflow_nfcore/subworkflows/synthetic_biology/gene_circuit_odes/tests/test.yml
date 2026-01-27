@@ -1,0 +1,6 @@
+- name: "gene_circuit_odes test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - synthetic_biology
+    - gene_circuit_odes

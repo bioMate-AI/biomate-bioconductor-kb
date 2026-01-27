@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process FIND_ORFS_IN_FRAME"
+    script "../main.nf"
+    process "FIND_ORFS_IN_FRAME"
+
+    test("Should run find_orfs_in_frame successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

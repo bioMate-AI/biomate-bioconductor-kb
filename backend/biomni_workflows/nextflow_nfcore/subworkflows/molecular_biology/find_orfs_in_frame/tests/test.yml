@@ -1,0 +1,8 @@
+- name: "find_orfs_in_frame test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      sequence: ATGCGATCGATCGATCGATCG
+      frame: 0
+  tags:
+    - molecular_biology
+    - find_orfs_in_frame

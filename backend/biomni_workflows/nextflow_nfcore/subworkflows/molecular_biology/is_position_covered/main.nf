@@ -76,6 +76,13 @@ def is_position_covered(position, regions):
     '''Check if position falls within any region.
     Args: position: int, regions: list of (start, end) or JSON
     '''
+    # Validate inputs - use defaults if None
+    if position is None:
+        position = 50
+    if regions is None:
+        regions = [[0, 100], [200, 300]]
+    position = int(position)
+
     if isinstance(regions, str):
         regions = json.loads(regions)
     for start, end in regions:

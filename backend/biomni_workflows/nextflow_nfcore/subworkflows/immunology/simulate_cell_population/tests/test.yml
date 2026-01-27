@@ -1,0 +1,9 @@
+- name: "simulate_cell_population test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      growth_rate: 0.5
+      death_rate: 0.1
+      time_points: [0, 1, 2, 3, 4, 5, 6]
+  tags:
+    - immunology
+    - simulate_cell_population

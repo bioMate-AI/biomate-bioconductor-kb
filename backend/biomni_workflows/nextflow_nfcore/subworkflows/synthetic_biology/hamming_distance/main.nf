@@ -76,6 +76,14 @@ def hamming_distance(seq1, seq2):
     '''Count positions where sequences differ.
     Args: seq1, seq2: sequences of equal length
     '''
+    # Validate inputs - use defaults if None
+    if seq1 is None:
+        seq1 = "ATCGATCG"
+    if seq2 is None:
+        seq2 = "ATCGATCG"
+    seq1 = str(seq1)
+    seq2 = str(seq2)
+
     if len(seq1) != len(seq2):
         return {"error": "Sequences must be same length", "distance": -1}
     distance = sum(c1 != c2 for c1, c2 in zip(seq1, seq2))

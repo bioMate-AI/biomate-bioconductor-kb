@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process HAMMING_DISTANCE"
+    script "../main.nf"
+    process "HAMMING_DISTANCE"
+
+    test("Should run hamming_distance successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}

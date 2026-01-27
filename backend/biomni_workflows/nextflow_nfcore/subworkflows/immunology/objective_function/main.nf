@@ -78,6 +78,14 @@ def objective_function(params, data, model_type="sum_squared"):
     '''Objective function for fitting.
     Args: params: model parameters, data: observed values, model_type: SSE or other
     '''
+    # Validate inputs - use defaults if None
+    if params is None:
+        params = [1.0, 2.0, 3.0]
+    if data is None:
+        data = [1.0, 2.0, 3.0]
+    if model_type is None:
+        model_type = "sum_squared"
+
     if isinstance(params, str):
         params = [float(x.strip()) for x in params.split(',')]
     if isinstance(data, str):

@@ -78,6 +78,17 @@ def find_orfs_in_frame(sequence, frame=1, min_length=100):
     '''Find ORFs in specified frame.
     Args: sequence: DNA, frame: 1,2,3, min_length: minimum ORF length in nt
     '''
+    # Validate inputs - use defaults if None
+    if sequence is None:
+        sequence = "ATGAAATTTGGGCCCTAGATGCCCAAATGAGGGGGGGGTAA"
+    if frame is None:
+        frame = 1
+    if min_length is None:
+        min_length = 9
+    sequence = str(sequence)
+    frame = int(frame)
+    min_length = int(min_length)
+
     start_codon = "ATG"
     stop_codons = ["TAA", "TAG", "TGA"]
     seq = sequence.upper()

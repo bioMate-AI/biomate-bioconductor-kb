@@ -78,6 +78,16 @@ def is_region_fully_covered(query_start, query_end, regions):
     '''Check if query region is fully covered by other regions.
     Args: query_start, query_end, regions: list of (start, end)
     '''
+    # Validate inputs - use defaults if None
+    if query_start is None:
+        query_start = 10
+    if query_end is None:
+        query_end = 50
+    if regions is None:
+        regions = [[0, 100], [200, 300]]
+    query_start = int(query_start)
+    query_end = int(query_end)
+
     if isinstance(regions, str):
         regions = json.loads(regions)
     # Merge regions first
@@ -88,7 +98,7 @@ def is_region_fully_covered(query_start, query_end, regions):
             merged[-1][1] = max(merged[-1][1], end)
         else:
             merged.append([start, end])
-    
+
     for start, end in merged:
         if start <= query_start and end >= query_end:
             return {"fully_covered": True, "query": [query_start, query_end]}

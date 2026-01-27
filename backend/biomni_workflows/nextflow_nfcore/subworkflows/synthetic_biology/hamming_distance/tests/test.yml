@@ -1,0 +1,8 @@
+- name: "hamming_distance test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+      seq1: ATGCGATCGATCG
+      seq2: ATGCGATCGTTCG
+  tags:
+    - synthetic_biology
+    - hamming_distance

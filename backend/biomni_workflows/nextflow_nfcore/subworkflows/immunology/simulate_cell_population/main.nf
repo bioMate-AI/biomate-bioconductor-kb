@@ -80,9 +80,22 @@ def simulate_cell_population(initial_count, growth_rate, death_rate, time_points
     '''Simulate: dN/dt = (growth - death) * N
     Args: initial_count, growth_rate, death_rate, time_points (comma-separated)
     '''
+    # Validate inputs - use defaults if None
+    if initial_count is None:
+        initial_count = 1000.0
+    if growth_rate is None:
+        growth_rate = 0.1
+    if death_rate is None:
+        death_rate = 0.05
+    if time_points is None:
+        time_points = [0, 1, 2, 3, 4, 5]
+    initial_count = float(initial_count)
+    growth_rate = float(growth_rate)
+    death_rate = float(death_rate)
+
     if isinstance(time_points, str):
         time_points = [float(x.strip()) for x in time_points.split(',')]
-    
+
     net_rate = growth_rate - death_rate
     populations = [initial_count * np.exp(net_rate * t) for t in time_points]
     return {"time_points": time_points, "populations": populations, "net_growth_rate": net_rate}

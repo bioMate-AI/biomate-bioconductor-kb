@@ -1,0 +1,6 @@
+- name: "ras_ode_system test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+  tags:
+    - systems_biology
+    - ras_ode_system

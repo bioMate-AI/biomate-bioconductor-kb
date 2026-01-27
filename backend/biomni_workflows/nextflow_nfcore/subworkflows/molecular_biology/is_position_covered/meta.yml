@@ -1,9 +1,35 @@
 name: is_position_covered
-description: Check if a position is covered by any region.
+description: Check if a position is covered by any region
 keywords:
-  - molecular_biology
-  - biomni
+  - molecular-biology
+  - position
+  - coverage
+  - regions
 tools:
-  - biomni:
-      description: Biomni bioinformatics tool
-      homepage: https://github.com/biomate-ai/biomni
+  - python:
+      description: Python scientific computing
+      homepage: https://www.python.org/
+      documentation: https://docs.python.org/3/
+      licence: ["PSF-2.0"]
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+output:
+  - meta:
+      type: map
+  - results:
+      type: file
+      pattern: "*_results.json"
+  - output:
+      type: file
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      pattern: "versions.yml"
+authors:
+  - "@biomate-ai"
+maintainers:
+  - "@biomate-ai"

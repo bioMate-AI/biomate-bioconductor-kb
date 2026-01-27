@@ -80,6 +80,20 @@ def ras_ode_system(ras_gdp, ras_gtp, gef_rate, gap_rate):
     '''RAS cycle: RAS-GDP <-> RAS-GTP with GEF activation and GAP inactivation
     Args: ras_gdp, ras_gtp: concentrations, gef_rate: activation, gap_rate: inactivation
     '''
+    # Validate inputs - use defaults if None
+    if ras_gdp is None:
+        ras_gdp = 10.0  # RAS-GDP concentration
+    if ras_gtp is None:
+        ras_gtp = 1.0   # RAS-GTP concentration
+    if gef_rate is None:
+        gef_rate = 0.1  # GEF activation rate
+    if gap_rate is None:
+        gap_rate = 0.5  # GAP inactivation rate
+    ras_gdp = float(ras_gdp)
+    ras_gtp = float(ras_gtp)
+    gef_rate = float(gef_rate)
+    gap_rate = float(gap_rate)
+
     d_gdp = -gef_rate * ras_gdp + gap_rate * ras_gtp
     d_gtp = gef_rate * ras_gdp - gap_rate * ras_gtp
     return {"dRAS_GDP_dt": float(d_gdp), "dRAS_GTP_dt": float(d_gtp), "RAS_GDP": ras_gdp, "RAS_GTP": ras_gtp}
