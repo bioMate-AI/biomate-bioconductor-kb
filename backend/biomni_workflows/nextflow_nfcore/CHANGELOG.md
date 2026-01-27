@@ -33,12 +33,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `immunology/analyze_cfse_cell_proliferation` - Added collections.abc compatibility shim
 - `immunology/analyze_cytokine_production_in_cd4_tcells` - Added collections.abc compatibility shim
 
-#### Parameter Validation (5 modules)
+#### Parameter Validation (22 modules)
+
+**Original fixes (5):**
 - `biochemistry/michaelis_menten` - Added None handling with sensible defaults
 - `database/get_hpo_names` - Implemented parse_hpo_obo function
 - `microbiology/simulate_microbial_population_dynamics` - Added parameter type validation
 - `physiology/cosinor_model` - Added None handling with sensible defaults
 - `synthetic_biology/optimize_codons_for_heterologous_expression` - Added default E. coli codon usage table
+
+**Kinetic model None handling (17):**
+- `biochemistry/dose_response` - IC50=50, hill=1 defaults
+- `biochemistry/one_site_model` - Kd=1uM, dH=-10kcal/mol, n=1 defaults
+- `bioengineering/exp_decay` - a=100, k=0.1 defaults
+- `bioengineering/first_order` - k1=0.1, q0=100 defaults
+- `bioengineering/zero_order` - k0=10 default
+- `bioengineering/higuchi` - kh=5 default
+- `bioengineering/korsmeyer_peppas` - k=1, n=0.5 defaults
+- `immunology/logistic_growth` - n=100, r=0.1, k=1000 defaults
+- `microbiology/bacterial_dynamics` - n=100, r=0.5, k=10000, d=0.1 defaults
+- `pharmacology/bi_exp_model` - a=50, alpha=0.5, b=50, beta=0.05 defaults
+- `pharmacology/sigmoid` - x=0 default
+- `physiology/mono_exp_model` - t=1, a=100, k=0.1 defaults
+- `synthetic_biology/gompertz_model` - t=1, a=10, b=2, c=0.5 defaults
+- `systems_biology/hill_function` - x=1, n=1, ec50=1 defaults
+- `systems_biology/mass_action_kinetics` - k=1, concentrations=[1,1] defaults
+- `molecular_biology/reverse_complement` - seq="ATGC" default
+- `molecular_biology/find_restriction_sites` - dna_sequence and enzymes defaults
 
 ### Changed
 
