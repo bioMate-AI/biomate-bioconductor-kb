@@ -1,46 +1,41 @@
-name: "hill_function"
-description: "* nf-core style module generated from tested Galaxy wrapper"
+name: hill_function
+description: Hill function for cooperative binding
 keywords:
-  - systems_biology
-  - biomni
+  - systems-biology
+  - hill-function
+  - cooperativity
+  - binding
 tools:
-  - biomni:
-      description: "Biomni bioinformatics tool library"
-      homepage: "https://github.com/biomate/biomni"
-      documentation: "https://github.com/biomate/biomni"
-      licence: ["MIT"]
-
+  - python:
+      description: Python scientific computing
+      homepage: https://www.python.org/
+      documentation: https://docs.python.org/3/
+      licence: ["PSF-2.0"]
 input:
   - meta:
       type: map
       description: |
         Groovy Map containing sample information
         e.g. [ id:'test' ]
-  - name: x
-    type: string
-    description: Parameter x
-  - name: n
-    type: string
-    description: Parameter n
-  - name: ec50
-    type: string
-    description: Parameter ec50
-
 output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
   - results:
-      type: tuple
-      description: JSON results file
+      type: file
+      description: JSON file with computation results
       pattern: "*_results.json"
   - output:
-      type: tuple
-      description: Human-readable output
+      type: file
+      description: Human-readable output summary
       pattern: "*_output.txt"
   - versions:
       type: file
       description: File containing software versions
       pattern: "versions.yml"
-
 authors:
-  - "@biomni"
+  - "@biomate-ai"
 maintainers:
-  - "@biomni"
+  - "@biomate-ai"

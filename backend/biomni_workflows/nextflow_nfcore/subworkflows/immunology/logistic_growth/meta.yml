@@ -1,9 +1,41 @@
 name: logistic_growth
-description: Logistic growth model: N(t) = K / (1 + ((K - N0) / N0) * exp(-r*t)).
+description: Logistic growth model for cell populations
 keywords:
   - immunology
-  - biomni
+  - growth
+  - logistic
+  - population
 tools:
-  - biomni:
-      description: Biomni bioinformatics tool
-      homepage: https://github.com/biomate-ai/biomni
+  - python:
+      description: Python scientific computing
+      homepage: https://www.python.org/
+      documentation: https://docs.python.org/3/
+      licence: ["PSF-2.0"]
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - results:
+      type: file
+      description: JSON file with computation results
+      pattern: "*_results.json"
+  - output:
+      type: file
+      description: Human-readable output summary
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-ai"
+maintainers:
+  - "@biomate-ai"

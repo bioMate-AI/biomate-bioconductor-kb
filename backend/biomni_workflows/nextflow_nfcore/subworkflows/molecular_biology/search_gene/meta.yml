@@ -1,9 +1,41 @@
 name: search_gene
-description: Search for gene ID in NCBI database.
+description: Search for pattern in DNA sequence
 keywords:
-  - molecular_biology
-  - biomni
+  - molecular-biology
+  - sequence-search
+  - regex
+  - pattern
 tools:
-  - biomni:
-      description: Biomni bioinformatics tool
-      homepage: https://github.com/biomate-ai/biomni
+  - python:
+      description: Python scientific computing
+      homepage: https://www.python.org/
+      documentation: https://docs.python.org/3/
+      licence: ["PSF-2.0"]
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test' ]
+  - results:
+      type: file
+      description: JSON file with computation results
+      pattern: "*_results.json"
+  - output:
+      type: file
+      description: Human-readable output summary
+      pattern: "*_output.txt"
+  - versions:
+      type: file
+      description: File containing software versions
+      pattern: "versions.yml"
+authors:
+  - "@biomate-ai"
+maintainers:
+  - "@biomate-ai"
