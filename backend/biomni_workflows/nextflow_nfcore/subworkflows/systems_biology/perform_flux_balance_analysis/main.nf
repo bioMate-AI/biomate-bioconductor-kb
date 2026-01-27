@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.model_file = null
+// Default test data: Use COBRApy built-in textbook model (E. coli core)
+params.model_file = 'textbook'
 params.constraints = null
 params.objective_reaction = null
 params.output_file = 'fba_results.csv'

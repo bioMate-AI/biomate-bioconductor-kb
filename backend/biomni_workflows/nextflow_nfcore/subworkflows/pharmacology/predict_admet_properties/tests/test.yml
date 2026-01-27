@@ -1,5 +1,9 @@
 - name: "predict_admet_properties test"
-  command: nextflow run ./main.nf
+  command: nextflow run ./main.nf -profile docker
+  params:
+    # Common drug SMILES: aspirin, caffeine, ibuprofen
+    smiles_list: '["CC(=O)OC1=CC=CC=C1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C", "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O"]'
+    ADMET_model_type: 'MPNN'
   tags:
     - pharmacology
     - predict_admet_properties

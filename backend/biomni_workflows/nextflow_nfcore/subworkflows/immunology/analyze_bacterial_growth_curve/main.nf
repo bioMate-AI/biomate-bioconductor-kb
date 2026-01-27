@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.time_points = null
-params.od_values = null
-params.strain_name = null
+// Default test data: Bacterial growth curve over 24 hours
+params.time_points = '[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]'
+params.od_values = '[0.05, 0.07, 0.12, 0.28, 0.55, 0.85, 1.1, 1.3, 1.45, 1.52, 1.55, 1.57, 1.58]'
+params.strain_name = 'Test_Strain_001'
 params.output_dir = '.'
 
 process ANALYZE_BACTERIAL_GROWTH_CURVE {

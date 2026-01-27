@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.smiles_list = null
+// Default test data: Common drug SMILES (aspirin, caffeine, ibuprofen)
+params.smiles_list = '["CC(=O)OC1=CC=CC=C1C(=O)O", "CN1C=NC2=C1C(=O)N(C(=O)N2C)C", "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O"]'
 params.ADMET_model_type = 'MPNN'
 
 process PREDICT_ADMET_PROPERTIES {
