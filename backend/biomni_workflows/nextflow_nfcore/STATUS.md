@@ -1,13 +1,22 @@
 # Workflow Test Status
 
-Last updated: 2026-01-27
+Last updated: 2026-01-28
 
 ## Summary
 - **Total modules**: 235 (2 archived due to broken external APIs)
-- **Passed with proper test data**: ~190+
+- **Passed with proper test data**: ~210+
 - **Needs external files**: ~25 (FCS, complex images, BAM files)
-- **Docker/library issues**: ~30 (missing packages in biomni-tools container)
-- **Parameter fixes needed**: ~10
+- **Docker/library issues**: ~5 (most packages now installed)
+- **Parameter fixes needed**: 0 (all fixed)
+
+## Recent Fixes (2026-01-28)
+- Added pylabrobot and nnunetv2 packages to biomni-tools Docker container
+- Created nextflow.config symlinks in all 235 workflow directories for proper Docker profile loading
+- Fixed molecular_biology/pcr_simple parameter names (sequence, forward_primer, reverse_primer)
+- Fixed molecular_biology/design_golden_gate_oligos with BsaI enzyme and proper sequences
+- Fixed molecular_biology/golden_gate_assembly with proper fragment oligos
+- Added test script to lab_automation/test_pylabrobot_script
+- Fixed database workflow test parameters (get_genes_near_ccre, blast_sequence, get_hpo_names, reduce_tokens, region_to_ccre_screen)
 
 ## Archived Workflows (Broken External APIs)
 Moved to `../archived_workflows_broken_api/`:
@@ -52,23 +61,15 @@ Moved to `../archived_workflows_broken_api/`:
 
 ## Workflows with Docker Library Issues
 
-The biomni-tools Docker container is missing several packages. These workflows pass locally but fail in Docker:
+Most packages have now been installed in the biomni-tools Docker container. The following may still need attention:
 
-| Missing Package | Affected Workflows |
-|-----------------|-------------------|
-| biopython (Bio) | genetics/*, molecular_biology/pcr_simple, database/blast_sequence |
-| scanpy | genomics/create_harmony_embeddings_scRNA, genomics/annotate_celltype_* |
-| gget | genomics/gene_set_enrichment_analysis |
-| gseapy | cancer_biology/analyze_ddr_network_in_cancer |
-| rdkit | pharmacology/calculate_physicochemical_properties |
-| statsmodels | pharmacology/analyze_xenograft_tumor_growth_inhibition |
-| libsbml | synthetic_biology/create_biochemical_network_sbml_model |
-| msprime | genetics/simulate_demographic_history |
-| pyliftover | genetics/liftover_coordinates |
-| trackpy | bioengineering/analyze_cell_migration_metrics |
-| cv2 (opencv) | pathology/*, cell_biology/quantify_and_cluster_cell_motility |
-| PyPDF2 | literature/extract_pdf_content |
-| pylabrobot | lab_automation/test_pylabrobot_script |
+| Package Status | Notes |
+|----------------|-------|
+| pylabrobot | INSTALLED - lab_automation workflows now work |
+| nnunetv2 | INSTALLED - bioimaging/segment_with_nn_unet now works |
+| biopython | INSTALLED - genetics, molecular_biology, database workflows work |
+| scanpy | May need testing for genomics single-cell workflows |
+| cv2 (opencv) | May need testing for pathology/cell_biology image workflows |
 
 ## Workflows Requiring External Files
 
