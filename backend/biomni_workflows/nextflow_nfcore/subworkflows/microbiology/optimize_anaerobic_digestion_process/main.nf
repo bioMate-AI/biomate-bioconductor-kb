@@ -11,8 +11,10 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Food waste anaerobic digestion optimization
-params.waste_characteristics = '{"total_solids_percent": 18.5, "volatile_solids_percent": 85.2, "cod_mg_l": 45000, "ph": 5.8, "c_n_ratio": 25.0}'
-params.operational_parameters = '{"temperature_c": 37, "hrt_days": 20, "olr_kg_vs_m3_d": 3.0, "ph_range": [6.8, 7.5]}'
+// waste_characteristics keys: volatile_solids (%), cod (mg/L)
+params.waste_characteristics = '{"volatile_solids": 85.2, "cod": 45000}'
+// operational_parameters keys: hrt, olr, if_ratio, temperature, ph - all as (min, max) bounds
+params.operational_parameters = '{"hrt": [5, 30], "olr": [1, 6], "if_ratio": [0.1, 0.5], "temperature": [30, 55], "ph": [5.5, 7.5]}'
 params.target_output = 'methane_yield'
 params.optimization_method = 'rsm'
 

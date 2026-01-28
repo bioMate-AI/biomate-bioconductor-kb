@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.initial_population = null
-params.growth_rate = null
-params.clearance_rate = null
-params.niche_size = null
+// Demo: E. coli growth in batch culture (logistic growth model)
+params.initial_population = '1000'
+params.growth_rate = '0.5'
+params.clearance_rate = '0.01'
+params.niche_size = '1e9'
 params.simulation_time = '24'
 params.time_step = '0.1'
 
