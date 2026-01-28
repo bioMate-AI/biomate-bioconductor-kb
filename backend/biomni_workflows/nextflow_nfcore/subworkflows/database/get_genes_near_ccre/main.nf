@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.accession = null
-params.assembly = null
-params.chromosome = null
+// Demo: Find genes near a cCRE in the MYC locus on chromosome 8
+params.accession = 'EH38E1516972'
+params.assembly = 'GRCh38'
+params.chromosome = 'chr8'
 params.k = 10
 
 process GET_GENES_NEAR_CCRE {

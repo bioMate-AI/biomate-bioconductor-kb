@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.text = null
-params.max_tokens = null
-params.method = null
+// Demo: Reduce a scientific abstract to fit within token limit
+params.text = 'The CRISPR-Cas9 system has revolutionized genome editing by enabling precise and efficient modification of DNA sequences in living organisms. This technology utilizes a guide RNA to direct the Cas9 nuclease to specific genomic locations where it introduces double-strand breaks. The cellular repair mechanisms then allow for targeted insertions, deletions, or replacements of genetic material. Applications range from basic research to therapeutic interventions for genetic diseases.'
+params.max_tokens = '100'
+params.method = 'truncate'
 
 process REDUCE_TOKENS {
     tag "$meta.id"

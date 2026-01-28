@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.hpo_terms = null
-params.data_lake_path = null
+// Demo: Retrieve names for common disease phenotype HPO terms
+params.hpo_terms = '["HP:0001250", "HP:0001252", "HP:0000707"]'
+params.data_lake_path = '/data/hpo'
 
 process GET_HPO_NAMES {
     tag "$meta.id"

@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.coord_chrom = null
-params.coord_start = null
-params.coord_end = null
+// Demo: Find cCREs in the TP53 tumor suppressor gene region on chromosome 17
+params.coord_chrom = 'chr17'
+params.coord_start = '7571720'
+params.coord_end = '7590868'
 params.assembly = 'GRCh38'
 
 process REGION_TO_CCRE_SCREEN {
