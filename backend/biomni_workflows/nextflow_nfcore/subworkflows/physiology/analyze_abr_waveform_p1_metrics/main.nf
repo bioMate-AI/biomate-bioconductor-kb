@@ -10,8 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.time_ms = null
-params.amplitude_uv = null
+// Demo: Simulated ABR waveform data (0-10 ms with peaks at P1, N1, P2)
+// Time points from 0 to 10 ms in 0.1 ms increments
+params.time_ms = '[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5.0]'
+// Simulated amplitude in microvolts with P1 peak around 1.8 ms
+params.amplitude_uv = '[0.0, 0.02, 0.05, 0.08, 0.12, 0.18, 0.25, 0.35, 0.48, 0.65, 0.85, 1.05, 1.25, 1.40, 1.50, 1.55, 1.52, 1.42, 1.28, 1.10, 0.88, 0.65, 0.42, 0.20, 0.02, -0.12, -0.22, -0.28, -0.30, -0.28, -0.22, -0.12, 0.0, 0.15, 0.32, 0.48, 0.62, 0.72, 0.78, 0.80, 0.78, 0.72, 0.62, 0.50, 0.38, 0.25, 0.15, 0.08, 0.03, 0.01, 0.0]'
 
 process ANALYZE_ABR_WAVEFORM_P1_METRICS {
     tag "$meta.id"

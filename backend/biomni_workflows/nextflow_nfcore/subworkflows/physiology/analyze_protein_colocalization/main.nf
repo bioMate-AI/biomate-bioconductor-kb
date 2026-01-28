@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.channel1_path = null
-params.channel2_path = null
+// Demo: Uses inline-generated mock fluorescence channel images
+params.channel1_path = 'mock_channel1_green.png'
+params.channel2_path = 'mock_channel2_red.png'
 params.output_dir = './output'
 params.threshold_method = 'otsu'
 
@@ -39,6 +40,37 @@ process ANALYZE_PROTEIN_COLOCALIZATION {
     export PARAM_CHANNEL2_PATH="${params.channel2_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_THRESHOLD_METHOD="${params.threshold_method?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Generate mock fluorescence channel images for testing
+    python3 << 'MOCKEOF'
+import numpy as np
+import cv2
+
+# Create mock green channel with punctate pattern (simulating protein 1)
+np.random.seed(42)
+ch1 = np.zeros((256, 256), dtype=np.uint8)
+for _ in range(50):
+    x, y = np.random.randint(20, 236, 2)
+    cv2.circle(ch1, (x, y), np.random.randint(5, 15), 180 + np.random.randint(0, 75), -1)
+ch1 = cv2.GaussianBlur(ch1, (5, 5), 2)
+cv2.imwrite('mock_channel1_green.png', ch1)
+
+# Create mock red channel with overlapping pattern (simulating colocalized protein 2)
+ch2 = np.zeros((256, 256), dtype=np.uint8)
+np.random.seed(42)  # Same seed for partial overlap
+for i in range(50):
+    x, y = np.random.randint(20, 236, 2)
+    # 70% overlap with channel 1
+    if i < 35:
+        cv2.circle(ch2, (x, y), np.random.randint(5, 15), 160 + np.random.randint(0, 95), -1)
+    else:
+        # 30% unique to channel 2
+        x2, y2 = np.random.randint(20, 236, 2)
+        cv2.circle(ch2, (x2, y2), np.random.randint(5, 15), 160 + np.random.randint(0, 95), -1)
+ch2 = cv2.GaussianBlur(ch2, (5, 5), 2)
+cv2.imwrite('mock_channel2_red.png', ch2)
+print("Mock fluorescence channel images created")
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

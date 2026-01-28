@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_sequence_path = null
+// Demo: Uses inline-generated mock image sequence directory
+params.image_sequence_path = 'mock_flow_sequence'
 params.output_dir = './output'
 params.pixel_size_um = '1.0'
 params.time_interval_sec = '1.0'
@@ -41,6 +42,35 @@ process TRACK_IMMUNE_CELLS_UNDER_FLOW {
     export PARAM_PIXEL_SIZE_UM="${params.pixel_size_um?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_TIME_INTERVAL_SEC="${params.time_interval_sec?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_FLOW_DIRECTION="${params.flow_direction?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Generate mock image sequence for testing
+    python3 << 'MOCKEOF'
+import numpy as np
+import cv2
+import os
+
+# Create directory for image sequence
+os.makedirs('mock_flow_sequence', exist_ok=True)
+
+# Create 10 frames showing cells moving to the right under flow
+np.random.seed(42)
+n_cells = 5
+cell_positions = np.random.rand(n_cells, 2) * np.array([400, 300])  # Start positions
+cell_velocities = np.random.rand(n_cells) * 10 + 5  # Pixels per frame (rightward)
+
+for frame_idx in range(10):
+    img = np.ones((300, 400), dtype=np.uint8) * 30  # Dark background
+
+    for i in range(n_cells):
+        x = int(cell_positions[i, 0] + frame_idx * cell_velocities[i])
+        y = int(cell_positions[i, 1])
+        if 0 <= x < 400:
+            cv2.circle(img, (x, y), 8, 200, -1)  # Bright cells
+
+    cv2.imwrite(f'mock_flow_sequence/frame_{frame_idx:04d}.png', img)
+
+print("Mock flow image sequence created with 10 frames")
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

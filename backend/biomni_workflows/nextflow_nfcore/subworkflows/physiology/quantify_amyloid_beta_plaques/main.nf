@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_path = null
+// Demo: Uses inline-generated mock amyloid plaque image
+params.image_path = 'mock_amyloid_plaques.png'
 params.output_dir = './results'
 params.threshold_method = 'otsu'
 params.min_plaque_size = '50'
@@ -41,6 +42,37 @@ process QUANTIFY_AMYLOID_BETA_PLAQUES {
     export PARAM_THRESHOLD_METHOD="${params.threshold_method?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_MIN_PLAQUE_SIZE="${params.min_plaque_size?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_MANUAL_THRESHOLD="${params.manual_threshold?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Generate mock amyloid plaque image for testing
+    python3 << 'MOCKEOF'
+import numpy as np
+import cv2
+
+# Create mock brain tissue image with amyloid plaques (brown spots on tissue)
+np.random.seed(42)
+# Background: gray tissue-like texture
+tissue = np.random.normal(180, 15, (512, 512)).astype(np.uint8)
+tissue = cv2.GaussianBlur(tissue, (15, 15), 5)
+
+# Create RGB image (brown plaques on gray tissue)
+img = cv2.cvtColor(tissue, cv2.COLOR_GRAY2BGR)
+
+# Add amyloid plaques as dark brown spots
+for _ in range(25):
+    x = np.random.randint(30, 482)
+    y = np.random.randint(30, 482)
+    radius = np.random.randint(8, 25)
+    # Brown color (BGR: dark brown)
+    color = (40 + np.random.randint(0, 30), 70 + np.random.randint(0, 40), 120 + np.random.randint(0, 40))
+    cv2.circle(img, (x, y), radius, color, -1)
+    # Add halo effect around plaques
+    cv2.circle(img, (x, y), radius + 3, (color[0] + 20, color[1] + 20, color[2] + 20), 2)
+
+# Add some blur for realism
+img = cv2.GaussianBlur(img, (3, 3), 1)
+cv2.imwrite('mock_amyloid_plaques.png', img)
+print("Mock amyloid plaque image created")
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

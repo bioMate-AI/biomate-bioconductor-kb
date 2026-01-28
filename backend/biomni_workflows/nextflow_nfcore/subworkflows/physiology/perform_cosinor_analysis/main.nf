@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.time_data = null
-params.physiological_data = null
+// Demo: 48-hour circadian rhythm data (temperature measurements every 2 hours)
+params.time_data = '[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48]'
+params.physiological_data = '[36.5, 36.3, 36.1, 36.0, 36.2, 36.5, 36.8, 37.1, 37.3, 37.4, 37.2, 36.9, 36.5, 36.3, 36.1, 36.0, 36.2, 36.5, 36.8, 37.1, 37.3, 37.4, 37.2, 36.9, 36.5]'
 params.period = '24.0'
 
 process PERFORM_COSINOR_ANALYSIS {

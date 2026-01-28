@@ -1,8 +1,13 @@
 - name: "perform_cosinor_analysis test"
   command: nextflow run ../main.nf -profile docker
   params:
-      time_data: 10.0
-      physiological_data: 7.4
+    # 48-hour circadian rhythm data: body temperature measurements every 2 hours
+    time_data: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48]"
+    physiological_data: "[36.5, 36.3, 36.1, 36.0, 36.2, 36.5, 36.8, 37.1, 37.3, 37.4, 37.2, 36.9, 36.5, 36.3, 36.1, 36.0, 36.2, 36.5, 36.8, 37.1, 37.3, 37.4, 37.2, 36.9, 36.5]"
+    period: "24.0"
   tags:
     - physiology
     - perform_cosinor_analysis
+  notes:
+    - "Test data simulates 48h body temperature with 24h circadian rhythm"
+    - "Expected: detect mesor ~36.7, amplitude ~0.7, acrophase around hour 18"
