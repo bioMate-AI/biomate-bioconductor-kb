@@ -91,3 +91,6 @@ backend/nf-core-workflows/
 backend/instrument_parsers/
 backend/tests/e2e_ui/test_videos/
 auto_update/mcp_servers/AlphaFold-MCP-Server
+
+# Clawdbot cloned repository (external dependency)
+reference/clawdbot/

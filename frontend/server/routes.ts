@@ -142,11 +142,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await parameterRepository.seedExamples();
   }
 
-  const workflowTemplates = await workflowRepository.searchTemplates({});
-  if (workflowTemplates.count === 0) {
-    console.log('[Server] Seeding example workflow templates...');
-    await workflowRepository.seedExamples();
-  }
+  // Disabled: These example templates use tools (FastQC, HISAT2, etc.) that aren't installed
+  // const workflowTemplates = await workflowRepository.searchTemplates({});
+  // if (workflowTemplates.count === 0) {
+  //   console.log('[Server] Seeding example workflow templates...');
+  //   await workflowRepository.seedExamples();
+  // }
 
   // Apply audit middleware for API routes (excludes health and SSE)
   app.use('/api', auditMiddleware({
@@ -4199,6 +4200,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         error: 'SubworkflowExtractionError',
         message: error.message || 'Failed to extract subworkflow',
+      });
+    }
+  });
+
+  // =============================================================================
+  // BIOMATE CHAT API - For Clawdbot/messaging channel integration
+  // =============================================================================
+
+  /**
+   * Biomate Chat Endpoint for Messaging Channels
+   *
+   * Optimized for conversational interfaces (Telegram, WhatsApp, etc.)
+   * - Shorter, more concise responses
+   * - Session tracking for multi-turn conversations
+   * - Channel-aware formatting
+   */
+  app.post("/api/biomate/chat", async (req, res) => {
+    try {
+      const {
+        message,
+        sessionId,
+        channel = 'telegram',
+        userId,
+        apiKey
+      } = req.body;
+
+      // Optional API key validation for external access
+      const expectedApiKey = process.env.BIOMATE_API_KEY;
+      if (expectedApiKey && apiKey !== expectedApiKey) {
+        return res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid API key'
+        });
+      }
+
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({
+          error: 'BadRequest',
+          message: 'Message is required'
+        });
+      }
+
+      console.log(`[Biomate Chat] Channel: ${channel}, Session: ${sessionId}, Message: ${message.substring(0, 100)}`);
+
+      if (!galaxyAssistant) {
+        return res.status(503).json({
+          error: 'ServiceUnavailable',
+          message: 'Biomate assistant not configured. Set ANTHROPIC_API_KEY.',
+          response: 'Biomate is not configured. Please contact the administrator.'
+        });
+      }
+
+      // Process through Galaxy Assistant
+      const result = await galaxyAssistant.processMessage(message, {
+        sessionId: sessionId || `${channel}-${userId || 'anonymous'}`,
+        enableThinking: false, // Faster responses for chat
+      });
+
+      // Format response for messaging channels
+      let formattedResponse = result.message;
+
+      // Truncate for messaging constraints if needed
+      const maxLength = channel === 'telegram' ? 4096 :
+                        channel === 'whatsapp' ? 4096 :
+                        channel === 'slack' ? 40000 : 4096;
+
+      if (formattedResponse.length > maxLength) {
+        formattedResponse = formattedResponse.substring(0, maxLength - 100) +
+          '\n\n[Response truncated. Ask for specific details.]';
+      }
+
+      // Build response with metadata
+      const response: any = {
+        response: formattedResponse,
+        sessionId: sessionId || `${channel}-${userId || 'anonymous'}`,
+        channel,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Include tool recommendations if present
+      if (result.recommendedTools && result.recommendedTools.length > 0) {
+        response.tools = result.recommendedTools.slice(0, 5).map(t => ({
+          name: t.name,
+          description: t.description?.substring(0, 200),
+          score: t.score
+        }));
+      }
+
+      // Include workflow suggestion if present
+      if (result.workflowSuggestion) {
+        response.workflowSuggestion = {
+          name: result.workflowSuggestion.name,
+          description: result.workflowSuggestion.description,
+          stepCount: result.workflowSuggestion.steps?.length || 0
+        };
+      }
+
+      // Include generated workflow ID if present
+      if (result.generatedWorkflow?.id) {
+        response.workflowId = result.generatedWorkflow.id;
+      }
+
+      res.json(response);
+
+    } catch (error: any) {
+      console.error('[Biomate Chat] Error:', error);
+      res.status(500).json({
+        error: 'InternalError',
+        message: error.message || 'Failed to process message',
+        response: 'Sorry, I encountered an error processing your request. Please try again.'
+      });
+    }
+  });
+
+  /**
+   * Biomate Health Check - For Clawdbot skill to verify connectivity
+   */
+  app.get("/api/biomate/health", (req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'biomate',
+      version: '1.0.0',
+      assistantReady: !!galaxyAssistant,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  /**
+   * Biomate Status - Get workflow execution status
+   */
+  app.get("/api/biomate/status/:invocationId", async (req, res) => {
+    try {
+      const { invocationId } = req.params;
+
+      // Try to get from Galaxy poller
+      const state = galaxyPoller.getInvocationState(invocationId);
+
+      if (!state) {
+        return res.status(404).json({
+          error: 'NotFound',
+          message: 'Invocation not found'
+        });
+      }
+
+      res.json({
+        invocationId,
+        state: state.state,
+        completedSteps: state.completedSteps,
+        totalSteps: state.totalSteps,
+        percentComplete: state.totalSteps > 0
+          ? Math.round((state.completedSteps / state.totalSteps) * 100)
+          : 0
+      });
+
+    } catch (error: any) {
+      res.status(500).json({
+        error: 'InternalError',
+        message: error.message || 'Failed to get status'
       });
     }
   });
