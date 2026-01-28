@@ -10,12 +10,13 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.genome_file_path = null
+// Demo: Uses inline-generated mock bacterial genome FASTA
+params.genome_file_path = 'mock_genome.fasta'
 params.output_dir = 'annotation_results'
-params.genus = null
-params.species = null
-params.strain = null
-params.prefix = null
+params.genus = 'Escherichia'
+params.species = 'coli'
+params.strain = 'K12'
+params.prefix = 'ecoli_test'
 
 process ANNOTATE_BACTERIAL_GENOME {
     tag "$meta.id"
@@ -43,6 +44,21 @@ process ANNOTATE_BACTERIAL_GENOME {
     export PARAM_SPECIES="${params.species?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_STRAIN="${params.strain?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_PREFIX="${params.prefix?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Generate mock bacterial genome FASTA for testing
+    cat > mock_genome.fasta << 'FASTAEOF'
+>mock_chromosome E. coli K12 test sequence
+ATGAAACGCATTAGCACCACCATTACCACCACCATCACCATTACCACAGGTAACGGTGCG
+GGCTGACGCGTACAGGAAACACAGAAAAAAGCCCGCACCTGACAGTGCGGGCTTTTTTT
+TTCGACCAAAGGTAACGAGGTAACAACCATGCGAGTGTTGAAGTTCGGCGGTACATCAG
+TGGCAAATGCAGAACGTTTTCTGCGTGTTGCCGATATTCTGGAAAGCAATGCCAGGCAG
+GGGCAGGTGGCCACCGTCCTCTCTGCCCCCGCCAAAATCACCAACCACCTGGTGGCGAT
+GATTGAAAAAACCATTAGCGGCCAGGATGCTTTACCCAATATCAGCGATGCCGAACGTA
+TTTTTGCCGAACTTTTGACGGGACTCGCCGCCGCCCAGCCGGGGTTCCCGCTGGCGCAA
+TTGAAAACTTTCGTCGATCAGGAATTTGCCCAAATAAAACATGTCCTGCATGGCATTAG
+TTTGTTGGGGCAGTGCCCGGATAGCATCAACGCTGCGCTGATTTGCCGTGGCGAGAAAA
+ATGTCGATCGCCATTATGGCCGGCGTATGTAA
+FASTAEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

@@ -10,10 +10,12 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.initial_abundances = null
-params.growth_rates = null
-params.interaction_matrix = null
-params.time_points = null
+// Demo: 3-species microbial community with competition/mutualism
+params.initial_abundances = '[0.1, 0.2, 0.15]'
+params.growth_rates = '[0.5, 0.4, 0.45]'
+// Interaction matrix: diagonal=self-limitation, off-diagonal=species interactions
+params.interaction_matrix = '[[-0.1, -0.02, 0.01], [-0.01, -0.1, -0.03], [0.02, -0.01, -0.1]]'
+params.time_points = '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30, 40, 50]'
 params.output_file = 'glv_simulation_results.csv'
 
 process SIMULATE_GENERALIZED_LOTKA_VOLTERRA_DYNAMICS {

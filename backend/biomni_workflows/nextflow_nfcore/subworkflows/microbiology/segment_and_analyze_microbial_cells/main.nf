@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_path = null
+// Demo: Uses inline-generated mock fluorescence microscopy image
+params.image_path = 'mock_microbial_cells.png'
 params.output_dir = './output'
 params.min_cell_size = '50'
 
@@ -37,6 +38,43 @@ process SEGMENT_AND_ANALYZE_MICROBIAL_CELLS {
     export PARAM_IMAGE_PATH="${params.image_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_MIN_CELL_SIZE="${params.min_cell_size?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Generate mock fluorescence microscopy image with microbial cells
+    python3 << 'MOCKEOF'
+import numpy as np
+import cv2
+
+# Create mock fluorescence microscopy image
+np.random.seed(42)
+# Dark background
+img = np.zeros((512, 512), dtype=np.uint8)
+img = img + np.random.normal(5, 2, (512, 512)).astype(np.uint8)
+
+# Add microbial cells as bright spots (rod-shaped bacteria)
+for _ in range(30):
+    x = np.random.randint(30, 482)
+    y = np.random.randint(30, 482)
+    # Rod-shaped cell
+    angle = np.random.uniform(0, 180)
+    length = np.random.randint(15, 35)
+    width = np.random.randint(6, 12)
+    brightness = 150 + np.random.randint(0, 100)
+
+    # Draw ellipse for rod-shaped bacteria
+    cv2.ellipse(img, (x, y), (length//2, width//2), angle, 0, 360, brightness, -1)
+
+# Add some smaller cocci (spherical bacteria)
+for _ in range(20):
+    x = np.random.randint(20, 492)
+    y = np.random.randint(20, 492)
+    radius = np.random.randint(5, 10)
+    brightness = 140 + np.random.randint(0, 115)
+    cv2.circle(img, (x, y), radius, brightness, -1)
+
+img = cv2.GaussianBlur(img, (3, 3), 0.5)
+cv2.imwrite('mock_microbial_cells.png', img)
+print("Mock microbial cell fluorescence image created")
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

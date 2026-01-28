@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.rna_sequence = null
+// Demo: tRNA-Ala sequence for structure prediction
+params.rna_sequence = 'GGGCUAUAGCUCAGCUGGGAGAGCGCUUGCAUGGCAUGCAAGAGGUCAGCGGUUCGAUCCCGCUUAGCUCCACCA'
 params.output_prefix = 'rna_structure'
 
 process PREDICT_RNA_SECONDARY_STRUCTURE {
