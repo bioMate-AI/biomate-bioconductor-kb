@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.genotypes = null
-params.phenotypes = null
+// Demo: Small genotype matrix (5 individuals x 10 SNPs) with phenotypes
+params.genotypes = '[[0, 1, 2, 0, 1, 0, 2, 1, 0, 1], [1, 0, 1, 2, 0, 1, 1, 0, 2, 0], [2, 1, 0, 1, 2, 0, 0, 1, 1, 2], [0, 2, 1, 0, 1, 2, 1, 2, 0, 1], [1, 1, 2, 1, 0, 1, 2, 0, 1, 0]]'
+params.phenotypes = '[15.2, 18.7, 12.3, 20.1, 16.5]'
 params.fixed_effects = null
 params.model_type = 'additive'
 params.output_file = 'genomic_prediction_results.csv'
@@ -112,6 +113,12 @@ def fit_genomic_prediction_model(
     '''
     import pandas as pd
     from scipy import linalg
+
+    # Convert inputs to numpy arrays if they are lists
+    genotypes = np.array(genotypes)
+    phenotypes = np.array(phenotypes)
+    if fixed_effects is not None:
+        fixed_effects = np.array(fixed_effects)
 
     # Initialize research log
     log = "# Multi-trait Genomic Prediction Analysis\\n\\n"
