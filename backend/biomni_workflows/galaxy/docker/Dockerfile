@@ -201,6 +201,16 @@ RUN pip install --no-cache-dir --no-deps scvi-tools || echo "scvi-tools not avai
     && pip install --no-cache-dir --no-deps harmony-pytorch || echo "harmony-pytorch not available"
 
 # ============================================
+# LAYER 16: Lab automation (pylabrobot for liquid handling)
+# ============================================
+RUN pip install --no-cache-dir pylabrobot || echo "pylabrobot not available"
+
+# ============================================
+# LAYER 17: Medical imaging segmentation (nnU-Net)
+# ============================================
+RUN pip install --no-cache-dir nnunetv2 || echo "nnunetv2 not available"
+
+# ============================================
 # Copy and install Biomni package
 # ============================================
 WORKDIR ${BIOMNI_HOME}
