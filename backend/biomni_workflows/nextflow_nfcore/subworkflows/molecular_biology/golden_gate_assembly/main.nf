@@ -10,11 +10,16 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.backbone_sequence = null
-params.enzyme_name = null
-params.fragments = null
-params.str]] = null
-params.is_circular = null
+// Demo: pUC19-derived backbone with BsaI Golden Gate sites for GFP insertion
+// Backbone contains two BsaI sites (GGTCTC) - one forward, one reverse
+// The fragment overhangs must match the backbone cut overhangs to form a circuit
+params.backbone_sequence = 'ATGACCATGATTACGCCAAGCTTGCATGCCTGCAGGTCGACTCTAGAGGATCCGGTCTCNAAAATCTAGATCTCGAGCTCAAGCTTCGAATTCTGCAGTCGACGGTACCGCGGGCCCGGGATCCACCGGTCGCCACCATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCTTCGGCTACGGCCTGATGTGCTTTGCCCGCTACCCCGACTTTTNGAGACCAGCTTGGACTGGAACAATAAAGCCC'
+params.enzyme_name = 'BsaI'
+// Fragment with overhangs matching the backbone BsaI cut sites
+// fwd_overhang (first 4bp of fwd_oligo) must match one backbone cut
+// rev_overhang (first 4bp of rev_oligo, rev-complemented) must match another backbone cut
+params.fragments = '[{"name": "GFP_insert", "fwd_oligo": "AAATATGGTGAGCAAGGGCGAGGAGCTG", "rev_oligo": "TTTTCAGCTCCTCGCCCTTGCTCACCAT"}]'
+params.is_circular = 'true'
 
 process GOLDEN_GATE_ASSEMBLY {
     tag "$meta.id"
@@ -39,7 +44,6 @@ process GOLDEN_GATE_ASSEMBLY {
     export PARAM_BACKBONE_SEQUENCE="${params.backbone_sequence?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_ENZYME_NAME="${params.enzyme_name?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_FRAGMENTS="${params.fragments?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_STR]]="${params.str]]?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_IS_CIRCULAR="${params.is_circular?.toString()?.replace('"', '\\"') ?: 'null'}"
 
 
@@ -459,7 +463,6 @@ try:
         backbone_sequence=auto_convert(os.environ.get("PARAM_BACKBONE_SEQUENCE", "")),
         enzyme_name=auto_convert(os.environ.get("PARAM_ENZYME_NAME", "")),
         fragments=auto_convert(os.environ.get("PARAM_FRAGMENTS", "")),
-        str]]=auto_convert(os.environ.get("PARAM_STR]]", "")),
         is_circular=auto_convert(os.environ.get("PARAM_IS_CIRCULAR", "")),
     )
     success = True

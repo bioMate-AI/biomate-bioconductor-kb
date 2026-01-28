@@ -10,8 +10,13 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.long_seq = null
-params.short_seqs = null
+// Demo: PCR amplification of GFP from pEGFP-N1 plasmid
+// Template sequence containing GFP with flanking regions
+params.sequence = 'ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCTTCGGCTACGGCCTGATGTGCTTTGCCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACACGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAGTAA'
+// Primers designed to amplify full-length GFP
+params.forward_primer = 'ATGGTGAGCAAGGGCGAG'
+params.reverse_primer = 'TTACTTGTACAGCTCGTCCATGCC'
+params.circular = 'false'
 
 process PCR_SIMPLE {
     tag "$meta.id"
@@ -33,8 +38,10 @@ process PCR_SIMPLE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
         # Export parameters as environment variables
-    export PARAM_LONG_SEQ="${params.long_seq?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_SHORT_SEQS="${params.short_seqs?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_SEQUENCE="${params.sequence?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_FORWARD_PRIMER="${params.forward_primer?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_REVERSE_PRIMER="${params.reverse_primer?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_CIRCULAR="${params.circular?.toString()?.replace('"', '\\"') ?: 'null'}"
 
 
     python3 << 'PYEOF'

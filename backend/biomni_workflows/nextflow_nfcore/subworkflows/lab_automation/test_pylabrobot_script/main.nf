@@ -10,11 +10,44 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.script_input = null
-params.enable_tracking = null
+// Demo: Simple PyLabRobot script that sets up a liquid handler and performs a basic transfer
+params.script_input = '''
+from pylabrobot.liquid_handling import LiquidHandler
+from pylabrobot.liquid_handling.backends import LiquidHandlerChatterboxBackend
+from pylabrobot.resources.hamilton import STARLetDeck
+from pylabrobot.resources import Cor_96_wellplate_360ul_Fb, HTF_L
+
+async def main():
+    # Initialize liquid handler with simulation backend
+    backend = LiquidHandlerChatterboxBackend()
+    deck = STARLetDeck()
+    lh = LiquidHandler(backend=backend, deck=deck)
+
+    await lh.setup()
+
+    # Add resources to deck
+    tip_rack = HTF_L(name="tip_rack")
+    plate = Cor_96_wellplate_360ul_Fb(name="plate")
+
+    deck.assign_child_resource(tip_rack, rails=1)
+    deck.assign_child_resource(plate, rails=7)
+
+    # Pick up tips and aspirate/dispense
+    await lh.pick_up_tips(tip_rack["A1:H1"])
+    await lh.aspirate(plate["A1:H1"], vols=[100]*8)
+    await lh.dispense(plate["A2:H2"], vols=[100]*8)
+    await lh.drop_tips(tip_rack["A1:H1"])
+
+    await lh.stop()
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
+'''
+params.enable_tracking = 'true'
 params.timeout_seconds = 60
-params.save_test_report = null
-params.test_report_dir = null
+params.save_test_report = 'false'
+params.test_report_dir = './test_reports'
 
 process TEST_PYLABROBOT_SCRIPT {
     tag "$meta.id"
