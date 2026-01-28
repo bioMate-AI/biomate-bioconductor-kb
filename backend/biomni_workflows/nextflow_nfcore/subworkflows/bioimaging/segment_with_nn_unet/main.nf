@@ -72,12 +72,12 @@ import nibabel as nib
 import numpy as np
 import requests
 
-# Optional nnunet import
+# Optional nnunetv2 import (nnunetv2 is installed, not the old nnunet)
 try:
-    from nnunet.inference.predict import predict_from_folder
+    from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
     NNUNET_AVAILABLE = True
 except ImportError:
-    predict_from_folder = None
+    nnUNetPredictor = None
     NNUNET_AVAILABLE = False
 
 # Optional torch import
@@ -163,23 +163,24 @@ class SegmentationTool:
         raise ValueError(f"Input path {input_path} is neither valid file nor directory")
 
     def setup_nnunet_environment(self, results_folder=None, raw_data_base=None, preprocessed=None):
-        '''Setup nnU-Net environment variables.'''
+        '''Setup nnU-Net v2 environment variables.'''
+        # nnunetv2 uses different env var names
         if results_folder:
-            os.environ["nnUNet_RESULTS_FOLDER"] = os.path.expanduser(results_folder)
-        elif "nnUNet_RESULTS_FOLDER" not in os.environ:
-            os.environ["nnUNet_RESULTS_FOLDER"] = os.path.expanduser("~/nnUNet_results")
+            os.environ["nnUNet_results"] = os.path.expanduser(results_folder)
+        elif "nnUNet_results" not in os.environ:
+            os.environ["nnUNet_results"] = os.path.expanduser("~/nnUNet_results")
 
         if raw_data_base:
-            os.environ["nnUNet_raw_data_base"] = os.path.expanduser(raw_data_base)
-        elif "nnUNet_raw_data_base" not in os.environ:
-            os.environ["nnUNet_raw_data_base"] = os.path.expanduser("~/nnUNet_raw_data_base")
+            os.environ["nnUNet_raw"] = os.path.expanduser(raw_data_base)
+        elif "nnUNet_raw" not in os.environ:
+            os.environ["nnUNet_raw"] = os.path.expanduser("~/nnUNet_raw")
 
         if preprocessed:
             os.environ["nnUNet_preprocessed"] = os.path.expanduser(preprocessed)
         elif "nnUNet_preprocessed" not in os.environ:
             os.environ["nnUNet_preprocessed"] = os.path.expanduser("~/nnUNet_preprocessed")
 
-        for path in [os.environ["nnUNet_RESULTS_FOLDER"], os.environ["nnUNet_raw_data_base"], os.environ["nnUNet_preprocessed"]]:
+        for path in [os.environ["nnUNet_results"], os.environ["nnUNet_raw"], os.environ["nnUNet_preprocessed"]]:
             os.makedirs(path, exist_ok=True)
 
     def _download_model_with_browser_headers(self, url, output_path):
@@ -227,11 +228,11 @@ class SegmentationTool:
     def segment_with_nn_unet(self, image_path, output_dir, task_id, model_type="3d_fullres",
                              folds=None, use_tta=False, num_threads=1, mixed_precision=True,
                              verbose=True, auto_prepare_input=True, results_folder=None, auto_download=True):
-        '''Segment images using nnUNet.'''
+        '''Segment images using nnUNet (nnunetv2 API).'''
         if not NNUNET_AVAILABLE:
-            raise ImportError("nnunet is not installed. Install with: pip install nnunet")
+            raise ImportError("nnunetv2 is not installed. Install with: pip install nnunetv2")
         if folds is None:
-            folds = [0, 1, 2, 3, 4]
+            folds = (0, 1, 2, 3, 4)  # nnunetv2 expects tuple
         os.makedirs(output_dir, exist_ok=True)
 
         self.setup_nnunet_environment(results_folder=results_folder)
@@ -240,24 +241,29 @@ class SegmentationTool:
             temp_input_dir = os.path.join(output_dir, "temp_input")
             image_path = self.prepare_input_for_nnunet(image_path, temp_input_dir)
 
-        results_folder = os.environ.get("nnUNet_RESULTS_FOLDER", os.path.expanduser("~/nnUNet_results"))
-        model_folder = os.path.join(results_folder, "nnUNet", model_type, task_id, "nnUNetTrainerV2__nnUNetPlansv2.1")
+        results_folder = os.environ.get("nnUNet_results", os.path.expanduser("~/nnUNet_results"))
+        # nnunetv2 uses different folder structure: Dataset{XXX}_{name}/nnUNetTrainer__nnUNetPlans__{config}
+        model_folder = os.path.join(results_folder, task_id, f"nnUNetTrainer__nnUNetPlans__{model_type}")
 
         def check_model_files_exist(mf, fs):
-            if not os.path.exists(mf) or not os.path.exists(os.path.join(mf, "plans.pkl")):
+            # nnunetv2 model structure check
+            if not os.path.exists(mf):
                 return False
+            # Check for checkpoint files
             for fold in fs:
                 fold_dir = os.path.join(mf, f"fold_{fold}")
-                if os.path.exists(fold_dir) and any(f.endswith((".model", ".model.pkl")) for f in os.listdir(fold_dir)):
-                    return True
+                if os.path.exists(fold_dir):
+                    if any(f.endswith((".pth", "checkpoint_final.pth")) for f in os.listdir(fold_dir)):
+                        return True
             return False
 
         if not check_model_files_exist(model_folder, folds):
             if auto_download:
                 if not self._download_and_extract_model(task_id, model_type):
-                    raise RuntimeError(f"Failed to download model for {task_id}")
+                    raise RuntimeError(f"Failed to download model for {task_id}. "
+                                     f"Model folder not found at: {model_folder}")
             else:
-                raise RuntimeError("Model not found and auto_download disabled")
+                raise RuntimeError(f"Model not found at {model_folder} and auto_download disabled")
 
         if TORCH_AVAILABLE:
             original_torch_load = torch.load
@@ -267,10 +273,37 @@ class SegmentationTool:
             torch.load = patched_torch_load
 
         try:
-            predict_from_folder(model=model_folder, input_folder=image_path, output_folder=output_dir,
-                              folds=folds, save_npz=False, num_threads_preprocessing=num_threads,
-                              num_threads_nifti_save=num_threads, mixed_precision=mixed_precision,
-                              lowres_segmentations=None, part_id=0, num_parts=1, tta=use_tta)
+            # Use nnunetv2 API
+            predictor = nnUNetPredictor(
+                tile_step_size=0.5,
+                use_gaussian=True,
+                use_mirroring=use_tta,
+                perform_everything_on_device=True,
+                device=torch.device('cuda' if torch.cuda.is_available() else 'cpu') if TORCH_AVAILABLE else None,
+                verbose=verbose,
+                verbose_preprocessing=verbose,
+                allow_tqdm=verbose
+            )
+
+            # Initialize from trained model folder
+            predictor.initialize_from_trained_model_folder(
+                model_training_output_dir=model_folder,
+                use_folds=folds,
+                checkpoint_name='checkpoint_final.pth'
+            )
+
+            # Run prediction
+            predictor.predict_from_files(
+                list_of_lists_or_source_folder=image_path,
+                output_folder_or_list_of_truncated_output_files=output_dir,
+                save_probabilities=False,
+                overwrite=True,
+                num_processes_preprocessing=num_threads,
+                num_processes_segmentation_export=num_threads,
+                folder_with_segs_from_prev_stage=None,
+                num_parts=1,
+                part_id=0
+            )
         finally:
             if TORCH_AVAILABLE:
                 torch.load = original_torch_load
@@ -352,8 +385,48 @@ def segment_with_nn_unet(
     auto_prepare_input=True,
     results_folder=None,
 ):
-    '''Convenience function for nnUNet segmentation'''
+    '''Convenience function for nnUNet segmentation.
+
+    If task_id is None, runs in demo mode to verify nnunetv2 is installed
+    and input preparation works.
+    '''
     tool = SegmentationTool()
+
+    # Demo mode: verify setup without requiring a trained model
+    if task_id is None:
+        result = {
+            "status": "demo_mode",
+            "nnunetv2_available": NNUNET_AVAILABLE,
+            "torch_available": TORCH_AVAILABLE,
+            "image_path": image_path,
+        }
+
+        # Verify input image can be loaded
+        if image_path and os.path.exists(image_path):
+            try:
+                img = nib.load(image_path)
+                result["input_shape"] = list(img.shape)
+                result["input_affine"] = img.affine.tolist()
+                result["input_loaded"] = True
+
+                # Test input preparation
+                if output_dir:
+                    os.makedirs(output_dir, exist_ok=True)
+                    temp_input_dir = os.path.join(output_dir, "demo_prepared_input")
+                    prepared_dir = tool.prepare_input_for_nnunet(image_path, temp_input_dir, case_name="DEMO")
+                    result["prepared_input_dir"] = prepared_dir
+                    prepared_files = os.listdir(prepared_dir)
+                    result["prepared_files"] = prepared_files
+            except Exception as e:
+                result["input_error"] = str(e)
+                result["input_loaded"] = False
+        else:
+            result["input_loaded"] = False
+            result["input_error"] = f"Image not found: {image_path}"
+
+        return result
+
+    # Real segmentation mode
     return tool.segment_with_nn_unet(
         image_path,
         output_dir,

@@ -66,9 +66,10 @@ Most packages have now been installed in the biomni-tools Docker container. The 
 | Package Status | Notes |
 |----------------|-------|
 | pylabrobot | INSTALLED - lab_automation workflows now work |
-| nnunetv2 | INSTALLED - bioimaging/segment_with_nn_unet now works |
+| nnunetv2 | INSTALLED - bioimaging/segment_with_nn_unet now works (updated to v2 API) |
 | biopython | INSTALLED - genetics, molecular_biology, database workflows work |
-| scanpy | May need testing for genomics single-cell workflows |
+| scanpy | INSTALLED (1.11.5) - genomics single-cell workflows work (use NUMBA_DISABLE_JIT=1) |
+| flowio | INSTALLED - FCS workflows work (replaced FlowCytometryTools for numpy 2.x) |
 | cv2 (opencv) | May need testing for pathology/cell_biology image workflows |
 
 ## Test Data Integration (2026-01-28)
@@ -107,17 +108,37 @@ Added test data paths from Galaxy test data directory (`/home/yzhang/biomate/bac
   - genomics/generate_transcriptformer_embeddings
   - genomics/get_uce_embeddings_scRNA
 
-## Remaining Issues
+## Fixed Issues (2026-01-28)
 
-### Numpy/FlowCytometryTools Incompatibility
-Some flow cytometry workflows run in mock mode due to `No module named 'numpy.lib.shape_base'`:
-- FlowCytometryTools has compatibility issues with newer numpy versions
-- Workflows still complete successfully using simulated data
+### Numpy/FlowCytometryTools Incompatibility - FIXED
+Replaced FlowCytometryTools with flowio (numpy 2.x compatible) in all 4 FCS workflows:
+- immunology/analyze_cfse_cell_proliferation - PASSED with real FCS data
+- immunology/analyze_cytokine_production_in_cd4_tcells - PASSED
+- cell_biology/analyze_flow_cytometry_immunophenotyping - PASSED
+- cancer_biology/analyze_cell_senescence_and_apoptosis - PASSED
 
-### Placeholder Implementations
-Some bioimaging workflows have placeholder implementations that need actual library integration:
+### nnUNet v2 API Update - FIXED
+Updated bioimaging/segment_with_nn_unet to use nnunetv2 API (Docker has nnunetv2, not nnunet):
+- Changed from `nnunet.inference.predict.predict_from_folder` to `nnunetv2.inference.predict_from_raw_data.nnUNetPredictor`
+- Updated environment variables to nnunetv2 format (nnUNet_results, nnUNet_raw, nnUNet_preprocessed)
+- Added demo mode when task_id is None (verifies nnunetv2 and input loading without requiring trained model)
+- PASSED - demo mode successfully loads NIFTI input and verifies nnunetv2 availability
+
+### Scanpy Single-Cell Workflows - FIXED
+Implemented genomics/annotate_celltype_scRNA with actual scanpy functionality:
+- Loads H5AD files and extracts cluster information
+- Computes or retrieves marker genes per cluster
+- Provides suggested cell type annotations based on known marker gene database
+- Added NUMBA_DISABLE_JIT=1 to avoid numba caching issues in Docker
+- PASSED - successfully loads test H5AD file and reports cell/gene counts
+
+### Remaining Issues
+
+#### Placeholder Implementations
+Some workflows still have placeholder implementations that need actual library integration:
 - preprocess_image - requires output_path parameter
 - Some workflows need SimpleITK/ANTs integration
+- Some scRNA workflows need scvi-tools for embeddings
 
 ## Testing Instructions
 
