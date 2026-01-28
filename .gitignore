@@ -94,3 +94,6 @@ auto_update/mcp_servers/AlphaFold-MCP-Server
 
 # Clawdbot cloned repository (external dependency)
 reference/clawdbot/
+
+# BioDSA repository (external dependency)
+reference/BioDSA/
