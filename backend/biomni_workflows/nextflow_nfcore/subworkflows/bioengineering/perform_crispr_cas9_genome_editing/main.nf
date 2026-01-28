@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.guide_rna_sequences = null
-params.target_genomic_loci = null
-params.cell_tissue_type = null
+// Demo: CRISPR editing of BRCA1 gene exon 11
+params.guide_rna_sequences = '["GTGTCCCATCTGTCTGGAGT", "TCTGGAGTTGATCAAGGAAC"]'
+params.target_genomic_loci = 'ATGGATTTATCTGCTCTTCGCGTTGAAGAAGTACAAAATGTCATTAATGCTATGCAGAAAATCTTAGAGTGTCCCATCTGTCTGGAGTTGATCAAGGAACCTGTCTCCACAAAGTGTGACCACATATTTTGCAAATTTTG'
+params.cell_tissue_type = 'HEK293'
 
 process PERFORM_CRISPR_CAS9_GENOME_EDITING {
     tag "$meta.id"
