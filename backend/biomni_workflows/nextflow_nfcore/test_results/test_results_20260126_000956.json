@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-01-26T00:09:56.478129",
+  "total": 1,
+  "passed": 1,
+  "failed": 0,
+  "results": [
+    {
+      "workflow": "molecular_biology/digest_sequence",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.25,
+      "stdout_tail": "\u2026FLOW:\u001b[mDIGEST_SEQUENCE\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m14/a3d072\u001b[0;2m] \u001b[0;2mDIG\u2026FLOW:\u001b[mDIGEST_SEQUENCE\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/14/a3d072c18fb43d062345380ed153ca/digest_sequence_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/digest_sequence/main.nf -profile docker --outdir ..."
+    }
+  ]
+}

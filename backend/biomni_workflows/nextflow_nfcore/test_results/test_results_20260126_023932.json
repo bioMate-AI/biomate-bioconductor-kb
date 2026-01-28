@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-01-26T02:39:32.986976",
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "results": [
+    {
+      "workflow": "bioengineering/exp_decay",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.41,
+      "stdout_tail": "output:\u001b[K\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/73/58674ff511e2b617ca086bdd39ae41\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioengineering/exp_decay/main.nf -profile docker --outdir ..."
+    }
+  ]
+}

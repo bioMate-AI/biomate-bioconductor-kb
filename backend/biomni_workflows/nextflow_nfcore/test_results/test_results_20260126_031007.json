@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-01-26T03:10:07.861520",
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "results": [
+    {
+      "workflow": "systems_biology/ode_system",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.51,
+      "stdout_tail": "and output:\u001b[K\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/80/916b0d6b9175dc5880cd681be21cc4\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can replicate the issue by changing to the process work dir and entering the command `bash .command.run`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/systems_biology/ode_system/main.nf -profile docker --outdir ..."
+    }
+  ]
+}

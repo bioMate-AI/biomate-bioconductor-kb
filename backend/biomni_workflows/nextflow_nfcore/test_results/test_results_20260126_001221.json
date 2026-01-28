@@ -1,0 +1,242 @@
+{
+  "timestamp": "2026-01-26T00:12:21.630547",
+  "total": 26,
+  "passed": 13,
+  "failed": 13,
+  "results": [
+    {
+      "workflow": "molecular_biology/align_sequences",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.22,
+      "stdout_tail": "\u2026FLOW:\u001b[mALIGN_SEQUENCES\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m88/0d7f6f\u001b[0;2m] \u001b[0;2mALI\u2026FLOW:\u001b[mALIGN_SEQUENCES\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/88/0d7f6f024321985498d412b380055c/align_sequences_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/align_sequences/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/annotate_open_reading_frames",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.18,
+      "stdout_tail": "DING_FRAMES\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34mfd/014b7c\u001b[0;2m] \u001b[0;2m\u001b[mANN\u2026_OPEN_READING_FRAMES\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/fd/014b7cff24db4180c5456783ab99bf/annotate_open_reading_frames_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/annotate_open_reading_frames/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/annotate_plasmid",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.35,
+      "stdout_tail": "LOW:\u001b[mANNOTATE_PLASMID\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34mb1/87d0aa\u001b[0;2m] \u001b[0;2mANN\u2026LOW:\u001b[mANNOTATE_PLASMID\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/b1/87d0aad4e9a13cd5503b18a569ed3b/annotate_plasmid_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/annotate_plasmid/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/design_golden_gate_oligos",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.16,
+      "stdout_tail": "EN_GATE_OLIGOS\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m81/a5d4a6\u001b[0;2m] \u001b[0;2m\u001b[mDES\u2026N_GOLDEN_GATE_OLIGOS\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/81/a5d4a6ddc48fd2160d6bfefec019c5/design_golden_gate_oligos_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/design_golden_gate_oligos/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/design_knockout_sgrna",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.46,
+      "stdout_tail": "\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/bc/3b47100100ee4d7d3b127bf2af65b6\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/design_knockout_sgrna/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/design_primer",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.26,
+      "stdout_tail": "ES\u2026RKFLOW:\u001b[mDESIGN_PRIMER\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m9e/581b4f\u001b[0;2m] \u001b[0;2mDES\u2026RKFLOW:\u001b[mDESIGN_PRIMER\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/9e/581b4f99b2ba0b02cb9c91c8f76344/design_primer_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/design_primer/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/design_verification_primers",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.4,
+      "stdout_tail": "\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/34/d8d5611008bc206b621b847f05f1e9\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/design_verification_primers/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/digest_sequence",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.18,
+      "stdout_tail": "\u2026FLOW:\u001b[mDIGEST_SEQUENCE\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m94/59f7d0\u001b[0;2m] \u001b[0;2mDIG\u2026FLOW:\u001b[mDIGEST_SEQUENCE\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/94/59f7d0e473fc81c749b6b710eee23d/digest_sequence_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/digest_sequence/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/find_orfs_in_frame",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.2,
+      "stdout_tail": "\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/eb/54b35c83ca3aef9f0da317d67d4c09\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/find_orfs_in_frame/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/find_restriction_enzymes",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.22,
+      "stdout_tail": "RICTION_ENZYMES\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34mc4/e361f5\u001b[0;2m] \u001b[0;2m\u001b[mFIN\u2026_RESTRICTION_ENZYMES\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/c4/e361f5e0ab38022d62a4a1ae17db2b/find_restriction_enzymes_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/find_restriction_enzymes/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/find_restriction_sites",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.28,
+      "stdout_tail": "output:\u001b[K\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/90/3f668de5aabbd54f703b76fbded454\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/find_restriction_sites/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/find_sequence_mutations",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.2,
+      "stdout_tail": "QUENCE_MUTATIONS\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34mdd/733e40\u001b[0;2m] \u001b[0;2m\u001b[mFIN\u2026D_SEQUENCE_MUTATIONS\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/dd/733e40652539f1594997b152f36914/find_sequence_mutations_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/find_sequence_mutations/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/get_bacterial_transformation_protocol",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.22,
+      "stdout_tail": "OL\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m89/4f65bb\u001b[0;2m] \u001b[0;2m\u001b[mGET\u2026NSFORMATION_PROTOCOL\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/89/4f65bb5070dcc9cd64a35f46d1113c/get_bacterial_transformation_protocol_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/get_bacterial_transformation_protocol/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/get_coding_sequences",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.24,
+      "stdout_tail": "\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/45/143739a46b23f7657c1737379259c1\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/get_coding_sequences/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/get_gene_coding_sequence",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 57.81,
+      "stdout_tail": "CODING_SEQUENCE\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m7b/22ea1c\u001b[0;2m] \u001b[0;2m\u001b[mGET\u2026GENE_CODING_SEQUENCE\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/7b/22ea1c3fe2ff093fa2409fce9e151f/get_gene_coding_sequence_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/get_gene_coding_sequence/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/get_golden_gate_assembly_protocol",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.27,
+      "stdout_tail": "\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/fe/5b72510b80f5e0c9d22e4111d71ffe\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/get_golden_gate_assembly_protocol/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/get_oligo_annealing_protocol",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.22,
+      "stdout_tail": "NG_PROTOCOL\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m1b/de53a3\u001b[0;2m] \u001b[0;2m\u001b[mGET\u2026O_ANNEALING_PROTOCOL\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/1b/de53a32383186358d021e42328ad14/get_oligo_annealing_protocol_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/get_oligo_annealing_protocol/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/get_plasmid_sequence",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.34,
+      "stdout_tail": "\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/fe/777c5394486ead5214e0c92dee2a09\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/get_plasmid_sequence/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/get_refseq_id",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.24,
+      "stdout_tail": "\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/16/4995aeb15fb919b3dc10909ec11dbd\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/get_refseq_id/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/golden_gate_assembly",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.23,
+      "stdout_tail": "OLDEN_GATE_ASSEMBLY\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m44/2e0e59\u001b[0;2m] \u001b[0;2m\u001b[mGOL\u2026GOLDEN_GATE_ASSEMBLY\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/44/2e0e59f9c15ccf7f0691599b3b928c/golden_gate_assembly_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/golden_gate_assembly/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/is_position_covered",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.12,
+      "stdout_tail": "and output:\u001b[K\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/41/fbf9aff347cf095f25726baca05344\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can replicate the issue by changing to the process work dir and entering the command `bash .command.run`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/is_position_covered/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/is_region_fully_covered",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.27,
+      "stdout_tail": "and output:\u001b[K\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/fc/94e44556b6c97de6dcc687ca1cd9b8\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can replicate the issue by changing to the process work dir and entering the command `bash .command.run`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/is_region_fully_covered/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/merge_overlapping_regions",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.22,
+      "stdout_tail": "tput:\u001b[K\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/ce/341488ae2b376a9f78886f8fe2c4ee\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: when you have fixed the problem you can continue the execution adding the option `-resume` to the run command line\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/merge_overlapping_regions/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/pcr_simple",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.24,
+      "stdout_tail": "\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/e6/b0caccfbb7c4e0f5fedf73736d1afa\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/pcr_simple/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/reverse_complement",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.23,
+      "stdout_tail": "\u001b[mREVERSE_COMPLEMENT\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m7d/f47337\u001b[0;2m] \u001b[0;2mREV\u2026W:\u001b[mREVERSE_COMPLEMENT\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/7d/f47337c539e8c3c3a3a6bae4e9947d/reverse_complement_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/reverse_complement/main.nf -profile docker --outdir ..."
+    },
+    {
+      "workflow": "molecular_biology/search_gene",
+      "success": false,
+      "returncode": 1,
+      "elapsed_seconds": 3.19,
+      "stdout_tail": "tput:\u001b[K\n  (empty)\u001b[K\n\u001b[K\nWork dir:\u001b[K\n  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/28/3db3a067cd49065cd8a8e5143752e5\u001b[K\n\u001b[K\nContainer:\u001b[K\n  biomate/biomni-tools:latest\u001b[K\n\u001b[K\nTip: when you have fixed the problem you can continue the execution adding the option `-resume` to the run command line\u001b[K\n\u001b[K\n -- Check '.nextflow.log' file for details\u001b[39m\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/molecular_biology/search_gene/main.nf -profile docker --outdir ..."
+    }
+  ]
+}

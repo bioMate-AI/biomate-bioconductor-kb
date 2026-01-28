@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-01-26T03:06:41.620526",
+  "total": 1,
+  "passed": 1,
+  "failed": 0,
+  "results": [
+    {
+      "workflow": "synthetic_biology/hamming_distance",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.57,
+      "stdout_tail": "LOW:\u001b[mHAMMING_DISTANCE\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34mb0/5ac5b7\u001b[0;2m] \u001b[0;2mHAM\u2026LOW:\u001b[mHAMMING_DISTANCE\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/b0/5ac5b79ac9d09b0c5834fa687a637e/hamming_distance_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/synthetic_biology/hamming_distance/main.nf -profile docker --outdir ..."
+    }
+  ]
+}

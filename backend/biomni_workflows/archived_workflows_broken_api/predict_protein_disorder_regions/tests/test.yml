@@ -1,0 +1,13 @@
+- name: "predict_protein_disorder_regions test"
+  command: nextflow run ../main.nf -profile docker
+  params:
+    # Sample p53 protein sequence (known to have intrinsically disordered regions)
+    protein_sequence: 'MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENLRKKGEPHHELPPGSTKRALPNNTSSSPQPKKKPLDGEYFTLQIRGRERFEMFRELNEALELKDAQAGKEPGGSRAHSSHLKSKKGQSTSRHKKLMFKTEGPDSD'
+    threshold: '0.5'
+    output_file: 'disorder_prediction_results.csv'
+  tags:
+    - biophysics
+    - predict_protein_disorder_regions
+  notes:
+    - "EXTERNAL API DEPENDENCY: IUPred2A at https://iupred2a.elte.hu/iupred2a"
+    - "API returns 404 as of 2026-01 - needs investigation"

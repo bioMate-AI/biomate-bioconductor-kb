@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-01-26T03:13:48.329344",
+  "total": 1,
+  "passed": 1,
+  "failed": 0,
+  "results": [
+    {
+      "workflow": "systems_biology/model_protein_dimerization_network",
+      "success": true,
+      "returncode": 0,
+      "elapsed_seconds": 3.59,
+      "stdout_tail": "TWORK\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K\n\u001b[3A\n\u001b[2mexecutor >  local (1)\u001b[m\u001b[K\n\u001b[2m[\u001b[0;34m16/e6f6bf\u001b[0;2m] \u001b[0;2m\u001b[mMOD\u2026DIMERIZATION_NETWORK\u001b[33;2m (\u001b[0;33mrun\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K\nOutput: [[id:run], /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/work/16/e6f6bfe049f702382c97724958fbbc/model_protein_dimerization_network_output.txt]\u001b[K\nWARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.\n\n",
+      "stderr_tail": "\u001b[33mNextflow 25.10.3 is available - Please consider updating your version to it\u001b(B\u001b[m\n",
+      "command": "nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/systems_biology/model_protein_dimerization_network/main.nf -profile docker --outdir ..."
+    }
+  ]
+}

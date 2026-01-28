@@ -1,0 +1,24 @@
+nextflow_process {
+
+    name "Test Process PREDICT_PROTEIN_DISORDER_REGIONS"
+    script "../main.nf"
+    process "PREDICT_PROTEIN_DISORDER_REGIONS"
+
+    test("Should run predict_protein_disorder_regions successfully") {
+
+        when {
+            process {
+                """
+                input[0] = [ [ id:'test' ] ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.results
+        }
+
+    }
+
+}
