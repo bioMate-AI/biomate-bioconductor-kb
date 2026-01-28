@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.target_drug = null
-params.contraindicated_drugs = null
-params.therapeutic_class = null
+// Demo: Find alternatives to aspirin that don't interact with warfarin
+params.target_drug = 'aspirin'
+params.contraindicated_drugs = '["warfarin", "heparin"]'
+params.therapeutic_class = 'analgesic'
 params.data_lake_path = null
 
 process FIND_ALTERNATIVE_DRUGS_DDINTER {

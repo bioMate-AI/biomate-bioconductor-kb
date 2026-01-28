@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.drug_list = null
+// Demo: Check safety of common cardiovascular drug combination
+params.drug_list = '["aspirin", "warfarin", "metoprolol"]'
 params.include_mechanisms = 'True'
 params.include_management = 'True'
 params.data_lake_path = null
