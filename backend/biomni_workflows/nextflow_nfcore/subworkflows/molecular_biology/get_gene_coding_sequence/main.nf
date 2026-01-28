@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.gene_name = null
-params.organism = null
-params.email = null
+// Demo: Retrieve insulin gene coding sequence from human
+params.gene_name = 'INS'
+params.organism = 'Homo sapiens'
+params.email = 'test@example.com'
 
 process GET_GENE_CODING_SEQUENCE {
     tag "$meta.id"
