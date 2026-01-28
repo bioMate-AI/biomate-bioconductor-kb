@@ -43,6 +43,12 @@ Moved to `../archived_workflows_broken_api/`:
 | microbiology | optimize_anaerobic_digestion_process | Food waste digestion optimization |
 | molecular_biology | get_gene_coding_sequence | INS gene from Homo sapiens |
 | molecular_biology | align_sequences | BRCA1 target sequence with primers |
+| molecular_biology | design_golden_gate_oligos | BsaI cloning with backbone/insert |
+| molecular_biology | golden_gate_assembly | BsaI-based fragment assembly |
+| pharmacology | check_drug_combination_safety | Cardiovascular drug combo (aspirin, warfarin, metoprolol) |
+| pharmacology | find_alternative_drugs_ddinter | Aspirin alternatives avoiding warfarin |
+| bioengineering | perform_crispr_cas9_genome_editing | BRCA1 guide RNAs + target sequence |
+| lab_automation | test_pylabrobot_script | Demo PyLabRobot liquid handling script |
 
 ## Workflows with Docker Library Issues
 
@@ -50,7 +56,7 @@ The biomni-tools Docker container is missing several packages. These workflows p
 
 | Missing Package | Affected Workflows |
 |-----------------|-------------------|
-| biopython (Bio) | genetics/*, molecular_biology/*, database/blast_sequence |
+| biopython (Bio) | genetics/*, molecular_biology/pcr_simple, database/blast_sequence |
 | scanpy | genomics/create_harmony_embeddings_scRNA, genomics/annotate_celltype_* |
 | gget | genomics/gene_set_enrichment_analysis |
 | gseapy | cancer_biology/analyze_ddr_network_in_cancer |
@@ -62,6 +68,7 @@ The biomni-tools Docker container is missing several packages. These workflows p
 | trackpy | bioengineering/analyze_cell_migration_metrics |
 | cv2 (opencv) | pathology/*, cell_biology/quantify_and_cluster_cell_motility |
 | PyPDF2 | literature/extract_pdf_content |
+| pylabrobot | lab_automation/test_pylabrobot_script |
 
 ## Workflows Requiring External Files
 
