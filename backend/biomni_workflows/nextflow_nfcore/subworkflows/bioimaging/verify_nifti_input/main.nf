@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_path = null
+// Demo: Mock 3D brain NIFTI file from test data
+params.image_path = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
 
 process VERIFY_NIFTI_INPUT {
     tag "$meta.id"

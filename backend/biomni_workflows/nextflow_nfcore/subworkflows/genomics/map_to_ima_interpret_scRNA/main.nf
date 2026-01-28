@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.adata_filename = null
+// Demo: PBMC 3k single-cell dataset from Galaxy test data
+params.adata_filename = '/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/pbmc3k_tiny.h5ad'
 params.data_dir = null
 params.custom_args = null
 

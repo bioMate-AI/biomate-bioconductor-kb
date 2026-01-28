@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_path = null
+// Demo: Mock brain NIFTI from test data
+params.image_path = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
 params.output_dir = null
 params.task_id = null
 params.model_type = null

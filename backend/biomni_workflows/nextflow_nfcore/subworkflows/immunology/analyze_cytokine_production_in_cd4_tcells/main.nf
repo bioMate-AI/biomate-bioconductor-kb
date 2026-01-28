@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.fcs_files_dict = null
+// Demo: Accuri C6 flow cytometer FCS file from Galaxy test data
+params.fcs_files_dict = '{"unstimulated": "/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs", "stimulated": "/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs"}'
 params.output_dir = './results'
 
 process ANALYZE_CYTOKINE_PRODUCTION_IN_CD4_TCELLS {

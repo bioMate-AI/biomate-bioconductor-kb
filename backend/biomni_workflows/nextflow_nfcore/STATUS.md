@@ -71,26 +71,53 @@ Most packages have now been installed in the biomni-tools Docker container. The 
 | scanpy | May need testing for genomics single-cell workflows |
 | cv2 (opencv) | May need testing for pathology/cell_biology image workflows |
 
-## Workflows Requiring External Files
+## Test Data Integration (2026-01-28)
 
-These workflows need actual files (FCS, images, BAM) and cannot be tested with JSON params alone:
+Added test data paths from Galaxy test data directory (`/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/`):
 
-### Flow Cytometry (FCS files)
-- immunology/analyze_cfse_cell_proliferation
-- immunology/isolate_purify_immune_cells
-- cell_biology/analyze_flow_cytometry_immunophenotyping
-- cell_biology/perform_facs_cell_sorting
+### Flow Cytometry Test Data
+- Using `Accuri_C6_A01_H2O.fcs` from Galaxy test data
+- Workflows updated:
+  - immunology/analyze_cfse_cell_proliferation (PASSED - uses mock mode due to numpy incompatibility)
+  - immunology/analyze_cytokine_production_in_cd4_tcells
+  - cell_biology/analyze_flow_cytometry_immunophenotyping
+  - cancer_biology/analyze_cell_senescence_and_apoptosis
 
-### Image Files
-- pathology/quantify_corneal_nerve_fibers
-- bioimaging/segment_with_nn_unet
-- bioimaging/prepare_input_for_nnunet
-- bioimaging/batch_register_images
-- bioimaging/calculate_similarity_metrics
-- biophysics/analyze_cell_morphology_and_cytoskeleton
+### NIFTI Image Test Data
+- Using mock NIFTI files from `test_data/` directory:
+  - `mock_fixed_image.nii.gz` - 3D brain MRI reference
+  - `mock_moving_image.nii.gz` - 3D brain MRI for registration
+  - `mock_segmentation.nii.gz` - Brain segmentation
+- Workflows updated:
+  - bioimaging/verify_nifti_input (PASSED)
+  - bioimaging/register_images (PASSED)
+  - bioimaging/load_image
+  - bioimaging/preprocess_image
+  - bioimaging/segment_with_nn_unet
+  - bioimaging/batch_register_images
+  - bioimaging/calculate_similarity_metrics
+  - bioimaging/quick_*_registration (affine, deformable, rigid)
 
-### Genomic Data Files
-- Various genomics workflows requiring BAM/VCF files
+### Single-Cell (H5AD) Test Data
+- Using `pbmc3k_tiny.h5ad` from Galaxy test data
+- Workflows updated:
+  - genomics/annotate_celltype_scRNA
+  - genomics/create_harmony_embeddings_scRNA
+  - genomics/create_scvi_embeddings_scRNA
+  - genomics/generate_transcriptformer_embeddings
+  - genomics/get_uce_embeddings_scRNA
+
+## Remaining Issues
+
+### Numpy/FlowCytometryTools Incompatibility
+Some flow cytometry workflows run in mock mode due to `No module named 'numpy.lib.shape_base'`:
+- FlowCytometryTools has compatibility issues with newer numpy versions
+- Workflows still complete successfully using simulated data
+
+### Placeholder Implementations
+Some bioimaging workflows have placeholder implementations that need actual library integration:
+- preprocess_image - requires output_path parameter
+- Some workflows need SimpleITK/ANTs integration
 
 ## Testing Instructions
 

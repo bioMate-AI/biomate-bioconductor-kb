@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.fixed_image_path = null
+// Demo: Mock NIFTI images for registration test
+params.fixed_image_path = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
 params.moving_images_dir = null
 params.output_dir = null
 params.transform_type = 'rigid'

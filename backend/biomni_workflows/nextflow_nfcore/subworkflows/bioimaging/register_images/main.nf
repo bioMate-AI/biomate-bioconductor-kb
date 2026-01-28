@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.fixed_image = null
-params.moving_image = null
-params.transform = null
-params.registration_method = null
+// Demo: Mock NIFTI images for image registration test
+params.fixed_image = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
+params.moving_image = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_moving_image.nii.gz'
+params.transform = 'affine'
+params.registration_method = 'ants'
 
 process REGISTER_IMAGES {
     tag "$meta.id"

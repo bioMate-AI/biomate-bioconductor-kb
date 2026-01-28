@@ -10,8 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.fcs_file_path = null
-params.gating_strategy = null
+// Demo: Accuri C6 flow cytometer FCS file from Galaxy test data
+params.fcs_file_path = '/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs'
+// Demo gating strategy for basic immunophenotyping
+params.gating_strategy = '{"lymphocytes": {"FSC-A": [50000, 150000], "SSC-A": [10000, 80000]}}'
 params.compensation_matrix = null
 params.output_dir = './results'
 

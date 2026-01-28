@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.fcs_file_path = null
+// Demo: Accuri C6 flow cytometer FCS file from Galaxy test data
+params.fcs_file_path = '/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs'
 params.cfse_channel = 'FL1-A'
 params.lymphocyte_gate = null
 
