@@ -121,27 +121,19 @@ def analyze_cfse_cell_proliferation(fcs_file_path, cfse_channel="FL1-A", lymphoc
     research_log.append("# CFSE-based Cell Proliferation Assay Analysis Log")
     research_log.append(f"## Data Source: {os.path.basename(fcs_file_path)}")
 
-    # Try to import FlowCytometryTools with compatibility fix
+    # Try to import flowio (compatible with numpy 2.x)
     try:
-        # First attempt to patch MutableMapping for compatibility
-        import collections
-        import collections.abc
-
-        if not hasattr(collections, "MutableMapping"):
-            MutableMapping = collections.abc.MutableMapping
-
-        from FlowCytometryTools import FCMeasurement
-
-        use_mock = False
-    except Exception as e:
-        research_log.append(f"\\nWarning: Could not import FlowCytometryTools: {str(e)}")
+        import flowio
+        use_fcs = True
+    except ImportError as e:
+        research_log.append(f"\\nWarning: Could not import flowio: {str(e)}")
         research_log.append("Using mock implementation for testing purposes.")
-        use_mock = True
+        use_fcs = False
 
     # Load FCS data
     research_log.append("\\n## Step 1: Loading Flow Cytometry Data")
 
-    if use_mock:
+    if not use_fcs or fcs_file_path is None:
         # Create mock data for testing
         research_log.append("Using simulated data (mock implementation)")
         # Simulate CFSE histogram data
@@ -173,38 +165,60 @@ def analyze_cfse_cell_proliferation(fcs_file_path, cfse_channel="FL1-A", lymphoc
         )
     else:
         try:
-            sample = FCMeasurement(ID="CFSE_Sample", datafile=fcs_file_path)
-            research_log.append(f"Successfully loaded data with {len(sample)} events")
+            # Use flowio to read FCS file (numpy 2.x compatible)
+            import pandas as pd
+            fd = flowio.FlowData(fcs_file_path, ignore_offset_error=True, ignore_offset_discrepancy=True)
+            # Convert to pandas DataFrame (channel names are in 'pnn' key, lowercase)
+            data = pd.DataFrame(
+                np.reshape(fd.events, (-1, fd.channel_count)),
+                columns=[fd.channels[k]['pnn'] for k in sorted(fd.channels.keys())]
+            )
+            research_log.append(f"Successfully loaded data with {len(data)} events")
 
-            # Apply lymphocyte gate if provided
+            # Apply lymphocyte gate if provided (using pandas DataFrame from fcsparser)
             research_log.append("\\n## Step 2: Gating Lymphocyte Population")
-            if lymphocyte_gate:
+
+            # Find FSC and SSC columns (may have different names)
+            fsc_col = next((c for c in data.columns if 'FSC' in c.upper()), None)
+            ssc_col = next((c for c in data.columns if 'SSC' in c.upper()), None)
+
+            if lymphocyte_gate and fsc_col and ssc_col:
                 min_fsc, max_fsc, min_ssc, max_ssc = lymphocyte_gate
-                gated_sample = sample.gate(
-                    f"(FSC-A > {min_fsc}) & (FSC-A < {max_fsc}) & (SSC-A > {min_ssc}) & (SSC-A < {max_ssc})"
-                )
+                mask = (data[fsc_col] > min_fsc) & (data[fsc_col] < max_fsc) & \\
+                       (data[ssc_col] > min_ssc) & (data[ssc_col] < max_ssc)
+                gated_data = data[mask]
                 research_log.append(
-                    f"Applied manual lymphocyte gate: FSC-A ({min_fsc}-{max_fsc}), SSC-A ({min_ssc}-{max_ssc})"
+                    f"Applied manual lymphocyte gate: {fsc_col} ({min_fsc}-{max_fsc}), {ssc_col} ({min_ssc}-{max_ssc})"
                 )
-                research_log.append(f"Gated population contains {len(gated_sample)} events")
-            else:
+                research_log.append(f"Gated population contains {len(gated_data)} events")
+            elif fsc_col and ssc_col:
                 # Simple automatic gating based on FSC and SSC
-                fsc_median = np.median(sample["FSC-A"])
-                ssc_median = np.median(sample["SSC-A"])
-                gated_sample = sample.gate(
-                    f"(FSC-A > {fsc_median * 0.5}) & (FSC-A < {fsc_median * 1.8}) & (SSC-A > {ssc_median * 0.5}) & (SSC-A < {ssc_median * 1.8})"
-                )
-                research_log.append("Applied automatic lymphocyte gate based on median FSC-A and SSC-A values")
-                research_log.append(f"Gated population contains {len(gated_sample)} events")
+                fsc_median = np.median(data[fsc_col])
+                ssc_median = np.median(data[ssc_col])
+                mask = (data[fsc_col] > fsc_median * 0.5) & (data[fsc_col] < fsc_median * 1.8) & \\
+                       (data[ssc_col] > ssc_median * 0.5) & (data[ssc_col] < ssc_median * 1.8)
+                gated_data = data[mask]
+                research_log.append("Applied automatic lymphocyte gate based on median FSC and SSC values")
+                research_log.append(f"Gated population contains {len(gated_data)} events")
+            else:
+                # No FSC/SSC columns found, use all data
+                gated_data = data
+                research_log.append("No FSC/SSC columns found, using all events")
 
             # Extract CFSE data
             research_log.append("\\n## Step 3: Analyzing CFSE Intensity Distribution")
-            try:
-                cfse_data = gated_sample[cfse_channel]
-                research_log.append(f"Extracted CFSE intensity data from channel {cfse_channel}")
-            except KeyError:
-                available_channels = ", ".join(gated_sample.channels)
+            # Find CFSE channel (may be FL1-A, FITC-A, or similar)
+            cfse_col = next((c for c in gated_data.columns if cfse_channel.upper() in c.upper()), None)
+            if cfse_col is None:
+                # Try to find any fluorescence channel
+                cfse_col = next((c for c in gated_data.columns if 'FL1' in c.upper() or 'FITC' in c.upper()), None)
+
+            if cfse_col is None:
+                available_channels = ", ".join(gated_data.columns.tolist())
                 return f"Error: CFSE channel '{cfse_channel}' not found. Available channels: {available_channels}"
+
+            cfse_data = gated_data[cfse_col].values
+            research_log.append(f"Extracted CFSE intensity data from channel {cfse_col}")
 
             # Identify generations based on CFSE intensity
             # CFSE intensity halves with each cell division

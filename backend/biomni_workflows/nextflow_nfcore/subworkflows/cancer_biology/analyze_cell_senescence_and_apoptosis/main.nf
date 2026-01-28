@@ -143,46 +143,52 @@ def analyze_cell_senescence_and_apoptosis(fcs_file_path):
 
         return log
 
-    # Import FlowCytometryTools only when needed
-    from FlowCytometryTools import FCMeasurement
+    # Import flowio (numpy 2.x compatible)
+    import flowio
+    import pandas as pd
 
     try:
         # Step 1: Load the FCS file
         log += "## Step 1: Loading Flow Cytometry Data\\n"
         log += f"- Loading FCS file from: {fcs_file_path}\\n"
 
-        sample = FCMeasurement(ID="Sample", datafile=fcs_file_path)
+        fd = flowio.FlowData(fcs_file_path, ignore_offset_error=True, ignore_offset_discrepancy=True)
+        channel_names = [fd.channels[k]['pnn'] for k in sorted(fd.channels.keys())]
+        sample = pd.DataFrame(
+            np.reshape(fd.events, (-1, fd.channel_count)),
+            columns=channel_names
+        )
         log += f"- Successfully loaded data with {len(sample)} events\\n"
-        log += f"- Available channels: {', '.join(sample.channel_names)}\\n\\n"
+        log += f"- Available channels: {', '.join(channel_names)}\\n\\n"
 
         # Step 2: Apply compensation if needed (assuming pre-compensated data)
         log += "## Step 2: Data Preprocessing\\n"
         log += "- Checking for outliers and debris based on forward/side scatter\\n"
 
         # Basic filtering to remove debris based on FSC and SSC
-        # Assuming FSC-A and SSC-A are the channel names (adjust if different)
-        fsc_channel = "FSC-A" if "FSC-A" in sample.channel_names else sample.channel_names[0]
-        ssc_channel = "SSC-A" if "SSC-A" in sample.channel_names else sample.channel_names[1]
+        fsc_channel = next((c for c in channel_names if "FSC" in c.upper()), channel_names[0])
+        ssc_channel = next((c for c in channel_names if "SSC" in c.upper()), channel_names[1])
 
-        # Filter out debris (low FSC and SSC)
-        sample_filtered = sample.gate(f"{fsc_channel} > 10000 and {ssc_channel} > 5000")
+        # Filter out debris (low FSC and SSC) - use adaptive thresholds based on data
+        fsc_thresh = np.percentile(sample[fsc_channel], 10)
+        ssc_thresh = np.percentile(sample[ssc_channel], 10)
+        sample_filtered = sample[(sample[fsc_channel] > fsc_thresh) & (sample[ssc_channel] > ssc_thresh)]
 
-        log += f"- Filtered out debris: {len(sample)} → {len(sample_filtered)} events ({len(sample_filtered) / len(sample) * 100:.1f}%)\\n\\n"
+        log += f"- Filtered out debris: {len(sample)} -> {len(sample_filtered)} events ({len(sample_filtered) / len(sample) * 100:.1f}%)\\n\\n"
 
         # Step 3: Identify senescent cells (SA-β-Gal positive)
         log += "## Step 3: Identifying Senescent Cells (SA-β-Gal+)\\n"
 
         # Find SA-β-Gal channel (adjust based on actual channel name)
         sa_bgal_channel = None
-        for channel in sample_filtered.channel_names:
+        for channel in channel_names:
             if "GAL" in channel.upper() or "FITC" in channel.upper():
                 sa_bgal_channel = channel
                 break
 
         if not sa_bgal_channel:
             log += "- WARNING: Could not identify SA-β-Gal channel. Using first fluorescence channel as placeholder.\\n"
-            # Use the first fluorescence channel as a fallback
-            for channel in sample_filtered.channel_names:
+            for channel in channel_names:
                 if any(x in channel.upper() for x in ["FL", "BL", "FITC", "PE", "APC"]):
                     sa_bgal_channel = channel
                     break
@@ -190,13 +196,13 @@ def analyze_cell_senescence_and_apoptosis(fcs_file_path):
         log += f"- Using {sa_bgal_channel} as SA-β-Gal activity indicator\\n"
 
         # Determine threshold for SA-β-Gal positivity (using a simple percentile approach)
-        # In practice, this would be based on controls or known thresholds
-        sa_bgal_threshold = np.percentile(sample_filtered.data[sa_bgal_channel], 80)
-        senescent_cells = sample_filtered.gate(f"{sa_bgal_channel} > {sa_bgal_threshold}")
+        sa_bgal_threshold = np.percentile(sample_filtered[sa_bgal_channel], 80)
+        senescent_mask = sample_filtered[sa_bgal_channel] > sa_bgal_threshold
+        senescent_count = senescent_mask.sum()
 
-        senescent_percentage = (len(senescent_cells) / len(sample_filtered)) * 100
+        senescent_percentage = (senescent_count / len(sample_filtered)) * 100
         log += f"- Applied threshold at {sa_bgal_threshold:.1f} fluorescence intensity\\n"
-        log += f"- Identified {len(senescent_cells)} senescent cells ({senescent_percentage:.2f}%)\\n\\n"
+        log += f"- Identified {senescent_count} senescent cells ({senescent_percentage:.2f}%)\\n\\n"
 
         # Step 4: Identify apoptotic cells (Annexin V+/7-AAD+)
         log += "## Step 4: Identifying Apoptotic Cells (Annexin V/7-AAD)\\n"
@@ -205,7 +211,7 @@ def analyze_cell_senescence_and_apoptosis(fcs_file_path):
         annexin_channel = None
         aad_channel = None
 
-        for channel in sample_filtered.channel_names:
+        for channel in channel_names:
             if "ANNEXIN" in channel.upper() or "PE" in channel.upper():
                 annexin_channel = channel
             if "7AAD" in channel.upper() or "AAD" in channel.upper() or "PerCP" in channel.upper():
@@ -213,10 +219,8 @@ def analyze_cell_senescence_and_apoptosis(fcs_file_path):
 
         if not annexin_channel or not aad_channel:
             log += "- WARNING: Could not identify Annexin V and/or 7-AAD channels. Using placeholder channels.\\n"
-            # Use fallback channels
             fluorescence_channels = [
-                ch
-                for ch in sample_filtered.channel_names
+                ch for ch in channel_names
                 if any(x in ch.upper() for x in ["FL", "BL", "FITC", "PE", "APC", "PerCP"])
             ]
             if len(fluorescence_channels) >= 2:
@@ -229,20 +233,16 @@ def analyze_cell_senescence_and_apoptosis(fcs_file_path):
         log += f"- Using {aad_channel} as 7-AAD indicator\\n"
 
         # Determine thresholds for Annexin V and 7-AAD (using simple percentile approach)
-        annexin_threshold = np.percentile(sample_filtered.data[annexin_channel], 90)
-        aad_threshold = np.percentile(sample_filtered.data[aad_channel], 90)
+        annexin_threshold = np.percentile(sample_filtered[annexin_channel], 90)
+        aad_threshold = np.percentile(sample_filtered[aad_channel], 90)
 
         # Early apoptotic: Annexin V+ / 7-AAD-
-        early_apoptotic = sample_filtered.gate(
-            f"{annexin_channel} > {annexin_threshold} and {aad_channel} < {aad_threshold}"
-        )
-        early_apoptotic_percentage = (len(early_apoptotic) / len(sample_filtered)) * 100
+        early_apoptotic_mask = (sample_filtered[annexin_channel] > annexin_threshold) & (sample_filtered[aad_channel] < aad_threshold)
+        early_apoptotic_percentage = (early_apoptotic_mask.sum() / len(sample_filtered)) * 100
 
         # Late apoptotic/necrotic: Annexin V+ / 7-AAD+
-        late_apoptotic = sample_filtered.gate(
-            f"{annexin_channel} > {annexin_threshold} and {aad_channel} > {aad_threshold}"
-        )
-        late_apoptotic_percentage = (len(late_apoptotic) / len(sample_filtered)) * 100
+        late_apoptotic_mask = (sample_filtered[annexin_channel] > annexin_threshold) & (sample_filtered[aad_channel] > aad_threshold)
+        late_apoptotic_percentage = (late_apoptotic_mask.sum() / len(sample_filtered)) * 100
 
         # Total apoptotic (early + late)
         total_apoptotic_percentage = early_apoptotic_percentage + late_apoptotic_percentage

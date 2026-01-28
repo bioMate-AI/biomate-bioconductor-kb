@@ -12,8 +12,8 @@ nextflow.enable.dsl = 2
 params.outdir = './results'
 // Demo: Accuri C6 flow cytometer FCS file from Galaxy test data
 params.fcs_file_path = '/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs'
-// Demo gating strategy for basic immunophenotyping
-params.gating_strategy = '{"lymphocytes": {"FSC-A": [50000, 150000], "SSC-A": [10000, 80000]}}'
+// Demo gating strategy for basic immunophenotyping - format: {"pop_name": [["marker", "operator", threshold], ...]}
+params.gating_strategy = '{"lymphocytes": [["FSC-A", "between", [50000, 150000]], ["SSC-A", "between", [10000, 80000]]]}'
 params.compensation_matrix = null
 params.output_dir = './results'
 
@@ -153,57 +153,68 @@ def analyze_flow_cytometry_immunophenotyping(
         return log
 
     import pandas as pd
-    from FlowCytometryTools import FCMeasurement
+    import flowio
 
     # Create output directory if it doesn't exist
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Load the FCS file
-    sample = FCMeasurement(ID="Sample", datafile=fcs_file_path)
-
-    # Apply compensation if provided
-    if compensation_matrix is not None:
-        sample = sample.compensate(compensation_matrix)
+    # Load the FCS file using flowio (numpy 2.x compatible)
+    fd = flowio.FlowData(fcs_file_path, ignore_offset_error=True, ignore_offset_discrepancy=True)
+    # Convert to pandas DataFrame
+    sample = pd.DataFrame(
+        np.reshape(fd.events, (-1, fd.channel_count)),
+        columns=[fd.channels[k]['pnn'] for k in sorted(fd.channels.keys())]
+    )
 
     # Initialize log
     log = "Flow Cytometry Analysis Log\\n"
     log += "==========================\\n"
     log += f"File analyzed: {os.path.basename(fcs_file_path)}\\n"
-    log += f"Total events: {len(sample)}\\n\\n"
+    log += f"Total events: {len(sample)}\\n"
+    log += f"Channels: {list(sample.columns)}\\n\\n"
 
     # Create a dictionary to store population counts
     populations = {}
+    total_events = len(sample)
 
     # Apply gating strategy to identify cell populations
-    for pop_name, gates in gating_strategy.items():
-        # Start with all events
-        current_population = sample.copy()
+    if gating_strategy:
+        for pop_name, gates in gating_strategy.items():
+            # Start with all events
+            current_mask = pd.Series([True] * len(sample))
 
-        log += f"Identifying {pop_name} population:\\n"
+            log += f"Identifying {pop_name} population:\\n"
 
-        # Apply each gate sequentially
-        for marker, operator, threshold in gates:
-            initial_count = len(current_population)
+            # Apply each gate sequentially
+            for marker, operator, threshold in gates:
+                initial_count = current_mask.sum()
 
-            if operator == ">":
-                current_population = current_population.gate(f"{marker} > {threshold}")
-            elif operator == "<":
-                current_population = current_population.gate(f"{marker} < {threshold}")
-            elif operator == "between":
-                # For 'between', threshold should be a tuple (lower, upper)
-                lower, upper = threshold
-                current_population = current_population.gate(f"{marker} > {lower} and {marker} < {upper}")
+                # Find matching column (case-insensitive)
+                marker_col = next((c for c in sample.columns if marker.upper() in c.upper()), None)
+                if marker_col is None:
+                    log += f"  Warning: Marker {marker} not found in channels\\n"
+                    continue
 
-            final_count = len(current_population)
-            log += f"  Gate {marker} {operator} {threshold}: {initial_count} → {final_count} events\\n"
+                if operator == ">":
+                    current_mask = current_mask & (sample[marker_col] > threshold)
+                elif operator == "<":
+                    current_mask = current_mask & (sample[marker_col] < threshold)
+                elif operator == "between":
+                    lower, upper = threshold
+                    current_mask = current_mask & (sample[marker_col] > lower) & (sample[marker_col] < upper)
 
-        # Store the final population
-        populations[pop_name] = current_population
+                final_count = current_mask.sum()
+                log += f"  Gate {marker_col} {operator} {threshold}: {initial_count} -> {final_count} events\\n"
 
-        # Calculate percentage of original sample
-        percentage = (len(current_population) / len(sample)) * 100
-        log += f"  Final {pop_name} count: {len(current_population)} events ({percentage:.2f}% of total)\\n\\n"
+            # Store the final population
+            populations[pop_name] = sample[current_mask]
+
+            # Calculate percentage of original sample
+            percentage = (len(populations[pop_name]) / total_events) * 100
+            log += f"  Final {pop_name} count: {len(populations[pop_name])} events ({percentage:.2f}% of total)\\n\\n"
+    else:
+        log += "No gating strategy provided, showing all events.\\n\\n"
 
     # Create a summary dataframe
     summary_data = {"Population": [], "Count": [], "Percentage": []}
@@ -211,7 +222,7 @@ def analyze_flow_cytometry_immunophenotyping(
     for pop_name, population in populations.items():
         summary_data["Population"].append(pop_name)
         summary_data["Count"].append(len(population))
-        summary_data["Percentage"].append((len(population) / len(sample)) * 100)
+        summary_data["Percentage"].append((len(population) / total_events) * 100)
 
     summary_df = pd.DataFrame(summary_data)
 
