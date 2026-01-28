@@ -6,8 +6,8 @@ Last updated: 2026-01-27
 - **Total modules**: 235 (2 archived due to broken external APIs)
 - **Passed with proper test data**: ~190+
 - **Needs external files**: ~25 (FCS, complex images, BAM files)
-- **Docker/library issues**: ~5 (permission errors, segfaults)
-- **Needs investigation**: ~15
+- **Docker/library issues**: ~30 (missing packages in biomni-tools container)
+- **Parameter fixes needed**: ~10
 
 ## Archived Workflows (Broken External APIs)
 Moved to `../archived_workflows_broken_api/`:
@@ -39,6 +39,29 @@ Moved to `../archived_workflows_broken_api/`:
 | microbiology | segment_and_analyze_microbial_cells | Inline mock fluorescence image |
 | genetics | analyze_crispr_genome_editing | BRCA1 editing sequences |
 | genetics | fit_genomic_prediction_model | Genotype matrix + phenotypes |
+| microbiology | model_bacterial_growth_dynamics | E. coli batch culture parameters |
+| microbiology | optimize_anaerobic_digestion_process | Food waste digestion optimization |
+| molecular_biology | get_gene_coding_sequence | INS gene from Homo sapiens |
+| molecular_biology | align_sequences | BRCA1 target sequence with primers |
+
+## Workflows with Docker Library Issues
+
+The biomni-tools Docker container is missing several packages. These workflows pass locally but fail in Docker:
+
+| Missing Package | Affected Workflows |
+|-----------------|-------------------|
+| biopython (Bio) | genetics/*, molecular_biology/*, database/blast_sequence |
+| scanpy | genomics/create_harmony_embeddings_scRNA, genomics/annotate_celltype_* |
+| gget | genomics/gene_set_enrichment_analysis |
+| gseapy | cancer_biology/analyze_ddr_network_in_cancer |
+| rdkit | pharmacology/calculate_physicochemical_properties |
+| statsmodels | pharmacology/analyze_xenograft_tumor_growth_inhibition |
+| libsbml | synthetic_biology/create_biochemical_network_sbml_model |
+| msprime | genetics/simulate_demographic_history |
+| pyliftover | genetics/liftover_coordinates |
+| trackpy | bioengineering/analyze_cell_migration_metrics |
+| cv2 (opencv) | pathology/*, cell_biology/quantify_and_cluster_cell_motility |
+| PyPDF2 | literature/extract_pdf_content |
 
 ## Workflows Requiring External Files
 
