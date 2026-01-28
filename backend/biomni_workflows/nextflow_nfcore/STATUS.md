@@ -4,9 +4,10 @@ Last updated: 2026-01-27
 
 ## Summary
 - **Total modules**: 235 (2 archived due to broken external APIs)
-- **Passed with proper test data**: ~170
-- **Needs external files**: ~30 (FCS, images, BAM files)
-- **Needs investigation**: ~35
+- **Passed with proper test data**: ~190+
+- **Needs external files**: ~25 (FCS, complex images, BAM files)
+- **Docker/library issues**: ~5 (permission errors, segfaults)
+- **Needs investigation**: ~15
 
 ## Archived Workflows (Broken External APIs)
 Moved to `../archived_workflows_broken_api/`:
@@ -26,6 +27,18 @@ Moved to `../archived_workflows_broken_api/`:
 | synthetic_biology | analyze_bifurcation_diagram | Logistic map bifurcation data |
 | synthetic_biology | create_biochemical_network_sbml_model | Enzymatic reaction network |
 | synthetic_biology | simulate_gene_circuit_with_growth_feedback | Toggle switch circuit topology |
+| physiology | analyze_abr_waveform_p1_metrics | ABR waveform time series data |
+| physiology | perform_cosinor_analysis | 48h circadian temperature data |
+| physiology | analyze_protein_colocalization | Inline mock fluorescence images |
+| physiology | quantify_amyloid_beta_plaques | Inline mock histology image |
+| immunology | track_immune_cells_under_flow | Inline mock image sequence |
+| immunology | analyze_cns_lesion_histology | Inline mock H&E histology image |
+| microbiology | predict_rna_secondary_structure | tRNA-Ala sequence |
+| microbiology | annotate_bacterial_genome | Inline mock E. coli K12 FASTA |
+| microbiology | simulate_generalized_lotka_volterra_dynamics | 3-species community model |
+| microbiology | segment_and_analyze_microbial_cells | Inline mock fluorescence image |
+| genetics | analyze_crispr_genome_editing | BRCA1 editing sequences |
+| genetics | fit_genomic_prediction_model | Genotype matrix + phenotypes |
 
 ## Workflows Requiring External Files
 
