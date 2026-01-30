@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.k = null
-params.concentrations = null
+// Default test data: Mass action kinetics
+params.k = '0.1'
+params.concentrations = '[1.0, 2.0]'
 
 process MASS_ACTION_KINETICS {
     tag "$meta.id"

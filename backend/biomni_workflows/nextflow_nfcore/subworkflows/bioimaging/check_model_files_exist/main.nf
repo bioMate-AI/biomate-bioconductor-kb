@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
+// Demo: null values to run in demo mode (no actual model needed)
 params.model_folder = null
-params.folds = null
+params.folds = '[0, 1, 2, 3, 4]'
 
 process CHECK_MODEL_FILES_EXIST {
     tag "$meta.id"
@@ -71,12 +72,86 @@ def auto_convert(val):
 
 
 
-def check_model_files_exist(**kwargs):
-    '''Bioimaging helper: check_model_files_exist
-    Note: Actual implementation requires SimpleITK, nnUNet, or other imaging libraries.
+def check_model_files_exist(model_folder=None, folds=None):
+    '''Check if nnU-Net model weight files exist for specified folds.
+
+    Args:
+        model_folder: Path to the nnU-Net model folder
+        folds: List of fold numbers to check (e.g., [0, 1, 2, 3, 4] or "all")
+
+    Returns:
+        Dictionary with model file existence status
     '''
-    return {"function": "check_model_files_exist", "status": "placeholder", "args": {k: str(v)[:100] for k, v in kwargs.items()},
-            "note": "Requires imaging libraries (SimpleITK, nnUNet) for actual implementation"}
+    import os
+    from pathlib import Path
+
+    # Handle demo/test mode - if no model folder, return simulated result
+    if model_folder is None or model_folder == 'null':
+        return {
+            "function": "check_model_files_exist",
+            "status": "demo_mode",
+            "message": "No model folder specified - running in demo mode",
+            "model_folder": None,
+            "folds_checked": [],
+            "files_found": {},
+            "all_exist": False
+        }
+
+    model_path = Path(model_folder)
+
+    # Parse folds parameter
+    if folds is None or folds == 'null' or folds == 'all':
+        fold_list = [0, 1, 2, 3, 4]  # Default nnU-Net folds
+    elif isinstance(folds, list):
+        fold_list = folds
+    elif isinstance(folds, str):
+        # Try to parse as JSON or comma-separated
+        try:
+            fold_list = json.loads(folds)
+        except:
+            fold_list = [int(f.strip()) for f in folds.split(',')]
+    else:
+        fold_list = [int(folds)]
+
+    # Check for model files
+    files_found = {}
+    missing_files = []
+
+    for fold in fold_list:
+        fold_dir = model_path / f"fold_{fold}"
+
+        # nnU-Net model files to check
+        model_files = [
+            "checkpoint_final.pth",
+            "checkpoint_best.pth",
+            "model_final_checkpoint.model",
+            "model_final_checkpoint.model.pkl"
+        ]
+
+        fold_files = {}
+        for model_file in model_files:
+            file_path = fold_dir / model_file
+            exists = file_path.exists() if model_path.exists() else False
+            fold_files[model_file] = exists
+
+        files_found[f"fold_{fold}"] = fold_files
+
+        # Check if at least one model file exists for this fold
+        if not any(fold_files.values()):
+            missing_files.append(f"fold_{fold}")
+
+    all_exist = len(missing_files) == 0
+
+    return {
+        "function": "check_model_files_exist",
+        "status": "success",
+        "model_folder": str(model_folder),
+        "folds_checked": fold_list,
+        "files_found": files_found,
+        "missing_folds": missing_files,
+        "all_exist": all_exist,
+        "message": "All model files found" if all_exist else f"Missing files for folds: {missing_files}"
+    }
 
 # Execute the function
 try:

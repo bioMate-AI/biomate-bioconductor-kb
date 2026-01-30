@@ -10,7 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.drug_name = null
+params.drug_name = 'aspirin'
 params.classification = null
 params.date_range = null
 

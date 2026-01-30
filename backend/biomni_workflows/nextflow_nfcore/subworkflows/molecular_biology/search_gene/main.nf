@@ -10,10 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.sequence = null
-params.pattern = null
-params.case_sensitive = null
-// No value parameters
+// Demo: Search for start codon ATG in DNA sequence
+params.sequence = 'ATGGTGAGCAAGGGCGAGGAGATGCTGTTCACCATGGGGTGGTG'
+params.pattern = 'ATG'
+params.case_sensitive = 'false'
 
 process SEARCH_GENE {
     tag "$meta.id"

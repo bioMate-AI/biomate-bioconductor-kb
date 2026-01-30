@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.ras_gdp = null
-params.ras_gtp = null
-params.gef_rate = null
-params.gap_rate = null
+// Default test data: RAS GTPase cycle
+params.ras_gdp = '10.0'
+params.ras_gtp = '1.0'
+params.gef_rate = '0.1'
+params.gap_rate = '0.5'
 
 process RAS_ODE_SYSTEM {
     tag "$meta.id"

@@ -10,8 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.expression_data_path = null
-params.n_components = '10'
+// Demo: Use inline mock CSV data for NMF analysis
+// Expression data: genes (rows) x samples (columns) with non-negative values
+params.expression_data_path = 'INLINE_MOCK_NMF'
+params.n_components = '5'
 params.normalize = 'True'
 params.output_dir = 'nmf_results'
 params.random_state = '42'
@@ -121,7 +123,36 @@ def perform_gene_expression_nmf_analysis(
 
     # Load expression data from file
     try:
-        if expression_data_path.endswith(".csv"):
+        # Check for inline mock data mode
+        if expression_data_path == 'INLINE_MOCK_NMF':
+            # Generate mock expression data for NMF demonstration
+            np.random.seed(random_state if random_state else 42)
+
+            # Create mock gene expression data with cancer-related genes
+            cancer_genes = [
+                "TP53", "BRCA1", "BRCA2", "KRAS", "EGFR", "MYC", "PTEN", "RB1",
+                "APC", "VHL", "NF1", "NF2", "WT1", "RET", "CDH1", "STK11",
+                "SMAD4", "CDKN2A", "MLH1", "MSH2", "PIK3CA", "BRAF", "NRAS",
+                "KIT", "PDGFRA", "FGFR1", "FGFR2", "FGFR3", "ALK", "ROS1",
+                "MET", "HER2", "AR", "ESR1", "PGR", "BCL2", "BCL6", "MYD88",
+                "NOTCH1", "NOTCH2", "JAK2", "MPL", "CALR", "NPM1", "FLT3",
+                "DNMT3A", "TET2", "IDH1", "IDH2", "EZH2"
+            ]
+            samples = ["Sample_" + str(i) for i in range(1, 31)]  # 30 samples
+
+            # Create 5 distinct expression patterns (metagenes)
+            n_genes = len(cancer_genes)
+            n_samples = len(samples)
+
+            # Base expression with some structure
+            W_true = np.random.exponential(1.0, size=(n_genes, 5))
+            H_true = np.random.exponential(1.0, size=(5, n_samples))
+            X = np.dot(W_true, H_true) + np.random.exponential(0.5, size=(n_genes, n_samples))
+
+            expression_data = pd.DataFrame(X, index=cancer_genes, columns=samples)
+            log.append("Using inline mock expression data for demonstration")
+            log.append(f"Generated {n_genes} genes x {n_samples} samples")
+        elif expression_data_path.endswith(".csv"):
             expression_data = pd.read_csv(expression_data_path, index_col=0)
         elif expression_data_path.endswith((".tsv", ".txt")):
             expression_data = pd.read_csv(expression_data_path, sep="\\t", index_col=0)
@@ -129,7 +160,8 @@ def perform_gene_expression_nmf_analysis(
             log.append("ERROR: Unsupported file format. Please provide a CSV or TSV file.")
             return "\\n".join(log)
 
-        log.append(f"Successfully loaded expression data from {expression_data_path}")
+        if expression_data_path != 'INLINE_MOCK_NMF':
+            log.append(f"Successfully loaded expression data from {expression_data_path}")
     except Exception as e:
         log.append(f"ERROR: Failed to load expression data from {expression_data_path}. Error: {str(e)}")
         return "\\n".join(log)

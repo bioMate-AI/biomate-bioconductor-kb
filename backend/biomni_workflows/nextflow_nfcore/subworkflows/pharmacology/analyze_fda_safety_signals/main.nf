@@ -10,8 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.drug_list = null
-params.comparison_period = null
+params.drug_list = '["aspirin", "ibuprofen", "acetaminophen"]'
+params.comparison_period = '["2020-01-01", "2023-12-31"]'
 params.signal_threshold = 2.0
 
 process ANALYZE_FDA_SAFETY_SIGNALS {

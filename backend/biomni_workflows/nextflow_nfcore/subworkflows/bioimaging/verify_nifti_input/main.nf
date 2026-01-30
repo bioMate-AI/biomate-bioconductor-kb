@@ -11,7 +11,7 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Mock 3D brain NIFTI file from test data
-params.image_path = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
+params.image_path = "${projectDir}/../../../test_data/mock_fixed_image.nii.gz"
 
 process VERIFY_NIFTI_INPUT {
     tag "$meta.id"
@@ -70,12 +70,82 @@ def auto_convert(val):
 
 
 
-def verify_nifti_input(**kwargs):
-    '''Bioimaging helper: verify_nifti_input
-    Note: Actual implementation requires SimpleITK, nnUNet, or other imaging libraries.
+def verify_nifti_input(image_path=None):
+    '''Verify that a NIfTI file is valid and readable.
+
+    Performs comprehensive validation of NIfTI files including:
+    - File existence and readability
+    - Valid NIfTI header
+    - Image dimensions and data type
+    - Spatial information (affine, orientation)
+
+    Args:
+        image_path: Path to the NIfTI file to verify
+
+    Returns:
+        Dictionary with validation results and image metadata
     '''
-    return {"function": "verify_nifti_input", "status": "placeholder", "args": {k: str(v)[:100] for k, v in kwargs.items()},
-            "note": "Requires imaging libraries (SimpleITK, nnUNet) for actual implementation"}
+    import os
+
+    if not image_path or image_path == 'null':
+        return {"function": "verify_nifti_input", "status": "error",
+                "message": "Image path required"}
+
+    image_path = str(image_path)
+
+    # Check file existence
+    if not os.path.exists(image_path):
+        return {
+            "function": "verify_nifti_input",
+            "status": "error",
+            "image_path": image_path,
+            "valid": False,
+            "message": f"File not found: {image_path}"
+        }
+
+    # Check file extension
+    valid_extensions = ['.nii', '.nii.gz', '.nifti']
+    ext = os.path.splitext(image_path)[-1].lower()
+    if ext == '.gz':
+        ext = os.path.splitext(os.path.splitext(image_path)[0])[-1].lower() + '.gz'
+
+    is_nifti_extension = any(image_path.lower().endswith(e) for e in valid_extensions)
+
+    try:
+        # Load with SimpleITK (more reliable across platforms)
+        import SimpleITK as sitk
+        image = sitk.ReadImage(image_path)
+
+        validation_result = {
+            "function": "verify_nifti_input",
+            "status": "success",
+            "image_path": image_path,
+            "valid": True,
+            "library_used": "SimpleITK",
+            "file_extension": ext,
+            "is_valid_extension": is_nifti_extension,
+            "dimensions": list(image.GetSize()),
+            "ndim": image.GetDimension(),
+            "data_type": image.GetPixelIDTypeAsString(),
+            "voxel_size": list(image.GetSpacing()),
+            "origin": list(image.GetOrigin()),
+            "direction": list(image.GetDirection()),
+            "file_size_bytes": os.path.getsize(image_path)
+        }
+
+        validation_result["message"] = "Valid NIfTI file: " + str(validation_result['ndim']) + "D with dimensions " + str(validation_result['dimensions'])
+        return validation_result
+
+    except Exception as e:
+        return {
+            "function": "verify_nifti_input",
+            "status": "error",
+            "image_path": image_path,
+            "valid": False,
+            "file_extension": ext,
+            "is_valid_extension": is_nifti_extension,
+            "message": "Failed to read NIfTI file: " + str(e)
+        }
 
 # Execute the function
 try:

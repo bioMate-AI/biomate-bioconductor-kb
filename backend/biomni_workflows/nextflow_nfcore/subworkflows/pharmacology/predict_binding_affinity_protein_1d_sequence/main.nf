@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 /*
  * pharmacology/predict_binding_affinity_protein_1d_sequence
- * 
+ * Predict drug-target binding affinity using deep learning models.
  *
  * nf-core style module generated from tested Galaxy wrapper
  */
@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.smiles_list = null
-params.amino_acid_sequence = null
+// Demo: Aspirin and Ibuprofen binding to short hemoglobin fragment
+params.smiles_list = '["CC(=O)OC1=CC=CC=C1C(=O)O", "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O"]'
+params.amino_acid_sequence = 'MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSH'
 params.affinity_model_type = 'MPNN-CNN'
 
 process PREDICT_BINDING_AFFINITY_PROTEIN_1D_SEQUENCE {
@@ -75,11 +76,20 @@ def auto_convert(val):
 
 
 def predict_binding_affinity_protein_1d_sequence(smiles_list, amino_acid_sequence, affinity_model_type="MPNN-CNN"):
-    try:
-        from DeepPurpose import DTI, utils
-    except Exception:
-        subprocess.run([sys.executable, "-m", "pip", "install", "DeepPurpose"], check=False)
-        from DeepPurpose import DTI, utils
+    # Install required dependencies
+    import subprocess
+    import sys
+    import os
+    target_dir = os.path.join(os.getcwd(), "pip_packages")
+    os.makedirs(target_dir, exist_ok=True)
+
+    # Install DeepPurpose and its dependencies
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--target", target_dir,
+                    "git+https://github.com/bp-kelley/descriptastorus", "pandas-flavor", "DeepPurpose"],
+                   check=True, capture_output=True)
+    sys.path.insert(0, target_dir)
+
+    from DeepPurpose import DTI, utils
 
     # Define available model types for Binding Affinity
     available_affinity_model_types = [

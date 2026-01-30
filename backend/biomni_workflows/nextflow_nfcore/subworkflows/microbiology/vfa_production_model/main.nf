@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.substrate = null
-params.max_rate = null
-params.ks = null
+// Demo: VFA production kinetics (Monod model)
+params.substrate = '10.0'
+params.max_rate = '5.0'
+params.ks = '2.0'
 
 process VFA_PRODUCTION_MODEL {
     tag "$meta.id"

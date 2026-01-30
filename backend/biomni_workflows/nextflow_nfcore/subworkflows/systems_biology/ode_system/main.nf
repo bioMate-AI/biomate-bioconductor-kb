@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.state = null
-params.rates = null
+// Default test data: Generic ODE system
+params.state = '[1.0, 2.0, 0.5]'
+params.rates = '[0.1, 0.2, 0.15]'
 params.stoichiometry = null
 
 process ODE_SYSTEM {

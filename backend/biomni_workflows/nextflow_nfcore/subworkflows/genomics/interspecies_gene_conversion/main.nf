@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.gene_list = null
-params.source_species = null
-params.target_species = null
+// Test: Convert human cancer genes to mouse orthologs
+params.gene_list = '["ENSG00000141510", "ENSG00000121879", "ENSG00000198793"]'  // TP53, PIK3CA, MTOR
+params.source_species = 'human'
+params.target_species = 'mouse'
 
 process INTERSPECIES_GENE_CONVERSION {
     tag "$meta.id"

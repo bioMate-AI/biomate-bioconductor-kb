@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.x = null
-params.weights = null
-params.bias = null
-params.activation = null
+// Demo: Simple neural network forward pass for genetics feature prediction
+params.x = '[1.0, 2.0, 3.0]'
+params.weights = '[[0.5, 0.3, 0.2], [0.1, 0.4, 0.5]]'
+params.bias = '[0.1, 0.2]'
+params.activation = 'relu'
 
 process FORWARD {
     tag "$meta.id"

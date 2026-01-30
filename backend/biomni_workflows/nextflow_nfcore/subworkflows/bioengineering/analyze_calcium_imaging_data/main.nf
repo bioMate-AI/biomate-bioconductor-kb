@@ -10,6 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
+// Demo: Use null to trigger synthetic data generation for testing
 params.image_stack_path = null
 params.output_dir = './'
 

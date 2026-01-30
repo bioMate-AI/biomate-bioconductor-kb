@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.keywords = null
+// Demo: Pick the first matching item from a list of keywords (lab automation utility)
+params.keywords = '["pipette", "dispense", "aspirate", "tip_rack", "plate"]'
 
 process PICK_FIRST {
     tag "$meta.id"

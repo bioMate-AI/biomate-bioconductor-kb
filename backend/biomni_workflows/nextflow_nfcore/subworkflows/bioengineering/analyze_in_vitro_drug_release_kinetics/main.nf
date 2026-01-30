@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.time_points = null
-params.concentration_data = null
-params.drug_name = 'Drug'
-params.total_drug_loaded = null
+// Demo: Drug release kinetics test data (time in hours, concentration in percent)
+params.time_points = '[0, 1, 2, 4, 8, 12, 24, 48, 72]'
+params.concentration_data = '[0, 15, 28, 45, 65, 78, 88, 95, 98]'
+params.drug_name = 'Ibuprofen'
+params.total_drug_loaded = '100.0'
 params.output_dir = './'
 
 process ANALYZE_IN_VITRO_DRUG_RELEASE_KINETICS {

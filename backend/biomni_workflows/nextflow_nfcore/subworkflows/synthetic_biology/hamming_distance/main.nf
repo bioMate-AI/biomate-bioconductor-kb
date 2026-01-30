@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.seq1 = null
-params.seq2 = null
+// Default test data: Two DNA barcodes with 3 differences
+params.seq1 = 'ATCGATCGATCG'
+params.seq2 = 'ATCGTTCGTTCG'
 
 process HAMMING_DISTANCE {
     tag "$meta.id"

@@ -168,11 +168,9 @@ def simulate_demographic_history(
     if demographic_params is None:
         demographic_params = {"N": 10000}  # Default to constant population of 10000
 
-    demography = msprime.Demography()
-    demography.add_population(name="pop0", initial_size=1000)  # Default initial population
-
     if demographic_model == "constant":
         N = demographic_params.get("N", 10000)
+        demography = msprime.Demography()
         demography.add_population(name="pop0", initial_size=N)
         log.append(f"  - Constant population size: N = {N}")
 

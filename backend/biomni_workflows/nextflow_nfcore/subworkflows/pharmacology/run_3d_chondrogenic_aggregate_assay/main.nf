@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.chondrocyte_cells = null
-params.test_compounds = null
+// Default test data: Chondrogenic assay parameters
+params.chondrocyte_cells = '{"source": "Human articular cartilage", "passage_number": 2, "cell_density": 250000}'
+params.test_compounds = '[{"name": "Dexamethasone", "concentration": "100 nM", "vehicle": "DMSO"}, {"name": "TGF-beta3", "concentration": "10 ng/mL", "vehicle": "PBS"}]'
 params.culture_duration_days = '21'
 params.measurement_intervals = '7'
 

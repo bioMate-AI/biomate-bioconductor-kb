@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.x = null
-params.n = null
-params.ec50 = null
+// Default test data: Hill function parameters
+params.x = '1.0'
+params.n = '2.0'
+params.ec50 = '0.5'
 
 process HILL_FUNCTION {
     tag "$meta.id"

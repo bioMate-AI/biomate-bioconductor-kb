@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.a = null
-params.b = null
-params.c = null
+// Default test data: Bacterial growth at t=5 hours
+params.t = '5.0'
+params.a = '10.0'
+params.b = '2.0'
+params.c = '0.5'
 
 process GOMPERTZ_MODEL {
     tag "$meta.id"

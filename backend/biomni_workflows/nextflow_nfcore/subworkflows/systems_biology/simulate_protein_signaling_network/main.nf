@@ -142,7 +142,8 @@ def simulate_protein_signaling_network(
             regulation_terms = []
             for regulator, reg_type in regulators:
                 regulator_idx = protein_indices[regulator]
-                params = reaction_params.get((regulator, target), {})
+                # Support both tuple keys and string keys (e.g., "Ligand_Receptor")
+                params = reaction_params.get((regulator, target), reaction_params.get(f"{regulator}_{target}", {}))
 
                 if not params:
                     continue

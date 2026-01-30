@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.protein_sequences = null
+// Test: Hemoglobin alpha sequences from human, mouse, and chicken
+params.protein_sequences = '["MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSH", "MVLSGEDKSNIKAAWGKIGGHGAEYGAEALERMFASFPTTKTYFPHFDVSH", "MVLSAADKNNVKGIFTKIAGHAEEYGAETLERMFTTYPPTKTYFPHFDLSH"]'
 params.output_dir = './'
 
 process ANALYZE_PROTEIN_CONSERVATION {

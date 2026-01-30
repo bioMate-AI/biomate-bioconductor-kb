@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.gc_data_file = null
-params.tissue_type = null
-params.sample_id = null
+// Demo: Uses inline-generated mock GC data file
+params.gc_data_file = 'mock_gc_data.csv'
+params.tissue_type = 'liver'
+params.sample_id = 'sample001'
 params.output_directory = './results'
 
 process ANALYZE_FATTY_ACID_COMPOSITION_BY_GC {
@@ -39,6 +40,45 @@ process ANALYZE_FATTY_ACID_COMPOSITION_BY_GC {
     export PARAM_TISSUE_TYPE="${params.tissue_type?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_SAMPLE_ID="${params.sample_id?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIRECTORY="${params.output_directory?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Generate mock GC data file for testing
+    python3 << 'MOCKEOF'
+import numpy as np
+import pandas as pd
+
+# Create mock gas chromatography data for fatty acid analysis
+# Retention times match the fatty acid standards in the analysis function
+np.random.seed(42)
+
+# Define typical retention times and relative abundances for liver tissue
+fatty_acids = [
+    (2.2, 500),    # Myristic acid (C14:0)
+    (2.9, 2500),   # Palmitic acid (C16:0) - most abundant
+    (3.2, 800),    # Palmitoleic acid (C16:1)
+    (3.8, 1200),   # Stearic acid (C18:0)
+    (4.1, 2000),   # Oleic acid (C18:1)
+    (4.5, 1500),   # Linoleic acid (C18:2)
+    (4.8, 300),    # alpha-Linolenic acid (C18:3)
+    (5.2, 600),    # Arachidonic acid (C20:4)
+    (5.6, 200),    # EPA (C20:5)
+    (6.4, 400),    # DHA (C22:6)
+]
+
+data = []
+for rt, area in fatty_acids:
+    # Add main peak with some noise
+    data.append({'retention_time': rt + np.random.normal(0, 0.02),
+                 'peak_area': area + np.random.normal(0, area * 0.05)})
+    # Add some baseline noise
+    for _ in range(3):
+        noise_rt = np.random.uniform(rt - 0.2, rt + 0.2)
+        noise_area = np.random.uniform(5, 20)
+        data.append({'retention_time': noise_rt, 'peak_area': noise_area})
+
+df = pd.DataFrame(data)
+df.to_csv('mock_gc_data.csv', index=False)
+print("Mock GC data file created: mock_gc_data.csv")
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

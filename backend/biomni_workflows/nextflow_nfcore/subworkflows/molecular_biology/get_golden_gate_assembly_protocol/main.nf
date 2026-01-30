@@ -10,12 +10,13 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
+// Demo: Golden Gate assembly protocol for single insert
 params.num_inserts = 1
-params.enzyme_name = null
-params.vector_length = null
+params.enzyme_name = 'BsaI'
+params.vector_length = 3000
 params.vector_amount_ng = 75.0
-params.insert_lengths = null
-params.is_library_prep = null
+params.insert_lengths = '[500]'
+params.is_library_prep = 'false'
 
 process GET_GOLDEN_GATE_ASSEMBLY_PROTOCOL {
     tag "$meta.id"

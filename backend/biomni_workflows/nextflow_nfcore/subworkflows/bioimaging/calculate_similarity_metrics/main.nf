@@ -11,8 +11,8 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Compare fixed and moving images from test data
-params.image1_path = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
-params.image2_path = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_moving_image.nii.gz'
+params.image1_path = "${projectDir}/../../../test_data/mock_fixed_image.nii.gz"
+params.image2_path = "${projectDir}/../../../test_data/mock_moving_image.nii.gz"
 
 process CALCULATE_SIMILARITY_METRICS {
     tag "$meta.id"

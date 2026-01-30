@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 /*
  * molecular_biology/get_refseq_id
- * Get RefSeq ID from gene record.
+ * Get RefSeq ID from gene record using NCBI Entrez.
  *
  * nf-core style module generated from tested Galaxy wrapper
  */
@@ -10,8 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.gene_symbol = null
-params.organism = null
+// Demo: Retrieve RefSeq ID for BRCA1 gene in human
+params.gene_name = 'BRCA1'
+params.organism = 'Homo sapiens'
+params.email = 'test@example.com'
 
 process GET_REFSEQ_ID {
     tag "$meta.id"
@@ -32,16 +34,19 @@ process GET_REFSEQ_ID {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-        # Export parameters as environment variables
-    export PARAM_GENE_SYMBOL="${params.gene_symbol?.toString()?.replace('"', '\\"') ?: 'null'}"
+    # Export parameters as environment variables
+    export PARAM_GENE_NAME="${params.gene_name?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_ORGANISM="${params.organism?.toString()?.replace('"', '\\"') ?: 'null'}"
-
+    export PARAM_EMAIL="${params.email?.toString()?.replace('"', '\\"') ?: 'null'}"
 
     python3 << 'PYEOF'
-# Auto-generated from Galaxy wrapper - self-contained implementation
-
+# Self-contained implementation using NCBI Entrez API
+from Bio import Entrez
 import json
 import os
+import time
+from urllib.error import HTTPError, URLError
+from socket import timeout as SocketTimeout
 
 def auto_convert(val):
     # Auto-convert string to appropriate type
@@ -71,20 +76,130 @@ def auto_convert(val):
     return val
 
 
+def get_refseq_id(gene_name: str, organism: str, email: str = None) -> dict:
+    '''Get RefSeq ID(s) for a gene symbol using NCBI Entrez.
 
-def get_refseq_id(gene_symbol, organism="human"):
-    '''Look up RefSeq ID for gene symbol. Returns placeholder - actual lookup requires API.
-    Args: gene_symbol: gene name, organism: species
+    Args:
+        gene_name: Name of the gene (e.g., 'BRCA1', 'TP53', 'INS')
+        organism: Name of the organism (e.g., 'Homo sapiens', 'Mus musculus')
+        email: Email address for NCBI Entrez (recommended for API access)
+
+    Returns:
+        Dictionary containing:
+            - gene_name: The queried gene name
+            - organism: The queried organism
+            - gene_id: NCBI Gene ID
+            - refseq_ids: List of RefSeq IDs (mRNA transcripts)
+            - explanation: Description of the output fields
+
+    Raises:
+        ValueError: If no records found for the gene/organism combination
+        RuntimeError: If NCBI is unavailable after retries
     '''
-    # This would normally query NCBI - return placeholder
-    return {"gene_symbol": gene_symbol, "organism": organism, "refseq_id": f"NM_placeholder_{gene_symbol}", 
-            "note": "Actual RefSeq lookup requires NCBI Entrez API"}
+    if email:
+        Entrez.email = email
+
+    max_retries = 3
+
+    def search_gene() -> str:
+        '''Search for gene ID in NCBI Gene database.'''
+        query = f"{organism}[Organism] AND {gene_name}[Gene]"
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                with Entrez.esearch(db="gene", term=query, retmax=5) as handle:
+                    record = Entrez.read(handle)
+
+                if not record["IdList"]:
+                    raise ValueError(f"No records found for gene '{gene_name}' in organism '{organism}'")
+
+                return record["IdList"][0]
+
+            except (HTTPError, URLError, SocketTimeout) as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                raise RuntimeError(f"NCBI unavailable after {max_retries} retries: {str(e)}")
+
+        raise RuntimeError(f"NCBI unavailable after {max_retries} retries: {str(last_error)}")
+
+    def get_refseq_ids_from_gene(gene_id: str) -> list:
+        '''Get RefSeq IDs from gene record.'''
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                with Entrez.efetch(db="gene", id=gene_id, rettype="gb", retmode="xml") as handle:
+                    gene_record = Entrez.read(handle)
+
+                refseq_ids = []
+
+                # Extract RefSeq IDs from the gene record structure
+                try:
+                    # Navigate through the gene record to find RefSeq accessions
+                    locus_list = gene_record[0].get("Entrezgene_locus", [])
+                    for locus in locus_list:
+                        accession = locus.get("Gene-commentary_accession")
+                        version = locus.get("Gene-commentary_version")
+                        if accession and version:
+                            refseq_ids.append(f"{accession}.{version}")
+
+                        # Also check for products (mRNA transcripts)
+                        products = locus.get("Gene-commentary_products", [])
+                        for product in products:
+                            prod_accession = product.get("Gene-commentary_accession")
+                            prod_version = product.get("Gene-commentary_version")
+                            if prod_accession and prod_version:
+                                full_id = f"{prod_accession}.{prod_version}"
+                                if full_id not in refseq_ids:
+                                    refseq_ids.append(full_id)
+
+                except (KeyError, IndexError, TypeError):
+                    pass  # Continue with partial results
+
+                return refseq_ids
+
+            except (HTTPError, URLError, SocketTimeout) as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise RuntimeError(f"NCBI unavailable after {max_retries} retries: {str(e)}")
+
+        raise RuntimeError(f"NCBI unavailable after {max_retries} retries: {str(last_error)}")
+
+    # Main execution
+    gene_id = search_gene()
+    refseq_ids = get_refseq_ids_from_gene(gene_id)
+
+    explanation = (
+        "Output fields:\\n"
+        "- gene_name: The queried gene symbol\\n"
+        "- organism: The species searched\\n"
+        "- gene_id: NCBI Gene database identifier\\n"
+        "- refseq_ids: List of RefSeq accession numbers\\n"
+        "  * NM_ prefix: mRNA transcript\\n"
+        "  * NR_ prefix: non-coding RNA\\n"
+        "  * NC_ prefix: genomic sequence (chromosome)\\n"
+        "  * Example: NM_007294.4 for human BRCA1 mRNA"
+    )
+
+    return {
+        "gene_name": gene_name,
+        "organism": organism,
+        "gene_id": gene_id,
+        "refseq_ids": refseq_ids,
+        "explanation": explanation
+    }
 
 # Execute the function
 try:
     result = get_refseq_id(
-        gene_symbol=auto_convert(os.environ.get("PARAM_GENE_SYMBOL", "")),
+        gene_name=auto_convert(os.environ.get("PARAM_GENE_NAME", "")),
         organism=auto_convert(os.environ.get("PARAM_ORGANISM", "")),
+        email=auto_convert(os.environ.get("PARAM_EMAIL", "")),
     )
     success = True
     error_msg = None
@@ -114,7 +229,7 @@ with open("get_refseq_id_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("get_refseq_id_output.txt", "w") as f:
-    f.write("Biomni: Get Refseq Id" + NL)
+    f.write("Biomni: Get RefSeq ID" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):
@@ -134,6 +249,7 @@ PYEOF
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python3 --version | cut -d' ' -f2)
+        biopython: \$(python3 -c "import Bio; print(Bio.__version__)")
         biomni_function: "get_refseq_id"
     END_VERSIONS
     """

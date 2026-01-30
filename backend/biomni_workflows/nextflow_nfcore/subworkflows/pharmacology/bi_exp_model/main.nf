@@ -10,11 +10,12 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.A = null
-params.alpha = null
-params.B = null
-params.beta = null
+// Default test data: Pharmacokinetic bi-exponential model parameters
+params.t = '2.0'
+params.A = '50.0'
+params.alpha = '0.5'
+params.B = '50.0'
+params.beta = '0.05'
 
 process BI_EXP_MODEL {
     tag "$meta.id"

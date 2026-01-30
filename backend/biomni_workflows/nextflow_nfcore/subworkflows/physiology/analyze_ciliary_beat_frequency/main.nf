@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.video_path = null
+// Demo: Uses inline-generated mock high-speed microscopy video
+params.video_path = 'mock_ciliary_video.avi'
 params.roi_count = '5'
 params.min_freq = '0'
 params.max_freq = '30'
@@ -41,6 +42,44 @@ process ANALYZE_CILIARY_BEAT_FREQUENCY {
     export PARAM_MIN_FREQ="${params.min_freq?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_MAX_FREQ="${params.max_freq?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Generate mock ciliary video for testing
+    python3 << 'MOCKEOF'
+import numpy as np
+import cv2
+
+# Create mock high-speed microscopy video simulating ciliary beating
+# 500 frames at 500 fps = 1 second of video
+np.random.seed(42)
+fps = 500
+n_frames = 500
+width, height = 256, 256
+
+# Create VideoWriter
+fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+out = cv2.VideoWriter('mock_ciliary_video.avi', fourcc, fps, (width, height), False)
+
+# Simulate ciliary beating at ~12 Hz (typical CBF)
+beat_freq = 12.0  # Hz
+for i in range(n_frames):
+    t = i / fps
+    # Create base tissue texture
+    frame = np.random.normal(128, 10, (height, width)).astype(np.float32)
+
+    # Add oscillating ciliary structures
+    for cx in range(30, width-30, 40):
+        for cy in range(30, height-30, 40):
+            # Oscillating intensity to simulate ciliary beating
+            intensity = 80 + 60 * np.sin(2 * np.pi * beat_freq * t + np.random.random() * np.pi)
+            cv2.circle(frame, (cx, cy), 8, intensity, -1)
+
+    frame = np.clip(frame, 0, 255).astype(np.uint8)
+    frame = cv2.GaussianBlur(frame, (3, 3), 1)
+    out.write(frame)
+
+out.release()
+print("Mock ciliary video created: mock_ciliary_video.avi")
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

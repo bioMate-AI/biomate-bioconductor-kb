@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.identifier = null
-params.is_addgene = null
+// Demo: Retrieve pUC19 plasmid from NCBI
+params.identifier = 'pUC19'
+params.is_addgene = 'false'
 
 process GET_PLASMID_SEQUENCE {
     tag "$meta.id"

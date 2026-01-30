@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.k0 = null
+// Demo: Zero-order drug release kinetics parameters
+params.t = '5.0'
+params.k0 = '10.0'
 
 process ZERO_ORDER {
     tag "$meta.id"

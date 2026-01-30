@@ -11,9 +11,9 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: PBMC 3k single-cell dataset from Galaxy test data
-params.adata_filename = '/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/pbmc3k_tiny.h5ad'
+params.adata_filename = "${projectDir}/../../../../lib/galaxy/datatypes/test/pbmc3k_tiny.h5ad"
 params.data_dir = null
-params.DATA_ROOT = '/dfs/project/bioagentos/data/singlecell/'
+params.DATA_ROOT = null  // Set to UCE data root directory at runtime
 params.custom_args = null
 
 process GET_UCE_EMBEDDINGS_SCRNA {
@@ -79,7 +79,7 @@ def auto_convert(val):
 def get_uce_embeddings_scRNA(
     adata_filename,
     data_dir,
-    DATA_ROOT="/dfs/project/bioagentos/data/singlecell/",
+    DATA_ROOT=None,
     custom_args=None,
 ):
     '''The UCE embeddings are usually our default tools to get cell embeddings, we map UCE embeddings to IMA referece dataset and get the cell types for a better understanding.
@@ -133,7 +133,7 @@ try:
     result = get_uce_embeddings_scRNA(
         adata_filename=auto_convert(os.environ.get("PARAM_ADATA_FILENAME", "")),
         data_dir=auto_convert(os.environ.get("PARAM_DATA_DIR", "")),
-        DATA_ROOT=auto_convert(os.environ.get("PARAM_DATA_ROOT", "/dfs/project/bioagentos/data/singlecell/")),
+        DATA_ROOT=auto_convert(os.environ.get("PARAM_DATA_ROOT", "")),
         custom_args=auto_convert(os.environ.get("PARAM_CUSTOM_ARGS", "")),
     )
     success = True

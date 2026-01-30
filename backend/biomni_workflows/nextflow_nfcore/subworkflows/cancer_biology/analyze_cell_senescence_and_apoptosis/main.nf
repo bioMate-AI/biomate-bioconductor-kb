@@ -11,7 +11,7 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Accuri C6 flow cytometer FCS file from Galaxy test data
-params.fcs_file_path = '/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs'
+params.fcs_file_path = "${projectDir}/../../../../lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs"
 
 process ANALYZE_CELL_SENESCENCE_AND_APOPTOSIS {
     tag "$meta.id"

@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.sequence = null
-params.frame = null
-params.min_length = null
+// Demo: Find ORFs in a specific reading frame
+params.sequence = 'ATGAAATTTGGGCCCTAGATGCCCAAATGAGGGGGGGGTAAATGCCCAAATAG'
+params.frame = 1
+params.min_length = 9
 
 process FIND_ORFS_IN_FRAME {
     tag "$meta.id"

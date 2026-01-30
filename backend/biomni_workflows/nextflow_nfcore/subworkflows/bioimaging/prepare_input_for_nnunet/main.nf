@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.input_path = null
-params.output_dir = null
+// Test with mock 4D brain image
+params.input_path = "${projectDir}/../../../test_data/mock_4d_brain.nii.gz"
+params.output_dir = './results'
 params.case_name = 'BRAT'
 
 process PREPARE_INPUT_FOR_NNUNET {

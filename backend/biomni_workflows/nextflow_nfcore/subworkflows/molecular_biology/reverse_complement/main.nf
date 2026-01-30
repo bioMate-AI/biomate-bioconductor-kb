@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.seq = null
+// Demo: Get reverse complement of a primer sequence
+params.seq = 'ATGGATTTATCTGCTCTTCGCGTTG'
 
 process REVERSE_COMPLEMENT {
     tag "$meta.id"

@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.query_sequence = null
-params.reference_sequence = null
+// Demo: Detect mutations between query and reference sequences
+params.query_sequence = 'ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGC'
+params.reference_sequence = 'ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGATGGC'
 params.query_start = '1'
 
 process FIND_SEQUENCE_MUTATIONS {

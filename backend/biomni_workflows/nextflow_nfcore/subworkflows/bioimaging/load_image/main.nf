@@ -11,7 +11,7 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Mock brain NIFTI from test data
-params.image_path = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
+params.image_path = "${projectDir}/../../../test_data/mock_fixed_image.nii.gz"
 
 process LOAD_IMAGE {
     tag "$meta.id"
@@ -70,12 +70,84 @@ def auto_convert(val):
 
 
 
-def load_image(**kwargs):
-    '''Bioimaging helper: load_image
-    Note: Actual implementation requires SimpleITK, nnUNet, or other imaging libraries.
+def load_image(image_path=None):
+    '''Load a medical image using SimpleITK.
+
+    Supports various formats: NIfTI (.nii, .nii.gz), DICOM, MetaImage (.mha, .mhd),
+    NRRD, and other ITK-supported formats.
+
+    Args:
+        image_path: Path to the image file to load
+
+    Returns:
+        Dictionary with image metadata and properties
     '''
-    return {"function": "load_image", "status": "placeholder", "args": {k: str(v)[:100] for k, v in kwargs.items()},
-            "note": "Requires imaging libraries (SimpleITK, nnUNet) for actual implementation"}
+    import SimpleITK as sitk
+    import numpy as np
+
+    if not image_path or image_path == 'null':
+        return {"function": "load_image", "status": "error",
+                "message": "Image path required"}
+
+    try:
+        # Read the image
+        image = sitk.ReadImage(str(image_path))
+
+        # Get image properties
+        dimension = image.GetDimension()
+        size = list(image.GetSize())
+        spacing = list(image.GetSpacing())
+        origin = list(image.GetOrigin())
+        direction = list(image.GetDirection())
+        pixel_type = image.GetPixelIDTypeAsString()
+        num_components = image.GetNumberOfComponentsPerPixel()
+
+        # Get array for statistics
+        array = sitk.GetArrayFromImage(image)
+
+        # Calculate statistics
+        stats = {
+            "min": float(np.min(array)),
+            "max": float(np.max(array)),
+            "mean": float(np.mean(array)),
+            "std": float(np.std(array)),
+            "dtype": str(array.dtype)
+        }
+
+        # Calculate physical dimensions
+        physical_size = [size[i] * spacing[i] for i in range(dimension)]
+
+        # Determine file format from extension
+        import os
+        ext = os.path.splitext(str(image_path))[-1].lower()
+        if ext == '.gz':
+            ext = os.path.splitext(os.path.splitext(str(image_path))[0])[-1].lower() + '.gz'
+
+        return {
+            "function": "load_image",
+            "status": "success",
+            "image_path": str(image_path),
+            "file_format": ext,
+            "dimension": dimension,
+            "size": size,
+            "spacing": spacing,
+            "origin": origin,
+            "direction_matrix": direction,
+            "pixel_type": pixel_type,
+            "num_components": num_components,
+            "physical_size_mm": physical_size,
+            "total_voxels": int(np.prod(size)),
+            "statistics": stats,
+            "message": f"Successfully loaded {dimension}D image with size {size}"
+        }
+
+    except Exception as e:
+        return {
+            "function": "load_image",
+            "status": "error",
+            "image_path": str(image_path),
+            "message": f"Failed to load image: {str(e)}"
+        }
 
 # Execute the function
 try:

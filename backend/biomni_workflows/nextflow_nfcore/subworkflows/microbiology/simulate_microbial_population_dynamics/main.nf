@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.initial_populations = null
-params.growth_rates = null
-params.clearance_rates = null
-params.carrying_capacities = null
+// Demo: Stochastic simulation of 2-species microbial dynamics
+params.initial_populations = '[100, 50]'
+params.growth_rates = '[0.5, 0.4]'
+params.clearance_rates = '[0.1, 0.15]'
+params.carrying_capacities = '[1000, 800]'
 params.max_time = '100'
 params.num_simulations = '100'
 params.time_points = '100'

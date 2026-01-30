@@ -10,8 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.expression_data_path = null
-params.mutation_data_path = null
+// Demo: Use inline mock CSV data for DDR network analysis
+// Expression data: genes (rows) x samples (columns) with DDR pathway genes
+params.expression_data_path = 'INLINE_MOCK_EXPRESSION'
+// Mutation data: genes (rows) x samples (columns) with mutation status (0/1)
+params.mutation_data_path = 'INLINE_MOCK_MUTATION'
 params.output_dir = './results'
 
 process ANALYZE_DDR_NETWORK_IN_CANCER {
@@ -114,8 +117,42 @@ def analyze_ddr_network_in_cancer(expression_data_path, mutation_data_path, outp
     research_log += "STEP 1: Loading and preprocessing genomic data\\n"
 
     try:
-        expr_data = pd.read_csv(expression_data_path, index_col=0)
-        mut_data = pd.read_csv(mutation_data_path, index_col=0)
+        # Check for inline mock data mode
+        if expression_data_path == 'INLINE_MOCK_EXPRESSION' or mutation_data_path == 'INLINE_MOCK_MUTATION':
+            import numpy as np
+            np.random.seed(42)
+
+            # Generate mock expression data for DDR genes
+            ddr_genes_mock = [
+                "ATM", "ATR", "PRKDC", "RAD50", "MRE11", "NBN",
+                "CHEK1", "CHEK2", "TP53", "BRCA1", "BRCA2", "MDC1",
+                "RAD51", "RAD52", "PALB2", "RAD54L",
+                "XRCC4", "LIG4", "XRCC5", "XRCC6",
+                "PARP1", "APEX1", "OGG1", "XRCC1",
+                "XPA", "XPC", "ERCC1", "ERCC2", "ERCC3", "ERCC4", "ERCC5",
+                "MLH1", "MSH2", "MSH6", "PMS2"
+            ]
+            samples = ["Sample_" + str(i) for i in range(1, 21)]  # 20 samples
+
+            # Expression data: random values between 0 and 10
+            expr_values = np.random.uniform(0, 10, size=(len(ddr_genes_mock), len(samples)))
+            expr_data = pd.DataFrame(expr_values, index=ddr_genes_mock, columns=samples)
+
+            # Mutation data: binary 0/1 with ~10% mutation rate
+            mut_values = (np.random.random(size=(len(ddr_genes_mock), len(samples))) < 0.1).astype(int)
+            # Make some genes more frequently mutated (TP53, BRCA1, BRCA2)
+            tp53_idx = ddr_genes_mock.index("TP53")
+            brca1_idx = ddr_genes_mock.index("BRCA1")
+            brca2_idx = ddr_genes_mock.index("BRCA2")
+            mut_values[tp53_idx, :] = (np.random.random(len(samples)) < 0.3).astype(int)
+            mut_values[brca1_idx, :] = (np.random.random(len(samples)) < 0.15).astype(int)
+            mut_values[brca2_idx, :] = (np.random.random(len(samples)) < 0.15).astype(int)
+            mut_data = pd.DataFrame(mut_values, index=ddr_genes_mock, columns=samples)
+
+            research_log += "- Using inline mock data for demonstration\\n"
+        else:
+            expr_data = pd.read_csv(expression_data_path, index_col=0)
+            mut_data = pd.read_csv(mutation_data_path, index_col=0)
 
         research_log += f"- Loaded expression data: {expr_data.shape[0]} genes × {expr_data.shape[1]} samples\\n"
         research_log += f"- Loaded mutation data: {mut_data.shape[0]} genes × {mut_data.shape[1]} samples\\n"

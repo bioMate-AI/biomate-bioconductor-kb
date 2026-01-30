@@ -14,7 +14,7 @@ params.outdir = './results'
 params.drug_list = '["aspirin", "warfarin", "metoprolol"]'
 params.include_mechanisms = 'True'
 params.include_management = 'True'
-params.data_lake_path = null
+params.data_lake_path = './schema_db'
 
 process CHECK_DRUG_COMBINATION_SAFETY {
     tag "$meta.id"

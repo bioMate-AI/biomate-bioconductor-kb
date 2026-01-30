@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.dna_sequence = null
-params.enzymes = null
-params.is_circular = null
+// Demo: pUC19 MCS with multiple restriction enzyme sites
+params.dna_sequence = 'ATGAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTTGGCGTAATCATGGTCAT'
+params.enzymes = '["EcoRI", "BamHI", "HindIII"]'
+params.is_circular = 'false'
 
 process FIND_RESTRICTION_SITES {
     tag "$meta.id"

@@ -11,8 +11,8 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Mock NIFTI images for registration test
-params.fixed_image = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
-params.moving_image = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_moving_image.nii.gz'
+params.fixed_image = "${projectDir}/../../../test_data/mock_fixed_image.nii.gz"
+params.moving_image = "${projectDir}/../../../test_data/mock_moving_image.nii.gz"
 params.initial_transform = null
 
 process CREATE_AFFINE_TRANSFORM {
@@ -74,12 +74,86 @@ def auto_convert(val):
 
 
 
-def create_affine_transform(**kwargs):
-    '''Bioimaging helper: create_affine_transform
-    Note: Actual implementation requires SimpleITK, nnUNet, or other imaging libraries.
+def create_affine_transform(fixed_image=None, moving_image=None, initial_transform=None):
+    '''Create an affine transform for image registration using SimpleITK.
+
+    An affine transform includes translation, rotation, scaling, and shearing.
+    It preserves parallel lines but not necessarily distances or angles.
+
+    Args:
+        fixed_image: Path to the fixed/reference image
+        moving_image: Path to the moving image to be registered
+        initial_transform: Optional path to initial transform file
+
+    Returns:
+        Dictionary with affine transform parameters
     '''
-    return {"function": "create_affine_transform", "status": "placeholder", "args": {k: str(v)[:100] for k, v in kwargs.items()},
-            "note": "Requires imaging libraries (SimpleITK, nnUNet) for actual implementation"}
+    import SimpleITK as sitk
+    import numpy as np
+
+    # Load images
+    if fixed_image and fixed_image != 'null':
+        fixed = sitk.ReadImage(str(fixed_image))
+    else:
+        return {"function": "create_affine_transform", "status": "error",
+                "message": "Fixed image path required"}
+
+    if moving_image and moving_image != 'null':
+        moving = sitk.ReadImage(str(moving_image))
+    else:
+        return {"function": "create_affine_transform", "status": "error",
+                "message": "Moving image path required"}
+
+    # Get image dimension
+    dimension = fixed.GetDimension()
+
+    # Create affine transform centered on the fixed image
+    affine_transform = sitk.AffineTransform(dimension)
+
+    # Set center of rotation to center of fixed image
+    center = [fixed.GetOrigin()[i] + fixed.GetSize()[i] * fixed.GetSpacing()[i] / 2.0
+              for i in range(dimension)]
+    affine_transform.SetCenter(center)
+
+    # Initialize with identity matrix (no initial transformation)
+    identity_matrix = list(np.eye(dimension).flatten())
+    affine_transform.SetMatrix(identity_matrix)
+    affine_transform.SetTranslation([0.0] * dimension)
+
+    # If initial transform provided, compose with it
+    if initial_transform and initial_transform != 'null':
+        try:
+            init_tx = sitk.ReadTransform(str(initial_transform))
+            # Compose transforms
+            composite = sitk.CompositeTransform(dimension)
+            composite.AddTransform(init_tx)
+            composite.AddTransform(affine_transform)
+            transform_params = list(composite.GetParameters())
+        except Exception as e:
+            transform_params = list(affine_transform.GetParameters())
+    else:
+        transform_params = list(affine_transform.GetParameters())
+
+    # Save transform to file
+    output_transform_path = "affine_transform.tfm"
+    sitk.WriteTransform(affine_transform, output_transform_path)
+
+    return {
+        "function": "create_affine_transform",
+        "status": "success",
+        "transform_type": "AffineTransform",
+        "dimension": dimension,
+        "center": center,
+        "matrix": identity_matrix,
+        "translation": [0.0] * dimension,
+        "parameters": transform_params,
+        "num_parameters": len(transform_params),
+        "fixed_image": str(fixed_image),
+        "moving_image": str(moving_image),
+        "transform_file": output_transform_path,
+        "degrees_of_freedom": dimension * dimension + dimension,
+        "message": f"Created {dimension}D affine transform with {len(transform_params)} parameters"
+    }
 
 # Execute the function
 try:

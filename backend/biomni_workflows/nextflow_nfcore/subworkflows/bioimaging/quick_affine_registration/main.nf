@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.fixed_image_path = null
-params.moving_image_path = null
-params.output_dir = null
+// Test data paths
+params.fixed_image_path = "${projectDir}/../../../test_data/mock_fixed_image.nii.gz"
+params.moving_image_path = "${projectDir}/../../../test_data/mock_moving_image.nii.gz"
+params.output_dir = './results'
 params.metric = 'mutual_information'
 params.optimizer = 'gradient_descent'
 params.preprocess = null

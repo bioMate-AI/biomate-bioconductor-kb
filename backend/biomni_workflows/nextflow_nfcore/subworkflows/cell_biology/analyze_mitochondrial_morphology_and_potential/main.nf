@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.morphology_image_path = null
-params.potential_image_path = null
+// Demo mode: use 'demo' to generate synthetic test images
+params.morphology_image_path = 'demo'
+params.potential_image_path = 'demo'
 params.output_dir = './output'
 
 process ANALYZE_MITOCHONDRIAL_MORPHOLOGY_AND_POTENTIAL {
@@ -80,8 +81,10 @@ def analyze_mitochondrial_morphology_and_potential(morphology_image_path, potent
     ----------
     morphology_image_path : str
         Path to the fluorescence microscopy image showing mitochondrial morphology (e.g., MTS-GFP)
+        Use 'demo' for synthetic test data.
     potential_image_path : str
         Path to the fluorescence microscopy image showing mitochondrial membrane potential (e.g., TMRE staining)
+        Use 'demo' for synthetic test data.
     output_dir : str, optional
         Directory to save output files, default is "./output"
 
@@ -106,17 +109,46 @@ def analyze_mitochondrial_morphology_and_potential(morphology_image_path, potent
     log.append(f"Mitochondrial Analysis - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log.append("=" * 50)
 
-    # Load images
-    try:
-        morph_img = io.imread(morphology_image_path)
-        pot_img = io.imread(potential_image_path)
+    # Generate synthetic test images if demo mode
+    if morphology_image_path == 'demo' or potential_image_path == 'demo':
+        log.append("DEMO MODE: Generating synthetic mitochondrial images for testing")
+        np.random.seed(42)
 
-        log.append(f"Successfully loaded morphology image: {morphology_image_path}")
-        log.append(f"Successfully loaded potential image: {potential_image_path}")
-        log.append(f"Morphology image shape: {morph_img.shape}")
-        log.append(f"Potential image shape: {pot_img.shape}")
-    except Exception as e:
-        return f"Error loading images: {str(e)}"
+        # Create synthetic morphology image with mitochondrial-like structures
+        morph_img = np.zeros((256, 256), dtype=np.float32)
+        # Add some tubular structures (simplified mitochondria)
+        for _ in range(15):
+            x_start, y_start = np.random.randint(20, 200, 2)
+            length = np.random.randint(20, 60)
+            angle = np.random.uniform(0, 2*np.pi)
+            for t in range(length):
+                x = int(x_start + t * np.cos(angle))
+                y = int(y_start + t * np.sin(angle))
+                if 0 <= x < 256 and 0 <= y < 256:
+                    morph_img[max(0,y-2):min(256,y+3), max(0,x-2):min(256,x+3)] = np.random.uniform(0.6, 1.0)
+
+        # Add noise
+        morph_img += np.random.normal(0, 0.05, morph_img.shape)
+        morph_img = np.clip(morph_img, 0, 1)
+
+        # Create synthetic potential image (similar pattern but with intensity variation)
+        pot_img = morph_img * np.random.uniform(0.5, 1.0, morph_img.shape)
+        pot_img = np.clip(pot_img, 0, 1)
+
+        log.append(f"Generated synthetic morphology image: shape {morph_img.shape}")
+        log.append(f"Generated synthetic potential image: shape {pot_img.shape}")
+    else:
+        # Load images
+        try:
+            morph_img = io.imread(morphology_image_path)
+            pot_img = io.imread(potential_image_path)
+
+            log.append(f"Successfully loaded morphology image: {morphology_image_path}")
+            log.append(f"Successfully loaded potential image: {potential_image_path}")
+            log.append(f"Morphology image shape: {morph_img.shape}")
+            log.append(f"Potential image shape: {pot_img.shape}")
+        except Exception as e:
+            return f"Error loading images: {str(e)}"
 
     # Convert to grayscale if needed
     if len(morph_img.shape) > 2:

@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.k = null
-params.n = null
+// Demo: Korsmeyer-Peppas model parameters (n=0.5 for Fickian diffusion)
+params.t = '4.0'
+params.k = '1.0'
+params.n = '0.5'
 
 process KORSMEYER_PEPPAS {
     tag "$meta.id"

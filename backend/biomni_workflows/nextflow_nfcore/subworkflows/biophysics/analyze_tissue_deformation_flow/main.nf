@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_sequence = null
+// Test with synthetic image sequence dimensions [frames, height, width]
+params.image_sequence = '[[100, 100], [100, 100], [100, 100], [100, 100], [100, 100]]'
 params.output_dir = 'results'
 params.pixel_scale = '1.0'
 

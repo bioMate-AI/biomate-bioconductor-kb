@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.regions = null
+// Demo: Merge overlapping genomic regions
+params.regions = '[[0, 50], [40, 100], [200, 250], [240, 300]]'
 
 process MERGE_OVERLAPPING_REGIONS {
     tag "$meta.id"

@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.a = null
-params.k = null
+// Demo: Mono-exponential decay model parameters
+params.t = '1.0'
+params.a = '100.0'
+params.k = '0.1'
 
 process MONO_EXP_MODEL {
     tag "$meta.id"

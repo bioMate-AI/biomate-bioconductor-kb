@@ -10,10 +10,13 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.cell_suspension_data = null
-params.fluorescence_parameter = null
-params.threshold_min = null
-params.threshold_max = null
+// Demo FCS file from Galaxy test data
+params.cell_suspension_data = "${projectDir}/../../../../lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs"
+// Fluorescence parameter to sort on (FSC-A = forward scatter area)
+params.fluorescence_parameter = 'FSC-A'
+// Threshold range for sorting (null = no filtering)
+params.threshold_min = 50000
+params.threshold_max = 200000
 params.output_file = 'sorted_cells.csv'
 
 process PERFORM_FACS_CELL_SORTING {
@@ -113,21 +116,22 @@ def perform_facs_cell_sorting(
     log = "# FACS-based Cell Sorting and Enrichment Research Log\\n\\n"
 
     try:
+        import numpy as np
+        import flowio
+
         # Load cell suspension data
         log += "## Loading Cell Suspension Data\\n"
         if isinstance(cell_suspension_data, str):
             # If data is provided as a file path
             if cell_suspension_data.lower().endswith(".fcs"):
-                try:
-                    import flowkit as fk
-
-                    fcs_data = fk.Sample(cell_suspension_data)
-                    cell_df = pd.DataFrame(fcs_data.get_dataframe())
-                    log += f"Successfully loaded FCS file containing {len(cell_df)} cells\\n"
-                except ImportError:
-                    # Fallback if flowkit is not available
-                    log += "FlowKit not available, attempting to load as CSV\\n"
-                    cell_df = pd.read_csv(cell_suspension_data)
+                # Use flowio for numpy 2.x compatibility
+                fd = flowio.FlowData(cell_suspension_data, ignore_offset_error=True, ignore_offset_discrepancy=True)
+                cell_df = pd.DataFrame(
+                    np.reshape(fd.events, (-1, fd.channel_count)),
+                    columns=[fd.channels[k]['pnn'] for k in sorted(fd.channels.keys())]
+                )
+                log += f"Successfully loaded FCS file containing {len(cell_df)} cells\\n"
+                log += f"Available channels: {list(cell_df.columns)}\\n"
             else:
                 # Assume CSV or other tabular format
                 cell_df = pd.read_csv(cell_suspension_data)

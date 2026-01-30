@@ -10,11 +10,12 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.mesor = null
-params.amplitude = null
-params.acrophase = null
-params.period = null
+// Demo: Cosinor model for circadian rhythm analysis (body temperature)
+params.t = '12.0'
+params.mesor = '36.7'
+params.amplitude = '0.5'
+params.acrophase = '16.0'
+params.period = '24.0'
 
 process COSINOR_MODEL {
     tag "$meta.id"

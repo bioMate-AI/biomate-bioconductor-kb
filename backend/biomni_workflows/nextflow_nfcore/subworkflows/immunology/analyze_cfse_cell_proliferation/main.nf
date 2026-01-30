@@ -11,9 +11,10 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Accuri C6 flow cytometer FCS file from Galaxy test data
-params.fcs_file_path = '/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs'
+params.fcs_file_path = "${projectDir}/../../../../lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs"
 params.cfse_channel = 'FL1-A'
-params.lymphocyte_gate = null
+// Lymphocyte gate as [min_fsc, max_fsc, min_ssc, max_ssc] - null means auto-gating
+params.lymphocyte_gate = '[50000, 250000, 10000, 150000]'
 
 process ANALYZE_CFSE_CELL_PROLIFERATION {
     tag "$meta.id"

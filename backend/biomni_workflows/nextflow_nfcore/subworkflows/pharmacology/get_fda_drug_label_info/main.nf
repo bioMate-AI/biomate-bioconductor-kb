@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.drug_name = null
-params.sections = null
+// Default test data: Aspirin FDA drug label lookup
+params.drug_name = 'aspirin'
+params.sections = '["indications_and_usage", "contraindications", "warnings"]'
 
 process GET_FDA_DRUG_LABEL_INFO {
     tag "$meta.id"

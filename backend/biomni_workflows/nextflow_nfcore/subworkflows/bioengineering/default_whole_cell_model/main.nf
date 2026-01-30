@@ -10,6 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
+// Note: These parameters are unused - function takes no arguments
 params.t = null
 params.y = null
 params.params = null

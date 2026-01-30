@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.methylation_data_path = null
-params.metabolizer_status_path = null
-params.covariates_path = null
+// Uses inline-generated mock methylation data (created in script)
+params.methylation_data_path = 'mock_methylation_data.csv'
+params.metabolizer_status_path = 'mock_metabolizer_status.csv'
+params.covariates_path = 'mock_covariates.csv'
 params.pvalue_threshold = '0.05'
 params.output_file = 'significant_cpg_sites.csv'
 
@@ -41,6 +42,49 @@ process PERFORM_MWAS_CYP2C19_METABOLIZER_STATUS {
     export PARAM_COVARIATES_PATH="${params.covariates_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_PVALUE_THRESHOLD="${params.pvalue_threshold?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_FILE="${params.output_file?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Create mock MWAS data for CYP2C19 metabolizer status testing
+    python3 << 'MOCKEOF'
+import pandas as pd
+import numpy as np
+
+np.random.seed(42)
+
+# Sample IDs
+n_samples = 100
+sample_ids = [f'SAMPLE_{i:03d}' for i in range(1, n_samples + 1)]
+
+# Create mock methylation data (beta values for CpG sites)
+n_cpg_sites = 50
+cpg_ids = [f'cg{i:08d}' for i in range(1, n_cpg_sites + 1)]
+
+# Generate methylation beta values (0-1)
+methylation_data = pd.DataFrame(
+    np.random.beta(2, 5, size=(n_samples, n_cpg_sites)),
+    index=sample_ids,
+    columns=cpg_ids
+)
+methylation_data.to_csv('mock_methylation_data.csv')
+
+# Create mock metabolizer status
+# CYP2C19 metabolizer status categories
+status_options = ['poor', 'intermediate', 'normal', 'rapid', 'ultrarapid']
+status_probs = [0.1, 0.2, 0.4, 0.2, 0.1]  # Approximate population frequencies
+
+metabolizer_status = pd.DataFrame({
+    'status': np.random.choice(status_options, n_samples, p=status_probs)
+}, index=sample_ids)
+metabolizer_status.to_csv('mock_metabolizer_status.csv')
+
+# Create mock covariates (age, sex)
+covariates = pd.DataFrame({
+    'age': np.random.randint(20, 80, n_samples),
+    'sex': np.random.choice([0, 1], n_samples)  # 0=female, 1=male
+}, index=sample_ids)
+covariates.to_csv('mock_covariates.csv')
+
+print(f"Created mock MWAS data: {n_samples} samples, {n_cpg_sites} CpG sites")
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

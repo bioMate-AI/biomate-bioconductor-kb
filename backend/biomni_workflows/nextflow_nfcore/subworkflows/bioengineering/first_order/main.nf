@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.k1 = null
-params.q0 = null
+// Demo: First-order drug release kinetics parameters
+params.t = '10.0'
+params.k1 = '0.1'
+params.q0 = '100.0'
 
 process FIRST_ORDER {
     tag "$meta.id"

@@ -10,6 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
+// Demo: Use null to trigger synthetic myofiber data generation for testing
 params.image_path = null
 params.nuclei_channel = '2'
 params.myofiber_channel = '1'

@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.params = null
-params.data = null
-params.model_type = null
+// Default test data: objective function parameters for model fitting
+params.params = '[1.0, 2.0, 3.0]'
+params.data = '[1.0, 2.0, 3.0]'
+params.model_type = 'sum_squared'
 
 process OBJECTIVE_FUNCTION {
     tag "$meta.id"

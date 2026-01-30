@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_sequence_path = null
+// Demo mode: use 'demo' to generate synthetic time-lapse images
+params.image_sequence_path = 'demo'
 params.output_dir = './results'
 params.num_clusters = '3'
 
@@ -79,7 +80,8 @@ def quantify_and_cluster_cell_motility(image_sequence_path, output_dir="./result
     Parameters
     ----------
     image_sequence_path : str
-        Path to directory containing time-lapse microscopy images in sequential order
+        Path to directory containing time-lapse microscopy images in sequential order.
+        Use 'demo' for synthetic test data.
     output_dir : str
         Directory to save output files (default: "./results")
     num_clusters : int
@@ -92,6 +94,7 @@ def quantify_and_cluster_cell_motility(image_sequence_path, output_dir="./result
 
     '''
     import os
+    import tempfile
 
     import cv2
     import numpy as np
@@ -100,6 +103,56 @@ def quantify_and_cluster_cell_motility(image_sequence_path, output_dir="./result
 
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
+
+    # Generate synthetic time-lapse images if demo mode
+    if image_sequence_path == 'demo' or image_sequence_path is None:
+        # Create temporary directory with synthetic images
+        temp_dir = tempfile.mkdtemp(prefix='cell_motility_demo_')
+        np.random.seed(42)
+
+        # Generate 10 frames with moving cells
+        n_frames = 10
+        n_cells = 20
+        img_size = 256
+
+        # Initialize cell positions with different motility types
+        cell_positions = []
+        cell_speeds = []
+        for i in range(n_cells):
+            x = np.random.randint(30, img_size - 30)
+            y = np.random.randint(30, img_size - 30)
+            # Different cell types: slow, medium, fast
+            if i < n_cells // 3:
+                speed = np.random.uniform(1, 3)  # slow
+            elif i < 2 * n_cells // 3:
+                speed = np.random.uniform(3, 6)  # medium
+            else:
+                speed = np.random.uniform(6, 10)  # fast
+            cell_positions.append([x, y])
+            cell_speeds.append(speed)
+
+        for frame_idx in range(n_frames):
+            img = np.zeros((img_size, img_size), dtype=np.uint8)
+
+            # Draw cells and update positions
+            for cell_idx in range(n_cells):
+                x, y = cell_positions[cell_idx]
+                # Draw cell as a circle
+                cv2.circle(img, (int(x), int(y)), 8, 255, -1)
+
+                # Update position for next frame
+                angle = np.random.uniform(0, 2 * np.pi)
+                dx = cell_speeds[cell_idx] * np.cos(angle)
+                dy = cell_speeds[cell_idx] * np.sin(angle)
+                new_x = np.clip(x + dx, 10, img_size - 10)
+                new_y = np.clip(y + dy, 10, img_size - 10)
+                cell_positions[cell_idx] = [new_x, new_y]
+
+            # Save frame
+            frame_path = os.path.join(temp_dir, f"frame_{frame_idx:03d}.png")
+            cv2.imwrite(frame_path, img)
+
+        image_sequence_path = temp_dir
 
     # Step 1: Load image sequence
     image_files = sorted(

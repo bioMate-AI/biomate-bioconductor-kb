@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.monomer = null
-params.dimer = null
-params.kon = null
-params.koff = null
+// Default test data: Dimerization kinetics (2M <-> D)
+params.monomer = '10.0'
+params.dimer = '0.0'
+params.kon = '0.1'
+params.koff = '0.01'
 
 process DIMERIZATION_ODES {
     tag "$meta.id"

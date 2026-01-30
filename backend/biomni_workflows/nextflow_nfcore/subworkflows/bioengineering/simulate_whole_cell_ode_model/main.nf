@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.initial_conditions = null
-params.parameters = null
+// Demo: Whole-cell ODE model parameters
+params.initial_conditions = '{"mRNA": 1.0, "protein": 0.5, "metabolite": 2.0, "ATP": 5.0}'
+params.parameters = '{"k_transcription": 0.5, "k_translation": 0.3, "k_mrna_deg": 0.1, "k_protein_deg": 0.05, "k_metabolism": 0.2, "k_atp_production": 0.4, "k_atp_consumption": 0.1}'
 params.ode_function = null
-params.time_span = null
+params.time_span = '[0, 100]'
 params.time_points = '1000'
 params.method = 'LSODA'
 

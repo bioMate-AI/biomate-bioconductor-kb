@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.kh = null
+// Demo: Higuchi model parameters for drug release kinetics
+params.t = '4.0'
+params.kh = '5.0'
 
 process HIGUCHI {
     tag "$meta.id"

@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.n = null
-params.r = null
-params.k = null
+// Default test data: logistic growth model parameters
+params.n = '100.0'
+params.r = '0.1'
+params.k = '1000.0'
 
 process LOGISTIC_GROWTH {
     tag "$meta.id"

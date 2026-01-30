@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.x = null
+// Default test data: x value for sigmoid function
+params.x = '0.5'
 
 process SIGMOID {
     tag "$meta.id"

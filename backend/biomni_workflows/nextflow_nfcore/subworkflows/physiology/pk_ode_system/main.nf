@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.c = null
-params.ka = null
-params.ke = null
-params.vd = null
+// Demo: Pharmacokinetic ODE system parameters for oral drug absorption
+params.c = '10.0'
+params.ka = '0.5'
+params.ke = '0.1'
+params.vd = '50.0'
 
 process PK_ODE_SYSTEM {
     tag "$meta.id"

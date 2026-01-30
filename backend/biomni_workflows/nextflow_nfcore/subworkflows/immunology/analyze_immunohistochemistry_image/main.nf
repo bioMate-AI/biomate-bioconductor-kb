@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_path = null
-params.protein_name = 'Unknown'
+// Demo: Uses inline-generated mock IHC stained tissue image
+params.image_path = 'mock_ihc_image.png'
+params.protein_name = 'CD68'
 params.output_dir = './ihc_results/'
 
 process ANALYZE_IMMUNOHISTOCHEMISTRY_IMAGE {
@@ -37,6 +38,44 @@ process ANALYZE_IMMUNOHISTOCHEMISTRY_IMAGE {
     export PARAM_IMAGE_PATH="${params.image_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_PROTEIN_NAME="${params.protein_name?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Generate mock IHC stained tissue image for testing
+    python3 << 'MOCKEOF'
+import numpy as np
+import cv2
+
+# Create mock IHC stained tissue image (DAB chromogen - brown positive staining)
+np.random.seed(42)
+# Light pink/purple counterstain background (hematoxylin)
+img = np.zeros((512, 512, 3), dtype=np.uint8)
+img[:, :] = [220, 200, 230]  # Light purple (BGR)
+
+# Add tissue texture
+noise = np.random.normal(0, 8, (512, 512)).astype(np.int16)
+for c in range(3):
+    img[:, :, c] = np.clip(img[:, :, c].astype(np.int16) + noise, 0, 255).astype(np.uint8)
+
+# Add DAB-positive cells (brown spots - CD68+ macrophages)
+for _ in range(80):
+    x = np.random.randint(20, 492)
+    y = np.random.randint(20, 492)
+    radius = np.random.randint(5, 12)
+    # Brown color for DAB (BGR)
+    color = (30 + np.random.randint(0, 30), 80 + np.random.randint(0, 40), 150 + np.random.randint(0, 50))
+    cv2.circle(img, (x, y), radius, color, -1)
+
+# Add some blue nuclei (hematoxylin counterstain)
+for _ in range(50):
+    x = np.random.randint(20, 492)
+    y = np.random.randint(20, 492)
+    radius = np.random.randint(3, 6)
+    color = (120 + np.random.randint(0, 30), 80 + np.random.randint(0, 30), 100 + np.random.randint(0, 30))
+    cv2.circle(img, (x, y), radius, color, -1)
+
+img = cv2.GaussianBlur(img, (3, 3), 1)
+cv2.imwrite('mock_ihc_image.png', img)
+print("Mock IHC stained tissue image created")
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

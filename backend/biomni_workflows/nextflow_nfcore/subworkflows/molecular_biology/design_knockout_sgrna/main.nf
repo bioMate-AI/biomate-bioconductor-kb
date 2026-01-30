@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.gene_name = null
+// Test: Design sgRNA for TP53 tumor suppressor gene
+params.gene_name = 'TP53'
 params.data_lake_path = null
 params.species = 'human'
-params.num_guides = 1
+params.num_guides = 3
 
 process DESIGN_KNOCKOUT_SGRNA {
     tag "$meta.id"

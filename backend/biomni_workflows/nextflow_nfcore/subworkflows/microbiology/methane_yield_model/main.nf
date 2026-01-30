@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.substrate = null
-params.yield_coefficient = null
-params.inhibition_constant = null
+// Demo: Anaerobic digestion methane yield calculation
+params.substrate = '10.0'
+params.yield_coefficient = '0.35'
+params.inhibition_constant = '5.0'
 
 process METHANE_YIELD_MODEL {
     tag "$meta.id"

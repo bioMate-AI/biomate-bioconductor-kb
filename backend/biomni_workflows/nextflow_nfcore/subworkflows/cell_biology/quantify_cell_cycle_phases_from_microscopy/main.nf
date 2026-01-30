@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_paths = null
+// Demo mode: use empty list [] for synthetic data generation
+params.image_paths = '[]'
 params.output_dir = './results'
 
 process QUANTIFY_CELL_CYCLE_PHASES_FROM_MICROSCOPY {

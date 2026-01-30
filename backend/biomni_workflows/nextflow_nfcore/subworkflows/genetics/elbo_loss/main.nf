@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.reconstruction_loss = null
-params.kl_divergence = null
-params.beta = null
+// Demo: ELBO loss calculation for variational autoencoder
+params.reconstruction_loss = '0.5'
+params.kl_divergence = '0.1'
+params.beta = '1.0'
 
 process ELBO_LOSS {
     tag "$meta.id"

@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.position = null
-params.regions = null
+// Demo: Check if position 50 is covered by specified regions
+params.position = 50
+params.regions = '[[0, 100], [200, 300]]'
 
 process IS_POSITION_COVERED {
     tag "$meta.id"

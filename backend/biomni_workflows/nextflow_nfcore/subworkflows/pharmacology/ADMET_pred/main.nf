@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.smiles = null
+// Default test data: Aspirin SMILES
+params.smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
 
 process ADMET_PRED {
     tag "$meta.id"

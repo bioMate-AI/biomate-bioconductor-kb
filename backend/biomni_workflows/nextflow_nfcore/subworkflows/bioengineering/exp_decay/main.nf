@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.t = null
-params.a = null
-params.k = null
+// Demo: Exponential decay parameters
+params.t = '5.0'
+params.a = '100.0'
+params.k = '0.1'
 
 process EXP_DECAY {
     tag "$meta.id"

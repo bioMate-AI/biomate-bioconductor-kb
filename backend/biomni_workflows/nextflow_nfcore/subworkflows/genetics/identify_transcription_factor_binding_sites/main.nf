@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.sequence = null
-params.tf_name = null
-params.threshold = '0.8'
-params.output_file = null
+// Demo: Searching for p53 (TP53) binding sites in a BRCA1 promoter region sequence
+params.sequence = 'ATGCTAGCTAGCTAGCTAGCATGCTAGCTAGCTAGCTAGATGCTAGCTAGCTAGCTAGCATGCTAGCTAGCTAGCTAGATGCTAGCTAGCTAGCTAGCATGCTAGCTAGCTAGCTAGATGCTAGCTAGCTAGCTAGCATGCTAGCTAGCTAGCTAG'
+params.tf_name = 'p53'
+params.threshold = '0.7'
+params.output_file = 'tf_binding_sites.txt'
 
 process IDENTIFY_TRANSCRIPTION_FACTOR_BINDING_SITES {
     tag "$meta.id"

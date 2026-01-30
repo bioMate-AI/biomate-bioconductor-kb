@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
+// Demo: Bacterial transformation protocol for standard plasmid
 params.antibiotic = 'ampicillin'
-params.is_repetitive = null
+params.is_repetitive = 'false'
 
 process GET_BACTERIAL_TRANSFORMATION_PROTOCOL {
     tag "$meta.id"

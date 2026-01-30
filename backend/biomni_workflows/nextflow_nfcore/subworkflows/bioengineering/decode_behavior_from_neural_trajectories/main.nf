@@ -10,6 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
+// Demo: Use null to trigger synthetic data generation for testing
 params.neural_data = null
 params.behavioral_data = null
 params.n_components = '10'

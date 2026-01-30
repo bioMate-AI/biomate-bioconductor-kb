@@ -10,12 +10,13 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.protein_level = null
-params.production_rate = null
-params.degradation_rate = null
-params.inducer = null
-params.hill_coef = null
-params.k_half = null
+// Default test data: IPTG-inducible gene expression system
+params.protein_level = '1.0'
+params.production_rate = '10.0'
+params.degradation_rate = '0.5'
+params.inducer = '1.0'
+params.hill_coef = '2.0'
+params.k_half = '1.0'
 
 process GENE_CIRCUIT_ODES {
     tag "$meta.id"

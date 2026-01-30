@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 /*
  * genomics/is_model_downloaded
- * Check if model is already downloaded by looking for key files
+ * Check if a machine learning model is downloaded by looking for key files
  *
  * nf-core style module generated from tested Galaxy wrapper
  */
@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.checkpoint_path = null
-params.model_type = null
+// Demo: Check for model files in a demo path
+params.checkpoint_path = '/models/demo_model'
+params.model_type = 'generic'
 
 process IS_MODEL_DOWNLOADED {
     tag "$meta.id"
@@ -41,6 +42,7 @@ process IS_MODEL_DOWNLOADED {
 
 import json
 import os
+from pathlib import Path
 
 def auto_convert(val):
     # Auto-convert string to appropriate type
@@ -70,18 +72,126 @@ def auto_convert(val):
     return val
 
 
+def is_model_downloaded(checkpoint_path=None, model_type='generic'):
+    '''Check if a machine learning model is downloaded by looking for key files.
 
-def is_model_downloaded(**kwargs):
-    '''Placeholder for is_model_downloaded. Actual implementation requires specific dependencies.
+    This function checks for common model file patterns based on model type:
+    - pytorch: .pt, .pth, .bin files
+    - tensorflow: .pb, .h5, saved_model directory
+    - onnx: .onnx files
+    - huggingface: config.json, model.safetensors, pytorch_model.bin
+    - scvi: model.pt, model_params.pt
+    - generic: any common model file extension
+
+    Parameters
+    ----------
+    checkpoint_path : str
+        Path to check for model files
+    model_type : str
+        Type of model: 'pytorch', 'tensorflow', 'onnx', 'huggingface', 'scvi', 'generic'
+
+    Returns
+    -------
+    dict
+        Status of model download with details about found files
     '''
-    return {"function": "is_model_downloaded", "status": "placeholder", "args": kwargs,
-            "note": "This function requires specific dependencies not available in this context"}
+    result = {
+        "checkpoint_path": checkpoint_path,
+        "model_type": model_type,
+        "is_downloaded": False,
+        "files_found": [],
+        "files_missing": [],
+    }
+
+    # Define expected file patterns for each model type
+    model_patterns = {
+        "pytorch": [".pt", ".pth", ".bin"],
+        "tensorflow": [".pb", ".h5", "saved_model"],
+        "onnx": [".onnx"],
+        "huggingface": ["config.json", "model.safetensors", "pytorch_model.bin", "tokenizer.json"],
+        "scvi": ["model.pt", "model_params.pt", "attr.pkl"],
+        "generic": [".pt", ".pth", ".bin", ".h5", ".onnx", ".pb", "config.json", ".safetensors"],
+    }
+
+    if checkpoint_path is None:
+        result["status"] = "demo_mode"
+        result["message"] = "No checkpoint_path provided. Running in demo mode."
+        result["demo_info"] = {
+            "supported_model_types": list(model_patterns.keys()),
+            "usage": "Provide checkpoint_path to check for model files",
+            "example": "/path/to/model/directory or /path/to/model.pt",
+        }
+        result["is_downloaded"] = None
+        return result
+
+    path = Path(checkpoint_path)
+    patterns = model_patterns.get(model_type, model_patterns["generic"])
+
+    # Check if path exists
+    if not path.exists():
+        result["status"] = "path_not_found"
+        result["message"] = f"Path does not exist: {checkpoint_path}"
+        result["is_downloaded"] = False
+        return result
+
+    # If path is a file, check if it matches expected patterns
+    if path.is_file():
+        file_ext = path.suffix
+        file_name = path.name
+        for pattern in patterns:
+            if pattern.startswith("."):
+                if file_ext == pattern:
+                    result["files_found"].append(str(path))
+                    result["is_downloaded"] = True
+                    break
+            else:
+                if pattern in file_name:
+                    result["files_found"].append(str(path))
+                    result["is_downloaded"] = True
+                    break
+
+        if not result["is_downloaded"]:
+            result["files_missing"].append(f"Expected pattern from: {patterns}")
+
+        result["status"] = "file_checked"
+        return result
+
+    # If path is a directory, scan for model files
+    if path.is_dir():
+        all_files = list(path.rglob("*"))
+        for f in all_files:
+            if f.is_file():
+                for pattern in patterns:
+                    if pattern.startswith("."):
+                        if f.suffix == pattern:
+                            result["files_found"].append(str(f.relative_to(path)))
+                            break
+                    else:
+                        if pattern in f.name:
+                            result["files_found"].append(str(f.relative_to(path)))
+                            break
+
+        result["is_downloaded"] = len(result["files_found"]) > 0
+        result["total_files_in_dir"] = len([f for f in all_files if f.is_file()])
+
+        # Check for specific required files based on model type
+        if model_type == "huggingface":
+            required = ["config.json"]
+            for req in required:
+                if not any(req in f for f in result["files_found"]):
+                    result["files_missing"].append(req)
+
+        result["status"] = "directory_scanned"
+        return result
+
+    result["status"] = "unknown_path_type"
+    return result
 
 # Execute the function
 try:
     result = is_model_downloaded(
         checkpoint_path=auto_convert(os.environ.get("PARAM_CHECKPOINT_PATH", "")),
-        model_type=auto_convert(os.environ.get("PARAM_MODEL_TYPE", "")),
+        model_type=auto_convert(os.environ.get("PARAM_MODEL_TYPE", "generic")) or "generic",
     )
     success = True
     error_msg = None

@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.query_start = null
-params.query_end = null
-params.regions = null
+// Demo: Check if query region [10, 50] is fully covered
+params.query_start = 10
+params.query_end = 50
+params.regions = '[[0, 100], [200, 300]]'
 
 process IS_REGION_FULLY_COVERED {
     tag "$meta.id"

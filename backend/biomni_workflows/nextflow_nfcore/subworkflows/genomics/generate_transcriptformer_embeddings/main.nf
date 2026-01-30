@@ -11,7 +11,7 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: PBMC 3k single-cell dataset from Galaxy test data
-params.adata_filename = '/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/pbmc3k_tiny.h5ad'
+params.adata_filename = "${projectDir}/../../../../lib/galaxy/datatypes/test/pbmc3k_tiny.h5ad"
 params.data_dir = null
 params.output_filename = null
 params.model_type = 'tf-sapiens'

@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.chrom = null
+// Demo: chromosome name to normalize (can be chr1, 1, Chr1, chrX, 23, etc.)
+params.chrom = 'chr17'
 
 process NORM_CHR {
     tag "$meta.id"

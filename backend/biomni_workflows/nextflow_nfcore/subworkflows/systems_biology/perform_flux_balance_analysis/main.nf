@@ -41,6 +41,11 @@ process PERFORM_FLUX_BALANCE_ANALYSIS {
     export PARAM_OBJECTIVE_REACTION="${params.objective_reaction?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_FILE="${params.output_file?.toString()?.replace('"', '\\"') ?: 'null'}"
 
+    # Set cache directory to current working directory
+    export XDG_CACHE_HOME=\$(pwd)/.cache
+    export HOME=\$(pwd)
+    mkdir -p \$XDG_CACHE_HOME
+
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
 

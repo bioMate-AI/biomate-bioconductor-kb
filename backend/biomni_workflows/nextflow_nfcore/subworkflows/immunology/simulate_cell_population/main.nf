@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.initial_count = null
-params.growth_rate = null
-params.death_rate = null
-params.time_points = null
+// Default test data: cell population simulation parameters
+params.initial_count = '1000.0'
+params.growth_rate = '0.1'
+params.death_rate = '0.05'
+params.time_points = '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]'
 
 process SIMULATE_CELL_POPULATION {
     tag "$meta.id"

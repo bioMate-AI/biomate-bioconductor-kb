@@ -10,6 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
+// Demo: Use null to trigger synthetic cell track generation for testing
 params.image_sequence_path = null
 params.pixel_size_um = '1.0'
 params.time_interval_min = '1.0'

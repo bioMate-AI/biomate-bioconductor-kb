@@ -13,7 +13,7 @@ params.outdir = './results'
 // Demo: Aspirin-Warfarin interaction (well-documented clinically significant interaction)
 params.drug_pair = '["Aspirin", "Warfarin"]'
 params.detailed_analysis = 'True'
-params.data_lake_path = null
+params.data_lake_path = './schema_db'
 
 process ANALYZE_INTERACTION_MECHANISMS {
     tag "$meta.id"

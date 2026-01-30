@@ -11,8 +11,8 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Mock NIFTI images for registration test
-params.fixed_image = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
-params.moving_image = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_moving_image.nii.gz'
+params.fixed_image = "${projectDir}/../../../test_data/mock_fixed_image.nii.gz"
+params.moving_image = "${projectDir}/../../../test_data/mock_moving_image.nii.gz"
 params.initial_transform = null
 
 process CREATE_RIGID_TRANSFORM {
@@ -74,12 +74,104 @@ def auto_convert(val):
 
 
 
-def create_rigid_transform(**kwargs):
-    '''Bioimaging helper: create_rigid_transform
-    Note: Actual implementation requires SimpleITK, nnUNet, or other imaging libraries.
+def create_rigid_transform(fixed_image=None, moving_image=None, initial_transform=None):
+    '''Create a rigid transform for image registration using SimpleITK.
+
+    A rigid transform only allows rotation and translation, preserving
+    distances and angles. It has 6 degrees of freedom in 3D (3 rotations + 3 translations).
+
+    Args:
+        fixed_image: Path to the fixed/reference image
+        moving_image: Path to the moving image to be registered
+        initial_transform: Optional path to initial transform file
+
+    Returns:
+        Dictionary with rigid transform parameters
     '''
-    return {"function": "create_rigid_transform", "status": "placeholder", "args": {k: str(v)[:100] for k, v in kwargs.items()},
-            "note": "Requires imaging libraries (SimpleITK, nnUNet) for actual implementation"}
+    import SimpleITK as sitk
+    import numpy as np
+
+    # Load images
+    if fixed_image and fixed_image != 'null':
+        fixed = sitk.ReadImage(str(fixed_image))
+    else:
+        return {"function": "create_rigid_transform", "status": "error",
+                "message": "Fixed image path required"}
+
+    if moving_image and moving_image != 'null':
+        moving = sitk.ReadImage(str(moving_image))
+    else:
+        return {"function": "create_rigid_transform", "status": "error",
+                "message": "Moving image path required"}
+
+    # Get image dimension
+    dimension = fixed.GetDimension()
+
+    # Create appropriate rigid transform based on dimension
+    if dimension == 2:
+        rigid_transform = sitk.Euler2DTransform()
+        dof = 3  # 1 rotation + 2 translations
+    elif dimension == 3:
+        rigid_transform = sitk.Euler3DTransform()
+        dof = 6  # 3 rotations + 3 translations
+    else:
+        return {"function": "create_rigid_transform", "status": "error",
+                "message": f"Unsupported dimension: {dimension}"}
+
+    # Set center of rotation to center of fixed image
+    center = [fixed.GetOrigin()[i] + fixed.GetSize()[i] * fixed.GetSpacing()[i] / 2.0
+              for i in range(dimension)]
+    rigid_transform.SetCenter(center)
+
+    # Initialize with identity (no rotation, no translation)
+    if dimension == 2:
+        rigid_transform.SetAngle(0.0)
+        rigid_transform.SetTranslation([0.0, 0.0])
+    else:
+        rigid_transform.SetRotation(0.0, 0.0, 0.0)  # Euler angles
+        rigid_transform.SetTranslation([0.0, 0.0, 0.0])
+
+    # Get initial parameters
+    transform_params = list(rigid_transform.GetParameters())
+
+    # If initial transform provided, use CenteredTransformInitializer
+    if initial_transform and initial_transform != 'null':
+        try:
+            init_tx = sitk.ReadTransform(str(initial_transform))
+            # Apply initial transform parameters
+            rigid_transform = sitk.Euler3DTransform(init_tx) if dimension == 3 else sitk.Euler2DTransform(init_tx)
+            transform_params = list(rigid_transform.GetParameters())
+        except Exception as e:
+            pass  # Keep identity transform
+
+    # Use CenteredTransformInitializer for better initial alignment
+    initial_transform_sitk = sitk.CenteredTransformInitializer(
+        fixed,
+        moving,
+        rigid_transform,
+        sitk.CenteredTransformInitializerFilter.GEOMETRY
+    )
+
+    # Save transform to file
+    output_transform_path = "rigid_transform.tfm"
+    sitk.WriteTransform(initial_transform_sitk, output_transform_path)
+
+    return {
+        "function": "create_rigid_transform",
+        "status": "success",
+        "transform_type": f"Euler{dimension}DTransform",
+        "dimension": dimension,
+        "center": center,
+        "rotation_angles": [0.0] * (1 if dimension == 2 else 3),
+        "translation": [0.0] * dimension,
+        "parameters": list(initial_transform_sitk.GetParameters()),
+        "num_parameters": len(list(initial_transform_sitk.GetParameters())),
+        "degrees_of_freedom": dof,
+        "fixed_image": str(fixed_image),
+        "moving_image": str(moving_image),
+        "transform_file": output_transform_path,
+        "message": f"Created {dimension}D rigid transform with {dof} degrees of freedom"
+    }
 
 # Execute the function
 try:

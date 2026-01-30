@@ -10,11 +10,14 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.model_file = null
-params.initial_concentrations = null
-params.perturbation_params = null
+// Default test data: Use COBRApy built-in textbook model (E. coli core)
+params.model_file = 'textbook'
+// Initial concentrations for some key metabolites
+params.initial_concentrations = '{"glc__D_e": 10.0, "pyr_c": 1.0, "atp_c": 5.0}'
+// Perturbation: increase glucose at time 20
+params.perturbation_params = '{"time": 20.0, "metabolite": "glc__D_e", "factor": 2.0}'
 params.simulation_time = '100'
-params.time_points = '1000'
+params.time_points = '500'
 
 process SIMULATE_METABOLIC_NETWORK_PERTURBATION {
     tag "$meta.id"
@@ -41,6 +44,11 @@ process SIMULATE_METABOLIC_NETWORK_PERTURBATION {
     export PARAM_PERTURBATION_PARAMS="${params.perturbation_params?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_SIMULATION_TIME="${params.simulation_time?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_TIME_POINTS="${params.time_points?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Set cache directory to current working directory
+    export XDG_CACHE_HOME=\$(pwd)/.cache
+    export HOME=\$(pwd)
+    mkdir -p \$XDG_CACHE_HOME
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
@@ -112,8 +120,18 @@ def simulate_metabolic_network_perturbation(
 
     # Step 1: Load the metabolic model
     try:
-        model = cobra.io.read_sbml_model(model_file)
-        log = f"Loaded metabolic model from {model_file} with {len(model.reactions)} reactions and {len(model.metabolites)} metabolites.\\n\\n"
+        if model_file == 'textbook' or model_file is None:
+            model = cobra.io.load_model('textbook')
+            log = f"Loaded COBRApy textbook model (E. coli core) with {len(model.reactions)} reactions and {len(model.metabolites)} metabolites.\\n\\n"
+        elif model_file.endswith(".xml") or model_file.endswith(".sbml"):
+            model = cobra.io.read_sbml_model(model_file)
+            log = f"Loaded metabolic model from {model_file} with {len(model.reactions)} reactions and {len(model.metabolites)} metabolites.\\n\\n"
+        elif model_file.endswith(".json"):
+            model = cobra.io.load_json_model(model_file)
+            log = f"Loaded metabolic model from {model_file} with {len(model.reactions)} reactions and {len(model.metabolites)} metabolites.\\n\\n"
+        else:
+            model = cobra.io.load_model(model_file)
+            log = f"Loaded metabolic model {model_file} with {len(model.reactions)} reactions and {len(model.metabolites)} metabolites.\\n\\n"
     except Exception as e:
         return f"Error loading model: {str(e)}"
 

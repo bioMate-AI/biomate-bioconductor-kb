@@ -11,8 +11,8 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Mock NIFTI images for registration test
-params.fixed_image = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
-params.moving_image = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_moving_image.nii.gz'
+params.fixed_image = "${projectDir}/../../../test_data/mock_fixed_image.nii.gz"
+params.moving_image = "${projectDir}/../../../test_data/mock_moving_image.nii.gz"
 params.number_of_control_points = 4
 
 process CREATE_DEFORMABLE_TRANSFORM {
@@ -74,12 +74,82 @@ def auto_convert(val):
 
 
 
-def create_deformable_transform(**kwargs):
-    '''Bioimaging helper: create_deformable_transform
-    Note: Actual implementation requires SimpleITK, nnUNet, or other imaging libraries.
+def create_deformable_transform(fixed_image=None, moving_image=None, number_of_control_points=4):
+    '''Create a deformable (B-spline) transform for image registration using SimpleITK.
+
+    B-spline transforms allow for local, non-rigid deformations controlled by
+    a grid of control points. Higher control point density allows finer deformations.
+
+    Args:
+        fixed_image: Path to the fixed/reference image
+        moving_image: Path to the moving image to be registered
+        number_of_control_points: Number of control points per dimension (default: 4)
+
+    Returns:
+        Dictionary with B-spline transform parameters
     '''
-    return {"function": "create_deformable_transform", "status": "placeholder", "args": {k: str(v)[:100] for k, v in kwargs.items()},
-            "note": "Requires imaging libraries (SimpleITK, nnUNet) for actual implementation"}
+    import SimpleITK as sitk
+    import numpy as np
+
+    # Load images
+    if fixed_image and fixed_image != 'null':
+        fixed = sitk.ReadImage(str(fixed_image))
+    else:
+        return {"function": "create_deformable_transform", "status": "error",
+                "message": "Fixed image path required"}
+
+    if moving_image and moving_image != 'null':
+        moving = sitk.ReadImage(str(moving_image))
+    else:
+        return {"function": "create_deformable_transform", "status": "error",
+                "message": "Moving image path required"}
+
+    # Get image properties
+    dimension = fixed.GetDimension()
+
+    # Ensure number_of_control_points is valid
+    if number_of_control_points is None:
+        number_of_control_points = 4
+    num_ctrl_pts = int(number_of_control_points)
+
+    # Create B-spline transform
+    # The transform domain is defined by the fixed image
+    transform_domain_mesh_size = [num_ctrl_pts - 3] * dimension  # B-spline order 3
+
+    bspline_transform = sitk.BSplineTransformInitializer(
+        image1=fixed,
+        transformDomainMeshSize=transform_domain_mesh_size,
+        order=3
+    )
+
+    # Get transform properties
+    num_parameters = bspline_transform.GetNumberOfParameters()
+    grid_size = list(bspline_transform.GetTransformDomainMeshSize())
+
+    # Initialize with zero displacement
+    params = [0.0] * num_parameters
+    bspline_transform.SetParameters(params)
+
+    # Save transform to file
+    output_transform_path = "bspline_transform.tfm"
+    sitk.WriteTransform(bspline_transform, output_transform_path)
+
+    return {
+        "function": "create_deformable_transform",
+        "status": "success",
+        "transform_type": "BSplineTransform",
+        "dimension": dimension,
+        "bspline_order": 3,
+        "control_points_per_dimension": num_ctrl_pts,
+        "grid_size": grid_size,
+        "num_parameters": num_parameters,
+        "fixed_image": str(fixed_image),
+        "moving_image": str(moving_image),
+        "transform_file": output_transform_path,
+        "transform_domain_origin": list(bspline_transform.GetTransformDomainOrigin()),
+        "transform_domain_spacing": list(bspline_transform.GetTransformDomainPhysicalDimensions()),
+        "message": f"Created {dimension}D B-spline transform with {num_parameters} parameters"
+    }
 
 # Execute the function
 try:

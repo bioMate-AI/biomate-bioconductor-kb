@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.mri_file_path = null
+// Demo: Uses inline-generated mock MRI data
+params.mri_file_path = 'mock_mri_head.nii.gz'
 params.output_dir = './output'
-params.subject_id = 'subject'
+params.subject_id = 'subject001'
 params.threshold_value = '300'
 
 process RECONSTRUCT_3D_FACE_FROM_MRI {
@@ -39,6 +40,55 @@ process RECONSTRUCT_3D_FACE_FROM_MRI {
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_SUBJECT_ID="${params.subject_id?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_THRESHOLD_VALUE="${params.threshold_value?.toString()?.replace('"', '\\"') ?: 'null'}"
+
+    # Generate mock MRI head data for testing
+    python3 << 'MOCKEOF'
+import numpy as np
+import nibabel as nib
+
+# Create mock 3D MRI head scan
+# Shape: (64, 64, 48) - simplified head volume
+np.random.seed(42)
+shape = (64, 64, 48)
+
+# Create coordinate grids
+x, y, z = np.ogrid[:shape[0], :shape[1], :shape[2]]
+center = (shape[0]//2, shape[1]//2, shape[2]//2)
+
+# Create head shape (ellipsoid)
+head_a, head_b, head_c = 28, 24, 22
+dist_head = np.sqrt(((x-center[0])/head_a)**2 + ((y-center[1])/head_b)**2 + ((z-center[2])/head_c)**2)
+head_mask = dist_head < 1.0
+
+# Create brain shape (smaller ellipsoid inside)
+brain_a, brain_b, brain_c = 22, 18, 16
+dist_brain = np.sqrt(((x-center[0])/brain_a)**2 + ((y-center[1])/brain_b)**2 + ((z-center[2])/brain_c)**2)
+brain_mask = dist_brain < 1.0
+
+# Create skull (shell between head and brain)
+skull_mask = head_mask & ~brain_mask
+
+# Create facial features (simplified - a nose-like protrusion)
+nose_mask = (y > center[1] + 10) & (z > center[2] - 5) & (z < center[2] + 10) & (x > center[0] - 5) & (x < center[0] + 5)
+face_mask = head_mask & nose_mask
+
+# Build the MRI volume with different tissue intensities
+mri_data = np.zeros(shape, dtype=np.float32)
+mri_data[~head_mask] = np.random.normal(50, 10, shape)[~head_mask]  # Air/background
+mri_data[skull_mask] = np.random.normal(400, 30, shape)[skull_mask]  # Skull/bone
+mri_data[brain_mask] = np.random.normal(600, 50, shape)[brain_mask]  # Brain tissue
+mri_data[face_mask] = np.random.normal(350, 25, shape)[face_mask]  # Soft tissue
+
+# Add some smoothing for realism
+from scipy.ndimage import gaussian_filter
+mri_data = gaussian_filter(mri_data, sigma=1)
+
+# Save as NIfTI
+affine = np.diag([1.5, 1.5, 2.0, 1.0])  # 1.5mm x 1.5mm x 2mm voxels
+nii_img = nib.Nifti1Image(mri_data, affine)
+nib.save(nii_img, 'mock_mri_head.nii.gz')
+print("Mock MRI head data created: mock_mri_head.nii.gz")
+MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

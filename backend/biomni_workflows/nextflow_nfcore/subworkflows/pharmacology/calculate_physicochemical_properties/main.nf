@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.smiles_string = null
+// Default test data: Aspirin SMILES for physicochemical property calculation
+params.smiles_string = 'CC(=O)OC1=CC=CC=C1C(=O)O'
 
 process CALCULATE_PHYSICOCHEMICAL_PROPERTIES {
     tag "$meta.id"

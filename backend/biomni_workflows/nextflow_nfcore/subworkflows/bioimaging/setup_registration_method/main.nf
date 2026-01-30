@@ -10,7 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.transform = null
+// Demo: Configure registration method with sensible defaults
+params.transform = 'rigid'
 params.metric = 'mutual_information'
 params.optimizer = 'gradient_descent'
 params.learning_rate = 0.01
@@ -79,12 +80,132 @@ def auto_convert(val):
 
 
 
-def setup_registration_method(**kwargs):
-    '''Bioimaging helper: setup_registration_method
-    Note: Actual implementation requires SimpleITK, nnUNet, or other imaging libraries.
+def setup_registration_method(transform=None, metric='mutual_information', optimizer='gradient_descent',
+                               learning_rate=0.01, number_of_iterations=100,
+                               gradient_convergence_tolerance=1e-06):
+    '''Setup the registration method with specified parameters using SimpleITK.
+
+    Configures an ImageRegistrationMethod with the specified metric, optimizer,
+    and convergence parameters.
+
+    Args:
+        transform: Transform type or SimpleITK transform object
+        metric: Similarity metric ('mutual_information', 'mean_squares', 'correlation')
+        optimizer: Optimizer type ('gradient_descent', 'lbfgsb', 'powell')
+        learning_rate: Learning rate for gradient descent optimizer
+        number_of_iterations: Maximum number of iterations
+        gradient_convergence_tolerance: Convergence tolerance
+
+    Returns:
+        Dictionary with registration method configuration
     '''
-    return {"function": "setup_registration_method", "status": "placeholder", "args": {k: str(v)[:100] for k, v in kwargs.items()},
-            "note": "Requires imaging libraries (SimpleITK, nnUNet) for actual implementation"}
+    import SimpleITK as sitk
+
+    # Create registration method
+    registration = sitk.ImageRegistrationMethod()
+
+    # Set up metric
+    metric = metric if metric and metric != 'null' else 'mutual_information'
+    metric_lower = metric.lower().replace(' ', '_').replace('-', '_')
+
+    if metric_lower in ['mutual_information', 'mi', 'mattes']:
+        registration.SetMetricAsMattesMutualInformation(numberOfHistogramBins=50)
+        metric_name = "MattesMutualInformation"
+    elif metric_lower in ['mean_squares', 'mse', 'ms']:
+        registration.SetMetricAsMeanSquares()
+        metric_name = "MeanSquares"
+    elif metric_lower in ['correlation', 'ncc']:
+        registration.SetMetricAsCorrelation()
+        metric_name = "Correlation"
+    elif metric_lower in ['demons', 'demons_metric']:
+        registration.SetMetricAsDemons()
+        metric_name = "Demons"
+    else:
+        registration.SetMetricAsMattesMutualInformation(numberOfHistogramBins=50)
+        metric_name = "MattesMutualInformation (default)"
+
+    # Set up optimizer
+    optimizer = optimizer if optimizer and optimizer != 'null' else 'gradient_descent'
+    optimizer_lower = optimizer.lower().replace(' ', '_').replace('-', '_')
+
+    learning_rate = float(learning_rate) if learning_rate else 0.01
+    num_iterations = int(number_of_iterations) if number_of_iterations else 100
+    convergence_tol = float(gradient_convergence_tolerance) if gradient_convergence_tolerance else 1e-6
+
+    if optimizer_lower in ['gradient_descent', 'gd']:
+        registration.SetOptimizerAsGradientDescent(
+            learningRate=learning_rate,
+            numberOfIterations=num_iterations,
+            convergenceMinimumValue=convergence_tol,
+            convergenceWindowSize=10
+        )
+        optimizer_name = "GradientDescent"
+    elif optimizer_lower in ['gradient_descent_line_search', 'gdls']:
+        registration.SetOptimizerAsGradientDescentLineSearch(
+            learningRate=learning_rate,
+            numberOfIterations=num_iterations,
+            convergenceMinimumValue=convergence_tol,
+            convergenceWindowSize=10
+        )
+        optimizer_name = "GradientDescentLineSearch"
+    elif optimizer_lower in ['lbfgsb', 'lbfgs']:
+        registration.SetOptimizerAsLBFGSB(
+            gradientConvergenceTolerance=convergence_tol,
+            numberOfIterations=num_iterations
+        )
+        optimizer_name = "LBFGSB"
+    elif optimizer_lower in ['powell']:
+        registration.SetOptimizerAsPowell(
+            numberOfIterations=num_iterations,
+            stepLength=learning_rate
+        )
+        optimizer_name = "Powell"
+    else:
+        registration.SetOptimizerAsGradientDescent(
+            learningRate=learning_rate,
+            numberOfIterations=num_iterations
+        )
+        optimizer_name = "GradientDescent (default)"
+
+    # Set optimizer scales estimator
+    registration.SetOptimizerScalesFromPhysicalShift()
+
+    # Set up interpolator
+    registration.SetInterpolator(sitk.sitkLinear)
+
+    # Multi-resolution settings
+    registration.SetShrinkFactorsPerLevel(shrinkFactors=[4, 2, 1])
+    registration.SetSmoothingSigmasPerLevel(smoothingSigmas=[2, 1, 0])
+    registration.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+
+    return {
+        "function": "setup_registration_method",
+        "status": "success",
+        "configuration": {
+            "metric": metric_name,
+            "optimizer": optimizer_name,
+            "learning_rate": learning_rate,
+            "max_iterations": num_iterations,
+            "convergence_tolerance": convergence_tol,
+            "interpolator": "Linear",
+            "multi_resolution_levels": 3,
+            "shrink_factors": [4, 2, 1],
+            "smoothing_sigmas": [2, 1, 0]
+        },
+        "supported_metrics": [
+            "mutual_information (Mattes)",
+            "mean_squares",
+            "correlation",
+            "demons"
+        ],
+        "supported_optimizers": [
+            "gradient_descent",
+            "gradient_descent_line_search",
+            "lbfgsb",
+            "powell"
+        ],
+        "message": f"Registration configured with {metric_name} metric and {optimizer_name} optimizer"
+    }
 
 # Execute the function
 try:

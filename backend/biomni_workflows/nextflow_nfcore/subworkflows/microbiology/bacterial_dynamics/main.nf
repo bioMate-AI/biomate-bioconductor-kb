@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.n = null
-params.r = null
-params.k = null
-params.d = null
+// Demo: Bacterial population dynamics (E. coli growth simulation)
+params.n = '100.0'
+params.r = '0.5'
+params.k = '10000.0'
+params.d = '0.1'
 
 process BACTERIAL_DYNAMICS {
     tag "$meta.id"

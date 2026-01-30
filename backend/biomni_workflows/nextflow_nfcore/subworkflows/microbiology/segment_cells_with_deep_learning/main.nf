@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.image_path = null
-params.model_type = 'bact_fluor_omni'
-params.diameter = null
+// Demo: Use generated mock fluorescence microscopy image
+params.image_path = 'mock_fluor_cells.png'
+params.model_type = 'cyto'
+params.diameter = '30.0'
 params.save_dir = 'segmentation_results'
 
 process SEGMENT_CELLS_WITH_DEEP_LEARNING {
@@ -34,6 +35,33 @@ process SEGMENT_CELLS_WITH_DEEP_LEARNING {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
+    # Create mock fluorescence microscopy image for testing
+    python3 << 'MOCKEOF'
+import numpy as np
+from PIL import Image
+
+# Create synthetic fluorescence microscopy image with cells
+np.random.seed(42)
+img = np.zeros((512, 512), dtype=np.uint8)
+
+# Add 15-25 circular cells with varying intensities
+num_cells = np.random.randint(15, 26)
+for _ in range(num_cells):
+    cx, cy = np.random.randint(50, 462, 2)
+    radius = np.random.randint(12, 35)
+    intensity = np.random.randint(150, 255)
+    y, x = np.ogrid[:512, :512]
+    mask = (x - cx)**2 + (y - cy)**2 <= radius**2
+    img[mask] = np.clip(img[mask] + intensity, 0, 255)
+
+# Add some noise
+noise = np.random.normal(0, 15, img.shape).astype(np.int16)
+img = np.clip(img.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+
+Image.fromarray(img).save('mock_fluor_cells.png')
+print("Mock fluorescence cell image created")
+MOCKEOF
+
     # Export parameters as environment variables
     export PARAM_IMAGE_PATH="${params.image_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_MODEL_TYPE="${params.model_type?.toString()?.replace('"', '\\"') ?: 'null'}"
@@ -106,11 +134,25 @@ def segment_cells_with_deep_learning(
     '''
     import os
     from datetime import datetime
+    import subprocess
+    import sys
 
-    import matplotlib.pyplot as plt
+    # Install cellpose and its dependencies
+    target_dir = os.path.join(os.getcwd(), "pip_packages")
+    os.makedirs(target_dir, exist_ok=True)
+
+    # Install cellpose with all dependencies including fastremap and scikit-image
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--target", target_dir,
+                    "cellpose", "fastremap", "fill-voids", "roifile", "scikit-image"],
+                   check=True, capture_output=True)
+    sys.path.insert(0, target_dir)
+
     import numpy as np
     from cellpose import models
     from skimage import io
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
 
     # Create output directory if it doesn't exist
     os.makedirs(save_dir, exist_ok=True)

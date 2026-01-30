@@ -10,10 +10,11 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.tissue_type = null
-params.target_cell_type = null
+// Default test data: immune cell isolation parameters
+params.tissue_type = 'spleen'
+params.target_cell_type = 'macrophages'
 params.enzyme_type = 'collagenase'
-params.macs_antibody = null
+params.macs_antibody = 'CD11b'
 params.digestion_time_min = '45'
 
 process ISOLATE_PURIFY_IMMUNE_CELLS {

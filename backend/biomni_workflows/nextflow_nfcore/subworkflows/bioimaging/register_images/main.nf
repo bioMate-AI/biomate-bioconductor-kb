@@ -11,8 +11,8 @@ nextflow.enable.dsl = 2
 // Parameters
 params.outdir = './results'
 // Demo: Mock NIFTI images for image registration test
-params.fixed_image = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_fixed_image.nii.gz'
-params.moving_image = '/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/test_data/mock_moving_image.nii.gz'
+params.fixed_image = "${projectDir}/../../../test_data/mock_fixed_image.nii.gz"
+params.moving_image = "${projectDir}/../../../test_data/mock_moving_image.nii.gz"
 params.transform = 'affine'
 params.registration_method = 'ants'
 

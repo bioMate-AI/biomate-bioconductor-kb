@@ -10,8 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.pdb_file1 = null
-params.pdb_file2 = null
+// Default test data: Use 'mock' to generate test structures
+params.pdb_file1 = 'mock'
+params.pdb_file2 = 'mock'
 params.chain_id1 = 'A'
 params.chain_id2 = 'A'
 params.output_prefix = 'protein_comparison'
@@ -114,6 +115,67 @@ def compare_protein_structures(pdb_file1, pdb_file2, chain_id1="A", chain_id2="A
 
     # Initialize parser
     parser = PDBParser()
+
+    # Generate mock PDB files for testing if needed
+    if pdb_file1 == 'mock' or pdb_file1 is None:
+        # Create a mock PDB file with a simple alpha helix
+        mock_pdb1 = '''HEADER    TEST STRUCTURE 1
+ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N
+ATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00  0.00           C
+ATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00  0.00           C
+ATOM      4  O   ALA A   1       1.245   2.390   0.000  1.00  0.00           O
+ATOM      5  N   GLY A   2       3.323   1.540   0.000  1.00  0.00           N
+ATOM      6  CA  GLY A   2       3.970   2.850   0.000  1.00  0.00           C
+ATOM      7  C   GLY A   2       5.480   2.850   0.000  1.00  0.00           C
+ATOM      8  O   GLY A   2       6.100   1.780   0.000  1.00  0.00           O
+ATOM      9  N   VAL A   3       6.050   4.050   0.000  1.00  0.00           N
+ATOM     10  CA  VAL A   3       7.500   4.250   0.000  1.00  0.00           C
+ATOM     11  C   VAL A   3       8.100   5.650   0.000  1.00  0.00           C
+ATOM     12  O   VAL A   3       7.350   6.630   0.000  1.00  0.00           O
+ATOM     13  N   LEU A   4       9.420   5.750   0.000  1.00  0.00           N
+ATOM     14  CA  LEU A   4      10.100   7.050   0.000  1.00  0.00           C
+ATOM     15  C   LEU A   4      11.600   7.050   0.000  1.00  0.00           C
+ATOM     16  O   LEU A   4      12.220   5.980   0.000  1.00  0.00           O
+ATOM     17  N   SER A   5      12.170   8.250   0.000  1.00  0.00           N
+ATOM     18  CA  SER A   5      13.620   8.450   0.000  1.00  0.00           C
+ATOM     19  C   SER A   5      14.220   9.850   0.000  1.00  0.00           C
+ATOM     20  O   SER A   5      13.470  10.830   0.000  1.00  0.00           O
+END
+'''
+        pdb_file1 = 'mock_structure1.pdb'
+        with open(pdb_file1, 'w') as f:
+            f.write(mock_pdb1)
+        research_log.append("Generated mock PDB structure 1 for testing")
+
+    if pdb_file2 == 'mock' or pdb_file2 is None:
+        # Create a slightly different mock PDB (with small coordinate changes)
+        mock_pdb2 = '''HEADER    TEST STRUCTURE 2
+ATOM      1  N   ALA A   1       0.100   0.100   0.100  1.00  0.00           N
+ATOM      2  CA  ALA A   1       1.558   0.100   0.100  1.00  0.00           C
+ATOM      3  C   ALA A   1       2.109   1.520   0.100  1.00  0.00           C
+ATOM      4  O   ALA A   1       1.345   2.490   0.100  1.00  0.00           O
+ATOM      5  N   GLY A   2       3.423   1.640   0.100  1.00  0.00           N
+ATOM      6  CA  GLY A   2       4.070   2.950   0.100  1.00  0.00           C
+ATOM      7  C   GLY A   2       5.580   2.950   0.100  1.00  0.00           C
+ATOM      8  O   GLY A   2       6.200   1.880   0.100  1.00  0.00           O
+ATOM      9  N   VAL A   3       6.150   4.150   0.100  1.00  0.00           N
+ATOM     10  CA  VAL A   3       7.600   4.350   0.100  1.00  0.00           C
+ATOM     11  C   VAL A   3       8.200   5.750   0.100  1.00  0.00           C
+ATOM     12  O   VAL A   3       7.450   6.730   0.100  1.00  0.00           O
+ATOM     13  N   LEU A   4       9.520   5.850   0.500  1.00  0.00           N
+ATOM     14  CA  LEU A   4      10.200   7.150   0.500  1.00  0.00           C
+ATOM     15  C   LEU A   4      11.700   7.150   0.500  1.00  0.00           C
+ATOM     16  O   LEU A   4      12.320   6.080   0.500  1.00  0.00           O
+ATOM     17  N   SER A   5      12.270   8.350   1.000  1.00  0.00           N
+ATOM     18  CA  SER A   5      13.720   8.550   1.000  1.00  0.00           C
+ATOM     19  C   SER A   5      14.320   9.950   1.000  1.00  0.00           C
+ATOM     20  O   SER A   5      13.570  10.930   1.000  1.00  0.00           O
+END
+'''
+        pdb_file2 = 'mock_structure2.pdb'
+        with open(pdb_file2, 'w') as f:
+            f.write(mock_pdb2)
+        research_log.append("Generated mock PDB structure 2 for testing")
 
     # Parse structures
     research_log.append("## Loading PDB structures")

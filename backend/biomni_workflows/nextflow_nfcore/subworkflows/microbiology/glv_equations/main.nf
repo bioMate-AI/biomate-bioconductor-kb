@@ -10,9 +10,10 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-params.populations = null
-params.growth_rates = null
-params.interaction_matrix = null
+// Demo: 2-species microbial competition model
+params.populations = '[1.0, 1.0]'
+params.growth_rates = '[0.1, 0.1]'
+params.interaction_matrix = '[[-0.01, -0.005], [-0.005, -0.01]]'
 
 process GLV_EQUATIONS {
     tag "$meta.id"
