@@ -16,7 +16,7 @@ python '$__tool_directory__/analyze_bone_microct_morphometry_wrapper.py' --outpu
 ]]></command>
     <inputs>
         <param name="input_file_path" type="text" label="Input File Path" help="Path to the micro-CT scan data file (TIFF stack or similar 3D format)"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files, default is "./results"" value="./results" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files, default is './results'" value="./results" optional="true"/>
         <param name="threshold_value" type="text" label="Threshold Value" help="Threshold value for bone segmentation. If None, Otsu's method will be used"  optional="true"/>
     </inputs>
     <outputs>
@@ -36,7 +36,7 @@ Parameters
 input_file_path : str
     Path to the micro-CT scan data file (TIFF stack or similar 3D format)
 output_dir : str, optional
-    Directory to save output files, default is "./results"
+    Directory to save output files, default is './results'
 threshold_value : float, optional
     Threshold value for bone segmentation. If None, Otsu's method will be used
 

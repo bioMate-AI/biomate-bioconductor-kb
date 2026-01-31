@@ -12,7 +12,7 @@ python '$__tool_directory__/analyze_accelerated_stability_of_pharmaceutical_form
 ]]></command>
     <inputs>
         <param name="formulations" type="text" label="Formulations" help="- 'excipients': list, list of excipients"  />
-        <param name="storage_conditions" type="text" label="Storage Conditions" help="- 'description': str, description of storage condition (e.g., "Room Temperature", "Accelerated")"  />
+        <param name="storage_conditions" type="text" label="Storage Conditions" help="- 'description': str, description of storage condition (e.g., 'Room Temperature', 'Accelerated')"  />
         <param name="time_points" type="text" label="Time Points" help="List of time points in days to evaluate stability"  />
     </inputs>
     <outputs>

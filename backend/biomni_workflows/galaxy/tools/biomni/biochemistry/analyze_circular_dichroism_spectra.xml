@@ -21,8 +21,8 @@ python '$__tool_directory__/analyze_circular_dichroism_spectra_wrapper.py' --out
 #end if
 ]]></command>
     <inputs>
-        <param name="sample_name" type="text" label="Sample Name" help="Name of the biomolecule sample (e.g., "Znf706", "G-quadruplex")"  />
-        <param name="sample_type" type="text" label="Sample Type" help="Type of biomolecule ("protein" or "nucleic_acid")"  />
+        <param name="sample_name" type="text" label="Sample Name" help="Name of the biomolecule sample (e.g., 'Znf706', 'G-quadruplex')"  />
+        <param name="sample_type" type="text" label="Sample Type" help="Type of biomolecule ('protein' or 'nucleic_acid')"  />
         <param name="wavelength_data" type="text" label="Wavelength Data" help="Wavelength values in nm for CD spectrum"  />
         <param name="cd_signal_data" type="text" label="Cd Signal Data" help="CD signal intensity values (typically in mdeg or Δε)"  />
         <param name="temperature_data" type="text" label="Temperature Data" help="Temperature values (°C) for thermal denaturation experiment"  optional="true"/>

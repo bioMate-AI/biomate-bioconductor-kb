@@ -17,7 +17,7 @@ python '$__tool_directory__/predict_protein_disorder_regions_wrapper.py' --outpu
     <inputs>
         <param name="protein_sequence" type="text" label="Protein Sequence" help="The amino acid sequence of the protein to analyze"  />
         <param name="threshold" type="text" label="Threshold" help="The disorder score threshold above which a residue is considered disordered (default: 0.5)" value="0.5" optional="true"/>
-        <param name="output_file" type="text" label="Output File" help="Filename to save the per-residue disorder scores (default: "disorder_prediction_results.csv")" value="disorder_prediction_results.csv" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Filename to save the per-residue disorder scores (default: 'disorder_prediction_results.csv')" value="disorder_prediction_results.csv" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -34,7 +34,7 @@ protein_sequence : str
 threshold : float, optional
     The disorder score threshold above which a residue is considered disordered (default: 0.5)
 output_file : str, optional
-    Filename to save the per-residue disorder scores (default: "disorder_prediction_results.csv")
+    Filename to save the per-residue disorder scores (default: 'disorder_prediction_results.csv')
 
 Returns
 -------

@@ -19,7 +19,7 @@ python '$__tool_directory__/decode_behavior_from_neural_trajectories_wrapper.py'
         <param name="neural_data" type="text" label="Neural Data" help="Neural spiking activity data, shape (n_timepoints, n_neurons)"  />
         <param name="behavioral_data" type="text" label="Behavioral Data" help="Behavioral data, shape (n_timepoints, n_behavioral_variables)"  />
         <param name="n_components" type="text" label="N Components" help="Number of principal components to use for dimensionality reduction, default is 10" value="10" optional="true"/>
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files, default is "./"" value="./" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files, default is './'" value="./" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -38,7 +38,7 @@ behavioral_data : numpy.ndarray
 n_components : int, optional
     Number of principal components to use for dimensionality reduction, default is 10
 output_dir : str, optional
-    Directory to save output files, default is "./"
+    Directory to save output files, default is './'
 
 Returns
 -------

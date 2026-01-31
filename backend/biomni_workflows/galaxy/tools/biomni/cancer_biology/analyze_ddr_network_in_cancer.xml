@@ -15,7 +15,7 @@ python '$__tool_directory__/analyze_ddr_network_in_cancer_wrapper.py' --output '
     <inputs>
         <param name="expression_data_path" type="text" label="Expression Data Path" help="Path to gene expression data file (CSV format with genes as rows, samples as columns)"  />
         <param name="mutation_data_path" type="text" label="Mutation Data Path" help="values indicating mutation status)"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./results")" value="./results" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './results')" value="./results" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -36,7 +36,7 @@ mutation_data_path : str
     Path to mutation data file (CSV format with genes as rows, samples as columns,
     values indicating mutation status)
 output_dir : str, optional
-    Directory to save output files (default: "./results")
+    Directory to save output files (default: './results')
 
 Returns
 -------

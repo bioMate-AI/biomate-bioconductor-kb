@@ -16,8 +16,8 @@ python '$__tool_directory__/analyze_immunohistochemistry_image_wrapper.py' --out
 ]]></command>
     <inputs>
         <param name="image_path" type="text" label="Image Path" help="Path to the microscopy image of tissue section stained with antibodies"  />
-        <param name="protein_name" type="text" label="Protein Name" help="Name of the protein being analyzed (default: "Unknown")" value="Unknown" optional="true"/>
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./ihc_results/")" value="./ihc_results/" optional="true"/>
+        <param name="protein_name" type="text" label="Protein Name" help="Name of the protein being analyzed (default: 'Unknown')" value="Unknown" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './ihc_results/')" value="./ihc_results/" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -32,9 +32,9 @@ Parameters
 image_path : str
     Path to the microscopy image of tissue section stained with antibodies
 protein_name : str, optional
-    Name of the protein being analyzed (default: "Unknown")
+    Name of the protein being analyzed (default: 'Unknown')
 output_dir : str, optional
-    Directory to save output files (default: "./ihc_results/")
+    Directory to save output files (default: './ihc_results/')
 
 Returns
 -------

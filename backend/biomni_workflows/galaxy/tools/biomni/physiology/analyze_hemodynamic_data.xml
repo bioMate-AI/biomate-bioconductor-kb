@@ -15,7 +15,7 @@ python '$__tool_directory__/analyze_hemodynamic_data_wrapper.py' --output '$outp
     <inputs>
         <param name="pressure_data" type="text" label="Pressure Data" help="Raw blood pressure measurements in mmHg"  />
         <param name="sampling_rate" type="text" label="Sampling Rate" help="Data acquisition rate in Hz (samples per second)"  />
-        <param name="output_file" type="text" label="Output File" help="Filename to save the calculated parameters, default is "hemodynamic_results.csv"" value="hemodynamic_results.csv" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Filename to save the calculated parameters, default is 'hemodynamic_results.csv'" value="hemodynamic_results.csv" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -32,7 +32,7 @@ pressure_data : numpy.ndarray
 sampling_rate : float
     Data acquisition rate in Hz (samples per second)
 output_file : str, optional
-    Filename to save the calculated parameters, default is "hemodynamic_results.csv"
+    Filename to save the calculated parameters, default is 'hemodynamic_results.csv'
 
 Returns
 -------

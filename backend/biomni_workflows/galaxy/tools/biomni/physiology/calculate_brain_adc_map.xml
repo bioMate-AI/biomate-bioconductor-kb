@@ -18,7 +18,7 @@ python '$__tool_directory__/calculate_brain_adc_map_wrapper.py' --output '$outpu
     <inputs>
         <param name="dwi_file_path" type="text" label="Dwi File Path" help="where the 4th dimension corresponds to different b-values."  />
         <param name="b_values" type="text" label="B Values" help="List of b-values corresponding to each volume in the 4D DWI data."  />
-        <param name="output_path" type="text" label="Output Path" help="Path where the output ADC map will be saved (default: "adc_map.nii.gz")." value="adc_map.nii.gz" optional="true"/>
+        <param name="output_path" type="text" label="Output Path" help="Path where the output ADC map will be saved (default: 'adc_map.nii.gz')." value="adc_map.nii.gz" optional="true"/>
         <param name="mask_file_path" type="text" label="Mask File Path" help="Path to a binary mask file to limit ADC calculation to brain regions (default: None)."  optional="true"/>
     </inputs>
     <outputs>
@@ -41,7 +41,7 @@ dwi_file_path : str
 b_values : list or numpy.ndarray
     List of b-values corresponding to each volume in the 4D DWI data.
 output_path : str, optional
-    Path where the output ADC map will be saved (default: "adc_map.nii.gz").
+    Path where the output ADC map will be saved (default: 'adc_map.nii.gz').
 mask_file_path : str, optional
     Path to a binary mask file to limit ADC calculation to brain regions (default: None).
 

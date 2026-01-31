@@ -16,7 +16,7 @@ python '$__tool_directory__/quantify_and_cluster_cell_motility_wrapper.py' --out
 ]]></command>
     <inputs>
         <param name="image_sequence_path" type="text" label="Image Sequence Path" help="Path to directory containing time-lapse microscopy images in sequential order"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./results")" value="./results" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './results')" value="./results" optional="true"/>
         <param name="num_clusters" type="text" label="Num Clusters" help="Number of motility pattern clusters to identify (default: 3)" value="3" optional="true"/>
     </inputs>
     <outputs>
@@ -32,7 +32,7 @@ Parameters
 image_sequence_path : str
     Path to directory containing time-lapse microscopy images in sequential order
 output_dir : str
-    Directory to save output files (default: "./results")
+    Directory to save output files (default: './results')
 num_clusters : int
     Number of motility pattern clusters to identify (default: 3)
 

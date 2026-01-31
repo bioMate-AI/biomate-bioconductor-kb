@@ -15,7 +15,7 @@ python '$__tool_directory__/analyze_mitochondrial_morphology_and_potential_wrapp
     <inputs>
         <param name="morphology_image_path" type="text" label="Morphology Image Path" help="Path to the fluorescence microscopy image showing mitochondrial morphology (e.g., MTS-GFP)"  />
         <param name="potential_image_path" type="text" label="Potential Image Path" help="Path to the fluorescence microscopy image showing mitochondrial membrane potential (e.g., TMRE staining)"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files, default is "./output"" value="./output" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files, default is './output'" value="./output" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -32,7 +32,7 @@ morphology_image_path : str
 potential_image_path : str
     Path to the fluorescence microscopy image showing mitochondrial membrane potential (e.g., TMRE staining)
 output_dir : str, optional
-    Directory to save output files, default is "./output"
+    Directory to save output files, default is './output'
 
 Returns
 -------

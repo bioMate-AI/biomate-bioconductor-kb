@@ -13,7 +13,7 @@ python '$__tool_directory__/analyze_genomic_region_overlap_wrapper.py' --output 
 ]]></command>
     <inputs>
         <param name="region_sets" type="text" label="Region Sets" help="- A list of tuples/lists with format (chrom, start, end) or (chrom, start, end, name)"  />
-        <param name="output_prefix" type="text" label="Output Prefix" help="Prefix for output files (default: "overlap_analysis")" value="overlap_analysis" optional="true"/>
+        <param name="output_prefix" type="text" label="Output Prefix" help="Prefix for output files (default: 'overlap_analysis')" value="overlap_analysis" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -30,7 +30,7 @@ region_sets : list
     - A string path to a BED file
     - A list of tuples/lists with format (chrom, start, end) or (chrom, start, end, name)
 output_prefix : str, optional
-    Prefix for output files (default: "overlap_analysis")
+    Prefix for output files (default: 'overlap_analysis')
 
 Returns
 -------

@@ -17,7 +17,7 @@ python '$__tool_directory__/analyze_flow_cytometry_immunophenotyping_wrapper.py'
 ]]></command>
     <inputs>
         <param name="fcs_file_path" type="text" label="Fcs File Path" help="Path to the FCS file containing flow cytometry data"  />
-        <param name="gating_strategy" type="text" label="Gating Strategy" help="(marker, operator, threshold). For example: {'HSCs': [('Lin', '<', 100), ('Sca1', '>', 1000), ...]}"  />
+        <param name="gating_strategy" type="text" label="Gating Strategy" help="(marker, operator, threshold). For example: {'HSCs': [('Lin', '&lt;', 100), ('Sca1', '&gt;', 1000), ...]}"  />
         <param name="compensation_matrix" type="text" label="Compensation Matrix" help="Spillover/compensation matrix to correct for fluorescence overlap"  optional="true"/>
         <param name="output_dir" type="text" label="Output Dir" help="Directory to save the results" value="./results" optional="true"/>
     </inputs>

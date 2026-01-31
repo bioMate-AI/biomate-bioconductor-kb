@@ -15,7 +15,7 @@ python '$__tool_directory__/analyze_comparative_genomics_and_haplotypes_wrapper.
     <inputs>
         <param name="sample_fasta_files" type="text" label="Sample Fasta Files" help="Paths to FASTA files containing whole-genome sequences to be analyzed"  />
         <param name="reference_genome_path" type="text" label="Reference Genome Path" help="Path to the reference genome FASTA file"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to store output files (default: "./output")" value="./output" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to store output files (default: './output')" value="./output" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -35,7 +35,7 @@ sample_fasta_files : list of str
 reference_genome_path : str
     Path to the reference genome FASTA file
 output_dir : str, optional
-    Directory to store output files (default: "./output")
+    Directory to store output files (default: './output')
 
 Returns
 -------

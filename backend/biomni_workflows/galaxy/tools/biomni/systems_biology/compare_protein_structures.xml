@@ -23,7 +23,7 @@ python '$__tool_directory__/compare_protein_structures_wrapper.py' --output '$ou
         <param name="pdb_file2" type="text" label="Pdb File2" help="Path to the second PDB file"  />
         <param name="chain_id1" type="text" label="Chain Id1" help="Chain ID to analyze in the first structure (default: 'A')" value="A" optional="true"/>
         <param name="chain_id2" type="text" label="Chain Id2" help="Chain ID to analyze in the second structure (default: 'A')" value="A" optional="true"/>
-        <param name="output_prefix" type="text" label="Output Prefix" help="Prefix for output files (default: "protein_comparison")" value="protein_comparison" optional="true"/>
+        <param name="output_prefix" type="text" label="Output Prefix" help="Prefix for output files (default: 'protein_comparison')" value="protein_comparison" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -44,7 +44,7 @@ chain_id1 : str, optional
 chain_id2 : str, optional
     Chain ID to analyze in the second structure (default: 'A')
 output_prefix : str, optional
-    Prefix for output files (default: "protein_comparison")
+    Prefix for output files (default: 'protein_comparison')
 
 Returns:
 --------

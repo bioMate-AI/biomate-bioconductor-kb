@@ -42,10 +42,10 @@ python '$__tool_directory__/simulate_demographic_history_wrapper.py' --output '$
         <param name="sequence_length" type="text" label="Sequence Length" help="Length of the simulated sequence in base pairs" value="100000" optional="true"/>
         <param name="recombination_rate" type="text" label="Recombination Rate" help="Per-base recombination rate" value="1e-08" optional="true"/>
         <param name="mutation_rate" type="text" label="Mutation Rate" help="Per-base mutation rate" value="1e-08" optional="true"/>
-        <param name="demographic_model" type="text" label="Demographic Model" help="- "sawtooth": Sawtooth pattern of population size changes" value="constant" optional="true"/>
-        <param name="demographic_params" type="text" label="Demographic Params" help="- For "sawtooth": {"N_values": list of population sizes, "times": list of times for changes}"  optional="true"/>
-        <param name="coalescent_model" type="text" label="Coalescent Model" help="- "beta": Beta-coalescent model" value="kingman" optional="true"/>
-        <param name="beta_coalescent_param" type="text" label="Beta Coalescent Param" help="Parameter for beta-coalescent model (required if coalescent_model="beta")"  optional="true"/>
+        <param name="demographic_model" type="text" label="Demographic Model" help="- 'sawtooth': Sawtooth pattern of population size changes" value="constant" optional="true"/>
+        <param name="demographic_params" type="text" label="Demographic Params" help="- For 'sawtooth': {'N_values': list of population sizes, 'times': list of times for changes}"  optional="true"/>
+        <param name="coalescent_model" type="text" label="Coalescent Model" help="- 'beta': Beta-coalescent model" value="kingman" optional="true"/>
+        <param name="beta_coalescent_param" type="text" label="Beta Coalescent Param" help="Parameter for beta-coalescent model (required if coalescent_model='beta')"  optional="true"/>
         <param name="random_seed" type="text" label="Random Seed" help="Seed for random number generator (for reproducibility)"  optional="true"/>
         <param name="output_file" type="text" label="Output File" help="Filename to save the simulated sequences (VCF format)" value="simulated_sequences.vcf" optional="true"/>
     </inputs>

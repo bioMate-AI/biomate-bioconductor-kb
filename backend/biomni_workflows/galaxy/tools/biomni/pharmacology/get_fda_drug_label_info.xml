@@ -13,7 +13,7 @@ python '$__tool_directory__/get_fda_drug_label_info_wrapper.py' --output '$outpu
 ]]></command>
     <inputs>
         <param name="drug_name" type="text" label="Drug Name" help=""  />
-        <param name="sections" type="text" label="Sections" help="["indications_and_usage", "contraindications", "warnings", "dosage_and_administration"]"  optional="true"/>
+        <param name="sections" type="text" label="Sections" help="['indications_and_usage', 'contraindications', 'warnings', 'dosage_and_administration']"  optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>

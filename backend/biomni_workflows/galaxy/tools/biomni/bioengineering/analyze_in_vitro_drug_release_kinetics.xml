@@ -21,9 +21,9 @@ python '$__tool_directory__/analyze_in_vitro_drug_release_kinetics_wrapper.py' -
     <inputs>
         <param name="time_points" type="text" label="Time Points" help="Time points at which drug concentrations were measured (in hours)"  />
         <param name="concentration_data" type="text" label="Concentration Data" help="Measured drug concentration at each time point"  />
-        <param name="drug_name" type="text" label="Drug Name" help="Name of the drug being analyzed (default: "Drug")" value="Drug" optional="true"/>
+        <param name="drug_name" type="text" label="Drug Name" help="Name of the drug being analyzed (default: 'Drug')" value="Drug" optional="true"/>
         <param name="total_drug_loaded" type="text" label="Total Drug Loaded" help="If None, the maximum concentration is used as 100% (default: None)"  optional="true"/>
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./")" value="./" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './')" value="./" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -40,12 +40,12 @@ time_points : list or numpy.ndarray
 concentration_data : list or numpy.ndarray
     Measured drug concentration at each time point
 drug_name : str, optional
-    Name of the drug being analyzed (default: "Drug")
+    Name of the drug being analyzed (default: 'Drug')
 total_drug_loaded : float, optional
     Total amount of drug initially loaded in the formulation.
     If None, the maximum concentration is used as 100% (default: None)
 output_dir : str, optional
-    Directory to save output files (default: "./")
+    Directory to save output files (default: './')
 
 Returns
 -------

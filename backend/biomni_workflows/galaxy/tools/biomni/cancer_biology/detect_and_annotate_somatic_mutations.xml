@@ -19,7 +19,7 @@ python '$__tool_directory__/detect_and_annotate_somatic_mutations_wrapper.py' --
         <param name="normal_bam" type="text" label="Normal Bam" help="Path to the matched normal sample BAM file"  />
         <param name="reference_genome" type="text" label="Reference Genome" help="Path to the reference genome FASTA file"  />
         <param name="output_prefix" type="text" label="Output Prefix" help="Prefix for output files"  />
-        <param name="snpeff_database" type="text" label="Snpeff Database" help="SnpEff database to use for annotation (default: "GRCh38.105")" value="GRCh38.105" optional="true"/>
+        <param name="snpeff_database" type="text" label="Snpeff Database" help="SnpEff database to use for annotation (default: 'GRCh38.105')" value="GRCh38.105" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -43,7 +43,7 @@ reference_genome : str
 output_prefix : str
     Prefix for output files
 snpeff_database : str, optional
-    SnpEff database to use for annotation (default: "GRCh38.105")
+    SnpEff database to use for annotation (default: 'GRCh38.105')
 
 Returns
 -------

@@ -23,7 +23,7 @@ python '$__tool_directory__/perform_mwas_cyp2c19_metabolizer_status_wrapper.py' 
         <param name="metabolizer_status_path" type="text" label="Metabolizer Status Path" help="Should have a sample ID column and a status column (e.g., poor, intermediate, normal, rapid, ultrarapid)."  />
         <param name="covariates_path" type="text" label="Covariates Path" help="(e.g., age, sex, smoking status)."  optional="true"/>
         <param name="pvalue_threshold" type="text" label="Pvalue Threshold" help="P-value threshold for significance after multiple testing correction. Default is 0.05." value="0.05" optional="true"/>
-        <param name="output_file" type="text" label="Output File" help="Filename to save significant CpG sites. Default is "significant_cpg_sites.csv"." value="significant_cpg_sites.csv" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Filename to save significant CpG sites. Default is 'significant_cpg_sites.csv'." value="significant_cpg_sites.csv" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>

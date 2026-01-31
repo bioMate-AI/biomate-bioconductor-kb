@@ -20,8 +20,8 @@ python '$__tool_directory__/analyze_protein_phylogeny_wrapper.py' --output '$out
     <inputs>
         <param name="fasta_sequences" type="text" label="Fasta Sequences" help="Path to a FASTA file containing protein sequences or a string with FASTA-formatted sequences"  />
         <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: current directory)" value="./" optional="true"/>
-        <param name="alignment_method" type="text" label="Alignment Method" help="Method for sequence alignment: "clustalw", "muscle", or "pre-aligned" (default: "clustalw")" value="clustalw" optional="true"/>
-        <param name="tree_method" type="text" label="Tree Method" help="Method for tree construction: "iqtree" (default: "iqtree")" value="fasttree" optional="true"/>
+        <param name="alignment_method" type="text" label="Alignment Method" help="Method for sequence alignment: 'clustalw', 'muscle', or 'pre-aligned' (default: 'clustalw')" value="clustalw" optional="true"/>
+        <param name="tree_method" type="text" label="Tree Method" help="Method for tree construction: 'iqtree' (default: 'iqtree')" value="fasttree" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -41,9 +41,9 @@ fasta_sequences : str
 output_dir : str, optional
     Directory to save output files (default: current directory)
 alignment_method : str, optional
-    Method for sequence alignment: "clustalw", "muscle", or "pre-aligned" (default: "clustalw")
+    Method for sequence alignment: "clustalw", "muscle", or "pre-aligned" (default: 'clustalw')
 tree_method : str, optional
-    Method for tree construction: "iqtree" (default: "iqtree")
+    Method for tree construction: "iqtree" (default: 'iqtree')
 
 Returns
 -------

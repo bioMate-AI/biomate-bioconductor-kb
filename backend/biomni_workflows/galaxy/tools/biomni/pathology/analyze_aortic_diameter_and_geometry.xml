@@ -13,7 +13,7 @@ python '$__tool_directory__/analyze_aortic_diameter_and_geometry_wrapper.py' --o
 ]]></command>
     <inputs>
         <param name="image_path" type="text" label="Image Path" help="Path to the cardiovascular imaging data (DICOM, JPG, PNG)"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./output")" value="./output" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './output')" value="./output" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -32,7 +32,7 @@ Parameters
 image_path : str
     Path to the cardiovascular imaging data (DICOM, JPG, PNG)
 output_dir : str, optional
-    Directory to save output files (default: "./output")
+    Directory to save output files (default: './output')
 
 Returns
 -------

@@ -16,7 +16,7 @@ python '$__tool_directory__/analyze_tissue_deformation_flow_wrapper.py' --output
 ]]></command>
     <inputs>
         <param name="image_sequence" type="text" label="Image Sequence" help="Sequence of microscopy images (either a list of file paths or a 3D numpy array [time, height, width])"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save results (default: "results")" value="results" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save results (default: 'results')" value="results" optional="true"/>
         <param name="pixel_scale" type="text" label="Pixel Scale" help="Physical scale of pixels (e.g., μm/pixel) for proper scaling of metrics (default: 1.0)" value="1.0" optional="true"/>
     </inputs>
     <outputs>
@@ -32,7 +32,7 @@ Parameters
 image_sequence : list or numpy.ndarray
     Sequence of microscopy images (either a list of file paths or a 3D numpy array [time, height, width])
 output_dir : str, optional
-    Directory to save results (default: "results")
+    Directory to save results (default: 'results')
 pixel_scale : float, optional
     Physical scale of pixels (e.g., μm/pixel) for proper scaling of metrics (default: 1.0)
 

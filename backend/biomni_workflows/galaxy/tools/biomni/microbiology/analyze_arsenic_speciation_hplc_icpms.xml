@@ -16,7 +16,7 @@ python '$__tool_directory__/analyze_arsenic_speciation_hplc_icpms_wrapper.py' --
 ]]></command>
     <inputs>
         <param name="sample_data" type="text" label="Sample Data" help="with retention times (in minutes) as keys and signal intensities as values."  />
-        <param name="sample_name" type="text" label="Sample Name" help="Name of the sample being analyzed (default: "Unknown Sample")" value="Unknown Sample" optional="true"/>
+        <param name="sample_name" type="text" label="Sample Name" help="Name of the sample being analyzed (default: 'Unknown Sample')" value="Unknown Sample" optional="true"/>
         <param name="calibration_data" type="text" label="Calibration Data" help="If None, default calibration values will be used."  optional="true"/>
     </inputs>
     <outputs>
@@ -33,7 +33,7 @@ sample_data : dict
     Dictionary containing sample data with keys as sample IDs and values as dictionaries
     with retention times (in minutes) as keys and signal intensities as values.
 sample_name : str, optional
-    Name of the sample being analyzed (default: "Unknown Sample")
+    Name of the sample being analyzed (default: 'Unknown Sample')
 calibration_data : dict, optional
     Dictionary containing calibration standards data with known concentrations for each arsenic species.
     If None, default calibration values will be used.

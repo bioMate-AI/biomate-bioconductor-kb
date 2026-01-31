@@ -13,7 +13,7 @@ python '$__tool_directory__/predict_rna_secondary_structure_wrapper.py' --output
 ]]></command>
     <inputs>
         <param name="rna_sequence" type="text" label="Rna Sequence" help="The RNA sequence (consisting of A, U, G, C nucleotides)"  />
-        <param name="output_prefix" type="text" label="Output Prefix" help="Prefix for output files (default: "rna_structure")" value="rna_structure" optional="true"/>
+        <param name="output_prefix" type="text" label="Output Prefix" help="Prefix for output files (default: 'rna_structure')" value="rna_structure" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -28,7 +28,7 @@ Parameters
 rna_sequence : str
     The RNA sequence (consisting of A, U, G, C nucleotides)
 output_prefix : str, optional
-    Prefix for output files (default: "rna_structure")
+    Prefix for output files (default: 'rna_structure')
 
 Returns
 -------

@@ -28,10 +28,10 @@ python '$__tool_directory__/find_enriched_motifs_with_homer_wrapper.py' --output
 ]]></command>
     <inputs>
         <param name="peak_file" type="text" label="Peak File" help="Path to peak file in BED format containing genomic regions to analyze for motif enrichment"  />
-        <param name="genome" type="text" label="Genome" help="Reference genome for sequence extraction (default: "hg38")" value="hg38" optional="true"/>
+        <param name="genome" type="text" label="Genome" help="Reference genome for sequence extraction (default: 'hg38')" value="hg38" optional="true"/>
         <param name="background_file" type="text" label="Background File" help="background sequences automatically (default: None)"  optional="true"/>
-        <param name="motif_length" type="text" label="Motif Length" help="Comma-separated list of motif lengths to discover (default: "8,10,12")" value="8,10,12" optional="true"/>
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./homer_motifs")" value="./homer_motifs" optional="true"/>
+        <param name="motif_length" type="text" label="Motif Length" help="Comma-separated list of motif lengths to discover (default: '8,10,12')" value="8,10,12" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './homer_motifs')" value="./homer_motifs" optional="true"/>
         <param name="num_motifs" type="text" label="Num Motifs" help="Number of motifs to find (default: 10)" value="10" optional="true"/>
         <param name="threads" type="text" label="Threads" help="Number of CPU threads to use (default: 4)" value="4" optional="true"/>
     </inputs>
@@ -48,14 +48,14 @@ Parameters
 peak_file : str
     Path to peak file in BED format containing genomic regions to analyze for motif enrichment
 genome : str, optional
-    Reference genome for sequence extraction (default: "hg38")
+    Reference genome for sequence extraction (default: 'hg38')
 background_file : str, optional
     Path to BED file with background regions for comparison. If None, HOMER will generate random
     background sequences automatically (default: None)
 motif_length : str, optional
-    Comma-separated list of motif lengths to discover (default: "8,10,12")
+    Comma-separated list of motif lengths to discover (default: '8,10,12')
 output_dir : str, optional
-    Directory to save output files (default: "./homer_motifs")
+    Directory to save output files (default: './homer_motifs')
 num_motifs : int, optional
     Number of motifs to find (default: 10)
 threads : int, optional

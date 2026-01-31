@@ -24,10 +24,10 @@ python '$__tool_directory__/analyze_atac_seq_differential_accessibility_wrapper.
     <inputs>
         <param name="treatment_bam" type="text" label="Treatment Bam" help="Path to the treatment condition BAM file with aligned ATAC-seq reads"  />
         <param name="control_bam" type="text" label="Control Bam" help="Path to the control condition BAM file with aligned ATAC-seq reads"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./atac_results")" value="./atac_results" optional="true"/>
-        <param name="genome_size" type="text" label="Genome Size" help="Genome size parameter for MACS2 (default: "hs" for human)" value="hs" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './atac_results')" value="./atac_results" optional="true"/>
+        <param name="genome_size" type="text" label="Genome Size" help="Genome size parameter for MACS2 (default: 'hs' for human)" value="hs" optional="true"/>
         <param name="q_value" type="text" label="Q Value" help="q-value cutoff for peak detection (default: 0.05)" value="0.05" optional="true"/>
-        <param name="name_prefix" type="text" label="Name Prefix" help="Prefix for output file names (default: "atac")" value="atac" optional="true"/>
+        <param name="name_prefix" type="text" label="Name Prefix" help="Prefix for output file names (default: 'atac')" value="atac" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -44,13 +44,13 @@ treatment_bam : str
 control_bam : str
     Path to the control condition BAM file with aligned ATAC-seq reads
 output_dir : str
-    Directory to save output files (default: "./atac_results")
+    Directory to save output files (default: './atac_results')
 genome_size : str
     Genome size parameter for MACS2 (default: "hs" for human)
 q_value : float
     q-value cutoff for peak detection (default: 0.05)
 name_prefix : str
-    Prefix for output file names (default: "atac")
+    Prefix for output file names (default: 'atac')
 
 Returns
 -------

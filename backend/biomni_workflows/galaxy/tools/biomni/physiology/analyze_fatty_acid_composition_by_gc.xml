@@ -17,7 +17,7 @@ python '$__tool_directory__/analyze_fatty_acid_composition_by_gc_wrapper.py' --o
         <param name="gc_data_file" type="text" label="Gc Data File" help="Path to the CSV file containing gas chromatography data with columns 'retention_time' and 'peak_area'."  />
         <param name="tissue_type" type="text" label="Tissue Type" help="Type of tissue sample (e.g., liver, kidney, heart, muscle, adipose)."  />
         <param name="sample_id" type="text" label="Sample Id" help="Identifier for the sample being analyzed."  />
-        <param name="output_directory" type="text" label="Output Directory" help="Directory where result files will be saved (default: "./results")." value="./results" optional="true"/>
+        <param name="output_directory" type="text" label="Output Directory" help="Directory where result files will be saved (default: './results')." value="./results" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -36,7 +36,7 @@ tissue_type : str
 sample_id : str
     Identifier for the sample being analyzed.
 output_directory : str, optional
-    Directory where result files will be saved (default: "./results").
+    Directory where result files will be saved (default: './results').
 
 Returns
 -------

@@ -21,8 +21,8 @@ python '$__tool_directory__/perform_chipseq_peak_calling_with_macs2_wrapper.py' 
     <inputs>
         <param name="chip_seq_file" type="text" label="Chip Seq File" help="Path to the ChIP-seq read data file (BAM, BED, or other supported format)"  />
         <param name="control_file" type="text" label="Control File" help="Path to the control/input data file (BAM, BED, or other supported format)"  />
-        <param name="output_name" type="text" label="Output Name" help="Prefix for output files (default: "macs2_output")" value="macs2_output" optional="true"/>
-        <param name="genome_size" type="text" label="Genome Size" help="Effective genome size shorthand: 'hs' for human, 'mm' for mouse, etc. (default: "hs")" value="hs" optional="true"/>
+        <param name="output_name" type="text" label="Output Name" help="Prefix for output files (default: 'macs2_output')" value="macs2_output" optional="true"/>
+        <param name="genome_size" type="text" label="Genome Size" help="Effective genome size shorthand: 'hs' for human, 'mm' for mouse, etc. (default: 'hs')" value="hs" optional="true"/>
         <param name="q_value" type="text" label="Q Value" help="q-value (minimum FDR) cutoff for peak calling (default: 0.05)" value="0.05" optional="true"/>
     </inputs>
     <outputs>
@@ -40,9 +40,9 @@ chip_seq_file : str
 control_file : str
     Path to the control/input data file (BAM, BED, or other supported format)
 output_name : str, optional
-    Prefix for output files (default: "macs2_output")
+    Prefix for output files (default: 'macs2_output')
 genome_size : str, optional
-    Effective genome size shorthand: 'hs' for human, 'mm' for mouse, etc. (default: "hs")
+    Effective genome size shorthand: 'hs' for human, 'mm' for mouse, etc. (default: 'hs')
 q_value : float, optional
     q-value (minimum FDR) cutoff for peak calling (default: 0.05)
 

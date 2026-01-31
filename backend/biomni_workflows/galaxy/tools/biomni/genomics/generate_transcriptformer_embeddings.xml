@@ -61,19 +61,19 @@ python '$__tool_directory__/generate_transcriptformer_embeddings_wrapper.py' --o
         <param name="adata_filename" type="text" label="Adata Filename" help="Name of the input AnnData file (.h5ad format)"  />
         <param name="data_dir" type="text" label="Data Dir" help="Directory containing the input data file"  />
         <param name="output_filename" type="text" label="Output Filename" help="Name of the output embeddings file. If None, will use input filename with '_transcriptformer_embeddings' suffix"  optional="true"/>
-        <param name="model_type" type="text" label="Model Type" help="Type of transcriptformer model to download and use. Options: "tf-sapiens", "tf-exemplar", "tf-metazoa" (default: "tf-sapiens")" value="tf-sapiens" optional="true"/>
-        <param name="checkpoint_path" type="text" label="Checkpoint Path" help="Path to the transcriptformer checkpoint directory. If None, will use "./checkpoints/{model_type}" (default: None)"  optional="true"/>
+        <param name="model_type" type="text" label="Model Type" help="Type of transcriptformer model to download and use. Options: 'tf-sapiens', 'tf-exemplar', 'tf-metazoa' (default: 'tf-sapiens')" value="tf-sapiens" optional="true"/>
+        <param name="checkpoint_path" type="text" label="Checkpoint Path" help="Path to the transcriptformer checkpoint directory. If None, will use './checkpoints/{model_type}' (default: None)"  optional="true"/>
         <param name="batch_size" type="integer" label="Batch Size" help="Batch size for inference (default: 8)" value="8" optional="true"/>
-        <param name="precision" type="text" label="Precision" help="Precision for inference. Options: "16-mixed", "32" (default: "16-mixed")" value="16-mixed" optional="true"/>
+        <param name="precision" type="text" label="Precision" help="Precision for inference. Options: '16-mixed', '32' (default: '16-mixed')" value="16-mixed" optional="true"/>
         <param name="clip_counts" type="integer" label="Clip Counts" help="Maximum count value to clip to (default: 30)" value="30" optional="true"/>
         <param name="embedding_layer_index" type="integer" label="Embedding Layer Index" help="Which layer to extract embeddings from (default: -1, last layer)"  optional="true"/>
         <param name="num_gpus" type="integer" label="Num Gpus" help="Number of GPUs to use (default: 1)" value="1" optional="true"/>
         <param name="n_data_workers" type="integer" label="N Data Workers" help="Number of data loading workers (default: 0)" value="0" optional="true"/>
-        <param name="gene_col_name" type="text" label="Gene Col Name" help="Column name in AnnData.var containing gene identifiers (default: "ensembl_id")" value="ensembl_id" optional="true"/>
+        <param name="gene_col_name" type="text" label="Gene Col Name" help="Column name in AnnData.var containing gene identifiers (default: 'ensembl_id')" value="ensembl_id" optional="true"/>
         <param name="pretrained_embedding" type="text" label="Pretrained Embedding" help="Path to pretrained embeddings for out-of-distribution species (default: None)"  optional="true"/>
         <param name="filter_to_vocabs" type="boolean" truevalue="true" falsevalue="false" label="Filter To Vocabs" help="Whether to filter genes to only those in the vocabulary (default: True)" checked="true"/>
-        <param name="use_raw" type="text" label="Use Raw" help="Whether to use raw counts from AnnData.raw.X (True), adata.X (False), or auto-detect (None/auto) (default: "None")" value="None" optional="true"/>
-        <param name="emb_type" type="text" label="Emb Type" help="Type of embeddings to extract: 'cell' for mean-pooled cell embeddings or 'cge' for contextual gene embeddings (default: "cell")" value="cell" optional="true"/>
+        <param name="use_raw" type="text" label="Use Raw" help="Whether to use raw counts from AnnData.raw.X (True), adata.X (False), or auto-detect (None/auto) (default: 'None')" value="None" optional="true"/>
+        <param name="emb_type" type="text" label="Emb Type" help="Type of embeddings to extract: 'cell' for mean-pooled cell embeddings or 'cge' for contextual gene embeddings (default: 'cell')" value="cell" optional="true"/>
         <param name="remove_duplicate_genes" type="boolean" truevalue="true" falsevalue="false" label="Remove Duplicate Genes" help="Remove duplicate genes if found instead of raising an error (default: False)" />
         <param name="oom_dataloader" type="boolean" truevalue="true" falsevalue="false" label="Oom Dataloader" help="Use map-style out-of-memory DataLoader (DistributedSampler-friendly) (default: False)" />
     </inputs>
@@ -94,13 +94,13 @@ data_dir : str
 output_filename : str, optional
     Name of the output embeddings file. If None, will use input filename with '_transcriptformer_embeddings' suffix
 model_type : str, optional
-    Type of transcriptformer model to download and use. Options: "tf-sapiens", "tf-exemplar", "tf-metazoa" (default: "tf-sapiens")
+    Type of transcriptformer model to download and use. Options: "tf-sapiens", "tf-exemplar", "tf-metazoa" (default: 'tf-sapiens')
 checkpoint_path : str, optional
     Path to the transcriptformer checkpoint directory. If None, will use "./checkpoints/{model_type}" (default: None)
 batch_size : int, optional
     Batch size for inference (default: 8)
 precision : str, optional
-    Precision for inference. Options: "16-mixed", "32" (default: "16-mixed")
+    Precision for inference. Options: "16-mixed", "32" (default: '16-mixed')
 clip_counts : int, optional
     Maximum count value to clip to (default: 30)
 embedding_layer_index : int, optional
@@ -110,15 +110,15 @@ num_gpus : int, optional
 n_data_workers : int, optional
     Number of data loading workers (default: 0)
 gene_col_name : str, optional
-    Column name in AnnData.var containing gene identifiers (default: "ensembl_id")
+    Column name in AnnData.var containing gene identifiers (default: 'ensembl_id')
 pretrained_embedding : str, optional
     Path to pretrained embeddings for out-of-distribution species (default: None)
 filter_to_vocabs : bool, optional
     Whether to filter genes to only those in the vocabulary (default: True)
 use_raw : str, optional
-    Whether to use raw counts from AnnData.raw.X (True), adata.X (False), or auto-detect (None/auto) (default: "None")
+    Whether to use raw counts from AnnData.raw.X (True), adata.X (False), or auto-detect (None/auto) (default: 'None')
 emb_type : str, optional
-    Type of embeddings to extract: 'cell' for mean-pooled cell embeddings or 'cge' for contextual gene embeddings (default: "cell")
+    Type of embeddings to extract: 'cell' for mean-pooled cell embeddings or 'cge' for contextual gene embeddings (default: 'cell')
 remove_duplicate_genes : bool, optional
     Remove duplicate genes if found instead of raising an error (default: False)
 oom_dataloader : bool, optional

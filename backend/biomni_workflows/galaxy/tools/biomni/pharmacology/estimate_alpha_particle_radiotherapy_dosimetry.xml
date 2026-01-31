@@ -15,7 +15,7 @@ python '$__tool_directory__/estimate_alpha_particle_radiotherapy_dosimetry_wrapp
     <inputs>
         <param name="biodistribution_data" type="text" label="Biodistribution Data" help="Must include entries for all relevant organs including 'tumor'."  />
         <param name="radiation_parameters" type="text" label="Radiation Parameters" help="- 'S_factors': dict - S-factors (Gy/Bq-s) for each source-target organ pair"  />
-        <param name="output_file" type="text" label="Output File" help="Filename to save the dosimetry results (default: "dosimetry_results.csv")" value="dosimetry_results.csv" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Filename to save the dosimetry results (default: 'dosimetry_results.csv')" value="dosimetry_results.csv" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -44,7 +44,7 @@ radiation_parameters : dict
     - 'S_factors': dict - S-factors (Gy/Bq-s) for each source-target organ pair
 
 output_file : str, optional
-    Filename to save the dosimetry results (default: "dosimetry_results.csv")
+    Filename to save the dosimetry results (default: 'dosimetry_results.csv')
 
 Returns
 -------

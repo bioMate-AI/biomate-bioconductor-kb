@@ -18,7 +18,7 @@ python '$__tool_directory__/analyze_bacterial_growth_rate_wrapper.py' --output '
     <inputs>
         <param name="time_points" type="text" label="Time Points" help="Time points at which OD600 measurements were taken (in hours)"  />
         <param name="od_measurements" type="text" label="Od Measurements" help="Optical density (OD600) measurements corresponding to each time point"  />
-        <param name="strain_name" type="text" label="Strain Name" help="Name of the bacterial strain being analyzed, default is "Unknown strain"" value="Unknown strain" optional="true"/>
+        <param name="strain_name" type="text" label="Strain Name" help="Name of the bacterial strain being analyzed, default is 'Unknown strain'" value="Unknown strain" optional="true"/>
         <param name="output_dir" type="text" label="Output Dir" help="Directory where to save the output files, default is current directory" value="./" optional="true"/>
     </inputs>
     <outputs>
@@ -36,7 +36,7 @@ time_points : list or numpy.ndarray
 od_measurements : list or numpy.ndarray
     Optical density (OD600) measurements corresponding to each time point
 strain_name : str, optional
-    Name of the bacterial strain being analyzed, default is "Unknown strain"
+    Name of the bacterial strain being analyzed, default is 'Unknown strain'
 output_dir : str, optional
     Directory where to save the output files, default is current directory
 

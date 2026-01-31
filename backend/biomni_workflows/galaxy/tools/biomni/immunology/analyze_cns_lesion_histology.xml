@@ -16,8 +16,8 @@ python '$__tool_directory__/analyze_cns_lesion_histology_wrapper.py' --output '$
 ]]></command>
     <inputs>
         <param name="image_path" type="text" label="Image Path" help="Path to the microscopy image file of brain or spinal cord tissue section"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./output")" value="./output" optional="true"/>
-        <param name="stain_type" type="text" label="Stain Type" help="Type of histological stain used (default: "H&E", other options: "LFB", "IHC")" value="H&E" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './output')" value="./output" optional="true"/>
+        <param name="stain_type" type="text" label="Stain Type" help="Type of histological stain used (default: 'H&amp;E', other options: 'LFB', 'IHC')" value="H&amp;E" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -33,7 +33,7 @@ Parameters
 image_path : str
     Path to the microscopy image file of brain or spinal cord tissue section
 output_dir : str, optional
-    Directory to save output files (default: "./output")
+    Directory to save output files (default: './output')
 stain_type : str, optional
     Type of histological stain used (default: "H&E", other options: "LFB", "IHC")
 

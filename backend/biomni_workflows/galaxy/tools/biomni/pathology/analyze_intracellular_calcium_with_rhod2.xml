@@ -17,7 +17,7 @@ python '$__tool_directory__/analyze_intracellular_calcium_with_rhod2_wrapper.py'
         <param name="background_image_path" type="text" label="Background Image Path" help="Path to the background image (no cells, just media)"  />
         <param name="control_image_path" type="text" label="Control Image Path" help="Path to the control image (cells without calcium stimulus)"  />
         <param name="sample_image_path" type="text" label="Sample Image Path" help="Path to the sample image (cells with calcium stimulus)"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files, default is "./output"" value="./output" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files, default is './output'" value="./output" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -36,7 +36,7 @@ control_image_path : str
 sample_image_path : str
     Path to the sample image (cells with calcium stimulus)
 output_dir : str, optional
-    Directory to save output files, default is "./output"
+    Directory to save output files, default is './output'
 
 Returns
 -------

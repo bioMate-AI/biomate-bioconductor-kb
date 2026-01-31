@@ -15,7 +15,7 @@ python '$__tool_directory__/create_biochemical_network_sbml_model_wrapper.py' --
     <inputs>
         <param name="reaction_network" type="text" label="Reaction Network" help="- 'reversible': Boolean indicating if reaction is reversible"  />
         <param name="kinetic_parameters" type="text" label="Kinetic Parameters" help="- 'parameters': Dict of parameter names and values"  />
-        <param name="output_file" type="text" label="Output File" help="File path to save the SBML model (default: "biochemical_model.xml")" value="biochemical_model.xml" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="File path to save the SBML model (default: 'biochemical_model.xml')" value="biochemical_model.xml" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -42,7 +42,7 @@ kinetic_parameters : dict
     - 'parameters': Dict of parameter names and values
 
 output_file : str, optional
-    File path to save the SBML model (default: "biochemical_model.xml")
+    File path to save the SBML model (default: 'biochemical_model.xml')
 
 Returns
 -------

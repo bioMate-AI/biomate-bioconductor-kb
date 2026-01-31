@@ -16,8 +16,8 @@ python '$__tool_directory__/identify_fas_functional_domains_wrapper.py' --output
 ]]></command>
     <inputs>
         <param name="sequence" type="text" label="Sequence" help="The nucleotide or protein sequence of a FAS gene"  />
-        <param name="sequence_type" type="text" label="Sequence Type" help="Type of sequence provided - "protein" or "nucleotide" (default: "protein")" value="protein" optional="true"/>
-        <param name="output_file" type="text" label="Output File" help="Name of the output file to save the detailed domain report (default: "fas_domains_report.txt")" value="fas_domains_report.txt" optional="true"/>
+        <param name="sequence_type" type="text" label="Sequence Type" help="Type of sequence provided - 'protein' or 'nucleotide' (default: 'protein')" value="protein" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Name of the output file to save the detailed domain report (default: 'fas_domains_report.txt')" value="fas_domains_report.txt" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -32,9 +32,9 @@ Parameters
 sequence : str
     The nucleotide or protein sequence of a FAS gene
 sequence_type : str
-    Type of sequence provided - "protein" or "nucleotide" (default: "protein")
+    Type of sequence provided - "protein" or "nucleotide" (default: 'protein')
 output_file : str
-    Name of the output file to save the detailed domain report (default: "fas_domains_report.txt")
+    Name of the output file to save the detailed domain report (default: 'fas_domains_report.txt')
 
 Returns
 -------

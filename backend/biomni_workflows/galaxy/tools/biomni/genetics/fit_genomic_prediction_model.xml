@@ -22,7 +22,7 @@ python '$__tool_directory__/fit_genomic_prediction_model_wrapper.py' --output '$
         <param name="genotypes" type="text" label="Genotypes" help="encoding for dominance effects."  />
         <param name="phenotypes" type="text" label="Phenotypes" help="Vector or matrix of phenotype data, with individuals in rows and traits in columns."  />
         <param name="fixed_effects" type="text" label="Fixed Effects" help="and effects in columns."  optional="true"/>
-        <param name="model_type" type="text" label="Model Type" help="Type of genetic model to fit: "additive" or "additive_dominance"." value="additive" optional="true"/>
+        <param name="model_type" type="text" label="Model Type" help="Type of genetic model to fit: 'additive' or 'additive_dominance'." value="additive" optional="true"/>
         <param name="output_file" type="text" label="Output File" help="File name to save the results." value="genomic_prediction_results.csv" optional="true"/>
     </inputs>
     <outputs>

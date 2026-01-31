@@ -15,7 +15,7 @@ python '$__tool_directory__/analyze_chromatin_interactions_wrapper.py' --output 
     <inputs>
         <param name="hic_file_path" type="text" label="Hic File Path" help="Path to the Hi-C data file (.cool or .hic format)"  />
         <param name="regulatory_elements_bed" type="text" label="Regulatory Elements Bed" help="(enhancers, promoters, CTCF sites, etc.)"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./output")" value="./output" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './output')" value="./output" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -33,7 +33,7 @@ regulatory_elements_bed : str
     Path to BED file containing genomic coordinates of regulatory elements
     (enhancers, promoters, CTCF sites, etc.)
 output_dir : str
-    Directory to save output files (default: "./output")
+    Directory to save output files (default: './output')
 
 Returns
 -------

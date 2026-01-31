@@ -21,7 +21,7 @@ python '$__tool_directory__/analyze_xenograft_tumor_growth_inhibition_wrapper.py
         <param name="volume_column" type="text" label="Volume Column" help="Name of the column containing tumor volume measurements"  />
         <param name="group_column" type="text" label="Group Column" help="Name of the column containing treatment group labels"  />
         <param name="subject_column" type="text" label="Subject Column" help="Name of the column containing subject/mouse identifiers"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./results")" value="./results" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './results')" value="./results" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -45,7 +45,7 @@ group_column : str
 subject_column : str
     Name of the column containing subject/mouse identifiers
 output_dir : str, optional
-    Directory to save output files (default: "./results")
+    Directory to save output files (default: './results')
 
 Returns
 -------

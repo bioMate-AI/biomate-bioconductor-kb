@@ -19,7 +19,7 @@ python '$__tool_directory__/simulate_generalized_lotka_volterra_dynamics_wrapper
         <param name="growth_rates" type="text" label="Growth Rates" help="Intrinsic growth rates for each microbial species (1D array)"  />
         <param name="interaction_matrix" type="text" label="Interaction Matrix" help="Matrix of interaction coefficients where A[i,j] represents the effect of species j on species i (2D array)"  />
         <param name="time_points" type="text" label="Time Points" help="Time points at which to evaluate the model"  />
-        <param name="output_file" type="text" label="Output File" help="Filename to save the simulation results (default: "glv_simulation_results.csv")" value="glv_simulation_results.csv" optional="true"/>
+        <param name="output_file" type="text" label="Output File" help="Filename to save the simulation results (default: 'glv_simulation_results.csv')" value="glv_simulation_results.csv" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -40,7 +40,7 @@ interaction_matrix : numpy.ndarray
 time_points : numpy.ndarray
     Time points at which to evaluate the model
 output_file : str, optional
-    Filename to save the simulation results (default: "glv_simulation_results.csv")
+    Filename to save the simulation results (default: 'glv_simulation_results.csv')
 
 Returns
 -------

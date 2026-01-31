@@ -18,8 +18,8 @@ python '$__tool_directory__/analyze_protein_colocalization_wrapper.py' --output 
     <inputs>
         <param name="channel1_path" type="text" label="Channel1 Path" help="Path to the first channel image file (fluorescent protein 1)"  />
         <param name="channel2_path" type="text" label="Channel2 Path" help="Path to the second channel image file (fluorescent protein 2)"  />
-        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: "./output")" value="./output" optional="true"/>
-        <param name="threshold_method" type="text" label="Threshold Method" help="Method for thresholding images ('otsu', 'li', or 'yen') (default: "otsu")" value="otsu" optional="true"/>
+        <param name="output_dir" type="text" label="Output Dir" help="Directory to save output files (default: './output')" value="./output" optional="true"/>
+        <param name="threshold_method" type="text" label="Threshold Method" help="Method for thresholding images ('otsu', 'li', or 'yen') (default: 'otsu')" value="otsu" optional="true"/>
     </inputs>
     <outputs>
         <data name="output" format="txt" label="${tool.name} on ${on_string}"/>
@@ -36,9 +36,9 @@ channel1_path : str
 channel2_path : str
     Path to the second channel image file (fluorescent protein 2)
 output_dir : str
-    Directory to save output files (default: "./output")
+    Directory to save output files (default: './output')
 threshold_method : str
-    Method for thresholding images ('otsu', 'li', or 'yen') (default: "otsu")
+    Method for thresholding images ('otsu', 'li', or 'yen') (default: 'otsu')
 
 Returns
 -------
