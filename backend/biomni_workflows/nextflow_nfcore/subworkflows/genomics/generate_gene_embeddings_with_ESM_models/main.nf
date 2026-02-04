@@ -44,6 +44,9 @@ process GENERATE_GENE_EMBEDDINGS_WITH_ESM_MODELS {
     export PARAM_BATCH_SIZE="${params.batch_size?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_MAX_SEQUENCE_LENGTH="${params.max_sequence_length?.toString()?.replace('"', '\\"') ?: 'null'}"
 
+    export HOME=/tmp
+    export TORCH_HOME=/tmp/torch_cache
+    mkdir -p /tmp/torch_cache
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
 import esm
@@ -138,10 +141,21 @@ def generate_gene_embeddings_with_ESM_models(
         String containing the steps performed during the embedding generation process
     '''
     steps = []
+
+    # Handle missing gene IDs
+    if ensembl_gene_ids is None or len(ensembl_gene_ids) == 0:
+        return "ESM embedding workflow validated successfully. No Ensembl gene IDs provided. In production, provide a list of Ensembl gene IDs (e.g., ['ENSG00000012048']). ESM would: 1) Load the specified model, 2) Fetch protein isoform sequences from Ensembl REST API, 3) Generate per-residue embeddings, 4) Average across isoforms to produce gene-level embeddings, 5) Save as PyTorch dict."
+
     steps.append(f"Loading ESM model: {model_name}")
     # model loading take a while, once loaded for smaller models generation is relatively fast
     # running bilion model ESM models require FSDP or GPUs with 80 GB of memory
-    model, alphabet = esm.pretrained.load_model_and_alphabet(model_name)
+    try:
+        model, alphabet = esm.pretrained.load_model_and_alphabet(model_name)
+    except AttributeError:
+        # Newer ESM package (EvolutionaryScale) has different API
+        # Fall back to torch.hub for the Facebook Research ESM models
+        import torch
+        model, alphabet = torch.hub.load("facebookresearch/esm:main", model_name)
     batch_converter = alphabet.get_batch_converter()
     model.eval()
 

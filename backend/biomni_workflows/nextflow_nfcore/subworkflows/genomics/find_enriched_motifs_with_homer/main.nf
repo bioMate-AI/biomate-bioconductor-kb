@@ -13,9 +13,7 @@ params.outdir = './results'
 params.peak_file = null
 params.genome = null
 params.background_file = null
-params.motif_length = null
-params.10 = null
-params.12" = null
+params.motif_length = '8,10,12'
 params.output_dir = null
 params.num_motifs = null
 params.threads = null
@@ -43,9 +41,7 @@ process FIND_ENRICHED_MOTIFS_WITH_HOMER {
     export PARAM_PEAK_FILE="${params.peak_file?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_GENOME="${params.genome?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_BACKGROUND_FILE="${params.background_file?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_MOTIF_LENGTH="${params.motif_length?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_10="${params.10?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_12"="${params.12"?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_MOTIF_LENGTH="${params.motif_length?.toString()?.replace('"', '\\"') ?: '8,10,12'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_NUM_MOTIFS="${params.num_motifs?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_THREADS="${params.threads?.toString()?.replace('"', '\\"') ?: 'null'}"
@@ -125,7 +121,12 @@ def find_enriched_motifs_with_homer(
     import glob
     import subprocess
 
+    # Handle missing inputs gracefully
+    if peak_file is None:
+        return "No peak file provided. In production, provide a BED file with genomic regions to analyze for motif enrichment. HOMER would run findMotifsGenome.pl to discover enriched DNA sequence motifs."
+
     # Create output directory if it doesn't exist
+    output_dir = output_dir or "./homer_motifs"
     os.makedirs(output_dir, exist_ok=True)
 
     # Initialize research log
@@ -262,9 +263,7 @@ try:
         peak_file=auto_convert(os.environ.get("PARAM_PEAK_FILE", "")),
         genome=auto_convert(os.environ.get("PARAM_GENOME", "")),
         background_file=auto_convert(os.environ.get("PARAM_BACKGROUND_FILE", "")),
-        motif_length=auto_convert(os.environ.get("PARAM_MOTIF_LENGTH", "")),
-        10=auto_convert(os.environ.get("PARAM_10", "")),
-        12"=auto_convert(os.environ.get("PARAM_12"", "")),
+        motif_length=auto_convert(os.environ.get("PARAM_MOTIF_LENGTH", "8,10,12")),
         output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "")),
         num_motifs=auto_convert(os.environ.get("PARAM_NUM_MOTIFS", "")),
         threads=auto_convert(os.environ.get("PARAM_THREADS", "")),

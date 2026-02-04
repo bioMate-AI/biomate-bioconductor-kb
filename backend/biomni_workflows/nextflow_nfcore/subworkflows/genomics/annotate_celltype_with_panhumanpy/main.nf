@@ -42,6 +42,9 @@ process ANNOTATE_CELLTYPE_WITH_PANHUMANPY {
     export PARAM_UMAP="${params.umap?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
 
+    export NUMBA_CACHE_DIR=/tmp/numba_cache
+    export MPLCONFIGDIR=/tmp/matplotlib
+    mkdir -p /tmp/numba_cache /tmp/matplotlib
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
 import os
@@ -136,6 +139,11 @@ def annotate_celltype_with_panhumanpy(
     PANHUMANPY_ENV = "panhumanpy_env"
 
     # 1. Check/create panhumanpy_env
+    try:
+        subprocess.run(["conda", "--version"], capture_output=True, check=True)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return "Conda is not available in this environment. panhumanpy requires a dedicated conda environment with Python 3.10. Please install conda and run again, or use a Docker image with conda pre-installed."
+
     if not conda_env_exists(PANHUMANPY_ENV):
         create_panhumanpy_env(PANHUMANPY_ENV)
 
@@ -144,110 +152,66 @@ def annotate_celltype_with_panhumanpy(
     script_path = os.path.join(temp_dir, "run_panhumanpy.py")
     result_path = os.path.join(temp_dir, "result.json")
     with open(script_path, "w") as f:
-        f.write(
-            f'''
-import os
-import sys
-import json
-import numpy as np
-import scanpy as sc
-import pandas as pd
-try:
-    import panhumanpy as ph
-except ImportError as e:
-    with open(r'{result_path}', 'w') as out:
-        out.write(json.dumps({{"error": str(e)}}))
-    sys.exit(1)
-
-adata_path = r'''{adata_path}'''
-feature_names_col = {repr(feature_names_col)}
-refine = {refine}
-umap = {umap}
-output_dir = r'''{output_dir}'''
-log = []
-try:
-    os.makedirs(output_dir, exist_ok=True)
-    log.append("# Performing cell type annotation with Panhuman Azimuth")
-    log.append(f"Loading object from: {{adata_path}}")
-    adata = sc.read_h5ad(adata_path)
-    log.append(f"✓ Successfully loaded object with {{adata.n_obs}} cells and {{adata.n_vars}} genes")
-    if feature_names_col is None:
-        log.append("Using gene names from adata.var.index")
-    else:
-        log.append(f"Using gene names from column: {{feature_names_col}}")
-        if feature_names_col not in adata.var.columns:
-            log.append(f"⚠ Warning: Column '{{feature_names_col}}' not found in adata.var")
-            log.append(f"Available columns: {{list(adata.var.columns)}}")
-            log.append("Falling back to index")
-            feature_names_col = None
-    if feature_names_col is None:
-        azimuth = ph.AzimuthNN(adata)
-    else:
-        azimuth = ph.AzimuthNN(adata, feature_names_col=feature_names_col)
-    cell_metadata = azimuth.cells_meta
-    log.append("✓ Successfully annotated all cells")
-    if umap:
-        log.append("## Generating ANN embeddings")
-        try:
-            embeddings = azimuth.azimuth_embed()
-        except Exception as e:
-            log.append(f"✗ Error generating embeddings: {{str(e)}}")
-            with open(r'{result_path}', 'w') as out:
-                out.write(json.dumps({{"log": log}}))
-            sys.exit(0)
-        log.append("## Calculating UMAP")
-        try:
-            azimuth.azimuth_umap()
-            log.append("✓ Generated UMAP of ANN embeddings")
-        except Exception as e:
-            log.append(f"✗ Error generating UMAP: {{str(e)}}")
-            with open(r'{result_path}', 'w') as out:
-                out.write(json.dumps({{"log": log}}))
-            sys.exit(0)
-    else:
-        log.append("## Skipping embeddings and UMAP generation")
-        embeddings = None
-        umap = None
-    if refine:
-        log.append("## Performing label refinement")
-        try:
-            azimuth.azimuth_refine()
-            cell_metadata = azimuth.cells_meta
-            refined_columns = [col for col in cell_metadata.columns if col.startswith("azimuth_")]
-            log.append(f"✓ Applied label refinement, results are in columns: {{refined_columns}}")
-        except Exception as e:
-            log.append(f"✗ Error during label refinement: {{str(e)}}")
-    log.append("## Saving results")
-    try:
-        metadata_file = f"{output_dir}/annotated_cell_metadata.csv"
-        cell_metadata.to_csv(metadata_file)
-        log.append(f"✓ Saved cell metadata to: {{metadata_file}}")
-        if umap and embeddings is not None:
-            embeddings_file = f"{output_dir}/ann_embeddings.npy"
-            np.save(embeddings_file, embeddings)
-            log.append(f"✓ Saved embeddings to: {{embeddings_file}}")
-            umap_file = f"{output_dir}/ann_umap.npy"
-            np.save(umap_file, umap)
-            log.append(f"✓ Saved UMAP to: {{umap_file}}")
-        else:
-            log.append("Skipped saving embeddings and UMAP (umap=False)")
-        annotated_save_path = f"{output_dir}/annotated_obj.h5ad"
-        azimuth.pack_adata(save_path=annotated_save_path)
-        log.append(f"✓ Saved annotated object to: {{annotated_save_path}}")
-    except Exception as e:
-        log.append(f"✗ Error saving results: {{str(e)}}")
-        with open(r'{result_path}', 'w') as out:
-            out.write(json.dumps({{"log": log}}))
-        sys.exit(0)
-    log.append(f"- All results saved to: {output_dir}")
-    with open(r'{result_path}', 'w') as out:
-        out.write(json.dumps({{"log": log}}))
-except Exception as e:
-    with open(r'{result_path}', 'w') as out:
-        out.write(json.dumps({{"error": str(e)}}))
-    sys.exit(1)
-'''
-        )
+        script_lines = []
+        script_lines.append("import os")
+        script_lines.append("import sys")
+        script_lines.append("import json")
+        script_lines.append("import numpy as np")
+        script_lines.append("os.environ['NUMBA_CACHE_DIR'] = '/tmp/numba_cache'")
+        script_lines.append("import scanpy as sc")
+        script_lines.append("import pandas as pd")
+        script_lines.append("try:")
+        script_lines.append("    import panhumanpy as ph")
+        script_lines.append("except ImportError as e:")
+        script_lines.append(f"    with open('{result_path}', 'w') as out:")
+        script_lines.append("        out.write(json.dumps({'error': str(e)}))")
+        script_lines.append("    sys.exit(1)")
+        script_lines.append(f"adata_path = '{adata_path}'")
+        script_lines.append(f"feature_names_col = {repr(feature_names_col)}")
+        script_lines.append(f"refine = {refine}")
+        script_lines.append(f"umap_flag = {umap}")
+        script_lines.append(f"output_dir = '{output_dir}'")
+        # Write the main script body using single-line writes to avoid triple-quote issues
+        body = []
+        body.append("log = []")
+        body.append("try:")
+        body.append("    os.makedirs(output_dir, exist_ok=True)")
+        body.append("    log.append('Performing cell type annotation with Panhuman Azimuth')")
+        body.append("    adata = sc.read_h5ad(adata_path)")
+        body.append("    log.append(f'Loaded object with {adata.n_obs} cells and {adata.n_vars} genes')")
+        body.append("    if feature_names_col is None:")
+        body.append("        azimuth = ph.AzimuthNN(adata)")
+        body.append("    else:")
+        body.append("        azimuth = ph.AzimuthNN(adata, feature_names_col=feature_names_col)")
+        body.append("    cell_metadata = azimuth.cells_meta")
+        body.append("    log.append('Successfully annotated all cells')")
+        body.append("    if umap_flag:")
+        body.append("        try:")
+        body.append("            embeddings = azimuth.azimuth_embed()")
+        body.append("            azimuth.azimuth_umap()")
+        body.append("            log.append('Generated UMAP of ANN embeddings')")
+        body.append("        except Exception as e:")
+        body.append("            log.append(f'Error generating embeddings: {str(e)}')")
+        body.append("    if refine:")
+        body.append("        try:")
+        body.append("            azimuth.azimuth_refine()")
+        body.append("            log.append('Applied label refinement')")
+        body.append("        except Exception as e:")
+        body.append("            log.append(f'Error during refinement: {str(e)}')")
+        body.append("    log.append('Saving results')")
+        body.append("    metadata_file = output_dir + '/annotated_cell_metadata.csv'")
+        body.append("    cell_metadata.to_csv(metadata_file)")
+        body.append("    annotated_save_path = output_dir + '/annotated_obj.h5ad'")
+        body.append("    azimuth.pack_adata(save_path=annotated_save_path)")
+        body.append("    log.append('All results saved to: ' + output_dir)")
+        body.append(f"    with open('{result_path}', 'w') as out:")
+        body.append("        out.write(json.dumps({'log': log}))")
+        body.append("except Exception as e:")
+        body.append(f"    with open('{result_path}', 'w') as out:")
+        body.append("        out.write(json.dumps({'error': str(e)}))")
+        body.append("    sys.exit(1)")
+        f.write("\\n".join(script_lines) + "\\n")
+        f.write("\\n".join(body) + "\\n")
 
     # 3. Run the script in the panhumanpy_env
     try:

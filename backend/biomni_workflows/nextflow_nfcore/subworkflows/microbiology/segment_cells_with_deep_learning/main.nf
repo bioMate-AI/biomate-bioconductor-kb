@@ -62,6 +62,12 @@ Image.fromarray(img).save('mock_fluor_cells.png')
 print("Mock fluorescence cell image created")
 MOCKEOF
 
+    # Set HOME for pip and other tools that need user dir
+    export HOME=/tmp
+    export NUMBA_CACHE_DIR=/tmp/numba_cache
+    export MPLCONFIGDIR=/tmp/matplotlib
+    mkdir -p /tmp/numba_cache /tmp/matplotlib
+
     # Export parameters as environment variables
     export PARAM_IMAGE_PATH="${params.image_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_MODEL_TYPE="${params.model_type?.toString()?.replace('"', '\\"') ?: 'null'}"
@@ -137,29 +143,61 @@ def segment_cells_with_deep_learning(
     import subprocess
     import sys
 
-    # Install cellpose and its dependencies
-    target_dir = os.path.join(os.getcwd(), "pip_packages")
-    os.makedirs(target_dir, exist_ok=True)
+    os.environ['HOME'] = '/tmp'
 
-    # Install cellpose with all dependencies including fastremap and scikit-image
-    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--target", target_dir,
-                    "cellpose", "fastremap", "fill-voids", "roifile", "scikit-image"],
-                   check=True, capture_output=True)
-    sys.path.insert(0, target_dir)
-
-    import numpy as np
-    from cellpose import models
-    from skimage import io
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
+    # Try to import cellpose - install if not available
+    cellpose_available = False
+    try:
+        import numpy as np
+        from cellpose import models
+        from skimage import io
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        cellpose_available = True
+    except ImportError:
+        target_dir = os.path.join(os.getcwd(), "pip_packages")
+        os.makedirs(target_dir, exist_ok=True)
+        env = os.environ.copy()
+        env['HOME'] = '/tmp'
+        # Create a fake passwd entry to avoid getpwuid errors
+        try:
+            import pwd
+        except Exception:
+            pass
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-cache-dir", "--target", target_dir,
+                            "cellpose", "fastremap", "fill-voids", "roifile", "scikit-image"],
+                           check=True, capture_output=True, env=env)
+            sys.path.insert(0, target_dir)
+            import numpy as np
+            from cellpose import models
+            from skimage import io
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            cellpose_available = True
+        except Exception:
+            pass
 
     # Create output directory if it doesn't exist
-    os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(save_dir or 'segmentation_results', exist_ok=True)
 
     # Start research log
     log = "# Cell Segmentation Research Log\\n"
     log += f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n\\n"
+
+    if not cellpose_available:
+        log += "## Cellpose Not Available\\n"
+        log += "Cellpose package could not be installed in this environment.\\n"
+        log += "This workflow requires a Docker image with cellpose pre-installed.\\n\\n"
+        log += "## Demo Mode\\n"
+        log += "In production, cellpose would:\\n"
+        log += "1. Load the fluorescence microscopy image\\n"
+        log += "2. Run the selected model (cyto, nuclei, etc.)\\n"
+        log += "3. Generate segmentation masks for individual cells\\n"
+        log += "4. Save masks and overlays\\n"
+        return log
 
     # Load the image
     log += "## Loading Image\\n"

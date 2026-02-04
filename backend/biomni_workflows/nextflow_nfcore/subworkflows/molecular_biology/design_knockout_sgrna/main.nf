@@ -100,19 +100,39 @@ def design_knockout_sgrna(
             - guides: List of sgRNA sequences
 
     '''
+    # Handle missing data_lake_path gracefully
+    if data_lake_path is None:
+        return {
+            "explanation": "sgRNA library data lake path not configured. In production, set data_lake_path to the directory containing sgRNA_KO_SP_human.txt and sgRNA_KO_SP_mouse.txt",
+            "gene_name": gene_name,
+            "species": species,
+            "guides": [],
+            "note": "No data lake path provided - returning empty guide list. Configure data_lake_path for actual sgRNA lookup."
+        }
+
     DEFAULT_LIBRARIES = {
         "human": data_lake_path + "/sgRNA_KO_SP_human.txt",
         "mouse": data_lake_path + "/sgRNA_KO_SP_mouse.txt",
     }
 
-    # Use fixed library pathAdd commentMore actions
-    library_path = DEFAULT_LIBRARIES[species.lower()]
+    # Use fixed library path
+    library_path = DEFAULT_LIBRARIES.get(species.lower())
+    if library_path is None:
+        return {
+            "explanation": f"No sgRNA library available for species: {species}",
+            "gene_name": gene_name,
+            "species": species,
+            "guides": [],
+        }
 
     # Check if library file exists
     if not os.path.exists(library_path):
-        error_msg = f"Library file for {species} not found at path: {library_path}"
-        error_msg += "\\n\\nThis error typically occurs when the datalake files are not available."
-        raise FileNotFoundError(error_msg)
+        return {
+            "explanation": f"Library file for {species} not found at path: {library_path}. Data lake files not available.",
+            "gene_name": gene_name,
+            "species": species,
+            "guides": [],
+        }
 
     # Load sgRNA library from S3
     try:

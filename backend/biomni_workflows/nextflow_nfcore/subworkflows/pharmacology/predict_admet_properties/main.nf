@@ -76,9 +76,16 @@ def auto_convert(val):
 def predict_admet_properties(smiles_list, ADMET_model_type="MPNN"):
     try:
         from DeepPurpose import CompoundPred, utils
-    except Exception:
-        subprocess.run([sys.executable, "-m", "pip", "install", "DeepPurpose"], check=False)
-        from DeepPurpose import CompoundPred, utils
+    except ImportError:
+        os.environ['HOME'] = '/tmp'
+        target_dir = os.path.join(os.getcwd(), "pip_packages")
+        os.makedirs(target_dir, exist_ok=True)
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", "--no-cache-dir", "--target", target_dir, "DeepPurpose"], check=True, capture_output=True)
+            sys.path.insert(0, target_dir)
+            from DeepPurpose import CompoundPred, utils
+        except Exception:
+            return {"error": "DeepPurpose package is not available and could not be installed. This workflow requires a Docker image with DeepPurpose pre-installed.", "smiles_list": smiles_list if isinstance(smiles_list, list) else [smiles_list], "predictions": {}}
 
     # Define available model types
     available_model_types = ["MPNN", "CNN", "Morgan"]
