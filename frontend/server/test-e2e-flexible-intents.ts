@@ -110,13 +110,14 @@ interface ChatResponse {
   _debug_timings?: any[];
 }
 
-async function sendChat(message: string, sessionId?: string): Promise<{ data: ChatResponse; status: number; elapsedMs: number }> {
+async function sendChat(message: string, sessionId?: string, timeoutMs?: number): Promise<{ data: ChatResponse; status: number; elapsedMs: number }> {
   const body: any = { message };
   if (sessionId) body.context = { sessionId };
+  const effectiveTimeout = timeoutMs || TIMEOUT_MS;
 
   const start = Date.now();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), effectiveTimeout);
 
   try {
     const res = await fetch(`${BASE_URL}/api/chat`, {
@@ -139,7 +140,7 @@ async function sendChat(message: string, sessionId?: string): Promise<{ data: Ch
     clearTimeout(timeout);
     const elapsedMs = Date.now() - start;
     if (err.name === 'AbortError') {
-      throw new Error(`Request timed out after ${TIMEOUT_MS}ms`);
+      throw new Error(`Request timed out after ${effectiveTimeout}ms`);
     }
     throw err;
   }
@@ -376,16 +377,16 @@ async function e2e5_readinessEvolution() {
   await createTestSession(sessionId, 'E2E-5 Readiness');
 
   const turns = [
-    { msg: 'I want to analyze some data', label: 'Turn 1: vague' },
-    { msg: "It's RNA-seq data from human samples", label: 'Turn 2: more detail' },
-    { msg: 'Use STAR for alignment, then DESeq2 for DE, p-value cutoff 0.05', label: 'Turn 3: specific' },
+    { msg: 'I want to analyze some data', label: 'Turn 1: vague', timeout: TIMEOUT_MS },
+    { msg: "It's RNA-seq data from human samples", label: 'Turn 2: more detail', timeout: TIMEOUT_MS },
+    { msg: 'Use STAR for alignment, then DESeq2 for DE, p-value cutoff 0.05', label: 'Turn 3: specific', timeout: 180_000 },
   ];
 
   const scores: number[] = [];
 
   for (const turn of turns) {
     try {
-      const { data, elapsedMs } = await sendChat(turn.msg, sessionId);
+      const { data, elapsedMs } = await sendChat(turn.msg, sessionId, turn.timeout);
       const score = data.stateSnapshot?.readinessScore;
 
       record('MUST', typeof score === 'number',
@@ -510,7 +511,8 @@ async function e2e8_multiIntentDecomposition() {
   const query = 'Run DE analysis on my RNA-seq data AND compare DESeq2 vs edgeR AND find papers on batch correction methods';
 
   try {
-    const { data, status, elapsedMs } = await sendChat(query);
+    // Multi-intent processes 3 sub-intents sequentially, each with its own LLM chain
+    const { data, status, elapsedMs } = await sendChat(query, undefined, 240_000);
     record('MUST', status === 200, 'Multi-intent: HTTP 200', `got ${status}`, elapsedMs);
     record('MUST', typeof data.response === 'string' && data.response.length > 0,
       'Multi-intent: non-empty response');

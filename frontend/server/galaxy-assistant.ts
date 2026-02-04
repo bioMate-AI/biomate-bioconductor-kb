@@ -1353,8 +1353,8 @@ Respond in JSON format:
     intent: any,
     recommendedTools: ToolRecommendation[]
   ): Promise<WorkflowSuggestion> {
-    // The LLM intent classifier is the source of truth for task type
-    const hasWorkflowIntent = intent.type === 'workflow_generation';
+    // Use action flags (not hardcoded type) to decide if workflow generation is needed
+    const hasWorkflowIntent = intent.actions?.needsWorkflowGeneration || intent.type === 'workflow_generation';
 
     // Allow single-tool workflows (e.g., reverse complement is one tool)
     const hasEnoughTools = recommendedTools.length >= 1;
@@ -1367,7 +1367,7 @@ Respond in JSON format:
         ? hasEnoughTools
           ? `Workflow intent detected with ${recommendedTools.length} tool(s) found`
           : 'Workflow intent detected but no matching tools found — will suggest tools'
-        : `Intent type is "${intent.type}", not workflow_generation`,
+        : `Intent type is "${intent.type}", no workflow generation needed`,
     };
   }
 
