@@ -123,6 +123,10 @@ export interface ChatContext {
   currentWorkflow?: any;
   selectedDatasets?: string[];
   userId?: number; // For fetching user patterns
+  /** Accumulated facts from prior turns, passed so the LLM can decide supersession */
+  accumulatedFacts?: Array<{ id: string; category: string; value: string }>;
+  /** Current conversation turn number */
+  turnIndex?: number;
 }
 
 export interface ToolRecommendation {
@@ -144,9 +148,129 @@ export interface WorkflowSuggestion {
   reasoning: string;
 }
 
+export interface ExtractedFact {
+  id: string;
+  category: 'sequence' | 'gene' | 'organism' | 'data_type' | 'parameter' | 'file_reference' | 'tool_preference' | 'domain' | 'analysis_goal' | 'other';
+  value: string;
+  source: { type: 'user_message' | 'clarification_response' | 'inferred'; turnIndex: number };
+  confidence: number;
+  /** ID of an existing fact that this new fact replaces (LLM-determined) */
+  supersedes?: string;
+  supersededBy?: string;
+}
+
+// ============================================================================
+// Multi-Intent Decomposition Types
+// ============================================================================
+
+export type IntentType =
+  | 'workflow_generation'
+  | 'research_question'
+  | 'tool_search'
+  | 'result_comparison'
+  | 'benchmark_query'
+  | 'dataset_inquiry'
+  | 'general_question'
+  | 'workflow_modification';
+
+export interface ActionCategories {
+  needsToolSearch: boolean;
+  needsWorkflowGeneration: boolean;
+  needsWorkflowModification: boolean;
+  needsResearchAgent: boolean;
+  needsBenchmarkAgent: boolean;
+  needsDatasetAccess: boolean;
+  needsLLMReasoning: boolean;
+}
+
+/**
+ * Infer action categories from a type string. Known types get established
+ * mappings; unknown types default to LLM reasoning only.
+ */
+export function inferActionsFromType(type: string): ActionCategories {
+  const defaults: Record<string, Partial<ActionCategories>> = {
+    'workflow_generation': { needsToolSearch: true, needsWorkflowGeneration: true, needsLLMReasoning: true },
+    'research_question': { needsResearchAgent: true, needsLLMReasoning: true },
+    'result_comparison': { needsToolSearch: true, needsBenchmarkAgent: true, needsLLMReasoning: true },
+    'benchmark_query': { needsBenchmarkAgent: true, needsLLMReasoning: true },
+    'tool_search': { needsToolSearch: true, needsLLMReasoning: true },
+    'dataset_inquiry': { needsDatasetAccess: true, needsLLMReasoning: true },
+    'general_question': { needsLLMReasoning: true },
+    'workflow_modification': { needsToolSearch: true, needsWorkflowModification: true, needsLLMReasoning: true },
+    // Novel information need types from flexible intent brainstorm
+    'troubleshooting': { needsResearchAgent: true, needsToolSearch: true, needsLLMReasoning: true },
+    'experiment_design': { needsResearchAgent: true, needsLLMReasoning: true },
+    'data_interpretation': { needsResearchAgent: true, needsLLMReasoning: true },
+    'protocol_guidance': { needsResearchAgent: true, needsLLMReasoning: true },
+    'parameter_optimization': { needsBenchmarkAgent: true, needsResearchAgent: true, needsToolSearch: true, needsLLMReasoning: true },
+    'data_format_conversion': { needsToolSearch: true, needsWorkflowGeneration: true, needsLLMReasoning: true },
+    'external_db_retrieval': { needsToolSearch: true, needsWorkflowGeneration: true, needsLLMReasoning: true },
+    'teaching_explanation': { needsLLMReasoning: true },
+    'methods_writing': { needsResearchAgent: true, needsLLMReasoning: true },
+    'visualization': { needsToolSearch: true, needsWorkflowGeneration: true, needsLLMReasoning: true },
+    'comparative_methodology': { needsResearchAgent: true, needsBenchmarkAgent: true, needsLLMReasoning: true },
+    'regulatory_compliance': { needsResearchAgent: true, needsLLMReasoning: true },
+    'cost_estimation': { needsBenchmarkAgent: true, needsLLMReasoning: true },
+    'multi_step_procedure': { needsToolSearch: true, needsWorkflowGeneration: true, needsLLMReasoning: true },
+  };
+  return {
+    needsToolSearch: false,
+    needsWorkflowGeneration: false,
+    needsWorkflowModification: false,
+    needsResearchAgent: false,
+    needsBenchmarkAgent: false,
+    needsDatasetAccess: false,
+    needsLLMReasoning: true,
+    ...defaults[type],
+  };
+}
+
+export interface DecomposedIntent {
+  id: string;
+  type: string; // Open-vocabulary: 'workflow_generation', 'troubleshooting', etc.
+  subQuery: string;
+  keywords: string[];
+  inlineParameters: Record<string, string>;
+  needsToolSearch: boolean;
+  needsDatasets: boolean;
+  confidence: number;
+  facts: Array<{ category: string; value: string; confidence: number; supersedes?: string }>;
+  dependsOn: string[];
+  actions: ActionCategories; // Which backend agents to invoke
+}
+
+export interface IntentDecomposition {
+  intents: DecomposedIntent[];
+  isMultiIntent: boolean;
+  primaryIntent: DecomposedIntent;
+}
+
+export interface SubIntentResult {
+  intentId: string;
+  intentType: string;
+  subQuery: string;
+  message?: string;
+  recommendedTools?: ToolRecommendation[];
+  generatedWorkflow?: any;
+  researchResponse?: any;
+  benchmarkEvidence?: any;
+  status: 'success' | 'error';
+  error?: string;
+}
+
 export interface GalaxyAssistantResponse {
   // Natural language response
   message: string;
+
+  // Classified intent type (aligned with backend ai_assistant.py)
+  intentType?: string;
+  intentConfidence?: number;
+
+  // Extracted inline parameters from user message
+  inlineParameters?: Record<string, string>;
+
+  // Extracted typed facts from user message (for ConversationState)
+  extractedFacts?: ExtractedFact[];
 
   // Tool recommendations
   recommendedTools?: ToolRecommendation[];
@@ -166,6 +290,14 @@ export interface GalaxyAssistantResponse {
   // Thinking mode support
   thinking_content?: string;
   thinking_level?: 'none' | 'brief' | 'detailed';
+
+  // Multi-intent results (populated when message contains multiple distinct tasks)
+  subIntentResults?: SubIntentResult[];
+  isMultiIntent?: boolean;
+
+  // Research and benchmark results (populated for research/benchmark intents)
+  researchResponse?: any;
+  benchmarkEvidence?: any;
 
   // Metadata
   sources: {
@@ -201,6 +333,12 @@ export class GalaxyAssistant {
 
   /**
    * Main entry point: Process user message with full Galaxy intelligence
+   *
+   * For single-intent messages (the common case), the pipeline is unchanged:
+   *   analyzeIntent → parallel search → workflowNeed → generateWorkflow → generateResponse
+   *
+   * For multi-intent messages, a fan-out processes each intent independently:
+   *   analyzeIntent → parallel search (union keywords) → Promise.all(processSubIntent) → generateResponse
    */
   async processMessage(
     message: string,
@@ -211,13 +349,19 @@ export class GalaxyAssistant {
 
     log('Processing message: ' + message.substring(0, 50));
 
-    // Step 1: Analyze user intent with NLU
+    // Step 1: Analyze user intent with NLU (now supports multi-intent)
     log('Step 1: Analyzing intent');
-    const intent = await this.analyzeIntent(message, context);
-    log('Step 1 complete - Intent: ' + intent.type);
+    const decomposition = await this.analyzeIntent(message, context);
+    const intent = decomposition.primaryIntent;
+    log(`Step 1 complete - Intent: ${intent.type}, isMultiIntent: ${decomposition.isMultiIntent}, intents: ${decomposition.intents.length}`);
 
+    // Multi-intent path: fan out to processSubIntent for each intent
+    if (decomposition.isMultiIntent) {
+      return this.processMultiIntent(decomposition, message, context, startTime);
+    }
+
+    // Single-intent path: unchanged from original pipeline
     // Steps 2 & 3: Search for tools and datasets IN PARALLEL
-    // These are independent operations that can run concurrently
     let recommendedTools: ToolRecommendation[] = [];
     let recommendedDatasets: DatasetRecommendation[] = [];
     let toolSearchUsed = false;
@@ -225,7 +369,8 @@ export class GalaxyAssistant {
 
     const searchPromises: Promise<void>[] = [];
 
-    if (intent.needsToolSearch) {
+    // Search tools when action flags indicate it
+    if (intent.actions.needsToolSearch) {
       searchPromises.push(
         this.searchRelevantTools(message, intent.keywords, context.userId)
           .then(tools => {
@@ -236,7 +381,8 @@ export class GalaxyAssistant {
       );
     }
 
-    if (intent.needsDatasets) {
+    // Search datasets when action flags indicate it or legacy flag is set
+    if (intent.actions.needsDatasetAccess || intent.needsDatasets) {
       searchPromises.push(
         this.searchRelevantDatasets(message, intent.keywords)
           .then(datasets => {
@@ -255,32 +401,78 @@ export class GalaxyAssistant {
     }
 
     // Step 4: Determine if workflow generation is needed
-    log('Step 4: Analyzing workflow need');
-    const workflowSuggestion = await this.analyzeWorkflowNeed(
-      message,
-      intent,
-      recommendedTools
-    );
-    log('Step 4 complete - shouldGenerate: ' + workflowSuggestion.shouldGenerate);
-
-    // Step 5: Generate workflow if requested
+    let workflowSuggestion: WorkflowSuggestion;
     let generatedWorkflow = null;
     let workflowGenerated = false;
-    if (workflowSuggestion.shouldGenerate && workflowSuggestion.confidence > 0.7) {
-      try {
-        log('Step 5: Generating workflow');
-        generatedWorkflow = await this.generateWorkflow(
-          workflowSuggestion.userIntent,
-          recommendedDatasets.map(d => d.dataset)
-        );
-        workflowGenerated = true;
-        log('Step 5 complete - Workflow generated');
-      } catch (error: any) {
-        log('Step 5 failed: ' + error.message);
-        console.error('[GalaxyAssistant] Workflow generation failed:', error);
+
+    // Action-flag-based routing (replaces switch-on-type)
+    let researchResponse: any = undefined;
+    let benchmarkEvidence: any = undefined;
+    const actions = intent.actions;
+
+    // Workflow generation / modification
+    if (actions.needsWorkflowGeneration || actions.needsWorkflowModification) {
+      log('Step 4: Analyzing workflow need');
+      workflowSuggestion = await this.analyzeWorkflowNeed(
+        message,
+        intent,
+        recommendedTools
+      );
+      log('Step 4 complete - shouldGenerate: ' + workflowSuggestion.shouldGenerate);
+
+      if (workflowSuggestion.shouldGenerate && workflowSuggestion.confidence > 0.7) {
+        try {
+          log('Step 5: Generating workflow');
+          generatedWorkflow = await this.generateWorkflow(
+            workflowSuggestion.userIntent,
+            recommendedDatasets.map(d => d.dataset),
+            intent.inlineParameters
+          );
+          workflowGenerated = true;
+          log('Step 5 complete - Workflow generated');
+        } catch (error: any) {
+          log('Step 5 failed: ' + error.message);
+          console.error('[GalaxyAssistant] Workflow generation failed:', error);
+        }
+      } else {
+        log('Step 5: Skipped (workflow not needed based on analysis)');
       }
     } else {
-      log('Step 5: Skipped (no workflow needed)');
+      workflowSuggestion = {
+        shouldGenerate: false,
+        userIntent: message,
+        confidence: 0,
+        reasoning: `Intent type "${intent.type}" — workflow generation not flagged`,
+      };
+    }
+
+    // Research agent
+    if (actions.needsResearchAgent) {
+      log('Routing to research backend');
+      try {
+        researchResponse = await this.galaxyAPI.queryResearch({
+          query: message,
+          context: { information_need: intent.type },
+          include_citations: true,
+          include_benchmark_evidence: true,
+        });
+        log('Research response received');
+      } catch (error: any) {
+        log('Research query failed: ' + error.message);
+      }
+    }
+
+    // Benchmark agent
+    if (actions.needsBenchmarkAgent) {
+      log('Routing to benchmark backend');
+      try {
+        benchmarkEvidence = await this.galaxyAPI.queryBenchmark({
+          query: message,
+        });
+        log('Benchmark response received');
+      } catch (error: any) {
+        log('Benchmark query failed: ' + error.message);
+      }
     }
 
     // Step 6: Generate natural language response
@@ -292,7 +484,9 @@ export class GalaxyAssistant {
       recommendedDatasets,
       workflowSuggestion,
       generatedWorkflow,
-      context
+      context,
+      researchResponse,
+      benchmarkEvidence
     );
     log('Step 6 complete');
 
@@ -307,74 +501,464 @@ export class GalaxyAssistant {
     log('Step 7 complete');
     log('Total processing time: ' + (Date.now() - startTime) + 'ms');
 
+    // Convert intent facts to ExtractedFact format with unique IDs
+    const turnIndex = context.turnIndex ?? 0;
+    const extractedFacts: ExtractedFact[] = intent.facts.map((f, i) => ({
+      id: `fact-${Date.now()}-${i}`,
+      category: f.category as ExtractedFact['category'],
+      value: f.value,
+      source: { type: 'user_message' as const, turnIndex },
+      confidence: f.confidence,
+      supersedes: f.supersedes,
+    }));
+
     return {
       message: response.message,
+      intentType: intent.type,
+      intentConfidence: intent.confidence,
+      inlineParameters: Object.keys(intent.inlineParameters).length > 0 ? intent.inlineParameters : undefined,
+      extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
       thinking_content: response.thinking?.thinkingContent,
       thinking_level: response.thinking?.thinkingLevel,
       recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
       recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
       workflowSuggestion,
       generatedWorkflow,
+      researchResponse,
+      benchmarkEvidence,
+      isMultiIntent: false,
       suggestions,
       sources: {
         toolSearchUsed,
         datasetRAGUsed,
         workflowGenerated,
         thinkingUsed: response.thinking?.hasThinking || false,
+        researchAgentUsed: !!researchResponse,
+        benchmarkAgentUsed: !!benchmarkEvidence,
       },
     };
   }
 
   /**
-   * Analyze user intent using GPT-4
+   * Process a multi-intent message by fanning out to processSubIntent for each intent.
+   * Results are collected and synthesized into a single response.
+   */
+  private async processMultiIntent(
+    decomposition: IntentDecomposition,
+    message: string,
+    context: ChatContext,
+    startTime: number
+  ): Promise<GalaxyAssistantResponse> {
+    const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
+
+    log(`Multi-intent processing: ${decomposition.intents.length} intents`);
+
+    // Step 2-3: Parallel tool/dataset search using union of all keywords
+    const allKeywords = Array.from(new Set(decomposition.intents.flatMap(i => i.keywords)));
+    let recommendedTools: ToolRecommendation[] = [];
+    let recommendedDatasets: DatasetRecommendation[] = [];
+    let toolSearchUsed = false;
+    let datasetRAGUsed = false;
+
+    const needsToolSearch = decomposition.intents.some(i => i.actions.needsToolSearch);
+    const needsDatasets = decomposition.intents.some(i =>
+      i.actions.needsDatasetAccess || i.needsDatasets
+    );
+
+    const searchPromises: Promise<void>[] = [];
+
+    if (needsToolSearch && allKeywords.length > 0) {
+      searchPromises.push(
+        this.searchRelevantTools(message, allKeywords, context.userId)
+          .then(tools => {
+            recommendedTools = tools;
+            toolSearchUsed = true;
+            log(`Multi-intent: Found ${tools.length} tools`);
+          })
+      );
+    }
+
+    if (needsDatasets) {
+      searchPromises.push(
+        this.searchRelevantDatasets(message, allKeywords)
+          .then(datasets => {
+            recommendedDatasets = datasets;
+            datasetRAGUsed = true;
+            log(`Multi-intent: Found ${datasets.length} datasets`);
+          })
+      );
+    }
+
+    log('Multi-intent Steps 2-3: Starting parallel searches');
+    if (searchPromises.length > 0) {
+      await Promise.all(searchPromises);
+      log('Multi-intent Steps 2-3 complete');
+    }
+
+    // Step 4-5: Process each intent in parallel
+    log('Multi-intent Steps 4-5: Processing sub-intents in parallel');
+    const subIntentResults = await Promise.all(
+      decomposition.intents.map(intent =>
+        this.processSubIntent(intent, message, context, recommendedTools, recommendedDatasets)
+      )
+    );
+    log(`Multi-intent Steps 4-5 complete: ${subIntentResults.length} results`);
+
+    // Collect workflow and research/benchmark results
+    const workflowResult = subIntentResults.find(r => r.generatedWorkflow);
+    const researchResult = subIntentResults.find(r => r.researchResponse);
+    const benchmarkResult = subIntentResults.find(r => r.benchmarkEvidence);
+    const workflowGenerated = !!workflowResult?.generatedWorkflow;
+
+    // Step 6: Generate synthesized response
+    log('Multi-intent Step 6: Generating synthesized response');
+    const primaryIntent = decomposition.primaryIntent;
+    const response = await this.generateResponse(
+      message,
+      primaryIntent,
+      recommendedTools,
+      recommendedDatasets,
+      {
+        shouldGenerate: workflowGenerated,
+        userIntent: message,
+        confidence: primaryIntent.confidence,
+        reasoning: `Multi-intent: ${decomposition.intents.map(i => i.type).join(', ')}`,
+      },
+      workflowResult?.generatedWorkflow || null,
+      context,
+      researchResult?.researchResponse,
+      benchmarkResult?.benchmarkEvidence
+    );
+    log('Multi-intent Step 6 complete');
+
+    // Step 7: Suggestions
+    log('Multi-intent Step 7: Generating suggestions');
+    const suggestions = this.generateSuggestions(
+      message,
+      primaryIntent,
+      recommendedTools,
+      { shouldGenerate: workflowGenerated, userIntent: message, confidence: primaryIntent.confidence, reasoning: '' }
+    );
+    log('Multi-intent Step 7 complete');
+    log('Multi-intent total processing time: ' + (Date.now() - startTime) + 'ms');
+
+    // Collect all facts from all intents
+    const turnIndex = context.turnIndex ?? 0;
+    const allFacts = decomposition.intents.flatMap(intent => intent.facts);
+    const extractedFacts: ExtractedFact[] = allFacts.map((f, i) => ({
+      id: `fact-${Date.now()}-${i}`,
+      category: f.category as ExtractedFact['category'],
+      value: f.value,
+      source: { type: 'user_message' as const, turnIndex },
+      confidence: f.confidence,
+      supersedes: f.supersedes,
+    }));
+
+    return {
+      message: response.message,
+      intentType: primaryIntent.type,
+      intentConfidence: primaryIntent.confidence,
+      inlineParameters: Object.keys(primaryIntent.inlineParameters).length > 0 ? primaryIntent.inlineParameters : undefined,
+      extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
+      thinking_content: response.thinking?.thinkingContent,
+      thinking_level: response.thinking?.thinkingLevel,
+      recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
+      recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
+      workflowSuggestion: {
+        shouldGenerate: workflowGenerated,
+        userIntent: message,
+        confidence: primaryIntent.confidence,
+        reasoning: `Multi-intent processing: ${decomposition.intents.map(i => i.type).join(', ')}`,
+      },
+      generatedWorkflow: workflowResult?.generatedWorkflow || null,
+      researchResponse: researchResult?.researchResponse,
+      benchmarkEvidence: benchmarkResult?.benchmarkEvidence,
+      subIntentResults,
+      isMultiIntent: true,
+      suggestions,
+      sources: {
+        toolSearchUsed,
+        datasetRAGUsed,
+        workflowGenerated,
+        thinkingUsed: response.thinking?.hasThinking || false,
+        researchAgentUsed: !!researchResult?.researchResponse,
+        benchmarkAgentUsed: !!benchmarkResult?.benchmarkEvidence,
+      },
+    };
+  }
+
+  /**
+   * Process a single sub-intent within a multi-intent message.
+   * Routes to the appropriate backend(s) based on action category flags.
+   */
+  private async processSubIntent(
+    intent: DecomposedIntent,
+    originalMessage: string,
+    context: ChatContext,
+    recommendedTools: ToolRecommendation[],
+    recommendedDatasets: DatasetRecommendation[]
+  ): Promise<SubIntentResult> {
+    const baseResult: SubIntentResult = {
+      intentId: intent.id,
+      intentType: intent.type,
+      subQuery: intent.subQuery,
+      status: 'success',
+    };
+
+    const actions = intent.actions;
+
+    try {
+      // Action-flag-based routing: multiple agents can be invoked per intent
+
+      // Tool search results already available from parallel search
+      if (actions.needsToolSearch && recommendedTools.length > 0) {
+        baseResult.recommendedTools = recommendedTools;
+      }
+
+      // Workflow generation
+      if ((actions.needsWorkflowGeneration || actions.needsWorkflowModification) && recommendedTools.length > 0) {
+        const workflowSuggestion = await this.analyzeWorkflowNeed(
+          intent.subQuery,
+          intent,
+          recommendedTools
+        );
+        if (workflowSuggestion.shouldGenerate && workflowSuggestion.confidence > 0.7) {
+          const workflow = await this.generateWorkflow(
+            workflowSuggestion.userIntent,
+            recommendedDatasets.map(d => d.dataset),
+            intent.inlineParameters
+          );
+          baseResult.generatedWorkflow = workflow;
+          if (!baseResult.recommendedTools) baseResult.recommendedTools = recommendedTools;
+        }
+      }
+
+      // Research agent
+      if (actions.needsResearchAgent) {
+        try {
+          baseResult.researchResponse = await this.galaxyAPI.queryResearch({
+            query: intent.subQuery,
+            context: { information_need: intent.type },
+            include_citations: true,
+            include_benchmark_evidence: true,
+          });
+        } catch (error: any) {
+          console.warn(`[GalaxyAssistant] Research query failed for ${intent.id}: ${error.message}`);
+        }
+      }
+
+      // Benchmark agent
+      if (actions.needsBenchmarkAgent) {
+        try {
+          baseResult.benchmarkEvidence = await this.galaxyAPI.queryBenchmark({
+            query: intent.subQuery,
+          });
+        } catch (error: any) {
+          console.warn(`[GalaxyAssistant] Benchmark query failed for ${intent.id}: ${error.message}`);
+        }
+      }
+
+      return baseResult;
+    } catch (error: any) {
+      console.error(`[GalaxyAssistant] Sub-intent ${intent.id} (${intent.type}) failed:`, error.message);
+      return { ...baseResult, status: 'error', error: error.message };
+    }
+  }
+
+  /**
+   * Analyze user intent, detecting multiple intents if present.
+   * Returns IntentDecomposition with one or more decomposed intents.
    */
   private async analyzeIntent(
     message: string,
     context: ChatContext
-  ): Promise<{
-    type: 'workflow_generation' | 'tool_inquiry' | 'dataset_inquiry' | 'general_question' | 'workflow_modification';
-    keywords: string[];
-    needsToolSearch: boolean;
-    needsDatasets: boolean;
-    confidence: number;
-  }> {
-    const systemPrompt = `You are a bioinformatics intent analyzer. Analyze user messages and extract:
-1. Intent type: workflow_generation, tool_inquiry, dataset_inquiry, general_question, or workflow_modification
-2. Keywords for tool/dataset search (e.g., "RNA-seq", "metabolomics", "peak detection")
-3. Whether tool search is needed
-4. Whether dataset recommendations are needed
-5. Confidence score (0-1)
+  ): Promise<IntentDecomposition> {
+    const systemPrompt = `You are a bioinformatics intent analyzer. Classify user messages by their information need and declare which system agents should handle the request.
 
-IMPORTANT: The following should ALWAYS be classified as workflow_generation with needsToolSearch=true:
-- Database queries: "query UniProt", "search PubMed", "BLAST", "fetch from KEGG", etc.
-- Literature searches: "search for papers", "find articles", "PubMed search"
-- Any request to run, execute, analyze, or process data
-- Any mention of specific tools or databases (PubMed, NCBI, ChEMBL, etc.)
+## Information Need Types
 
-Only use general_question for conversational questions that don't require running any tools.
+Describe the user's information need with a descriptive label. You may use these common labels or create a new one that better fits:
 
-Respond in JSON format:
+**workflow_generation** — Execute a computational task, run a tool, process data, perform an analysis.
+**research_question** — Search/review scientific literature, papers, databases.
+**result_comparison** — Compare tools, methods, or approaches with evidence.
+**tool_search** — Find or learn about available tools and their capabilities.
+**benchmark_query** — Get specific performance data or benchmarks.
+**dataset_inquiry** — Find or learn about available datasets.
+**general_question** — Conversational or conceptual question.
+**workflow_modification** — Modify an existing workflow from the conversation.
+**troubleshooting** — Diagnose a problem (e.g., low alignment rate, failed job).
+**experiment_design** — Plan an experiment or analysis strategy.
+**data_interpretation** — Help interpret analysis results.
+**protocol_guidance** — Get step-by-step experimental protocols.
+**parameter_optimization** — Optimize tool/analysis parameters.
+**data_format_conversion** — Convert between file formats.
+**teaching_explanation** — Educational explanation of concepts.
+**methods_writing** — Help write a methods section for a paper.
+**visualization** — Create plots, charts, or visual summaries.
+**comparative_methodology** — Compare scientific methodologies with evidence.
+
+You may also create a novel label if none of the above fit (e.g., "cost_estimation", "regulatory_compliance", "multi_step_procedure").
+
+## Action Categories
+
+For each intent, declare which system agents are needed (true/false):
+- **needsToolSearch**: Search Galaxy's tool database for relevant tools
+- **needsWorkflowGeneration**: Build a multi-step Galaxy workflow
+- **needsWorkflowModification**: Modify an existing workflow
+- **needsResearchAgent**: Scientific question answering (literature, evidence synthesis)
+- **needsBenchmarkAgent**: Quantitative tool/method comparison with metrics
+- **needsDatasetAccess**: Search Galaxy datasets
+- **needsLLMReasoning**: Generate synthesized text response (almost always true)
+
+## Multi-Intent Detection
+
+A message may contain MULTIPLE DISTINCT tasks. Examples:
+- "Run DE analysis on my RNA-seq data AND compare DESeq2 vs edgeR" → workflow_generation + result_comparison
+- "Find papers on CRISPR delivery and also run off-target analysis on this guide RNA" → research_question + workflow_generation
+- "What tools do variant calling, and show me their benchmarks" → tool_search + benchmark_query
+
+Rules for multi-intent:
+- Split into multiple intents when the message contains genuinely SEPARATE tasks requiring DIFFERENT backends
+- Use conjunctions like "AND", "also", "plus", "as well as" as signals for multi-intent
+- A single complex task (e.g., "design a pipeline that does QC then alignment then counting") is ONE workflow_generation intent, not three
+- Clarifying details ("from human samples") attached to a prior task are NOT separate intents
+- Each intent must have its own subQuery (the portion of the message relevant to that intent)
+- Set dependsOn when one intent's output feeds into another (e.g., research findings used for workflow design)
+- IMPORTANT: When in doubt between single-intent and multi-intent, prefer multi-intent if the user is asking for 2+ distinct outcomes (e.g., run an analysis AND compare tools AND search literature)
+
+## Parameter Extraction
+
+Extract any inline data or parameters the user provides directly in their message:
+- DNA/RNA/protein sequences (e.g., "ATGCGATCG")
+- Gene names (e.g., "TP53", "BRCA1")
+- File paths or dataset references
+- Numeric parameters (e.g., "p-value < 0.05", "top 100 genes")
+- Species/organism (e.g., "human", "E. coli")
+
+## Keyword Extraction
+
+Extract keywords that describe the OPERATION or ANALYSIS, not generic terms:
+- Good: "reverse complement", "differential expression", "variant calling"
+- Bad: "DNA", "data", "analysis" (too generic)
+
+## Fact Extraction
+
+Extract structured facts from the message. Each fact MUST use one of these exact categories:
+"sequence", "gene", "organism", "data_type", "parameter", "file_reference", "tool_preference", "domain", "analysis_goal", "other"
+
+Category definitions:
+- **sequence**: DNA/RNA/protein sequence literals (e.g., "ATGCGATCG")
+- **gene**: Gene or protein names (e.g., "TP53", "BRCA1", "EGFR")
+- **organism**: Species or organism (e.g., "human", "mouse", "E. coli", "Arabidopsis")
+- **data_type**: Type of data mentioned (e.g., "RNA-seq", "ChIP-seq", "WGS", "proteomics")
+- **parameter**: Specific parameters or thresholds (e.g., "p-value < 0.05", "hg38", "paired-end")
+- **file_reference**: File paths, URLs, or dataset references
+- **tool_preference**: Specific tool the user wants to use (e.g., "BWA", "DESeq2", "STAR")
+- **domain**: Scientific domain (e.g., "genomics", "proteomics", "pharmacology")
+- **analysis_goal**: What the user wants to achieve (e.g., "find differentially expressed genes", "identify variants")
+- **other**: Any other relevant detail that doesn't fit the above categories
+
+Assign confidence 0.0-1.0 based on how explicit the mention is. Direct mentions get 0.9+, inferred facts get 0.5-0.7.
+
+## Fact Supersession
+
+If EXISTING FACTS are provided below, check whether any new fact from the current message REPLACES or CORRECTS an existing fact. For example, if the user previously said "mouse" and now says "actually, human", the new organism fact supersedes the old one.
+
+When a new fact replaces an old one, include "supersedes": "<id of the old fact>" in the new fact object. Only mark supersession when the user is clearly correcting or changing a previous statement — not when they are adding additional information.
+
+${(() => {
+  if (!context.accumulatedFacts || context.accumulatedFacts.length === 0) return '';
+  const lines = context.accumulatedFacts.map(f => `- [id=${f.id}] ${f.category}: "${f.value}"`);
+  return '\n## Existing Facts from Prior Turns\n' + lines.join('\n') + '\n';
+})()}
+## Response Format
+
+For SINGLE-intent messages (the common case), respond with a single JSON object:
 {
   "type": "workflow_generation",
-  "keywords": ["rna-seq", "differential expression", "alignment"],
+  "keywords": ["reverse complement"],
+  "inlineParameters": {"sequence": "ATGCGATCG"},
   "needsToolSearch": true,
-  "needsDatasets": true,
-  "confidence": 0.95
+  "needsDatasets": false,
+  "confidence": 0.95,
+  "actions": {
+    "needsToolSearch": true,
+    "needsWorkflowGeneration": true,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": false,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [
+    {"category": "sequence", "value": "ATGCGATCG", "confidence": 1.0},
+    {"category": "analysis_goal", "value": "reverse complement", "confidence": 0.95}
+  ]
+}
+
+For MULTI-intent messages, respond with an "intents" array:
+{
+  "intents": [
+    {
+      "id": "intent_1",
+      "type": "workflow_generation",
+      "subQuery": "Run DE analysis on my RNA-seq data",
+      "keywords": ["differential expression"],
+      "inlineParameters": {},
+      "needsToolSearch": true,
+      "needsDatasets": true,
+      "confidence": 0.9,
+      "actions": {
+        "needsToolSearch": true,
+        "needsWorkflowGeneration": true,
+        "needsWorkflowModification": false,
+        "needsResearchAgent": false,
+        "needsBenchmarkAgent": false,
+        "needsDatasetAccess": false,
+        "needsLLMReasoning": true
+      },
+      "facts": [{"category": "data_type", "value": "RNA-seq", "confidence": 0.95}],
+      "dependsOn": []
+    },
+    {
+      "id": "intent_2",
+      "type": "result_comparison",
+      "subQuery": "compare DESeq2 vs edgeR",
+      "keywords": ["DESeq2", "edgeR", "comparison"],
+      "inlineParameters": {},
+      "needsToolSearch": true,
+      "needsDatasets": false,
+      "confidence": 0.85,
+      "actions": {
+        "needsToolSearch": false,
+        "needsWorkflowGeneration": false,
+        "needsWorkflowModification": false,
+        "needsResearchAgent": false,
+        "needsBenchmarkAgent": true,
+        "needsDatasetAccess": false,
+        "needsLLMReasoning": true
+      },
+      "facts": [{"category": "tool_preference", "value": "DESeq2", "confidence": 0.9}],
+      "dependsOn": []
+    }
+  ]
 }`;
 
     try {
       const intentStartTime = Date.now();
       console.log('[GalaxyAssistant] Intent API request:', {
         model: this.modelConfig.intentModel,
-        max_tokens: 200,
+        max_tokens: 2500,
         system_prompt_length: systemPrompt.length,
         message_length: message.length
       });
 
       // Intent classification - using configurable model
+      // 2500 tokens to accommodate multi-intent responses with full action objects
       const completion = await this.claude.messages.create({
         model: this.modelConfig.intentModel,
-        max_tokens: 200,
+        max_tokens: 2500,
         temperature: 0.3,
         system: [
           {
@@ -395,12 +979,12 @@ Respond in JSON format:
       const content = completion.content[0];
       let resultText = content.type === 'text' ? content.text : '{}';
 
-      // Strip markdown code blocks if present (improved regex to handle more edge cases)
+      // Strip markdown code blocks if present
       resultText = resultText
-        .replace(/^```+\s*json\s*\n?/gi, '')  // Remove opening code fence with any number of backticks
-        .replace(/\n?```+\s*$/gi, '')          // Remove closing code fence
-        .replace(/^\s*`+\s*/g, '')             // Remove leading backticks and whitespace
-        .replace(/\s*`+\s*$/g, '')             // Remove trailing backticks and whitespace
+        .replace(/^```+\s*json\s*\n?/gi, '')
+        .replace(/\n?```+\s*$/gi, '')
+        .replace(/^\s*`+\s*/g, '')
+        .replace(/\s*`+\s*$/g, '')
         .trim();
 
       // Try to extract JSON object if there's extra text around it
@@ -414,23 +998,115 @@ Respond in JSON format:
 
       const result = JSON.parse(resultText);
 
-      return {
-        type: result.type || 'general_question',
-        keywords: result.keywords || [],
-        needsToolSearch: result.needsToolSearch !== false,
-        needsDatasets: result.needsDatasets !== false,
-        confidence: result.confidence || 0.5,
-      };
+      // Parse into IntentDecomposition
+      return this.parseIntentResult(result, message);
     } catch (error) {
       console.error('[GalaxyAssistant] Intent analysis failed:', error);
-      return {
+      const fallback: DecomposedIntent = {
+        id: 'intent_fallback',
         type: 'general_question',
+        subQuery: message,
         keywords: [],
+        inlineParameters: {},
         needsToolSearch: false,
         needsDatasets: false,
         confidence: 0.5,
+        facts: [],
+        dependsOn: [],
+        actions: inferActionsFromType('general_question'),
+      };
+      return {
+        intents: [fallback],
+        isMultiIntent: false,
+        primaryIntent: fallback,
       };
     }
+  }
+
+  /**
+   * Parse the LLM's intent result into an IntentDecomposition.
+   * Handles both single-intent (flat object) and multi-intent (intents array) formats.
+   */
+  private parseIntentResult(result: any, originalMessage: string): IntentDecomposition {
+    const parseFacts = (rawFacts: any[]): Array<{ category: string; value: string; confidence: number; supersedes?: string }> => {
+      if (!Array.isArray(rawFacts)) return [];
+      return rawFacts
+        .filter((f: any) => f && typeof f.category === 'string' && typeof f.value === 'string')
+        .map((f: any) => ({
+          category: f.category as string,
+          value: f.value as string,
+          confidence: typeof f.confidence === 'number' ? f.confidence : 0.8,
+          supersedes: typeof f.supersedes === 'string' ? f.supersedes : undefined,
+        }));
+    };
+
+    const parseActions = (raw: any, type: string): ActionCategories => {
+      if (raw && typeof raw === 'object') {
+        const base = inferActionsFromType(type);
+        return {
+          needsToolSearch: typeof raw.needsToolSearch === 'boolean' ? raw.needsToolSearch : base.needsToolSearch,
+          needsWorkflowGeneration: typeof raw.needsWorkflowGeneration === 'boolean' ? raw.needsWorkflowGeneration : base.needsWorkflowGeneration,
+          needsWorkflowModification: typeof raw.needsWorkflowModification === 'boolean' ? raw.needsWorkflowModification : base.needsWorkflowModification,
+          needsResearchAgent: typeof raw.needsResearchAgent === 'boolean' ? raw.needsResearchAgent : base.needsResearchAgent,
+          needsBenchmarkAgent: typeof raw.needsBenchmarkAgent === 'boolean' ? raw.needsBenchmarkAgent : base.needsBenchmarkAgent,
+          needsDatasetAccess: typeof raw.needsDatasetAccess === 'boolean' ? raw.needsDatasetAccess : base.needsDatasetAccess,
+          needsLLMReasoning: typeof raw.needsLLMReasoning === 'boolean' ? raw.needsLLMReasoning : base.needsLLMReasoning,
+        };
+      }
+      return inferActionsFromType(type);
+    };
+
+    // Multi-intent format: { intents: [...] }
+    if (Array.isArray(result.intents) && result.intents.length > 0) {
+      const intents: DecomposedIntent[] = result.intents.map((intent: any, i: number) => ({
+        id: intent.id || `intent_${i + 1}`,
+        type: intent.type || 'general_question',
+        subQuery: intent.subQuery || originalMessage,
+        keywords: intent.keywords || [],
+        inlineParameters: intent.inlineParameters || {},
+        needsToolSearch: intent.needsToolSearch !== false,
+        needsDatasets: intent.needsDatasets !== false,
+        confidence: intent.confidence || 0.5,
+        facts: parseFacts(intent.facts),
+        dependsOn: Array.isArray(intent.dependsOn) ? intent.dependsOn : [],
+        actions: parseActions(intent.actions, intent.type || 'general_question'),
+      }));
+
+      // Primary = highest confidence
+      const primaryIntent = intents.reduce((best, current) =>
+        current.confidence > best.confidence ? current : best
+      );
+
+      console.log(`[GalaxyAssistant] Multi-intent detected: ${intents.length} intents [${intents.map(i => i.type).join(', ')}]`);
+
+      return {
+        intents,
+        isMultiIntent: intents.length > 1,
+        primaryIntent,
+      };
+    }
+
+    // Single-intent format: flat object with type, keywords, etc.
+    const intentType = result.type || 'general_question';
+    const singleIntent: DecomposedIntent = {
+      id: 'intent_1',
+      type: intentType,
+      subQuery: originalMessage,
+      keywords: result.keywords || [],
+      inlineParameters: result.inlineParameters || {},
+      needsToolSearch: result.needsToolSearch !== false,
+      needsDatasets: result.needsDatasets !== false,
+      confidence: result.confidence || 0.5,
+      facts: parseFacts(result.facts),
+      dependsOn: [],
+      actions: parseActions(result.actions, intentType),
+    };
+
+    return {
+      intents: [singleIntent],
+      isMultiIntent: false,
+      primaryIntent: singleIntent,
+    };
   }
 
   /**
@@ -669,64 +1345,29 @@ Respond in JSON format:
   }
 
   /**
-   * Analyze if workflow generation is needed
+   * Analyze if workflow generation is needed.
+   * Relies on LLM intent classification — no rigid keyword matching.
    */
   private async analyzeWorkflowNeed(
     message: string,
     intent: any,
     recommendedTools: ToolRecommendation[]
   ): Promise<WorkflowSuggestion> {
-    const triggerWords = [
-      // Workflow terms
-      'workflow',
-      'pipeline',
-      'analysis',
-      'process',
-      'analyze',
-      'build',
-      'create',
-      'generate',
-      // Database/query terms
-      'query',
-      'search',
-      'retrieve',
-      'fetch',
-      'lookup',
-      'look up',
-      'get',
-      'find',
-      // Action terms
-      'run',
-      'execute',
-      'perform',
-      'compute',
-      'calculate',
-      'predict',
-      'detect',
-      'identify',
-      'annotate',
-      'align',
-      'call',
-      'segment',
-      'design',
-    ];
+    // The LLM intent classifier is the source of truth for task type
+    const hasWorkflowIntent = intent.type === 'workflow_generation';
 
-    const hasWorkflowIntent =
-      intent.type === 'workflow_generation' ||
-      triggerWords.some((word) => message.toLowerCase().includes(word));
-
-    // Allow single-tool workflows for simple queries (database lookups, etc.)
+    // Allow single-tool workflows (e.g., reverse complement is one tool)
     const hasEnoughTools = recommendedTools.length >= 1;
 
     return {
       shouldGenerate: hasWorkflowIntent && hasEnoughTools,
       userIntent: message,
-      confidence: hasWorkflowIntent && hasEnoughTools ? 0.9 : 0.3,
+      confidence: hasWorkflowIntent && hasEnoughTools ? 0.9 : hasWorkflowIntent ? 0.5 : 0.1,
       reasoning: hasWorkflowIntent
         ? hasEnoughTools
-          ? 'User requested workflow and relevant tools were found'
-          : 'User requested workflow but no tools found'
-        : 'No explicit workflow request detected',
+          ? `Workflow intent detected with ${recommendedTools.length} tool(s) found`
+          : 'Workflow intent detected but no matching tools found — will suggest tools'
+        : `Intent type is "${intent.type}", not workflow_generation`,
     };
   }
 
@@ -743,16 +1384,19 @@ Respond in JSON format:
    */
   private async generateWorkflow(
     userIntent: string,
-    datasets: BioMNIDataset[]
+    datasets: BioMNIDataset[],
+    inlineParameters?: Record<string, string>
   ): Promise<any> {
     console.log('[GalaxyAssistant] ========================================');
     console.log('[GalaxyAssistant] Generating workflow using Unified AI');
     console.log('[GalaxyAssistant] User intent:', userIntent);
     console.log('[GalaxyAssistant] Available datasets:', datasets.length);
+    console.log('[GalaxyAssistant] Inline parameters:', JSON.stringify(inlineParameters || {}));
 
     const response = await this.galaxyAPI.generateWorkflow({
       user_intent: userIntent,
       max_tools_search: 30,
+      inline_parameters: inlineParameters || {},
       datasets: datasets.map((d) => ({
         id: d.id,
         name: d.name,
@@ -788,7 +1432,9 @@ Respond in JSON format:
     datasets: DatasetRecommendation[],
     workflowSuggestion: WorkflowSuggestion,
     generatedWorkflow: any,
-    context: ChatContext
+    context: ChatContext,
+    researchResponse?: any,
+    benchmarkEvidence?: any
   ): Promise<{ message: string; thinking?: ThinkingDetectionResult }> {
     const systemPrompt = `You are BioMate, an expert bioinformatics AI assistant powered by Galaxy.
 
@@ -796,6 +1442,13 @@ Your capabilities:
 - Access to 2,177 Galaxy tools (real-time search)
 - Access to 100+ GB BioMNI dataset catalog
 - Workflow generation with automatic tool/dataset selection
+
+IMPORTANT RULES:
+- NEVER compute or calculate results yourself (e.g., reverse complement, sequence alignment, etc.)
+- ALWAYS recommend running the appropriate Galaxy tool or workflow instead
+- If a workflow was generated, explain it and encourage the user to click "Run"
+- If no workflow but tools were found, explain which tool to use and suggest creating a workflow
+- Only provide direct answers for conceptual questions (e.g., "what is RNA-seq?")
 
 Style guide:
 - Be concise and practical
@@ -806,20 +1459,29 @@ Style guide:
 Current context:
 ${tools.length > 0 ? `- Found ${tools.length} relevant tools` : ''}
 ${datasets.length > 0 ? `- Found ${datasets.length} relevant datasets` : ''}
-${generatedWorkflow ? '- Workflow generated successfully' : ''}`;
+${generatedWorkflow ? '- Workflow generated successfully - user can click Run to execute' : ''}`;
+
+    // Build research/benchmark context sections
+    const researchSection = researchResponse
+      ? `\nResearch Results:\n${JSON.stringify(researchResponse, null, 2).slice(0, 2000)}`
+      : '';
+    const benchmarkSection = benchmarkEvidence
+      ? `\nBenchmark Evidence:\n${JSON.stringify(benchmarkEvidence, null, 2).slice(0, 2000)}`
+      : '';
 
     const userPrompt = `User: ${message}
 
-${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.tool.name} - ${t.reasoning}`).join('\n')}` : ''}
+${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.tool.name} (${t.tool.tool_id}) - ${t.reasoning}`).join('\n')}` : ''}
 
 ${datasets.length > 0 ? `\nRelevant datasets:\n${datasets.map((d, i) => `${i + 1}. ${d.dataset.name} - ${d.reasoning}`).join('\n')}` : ''}
 
-${generatedWorkflow ? '\nI\'ve generated a workflow for you based on your request.' : ''}
+${generatedWorkflow ? '\nA workflow has been generated and is ready to run.' : ''}${researchSection}${benchmarkSection}
 
 Provide a helpful response that:
-1. Addresses the user's question
-2. References the specific tools/datasets found
-3. ${generatedWorkflow ? 'Explains the generated workflow' : 'Suggests next steps'}`;
+1. ${generatedWorkflow ? 'Explains the generated workflow and tells the user to click "Run" to execute it' : researchResponse ? 'Presents the research findings with citations' : benchmarkEvidence ? 'Presents the benchmark comparison with evidence' : tools.length > 0 ? 'Recommends the relevant tool(s) and explains how they will help' : 'Explains what tools or data would be needed'}
+2. ${tools.length > 0 ? 'References the specific tools found and their capabilities' : researchResponse ? 'Includes relevant citations and sources' : benchmarkEvidence ? 'Provides structured comparison data' : 'Suggests what the user could search for or ask about'}
+3. ${generatedWorkflow ? 'Describes what output to expect after running' : 'Suggests creating a workflow to accomplish the task'}
+4. DO NOT compute or calculate any results yourself - always recommend using Galaxy tools`;
 
     try {
       // Convert context messages to Claude format
@@ -924,10 +1586,18 @@ Provide a helpful response that:
     if (intent.type === 'workflow_generation') {
       suggestions.push('Customize the workflow parameters');
       suggestions.push('What data formats do I need?');
-      suggestions.push('Estimate runtime for this workflow');
+    } else if (intent.type === 'research_question') {
+      suggestions.push('Search for related papers');
+      suggestions.push('Build a workflow from these findings');
+    } else if (intent.type === 'result_comparison') {
+      suggestions.push('Show benchmark data');
+      suggestions.push('Run a comparison workflow');
+    } else if (intent.type === 'tool_search') {
+      suggestions.push('Build a workflow with this tool');
+      suggestions.push('Show me alternative tools');
     } else {
-      suggestions.push('Build a complete workflow');
-      suggestions.push('Show me related tools');
+      suggestions.push('Build a workflow');
+      suggestions.push('Search for tools');
     }
 
     return suggestions.slice(0, 4);

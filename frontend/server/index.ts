@@ -9,6 +9,14 @@ import { oauthService } from "./oauth-service";
 import { createSessionStore } from "./redis-session";
 import { initializeSecurity } from "./security-config";
 
+// Crash diagnostics — log fatal errors before exit
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled rejection:', reason);
+});
+
 const app = express();
 
 // Initialize security FIRST (before any other middleware)

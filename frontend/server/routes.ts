@@ -38,6 +38,7 @@ import passport from "passport";
 import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
 import { auditService, auditMiddleware } from "./audit-service";
+import { conversationStateManager, createEmptyState, type ConversationState } from "./conversation-state";
 
 // Initialize OpenAI (optional for development)
 const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
@@ -52,23 +53,205 @@ const galaxyAPIProxy = galaxyAPIBackend; // Alias for consistency
 const galaxyPoller = createPoller(galaxyAPIBackend, { pollInterval: 2000 });
 const sseManager = new WorkflowSSEManager(galaxyPoller);
 
+// Helper function to determine file type from extension
+function getFileType(extension: string): string {
+  const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp', 'tiff', 'webp'];
+  const tableExtensions = ['csv', 'tsv', 'tabular', 'bed', 'gff', 'gtf', 'vcf', 'sam', 'bam'];
+  const textExtensions = ['txt', 'fasta', 'fastq', 'fa', 'fq', 'json', 'xml', 'html', 'htm', 'log'];
+  const interactiveExtensions = ['html', 'htm', 'pdf'];
+
+  const ext = (extension || '').toLowerCase();
+  if (imageExtensions.includes(ext)) return 'image';
+  if (tableExtensions.includes(ext)) return 'table';
+  if (interactiveExtensions.includes(ext)) return 'interactive';
+  if (textExtensions.includes(ext)) return 'text';
+  return 'binary';
+}
+
 // Initialize workflow notification service for email notifications
 const workflowNotificationService = createWorkflowNotificationService(galaxyPoller, storage);
 
 // Listen for workflow completion to update bioMate invocation records
 galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; state: string }) => {
   try {
+    // Update legacy invocation record
     const invocation = await storage.getInvocationByGalaxyId(data.invocation_id);
     if (invocation) {
+      const finalStatus = data.state === 'ok' || data.state === 'scheduled' ? 'ok' : 'error';
+
+      // Retrieve outputs from Galaxy for the invocation record
+      let outputDatasets: any[] = [];
+      let totalOutputSize = 0;
+      if (finalStatus === 'ok' && invocation.galaxyHistoryId) {
+        try {
+          // Get the actual history_id from Galaxy invocation (may differ from stored)
+          const galaxyInvocation = await galaxyAPIProxy.getInvocation(
+            invocation.galaxyWorkflowId!,
+            data.invocation_id
+          );
+          const actualHistoryId = galaxyInvocation.history_id || invocation.galaxyHistoryId;
+          console.log(`[WorkflowComplete] Fetching outputs from history: ${actualHistoryId}`);
+
+          const historyContents = await galaxyAPIProxy.getHistoryContents(actualHistoryId);
+
+          // Filter for completed output datasets
+          outputDatasets = historyContents
+            .filter((item: any) =>
+              item.history_content_type === 'dataset' &&
+              item.state === 'ok' &&
+              !item.deleted
+            )
+            .map((dataset: any) => ({
+              id: dataset.id,
+              name: dataset.name,
+              extension: dataset.extension,
+              size: dataset.file_size || 0,
+              fileType: getFileType(dataset.extension),
+              datasetId: dataset.id,
+              galaxyUrl: `/api/datasets/${dataset.id}/display`,
+            }));
+
+          totalOutputSize = outputDatasets.reduce((sum: number, d: any) => sum + (d.size || 0), 0);
+          console.log(`[WorkflowComplete] Found ${outputDatasets.length} outputs for invocation ${invocation.id}`);
+
+          // Also add outputs to the outputs collection for the /api/invocations/:id/outputs endpoint
+          for (const output of outputDatasets) {
+            await storage.addOutput({
+              id: output.id,
+              invocationId: invocation.id,
+              name: output.name,
+              extension: output.extension,
+              size: output.size,
+              fileType: output.fileType,
+              galaxyDatasetId: output.datasetId,
+              createdAt: new Date(),
+            });
+          }
+          console.log(`[WorkflowComplete] Added ${outputDatasets.length} outputs to storage for API access`);
+        } catch (outputError) {
+          console.error('[WorkflowComplete] Failed to retrieve invocation outputs:', outputError);
+        }
+      }
+
       await storage.updateInvocation(invocation.id, {
-        status: data.state === 'ok' || data.state === 'scheduled' ? 'ok' : 'error',
+        status: finalStatus,
         completedAt: new Date(),
         completedSteps: invocation.totalSteps,
+        outputDatasets,
+        outputCount: outputDatasets.length,
+        totalOutputSize,
       });
-      console.log(`[WorkflowComplete] Updated bioMate invocation ${invocation.id} to completed`);
+      console.log(`[WorkflowComplete] Updated bioMate invocation ${invocation.id} to completed with ${outputDatasets.length} outputs`);
+    }
+
+    // CRITICAL FIX: Also update execution run records
+    const executionRun = await storage.getExecutionRunByGalaxyId(data.invocation_id);
+    if (executionRun) {
+      const finalStatus = data.state === 'ok' || data.state === 'scheduled' ? 'ok' : 'error';
+      await storage.updateExecutionRunStatus(executionRun.id, finalStatus as any);
+      // Update progress to 100%
+      await storage.updateExecutionRunProgress(
+        executionRun.id,
+        executionRun.progress.totalSteps,
+        executionRun.progress.totalSteps - 1,
+        'Complete'
+      );
+      console.log(`[WorkflowComplete] Updated execution run ${executionRun.id} to ${finalStatus}`);
+
+      // CRITICAL FIX: Retrieve and store workflow outputs from Galaxy
+      if (finalStatus === 'ok' && executionRun.execution.galaxyWorkflowId) {
+        try {
+          // Get the actual history_id from the Galaxy invocation (may differ from what we requested)
+          const galaxyInvocation = await galaxyAPIProxy.getInvocation(
+            executionRun.execution.galaxyWorkflowId,
+            data.invocation_id
+          );
+          const actualHistoryId = galaxyInvocation.history_id || executionRun.execution.galaxyHistoryId;
+          console.log(`[WorkflowComplete] Using actual history_id: ${actualHistoryId} (stored: ${executionRun.execution.galaxyHistoryId})`);
+
+          const historyContents = await galaxyAPIProxy.getHistoryContents(actualHistoryId);
+
+          // Filter for output datasets (state=ok, not deleted)
+          const outputDatasets = historyContents.filter((item: any) =>
+            item.history_content_type === 'dataset' &&
+            item.state === 'ok' &&
+            !item.deleted
+          );
+
+          // Update each step with its outputs
+          const updatedSteps = executionRun.steps.map((step: any) => ({
+            ...step,
+            status: 'completed',
+            outputs: outputDatasets.map((dataset: any) => ({
+              id: dataset.id,
+              name: dataset.name,
+              extension: dataset.extension,
+              fileSize: dataset.file_size || 0,
+              state: dataset.state,
+              datasetId: dataset.id,
+            })),
+          }));
+
+          // Update metrics with output info
+          const totalSize = outputDatasets.reduce((sum: number, d: any) => sum + (d.file_size || 0), 0);
+
+          await storage.updateExecutionRun(executionRun.id, {
+            steps: updatedSteps,
+            metrics: {
+              ...executionRun.metrics,
+              quality: executionRun.metrics?.quality || {},
+              outputs: {
+                fileCount: outputDatasets.length,
+                totalSizeBytes: totalSize,
+                byType: outputDatasets.reduce((acc: any, d: any) => {
+                  acc[d.extension] = (acc[d.extension] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>),
+                bySize: {} as Record<string, number>,
+              },
+            },
+          });
+
+          console.log(`[WorkflowComplete] Retrieved ${outputDatasets.length} outputs for run ${executionRun.id}`);
+        } catch (outputError) {
+          console.error('[WorkflowComplete] Failed to retrieve outputs:', outputError);
+        }
+      }
     }
   } catch (error) {
-    console.error('[WorkflowComplete] Failed to update invocation:', error);
+    console.error('[WorkflowComplete] Failed to update invocation/execution run:', error);
+  }
+});
+
+// Listen for step state changes to update execution run progress
+galaxyPoller.on('step_state', async (data: { invocation_id: string; data: { step_id: string; step_state: string } }) => {
+  try {
+    const executionRun = await storage.getExecutionRunByGalaxyId(data.invocation_id);
+    if (executionRun) {
+      // Update run status to 'running' if it's still 'queued' or 'configuring'
+      const currentStatus = executionRun.execution.status;
+      if (currentStatus === 'queued' || currentStatus === 'configuring') {
+        await storage.updateExecutionRunStatus(executionRun.id, 'running');
+      }
+
+      // Count completed steps
+      const invocationState = galaxyPoller.getState(data.invocation_id);
+      if (invocationState) {
+        const completedSteps = invocationState.steps.filter((s: any) => {
+          const state = s.jobs?.[0]?.state || s.state;
+          return state === 'ok' || state === 'error';
+        }).length;
+
+        await storage.updateExecutionRunProgress(
+          executionRun.id,
+          completedSteps,
+          completedSteps,
+          data.data.step_state === 'running' ? 'Running...' : data.data.step_state
+        );
+      }
+    }
+  } catch (error) {
+    console.error('[StepState] Failed to update execution run progress:', error);
   }
 });
 
@@ -1614,10 +1797,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       addTiming('Validation passed');
       console.log('[Chat API] Processing message with Galaxy Assistant:', message);
 
+      // ----------------------------------------------------------------
+      // Conversation State: Load persisted state (pre-compaction flush)
+      // ----------------------------------------------------------------
+      const sessionId = context?.memorySessionId || context?.sessionId;
+      let convState: ConversationState | undefined;
+
+      if (sessionId) {
+        convState = await conversationStateManager.loadState(sessionId);
+        convState.currentTurn += 1;
+
+        // Check if this message answers a pending clarification
+        const resolvedClarification = conversationStateManager.resolveClarifications(convState, message);
+        if (resolvedClarification) {
+          addTiming(`Clarification resolved: ${resolvedClarification.type}`);
+        }
+      }
+
       // Check if memory integration should be used
       const useMemory = memoryIntegration && (context?.memorySessionId || context?.projectId);
       let assistantResponse;
       let episodeId: number | undefined;
+
+      // Build enriched context for the LLM — pass accumulated facts so it can
+      // decide supersession, and turnIndex so facts get the right timestamp
+      const enrichedContext = {
+        ...(context || {}),
+        turnIndex: convState?.currentTurn,
+        accumulatedFacts: convState
+          ? conversationStateManager.getActiveFacts(convState).map(f => ({
+              id: f.id,
+              category: f.category,
+              value: f.value,
+            }))
+          : undefined,
+      };
 
       addTiming('Starting AI processing');
 
@@ -1631,8 +1845,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Standard processing without memory
         addTiming('Using standard processing');
-        assistantResponse = await galaxyAssistant.processMessage(message, context || {});
+        assistantResponse = await galaxyAssistant.processMessage(message, enrichedContext);
         addTiming('Standard processing complete');
+      }
+
+      // ----------------------------------------------------------------
+      // Conversation State: Update with extracted facts and intent
+      // ----------------------------------------------------------------
+      if (convState) {
+        // Update intent from assistant response
+        if (assistantResponse.intentType) {
+          conversationStateManager.updateIntent(
+            convState,
+            assistantResponse.intentType,
+            assistantResponse.intentConfidence || 0.8,
+          );
+        }
+
+        // Add extracted facts (turnIndex already set via enrichedContext)
+        if (assistantResponse.extractedFacts && assistantResponse.extractedFacts.length > 0) {
+          conversationStateManager.addFacts(convState, assistantResponse.extractedFacts);
+        } else if (assistantResponse.inlineParameters) {
+          // Backwards compatibility: convert inlineParameters to facts
+          const facts = Object.entries(assistantResponse.inlineParameters).map(([key, value]) =>
+            conversationStateManager.createFact(
+              key as any,
+              String(value),
+              convState!.currentTurn,
+            )
+          );
+          conversationStateManager.addFacts(convState, facts);
+        }
+
+        // Update candidate tools from recommendations
+        if (assistantResponse.recommendedTools && assistantResponse.recommendedTools.length > 0) {
+          convState.candidateTools = assistantResponse.recommendedTools.map((t: any) => ({
+            toolId: t.tool?.tool_id || t.tool_id || '',
+            toolName: t.tool?.name || t.name || '',
+            relevanceScore: t.relevanceScore || t.rank || 0,
+            source: 'search' as const,
+          }));
+        }
+
+        // Update phase if workflow was generated
+        if (assistantResponse.generatedWorkflow) {
+          convState.phase = 'generated';
+        }
+
+        // Create task arcs for multi-intent responses
+        if (assistantResponse.isMultiIntent && assistantResponse.subIntentResults) {
+          conversationStateManager.createTaskArcs(convState,
+            assistantResponse.subIntentResults.map(r => ({
+              id: r.intentId,
+              type: r.intentType,
+              subQuery: r.subQuery,
+              facts: [],
+              dependsOn: [],
+            }))
+          );
+          // Update arc statuses based on results
+          for (const result of assistantResponse.subIntentResults) {
+            conversationStateManager.updateTaskArc(convState, result.intentId, {
+              status: result.status === 'success' ? 'completed' : 'failed',
+              resultSummary: result.message?.substring(0, 200),
+            });
+          }
+        }
+
+        // Evaluate readiness
+        conversationStateManager.evaluateReadiness(convState);
+
+        // Save state (pre-compaction flush — persists every turn)
+        await conversationStateManager.saveState(convState);
+
+        // Persist current turn's facts to the facts table for cross-session analysis
+        await conversationStateManager.persistFacts(convState);
+
+        // Periodic consolidation: every 10 turns, compact facts and intent history
+        if (convState.currentTurn > 0 && convState.currentTurn % 10 === 0) {
+          conversationStateManager.consolidateFacts(convState);
+          conversationStateManager.compactIntentHistory(convState);
+          await conversationStateManager.saveState(convState);
+        }
+
+        // Doom loop detection: check every turn
+        const doomLoop = conversationStateManager.detectDoomLoop(convState);
+        if (doomLoop.detected) {
+          console.log(`[Chat API] Doom loop detected: ${doomLoop.intentType} repeated ${doomLoop.occurrences} times`);
+        }
+
+        addTiming('Conversation state saved');
       }
 
       console.log('[Chat API] Galaxy Assistant response:', {
@@ -1686,12 +1988,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Additional metadata for UI enhancement
         metadata: {
+          intentType: assistantResponse.intentType,
+          inlineParameters: assistantResponse.inlineParameters,
           recommendedTools: assistantResponse.recommendedTools,
           recommendedDatasets: assistantResponse.recommendedDatasets,
           workflowSuggestion: assistantResponse.workflowSuggestion,
           sources: assistantResponse.sources,
           memoryUsed: useMemory,
         },
+
+        // Multi-intent results
+        subIntentResults: assistantResponse.subIntentResults,
+        isMultiIntent: assistantResponse.isMultiIntent || false,
+
+        // Research and benchmark results (for specialized rendering)
+        researchResponse: assistantResponse.researchResponse,
+        benchmarkEvidence: assistantResponse.benchmarkEvidence,
+
+        // Conversation state snapshot for UI transparency
+        stateSnapshot: convState ? {
+          phase: convState.phase,
+          factCount: conversationStateManager.getActiveFacts(convState).length,
+          readinessScore: convState.readiness.score,
+          missingRequired: convState.readiness.missingRequired,
+          intentType: convState.intent.primaryType,
+          intentConfidence: convState.intent.confidence,
+          taskArcs: convState.taskArcs?.map(a => ({
+            id: a.id, intentType: a.intentType, status: a.status,
+          })),
+          doomLoop: (() => {
+            const dl = conversationStateManager.detectDoomLoop(convState);
+            return dl.detected ? { suggestion: dl.suggestion } : undefined;
+          })(),
+        } : undefined,
+
+        // Clarification request (if system needs user input or doom loop detected)
+        clarification: (() => {
+          // Doom loop clarification takes priority if no pending clarifications
+          const pending = convState?.pendingClarifications.find(c => c.status === 'pending');
+          if (pending) {
+            return { id: pending.id, question: pending.question, options: pending.options, type: pending.type };
+          }
+          if (convState) {
+            const dl = conversationStateManager.detectDoomLoop(convState);
+            if (dl.detected && dl.suggestion) {
+              return { id: 'doom_loop', question: dl.suggestion, type: 'ambiguous_intent' as const };
+            }
+          }
+          return undefined;
+        })(),
 
         // Debug: Include timings
         _debug_timings: timings,
@@ -2848,6 +3193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user?.id,
         workflowName: invocationData.workflowName,
         workflowDefinition: invocationData.workflowDefinition,
+        executionEngine: invocationData.executionEngine || 'nextflow',
         galaxyInvocationId: invocationData.galaxyInvocationId,
         galaxyHistoryId: invocationData.galaxyHistoryId,
         galaxyWorkflowId: invocationData.galaxyWorkflowId,
@@ -2923,10 +3269,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get outputs for a specific invocation
+  // Trigger AutoFix for a workflow invocation (Nextflow/Galaxy unified)
+  app.post("/api/invocations/:id/ai/autofix", authenticateToken, async (req, res) => {
+    try {
+      const invocation = await storage.getInvocation(req.params.id);
+      if (!invocation) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+      if (!invocation.galaxyInvocationId || !invocation.galaxyWorkflowId) {
+        return res.status(400).json({ error: "Invocation is missing Galaxy identifiers" });
+      }
+
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/${invocation.galaxyWorkflowId}/invocations/${invocation.galaxyInvocationId}/ai/autofix`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.GALAXY_API_KEY || '',
+          },
+          body: JSON.stringify({
+            ...req.body,
+            fix_mode: req.body.fix_mode || 'safe',
+          }),
+        }
+      );
+
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error: any) {
+      console.error("[Invocation AutoFix] Error triggering autofix:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get Nextflow status for a workflow invocation
+  app.get("/api/invocations/:id/nextflow/status", async (req, res) => {
+    try {
+      const invocation = await storage.getInvocation(req.params.id);
+      if (!invocation) {
+        return res.status(404).json({ error: "Invocation not found" });
+      }
+      if (!invocation.galaxyInvocationId) {
+        return res.status(400).json({ error: "Invocation is missing Galaxy identifiers" });
+      }
+
+      // Proxy to Galaxy backend Nextflow status endpoint
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/${invocation.galaxyInvocationId}/nextflow/status`,
+        {
+          method: 'GET',
+          headers: {
+            'x-api-key': process.env.GALAXY_API_KEY || '',
+          },
+        }
+      );
+
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error: any) {
+      console.error("[Invocation Nextflow] Error fetching status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get outputs for a specific invocation (also accepts ExecutionRun IDs)
   app.get("/api/invocations/:id/outputs", async (req, res) => {
     try {
-      const outputs = await storage.getInvocationOutputs(req.params.id);
+      // First try to get outputs directly by invocation ID
+      let outputs = await storage.getInvocationOutputs(req.params.id);
+
+      // If no outputs found, check if this is an ExecutionRun ID
+      // and look up the corresponding WorkflowInvocation
+      if (outputs.length === 0) {
+        const executionRun = await storage.getExecutionRun(req.params.id);
+        if (executionRun?.execution?.galaxyInvocationId) {
+          // Find the WorkflowInvocation by Galaxy invocation ID
+          const invocation = await storage.getInvocationByGalaxyId(executionRun.execution.galaxyInvocationId);
+          if (invocation) {
+            outputs = await storage.getInvocationOutputs(invocation.id);
+          }
+        }
+      }
+
       res.json(outputs);
     } catch (error: any) {
       console.error("Error fetching outputs:", error);
@@ -2942,8 +3367,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Invocation not found" });
       }
 
+      // Fetch actual history_id from Galaxy invocation when available
+      let historyIdToUse = invocation.galaxyHistoryId;
+      if (invocation.galaxyWorkflowId && invocation.galaxyInvocationId) {
+        try {
+          const galaxyInvocation = await galaxyAPIProxy.getInvocation(
+            invocation.galaxyWorkflowId,
+            invocation.galaxyInvocationId
+          );
+          historyIdToUse = galaxyInvocation.history_id || historyIdToUse;
+        } catch (historyError) {
+          console.warn("[InvocationOutputs] Failed to resolve actual history_id, using stored history id", historyError);
+        }
+      }
+
       // Fetch history contents from Galaxy
-      const historyContents = await galaxyAPIProxy.getHistoryContents(invocation.galaxyHistoryId);
+      const historyContents = await galaxyAPIProxy.getHistoryContents(historyIdToUse);
 
       // Filter outputs created by this invocation (after invocation start time)
       const invocationOutputs = historyContents.filter((item: any) => {
@@ -3416,8 +3855,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Determine history name based on mode
       const mode = request.executionConfig?.mode || 'sandbox';
+      const executionEngine = request.executionConfig?.executionEngine || 'nextflow';
       const historyPrefix = mode === 'sandbox' ? '[Sandbox]' : '[Production]';
-      const historyName = `${historyPrefix} ${executionRun.workflowName} - Run ${executionRun.runSequence}`;
+      const engineSuffix = executionEngine === 'nextflow' ? ' [Nextflow]' : '';
+      const historyName = `${historyPrefix}${engineSuffix} ${executionRun.workflowName} - Run ${executionRun.runSequence}`;
 
       // Create Galaxy history
       galaxyHistoryId = await galaxyAPIProxy.createHistory(historyName);
@@ -3470,7 +3911,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invocationResult = await galaxyAPIProxy.invokeWorkflow(
         galaxyWorkflow.id,
         galaxyInputs,
-        { history_id: galaxyHistoryId }
+        {
+          history_id: galaxyHistoryId,
+          ...(executionEngine === 'nextflow' ? { scheduler: 'nextflow' } : {})
+        }
       );
 
       // Update execution run with Galaxy IDs and status
@@ -3492,10 +3936,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Also create a legacy invocation record for backward compatibility
-      await storage.createInvocation({
+      // Capture the invocation ID to return to frontend for output tracking
+      const workflowInvocation = await storage.createInvocation({
         userId: req.user?.id,
         workflowName: executionRun.workflowName,
         workflowDefinition: request.workflowDefinition,
+        executionEngine,
         galaxyInvocationId: invocationResult.id,
         galaxyHistoryId: galaxyHistoryId,
         galaxyWorkflowId: galaxyWorkflow.id,
@@ -3506,8 +3952,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         runId: executionRun.id,
+        // Include WorkflowInvocation ID for output tracking (outputs are linked to this ID)
+        invocationId: workflowInvocation.id,
         galaxyInvocationId: invocationResult.id,
         galaxyHistoryId: galaxyHistoryId,
+        executionEngine,
         status: 'queued',
         dataScopeApplied: {
           fraction: executionRun.dataScope.fraction,
@@ -3797,6 +4246,240 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(comparison);
     } catch (error: any) {
       console.error("[ExecutionRun] Error comparing runs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Nextflow AI Operations API
+  // ============================================================================
+
+  /**
+   * Analyze workflow execution with AI
+   * Proxies to Galaxy backend's workflow_ai_ops endpoint
+   */
+  app.post("/api/workflows/runs/:id/ai/analyze", authenticateToken, async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      const galaxyInvocationId = run.execution.galaxyInvocationId;
+      if (!galaxyInvocationId) {
+        return res.status(400).json({ error: "No Galaxy invocation associated with this run" });
+      }
+
+      // Proxy to Galaxy backend AI analysis endpoint
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/${run.execution.galaxyWorkflowId}/invocations/${galaxyInvocationId}/ai/analyze`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.GALAXY_API_KEY || '',
+          },
+          body: JSON.stringify(req.body),
+        }
+      );
+
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error: any) {
+      console.error("[Nextflow AI] Error analyzing workflow:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Trigger AutoFix for failed workflow
+   * Proxies to Galaxy backend's autofix endpoint
+   */
+  app.post("/api/workflows/runs/:id/ai/autofix", authenticateToken, async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      const galaxyInvocationId = run.execution.galaxyInvocationId;
+      if (!galaxyInvocationId) {
+        return res.status(400).json({ error: "No Galaxy invocation associated with this run" });
+      }
+
+      // Proxy to Galaxy backend AutoFix endpoint
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/${run.execution.galaxyWorkflowId}/invocations/${galaxyInvocationId}/ai/autofix`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.GALAXY_API_KEY || '',
+          },
+          body: JSON.stringify({
+            ...req.body,
+            fix_mode: req.body.fix_mode || 'safe',
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      // If autofix was successful, record the interaction
+      if (response.ok && data.success) {
+        await storage.addExecutionRunInteraction(req.params.id, {
+          id: uuidv4(),
+          timestamp: new Date(),
+          type: 'autofix',
+          details: {
+            fixMode: req.body.fix_mode || 'safe',
+            fixesApplied: data.fixes_applied || [],
+            result: data,
+          },
+          userId: req.user?.id,
+        });
+      }
+
+      res.status(response.status).json(data);
+    } catch (error: any) {
+      console.error("[Nextflow AI] Error triggering autofix:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Query workflow with natural language
+   * Proxies to Galaxy backend's query endpoint
+   */
+  app.post("/api/workflows/runs/:id/ai/query", authenticateToken, async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      const galaxyInvocationId = run.execution.galaxyInvocationId;
+      if (!galaxyInvocationId) {
+        return res.status(400).json({ error: "No Galaxy invocation associated with this run" });
+      }
+
+      // Proxy to Galaxy backend query endpoint
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/${run.execution.galaxyWorkflowId}/invocations/${galaxyInvocationId}/ai/query`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.GALAXY_API_KEY || '',
+          },
+          body: JSON.stringify({
+            question: req.body.question,
+            chat_history: req.body.chat_history || [],
+          }),
+        }
+      );
+
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error: any) {
+      console.error("[Nextflow AI] Error querying workflow:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Get real-time workflow logs
+   * Proxies to Galaxy backend's log streaming endpoint
+   */
+  app.get("/api/workflows/runs/:id/logs", async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!run) {
+        return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      const galaxyInvocationId = run.execution.galaxyInvocationId;
+      if (!galaxyInvocationId) {
+        return res.status(400).json({ error: "No Galaxy invocation associated with this run" });
+      }
+
+      // Proxy to Galaxy backend logs endpoint
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/${run.execution.galaxyWorkflowId}/invocations/${galaxyInvocationId}/logs`,
+        {
+          method: 'GET',
+          headers: {
+            'x-api-key': process.env.GALAXY_API_KEY || '',
+          },
+        }
+      );
+
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error: any) {
+      console.error("[Nextflow] Error fetching logs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Convert Galaxy workflow to Nextflow format
+   */
+  app.post("/api/workflows/convert/galaxy-to-nextflow", authenticateToken, async (req, res) => {
+    try {
+      const { workflowDefinition } = req.body;
+      if (!workflowDefinition) {
+        return res.status(400).json({ error: "workflowDefinition is required" });
+      }
+
+      // Proxy to Galaxy backend conversion endpoint
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/convert/galaxy-to-nextflow`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.GALAXY_API_KEY || '',
+          },
+          body: JSON.stringify({ workflow: workflowDefinition }),
+        }
+      );
+
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error: any) {
+      console.error("[Nextflow] Error converting workflow:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Convert Nextflow workflow to Galaxy format
+   */
+  app.post("/api/workflows/convert/nextflow-to-galaxy", authenticateToken, async (req, res) => {
+    try {
+      const { nextflowScript, config } = req.body;
+      if (!nextflowScript) {
+        return res.status(400).json({ error: "nextflowScript is required" });
+      }
+
+      // Proxy to Galaxy backend conversion endpoint
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/convert/nextflow-to-galaxy`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.GALAXY_API_KEY || '',
+          },
+          body: JSON.stringify({ script: nextflowScript, config }),
+        }
+      );
+
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error: any) {
+      console.error("[Nextflow] Error converting workflow:", error);
       res.status(500).json({ error: error.message });
     }
   });

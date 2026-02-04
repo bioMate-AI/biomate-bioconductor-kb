@@ -143,6 +143,9 @@ export const sessions = pgTable("sessions", {
   // Statistics
   messageCount: integer("message_count").default(0),
   totalTokens: integer("total_tokens").default(0),
+
+  // Conversation state (pre-compaction flush — persisted every turn)
+  conversationState: jsonb("conversation_state"),
 }, (table) => ({
   userIdIdx: index("sessions_user_id_idx").on(table.userId),
   projectIdIdx: index("sessions_project_id_idx").on(table.projectId),
@@ -420,6 +423,28 @@ export const projectProcedures = pgTable("project_procedures", {
 }));
 
 // ============================================================================
+// Table 11: Conversation State Facts (Cross-Session Analysis)
+// ============================================================================
+
+export const conversationStateFacts = pgTable("conversation_state_facts", {
+  id: serial("id").primaryKey(),
+  sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+
+  // Fact data
+  category: varchar("category", { length: 50 }).notNull(),
+  value: text("value").notNull(),
+  confidence: real("confidence").default(0.5),
+  turnIndex: integer("turn_index").notNull(),
+  supersededBy: integer("superseded_by"),
+  sourceType: varchar("source_type", { length: 50 }),
+
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  sessionIdIdx: index("state_facts_session_id_idx").on(table.sessionId),
+  categoryIdx: index("state_facts_category_idx").on(table.category),
+}));
+
+// ============================================================================
 // Relations
 // ============================================================================
 
@@ -454,6 +479,7 @@ export const sessionsRelations = relations(sessions, ({ one, many }) => ({
   }),
   messages: many(conversationMessages),
   episodes: many(projectEpisodes),
+  stateFacts: many(conversationStateFacts),
 }));
 
 export const conversationMessagesRelations = relations(conversationMessages, ({ one }) => ({
@@ -508,6 +534,13 @@ export const projectProceduresRelations = relations(projectProcedures, ({ one })
   }),
 }));
 
+export const conversationStateFactsRelations = relations(conversationStateFacts, ({ one }) => ({
+  session: one(sessions, {
+    fields: [conversationStateFacts.sessionId],
+    references: [sessions.id],
+  }),
+}));
+
 // ============================================================================
 // Zod Schemas for Validation
 // ============================================================================
@@ -538,6 +571,9 @@ export const selectEpisodeSchema = createSelectSchema(projectEpisodes);
 
 export const insertProcedureSchema = createInsertSchema(projectProcedures);
 export const selectProcedureSchema = createSelectSchema(projectProcedures);
+
+export const insertStateFactSchema = createInsertSchema(conversationStateFacts);
+export const selectStateFactSchema = createSelectSchema(conversationStateFacts);
 
 // ============================================================================
 // Type Exports
@@ -572,3 +608,6 @@ export type InsertProjectEpisode = typeof projectEpisodes.$inferInsert;
 
 export type ProjectProcedure = typeof projectProcedures.$inferSelect;
 export type InsertProjectProcedure = typeof projectProcedures.$inferInsert;
+
+export type ConversationStateFact = typeof conversationStateFacts.$inferSelect;
+export type InsertConversationStateFact = typeof conversationStateFacts.$inferInsert;
