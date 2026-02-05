@@ -34,10 +34,11 @@ DB_PATH = Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_t
 # Source priority (higher = preferred)
 SOURCE_PRIORITY = {
     "nfcore": 100,  # Prefer nf-core (well-tested, community standard)
+    "nfcore_converted": 95,  # nf-core converted to Galaxy format
     "galaxy_local": 80,  # Local Galaxy workflows
-    "unknown": 60,  # Original imports (Galaxy community)
-    "biomni": 40,  # Biomni Galaxy subworkflows
-    "biomni_nextflow": 30,  # Biomni Nextflow (less mature)
+    "unknown": 70,  # Galaxy community workflows (often high quality)
+    "biomni": 50,  # Biomni Galaxy subworkflows
+    "biomni_nextflow": 40,  # Biomni Nextflow (less mature)
 }
 
 
@@ -228,7 +229,7 @@ class UnifiedWorkflowSearch:
                 params.append(format)
 
             sql += " ORDER BY fts_score LIMIT ?"
-            params.append(limit * 3)  # Get more for re-ranking
+            params.append(max(limit * 10, 50))  # Get many more for re-ranking (min 50)
 
             cursor.execute(sql, params)
             rows = cursor.fetchall()
@@ -251,18 +252,59 @@ class UnifiedWorkflowSearch:
         finally:
             conn.close()
 
+    # Common bioinformatics abbreviation expansions
+    ABBREVIATION_MAP = {
+        'de': ['differential', 'expression'],  # DE = Differential Expression
+        'deg': ['differential', 'expression', 'gene'],  # DEG
+        'dea': ['differential', 'expression', 'analysis'],  # DEA
+        'ngs': ['next', 'generation', 'sequencing'],
+        'wgs': ['whole', 'genome', 'sequencing'],
+        'wes': ['whole', 'exome', 'sequencing'],
+        'rnaseq': ['rna', 'seq', 'transcriptome'],
+        'chipseq': ['chip', 'seq', 'chromatin'],
+        'atacseq': ['atac', 'seq', 'chromatin', 'accessibility'],
+        'scrna': ['single', 'cell', 'rna'],
+        'scrnaseq': ['single', 'cell', 'rna', 'seq'],
+        'bwa': ['bwa', 'alignment', 'mapping'],
+        'bowtie': ['bowtie', 'alignment', 'mapping'],
+        'star': ['star', 'alignment', 'spliced'],
+        'deseq': ['deseq2', 'differential', 'expression'],
+        'deseq2': ['deseq2', 'differential', 'expression'],
+        'edger': ['edger', 'differential', 'expression'],
+        'gatk': ['gatk', 'variant', 'calling'],
+        'vcf': ['vcf', 'variant'],
+        'qc': ['quality', 'control'],
+        'fastqc': ['fastqc', 'quality', 'control'],
+    }
+
     def _build_fts_query(self, query: str) -> str:
-        """Build FTS5 query from natural language."""
+        """Build FTS5 query from natural language with abbreviation expansion."""
         # Clean and tokenize
         words = query.lower().replace("-", " ").split()
 
         # Remove common words
-        stopwords = {'i', 'want', 'to', 'the', 'a', 'an', 'for', 'with', 'and', 'or', 'from', 'in', 'on'}
-        words = [w for w in words if w not in stopwords and len(w) > 2]
+        stopwords = {'i', 'want', 'to', 'the', 'a', 'an', 'for', 'with', 'and', 'or', 'from', 'in', 'on', 'my', 'run'}
+        words = [w for w in words if w not in stopwords and len(w) > 1]
+
+        # Expand abbreviations
+        expanded_words = []
+        for word in words:
+            if word in self.ABBREVIATION_MAP:
+                expanded_words.extend(self.ABBREVIATION_MAP[word])
+            else:
+                expanded_words.append(word)
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_words = []
+        for w in expanded_words:
+            if w not in seen:
+                seen.add(w)
+                unique_words.append(w)
 
         # Build OR query for flexibility
-        if words:
-            return " OR ".join(words)
+        if unique_words:
+            return " OR ".join(unique_words)
         return query
 
     def _create_match(self, row: tuple, query: str, include_json: bool) -> WorkflowMatch:
@@ -300,6 +342,25 @@ class UnifiedWorkflowSearch:
             workflow_json=workflow_json if include_json else None
         )
 
+    def _expand_query(self, query: str) -> str:
+        """Expand abbreviations in query for better matching."""
+        words = query.lower().replace("-", " ").split()
+        expanded = []
+        for word in words:
+            if word in self.ABBREVIATION_MAP:
+                expanded.extend(self.ABBREVIATION_MAP[word])
+            else:
+                expanded.append(word)
+        return " ".join(expanded)
+
+    # Key phrases to boost when found in workflow names
+    KEY_PHRASES = [
+        'differential expression', 'variant calling', 'peak calling', 'quality control',
+        'rna-seq', 'rnaseq', 'rna seq', 'chip-seq', 'chipseq', 'atac-seq', 'atacseq',
+        'single cell', 'single-cell', 'methylation', 'assembly', 'alignment',
+        'fastq', 'fasta', 'bam', 'vcf', 'proteomics', 'metabolomics',
+    ]
+
     def _calculate_score(self,
                          query: str,
                          name: str,
@@ -308,26 +369,37 @@ class UnifiedWorkflowSearch:
                          tags: List[str],
                          source: str,
                          fts_score: float) -> float:
-        """Calculate relevance score with source priority."""
+        """Calculate relevance score with source priority and phrase matching."""
         score = 0.0
+        # Expand abbreviations in query for keyword matching
+        query_expanded = self._expand_query(query)
         query_lower = query.lower()
-        text = f"{name} {description} {' '.join(tools)} {' '.join(tags)}".lower()
+        name_lower = name.lower().replace("-", " ").replace("_", " ")
+        text = f"{name_lower} {description or ''} {' '.join(tools)} {' '.join(tags)}".lower()
 
-        # 1. FTS score (normalized, ~40% weight)
-        score += abs(fts_score) * 2.0
+        # 1. FTS score (normalized, ~30% weight)
+        score += abs(fts_score) * 1.5
 
-        # 2. Keyword matching (~30% weight)
+        # 2. Keyword matching (~25% weight) - use expanded query
         for keyword, weight in self.keyword_weights.items():
-            if keyword in query_lower and keyword in text:
+            if keyword in query_expanded and keyword in text:
                 score += weight
 
-        # 3. Name match bonus (~20% weight)
-        query_words = set(query_lower.split())
-        name_words = set(name.lower().split())
-        overlap = len(query_words.intersection(name_words))
-        score += overlap * 2.0
+        # 3. Phrase match bonus (~25% weight) - boost for key phrases in both query and name
+        phrase_matches = 0
+        for phrase in self.KEY_PHRASES:
+            if phrase in query_expanded and phrase in name_lower:
+                phrase_matches += 1
+        if phrase_matches > 0:
+            score += 5.0 + (phrase_matches * 3.0)  # Base 5 + 3 per phrase match
 
-        # 4. Source priority (~10% weight)
+        # 4. Name word overlap (~15% weight) - also expand for name matching
+        query_words = set(query_expanded.split())
+        name_words = set(name_lower.split())
+        overlap = len(query_words.intersection(name_words))
+        score += overlap * 1.5
+
+        # 5. Source priority (~5% weight)
         source_bonus = SOURCE_PRIORITY.get(source, 0) / 50.0  # Normalize to ~2.0 max
         score += source_bonus
 
