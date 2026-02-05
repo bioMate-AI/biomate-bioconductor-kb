@@ -1209,14 +1209,15 @@ For MULTI-intent messages, respond with an "intents" array:
 ${userContextStr ? userContextStr + '\n\nConsider the user profile when ranking tools. Give higher scores to tools that match their domain and previous successful tools.' : ''}
 For each tool, provide:
 1. Relevance score (0-1)
-2. Brief reasoning
+2. Brief reasoning (plain text, no backticks or markdown)
 
-Respond in JSON format:
+IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fences. Keep reasoning brief (under 50 words).
+
 [
   {
     "tool_id": "tool_123",
     "relevanceScore": 0.95,
-    "reasoning": "Perfect match for RNA-seq alignment${userContextStr ? ' and matches user\'s proteomics domain' : ''}"
+    "reasoning": "Perfect match for RNA-seq alignment"
   }
 ]`;
 
@@ -1263,18 +1264,49 @@ Respond in JSON format:
       });
 
       const content = completion.content[0];
-      let resultText = content.type === 'text' ? content.text : '{"rankings":[]}';
+      let resultText = content.type === 'text' ? content.text : '[]';
 
-      // Strip markdown code blocks if present (improved regex to handle more edge cases)
+      // Clean JSON response from LLM
       resultText = resultText
-        .replace(/^```+\s*json\s*\n?/gi, '')  // Remove opening code fence with any number of backticks
+        .replace(/^```+\s*json\s*\n?/gi, '')  // Remove opening code fence
         .replace(/\n?```+\s*$/gi, '')          // Remove closing code fence
-        .replace(/^\s*`+\s*/g, '')             // Remove leading backticks and whitespace
-        .replace(/\s*`+\s*$/g, '')             // Remove trailing backticks and whitespace
+        .replace(/^\s*`+\s*/g, '')             // Remove leading backticks
+        .replace(/\s*`+\s*$/g, '')             // Remove trailing backticks
         .trim();
 
-      const rankings = JSON.parse(resultText);
-      const rankingArray = rankings.rankings || rankings;
+      // Handle truncated JSON (incomplete response due to max_tokens)
+      // Try to find the last complete object by balancing braces
+      if (!resultText.endsWith(']') && !resultText.endsWith('}')) {
+        // Find last complete object
+        const lastCompleteObj = resultText.lastIndexOf('},');
+        if (lastCompleteObj > 0) {
+          resultText = resultText.slice(0, lastCompleteObj + 1) + ']';
+        } else {
+          // Can't salvage, return empty
+          resultText = '[]';
+        }
+      }
+
+      // Remove inline backticks from JSON strings (LLM sometimes uses `tool_name` in reasoning)
+      // This regex finds backticks inside JSON string values and removes them
+      resultText = resultText.replace(/`([^`]*)`/g, '$1');
+
+      let rankings: any[];
+      try {
+        const parsed = JSON.parse(resultText);
+        rankings = parsed.rankings || parsed;
+      } catch (parseError) {
+        // If still failing, try to extract individual tool rankings with regex
+        console.warn('[GalaxyAssistant] JSON parse failed, attempting regex extraction');
+        const toolMatches = resultText.matchAll(/"tool_id"\s*:\s*"([^"]+)"[^}]*"relevanceScore"\s*:\s*([\d.]+)/g);
+        rankings = Array.from(toolMatches).map(m => ({
+          tool_id: m[1],
+          relevanceScore: parseFloat(m[2]),
+          reasoning: 'Extracted from partial response'
+        }));
+        if (rankings.length === 0) throw parseError;
+      }
+      const rankingArray = rankings;
 
       return tools
         .map((tool) => {

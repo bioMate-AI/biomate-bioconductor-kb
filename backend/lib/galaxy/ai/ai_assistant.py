@@ -1412,19 +1412,23 @@ class AIAssistant:
             if not search_results:
                 log.info("[UnifiedWorkflowGeneration] No workflows found, will generate from scratch")
                 score = 0.0
+                match_type = "no_match"
             else:
                 # WorkflowMatch is a dataclass, access via attributes
                 best_match = search_results[0]
                 score = best_match.score
-                log.info(f"[UnifiedWorkflowGeneration] Best match: {best_match.name} (score: {score:.2f})")
+                match_type = best_match.match_type  # high_confidence, medium_confidence, low_confidence
+                log.info(f"[UnifiedWorkflowGeneration] Best match: {best_match.name} (score: {score:.2f}, match: {match_type})")
 
             workflow_ga = None
             source = None
             datasets_assigned = False
             generated_parameters = []  # Initialize for all paths
 
-            # Step 2: Decide strategy based on template match score
-            if score > 0.8:
+            # Step 2: Decide strategy based on template match confidence
+            # Use match_type from workflow search (high/medium/low_confidence)
+            # Thresholds: high_confidence >= 8.0, medium_confidence >= 4.0
+            if match_type == "high_confidence":
                 # High confidence - reuse existing workflow
                 log.info("[UnifiedWorkflowGeneration] High confidence match - reusing workflow")
                 best_match = search_results[0]
@@ -1464,7 +1468,7 @@ class AIAssistant:
 
                 message = f"Reused existing workflow: {best_match.name}"
 
-            elif score > 0.5:
+            elif match_type == "medium_confidence":
                 # Medium confidence - adapt template using enhanced generator
                 log.info("[UnifiedWorkflowGeneration] Medium confidence - adapting template")
                 source = 'template_adapt'

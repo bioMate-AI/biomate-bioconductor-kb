@@ -77,14 +77,21 @@ class UnifiedWorkflowSearch:
 
         # Keyword weights for scoring
         self.keyword_weights = {
-            # RNA-seq
+            # RNA-seq & Differential Expression
             'rna-seq': 3.0, 'rnaseq': 3.0, 'rna': 2.0,
-            'expression': 2.0, 'differential': 2.0, 'deseq2': 2.5,
+            'expression': 2.0, 'differential': 2.5, 'de': 2.0,
+            'deseq2': 3.0, 'edger': 3.0, 'limma': 2.5,
             'salmon': 2.5, 'kallisto': 2.5, 'star': 2.0, 'hisat2': 2.0,
+            'transcriptome': 2.0, 'transcriptomics': 2.5,
+
+            # RNA Velocity (separate from DE)
+            'velocity': 2.5, 'velocyto': 3.0, 'scvelo': 3.0,
+            'trajectory': 2.0, 'pseudotime': 2.0,
 
             # Variant calling
             'variant': 3.0, 'snp': 2.5, 'indel': 2.0, 'mutation': 2.0,
             'gatk': 2.5, 'freebayes': 2.0, 'bcftools': 2.0,
+            'vcf': 2.0, 'calling': 1.5,
 
             # ChIP-seq / ATAC-seq
             'chip-seq': 3.0, 'chipseq': 3.0, 'atac': 2.5, 'peak': 2.0,
@@ -107,6 +114,19 @@ class UnifiedWorkflowSearch:
 
             # Quality control
             'quality': 2.0, 'qc': 2.0, 'fastqc': 2.5, 'multiqc': 2.0,
+
+            # File formats & conversion (CRITICAL - was missing!)
+            'fasta': 2.5, 'fastq': 2.5, 'bam': 2.0, 'sam': 2.0,
+            'bed': 2.0, 'gff': 2.0, 'gtf': 2.0, 'bigwig': 2.0,
+            'convert': 2.5, 'conversion': 2.5, 'format': 1.5,
+            'extract': 1.5, 'filter': 1.5, 'merge': 1.5,
+
+            # Alignment
+            'align': 2.0, 'alignment': 2.5, 'mapping': 2.0,
+            'bwa': 2.5, 'bowtie': 2.5, 'bowtie2': 2.5, 'minimap2': 2.5,
+
+            # General analysis terms
+            'analysis': 1.0, 'pipeline': 1.5, 'workflow': 1.0,
         }
 
         log.info(f"UnifiedWorkflowSearch initialized with DB: {self.db_path}")
@@ -314,10 +334,16 @@ class UnifiedWorkflowSearch:
         return round(score, 2)
 
     def _classify_match(self, score: float) -> str:
-        """Classify match confidence."""
-        if score >= 8.0:
+        """Classify match confidence.
+
+        Thresholds calibrated to require meaningful keyword overlap:
+        - high_confidence: Strong keyword matches + name overlap (score >= 12)
+        - medium_confidence: Some keyword matches (score >= 6)
+        - low_confidence: Weak matches that need adaptation
+        """
+        if score >= 12.0:
             return "high_confidence"
-        elif score >= 4.0:
+        elif score >= 6.0:
             return "medium_confidence"
         else:
             return "low_confidence"
