@@ -345,6 +345,44 @@ export class GalaxyAPIProxy {
   }
 
   /**
+   * Run AutoFix 3.0 for a workflow invocation
+   */
+  async runAutofix3(
+    workflowId: string,
+    invocationId: string,
+    payload: Record<string, any>
+  ): Promise<any> {
+    const response = await this.client.post(
+      `/api/workflows/${workflowId}/invocations/${invocationId}/autofix3/run`,
+      payload
+    );
+    return response.data;
+  }
+
+  /**
+   * List AutoFix 3.0 sessions for a workflow invocation
+   */
+  async listAutofix3Sessions(
+    workflowId: string,
+    invocationId: string,
+    limit?: number
+  ): Promise<any> {
+    const response = await this.client.get(
+      `/api/workflows/${workflowId}/invocations/${invocationId}/autofix3/sessions`,
+      { params: limit ? { limit } : undefined }
+    );
+    return response.data;
+  }
+
+  /**
+   * Get AutoFix 3.0 system status
+   */
+  async getAutofix3Status(): Promise<any> {
+    const response = await this.client.get("/api/autofix3/status");
+    return response.data;
+  }
+
+  /**
    * Cancel workflow invocation
    * Maps to Galaxy's native DELETE /api/workflows/{workflow_id}/invocations/{invocation_id}
    */

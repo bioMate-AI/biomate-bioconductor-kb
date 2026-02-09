@@ -106,6 +106,7 @@ async function apiGetRunStatus(runId: string): Promise<{
   metrics?: ExecutionRun['metrics'];
   steps?: StepExecution[];
   errorMessage?: string;
+  nextflowStatus?: any;
 }> {
   const response = await fetch(`/api/workflows/runs/${runId}/status?includeSteps=true`);
   if (!response.ok) {
@@ -402,6 +403,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
                 ...prev.currentRun.execution,
                 status: status.status,
                 errorMessage: status.errorMessage,
+                nextflowStatus: status.nextflowStatus,
               },
               progress: status.progress,
               metrics: status.metrics || prev.currentRun.metrics,

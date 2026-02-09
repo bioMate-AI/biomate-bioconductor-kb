@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card"
 import { useMutation } from "@tanstack/react-query"
 import { apiRequest } from "@/lib/queryClient"
 import { chatHistoryService } from "@/lib/chat-history"
-import type { ChatSession } from "@shared/schema"
+import type { ChatSession, ExecutionRun } from "@shared/schema"
 import {
   ChevronRight,
   ChevronDown,
@@ -55,6 +55,8 @@ interface ChatInterfaceProps {
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   isWorkflowRunning?: boolean
   workflowProgress?: number
+  workflowError?: string | null
+  currentExecutionRun?: ExecutionRun | null
 }
 
 export function ChatInterface({
@@ -71,7 +73,9 @@ export function ChatInterface({
   onStopWorkflow,
   onParameterChange,
   isWorkflowRunning = false,
-  workflowProgress = 0
+  workflowProgress = 0,
+  workflowError,
+  currentExecutionRun
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -890,6 +894,7 @@ export function ChatInterface({
               onParameterChange={onParameterChange}
               isWorkflowRunning={isWorkflowRunning}
               workflowProgress={workflowProgress}
+              currentExecutionRun={currentExecutionRun}
             />
           ))}
           {displayTyping && <TypingIndicator />}

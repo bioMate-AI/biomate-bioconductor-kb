@@ -884,6 +884,7 @@ export const executionRunSchema = z.object({
     galaxyHistoryId: z.string().optional(),
     galaxyWorkflowId: z.string().optional(),
     executionEngine: z.string().optional(),
+    nextflowStatus: z.any().optional(),
     status: executionRunStatusSchema,
     startedAt: z.coerce.date().optional(),
     completedAt: z.coerce.date().optional(),

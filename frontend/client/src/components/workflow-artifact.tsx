@@ -25,7 +25,8 @@ import {
   FileText,
   Laptop,
   Scissors,
-  Download
+  Download,
+  Sparkles
 } from "lucide-react"
 import { cn, getSimpleToolName } from "@/lib/utils"
 import { ParameterDialog } from "./parameter-dialog"
@@ -167,6 +168,12 @@ export function WorkflowArtifact({
   const [showPilotRun, setShowPilotRun] = useState(false)
   const [showUnifiedExecution, setShowUnifiedExecution] = useState(false)
   const [pilotBannerDismissed, setPilotBannerDismissed] = useState(false)
+  const [autofixStatus, setAutofixStatus] = useState<any | null>(null)
+  const [autofixError, setAutofixError] = useState<string | null>(null)
+  const [isAutofixRunning, setIsAutofixRunning] = useState(false)
+  const [autofixSessions, setAutofixSessions] = useState<any[]>([])
+  const [isAutofixSessionsLoading, setIsAutofixSessionsLoading] = useState(false)
+  const [showNextflowDetails, setShowNextflowDetails] = useState(false)
   // P1-P3: New dialog states
   const [showReportViewer, setShowReportViewer] = useState(false)
   const [showInteractiveLauncher, setShowInteractiveLauncher] = useState(false)
@@ -176,6 +183,10 @@ export function WorkflowArtifact({
   const showPilotBanner = pilotRunSuggested && !pilotBannerDismissed && !isRunning && pilotReasons.length > 0
 
   const citationsCount = citations.filter(c => c.doi || c.pmid || c.title).length
+  const isFailed = currentExecutionRun?.execution.status === 'failed'
+  const autofixWorkflowId = currentExecutionRun?.execution?.galaxyWorkflowId || galaxyWorkflowId
+  const autofixInvocationId = currentExecutionRun?.execution?.galaxyInvocationId || invocationId
+  const nextflowStatus = currentExecutionRun?.execution?.nextflowStatus
 
   // Normalize steps array
   const normalizedSteps: WorkflowStep[] = Array.isArray(steps) ? steps :
@@ -211,6 +222,60 @@ export function WorkflowArtifact({
       case 'running': return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
       case 'error': return <AlertCircle className="h-4 w-4 text-red-500" />
       default: return <Clock className="h-4 w-4 text-muted-foreground" />
+    }
+  }
+
+  const canTriggerAutofix = Boolean(isFailed && autofixWorkflowId && autofixInvocationId)
+
+  const handleAutofix = async () => {
+    if (!canTriggerAutofix) return
+    if (!autofixWorkflowId || !autofixInvocationId) return
+    setIsAutofixRunning(true)
+    setAutofixError(null)
+    try {
+      const response = await fetch(
+        `/api/galaxy/workflows/${autofixWorkflowId}/invocations/${autofixInvocationId}/autofix3/run`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            max_attempts: 5,
+            timeout_seconds: 300,
+            auto_apply: false,
+          }),
+        }
+      )
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}))
+        throw new Error(errorPayload.message || errorPayload.error || 'AutoFix failed')
+      }
+      const data = await response.json()
+      setAutofixStatus(data)
+    } catch (error: any) {
+      setAutofixError(error.message || 'AutoFix failed')
+    } finally {
+      setIsAutofixRunning(false)
+    }
+  }
+
+  const handleFetchAutofixSessions = async () => {
+    if (!autofixWorkflowId || !autofixInvocationId) return
+    setIsAutofixSessionsLoading(true)
+    setAutofixError(null)
+    try {
+      const response = await fetch(
+        `/api/galaxy/workflows/${autofixWorkflowId}/invocations/${autofixInvocationId}/autofix3/sessions?limit=5`
+      )
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}))
+        throw new Error(errorPayload.message || errorPayload.error || 'Failed to load AutoFix history')
+      }
+      const data = await response.json()
+      setAutofixSessions(data.sessions || [])
+    } catch (error: any) {
+      setAutofixError(error.message || 'Failed to load AutoFix history')
+    } finally {
+      setIsAutofixSessionsLoading(false)
     }
   }
 
@@ -321,6 +386,43 @@ export function WorkflowArtifact({
               </div>
             )}
 
+            {nextflowStatus && (
+              <div className="mt-3 rounded-md border border-blue-200/60 bg-blue-50/40 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-200">
+                <div className="flex flex-wrap gap-3">
+                  <span>Nextflow progress: {nextflowStatus.progressPercent ?? 0}%</span>
+                  <span>Completed: {nextflowStatus.completedTasks ?? 0}/{nextflowStatus.totalTasks ?? 0}</span>
+                  <span>Running: {nextflowStatus.runningTasks ?? 0}</span>
+                  <span>Failed: {nextflowStatus.failedTasks ?? 0}</span>
+                </div>
+                {Array.isArray(nextflowStatus.processes) && nextflowStatus.processes.length > 0 && (
+                  <div className="mt-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setShowNextflowDetails((prev) => !prev)}
+                    >
+                      {showNextflowDetails ? 'Hide details' : 'View details'}
+                    </Button>
+                    {showNextflowDetails && (
+                      <div className="mt-2 space-y-1">
+                        {nextflowStatus.processes.slice(0, 6).map((proc: any, idx: number) => (
+                          <div key={proc.name || idx} className="text-xs text-muted-foreground">
+                            {proc.name || `Process ${idx + 1}`} · {proc.status || 'unknown'} · {proc.completed || 0}/{proc.total || 0}
+                          </div>
+                        ))}
+                        {nextflowStatus.processes.length > 6 && (
+                          <div className="text-xs text-muted-foreground">
+                            …and {nextflowStatus.processes.length - 6} more
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Prerequisites Warning - Show if inputs or parameters are missing */}
             {prerequisitesValidation && !prerequisitesValidation.fulfilled && (() => {
               const hasMissingInputs = prerequisitesValidation.analysis.missingInputs.length > 0;
@@ -418,6 +520,84 @@ export function WorkflowArtifact({
                 </Alert>
               );
             })()}
+
+            {isFailed && (
+              <Alert className="mt-3 border-red-500/40 bg-red-50/40 dark:bg-red-950/20">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertTitle className="text-sm font-medium text-red-800 dark:text-red-200">
+                  Workflow failed
+                </AlertTitle>
+                <AlertDescription className="text-xs text-red-700 dark:text-red-300">
+                  <p>
+                    You can run AutoFix to analyze logs and suggest corrective actions.
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7"
+                      onClick={handleAutofix}
+                      disabled={!canTriggerAutofix || isAutofixRunning}
+                    >
+                      {isAutofixRunning ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Running AutoFix
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Run AutoFix
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7"
+                      onClick={handleFetchAutofixSessions}
+                      disabled={!autofixWorkflowId || !autofixInvocationId || isAutofixSessionsLoading}
+                    >
+                      {isAutofixSessionsLoading ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Loading history
+                        </>
+                      ) : (
+                        <>
+                          <History className="h-3 w-3 mr-1" />
+                          View AutoFix history
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {autofixError && (
+                    <p className="mt-2 text-xs text-red-700">
+                      AutoFix error: {autofixError}
+                    </p>
+                  )}
+                  {autofixStatus && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <p>Session: {autofixStatus.session_id || 'unknown'}</p>
+                      <p>Result: {autofixStatus.termination_reason || 'unknown'}</p>
+                      <p>Attempts: {autofixStatus.total_attempts ?? 'n/a'}</p>
+                    </div>
+                  )}
+                  {autofixSessions.length > 0 && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <p className="font-medium text-red-700 dark:text-red-300">Recent AutoFix sessions:</p>
+                      <ul className="mt-1 space-y-1">
+                      {autofixSessions.map((session: any, idx: number) => (
+                        <li key={session.session_id || `session-${idx}`}>
+                          {session.session_id || 'unknown'} · {session.termination_reason || 'unknown'} · attempts {session.total_attempts ?? 'n/a'}
+                        </li>
+                      ))}
+                      </ul>
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
 
             {workflow.annotation && (
               <p className="text-sm text-muted-foreground mt-2">

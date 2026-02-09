@@ -12,7 +12,7 @@ import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
 
 // Use the shared Message type for consistency
-import type { Message } from '@shared/schema'
+import type { ExecutionRun, Message } from '@shared/schema'
 export type { Message }
 
 interface ChatMessageProps {
@@ -27,6 +27,7 @@ interface ChatMessageProps {
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   isWorkflowRunning?: boolean
   workflowProgress?: number
+  currentExecutionRun?: ExecutionRun | null
 }
 
 export function ChatMessage({
@@ -41,6 +42,7 @@ export function ChatMessage({
   onParameterChange,
   isWorkflowRunning = false,
   workflowProgress = 0,
+  currentExecutionRun,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
 
@@ -151,6 +153,8 @@ export function ChatMessage({
               prerequisitesValidation={message.metadata.prerequisitesValidation}
               // Invocation ID for workflow report viewer
               invocationId={message.invocationId}
+              galaxyWorkflowId={currentExecutionRun?.execution?.galaxyWorkflowId}
+              currentExecutionRun={currentExecutionRun || undefined}
             />
           )}
 

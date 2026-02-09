@@ -1761,6 +1761,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/galaxy/autofix3/status", async (req, res) => {
+    try {
+      const status = await galaxyAPIBackend.getAutofix3Status();
+      res.json(status);
+    } catch (error: any) {
+      console.error("AutoFix3 status error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'AutoFixStatusFailed',
+        message: error.message || 'Failed to fetch AutoFix status',
+      });
+    }
+  });
+
+  app.post("/api/galaxy/workflows/:workflowId/invocations/:invocationId/autofix3/run", async (req, res) => {
+    try {
+      const result = await galaxyAPIBackend.runAutofix3(
+        req.params.workflowId,
+        req.params.invocationId,
+        req.body
+      );
+      res.json(result);
+    } catch (error: any) {
+      console.error("AutoFix3 run error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'AutoFixRunFailed',
+        message: error.message || 'Failed to run AutoFix',
+      });
+    }
+  });
+
+  app.get("/api/galaxy/workflows/:workflowId/invocations/:invocationId/autofix3/sessions", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+      const result = await galaxyAPIBackend.listAutofix3Sessions(
+        req.params.workflowId,
+        req.params.invocationId,
+        limit
+      );
+      res.json(result);
+    } catch (error: any) {
+      console.error("AutoFix3 sessions error:", error);
+      res.status(error.status_code || 500).json({
+        error: error.error || 'AutoFixSessionsFailed',
+        message: error.message || 'Failed to fetch AutoFix sessions',
+      });
+    }
+  });
+
   // ============================================================================
   // Server-Sent Events (SSE) for Real-Time Workflow Updates
   // ============================================================================

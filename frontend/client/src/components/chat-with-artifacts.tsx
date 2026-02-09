@@ -293,6 +293,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
           onParameterChange={handleParameterChange}
           isWorkflowRunning={isWorkflowRunning}
           workflowProgress={workflowProgress}
+          currentExecutionRun={currentRun}
           workflowError={workflowError}
         />
       </div>
