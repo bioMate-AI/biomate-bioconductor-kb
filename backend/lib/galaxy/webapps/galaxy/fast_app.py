@@ -87,6 +87,14 @@ api_tags_metadata = [
         "description": "Operations with remote dataset sources.",
     },
     {"name": "undocumented", "description": "API routes that have not yet been ported to FastAPI."},
+    {
+        "name": "parameter_inference",
+        "description": "Intelligent parameter inference through pilot analysis and progressive context gathering.",
+    },
+    {
+        "name": "ai_assistant",
+        "description": "Galaxy AI Assistant for workflow generation and tool recommendations.",
+    },
 ]
 
 
