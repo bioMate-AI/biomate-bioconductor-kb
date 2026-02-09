@@ -104,9 +104,6 @@ interface WorkflowArtifactProps {
   onCancelExecution?: () => Promise<void>
   onPromoteToProduction?: (runId: string) => void
   strataColumns?: string[]
-  // Execution engine (galaxy or nextflow)
-  executionEngine?: 'galaxy' | 'nextflow'
-  workflowTags?: string[]
   // Prerequisites validation (from LLM analysis of input/parameter requirements)
   prerequisitesValidation?: {
     fulfilled: boolean
@@ -162,9 +159,6 @@ export function WorkflowArtifact({
   onCancelExecution,
   onPromoteToProduction,
   strataColumns = [],
-  // Execution engine detection
-  executionEngine,
-  workflowTags = [],
   prerequisitesValidation = null
 }: WorkflowArtifactProps) {
   const [isExpanded, setIsExpanded] = useState(true)
@@ -319,16 +313,6 @@ export function WorkflowArtifact({
                 <Badge variant="secondary" className="text-xs">
                   {totalSteps} step{totalSteps !== 1 ? 's' : ''}
                 </Badge>
-                {/* Execution Engine Badge */}
-                {executionEngine && (
-                  <Badge
-                    variant={executionEngine === 'nextflow' ? 'default' : 'outline'}
-                    className="text-xs"
-                    data-engine={executionEngine}
-                  >
-                    {executionEngine === 'nextflow' ? 'Nextflow' : 'Galaxy'}
-                  </Badge>
-                )}
                 {confidence > 0 && (() => {
                   // Normalize confidence to 0-100 range for display
                   const normalizedConfidence = confidence > 1 ? confidence : confidence * 100;
