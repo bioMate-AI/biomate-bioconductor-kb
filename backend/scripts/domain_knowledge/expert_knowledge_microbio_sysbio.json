@@ -1,0 +1,1347 @@
+{
+  "bacterial_growth_modeling": {
+    "description": "Mathematical modeling of bacterial population growth using logistic, Monod, Gompertz, and Baranyi models to predict lag phase, exponential growth, and stationary phase dynamics.",
+    "key_parameters": {
+      "growth_rate_mu": {
+        "description": "Maximum specific growth rate (h^-1), often expressed as doubling time (td = ln2/mu).",
+        "situations": {
+          "e_coli_LB_37C": {
+            "value_or_range": "mu ~ 2.1 h^-1 (doubling time 17-20 min)",
+            "when": "E. coli K-12 or B strains in LB broth at 37C with aeration",
+            "why": "Rich medium provides all amino acids and vitamins; optimal temperature for E. coli",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8006063/"
+          },
+          "e_coli_M9_minimal_37C": {
+            "value_or_range": "mu ~ 0.7-0.8 h^-1 (doubling time 51-60 min)",
+            "when": "E. coli in M9 minimal + glucose at 37C",
+            "why": "Cells must synthesize all amino acids and cofactors de novo; slower growth",
+            "source": "https://bionumbers.hms.harvard.edu/bionumber.aspx?s=n&v=4&id=111767"
+          },
+          "b_subtilis_LB_37C": {
+            "value_or_range": "mu ~ 1.4 h^-1 (doubling time ~30 min)",
+            "when": "B. subtilis 168 in LB at 37C",
+            "why": "Gram-positive; slightly slower than E. coli under equivalent conditions",
+            "source": "https://bionumbers.hms.harvard.edu/bionumber.aspx?s=n&v=2&id=112127"
+          },
+          "s_aureus_37C": {
+            "value_or_range": "mu ~ 1.4 h^-1 (doubling time ~30 min)",
+            "when": "S. aureus in rich media at 37C",
+            "why": "Standard pathogenic growth rate",
+            "source": "https://www.pearson.com/channels/microbiology/learn/jason/ch-7-prokaryotic-cell-structures-functions/generation-times"
+          },
+          "p_aeruginosa_37C": {
+            "value_or_range": "mu ~ 0.6-0.9 h^-1 (doubling time ~45-70 min in vitro)",
+            "when": "P. aeruginosa in standard lab media at 37C",
+            "why": "Versatile metabolism but somewhat slower; in chronic lung infections doubling time can be 100-200 min",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2293235/"
+          },
+          "m_tuberculosis": {
+            "value_or_range": "mu ~ 0.035-0.05 h^-1 (doubling time 15-24 hours)",
+            "when": "M. tuberculosis in Middlebrook 7H9 or Lowenstein-Jensen media",
+            "why": "Extremely slow grower due to complex cell wall biosynthesis; mycolic acid synthesis rate-limiting",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2779834/"
+          }
+        },
+        "common_mistakes": [
+          "Using LB growth rates for minimal media simulations (3-fold error)",
+          "Assuming constant growth rate across all growth phases",
+          "Ignoring strain-specific differences (lab strains vs clinical isolates)",
+          "Not accounting for aeration \u2014 anaerobic growth of E. coli is 2-3x slower"
+        ]
+      },
+      "carrying_capacity_K": {
+        "description": "Maximum population density achievable in a given medium, limited by nutrient depletion or waste accumulation.",
+        "situations": {
+          "LB_broth": {
+            "value_or_range": "1e9 to 1e10 CFU/mL (OD600 ~ 2-4)",
+            "when": "Overnight E. coli culture in LB at 37C with shaking",
+            "why": "Limited by carbon source availability; LB is amino acid-rich but carbon-poor",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8006063/"
+          },
+          "M9_glucose_minimal": {
+            "value_or_range": "1e8 to 5e9 CFU/mL (OD600 ~ 0.5-2 depending on glucose conc)",
+            "when": "M9 + 0.2-0.4% glucose",
+            "why": "Carbon-limited; carrying capacity scales with initial glucose concentration",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6441617/"
+          },
+          "rich_defined_media": {
+            "value_or_range": "5e9 to 2e10 CFU/mL",
+            "when": "Rich defined media (e.g., 2xYT, TB, SOC)",
+            "why": "Higher nutrient content than LB; often used for protein expression",
+            "source": "https://schaechter.asmblog.org/schaechter/2009/11/the-limitations-of-lb-medium.html"
+          }
+        },
+        "common_mistakes": [
+          "Assuming OD600 linearly correlates with CFU/mL above OD 0.4",
+          "Not considering that stationary phase cells lose viability over time",
+          "Using carrying capacity from one medium in simulations for another medium"
+        ]
+      },
+      "temperature_dependence": {
+        "description": "Growth rate dependence on temperature, typically described by Q10 or Arrhenius models.",
+        "situations": {
+          "mesophile_Q10": {
+            "value_or_range": "Q10 = 2.0-3.0 (within growth range)",
+            "when": "Mesophilic bacteria between 20-40C",
+            "why": "Enzymatic reaction rates roughly double per 10C increase within optimal range",
+            "source": "https://bionumbers.hms.harvard.edu/bionumber.aspx?id=105005&ver=7"
+          },
+          "arrhenius_model": {
+            "value_or_range": "Q10 equivalent = 2.3-2.7 within Arrhenius framework",
+            "when": "Limited temperature range modeling (not near extremes)",
+            "why": "Arrhenius model breaks down near Tmin and Tmax; only valid in middle range",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/S030438002030199X"
+          },
+          "beyond_optimum": {
+            "value_or_range": "Growth rate drops sharply above Topt (use Cardinal Temperature Model)",
+            "when": "Temperatures approaching Tmax for the organism",
+            "why": "Protein denaturation and membrane disruption dominate; Arrhenius invalid here",
+            "source": "https://www.mdpi.com/2227-9717/8/1/121"
+          }
+        },
+        "common_mistakes": [
+          "Extrapolating Arrhenius model beyond the linear range of the ln(mu) vs 1/T plot",
+          "Assuming Q10 is constant across the entire growth temperature range",
+          "Ignoring cold shock and heat shock responses that transiently alter growth"
+        ]
+      },
+      "model_selection": {
+        "description": "Choosing between logistic, Gompertz, Baranyi, and other growth models.",
+        "situations": {
+          "use_baranyi": {
+            "value_or_range": "Baranyi-Roberts model (4 parameters: mu, K, lag, initial pop)",
+            "when": "When lag phase is important and you need mechanistic lag representation; predictive food microbiology",
+            "why": "Baranyi model gives least error in cell number and has mechanistic basis for lag (Q0 parameter represents physiological state); superior to Gompertz for most datasets",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/S0740002097901258"
+          },
+          "use_gompertz": {
+            "value_or_range": "Modified Gompertz (3-4 parameters)",
+            "when": "Quick empirical fits where model simplicity is valued; historical comparisons",
+            "why": "Most widely used historically but tends to overestimate maximum population density; Baranyi and Richards models shown to be significantly superior",
+            "source": "https://onlinelibrary.wiley.com/doi/10.1155/2015/365025"
+          },
+          "use_logistic": {
+            "value_or_range": "Logistic model (3 parameters: r, K, N0)",
+            "when": "Simple symmetric growth without explicit lag phase; theoretical ecology models",
+            "why": "Assumes symmetric growth curve (inflection at K/2), which is often not biologically realistic; no lag phase",
+            "source": "https://www.tandfonline.com/doi/full/10.1080/13873954.2023.2236681"
+          },
+          "use_monod": {
+            "value_or_range": "Monod kinetics with Ks (half-saturation constant)",
+            "when": "Continuous culture (chemostat); substrate-limited growth; wastewater modeling",
+            "why": "Explicitly links growth to substrate concentration; steady-state continuous culture",
+            "source": "https://en.wikipedia.org/wiki/Monod_equation"
+          }
+        },
+        "common_mistakes": [
+          "Using batch culture parameters (logistic K) for continuous culture (chemostat) simulations",
+          "Using Gompertz when Baranyi gives significantly better fits for the same data",
+          "Applying Monod kinetics to batch culture without accounting for changing substrate concentration",
+          "Ignoring death phase \u2014 none of these standard models capture it well"
+        ]
+      },
+      "monod_Ks": {
+        "description": "Half-saturation constant in Monod kinetics \u2014 substrate concentration at which growth rate is half of mu_max.",
+        "situations": {
+          "glucose_aerobic": {
+            "value_or_range": "Ks = 2-10 mg/L for E. coli (some report up to 50 mg/L depending on strain)",
+            "when": "Aerobic growth on glucose as sole carbon source",
+            "why": "E. coli has high-affinity glucose transporters (PTS system); Ks is relatively low",
+            "source": "https://ceae.colorado.edu/~silverst/cven5534/Kinetics%20of%20Growth.pdf"
+          },
+          "wastewater_heterogeneous": {
+            "value_or_range": "Ks = 25-100 mg COD/L for mixed cultures",
+            "when": "Municipal wastewater treatment activated sludge",
+            "why": "Mixed substrates and mixed cultures give higher apparent Ks",
+            "source": "https://www.researchgate.net/publication/275894061_INVESTIGATING_THE_SIGNIFICANCE_OF_HALF-SATURATION_COEFFICIENTS_ON_WASTEWATER_TREATMENT_PROCESSES"
+          }
+        },
+        "common_mistakes": [
+          "Treating Ks as a fixed constant \u2014 it varies with temperature, pH, and microbial community",
+          "Using pure-culture Ks values for mixed-culture wastewater models",
+          "Confusing Ks (growth) with Km (enzyme kinetics) \u2014 different concepts even if mathematically similar"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1016/S0740-0020(97)90125-8",
+      "doi:10.1080/10408398.2011.570463",
+      "https://bionumbers.hms.harvard.edu/",
+      "doi:10.1038/s41598-017-15895-4"
+    ],
+    "best_practice_notes": "Always report growth conditions (medium, temperature, aeration, pH) alongside growth parameters. Use Baranyi model for food safety applications. Validate model fits with RMSE and AIC/BIC model comparison. For simulations, use species-specific and condition-specific parameters from BioNumbers or primary literature rather than textbook defaults."
+  },
+  "lotka_volterra_community_dynamics": {
+    "description": "Generalized Lotka-Volterra (gLV) models for simulating microbial community dynamics, predicting species coexistence, and analyzing interaction networks.",
+    "key_parameters": {
+      "interaction_coefficients_aij": {
+        "description": "Pairwise interaction strength between species i and j. Positive = mutualism/commensalism, negative = competition/amensalism.",
+        "situations": {
+          "gut_microbiome": {
+            "value_or_range": "Typically |aij| in range 0.01-1.0 (normalized); most interactions are weak (|aij| < 0.1)",
+            "when": "Modeling gut microbial communities from 16S time-series data",
+            "why": "Strong interactions are rare in stable ecosystems; weak interactions dominate and promote stability",
+            "source": "https://elifesciences.org/articles/105948"
+          },
+          "synthetic_community": {
+            "value_or_range": "|aij| can be 0.1-5.0 for defined consortia of 2-15 species",
+            "when": "In vitro defined communities with known metabolic interactions",
+            "why": "Controlled conditions allow stronger measurable interactions; metabolic cross-feeding dominates",
+            "source": "https://pubmed.ncbi.nlm.nih.gov/29930200/"
+          },
+          "nasal_community": {
+            "value_or_range": "Model validity depends on environmental complexity and nutrient conditions",
+            "when": "gLV works well in complex (many mediators), low-nutrient environments",
+            "why": "gLV accuracy declines with high metabolite leakage and niche overlap; simple environments break the gLV assumption",
+            "source": "https://journals.asm.org/doi/10.1128/msystems.00757-22"
+          }
+        },
+        "common_mistakes": [
+          "Inferring interaction coefficients from relative abundance data without converting to absolute abundances",
+          "Assuming symmetric interactions (aij = aji) \u2014 most microbial interactions are asymmetric",
+          "Ignoring higher-order interactions which can stabilize or destabilize communities",
+          "Overfitting gLV to sparse time-series data with too many species"
+        ]
+      },
+      "growth_rate_ri": {
+        "description": "Intrinsic growth rate of species i in the absence of other species.",
+        "situations": {
+          "from_monoculture": {
+            "value_or_range": "Estimated from monoculture growth curves; typically 0.1-2.0 h^-1",
+            "when": "Each species cultured individually under the same conditions",
+            "why": "Monoculture growth rate is the baseline for gLV; assumes no inter-species effects",
+            "source": "https://www.frontiersin.org/journals/systems-biology/articles/10.3389/fsysb.2022.1021897/full"
+          }
+        },
+        "common_mistakes": [
+          "Using literature growth rates from different media/conditions than the community experiment"
+        ]
+      },
+      "number_of_species": {
+        "description": "Number of species to include in the gLV model.",
+        "situations": {
+          "practical_limit": {
+            "value_or_range": "2-20 species for parameter-identifiable models; >20 requires regularization",
+            "when": "Fitting gLV parameters from time-series data",
+            "why": "N species requires N^2 interaction parameters; identifiability becomes impossible with sparse data for large N",
+            "source": "https://pubmed.ncbi.nlm.nih.gov/34295510/"
+          },
+          "compositional_approach": {
+            "value_or_range": "Use compositional Lotka-Volterra (cLV) for relative abundance data from sequencing",
+            "when": "Only relative abundance data available (16S, metagenomics) without absolute quantification",
+            "why": "Standard gLV requires absolute abundances; cLV unifies gLV with compositional data analysis",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7325845/"
+          }
+        },
+        "common_mistakes": [
+          "Simulating 100+ species without adequate time-series data for parameter estimation",
+          "Using gLV for strongly resource-coupled systems where consumer-resource models are more appropriate",
+          "Not checking structural identifiability before fitting"
+        ]
+      },
+      "stability_analysis": {
+        "description": "Eigenvalue analysis of the interaction matrix to predict community stability.",
+        "situations": {
+          "may_wigner": {
+            "value_or_range": "Community unstable when sigma * sqrt(N * C) > 1 (May's stability criterion)",
+            "when": "Random interaction matrices; large diverse communities",
+            "why": "sigma = interaction strength std dev, N = species count, C = connectance; predicts diversity-stability relationship",
+            "source": "https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1013719"
+          }
+        },
+        "common_mistakes": [
+          "Concluding instability from eigenvalue analysis without checking if the steady state is ecologically feasible (all abundances positive)",
+          "Ignoring that real communities may persist in non-equilibrium states"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1371/journal.pcbi.1013691",
+      "doi:10.7554/eLife.105948",
+      "doi:10.1128/msystems.00757-22",
+      "doi:10.3389/fsysb.2022.1021897"
+    ],
+    "best_practice_notes": "Start with small defined communities (2-6 species) for parameter estimation before scaling up. Use time-resolved absolute abundance data when possible. Consider compositional Lotka-Volterra (cLV) for sequencing data. Always perform stability analysis and check for feasibility of steady states. Validate predictions with hold-out experiments (e.g., train on pairs, predict triplets)."
+  },
+  "anaerobic_digestion_adm1": {
+    "description": "Anaerobic Digestion Model No. 1 (ADM1) by IWA for simulating biogas production from organic waste. Includes 26 dynamic state variables and models disintegration, hydrolysis, acidogenesis, acetogenesis, and methanogenesis.",
+    "key_parameters": {
+      "hydraulic_retention_time_HRT": {
+        "description": "Average time liquid remains in the digester (days).",
+        "situations": {
+          "food_waste_mesophilic": {
+            "value_or_range": "15-30 days (optimal ~20 days)",
+            "when": "Single-stage mesophilic (35-37C) digestion of source-separated food waste",
+            "why": "Shorter HRT risks VFA accumulation and washout of slow-growing methanogens; longer HRT reduces throughput",
+            "source": "https://www.mdpi.com/2311-5637/8/11/620"
+          },
+          "sewage_sludge_mesophilic": {
+            "value_or_range": "15-25 days",
+            "when": "Municipal WWTP sludge digestion",
+            "why": "Sludge is less readily degradable than food waste; longer HRT needed for hydrolysis",
+            "source": "https://www.researchgate.net/publication/11198259_Anaerobic_digestion_model_No_1_ADM1"
+          },
+          "manure_mesophilic": {
+            "value_or_range": "15-30 days (cow manure), up to 60 days for poultry manure",
+            "when": "Agricultural waste digestion",
+            "why": "Lignocellulosic content requires longer hydrolysis; poultry manure has high ammonia inhibition risk",
+            "source": "https://www.sciencedirect.com/science/article/pii/S0956053X25001382"
+          },
+          "thermophilic": {
+            "value_or_range": "10-15 days (30-50% shorter than mesophilic)",
+            "when": "Thermophilic operation (50-55C)",
+            "why": "Faster hydrolysis and methanogenesis at higher temperature; but higher instability risk",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11127933/"
+          }
+        },
+        "common_mistakes": [
+          "Setting HRT too short causes washout of methanogens (SRT must exceed methanogen doubling time of ~10-12 days)",
+          "Not distinguishing between HRT (liquid) and SRT (solids) in systems with recirculation"
+        ]
+      },
+      "organic_loading_rate_OLR": {
+        "description": "Rate of organic matter fed to the digester, typically in kg VS/(m^3*day).",
+        "situations": {
+          "food_waste_stable": {
+            "value_or_range": "1.5-4.0 kg VS/m^3/day for stable operation",
+            "when": "Single-stage food waste digestion",
+            "why": "Food waste is rapidly hydrolyzable; OLR >5 causes VFA accumulation and pH crash",
+            "source": "https://pubmed.ncbi.nlm.nih.gov/22705526/"
+          },
+          "food_waste_thermophilic_optimum": {
+            "value_or_range": "2.5 g VS/L/day optimal (yields ~541 mL CH4/g VS)",
+            "when": "Thermophilic food waste digestion",
+            "why": "Higher microbial activity but also higher VFA production; narrow stable window",
+            "source": "https://pubs.acs.org/doi/abs/10.1021/acs.energyfuels.7b00018"
+          },
+          "food_waste_mesophilic_optimum": {
+            "value_or_range": "1.5 g VS/L/day optimal (yields ~371 mL CH4/g VS)",
+            "when": "Mesophilic food waste digestion",
+            "why": "Lower optimal OLR but more stable operation",
+            "source": "https://pubs.acs.org/doi/abs/10.1021/acs.energyfuels.7b00018"
+          },
+          "two_stage_system": {
+            "value_or_range": "Can handle up to 6-10 kg VS/m^3/day with phase separation",
+            "when": "Separate acidogenesis and methanogenesis reactors",
+            "why": "pH optimization in each stage prevents inhibition; acidogenic stage tolerates higher OLR",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/S1385894723067876"
+          }
+        },
+        "common_mistakes": [
+          "Increasing OLR too rapidly without monitoring VFA/alkalinity ratio",
+          "Not accounting for OLR spikes from variable feedstock composition"
+        ]
+      },
+      "VFA_threshold": {
+        "description": "Total volatile fatty acid concentration as process stability indicator.",
+        "situations": {
+          "healthy_operation": {
+            "value_or_range": "Total VFA < 1500 mg/L (as acetic acid equivalent); VFA/alkalinity ratio < 0.3",
+            "when": "Normal stable digester operation",
+            "why": "Balanced acidogenesis and methanogenesis; methanogens consuming VFA as fast as produced",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7369326/"
+          },
+          "early_warning": {
+            "value_or_range": "Total VFA 1500-4000 mg/L; VFA/alkalinity > 0.3-0.5; propionic/acetic acid ratio > 1.4",
+            "when": "Onset of process instability",
+            "why": "Propionic acid accumulation is especially indicative of stress \u2014 thermodynamically unfavorable degradation",
+            "source": "https://www.frontiersin.org/journals/bioengineering-and-biotechnology/articles/10.3389/fbioe.2022.775676/full"
+          },
+          "process_failure": {
+            "value_or_range": "Total VFA > 4000-6000 mg/L; pH < 6.5",
+            "when": "System acidification and methanogen inhibition",
+            "why": "Below pH 6.5, undissociated VFAs become toxic to methanogens; positive feedback loop",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11127933/"
+          }
+        },
+        "common_mistakes": [
+          "Monitoring only total VFA without speciation (propionic acid is more problematic than acetic)",
+          "Relying on pH alone \u2014 alkalinity can buffer pH while VFA accumulates dangerously"
+        ]
+      },
+      "temperature_regime": {
+        "description": "Operating temperature selection between mesophilic and thermophilic.",
+        "situations": {
+          "mesophilic": {
+            "value_or_range": "35-37C",
+            "when": "Standard operation; priority is process stability; moderate feedstock",
+            "why": "More stable operation, lower energy input, more diverse microbial community provides buffering",
+            "source": "https://www.mdpi.com/2311-5637/9/9/798"
+          },
+          "thermophilic": {
+            "value_or_range": "50-55C",
+            "when": "High-throughput processing; pathogen destruction needed; readily degradable substrate",
+            "why": "Higher methane production rate (up to 50% increase), better pathogen kill, shorter HRT needed; but higher ammonia inhibition from free NH3",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11127933/"
+          },
+          "temperature_phased": {
+            "value_or_range": "Thermophilic (55C) stage 1 then mesophilic (35C) stage 2",
+            "when": "Maximizing both rate and stability",
+            "why": "50.3% higher methane yield than single mesophilic; 32.7% higher than single thermophilic",
+            "source": "https://www.nature.com/articles/s41598-024-62998-w"
+          }
+        },
+        "common_mistakes": [
+          "Switching between mesophilic and thermophilic without proper transition period (>3 SRT needed)",
+          "Not accounting for increased free ammonia at higher temperatures (pKa shift)"
+        ]
+      },
+      "methane_yield": {
+        "description": "Specific methane production per unit of volatile solids added.",
+        "situations": {
+          "food_waste": {
+            "value_or_range": "370-540 mL CH4/g VS (BMP; theoretical max ~530 mL CH4/g VS)",
+            "when": "Source-separated food waste",
+            "why": "High lipid and protein content gives high methane potential",
+            "source": "https://pubs.acs.org/doi/abs/10.1021/acs.energyfuels.7b00018"
+          },
+          "cow_manure": {
+            "value_or_range": "200-350 mL CH4/g VS",
+            "when": "Dairy or beef cattle manure",
+            "why": "High lignocellulose fraction reduces degradability",
+            "source": "https://www.sciencedirect.com/science/article/pii/S0956053X25001382"
+          },
+          "sewage_sludge": {
+            "value_or_range": "200-400 mL CH4/g VS",
+            "when": "Mixed primary and secondary sewage sludge",
+            "why": "Variable composition; secondary sludge is more recalcitrant",
+            "source": "https://www.researchgate.net/publication/11198259_Anaerobic_digestion_model_No_1_ADM1"
+          }
+        },
+        "common_mistakes": [
+          "Reporting methane yield without specifying STP conditions (0C, 1 atm) vs actual temperature",
+          "Confusing VS-added basis with VS-destroyed basis",
+          "Not accounting for methane dissolved in digestate (2-5% at mesophilic conditions)"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.2166/wst.2002.0292",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC11895414/",
+      "doi:10.1016/j.biortech.2014.10.015",
+      "doi:10.1038/s41598-024-62998-w"
+    ],
+    "best_practice_notes": "Always perform biochemical methane potential (BMP) tests before continuous digestion. Monitor VFA speciation (not just total), alkalinity, pH, and biogas composition simultaneously. ADM1 has 26 state variables \u2014 calibrate hydrolysis rate constant (khyd) and inhibition constants for each new substrate. Use ADM1F (open-source) for accessible implementation. Ensure correct fractionation of substrate into carbohydrates, proteins, and lipids for ADM1 input."
+  },
+  "flux_balance_analysis": {
+    "description": "Constraint-based metabolic modeling using FBA, pFBA, and FVA to predict metabolic flux distributions in genome-scale metabolic models (GEMs).",
+    "key_parameters": {
+      "objective_function": {
+        "description": "The cellular objective to maximize or minimize in the linear program.",
+        "situations": {
+          "biomass_maximization": {
+            "value_or_range": "Maximize biomass reaction flux (most common)",
+            "when": "Predicting growth rate, essential genes, growth phenotypes; exponential growth phase",
+            "why": "Cells under selection pressure (evolution) tend to maximize growth; validated for E. coli, S. cerevisiae",
+            "source": "https://en.wikipedia.org/wiki/Flux_balance_analysis"
+          },
+          "ATP_maintenance": {
+            "value_or_range": "Maximize ATP production",
+            "when": "Stationary phase, stress conditions, non-growing cells",
+            "why": "Non-growing cells optimize energy for maintenance rather than biomass",
+            "source": "https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1013635"
+          },
+          "product_maximization": {
+            "value_or_range": "Maximize flux toward target metabolite",
+            "when": "Metabolic engineering; predicting theoretical maximum yield",
+            "why": "Useful for strain design but does not reflect natural cellular objective",
+            "source": "https://opencobra.github.io/cobratoolbox/stable/tutorials/analysis/FBA/tutorial_FBA.html"
+          }
+        },
+        "common_mistakes": [
+          "Always using biomass maximization \u2014 inappropriate for stationary phase or stress conditions",
+          "Not validating objective function choice against experimental flux data (13C-MFA)",
+          "Ignoring that the optimal solution is often non-unique (use FVA to assess)"
+        ]
+      },
+      "glucose_uptake_constraint": {
+        "description": "Maximum glucose uptake rate, set as lower bound of glucose exchange reaction (negative = import).",
+        "situations": {
+          "e_coli_aerobic_standard": {
+            "value_or_range": "-10 mmol/gDW/hr (conservative) to -18.5 mmol/gDW/hr (upper bound)",
+            "when": "Aerobic growth of E. coli on glucose minimal medium",
+            "why": "Experimental values range 8-12 mmol/gDW/hr for wild-type; 18.5 is a commonly used upper bound in COBRApy tutorials",
+            "source": "https://bionumbers.hms.harvard.edu/bionumber.aspx?s=n&v=2&id=109689"
+          },
+          "e_coli_anaerobic": {
+            "value_or_range": "-15 to -20 mmol/gDW/hr",
+            "when": "Anaerobic growth (higher glycolytic flux needed for ATP)",
+            "why": "Without oxidative phosphorylation, cells increase glycolytic throughput",
+            "source": "https://link.springer.com/article/10.1038/msb.2011.34"
+          }
+        },
+        "common_mistakes": [
+          "Using wrong units (mmol/gDW/hr vs mmol/L/hr \u2014 must be biomass-normalized)",
+          "Setting uptake rate too high, creating unrealistic growth predictions",
+          "Forgetting the sign convention: negative lower bound = uptake in COBRApy"
+        ]
+      },
+      "method_selection": {
+        "description": "Choosing between FBA, pFBA, and FVA for different analysis goals.",
+        "situations": {
+          "use_FBA": {
+            "value_or_range": "Standard FBA",
+            "when": "Quick growth rate prediction; essential gene analysis; simple phenotype prediction",
+            "why": "Fastest; single LP solve; sufficient for many applications",
+            "source": "https://cobrapy.readthedocs.io/en/latest/simulating.html"
+          },
+          "use_pFBA": {
+            "value_or_range": "Parsimonious FBA (minimize total flux at optimal objective)",
+            "when": "Need unique flux distribution; comparing with experimental fluxes; enzyme cost analysis",
+            "why": "Eliminates thermodynamically infeasible loops; assumes cells minimize total enzyme investment; more biologically realistic",
+            "source": "http://cobramethods.wikidot.com/pfba"
+          },
+          "use_FVA": {
+            "value_or_range": "Flux Variability Analysis (find min/max for each reaction at optimal objective)",
+            "when": "Assessing solution space; identifying reactions with fixed vs flexible fluxes; robustness analysis",
+            "why": "Reveals which reactions are tightly constrained vs free to vary; essential for understanding metabolic flexibility",
+            "source": "https://cobrapy.readthedocs.io/en/latest/simulating.html"
+          }
+        },
+        "common_mistakes": [
+          "Interpreting a single FBA solution as THE flux distribution \u2014 there may be many equally optimal solutions",
+          "Not checking for thermodynamically infeasible loops in FBA solutions (use loopless FBA or pFBA)",
+          "Using FVA without setting a fraction of optimum (e.g., require 90% of max biomass)"
+        ]
+      },
+      "essential_gene_prediction": {
+        "description": "Using FBA to predict gene essentiality by simulating single-gene knockouts.",
+        "situations": {
+          "validation_rates": {
+            "value_or_range": "~80-90% accuracy for E. coli (iML1515 model) on glucose minimal; lower on rich media",
+            "when": "Comparing FBA predictions with experimental knockout libraries (e.g., Keio collection)",
+            "why": "Rich media allow bypass of many biosynthetic pathways, reducing essentiality; model accuracy depends on medium composition",
+            "source": "https://sbrg.ucsd.edu/InSilicoOrganisms/Ecoli/EcoliSBML"
+          }
+        },
+        "common_mistakes": [
+          "Simulating knockouts in rich media without constraining all nutrient uptake reactions",
+          "Not accounting for gene-protein-reaction (GPR) associations correctly"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1038/nbt.1614",
+      "https://cobrapy.readthedocs.io/en/latest/",
+      "doi:10.1371/journal.pcbi.1013635",
+      "doi:10.1038/msb.2011.34"
+    ],
+    "best_practice_notes": "Always use the most recent genome-scale model for your organism (e.g., iML1515 for E. coli, Yeast8 for S. cerevisiae). Set exchange reaction bounds to match experimental media conditions. Use pFBA for flux predictions that will be compared with experimental data. Run FVA to understand solution space before interpreting any single FBA solution. Validate predictions against at least growth rate and a few key fluxes measured by 13C-MFA."
+  },
+  "michaelis_menten_kinetics": {
+    "description": "Enzyme kinetics modeling using the Michaelis-Menten equation (v = Vmax*[S]/(Km+[S])) to characterize enzyme-substrate interactions, determine kinetic constants, and predict reaction rates.",
+    "key_parameters": {
+      "Km": {
+        "description": "Michaelis constant \u2014 substrate concentration at which reaction rate is half of Vmax. Reflects enzyme-substrate affinity (lower Km = higher affinity).",
+        "situations": {
+          "hexokinase_glucose": {
+            "value_or_range": "Km = 0.02-0.13 mM (hexokinase A-C); Km = 5-50 mM (glucokinase/hexokinase D)",
+            "when": "Glucose phosphorylation in mammalian tissues",
+            "why": "Brain hexokinase has low Km to function at low glucose; liver glucokinase has high Km to act as glucose sensor",
+            "source": "https://www.brenda-enzymes.org/all_enzymes.php?ecno=2.7.1.1&table=KM_Value"
+          },
+          "lactate_dehydrogenase": {
+            "value_or_range": "Km = 0.05-1.0 mM for pyruvate (varies by isoform); Km = 2-18 mM for lactate",
+            "when": "Pyruvate-lactate interconversion",
+            "why": "Different tissue isoforms (H4 vs M4) have different kinetic properties optimized for their metabolic role",
+            "source": "https://brenda-enzymes.org/all_enzymes.php?ecno=1.1.1.27&table=KCat_KM_Value"
+          },
+          "catalase_H2O2": {
+            "value_or_range": "Km = 25-93 mM for H2O2",
+            "when": "Hydrogen peroxide decomposition",
+            "why": "Very high Km because catalase operates at high substrate concentrations; extremely high kcat (~10^7 s^-1) compensates",
+            "source": "https://www.brenda-enzymes.org/all_enzymes.php?ecno=1.11.1.6&table=KM_Value"
+          },
+          "CYP_enzymes": {
+            "value_or_range": "Km typically 1-100 uM for drug substrates; highly substrate-dependent",
+            "when": "Drug metabolism, xenobiotic clearance",
+            "why": "CYP enzymes exhibit broad substrate specificity with variable affinities; CYP3A4 often shows atypical kinetics",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/S0006295219303053"
+          }
+        },
+        "common_mistakes": [
+          "Using Km values from one organism/isoform for a different organism without checking BRENDA",
+          "Not considering that Km measured in vitro may differ from apparent Km in vivo due to competing substrates",
+          "Reporting Km without specifying pH, temperature, and buffer conditions"
+        ]
+      },
+      "substrate_concentration_range": {
+        "description": "Range of substrate concentrations needed for reliable Km/Vmax estimation.",
+        "situations": {
+          "standard_fitting": {
+            "value_or_range": "0.2*Km to 5-10*Km (minimum); ideally span 0.1*Km to 20*Km",
+            "when": "Determining Km and Vmax from initial rate measurements",
+            "why": "Need data points both well below and well above Km; below Km = first-order region, above Km = saturation region; both are needed for reliable curve fitting",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5717222/"
+          },
+          "optimal_design": {
+            "value_or_range": "8-12 substrate concentrations with half near Km and half at high [S]",
+            "when": "Maximizing information content of experiment (D-optimal design)",
+            "why": "Fisher information matrix analysis shows measurements near Km and at high [S] are most informative",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/S0022519305002183"
+          }
+        },
+        "common_mistakes": [
+          "Using only 3-4 substrate concentrations \u2014 need at least 7-8 for reliable nonlinear regression",
+          "All substrate concentrations above Km (cannot resolve Km from apparent zero-order kinetics)",
+          "Using Lineweaver-Burk (double reciprocal) plots for parameter estimation \u2014 nonlinear regression is statistically superior"
+        ]
+      },
+      "when_MM_fails": {
+        "description": "Conditions under which the Michaelis-Menten model is inappropriate.",
+        "situations": {
+          "substrate_inhibition": {
+            "value_or_range": "Use substrate inhibition equation: v = Vmax*[S]/(Km + [S]*(1+[S]/Ki))",
+            "when": "Velocity decreases at high substrate concentrations; ~20% of enzymes exhibit this",
+            "why": "Second substrate molecule binds unproductively to ES complex; common in CYP enzymes and many oxidoreductases",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/S0006295219303053"
+          },
+          "cooperativity": {
+            "value_or_range": "Use Hill equation: v = Vmax*[S]^n/(K0.5^n + [S]^n)",
+            "when": "Sigmoidal v vs [S] curve; multi-subunit enzymes with allosteric regulation",
+            "why": "Multiple active sites with cooperative binding; does not follow hyperbolic saturation",
+            "source": "https://chem.libretexts.org/Bookshelves/Physical_and_Theoretical_Chemistry_Textbook_Maps/Physical_Chemistry_for_the_Biosciences_(LibreTexts)/10:_Enzyme_Kinetics/10.06:_Allosteric_Interactions"
+          },
+          "non_steady_state": {
+            "value_or_range": "Use progress curve analysis or pre-steady-state kinetics",
+            "when": "Enzyme concentration comparable to substrate; very fast reactions; single-turnover conditions",
+            "why": "Michaelis-Menten assumes [ES] is at steady state \u2014 fails when [E]~[S] (typical in vivo)",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11257316/"
+          }
+        },
+        "common_mistakes": [
+          "Fitting Michaelis-Menten to progress curves (absorbance vs time) instead of initial rates",
+          "Ignoring product inhibition in reversible reactions",
+          "Not verifying that initial rate conditions are met (< 10% substrate consumed)"
+        ]
+      }
+    },
+    "key_references": [
+      "https://www.brenda-enzymes.org/",
+      "doi:10.1038/s41598-017-17072-z",
+      "doi:10.1002/bmb.21522",
+      "doi:10.1038/s41467-023-38159-4"
+    ],
+    "best_practice_notes": "Always use BRENDA (brenda-enzymes.org) as the primary source for published Km/Vmax/kcat values. Use nonlinear regression (not Lineweaver-Burk) for parameter fitting. Measure initial rates at 8+ substrate concentrations spanning 0.1*Km to 20*Km. Always check for substrate inhibition by including high [S] points. Report buffer, pH, temperature, and ionic strength with all kinetic constants. Consider using kcat/Km (catalytic efficiency) for comparing enzymes rather than Km alone."
+  },
+  "hill_function_dose_response": {
+    "description": "Hill equation modeling for cooperative binding, dose-response curves, and transcriptional regulation: f([L]) = [L]^n / (K_d^n + [L]^n).",
+    "key_parameters": {
+      "hill_coefficient_n": {
+        "description": "Quantifies cooperativity of ligand binding. n=1 = no cooperativity (Michaelis-Menten), n>1 = positive cooperativity, n<1 = negative cooperativity.",
+        "situations": {
+          "hemoglobin_O2": {
+            "value_or_range": "n = 2.3-3.0 (typically reported as ~2.8)",
+            "when": "O2 binding to hemoglobin (4 subunits, 4 binding sites)",
+            "why": "Classic example of positive cooperativity; conformational change in one subunit facilitates binding in adjacent subunits. Note: n < actual binding sites (4) because cooperativity is not infinite",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3699289/"
+          },
+          "transcription_factor_binding": {
+            "value_or_range": "n = 1.5-4.0 (depends on TF and promoter architecture)",
+            "when": "Modeling gene regulation by cooperative TF binding",
+            "why": "Adjacent binding sites on DNA allow cooperative binding through protein-protein interactions",
+            "source": "https://www.biorxiv.org/content/10.1101/170340v1.full"
+          },
+          "drug_dose_response": {
+            "value_or_range": "n typically 0.5-3.0 for most drugs",
+            "when": "Pharmacological dose-response modeling (EC50 determination)",
+            "why": "n reflects steepness of response curve; n=1 is standard (no cooperativity), n>1 = steep (switch-like), n<1 = gradual",
+            "source": "https://www.graphpad.com/guides/prism/latest/curve-fitting/reg_hill_slope.htm"
+          },
+          "no_cooperativity": {
+            "value_or_range": "n = 1.0",
+            "when": "Single binding site; independent binding",
+            "why": "Reduces to standard Michaelis-Menten/Langmuir binding; hyperbolic response",
+            "source": "https://en.wikipedia.org/wiki/Hill_equation_(biochemistry)"
+          }
+        },
+        "common_mistakes": [
+          "Interpreting Hill coefficient as the number of binding sites \u2014 it is an interaction coefficient, typically less than actual binding sites",
+          "Using Hill equation for biphasic dose-response curves (two inflection points) \u2014 need biphasic model instead",
+          "Fitting Hill equation to data that only covers one side of K_d (need data spanning below and above K_d)",
+          "Applying Hill equation to systems with negative cooperativity \u2014 fits are unreliable for n < 1"
+        ]
+      },
+      "K_half": {
+        "description": "Half-maximal effective concentration (EC50/K_d) \u2014 ligand concentration at which response is 50%.",
+        "situations": {
+          "pharmacology": {
+            "value_or_range": "Drug-specific; typically nM-uM range for receptor-binding drugs",
+            "when": "Dose-response curve fitting",
+            "why": "Primary measure of drug potency; lower EC50 = more potent",
+            "source": "https://support.collaborativedrug.com/hc/en-us/articles/35945212110868-Hill-Equation-Setting-up-a-dose-response-curve"
+          }
+        },
+        "common_mistakes": [
+          "Confusing EC50 (functional) with Kd (binding) \u2014 they differ when there is receptor reserve",
+          "Reporting EC50 without Hill coefficient \u2014 steepness matters for dosing"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1007/s10928-008-9078-9",
+      "doi:10.1096/fasebj.11.11.9285481",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC2816740/"
+    ],
+    "best_practice_notes": "Use at least 10-12 data points spanning 2 log units below and above K_half for reliable Hill fits. Report both K_half and n with confidence intervals. For biphasic responses, use a two-component model rather than forcing a single Hill fit. The Hill equation is a phenomenological model \u2014 for mechanistic understanding, use the Adair-Klotz equation or MWC/KNF models."
+  },
+  "gene_circuit_design": {
+    "description": "Design and parameterization of synthetic genetic circuits including toggle switches (bistability) and repressilators (oscillations), using mathematical models based on Hill functions and ODEs.",
+    "key_parameters": {
+      "hill_coefficients_repressors": {
+        "description": "Effective Hill coefficient for transcriptional repression, reflecting cooperativity of repressor binding.",
+        "situations": {
+          "LacI_repressor": {
+            "value_or_range": "n = 2-3 (effective; LacI forms tetramers with two operator-binding domains)",
+            "when": "Lac operon regulation; toggle switch circuits using PLlac promoter",
+            "why": "LacI binds as tetramer with cooperative DNA looping between O1 and O3; effective cooperativity depends on operator configuration",
+            "source": "https://2013.igem.org/Team:Duke/Modeling/Cooperativity"
+          },
+          "TetR_repressor": {
+            "value_or_range": "n = 2-4 (effective; TetR forms dimers)",
+            "when": "Tet-regulated circuits; repressilator",
+            "why": "TetR binds as homodimer; cooperativity from multiple operator sites or promoter architecture",
+            "source": "https://2013.igem.org/Team:Duke/Project/Basics"
+          },
+          "CI_lambda_repressor": {
+            "value_or_range": "n = 2-4 (cooperative binding to OR/OL operators)",
+            "when": "Lambda phage genetic switch; CI/Cro decision circuit",
+            "why": "CI dimers cooperatively bind adjacent operator sites OR1-OR2; long-range cooperativity through DNA looping to OL",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC338286/"
+          }
+        },
+        "common_mistakes": [
+          "Using n=1 in toggle switch models \u2014 bistability requires n > 1 for at least one repressor",
+          "Assuming measured Hill coefficient is exactly the number of binding sites",
+          "Not accounting for promoter context \u2014 same repressor in different promoter configurations gives different effective n"
+        ]
+      },
+      "bistability_requirements": {
+        "description": "Conditions for a toggle switch to exhibit bistable behavior (two stable steady states).",
+        "situations": {
+          "minimum_cooperativity": {
+            "value_or_range": "At least one repressor must have Hill coefficient n > 1; both n > 2 gives robust bistability",
+            "when": "Designing mutual repression toggle switches",
+            "why": "Gardner et al. (2000) showed bistability requires sufficient nonlinearity; n=1 gives only one stable state. Higher cooperativity widens the bistable parameter region.",
+            "source": "https://www.nature.com/articles/35002131"
+          },
+          "balanced_promoters": {
+            "value_or_range": "Promoter strengths (alpha1, alpha2) must be roughly balanced \u2014 within 2-5 fold of each other",
+            "when": "Designing toggle switches with two different repressor-promoter pairs",
+            "why": "If one promoter is much stronger, the system is monostable in one state; balance ensures both states are accessible",
+            "source": "https://biocircuits.github.io/chapters/03_bistability.html"
+          }
+        },
+        "common_mistakes": [
+          "Not checking if both steady states are stable (need Jacobian eigenvalue analysis)",
+          "Ignoring leaky expression \u2014 high basal expression can destroy bistability",
+          "Using identical repressor-promoter pairs, making both states equivalent (no useful switching)"
+        ]
+      },
+      "repressilator_parameters": {
+        "description": "Parameters controlling oscillation dynamics in the repressilator (three-node negative feedback ring).",
+        "situations": {
+          "oscillation_period": {
+            "value_or_range": "~150 min (original Elowitz design); 2.4-5.7 cell generations (improved designs)",
+            "when": "E. coli expressing lacI-tetR-cI ring with ssrA-tagged proteins",
+            "why": "Period determined primarily by protein half-life and repressor strength; removing ssrA tags extends period",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5637407/"
+          },
+          "minimum_cooperativity_for_oscillation": {
+            "value_or_range": "Hill coefficient n > 1 required; n >= 2 for robust oscillations",
+            "when": "Three-node repressilator design",
+            "why": "At n=1, system has only one stable fixed point (no oscillations); ultrasensitivity is required for limit cycle oscillations",
+            "source": "https://biocircuits.github.io/chapters/09_repressilator.html"
+          },
+          "protein_degradation_rate": {
+            "value_or_range": "With ssrA tag: half-life ~40-60 min; without tag: half-life several hours in E. coli",
+            "when": "Tuning oscillation period and amplitude",
+            "why": "Comparable mRNA and protein decay rates favor oscillations; ssrA tag increases degradation via ClpXP protease",
+            "source": "https://royalsocietypublishing.org/doi/10.1098/rsob.220180"
+          }
+        },
+        "common_mistakes": [
+          "Not including protein degradation tags \u2014 native E. coli proteins are too stable for fast oscillations",
+          "Ignoring growth rate dilution \u2014 cell division contributes to effective protein degradation",
+          "Designing with too much leakiness \u2014 prevents repressilator from achieving low expression states needed for cycling"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1038/35002131",
+      "doi:10.1038/35002125",
+      "doi:10.1038/s42003-021-02987-1",
+      "https://biocircuits.github.io/chapters/03_bistability.html"
+    ],
+    "best_practice_notes": "For toggle switches, verify bistability mathematically before building (nullcline analysis). For repressilators, use matched promoter-RBS strengths and include ssrA degradation tags. Test circuits with fluorescent reporters. Consider growth rate coupling \u2014 faster growth dilutes proteins faster, affecting circuit dynamics. Use the BioModels database (BIOMD0000000507, BIOMD0000000012) for validated mathematical models."
+  },
+  "codon_optimization": {
+    "description": "Optimization of DNA coding sequences for heterologous expression by matching codon usage to host tRNA pools, while considering mRNA structure, codon pair bias, and other factors.",
+    "key_parameters": {
+      "codon_adaptation_index_CAI": {
+        "description": "CAI measures how well codons match the host's preferred codon usage (0 to 1, higher = better adapted).",
+        "situations": {
+          "good_expression_e_coli": {
+            "value_or_range": "CAI >= 0.8 generally considered well-optimized",
+            "when": "Heterologous protein expression in E. coli",
+            "why": "Highest CAI among all E. coli genes is 0.85 (lpp); CAI > 0.8 indicates codon usage similar to highly expressed native genes; CAI correlates moderately with expression (r ~ 0.5-0.6)",
+            "source": "https://academic.oup.com/mbe/article/24/1/10/1070854"
+          },
+          "highly_expressed_native": {
+            "value_or_range": "CAI = 0.7-0.85 for highly expressed E. coli genes",
+            "when": "Reference set for E. coli codon usage",
+            "why": "Ribosomal proteins, elongation factors, and abundant outer membrane proteins define the reference set",
+            "source": "https://en.wikipedia.org/wiki/Codon_Adaptation_Index"
+          },
+          "low_expression_genes": {
+            "value_or_range": "CAI = 0.2-0.4",
+            "when": "Regulatory genes, transcription factors expressed at low levels",
+            "why": "Low-expression genes do not face selection pressure for codon optimization",
+            "source": "https://academic.oup.com/mbe/article/24/1/10/1070854"
+          }
+        },
+        "common_mistakes": [
+          "Assuming CAI = 1.0 guarantees high expression (mRNA structure, RBS, promoter strength matter too)",
+          "Using CAI as sole metric \u2014 ignoring GC content, codon pair bias, and mRNA stability",
+          "Maximizing CAI by using the single most frequent codon for each amino acid (one amino acid-one codon approach) \u2014 this can deplete tRNA pools and reduce expression"
+        ]
+      },
+      "optimization_strategy": {
+        "description": "Choosing between codon maximization, harmonization, and balanced optimization.",
+        "situations": {
+          "maximization": {
+            "value_or_range": "Select most frequent codon for each amino acid",
+            "when": "Goal is maximum total protein yield; short genes; high-copy plasmid",
+            "why": "Simple approach; maximizes CAI; works for many small proteins in E. coli",
+            "source": "https://en.vectorbuilder.com/tool/codon-optimization.html"
+          },
+          "harmonization": {
+            "value_or_range": "Match codon frequency distribution to host (not just most frequent)",
+            "when": "Large or complex proteins requiring co-translational folding; multidomain proteins",
+            "why": "Preserves natural translation pauses that aid protein folding; rare codons at domain boundaries may be functionally important",
+            "source": "https://febs.onlinelibrary.wiley.com/doi/10.1002/1873-3468.13046"
+          },
+          "multi_criteria": {
+            "value_or_range": "Simultaneously optimize CAI, GC content (40-60%), mRNA stability, and codon pair bias",
+            "when": "Production-grade optimization for therapeutic proteins or industrial enzymes",
+            "why": "No single metric captures all factors; mRNA structure at 5-prime end strongly affects translation initiation; host-specific requirements differ",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12010093/"
+          },
+          "when_NOT_to_optimize": {
+            "value_or_range": "Do not aggressively optimize if protein folding depends on translation rate modulation",
+            "when": "Proteins with complex disulfide bonds, chaperone-dependent folding, or co-translational membrane insertion",
+            "why": "Rare codons at domain boundaries slow translation, allowing co-translational folding; removing these pauses can cause aggregation",
+            "source": "https://www.nature.com/articles/s41598-019-51984-2"
+          }
+        },
+        "common_mistakes": [
+          "Over-optimizing creates mRNA secondary structures that inhibit translation initiation",
+          "Ignoring the 5-prime end of the coding sequence (first 30-50 codons most critical for initiation)",
+          "Not checking for restriction sites, repeat sequences, or splice sites introduced by optimization",
+          "Using E. coli codon tables for expression in CHO cells or yeast"
+        ]
+      },
+      "host_codon_tables": {
+        "description": "Sources for organism-specific codon usage frequency tables.",
+        "situations": {
+          "kazusa_database": {
+            "value_or_range": "http://www.kazusa.or.jp/codon/ \u2014 35,799 organisms",
+            "when": "Looking up codon usage for any organism",
+            "why": "Most comprehensive codon usage database; derived from GenBank CDS entries",
+            "source": "http://www.kazusa.or.jp/codon/"
+          },
+          "CoCoPUTs": {
+            "value_or_range": "https://hive.biochemistry.gwu.edu/review/codon \u2014 updated codon usage statistics",
+            "when": "Need more current data than Kazusa (which was last updated 2007)",
+            "why": "CoCoPUTs provides updated tables based on current GenBank; Kazusa is based on older data",
+            "source": "https://pubmed.ncbi.nlm.nih.gov/31100358/"
+          },
+          "host_specific_considerations": {
+            "value_or_range": "E. coli: avoid AGG/AGA (Arg), CUA (Leu), AUA (Ile); CHO: balance GC content 45-55%; S. cerevisiae: prefer AT-rich codons",
+            "when": "Designing sequences for specific expression hosts",
+            "why": "Each host has different rare codons corresponding to low-abundance tRNAs; using these rare codons causes ribosome stalling",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12010093/"
+          }
+        },
+        "common_mistakes": [
+          "Using the Kazusa table without checking the number of CDS entries for the organism (small sample = unreliable)",
+          "Not considering codon pair bias (adjacent codon context matters, not just individual codons)"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1002/1873-3468.13046",
+      "doi:10.1093/bioinformatics/btaa254",
+      "http://www.kazusa.or.jp/codon/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC12010093/"
+    ],
+    "best_practice_notes": "Use multi-criteria optimization tools (not just CAI maximization). Always minimize mRNA secondary structure at the 5-prime end (first 30-50 codons). Check for introduced restriction sites, cryptic splice sites, and Shine-Dalgarno-like sequences. Consider codon harmonization for complex proteins. Verify codon-optimized sequences with back-translation to confirm no unintended amino acid changes. Use host-specific rare codon supplementation (e.g., Rosetta strains for E. coli) when full optimization is not possible."
+  },
+  "sbml_model_building": {
+    "description": "Systems Biology Markup Language (SBML) for encoding and sharing computational models of biological systems. Standards for model annotation, curation, and interoperability.",
+    "key_parameters": {
+      "sbml_level_version": {
+        "description": "SBML specification version that determines available features and compatibility.",
+        "situations": {
+          "level_3_version_2": {
+            "value_or_range": "SBML Level 3 Version 2 (L3V2) \u2014 current recommended version",
+            "when": "New model development; models requiring packages (FBC, comp, qual, multi)",
+            "why": "Most current specification; supports modular packages for flux balance constraints (fbc), hierarchical composition (comp), qualitative models (qual); wider software support",
+            "source": "https://sbml.org/documents/specifications/level-3/"
+          },
+          "level_2_version_5": {
+            "value_or_range": "SBML Level 2 Version 5 (L2V5)",
+            "when": "Legacy models; compatibility with older tools; simple ODE/kinetic models",
+            "why": "Most widely supported version historically; many BioModels entries are L2; some tools still lack full L3 support",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5451324/"
+          },
+          "fbc_package": {
+            "value_or_range": "L3 with FBC (Flux Balance Constraints) package v2",
+            "when": "Genome-scale metabolic models (COBRA models)",
+            "why": "FBC package encodes gene-protein-reaction associations, flux bounds, and objective functions essential for FBA",
+            "source": "http://sbml.org/specifications/sbml-level-3/version-1/fbc/sbml-fbc-version-2-release-1.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Using L2 when L3 packages are needed (e.g., for hierarchical model composition)",
+          "Not checking that target software supports the chosen SBML level/version",
+          "Converting between levels without validating that semantics are preserved"
+        ]
+      },
+      "annotation_standards": {
+        "description": "MIRIAM-compliant annotation of model components with standardized identifiers.",
+        "situations": {
+          "miriam_compliance": {
+            "value_or_range": "All species, reactions, and compartments annotated with identifiers.org URIs",
+            "when": "Any model intended for sharing, publication, or BioModels submission",
+            "why": "MIRIAM (Minimum Information Required In the Annotation of Models) ensures reproducibility and interoperability; required for BioModels curation",
+            "source": "http://sbml.org/documents/elaborations/miriam_annotation_syntax/"
+          },
+          "sbo_terms": {
+            "value_or_range": "SBO (Systems Biology Ontology) terms on all reactions and species",
+            "when": "Model components need semantic typing (e.g., reaction is phosphorylation, species is protein)",
+            "why": "SBO provides controlled vocabulary; enables automated model analysis and comparison",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5451324/"
+          },
+          "rdf_annotation_format": {
+            "value_or_range": "RDF triples: (subject, qualifier, URI) using MIRIAM qualifiers (bqbiol:is, bqbiol:isVersionOf, etc.)",
+            "when": "Linking model components to external databases (UniProt, ChEBI, GO, KEGG)",
+            "why": "Standard format allows automated tools to extract and reason about model semantics",
+            "source": "https://jbiomedsem.biomedcentral.com/articles/10.1186/2041-1480-1-S1-S3"
+          }
+        },
+        "common_mistakes": [
+          "No annotations at all \u2014 makes models unreproducible and unsearchable",
+          "Using free-text names instead of database identifiers",
+          "Incorrect MIRIAM qualifiers (e.g., using bqbiol:is when bqbiol:isVersionOf is appropriate)",
+          "Not validating SBML file with the SBML validator before sharing"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1515/jib-2017-0081",
+      "https://sbml.org/",
+      "doi:10.1038/nbt.1156",
+      "https://www.ebi.ac.uk/biomodels/"
+    ],
+    "best_practice_notes": "Use SBML Level 3 for new models. Annotate everything with identifiers.org URIs. Validate models with the online SBML validator (sbml.org/validator). Use COPASI, libSBML, or python-libsbml for model creation. Submit curated models to BioModels database. Include units on all parameters. Use SBO terms for semantic typing. Test model behavior against published experimental data before sharing."
+  },
+  "rna_secondary_structure_prediction": {
+    "description": "Computational prediction of RNA secondary structure using thermodynamic energy minimization (MFE), partition function methods, and comparative approaches.",
+    "key_parameters": {
+      "energy_parameters": {
+        "description": "Nearest-neighbor thermodynamic parameters for RNA folding energy calculation.",
+        "situations": {
+          "turner_2004": {
+            "value_or_range": "Turner 2004 parameters (default in ViennaRNA, RNAfold, Mfold)",
+            "when": "Standard RNA structure prediction at 37C, 1M NaCl",
+            "why": "Most comprehensive and accurate parameter set from optical melting experiments; only modest improvement over Turner 1999; accuracy ~67% on benchmark sequences",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5886407/"
+          },
+          "turner_1999": {
+            "value_or_range": "Turner 1999 (Mathews 1999) parameters",
+            "when": "Legacy predictions; comparing with older studies",
+            "why": "Slightly less accurate than 2004 set but differences are small; accuracy limit is due to model assumptions, not parameter measurement errors",
+            "source": "https://link.springer.com/protocol/10.1007/978-1-0716-2768-6_6"
+          },
+          "non_standard_temperature": {
+            "value_or_range": "Use ViennaRNA -T flag to set temperature; parameters extrapolated from 37C data",
+            "when": "Predicting structure at temperatures other than 37C (e.g., thermophilic organisms, in vitro at 25C)",
+            "why": "Free energy parameters have temperature dependence (deltaG = deltaH - T*deltaS); extrapolation valid within 20-50C range",
+            "source": "https://proteiniq.io/app/rnafold"
+          }
+        },
+        "common_mistakes": [
+          "Not specifying which parameter set was used in publications",
+          "Assuming predictions are accurate at extreme temperatures (< 10C or > 60C)",
+          "Not accounting for ionic conditions \u2014 Turner parameters assume 1M NaCl; physiological conditions differ"
+        ]
+      },
+      "prediction_accuracy": {
+        "description": "Expected accuracy of secondary structure prediction methods.",
+        "situations": {
+          "MFE_accuracy": {
+            "value_or_range": "~65-70% sensitivity (base pairs correctly predicted) on benchmark datasets",
+            "when": "Single-sequence MFE prediction (RNAfold, Mfold)",
+            "why": "Simplified energy model (no pseudoknots, limited coaxial stacking) accounts for ~67% accuracy ceiling",
+            "source": "https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-13-22"
+          },
+          "partition_function_MEA": {
+            "value_or_range": "~70-72% accuracy (slightly better than MFE)",
+            "when": "Maximum Expected Accuracy (MEA) structure from partition function base pair probabilities",
+            "why": "MEA considers ensemble of structures rather than single MFE; better at avoiding low-confidence base pairs",
+            "source": "https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-13-22"
+          },
+          "short_sequences": {
+            "value_or_range": "Higher accuracy for sequences < 200 nt; decreases for longer sequences",
+            "when": "Predicting structure of small RNAs, aptamers, riboswitches",
+            "why": "Shorter sequences have fewer alternative structures; energy model errors accumulate with length",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7202366/"
+          },
+          "long_sequences": {
+            "value_or_range": "Lower accuracy for > 500 nt; benchmark datasets typically limited to < 700 nt",
+            "when": "mRNAs, large non-coding RNAs",
+            "why": "Long-range base pairs poorly predicted; kinetic folding effects not captured by thermodynamic models; consider using LinearFold for better long-range predictions",
+            "source": "https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-13-22"
+          }
+        },
+        "common_mistakes": [
+          "Treating MFE structure as the true structure \u2014 it is the single most stable structure, but the actual structure may differ",
+          "Not examining suboptimal structures or base pair probabilities",
+          "Assuming high negative MFE means the prediction is reliable (low energy does not equal high confidence)"
+        ]
+      },
+      "pseudoknots": {
+        "description": "Crossing base pairs (pseudoknots) that cannot be predicted by standard dynamic programming algorithms.",
+        "situations": {
+          "standard_tools_no_pseudoknots": {
+            "value_or_range": "RNAfold, Mfold, RNAstructure do NOT predict pseudoknots",
+            "when": "Most standard predictions",
+            "why": "Pseudoknot prediction is NP-hard for general case; standard DP algorithms exclude them",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5886407/"
+          },
+          "pseudoknot_capable": {
+            "value_or_range": "Use pKiss, HotKnots, IPknot, or DotKnot for pseudoknot prediction",
+            "when": "Known or suspected pseudoknots (e.g., telomerase RNA, viral frameshifting elements)",
+            "why": "These algorithms use specialized heuristics; accuracy still limited for complex pseudoknots",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8769711/"
+          }
+        },
+        "common_mistakes": [
+          "Ignoring pseudoknots in functional RNAs where they are known to be essential (ribozymes, viral IRESes)",
+          "Using pseudoknot algorithms on very long sequences (exponential time complexity)"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1371/journal.pone.0194583",
+      "doi:10.1186/1471-2105-13-22",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC7202366/",
+      "doi:10.1038/s41467-021-21194-4"
+    ],
+    "best_practice_notes": "Always report which energy parameter set and software version were used. Examine base pair probabilities and the ensemble of structures, not just MFE. Use comparative sequence analysis (RNAalifold) when homologous sequences are available \u2014 significantly improves accuracy. For sequences > 500 nt, consider using LinearFold and window-based approaches. Validate computational predictions with experimental structure probing (SHAPE, DMS-seq) when possible."
+  },
+  "biofilm_quantification_crystal_violet": {
+    "description": "Crystal violet (CV) staining assay for quantitative assessment of biofilm formation in microtiter plate format. Widely used for screening biofilm-forming capacity of bacterial isolates.",
+    "key_parameters": {
+      "wavelength": {
+        "description": "Absorbance measurement wavelength for dissolved crystal violet dye.",
+        "situations": {
+          "OD570": {
+            "value_or_range": "570 nm",
+            "when": "Most common choice in published protocols; acetic acid or ethanol solubilization",
+            "why": "Close to the absorbance maximum of crystal violet in 33% acetic acid (~585 nm); widely used in standard Stepanovic/O'Toole protocols",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9571847/"
+          },
+          "OD595": {
+            "value_or_range": "595 nm",
+            "when": "Alternative wavelength; some protocols and plate readers use this as default",
+            "why": "Common in some published protocols; slightly off peak but still gives reliable relative quantification",
+            "source": "https://www.researchgate.net/figure/Crystal-violet-assays-with-optical-density-values-at-595nm-OD595-nm-representing-the_fig2_357199207"
+          },
+          "optimal_wavelength": {
+            "value_or_range": "580-585 nm (true absorbance maximum depends on solvent)",
+            "when": "Maximum sensitivity; standardized quantification",
+            "why": "Recent work (2025) shows optimal wavelength is 585 nm for 33% acetic acid and 580 nm for ethanol; using the true maximum improves reproducibility between labs",
+            "source": "https://link.springer.com/article/10.1007/s00203-025-04251-0"
+          }
+        },
+        "common_mistakes": [
+          "Not being consistent with wavelength within a study \u2014 OD570 and OD595 give different absolute values",
+          "Not blanking against uninoculated stained wells (crystal violet can bind to plastic)",
+          "Using wavelengths far from absorbance maximum where signal-to-noise is poor"
+        ]
+      },
+      "biofilm_classification": {
+        "description": "Cut-off values for categorizing biofilm-forming capacity.",
+        "situations": {
+          "stepanovic_classification": {
+            "value_or_range": "ODc = mean OD of negative control + 3*SD; Non-adherent: OD <= ODc; Weak: ODc < OD <= 2*ODc; Moderate: 2*ODc < OD <= 4*ODc; Strong: OD > 4*ODc",
+            "when": "Standard classification system (Stepanovic et al. 2007)",
+            "why": "Uses negative control (uninoculated medium) as baseline; accounts for inter-experiment variability",
+            "source": "https://www.frontiersin.org/journals/microbiology/articles/10.3389/fmicb.2016.01429/full"
+          },
+          "absolute_cutoffs": {
+            "value_or_range": "Poor: OD570 < 0.18; Weak: 0.18-0.37; Moderate: 0.37-0.74; Strong: > 0.74",
+            "when": "Quick classification without standardized negative controls",
+            "why": "Absolute values depend on staining protocol, incubation time, and plate type; use relative (Stepanovic) method when possible",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9571847/"
+          }
+        },
+        "common_mistakes": [
+          "Using absolute OD cut-offs without accounting for protocol-specific variation",
+          "Not including sufficient biological and technical replicates (minimum 3 biological x 3 technical)",
+          "Comparing OD values between different plate types (polystyrene vs polypropylene bind differently)"
+        ]
+      },
+      "normalization": {
+        "description": "Whether and how to normalize biofilm OD to planktonic growth.",
+        "situations": {
+          "normalize_to_planktonic": {
+            "value_or_range": "Biofilm index = OD_CV / OD600_planktonic",
+            "when": "Comparing strains with different growth rates; drug treatment experiments where growth is affected",
+            "why": "Accounts for differences in total biomass; slow-growing strains may appear as weak biofilm formers without normalization",
+            "source": "https://www.sciencedirect.com/science/article/pii/S2590207519300103"
+          },
+          "no_normalization": {
+            "value_or_range": "Report raw OD_CV values",
+            "when": "All strains grow similarly; comparing same strain under different surface conditions",
+            "why": "Normalization can introduce artifacts if planktonic OD is very low or variable",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9571847/"
+          }
+        },
+        "common_mistakes": [
+          "Normalizing to planktonic growth when planktonic OD is near zero (division by small number)",
+          "Not reporting whether normalization was applied, making results incomparable between studies"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1007/s00203-025-04251-0",
+      "doi:10.1016/j.mimet.2019.105748",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC9571847/"
+    ],
+    "best_practice_notes": "Use polystyrene flat-bottom 96-well plates for consistency. Include minimum 3 biological replicates with 8 technical replicates each. Stain with 0.1% crystal violet for 15-20 min. Solubilize with 30% acetic acid or 95% ethanol. Read at 570 nm or 585 nm consistently. Always include uninoculated negative controls for classification. Report whether normalization to planktonic growth was applied. Follow the MBEC or Stepanovic protocol for reproducibility."
+  },
+  "circular_dichroism_analysis": {
+    "description": "Circular dichroism (CD) spectroscopy for estimating protein secondary structure content (alpha-helix, beta-sheet, turns, unordered) from far-UV spectra, using deconvolution algorithms.",
+    "key_parameters": {
+      "wavelength_range": {
+        "description": "Spectral range needed for reliable secondary structure deconvolution.",
+        "situations": {
+          "far_UV_standard": {
+            "value_or_range": "190-250 nm (minimum 190-240 nm)",
+            "when": "Secondary structure estimation (alpha-helix, beta-sheet, turns)",
+            "why": "Peptide bond n->pi* transition at ~220 nm and pi->pi* transition at ~190 nm carry secondary structure information; data below 190 nm improves deconvolution accuracy significantly",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2728378/"
+          },
+          "near_UV": {
+            "value_or_range": "250-320 nm",
+            "when": "Tertiary structure characterization; aromatic residue environment",
+            "why": "Trp (~290 nm), Tyr (~275 nm), Phe (~260 nm) side chains report on tertiary packing; useful for conformational change studies, not secondary structure",
+            "source": "https://www.creative-biostructure.com/resource-far-uv-near-uv-cd-protein-analysis.htm"
+          },
+          "extended_far_UV": {
+            "value_or_range": "178-260 nm (SRCD beamlines)",
+            "when": "Maximum accuracy for secondary structure estimation; available at synchrotron facilities",
+            "why": "VUV data below 190 nm significantly improves discrimination between beta-sheet and unordered structures",
+            "source": "https://onlinelibrary.wiley.com/doi/10.1002/pro.4153"
+          }
+        },
+        "common_mistakes": [
+          "Truncating spectra at 200 nm (missing critical information below 200 nm degrades deconvolution)",
+          "High absorption below 195 nm from buffer components (chloride ions, HEPES) \u2014 use phosphate buffer or Tris",
+          "Not purging instrument with nitrogen when measuring below 200 nm (O2 absorbs strongly)"
+        ]
+      },
+      "protein_concentration_pathlength": {
+        "description": "Protein concentration and cuvette pathlength for optimal signal in far-UV CD.",
+        "situations": {
+          "far_UV_standard": {
+            "value_or_range": "0.1-0.5 mg/mL protein in 1 mm pathlength cell",
+            "when": "Standard secondary structure measurement (190-250 nm)",
+            "why": "Gives absorbance of ~0.5-1.0 in the far-UV; good signal-to-noise; product of concentration x pathlength should give OD ~1.0 at 190 nm",
+            "source": "https://cmi.hms.harvard.edu/circular-dichroism"
+          },
+          "far_UV_low_wavelength": {
+            "value_or_range": "0.5-2 mg/mL in 0.1 mm cell",
+            "when": "Measuring down to 180 nm; minimizing buffer absorption",
+            "why": "Shorter pathlength reduces buffer absorption; higher concentration maintains signal",
+            "source": "https://structbio.vanderbilt.edu/wetlab/CD.proteins.info.v6.pdf"
+          },
+          "near_UV": {
+            "value_or_range": "0.5-2 mg/mL in 1 cm pathlength cell",
+            "when": "Near-UV CD (250-320 nm); aromatic residue analysis",
+            "why": "Near-UV signals are ~10x weaker than far-UV; need longer pathlength and/or higher concentration",
+            "source": "https://www.creative-biostructure.com/resource-far-uv-near-uv-cd-protein-analysis.htm"
+          }
+        },
+        "common_mistakes": [
+          "Protein concentration too high (OD > 2 at measurement wavelength \u2014 detector saturated)",
+          "Not knowing exact protein concentration \u2014 leads to wrong molar ellipticity conversion",
+          "Using quartz cuvettes with wrong pathlength tolerance"
+        ]
+      },
+      "deconvolution_algorithm": {
+        "description": "Algorithm choice for estimating secondary structure fractions from CD spectra.",
+        "situations": {
+          "CDSSTR": {
+            "value_or_range": "CDSSTR algorithm \u2014 NRMSD ~0.007 for good fits",
+            "when": "Routine secondary structure estimation; DichroWeb server",
+            "why": "Generally gives lowest NRMSD values; uses variable selection from reference datasets; good for all-alpha and all-beta proteins",
+            "source": "http://dichroweb.cryst.bbk.ac.uk/html/userguide_analysisprogs.shtml"
+          },
+          "CONTINLL": {
+            "value_or_range": "CONTIN/LL algorithm \u2014 NRMSD ~0.03 for good fits",
+            "when": "Ridge regression approach; good with limited wavelength range",
+            "why": "More robust when data quality is suboptimal; regularized fitting prevents overfitting",
+            "source": "https://pubmed.ncbi.nlm.nih.gov/11112271/"
+          },
+          "SELCON3": {
+            "value_or_range": "SELCON3 algorithm \u2014 NRMSD ~0.07 for good fits",
+            "when": "Self-consistent method; incorporates SVD with self-consistency check",
+            "why": "Includes the query spectrum in the basis set; good for unusual proteins not well-represented in reference sets",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2728378/"
+          },
+          "best_practice": {
+            "value_or_range": "Run all three algorithms (CDSSTR, CONTINLL, SELCON3) and compare; consistent results increase confidence",
+            "when": "Any important secondary structure determination",
+            "why": "Different algorithms have different biases; concordance across methods is the best indicator of reliability",
+            "source": "https://pubmed.ncbi.nlm.nih.gov/11112271/"
+          }
+        },
+        "common_mistakes": [
+          "Using only one algorithm without cross-validation",
+          "Not checking NRMSD \u2014 high values (>0.1) indicate poor fit or bad data",
+          "Using a reference set that does not include proteins similar to the query (e.g., all-alpha reference for a beta-barrel protein)"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1021/bi000766r",
+      "doi:10.1002/pro.4153",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC2728378/",
+      "http://dichroweb.cryst.bbk.ac.uk/"
+    ],
+    "best_practice_notes": "Measure far-UV CD from 190-260 nm minimum. Use phosphate or Tris buffer (avoid chloride, HEPES, PIPES below 200 nm). Determine protein concentration accurately (A280 with extinction coefficient, BCA assay, or amino acid analysis). Run three deconvolution algorithms and check consistency. Use DichroWeb (dichroweb.cryst.bbk.ac.uk) for online analysis. Report mean residue ellipticity [theta]_MRW in deg*cm^2/dmol. Include temperature and buffer conditions."
+  },
+  "itc_binding_thermodynamics": {
+    "description": "Isothermal Titration Calorimetry (ITC) for measuring binding affinity (Ka), stoichiometry (n), enthalpy (deltaH), and entropy (deltaS) of molecular interactions in a single experiment.",
+    "key_parameters": {
+      "c_value": {
+        "description": "Wiseman parameter c = n * Ka * [M], where n = stoichiometry, Ka = association constant, [M] = macromolecule concentration in the cell. Determines the shape of the titration isotherm.",
+        "situations": {
+          "optimal_range": {
+            "value_or_range": "c = 10-100 (ideal); c = 5-500 (acceptable)",
+            "when": "Standard ITC experiment design for determining Ka, n, and deltaH simultaneously",
+            "why": "c = 10-100 gives a sigmoidal isotherm with clear inflection point, allowing reliable determination of all three parameters",
+            "source": "https://www.huck.psu.edu/core-facilities/automated-biological-calorimetry-facility/technical-guides/isothermal-titration-calorimetry"
+          },
+          "low_c_value": {
+            "value_or_range": "c = 1-10 (low affinity regime)",
+            "when": "Weak binding (Kd > 10 uM); limited sample availability",
+            "why": "Can still determine Kd and deltaH if stoichiometry is fixed (known from other methods) and ligand is in large excess; isotherm is shallow without clear inflection",
+            "source": "https://pubs.acs.org/doi/10.1021/ja036166s"
+          },
+          "high_c_value": {
+            "value_or_range": "c > 1000 (very tight binding)",
+            "when": "Strong binding (Kd < 1 nM)",
+            "why": "Isotherm is too sharp (step function) \u2014 can determine n and deltaH but NOT Ka; need displacement (competition) ITC for Ka",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3230191/"
+          }
+        },
+        "common_mistakes": [
+          "Not calculating c value before experiment \u2014 leads to wasted sample with uninterpretable data",
+          "Running high-c experiments and reporting Ka with false precision",
+          "Not fixing n when c < 5 (cannot independently determine both n and Ka from shallow isotherms)"
+        ]
+      },
+      "injection_protocol": {
+        "description": "Number, volume, and spacing of injections of titrant into the cell.",
+        "situations": {
+          "standard_protocol": {
+            "value_or_range": "15-25 injections; 1-3 uL each; 120-180 s spacing; first injection 0.4 uL (discarded)",
+            "when": "Standard binding experiment with ITC200 or PEAQ-ITC",
+            "why": "15-25 points give sufficient data for reliable curve fitting; first injection is always discarded due to diffusion artifacts; spacing must allow return to baseline between injections",
+            "source": "https://cmi.hms.harvard.edu/isothermal-titration-calorimetry"
+          },
+          "strong_signal": {
+            "value_or_range": "Up to 75 injections of 3 uL each (for high deltaH systems)",
+            "when": "Binding produces large heat signal (|deltaH| > 10 kcal/mol)",
+            "why": "More data points improve precision of Ka; can use smaller injection volumes when signal is strong",
+            "source": "https://www.tainstruments.com/pdf/literature/MCAPN-2016-1.pdf"
+          },
+          "weak_signal": {
+            "value_or_range": "~15-20 injections of 5-8 uL each",
+            "when": "Small deltaH or low concentrations",
+            "why": "Larger volumes produce more measurable heat per injection; fewer injections avoid excessive dilution",
+            "source": "https://www.tainstruments.com/pdf/literature/MCAPN-2016-1.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Not discarding first injection \u2014 always contains systematic error",
+          "Injection spacing too short \u2014 baseline not recovered between injections",
+          "Not reaching saturation \u2014 need to continue injections past the equivalence point to define the baseline"
+        ]
+      },
+      "concentration_ratio": {
+        "description": "Ratio of ligand (syringe) to macromolecule (cell) concentration.",
+        "situations": {
+          "standard_1_to_1": {
+            "value_or_range": "Syringe [L] = 10-15x cell [M] concentration",
+            "when": "Expected 1:1 binding stoichiometry",
+            "why": "Ensures titration goes from undersaturation to well beyond saturation; allows accurate determination of stoichiometry and baseline",
+            "source": "https://cmi.hms.harvard.edu/isothermal-titration-calorimetry"
+          },
+          "cell_concentration": {
+            "value_or_range": "[M] in cell = 10-50 uM (typical for protein-ligand); > 5 uM minimum",
+            "when": "Standard ITC for moderate affinity (Kd = 10 nM - 100 uM)",
+            "why": "Must produce detectable heat (> 0.1 ucal/injection); lower [M] needs higher deltaH or lower cell volume",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3230191/"
+          }
+        },
+        "common_mistakes": [
+          "Buffer mismatch between syringe and cell solutions \u2014 causes large heats of dilution that obscure binding",
+          "Not performing blank titrations (ligand into buffer, buffer into macromolecule) for subtraction",
+          "Concentrations determined inaccurately \u2014 stoichiometry n will be wrong if [M] is wrong"
+        ]
+      },
+      "binding_model_selection": {
+        "description": "Choosing the appropriate thermodynamic model for fitting ITC data.",
+        "situations": {
+          "one_site_model": {
+            "value_or_range": "Independent identical binding sites model (most common)",
+            "when": "Expected simple 1:1 binding; n is a fitted parameter near 1.0",
+            "why": "Simplest model; fits n, Ka, and deltaH; n deviating from expected integer may indicate inactive protein",
+            "source": "https://en.wikipedia.org/wiki/Isothermal_titration_calorimetry"
+          },
+          "two_site_model": {
+            "value_or_range": "Two sets of independent sites with different affinities",
+            "when": "Clear biphasic isotherm with two transitions; proteins with two distinct binding sites",
+            "why": "Requires sufficient data quality to resolve two Ka and two deltaH values; need clear separation of affinities (>10-fold different)",
+            "source": "https://cdn.vanderbilt.edu/vu-URL/wp-content/uploads/sites/212/2021/02/19171429/2008_Freyer.pdf"
+          },
+          "sequential_model": {
+            "value_or_range": "Sequential (macroscopic) binding model",
+            "when": "Cooperative binding where each site has different affinity depending on occupancy of other sites",
+            "why": "Accounts for cooperativity; more parameters require higher quality data",
+            "source": "https://cdn.vanderbilt.edu/vu-URL/wp-content/uploads/sites/212/2021/02/19171429/2008_Freyer.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Using a two-site model when data quality only supports one-site (overfitting)",
+          "Fixing stoichiometry n to an assumed value without justification",
+          "Not considering that apparent n < 1 often means some protein is inactive, not fractional binding",
+          "Ignoring heats of dilution in the fitting"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1021/ja036166s",
+      "doi:10.1016/j.ymeth.2004.03.023",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3230191/",
+      "https://cdn.vanderbilt.edu/vu-URL/wp-content/uploads/sites/212/2021/02/19171429/2008_Freyer.pdf"
+    ],
+    "best_practice_notes": "Calculate c value before running experiments to ensure interpretable results (c = 10-100 ideal). Dialyze or gel-filtrate both macromolecule and ligand into identical buffer to minimize heats of dilution. Always run blank titrations (ligand-into-buffer and buffer-into-macromolecule). Discard the first injection point. Determine protein concentration accurately (A280 preferred over BCA for ITC). Start with the simplest binding model (one-site) and only add complexity if statistically justified. Report deltaG, deltaH, -TdeltaS, and n with errors."
+  }
+}

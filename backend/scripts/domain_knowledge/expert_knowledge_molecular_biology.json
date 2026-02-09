@@ -1,0 +1,1277 @@
+{
+  "pcr_primer_design": {
+    "description": "Design of oligonucleotide primers for polymerase chain reaction (PCR) amplification of specific DNA targets. Primer quality is the single most important factor determining PCR success.",
+    "key_parameters": {
+      "primer_length": {
+        "description": "Number of nucleotides in the primer. Affects specificity, Tm, and binding stability.",
+        "situations": {
+          "standard_pcr": {
+            "value_or_range": "20-22 bp",
+            "when": "Standard PCR with well-characterized template of balanced GC content",
+            "why": "Provides sufficient specificity (4^20 = 1.1e12 possible sequences, far exceeding any genome size) while keeping Tm in the optimal 58-62C range",
+            "source": "https://www.neb.com/en-us/nebinspired-blog/proven-tips-for-pcr-primer-design"
+          },
+          "gc_rich_template": {
+            "value_or_range": "22-25 bp",
+            "when": "Template GC content >65%, e.g., some bacterial genomes, CpG islands, GC-rich gene promoters",
+            "why": "GC-rich primers have inherently higher Tm; longer primers at moderate GC% achieve the needed specificity without excessive Tm. Also compensates for secondary structure in GC-rich templates.",
+            "source": "https://www.idtdna.com/page/support-and-education/decoded-plus/how-to-design-primers-and-probes-for-pcr-and-qpcr/"
+          },
+          "at_rich_template": {
+            "value_or_range": "22-25 bp",
+            "when": "Template GC content <35%, e.g., AT-rich organisms like Plasmodium",
+            "why": "AT-rich primers have lower Tm; longer primers compensate to bring Tm into the usable range (>55C)",
+            "source": "https://www.thermofisher.com/blog/behindthebench/pcr-primer-design-tips/"
+          },
+          "degenerate_primers": {
+            "value_or_range": "25-30 bp",
+            "when": "Designing primers for conserved regions across species or for unknown sequence variants",
+            "why": "Longer primers compensate for the reduced effective concentration caused by degeneracy (each degenerate position divides primer pool). Need more matching bases to maintain specificity.",
+            "source": "http://www.premierbiosoft.com/tech_notes/PCR_Primer_Design.html"
+          },
+          "colony_pcr": {
+            "value_or_range": "18-20 bp",
+            "when": "Screening bacterial colonies for correct inserts; crude template",
+            "why": "Shorter primers tolerate the suboptimal template quality from colony lysis. Specificity is less critical since the target is known.",
+            "source": "https://www.thermofisher.com/blog/behindthebench/pcr-primer-design-tips/"
+          },
+          "qpcr": {
+            "value_or_range": "18-24 bp",
+            "when": "Quantitative real-time PCR requiring high specificity and efficiency",
+            "why": "Short amplicons (70-200 bp) and precise Tm matching between primers is critical. IDT recommends optimal Tm of 62C with primers in this length range.",
+            "source": "https://www.idtdna.com/page/support-and-education/decoded-plus/how-to-design-primers-and-probes-for-pcr-and-qpcr/"
+          }
+        },
+        "common_mistakes": [
+          "Using primers <17 bp, which lack specificity for complex genomes",
+          "Using primers >30 bp unnecessarily, increasing cost and secondary structure risk",
+          "Not adjusting length when GC content is extreme (very high or very low)"
+        ]
+      },
+      "melting_temperature_tm": {
+        "description": "Temperature at which 50% of primer-template duplexes are dissociated. Critical for determining annealing temperature.",
+        "situations": {
+          "standard_pcr": {
+            "value_or_range": "58-62C",
+            "when": "Standard PCR with balanced GC primers (40-60% GC)",
+            "why": "This range provides efficient annealing while maintaining specificity. IDT recommends optimal Tm of 62C.",
+            "source": "https://www.idtdna.com/page/support-and-education/decoded-plus/how-to-design-primers-and-probes-for-pcr-and-qpcr/"
+          },
+          "gc_rich_template": {
+            "value_or_range": "62-68C",
+            "when": "GC-rich templates requiring higher stringency to melt secondary structures",
+            "why": "Higher Tm primers and annealing temperatures help denature stable secondary structures in GC-rich templates, improving primer access",
+            "source": "https://www.neb.com/en-us/nebinspired-blog/proven-tips-for-pcr-primer-design"
+          },
+          "at_rich_template": {
+            "value_or_range": "55-58C",
+            "when": "AT-rich templates (e.g., Plasmodium falciparum, 80% AT)",
+            "why": "AT-rich primers inherently have lower Tm. Forcing higher Tm requires excessively long primers. Lower annealing temperatures accommodate this.",
+            "source": "https://www.thermofisher.com/blog/behindthebench/pcr-primer-design-tips/"
+          },
+          "touchdown_pcr": {
+            "value_or_range": "Start at Tm+5C, decrease 1C/cycle to Tm-5C",
+            "when": "Unknown optimal annealing temperature or problematic templates",
+            "why": "Initial high-stringency cycles favor specific product; later lower-temperature cycles amplify the specific product efficiently",
+            "source": "https://www.neb.com/en-us/nebinspired-blog/proven-tips-for-pcr-primer-design"
+          }
+        },
+        "common_mistakes": [
+          "Tm difference between forward and reverse primers >2C, causing one primer to bind inefficiently at the chosen annealing temperature",
+          "Using the Wallace rule (2*(A+T) + 4*(G+C)) for primers >20 bp; this formula is inaccurate for longer primers and does not account for nearest-neighbor stacking effects",
+          "Not using nearest-neighbor thermodynamic method (SantaLucia 1998) for accurate Tm calculation -- this is the method used by Primer3 and NCBI Primer-BLAST",
+          "Confusing Tm with annealing temperature (Ta); Ta is typically Tm minus 3-5C",
+          "Not accounting for salt concentration and primer concentration in Tm calculation"
+        ]
+      },
+      "tm_calculation_method": {
+        "description": "Algorithm used to estimate primer melting temperature. Different methods vary dramatically in accuracy.",
+        "situations": {
+          "wallace_rule": {
+            "value_or_range": "Tm = 2*(A+T) + 4*(G+C)",
+            "when": "Quick estimation only, primers <14 nucleotides",
+            "why": "Extremely simple but inaccurate for primers >13 nt. Does not account for sequence order, stacking interactions, or solution conditions. Only considers base composition.",
+            "source": "https://academic.oup.com/bioinformatics/article/21/6/711/199347"
+          },
+          "salt_adjusted": {
+            "value_or_range": "Tm = 100.5 + (41 * nGC/len) - (820/len) + 16.6*log10([Na+])",
+            "when": "Moderate accuracy needed, primers 14-20 bp",
+            "why": "Accounts for salt concentration but still does not consider nearest-neighbor stacking effects. Better than Wallace but inferior to nearest-neighbor.",
+            "source": "https://www.researchgate.net/post/What-is-basic-salt-adjusted-and-nearest-neighbor-when-calculating-the-melting-temperature-for-primer"
+          },
+          "nearest_neighbor": {
+            "value_or_range": "SantaLucia (1998) unified parameters",
+            "when": "Always recommended for primers up to 60 nt; the gold standard method",
+            "why": "Treats oligonucleotides as sequences of dinucleotides with experimentally derived thermodynamic parameters (deltaH, deltaS) for each nearest-neighbor pair. Accounts for stacking effects, sequence order, salt correction, and primer concentration. Used by Primer3 and NCBI Primer-BLAST.",
+            "source": "https://academic.oup.com/bioinformatics/article/21/6/711/199347"
+          }
+        },
+        "common_mistakes": [
+          "Using different Tm calculation methods for forward and reverse primers, leading to incorrect Tm difference assessment",
+          "Comparing Tm values calculated by different tools that use different methods",
+          "Not specifying salt/Mg2+/dNTP concentrations when using nearest-neighbor method"
+        ]
+      },
+      "gc_content": {
+        "description": "Percentage of guanine and cytosine bases in the primer sequence.",
+        "situations": {
+          "optimal": {
+            "value_or_range": "40-60%, ideal 50%",
+            "when": "Standard primer design for any application",
+            "why": "Balanced GC content ensures predictable and stable hybridization. Extreme GC content causes either too-stable binding (high GC, secondary structures) or too-weak binding (low GC).",
+            "source": "https://www.idtdna.com/page/support-and-education/decoded-plus/how-to-design-primers-and-probes-for-pcr-and-qpcr/"
+          },
+          "constrained_by_template": {
+            "value_or_range": "35-65% acceptable if template dictates",
+            "when": "AT-rich or GC-rich organisms where target regions have extreme composition",
+            "why": "Cannot always achieve ideal GC content; compensate by adjusting primer length and using additives (DMSO for GC-rich, betaine for AT-rich)",
+            "source": "https://www.neb.com/en-us/nebinspired-blog/proven-tips-for-pcr-primer-design"
+          }
+        },
+        "common_mistakes": [
+          "Designing primers with >65% GC, which promotes stable secondary structures and non-specific binding",
+          "Not using additives (3-5% DMSO, 1M betaine) when GC-rich primers are unavoidable"
+        ]
+      },
+      "gc_clamp": {
+        "description": "Presence of G or C nucleotides at the 3-prime end of the primer to promote stable initial binding for polymerase extension.",
+        "situations": {
+          "recommended": {
+            "value_or_range": "1-2 G/C bases within last 5 bases at 3-prime end",
+            "when": "Standard primer design",
+            "why": "G-C base pairs form 3 hydrogen bonds (vs 2 for A-T), providing stronger binding at the critical 3-prime end where polymerase extension initiates. Encourages specific and complete primer binding.",
+            "source": "https://toptipbio.com/gc-clamp-pcr/"
+          },
+          "excessive": {
+            "value_or_range": "Avoid >3 G/C in last 5 bases",
+            "when": "Always avoid",
+            "why": "More than 3 G/C at the 3-prime end promotes non-specific binding and mispriming. Can increase Tm excessively at the 3-prime end, reducing specificity.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7121268/"
+          }
+        },
+        "common_mistakes": [
+          "Ending primers with multiple A/T bases at the 3-prime end, leading to weak initiation",
+          "Having too strong a GC clamp (>3 G/C in last 5 bases), causing mispriming at GC-rich non-target sites"
+        ]
+      },
+      "secondary_structure_dg": {
+        "description": "Free energy (delta G) of primer secondary structures including hairpins, self-dimers, and cross-dimers. More negative values indicate more stable (problematic) structures.",
+        "situations": {
+          "hairpins": {
+            "value_or_range": "3-prime hairpin: deltaG > -2 kcal/mol; internal hairpin: deltaG > -3 kcal/mol",
+            "when": "Evaluating all primer candidates",
+            "why": "Hairpins at the 3-prime end most adversely affect PCR by preventing primer extension. Internal hairpins are slightly more tolerable.",
+            "source": "http://www.premierbiosoft.com/tech_notes/PCR_Primer_Design.html"
+          },
+          "self_dimers": {
+            "value_or_range": "3-prime self-dimer: deltaG > -5 kcal/mol; internal: deltaG > -6 kcal/mol",
+            "when": "Checking individual primers",
+            "why": "Self-dimers reduce effective primer concentration and can produce primer-dimer artifacts",
+            "source": "http://www.premierbiosoft.com/tech_notes/PCR_Primer_Design.html"
+          },
+          "cross_dimers": {
+            "value_or_range": "3-prime cross-dimer: deltaG > -5 kcal/mol; internal: deltaG > -6 kcal/mol",
+            "when": "Evaluating primer pairs together",
+            "why": "Cross-dimers between forward and reverse primers are the primary source of primer-dimer artifacts in PCR",
+            "source": "http://www.premierbiosoft.com/tech_notes/PCR_Primer_Design.html"
+          },
+          "idt_general_threshold": {
+            "value_or_range": "All structures: deltaG > -9.0 kcal/mol",
+            "when": "Quick screening threshold recommended by IDT",
+            "why": "IDT's OligoAnalyzer uses this as a general cutoff; structures more stable than -9 kcal/mol will significantly impair PCR",
+            "source": "https://www.idtdna.com/pages/support/faqs/how-can-i-check-my-pcr-primers-using-the-oligoanalyzer-program-to-ensure-there-are-no-significant-primer-design-issues-"
+          }
+        },
+        "common_mistakes": [
+          "Not checking primer pairs for cross-dimer formation (only checking individual primers)",
+          "Ignoring 3-prime complementarity between primers, which causes primer-dimer artifacts",
+          "Having runs of >4 identical nucleotides, which promote mispriming and slippage"
+        ]
+      },
+      "annealing_temperature": {
+        "description": "Temperature used during the annealing step of PCR cycling. Determines primer binding stringency.",
+        "situations": {
+          "standard": {
+            "value_or_range": "Tm - 5C (typically 53-57C for standard primers)",
+            "when": "Initial PCR optimization with well-designed primers",
+            "why": "Annealing temperature 3-5C below Tm allows efficient primer binding while maintaining specificity",
+            "source": "https://www.neb.com/en-us/nebinspired-blog/proven-tips-for-pcr-primer-design"
+          },
+          "gradient_optimization": {
+            "value_or_range": "Tm - 8C to Tm + 2C gradient",
+            "when": "New primer pair, optimizing for specificity vs yield",
+            "why": "Gradient PCR tests multiple annealing temperatures simultaneously. Higher temperatures increase specificity; lower temperatures increase yield.",
+            "source": "https://www.thermofisher.com/blog/behindthebench/pcr-primer-design-tips/"
+          },
+          "high_fidelity_polymerase": {
+            "value_or_range": "Use manufacturer's Tm calculator (e.g., NEB Tm Calculator for Q5)",
+            "when": "Using high-fidelity polymerases like Q5, Phusion, or KOD",
+            "why": "These polymerases operate optimally at higher annealing temperatures than Taq. Each has specific buffer conditions affecting Tm. NEB Tm Calculator accounts for buffer-specific conditions.",
+            "source": "https://www.neb.com/en-us/nebinspired-blog/proven-tips-for-pcr-primer-design"
+          }
+        },
+        "common_mistakes": [
+          "Using the same annealing temperature for Taq and high-fidelity polymerases",
+          "Not performing gradient PCR to optimize annealing temperature for new primer pairs",
+          "Setting annealing temperature too low, causing non-specific amplification"
+        ]
+      }
+    },
+    "key_references": [
+      "https://www.idtdna.com/page/support-and-education/decoded-plus/how-to-design-primers-and-probes-for-pcr-and-qpcr/",
+      "https://www.neb.com/en-us/nebinspired-blog/proven-tips-for-pcr-primer-design",
+      "https://academic.oup.com/bioinformatics/article/21/6/711/199347",
+      "https://www.thermofisher.com/blog/behindthebench/pcr-primer-design-tips/",
+      "http://www.premierbiosoft.com/tech_notes/PCR_Primer_Design.html"
+    ],
+    "best_practice_notes": "Always use the nearest-neighbor method (SantaLucia 1998) for Tm calculation, keep primer pair Tm within 2C of each other, aim for 40-60% GC content with 1-2 G/C at the 3-prime end, check for secondary structures using IDT OligoAnalyzer or Primer3, and validate with gradient PCR. For high-fidelity polymerases, always use the manufacturer's specific Tm calculator."
+  },
+  "golden_gate_assembly": {
+    "description": "Type IIS restriction enzyme-based DNA assembly method that enables seamless, scarless, directional joining of multiple DNA fragments in a single reaction. Relies on non-palindromic overhangs generated by Type IIS enzymes cutting outside their recognition sequence.",
+    "key_parameters": {
+      "enzyme_selection": {
+        "description": "Choice of Type IIS restriction enzyme that generates the 4-bp overhangs for assembly.",
+        "situations": {
+          "bsai_default": {
+            "value_or_range": "BsaI-HFv2 (NEB #R3733)",
+            "when": "Default choice; insert sequence lacks internal BsaI sites (GGTCTC)",
+            "why": "Most commonly used, cheapest, well-characterized. BsaI-HFv2 is the high-fidelity version with reduced star activity. Cuts 1 nt downstream on sense strand and 4 nt downstream on antisense strand.",
+            "source": "https://www.neb.com/en-us/products/e1601-nebridge-golden-gate-assembly-mix-basai-hf-v2"
+          },
+          "bsmbi_alternative": {
+            "value_or_range": "BsmBI-v2 (NEB #R0739)",
+            "when": "Insert contains internal BsaI recognition site (GGTCTC); or for hierarchical assembly (Level 1 uses BsaI, Level 2 uses BsmBI)",
+            "why": "Different recognition sequence (CGTCTC) avoids cutting within the insert. Also used as Esp3I (isoschizomer). Heat inactivation at 65C for 20 min.",
+            "source": "https://www.neb.com/en-us/applications/cloning-and-synthetic-biology/dna-assembly-and-cloning/golden-gate-assembly"
+          },
+          "bbsi_alternative": {
+            "value_or_range": "BbsI-HF (NEB #R3539)",
+            "when": "Both BsaI and BsmBI sites present in insert; or specific kit/standard requires it",
+            "why": "Recognition sequence GAAGAC; different offset from cut site. Used in some CRISPR guide RNA cloning protocols.",
+            "source": "https://www.neb.com/en-us/applications/cloning-and-synthetic-biology/dna-assembly-and-cloning/golden-gate-assembly"
+          }
+        },
+        "common_mistakes": [
+          "Not checking insert sequence for internal Type IIS recognition sites before choosing enzyme",
+          "Using wild-type BsaI instead of BsaI-HFv2; wild-type has more star activity",
+          "Using wrong heat inactivation temperature for selected enzyme"
+        ]
+      },
+      "overhang_design": {
+        "description": "Design of the 4-bp single-stranded overhangs that direct fragment assembly order and orientation.",
+        "situations": {
+          "standard_assembly_up_to_10_parts": {
+            "value_or_range": "Use NEB Ligase Fidelity Viewer or GetSet tool to select compatible overhang sets",
+            "when": "Assembling 2-10 DNA fragments",
+            "why": "Data-optimized overhang sets ensure >95% correct assembly. The tool predicts fidelity based on experimentally measured ligation preferences of all 256 possible 4-bp overhangs.",
+            "source": "https://pubs.acs.org/doi/10.1021/acssynbio.8b00333"
+          },
+          "high_complexity_over_10_parts": {
+            "value_or_range": "Use NEB DAD (Data-optimized Assembly Design) tools; validated for up to 24-52 parts",
+            "when": "Assembling >10 fragments in a single reaction",
+            "why": "Random overhang selection fails above ~8 fragments. Data-optimized sets achieve 99% correct assembly for 12 fragments and >90% for 24 fragments.",
+            "source": "https://doi.org/10.1371/journal.pone.0238592"
+          },
+          "rules_of_thumb": {
+            "value_or_range": "Avoid palindromic overhangs (except TTAA, TATA which are weak); avoid same 3 nt in a row; avoid 0% or 100% GC; no duplicate overhangs",
+            "when": "Manual overhang design without computational tools",
+            "why": "Palindromic overhangs can self-ligate. Repeated nucleotides reduce specificity. Extreme GC content affects ligation efficiency.",
+            "source": "https://blog.addgene.org/golden-gate-assembly-upgrade-more-fragments-faster-assembly-and-higher-fidelity"
+          },
+          "strongest_overhangs": {
+            "value_or_range": "AGGA (highest normalized ligation efficiency: 739), AGAA, TTCT",
+            "when": "Choosing overhangs for critical junctions or multi-fragment assemblies",
+            "why": "Strong overhangs greatly increase ligation efficiency. Using characterized strong overhangs at challenging junctions improves overall assembly success.",
+            "source": "https://doi.org/10.1093/nar/gkae756"
+          }
+        },
+        "common_mistakes": [
+          "Using palindromic overhangs (AATT, GATC, etc.) which can self-ligate and create incorrect assemblies",
+          "Not checking overhang compatibility with NEB Ligase Fidelity Viewer before ordering oligos",
+          "Reusing overhangs between different junctions in the same assembly",
+          "Not domesticating internal Type IIS sites (removing them by silent mutagenesis)"
+        ]
+      },
+      "cycling_protocol": {
+        "description": "Thermocycler program alternating between restriction enzyme digestion and ligation temperatures.",
+        "situations": {
+          "standard_protocol": {
+            "value_or_range": "30 cycles of (37C for 1 min, 16C for 1 min), then 60C for 5 min final digestion",
+            "when": "Standard assembly with BsaI-HFv2; 2-10 fragments",
+            "why": "37C is optimal for restriction enzyme activity; 16C is optimal for T4 DNA ligase. Cycling drives the reaction toward the desired multi-fragment product. Final 60C step ensures complete digestion of any remaining uncut substrate.",
+            "source": "https://www.neb.com/en/-/media/nebus/files/manuals/manuale1601.pdf"
+          },
+          "extended_overnight": {
+            "value_or_range": "30 cycles of (37C for 5 min, 16C for 10 min), overnight",
+            "when": "Complex assemblies (>6 fragments) or difficult overhangs",
+            "why": "Longer incubation times at each temperature increase digestion and ligation completeness per cycle. BsaI-HFv2 and T4 ligase are stable for up to 60 cycles.",
+            "source": "https://barricklab.org/twiki/bin/view/Lab/GoldenGateAssemblyProtocolsMainPage"
+          },
+          "rapid_protocol": {
+            "value_or_range": "30 cycles of (37C for 1 min, 16C for 1 min), 60C for 5 min (total ~1 hour)",
+            "when": "Simple 2-4 fragment assemblies with validated overhangs",
+            "why": "Short cycle times are sufficient for simple assemblies. NEB protocol demonstrates high efficiency even with 1-minute steps.",
+            "source": "https://www.neb.com/en-us/products/e1601-nebridge-golden-gate-assembly-mix-basai-hf-v2"
+          }
+        },
+        "common_mistakes": [
+          "Using 80C heat inactivation for BsaI-HFv2 (correct for enzyme inactivation but NEB warns it inhibits transformation when PEG is present)",
+          "Not including final digestion step, leaving uncut vector that produces background colonies",
+          "Insufficient number of cycles for complex assemblies"
+        ]
+      },
+      "fragment_number": {
+        "description": "Number of DNA parts to assemble simultaneously in one pot.",
+        "situations": {
+          "simple_2_to_4": {
+            "value_or_range": "2-4 fragments",
+            "when": "Simple insertions, promoter-gene-terminator cassettes",
+            "why": ">95% efficiency with standard protocol and any reasonable overhang set. Very robust.",
+            "source": "https://www.neb.com/en-us/applications/cloning-and-synthetic-biology/dna-assembly-and-cloning/golden-gate-assembly"
+          },
+          "moderate_5_to_10": {
+            "value_or_range": "5-10 fragments",
+            "when": "Multi-gene pathways, complex genetic circuits",
+            "why": "50-80% efficiency with standard protocol; requires optimized overhang sets. NEB Ligase Fidelity Viewer strongly recommended.",
+            "source": "https://doi.org/10.1371/journal.pone.0238592"
+          },
+          "complex_over_10": {
+            "value_or_range": "10-24+ fragments",
+            "when": "Pathway reconstruction, genome assembly",
+            "why": "Requires data-optimized overhangs. 99% correct for 12 fragments; >90% for 24 fragments with optimized protocols. Consider hierarchical assembly (2 rounds) for >15 fragments.",
+            "source": "https://doi.org/10.1371/journal.pone.0238592"
+          },
+          "extreme_over_25": {
+            "value_or_range": "25-52 fragments demonstrated",
+            "when": "Full genome assembly (e.g., T7 phage from 52 parts)",
+            "why": "Requires expert-level overhang optimization, extended cycling protocols, and high-quality DNA. Not routine; use hierarchical assembly when possible.",
+            "source": "https://pubs.acs.org/doi/10.1021/acssynbio.1c00525"
+          }
+        },
+        "common_mistakes": [
+          "Attempting >10 fragment assembly without computationally optimized overhangs",
+          "Not using hierarchical assembly when >15 fragments are needed",
+          "Not verifying assembly by colony PCR or restriction digest before sequencing"
+        ]
+      },
+      "dna_amount_and_molar_ratio": {
+        "description": "Amount of backbone vector and insert DNA fragments and their relative molar ratios in the assembly reaction.",
+        "situations": {
+          "two_part_assembly": {
+            "value_or_range": "75 ng backbone, 2:1 insert:backbone molar ratio",
+            "when": "Single insert into a destination vector",
+            "why": "Excess insert drives the reaction toward complete assembly. 75 ng backbone is the NEB-recommended maximum to avoid excess uncut vector background.",
+            "source": "https://www.neb.com/en/tools-and-resources/usage-guidelines/insert-considerations-when-using-neb-golden-gate-assembly-kit-bsai-hfv2-neb-e1601"
+          },
+          "multi_part_equimolar": {
+            "value_or_range": "Equimolar all fragments, 75 ng total DNA",
+            "when": "3+ fragment assembly",
+            "why": "Equimolar ratios ensure all fragments are available at similar concentrations. Total DNA should not exceed 75 ng per NEB guidelines to avoid inhibition.",
+            "source": "https://www.neb.com/en/-/media/nebus/files/manuals/manuale1601.pdf"
+          },
+          "short_fragments": {
+            "value_or_range": "3:1 to 5:1 molar excess of short fragment relative to longest fragment",
+            "when": "Assembling fragments of very different sizes (e.g., 200 bp insert with 5 kb backbone)",
+            "why": "Short fragments at equimolar mass contain far fewer moles than large fragments. Molar excess compensates for this disparity.",
+            "source": "https://www.neosynbio.com/golden-gate-assembly"
+          }
+        },
+        "common_mistakes": [
+          "Using >75 ng total DNA, which can inhibit the reaction",
+          "Calculating ratios by mass instead of by moles for fragments of different sizes",
+          "Not accounting for purity of DNA preparations (e.g., using gel-extracted fragments with low recovery)"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1371/journal.pone.0238592",
+      "https://doi.org/10.1093/nar/gkae756",
+      "https://pubs.acs.org/doi/10.1021/acssynbio.8b00333",
+      "https://pubs.acs.org/doi/10.1021/acssynbio.1c00525",
+      "https://www.neb.com/en-us/applications/cloning-and-synthetic-biology/dna-assembly-and-cloning/golden-gate-assembly"
+    ],
+    "best_practice_notes": "Always use the NEB Ligase Fidelity Viewer (https://ligasefidelity.neb.com/) to validate overhang sets before ordering oligos. Domesticate (remove) internal Type IIS sites by silent mutagenesis. Use BsaI-HFv2 as default; switch to BsmBI-v2 only when insert contains BsaI sites. For >10 fragments, use data-optimized overhang sets from NEB DAD tools. Verify assemblies by colony PCR spanning at least 2 junctions, followed by full Sanger sequencing."
+  },
+  "restriction_enzyme_analysis": {
+    "description": "Analysis and selection of restriction endonucleases for DNA cloning, mapping, and analysis. Involves choosing enzymes with appropriate recognition sites, buffer compatibility, and activity characteristics.",
+    "key_parameters": {
+      "enzyme_selection_for_cloning": {
+        "description": "Choosing the right restriction enzymes for subcloning a DNA fragment into a vector.",
+        "situations": {
+          "standard_directional_cloning": {
+            "value_or_range": "Use two different enzymes with non-compatible ends to ensure directional insertion",
+            "when": "Cloning an insert into a vector in a defined orientation",
+            "why": "Two different sticky ends prevent self-ligation of vector and ensure insert goes in the correct orientation. One cut site at each end of insert.",
+            "source": "https://www.neb.com/en-us/applications/cloning-and-synthetic-biology/dna-analysis/restriction-enzyme-digestion"
+          },
+          "use_compatible_cohesive_ends": {
+            "value_or_range": "BamHI (GGATCC) with BglII (AGATCT): both produce 5'-GATC overhang; EcoRI (GAATTC) with MfeI (CAATTG): both produce 5'-AATT overhang",
+            "when": "Insert contains one of the required enzyme sites internally, or destroying one site is acceptable",
+            "why": "Compatible cohesive ends ligate together but the hybrid site is not re-cut by either original enzyme, effectively destroying one restriction site. Useful for creating scar-free junctions.",
+            "source": "https://www.neb.com/en/tools-and-resources/selection-charts/compatible-cohesive-ends-and-generation-of-new-restriction-sites"
+          },
+          "check_internal_sites": {
+            "value_or_range": "Screen insert sequence for chosen enzyme recognition sites using NEBcutter or Serial Cloner",
+            "when": "Always, before choosing enzymes",
+            "why": "Internal restriction sites in the insert will cause fragmentation during digestion, destroying the insert. This is the most common cloning failure.",
+            "source": "https://www.neb.com/en-us/tools-and-resources/feature-articles/restriction-endonucleases-molecular-cloning-and-beyond"
+          }
+        },
+        "common_mistakes": [
+          "Not checking insert for internal restriction sites before enzyme selection",
+          "Using single-enzyme cloning without dephosphorylation (CIP/SAP), leading to high vector self-ligation background",
+          "Forgetting to add extra bases flanking the restriction site in PCR primers (most enzymes need 4-6 extra bases for efficient cutting near DNA ends)"
+        ]
+      },
+      "buffer_compatibility": {
+        "description": "Selecting appropriate buffer conditions for single or double digestions.",
+        "situations": {
+          "cutsmart_buffer": {
+            "value_or_range": "rCutSmart Buffer (NEB): 50 mM potassium acetate, 20 mM Tris-acetate, 10 mM magnesium acetate, 100 ug/ml recombinant albumin, pH 7.9",
+            "when": "Over 215 NEB restriction enzymes are 100% active in CutSmart. Use as default for double digests.",
+            "why": "Universal buffer simplifies double digest setup. Already contains BSA, reducing pipetting steps and potential errors.",
+            "source": "https://www.neb.com/en-us/products/b7204-cutsmart-buffer"
+          },
+          "sequential_digestion": {
+            "value_or_range": "Digest with enzyme requiring lower-salt buffer first, then add salt and second enzyme",
+            "when": "Two enzymes have incompatible buffer requirements and neither works well in CutSmart",
+            "why": "Some enzyme pairs have <50% activity in any shared buffer. Sequential digestion with buffer adjustment preserves full activity of both enzymes.",
+            "source": "https://www.neb.com/en-us/tools-and-resources/usage-guidelines/double-digests"
+          },
+          "neb_double_digest_finder": {
+            "value_or_range": "Use NEB Double Digest Finder tool (https://www.neb.com/tools-and-resources/interactive-tools/double-digest-finder)",
+            "when": "Always, when planning a double digest",
+            "why": "Automated tool shows optimal buffer choice, expected activity of both enzymes, and heat inactivation conditions. More reliable than manual buffer selection.",
+            "source": "https://www.neb.com/en-us/tools-and-resources/usage-guidelines/double-digests"
+          }
+        },
+        "common_mistakes": [
+          "Using buffers with >5% glycerol concentration from enzyme stocks, promoting star activity",
+          "Not using the NEB Double Digest Finder to verify buffer compatibility",
+          "Assuming all enzymes work in CutSmart without checking the performance chart"
+        ]
+      },
+      "star_activity": {
+        "description": "Non-specific cleavage at sequences similar but not identical to the enzyme's canonical recognition site, occurring under suboptimal reaction conditions.",
+        "situations": {
+          "conditions_promoting_star_activity": {
+            "value_or_range": "Glycerol >5% (v/v), extended incubation (>16 hrs), excess enzyme (>10 U/ug DNA), low ionic strength, non-optimal pH, organic solvents, Mn2+ substitution",
+            "when": "Risk assessment for any restriction digest",
+            "why": "Star activity produces unexpected fragments and incorrect cloning products. These conditions relax enzyme specificity for cognate site recognition.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2396408/"
+          },
+          "use_hf_enzymes": {
+            "value_or_range": "Always prefer HF (High-Fidelity) versions when available: EcoRI-HF shows 3000-fold less star activity than wild-type EcoRI",
+            "when": "Any cloning or analytical digest, especially overnight digests or when using excess enzyme",
+            "why": "HF enzymes are engineered mutants with identical specificity but dramatically reduced star activity. They are active in CutSmart buffer and tolerate a wider range of conditions.",
+            "source": "https://www.neb.com/en-us/products/restriction-endonucleases/hf-nicking-master-mix-time-saver-other/high-fidelity-restriction-enzymes"
+          },
+          "minimize_glycerol": {
+            "value_or_range": "Keep total glycerol <5% (v/v) in reaction; enzyme volume should be <10% of total reaction volume",
+            "when": "Setting up any restriction digest",
+            "why": "Enzymes are stored in 50% glycerol. Adding >5 ul enzyme to a 50 ul reaction exceeds 5% glycerol, promoting star activity.",
+            "source": "https://www.neb.com/en-us/tools-and-resources/usage-guidelines/double-digests"
+          }
+        },
+        "common_mistakes": [
+          "Adding excessive enzyme thinking 'more is better' -- this promotes star activity",
+          "Overnight digestion without using Time-Saver qualified enzymes or HF enzymes",
+          "Using non-optimal buffers that promote star activity when the correct buffer is available"
+        ]
+      },
+      "methylation_sensitivity": {
+        "description": "Sensitivity of restriction enzymes to DNA methylation status, which can block cleavage.",
+        "situations": {
+          "dam_methylation": {
+            "value_or_range": "Dam methyltransferase methylates adenine in GATC sequences. Enzymes blocked: BclI, ClaI, MboI, XbaI (partial)",
+            "when": "DNA propagated in dam+ E. coli strains (most standard strains including DH5alpha, TOP10, BL21)",
+            "why": "Dam methylation is present on virtually all DNA from standard E. coli. Enzymes sensitive to dam methylation will not cut this DNA. Must use dam- strains or in vitro amplified DNA.",
+            "source": "https://www.neb.com/en-us/tools-and-resources/feature-articles/restriction-endonucleases-molecular-cloning-and-beyond"
+          },
+          "dcm_methylation": {
+            "value_or_range": "Dcm methyltransferase methylates cytosine in CCWGG sequences. Enzymes blocked: EcoRII, some others partially affected",
+            "when": "DNA from dcm+ E. coli strains",
+            "why": "Less commonly problematic than dam methylation, but should be checked. Can be avoided by using dcm- strains like JM110.",
+            "source": "https://www.neb.com/en-us/tools-and-resources/feature-articles/restriction-endonucleases-molecular-cloning-and-beyond"
+          },
+          "cpg_methylation": {
+            "value_or_range": "CpG methylation blocks many restriction enzymes: HpaII (but not MspI), NotI, SalI, others",
+            "when": "Working with mammalian genomic DNA, which is heavily CpG methylated",
+            "why": "Mammalian genomes use CpG methylation for gene regulation. Many enzymes that recognize CpG-containing sites are blocked by this methylation. Use methylation-insensitive isoschizomers.",
+            "source": "https://www.neb.com/en-us/tools-and-resources/feature-articles/restriction-endonucleases-molecular-cloning-and-beyond"
+          }
+        },
+        "common_mistakes": [
+          "Attempting to cut dam-methylated DNA with BclI or ClaI without realizing these enzymes are dam-sensitive",
+          "Not checking the methylation sensitivity table in enzyme documentation",
+          "Assuming PCR products will have the same methylation as genomic DNA (PCR products are unmethylated)"
+        ]
+      }
+    },
+    "key_references": [
+      "https://www.neb.com/en-us/products/restriction-endonucleases/hf-nicking-master-mix-time-saver-other/high-fidelity-restriction-enzymes",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC2396408/",
+      "https://www.neb.com/en-us/tools-and-resources/usage-guidelines/double-digests",
+      "https://www.neb.com/en/tools-and-resources/selection-charts/compatible-cohesive-ends-and-generation-of-new-restriction-sites"
+    ],
+    "best_practice_notes": "Always use the NEB Double Digest Finder for planning double digests. Prefer HF enzyme versions when available. Keep glycerol <5% and use minimum enzyme needed. Check methylation sensitivity for your DNA source. Add 4-6 flanking bases when placing restriction sites at PCR primer ends for efficient cutting. Use NEBcutter (https://nc3.neb.com/NEBcutter/) to check for internal restriction sites in your insert."
+  },
+  "sequence_alignment": {
+    "description": "Multiple sequence alignment (MSA) of DNA or protein sequences to identify conserved regions, evolutionary relationships, and functional motifs. Choice of algorithm and parameters significantly affects alignment quality.",
+    "key_parameters": {
+      "algorithm_selection": {
+        "description": "Choice of MSA algorithm based on dataset size, sequence divergence, and accuracy requirements.",
+        "situations": {
+          "mafft_linsi_accurate": {
+            "value_or_range": "MAFFT L-INS-i (--localpair --maxiterate 1000)",
+            "when": "Fewer than 200 sequences; highest accuracy needed; sequences may have large internal indels or local homology only",
+            "why": "L-INS-i uses local pairwise alignment with iterative refinement and consistency scoring (COFFEE-like). Consistently the most accurate method in benchmarks (BAliBASE, SABmark, PREFAB). Incorporates local alignment information.",
+            "source": "https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html"
+          },
+          "mafft_fftns2_fast": {
+            "value_or_range": "MAFFT FFT-NS-2 (default mode)",
+            "when": "Large datasets (200-30,000 sequences); speed is important; sequences are reasonably similar",
+            "why": "Uses FFT-based homology detection with progressive alignment and one refinement iteration. Much faster than L-INS-i with only moderate accuracy reduction. Default mode in MAFFT.",
+            "source": "https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html"
+          },
+          "clustal_omega_large": {
+            "value_or_range": "Clustal Omega (default)",
+            "when": "Very large datasets (>2000 sequences); protein sequences with long terminal extensions",
+            "why": "Clustal Omega is optimized for large alignments using mBed guide tree and HHalign-based profile alignment. Most accurate program for very large alignments. Handles long N/C-terminal extensions better than MAFFT.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3261699/"
+          },
+          "mafft_ginsi_global": {
+            "value_or_range": "MAFFT G-INS-i (--globalpair --maxiterate 1000)",
+            "when": "Fewer than 200 sequences; sequences are similar in length and share homology across their full length",
+            "why": "Uses global pairwise alignment with iterative refinement. Better than L-INS-i when sequences share full-length homology without large insertions/deletions.",
+            "source": "https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html"
+          }
+        },
+        "common_mistakes": [
+          "Using L-INS-i on >500 sequences (extremely slow; will take hours to days)",
+          "Using Clustal Omega for sequences with large internal indels (it underperforms MAFFT L-INS-i in this case)",
+          "Using MUSCLE default for datasets >500 sequences (slower than MAFFT FFT-NS-2 with similar accuracy)"
+        ]
+      },
+      "gap_penalty": {
+        "description": "Penalties for introducing gaps in the alignment. Gap opening penalty (cost of starting a new gap) and gap extension penalty (cost of extending an existing gap).",
+        "situations": {
+          "mafft_default": {
+            "value_or_range": "Gap opening: 1.53 (--op 1.53); Gap extension (offset): 0.123 (--ep 0.123)",
+            "when": "Default parameters tuned on SABmark benchmark; good starting point for most alignments",
+            "why": "These values were optimized across multiple benchmarks (HOMSTRAD, PREFAB, BAliBASE) and provide the best general-purpose performance.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4909661/"
+          },
+          "closely_related_sequences": {
+            "value_or_range": "Lower gap opening penalty (e.g., --op 1.0); standard extension penalty",
+            "when": "Sequences are >80% identical (e.g., alleles of same gene, closely related species)",
+            "why": "Closely related sequences should have few gaps. Lower gap opening penalty allows the rare true indels to be captured without over-penalizing them.",
+            "source": "https://mafft.cbrc.jp/alignment/software/manual/manual.html"
+          },
+          "divergent_sequences": {
+            "value_or_range": "Higher gap opening penalty (e.g., --op 2.0-3.0); standard extension penalty",
+            "when": "Sequences are <40% identical (e.g., distant homologs from different phyla)",
+            "why": "Divergent sequences with low similarity may produce spurious gaps. Higher gap penalty prevents over-alignment of non-homologous regions.",
+            "source": "https://mafft.cbrc.jp/alignment/software/manual/manual.html"
+          },
+          "protein_vs_dna": {
+            "value_or_range": "Protein alignments typically use higher gap opening penalty relative to substitution scores than DNA alignments",
+            "when": "Choosing between protein and nucleotide alignment",
+            "why": "Protein sequence space is 20 amino acids vs 4 nucleotides; random matches are less likely in protein. Also, indels in coding regions must be multiples of 3 (codons), making them biologically constrained.",
+            "source": "https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-7-471"
+          }
+        },
+        "common_mistakes": [
+          "Using default gap penalties without considering sequence divergence level",
+          "Not distinguishing gap opening from gap extension penalties -- opening should always be higher",
+          "Aligning DNA when protein alignment would be more appropriate (for coding sequences, protein alignment preserves codon structure)"
+        ]
+      },
+      "alignment_trimming": {
+        "description": "Post-alignment removal of poorly aligned or gap-rich regions before phylogenetic or comparative analysis.",
+        "situations": {
+          "trimal_automated1": {
+            "value_or_range": "TrimAl -automated1",
+            "when": "Default automated trimming for phylogenetic analysis",
+            "why": "Automatically selects optimal trimming thresholds based on alignment characteristics. Outperformed Gblocks in 90% of benchmark scenarios. Rarely (<1.5%) worsened phylogenetic accuracy.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2712344/"
+          },
+          "trimal_gappyout": {
+            "value_or_range": "TrimAl -gappyout",
+            "when": "Conservative trimming; only removing the most gap-rich columns",
+            "why": "Sets gap threshold at the point of greatest change in proportion removed. Less aggressive than -strict or -automated1. Good when you want to retain more alignment data.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2712344/"
+          },
+          "gblocks_default_caution": {
+            "value_or_range": "Gblocks with default parameters -- USE WITH CAUTION",
+            "when": "Legacy analyses or when Gblocks is specifically required",
+            "why": "Gblocks default parameters are excessively aggressive, removing too many columns and reducing phylogenetic accuracy in 50% of cases. If using Gblocks, relax parameters (allow gaps, reduce minimum block length).",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4538881/"
+          },
+          "no_trimming": {
+            "value_or_range": "Use full untrimmed alignment",
+            "when": "Alignment is of high quality from closely related sequences; or when analyzing insertions/deletions themselves",
+            "why": "Automated filtering frequently worsens single-gene phylogenetic inference. If sequences are closely related and alignment is clean, trimming may remove informative positions.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4538881/"
+          }
+        },
+        "common_mistakes": [
+          "Using Gblocks with default parameters without checking how much alignment is removed",
+          "Trimming alignments of closely related sequences where gaps are informative",
+          "Not inspecting the trimmed alignment visually to ensure important regions are retained",
+          "Aggressive trimming of short alignments, leaving insufficient data for analysis"
+        ]
+      }
+    },
+    "key_references": [
+      "https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC4909661/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC2712344/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC4538881/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3261699/"
+    ],
+    "best_practice_notes": "For <200 sequences needing high accuracy, use MAFFT L-INS-i. For >200 sequences, use MAFFT FFT-NS-2 or Clustal Omega. Always visually inspect alignments before downstream analysis. For phylogenetics, use TrimAl -automated1 rather than Gblocks default. When aligning coding sequences, consider aligning at the protein level and back-translating to maintain codon structure (MACSE or pal2nal)."
+  },
+  "orf_finding": {
+    "description": "Identification of open reading frames (ORFs) in nucleotide sequences -- regions that could potentially encode proteins, bounded by start and stop codons. Critical for gene prediction, annotation, and functional analysis.",
+    "key_parameters": {
+      "minimum_orf_length": {
+        "description": "Minimum length threshold for reporting an ORF as potentially protein-coding.",
+        "situations": {
+          "standard_protein_coding": {
+            "value_or_range": "100 codons (300 nt)",
+            "when": "Default ORF finding for protein-coding gene prediction",
+            "why": "Most functional proteins are >100 amino acids. At 300 nt, the probability of an ORF occurring by chance in random sequence is low. This threshold balances sensitivity (finding real genes) and specificity (avoiding false positives).",
+            "source": "https://www.ncbi.nlm.nih.gov/orffinder/"
+          },
+          "small_orfs_smORFs": {
+            "value_or_range": "10-100 codons (30-300 nt)",
+            "when": "Searching for micropeptides, upstream ORFs (uORFs), or small regulatory peptides",
+            "why": "Thousands of functional small ORFs (smORFs) have been discovered encoding bioactive peptides. These are missed by standard 100-codon cutoffs. Ribosome profiling (Ribo-seq) has validated many smORFs.",
+            "source": "https://en.wikipedia.org/wiki/Open_reading_frame"
+          },
+          "bacterial_genomes": {
+            "value_or_range": "50-100 codons (150-300 nt); use in combination with RBS prediction",
+            "when": "Prokaryotic genome annotation",
+            "why": "Bacterial genomes are gene-dense (~87% coding). Smaller ORF cutoffs combined with Shine-Dalgarno sequence detection improve sensitivity for small genes. Tools like Prodigal/Glimmer integrate coding potential with RBS models.",
+            "source": "https://www.ncbi.nlm.nih.gov/orffinder/"
+          },
+          "viral_genomes": {
+            "value_or_range": "30-50 codons minimum; check all 6 reading frames",
+            "when": "Viral genome annotation, especially for overlapping genes",
+            "why": "Viral genomes are extremely compact with overlapping reading frames and small regulatory ORFs. Standard cutoffs miss many real viral genes.",
+            "source": "https://www.ncbi.nlm.nih.gov/orffinder/"
+          }
+        },
+        "common_mistakes": [
+          "Using 300 nt cutoff universally, missing genuine small protein-coding genes",
+          "Not considering all 6 reading frames (3 forward + 3 reverse) for double-stranded DNA",
+          "Reporting the longest ORF when multiple overlapping ORFs exist (some may be functional)"
+        ]
+      },
+      "start_codon_selection": {
+        "description": "Identifying the correct translation initiation codon within an ORF.",
+        "situations": {
+          "eukaryotic_standard": {
+            "value_or_range": "AUG in strong Kozak context: 5'-GCC(A/G)CCAUGG-3'",
+            "when": "Eukaryotic mRNA, standard gene prediction",
+            "why": "Eukaryotic ribosomes scan from the 5' cap and initiate at the first AUG in a favorable Kozak context. The purine (A/G) at position -3 and G at +4 are most critical. Strong Kozak context dramatically improves initiation efficiency.",
+            "source": "https://en.wikipedia.org/wiki/Kozak_consensus_sequence"
+          },
+          "eukaryotic_weak_context": {
+            "value_or_range": "First AUG may be skipped if in weak Kozak context (no purine at -3, no G at +4)",
+            "when": "Gene has multiple AUG codons near the 5' end; or upstream AUGs (uAUGs) present",
+            "why": "Ribosomes can 'leaky scan' past AUG codons in weak Kozak context and initiate at downstream AUGs. This is a regulatory mechanism for some genes. Predicting the correct start requires Kozak scoring.",
+            "source": "https://www.nature.com/articles/cr201025"
+          },
+          "prokaryotic_standard": {
+            "value_or_range": "AUG preceded by Shine-Dalgarno sequence (AGGAGG) 5-13 nt upstream",
+            "when": "Bacterial gene prediction",
+            "why": "Prokaryotic ribosomes are recruited directly to the Shine-Dalgarno sequence by base-pairing with the 3' end of 16S rRNA. The SD-to-AUG spacing of 5-13 nt (optimal 7-9 nt) is critical for initiation.",
+            "source": "https://en.wikipedia.org/wiki/Shine%E2%80%93Dalgarno_sequence"
+          },
+          "prokaryotic_non_aug": {
+            "value_or_range": "GUG (~14% of E. coli genes) and UUG (~3% of E. coli genes)",
+            "when": "Prokaryotic gene annotation, especially for genes with no AUG near the SD sequence",
+            "why": "GUG and UUG are well-established alternative start codons in bacteria. GUG initiates translation of ~14% of E. coli genes. These are decoded by the same initiator tRNA (fMet-tRNA).",
+            "source": "https://academic.oup.com/nar/article/45/7/3922/3038239"
+          },
+          "eukaryotic_non_aug": {
+            "value_or_range": "CUG (strongest non-AUG), GUG, UUG, ACG (all very low efficiency)",
+            "when": "Investigating upstream ORFs, regulatory elements, or disease-associated translation",
+            "why": "Non-AUG initiation is rare in eukaryotes but biologically significant. CUG is the most efficient non-AUG start codon. Misregulation of non-AUG initiation contributes to cancer and neurodegeneration.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5666671/"
+          }
+        },
+        "common_mistakes": [
+          "Assuming the first AUG is always the true start codon in eukaryotes (Kozak context matters)",
+          "Ignoring non-AUG start codons in prokaryotic annotation",
+          "Not considering upstream ORFs (uORFs) that may regulate downstream gene expression",
+          "Predicting eukaryotic start codons using prokaryotic rules (no SD sequence in eukaryotes)"
+        ]
+      },
+      "kozak_scoring": {
+        "description": "Evaluating the Kozak consensus sequence context around an AUG start codon to predict translation initiation efficiency.",
+        "situations": {
+          "strong_kozak": {
+            "value_or_range": "A/G at position -3 AND G at position +4: GCC(A/G)CCAUGG",
+            "when": "Efficient translation initiation expected",
+            "why": "Both the purine at -3 and G at +4 provide favorable interactions with the 40S ribosomal subunit. >95% of highly expressed genes have strong Kozak context.",
+            "source": "https://en.wikipedia.org/wiki/Kozak_consensus_sequence"
+          },
+          "adequate_kozak": {
+            "value_or_range": "A/G at position -3 OR G at position +4 (but not both)",
+            "when": "Moderate translation initiation; may allow some leaky scanning",
+            "why": "Having only one of the two critical positions allows reasonable but not maximal initiation efficiency. Some ribosomes may scan past.",
+            "source": "https://en.wikipedia.org/wiki/Kozak_consensus_sequence"
+          },
+          "weak_kozak": {
+            "value_or_range": "Neither A/G at -3 nor G at +4",
+            "when": "Leaky scanning likely; downstream AUGs may be used instead",
+            "why": "Weak context at the first AUG often indicates regulatory function (e.g., uORFs that attenuate translation of the main ORF) or alternative protein isoforms.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10570039/"
+          }
+        },
+        "common_mistakes": [
+          "Only checking position -3 without also checking position +4",
+          "Applying Kozak scoring to prokaryotic sequences (Kozak is eukaryote-specific)",
+          "Not considering the full Kozak context when designing expression constructs"
+        ]
+      }
+    },
+    "key_references": [
+      "https://www.ncbi.nlm.nih.gov/orffinder/",
+      "https://en.wikipedia.org/wiki/Kozak_consensus_sequence",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC5666671/",
+      "https://en.wikipedia.org/wiki/Shine%E2%80%93Dalgarno_sequence",
+      "https://www.nature.com/articles/cr201025"
+    ],
+    "best_practice_notes": "Always search all 6 reading frames. Use domain-appropriate tools: NCBI ORFfinder for general use, Prodigal for prokaryotic genomes, Augustus or GeneMark for eukaryotic genomes. Consider Kozak scoring for eukaryotic start codon selection. For prokaryotes, integrate Shine-Dalgarno detection with ORF finding. Lower the minimum ORF length cutoff when searching for smORFs or in viral genomes."
+  },
+  "blast_sequence_search": {
+    "description": "Basic Local Alignment Search Tool (BLAST) for finding regions of similarity between biological sequences. Used for homology detection, gene annotation, and evolutionary analysis.",
+    "key_parameters": {
+      "e_value_threshold": {
+        "description": "Expected number of chance alignments with a score equal to or better than the observed score, given the database size.",
+        "situations": {
+          "confident_homology": {
+            "value_or_range": "E < 1e-50",
+            "when": "Identifying clear orthologs or very close homologs",
+            "why": "Extremely low E-values indicate the alignment is astronomically unlikely to occur by chance. These represent confident homology assignments suitable for annotation transfer.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          },
+          "probable_homology": {
+            "value_or_range": "E < 1e-10",
+            "when": "Finding homologs including moderately distant relatives",
+            "why": "Standard threshold for functional annotation transfer. Still very unlikely to be a false positive, but captures more distant relationships.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          },
+          "potential_homology": {
+            "value_or_range": "E < 0.01",
+            "when": "Exploring possible distant homology; iterative searches (PSI-BLAST)",
+            "why": "At this threshold, ~1% of hits may be false positives. Useful for discovering remote homologs but requires manual validation of each hit.",
+            "source": "https://academic.oup.com/bioinformatics/article/35/15/2697/5239655"
+          },
+          "likely_random": {
+            "value_or_range": "E > 1",
+            "when": "Hits above this threshold are probably not homologous",
+            "why": "An E-value of 1 means you expect to see one match of this quality by chance alone. These hits should generally be discarded unless there is independent supporting evidence.",
+            "source": "https://sequenceserver.com/blog/blast-e-value-meaning/"
+          },
+          "database_size_effect": {
+            "value_or_range": "E-value scales linearly with database size",
+            "when": "Comparing results from different databases or over time as databases grow",
+            "why": "The same alignment score will produce a higher (worse) E-value when searched against a larger database. An E-value of 1e-5 against SwissProt (~500K sequences) would be ~1e-3 against nr (~500M sequences).",
+            "source": "https://academic.oup.com/bioinformatics/article/40/12/btae729/7916501"
+          }
+        },
+        "common_mistakes": [
+          "Using a fixed E-value threshold without considering database size",
+          "Confusing E-value with p-value (they are related but not identical)",
+          "Treating E-value as a measure of alignment quality rather than statistical significance",
+          "Not adjusting E-value threshold when using composition-based statistics"
+        ]
+      },
+      "word_size": {
+        "description": "Length of the initial exact match (seed) required to start a BLAST alignment extension.",
+        "situations": {
+          "blastn_default": {
+            "value_or_range": "11",
+            "when": "Standard nucleotide BLAST searching for moderate to high similarity",
+            "why": "Default for blastn. Balances sensitivity and speed for most nucleotide searches. Finds alignments with ~80%+ identity.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          },
+          "megablast": {
+            "value_or_range": "28",
+            "when": "Searching for very similar sequences (>95% identity); species identification; large database searches",
+            "why": "Much faster than blastn with word size 11, but only finds very similar sequences. Default for megablast. Appropriate for finding same-species matches or near-identical sequences.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          },
+          "sensitive_blastn": {
+            "value_or_range": "7",
+            "when": "Searching for distantly related nucleotide sequences (<70% identity); short query sequences",
+            "why": "Shorter word size increases sensitivity at the cost of speed. Necessary for finding divergent homologs in nucleotide space where mismatches are common.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          },
+          "blastp_default": {
+            "value_or_range": "3 (for standard blastp); 6 (for blastp-fast)",
+            "when": "Protein sequence search",
+            "why": "Short word size of 3 for protein sequences reflects the 20-letter amino acid alphabet (vs 4 for nucleotides), requiring shorter exact matches for equivalent sensitivity.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          }
+        },
+        "common_mistakes": [
+          "Using megablast (word size 28) when searching for inter-species homologs -- this will miss them",
+          "Using blastn word size 7 on large databases without realizing the massive speed penalty",
+          "Not adjusting word size for short query sequences (short queries need smaller word sizes)"
+        ]
+      },
+      "scoring_matrix": {
+        "description": "Substitution matrix defining the score for each pair of amino acids in protein BLAST alignments.",
+        "situations": {
+          "blosum62_default": {
+            "value_or_range": "BLOSUM62",
+            "when": "Default for most protein BLAST searches; sequences of unknown divergence",
+            "why": "BLOSUM62 is derived from alignments of sequences sharing up to 62% identity. Experimentally shown to be the best general-purpose matrix across diverse benchmarks.",
+            "source": "https://en.wikipedia.org/wiki/BLOSUM"
+          },
+          "closely_related_blosum80": {
+            "value_or_range": "BLOSUM80",
+            "when": "Searching for closely related proteins (>60% expected identity)",
+            "why": "Higher BLOSUM numbers are based on more closely related sequences. BLOSUM80 penalizes mismatches more heavily, providing better discrimination among closely related sequences.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          },
+          "distantly_related_blosum45": {
+            "value_or_range": "BLOSUM45 or PAM250",
+            "when": "Searching for distantly related proteins (<30% expected identity); twilight zone",
+            "why": "Lower BLOSUM numbers (or higher PAM numbers) are more tolerant of substitutions, allowing detection of distant homology. BLOSUM45 corresponds to sequences aligned at up to 45% identity, better reflecting distant evolutionary relationships.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          },
+          "pam250_distant": {
+            "value_or_range": "PAM250",
+            "when": "Very distant homology detection; protein families with ancient divergence",
+            "why": "PAM matrices model evolutionary distance explicitly. PAM250 represents 250 point mutations per 100 residues. Better for very distant relationships than BLOSUM45 in some cases.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          }
+        },
+        "common_mistakes": [
+          "Using BLOSUM62 for all searches without considering sequence divergence",
+          "Confusing BLOSUM and PAM numbering (higher BLOSUM = closer sequences; higher PAM = more distant sequences)",
+          "Using protein matrices for nucleotide searches (nucleotide BLAST uses match/mismatch scores, not substitution matrices)"
+        ]
+      },
+      "database_selection": {
+        "description": "Choice of sequence database to search, balancing comprehensiveness, quality, and computational cost.",
+        "situations": {
+          "nr_comprehensive": {
+            "value_or_range": "nr (non-redundant protein) or nt (nucleotide collection)",
+            "when": "Comprehensive search to find any homolog in any organism",
+            "why": "Largest curated non-redundant database including GenBank CDS translations, PDB, SwissProt, PIR, PRF. Captures the broadest diversity but is very large (>500M protein sequences).",
+            "source": "https://www.nlm.nih.gov/ncbi/workshops/2023-08_BLAST_evol/databases.html"
+          },
+          "swissprot_curated": {
+            "value_or_range": "SwissProt (UniProtKB/Swiss-Prot)",
+            "when": "High-confidence functional annotation; well-characterized proteins only",
+            "why": "Manually curated by protein experts. ~570K entries with experimentally validated annotations. Much smaller than nr, so searches are fast and results are high quality. Best for initial functional characterization.",
+            "source": "https://www.uniprot.org/blast"
+          },
+          "refseq_curated_representative": {
+            "value_or_range": "RefSeq protein or RefSeq Select",
+            "when": "One representative sequence per gene per organism; reference-quality sequences",
+            "why": "NCBI-curated representative sequences. Less redundant than nr, more comprehensive than SwissProt. Good balance of coverage and quality.",
+            "source": "https://www.nlm.nih.gov/ncbi/workshops/2023-08_BLAST_evol/databases.html"
+          },
+          "organism_specific": {
+            "value_or_range": "RefSeq for specific organism or organism-specific databases",
+            "when": "Searching for homologs in a specific species or taxonomic group",
+            "why": "Organism-specific searches are much faster and produce cleaner results. Use NCBI's organism filter or dedicated databases (e.g., FlyBase, WormBase).",
+            "source": "https://www.biostars.org/p/55068/"
+          },
+          "clustered_nr": {
+            "value_or_range": "ClusteredNR (90% identity clusters)",
+            "when": "Large-scale searches where nr is too large; finding diverse homologs",
+            "why": "Reduces database redundancy by clustering sequences at 90% identity. Provides access to more distant matches by reducing over-representation of closely related sequences (e.g., mammalian proteins).",
+            "source": "https://www.nlm.nih.gov/ncbi/workshops/2023-08_BLAST_evol/databases.html"
+          }
+        },
+        "common_mistakes": [
+          "Always using nr when SwissProt or RefSeq would give better, faster results",
+          "Not filtering by organism when searching for species-specific homologs",
+          "Interpreting nr results without considering redundancy (same protein from many strains inflates apparent conservation)"
+        ]
+      },
+      "low_complexity_filtering": {
+        "description": "Masking of compositionally biased or repetitive regions in the query sequence to prevent spurious alignments.",
+        "situations": {
+          "standard_filtering_on": {
+            "value_or_range": "SEG filter for protein (default ON); DUST filter for nucleotide (default ON)",
+            "when": "Standard BLAST searches with typical-length queries",
+            "why": "Low-complexity regions (e.g., poly-A tracts, proline-rich regions, simple repeats) cause artifactual high-scoring alignments that are not biologically meaningful. Filtering prevents these false positives.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          },
+          "disable_for_short_queries": {
+            "value_or_range": "Turn off filtering (-seg no for protein; -dust no for nucleotide)",
+            "when": "Short query sequences (<50 nt/aa) that are largely or entirely low-complexity",
+            "why": "Filtering may mask most or all of a short query, leaving too little sequence for meaningful alignment. If the query is entirely low-complexity, filtering will produce no results.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-help/FAQ.html"
+          },
+          "soft_masking": {
+            "value_or_range": "Use soft masking (-soft_masking true) instead of hard masking",
+            "when": "Want to prevent seeding in low-complexity regions but allow extension through them",
+            "why": "Soft masking prevents initial word matches in masked regions but allows alignment extensions to include them. Better sensitivity than hard masking with most of the specificity benefit.",
+            "source": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html"
+          }
+        },
+        "common_mistakes": [
+          "Getting no BLAST results because the entire short query was masked by low-complexity filter",
+          "Disabling filtering on a query with large repetitive regions, getting thousands of spurious hits",
+          "Not understanding why BLAST found no hits when the sequence clearly has homologs (answer: usually filtering)"
+        ]
+      }
+    },
+    "key_references": [
+      "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/blastsearchparams.html",
+      "https://academic.oup.com/bioinformatics/article/35/15/2697/5239655",
+      "https://academic.oup.com/bioinformatics/article/40/12/btae729/7916501",
+      "https://sequenceserver.com/blog/blast-e-value-meaning/"
+    ],
+    "best_practice_notes": "Start with default parameters (BLOSUM62, word size 3 for protein / 11 for nucleotide, E-value 10). Use SwissProt for initial high-confidence annotation, then nr for comprehensive searches. For distant homology, use PSI-BLAST or reduce word size and use BLOSUM45/PAM250. Always consider database size when interpreting E-values. Use composition-based statistics for improved E-value accuracy. For short sequences (<30 nt), consider using blastn-short with adjusted word size and E-value."
+  },
+  "plasmid_annotation": {
+    "description": "Identification and labeling of functional genetic elements on engineered plasmid DNA sequences, including origins of replication, selection markers, promoters, terminators, and other regulatory elements.",
+    "key_parameters": {
+      "essential_features": {
+        "description": "Core genetic elements that must be annotated on any plasmid map.",
+        "situations": {
+          "minimal_annotation": {
+            "value_or_range": "Origin of replication, antibiotic resistance gene, promoter, multiple cloning site (MCS) or assembly site, terminator",
+            "when": "Basic plasmid annotation for lab records",
+            "why": "These 5 elements define the minimal functional plasmid: origin for maintenance, resistance for selection, promoter for expression, MCS for cloning, terminator for proper mRNA processing.",
+            "source": "https://blog.addgene.org/plasmid-101-origin-of-replication"
+          },
+          "comprehensive_annotation": {
+            "value_or_range": "All minimal features plus: primer binding sites, regulatory elements (RBS/Kozak, enhancers, operators), reporter genes, fusion tags, protease cleavage sites, localization signals, loxP/FRT sites, insulator sequences, and partial/cryptic features",
+            "when": "Detailed annotation for publication or shared plasmid repositories",
+            "why": "Comprehensive annotation prevents misuse, identifies potential interference from cryptic features, and enables reproducibility. pLannotate specifically identifies partial feature fragments that may affect function.",
+            "source": "https://doi.org/10.1093/nar/gkab374"
+          }
+        },
+        "common_mistakes": [
+          "Not annotating partial or cryptic features (e.g., remnant promoter fragments that may drive unintended transcription)",
+          "Mislabeling the origin of replication (e.g., calling a pMB1 origin 'ColE1' when they have different copy numbers)",
+          "Not annotating restriction sites in the MCS"
+        ]
+      },
+      "origin_compatibility_groups": {
+        "description": "Classification of plasmid origins of replication into compatibility groups that determine which plasmids can coexist in the same cell.",
+        "situations": {
+          "pbr322_pmb1_group": {
+            "value_or_range": "pMB1 origin (pBR322): ~15-20 copies; pUC origin (mutant pMB1, no rop): ~500-700 copies",
+            "when": "Standard E. coli expression vectors (pET, pBAD, pTrc) or high-copy cloning vectors (pUC19, pBluescript)",
+            "why": "pBR322/pMB1 is the most widely used origin. The rop gene (present in pBR322, deleted in pUC) regulates copy number by stabilizing RNAI-RNAII interaction. Copy number directly affects protein expression level and plasmid yield.",
+            "source": "https://blog.addgene.org/plasmid-101-origin-of-replication"
+          },
+          "cole1_group": {
+            "value_or_range": "ColE1 origin: ~15-20 copies. INCOMPATIBLE with pMB1/pBR322 (same incompatibility group)",
+            "when": "Be aware that ColE1 and pMB1 are in the same incompatibility group despite different names",
+            "why": "ColE1 and pMB1 share sufficient RNAI/RNAII homology to compete for replication control, making them incompatible. This is a common source of confusion.",
+            "source": "https://blog.addgene.org/plasmid-101-origin-of-replication"
+          },
+          "p15a_group": {
+            "value_or_range": "p15A origin: ~10-12 copies. COMPATIBLE with pMB1/ColE1",
+            "when": "Co-maintaining two plasmids: use p15A vector (e.g., pACYC184, pBAD33) alongside pMB1/pUC vector",
+            "why": "p15A has distinct RNAII sequence from pMB1/ColE1, placing it in a different incompatibility group. Most common partner for dual-plasmid systems.",
+            "source": "https://blog.addgene.org/plasmid-101-origin-of-replication"
+          },
+          "psc101_group": {
+            "value_or_range": "pSC101 origin: ~5 copies. COMPATIBLE with both pMB1 and p15A",
+            "when": "Triple-plasmid systems or when low copy number is desired for toxic genes",
+            "why": "pSC101 uses a completely different replication mechanism (requires RepA protein). Low copy number reduces metabolic burden and is preferred for toxic gene products.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2435062/"
+          },
+          "common_triple_plasmid": {
+            "value_or_range": "pMB1/ColE1 + p15A + pSC101",
+            "when": "Co-expressing 3 different constructs in the same cell (e.g., metabolic engineering, CRISPR systems)",
+            "why": "These three origins are mutually compatible (different incompatibility groups). Each requires a different antibiotic resistance marker for selection.",
+            "source": "https://blog.addgene.org/plasmid-101-origin-of-replication"
+          }
+        },
+        "common_mistakes": [
+          "Trying to maintain two plasmids with pMB1 and ColE1 origins in the same cell (they are incompatible!)",
+          "Not realizing pUC and pBR322 origins are both derived from pMB1 (incompatible with each other)",
+          "Forgetting that each co-maintained plasmid needs a different antibiotic resistance marker"
+        ]
+      },
+      "annotation_tools": {
+        "description": "Software tools for automated plasmid annotation.",
+        "situations": {
+          "plannotate_free": {
+            "value_or_range": "pLannotate (http://plannotate.barricklab.org/)",
+            "when": "Free, automated annotation; identifying partial/cryptic features; non-commercial use",
+            "why": "Open source web server with expanded database (13,240 unique features from Addgene + SwissProt). Uniquely identifies partial feature fragments. Filters ambiguous matches. More comprehensive than SnapGene for gene identification via SwissProt matching.",
+            "source": "https://doi.org/10.1093/nar/gkab374"
+          },
+          "snapgene_commercial": {
+            "value_or_range": "SnapGene (commercial)",
+            "when": "Routine lab work; need integrated cloning simulation; prefer GUI",
+            "why": "User-friendly interface with detailed visualizations. Integrated cloning design (restriction digest, Gibson, Golden Gate simulation). Automatic feature detection with curated database. Industry standard for plasmid work.",
+            "source": "https://onebrowsing.com/compare/benchling-vs-snapgene/"
+          },
+          "benchling_collaborative": {
+            "value_or_range": "Benchling (free for academia; commercial for industry)",
+            "when": "Team collaboration; cloud-based access; integration with lab management",
+            "why": "Cloud platform integrating sequence design, annotation, inventory management, and electronic lab notebook. Best for teams. Auto-annotation with community-curated features. Free for academic use.",
+            "source": "https://onebrowsing.com/compare/benchling-vs-snapgene/"
+          },
+          "plasmapper_free": {
+            "value_or_range": "PlasMapper 3.0 (http://wishart.biology.ualberta.ca/PlasMapper/)",
+            "when": "Generating publication-quality circular plasmid maps",
+            "why": "Free web tool specifically for generating, editing, and visualizing plasmid maps. Good for publication figures.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10320132/"
+          }
+        },
+        "common_mistakes": [
+          "Relying solely on automated annotation without manual review",
+          "Not checking for partial/cryptic features that may affect plasmid behavior",
+          "Using outdated feature databases that miss recently characterized elements"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1093/nar/gkab374",
+      "https://blog.addgene.org/plasmid-101-origin-of-replication",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC2435062/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC10320132/"
+    ],
+    "best_practice_notes": "Always annotate the origin of replication, resistance marker, and all regulatory elements. Verify origin compatibility before co-transforming multiple plasmids. Use pLannotate for comprehensive automated annotation including cryptic features. Confirm annotations by checking against Addgene's plasmid database when available. When designing multi-plasmid systems, choose origins from different incompatibility groups (pMB1 + p15A is the most common dual-plasmid combination)."
+  },
+  "mutation_detection": {
+    "description": "Detection and characterization of sequence mutations (SNPs, insertions, deletions) by comparing a sample sequence against a reference, typically from Sanger sequencing chromatograms.",
+    "key_parameters": {
+      "quality_threshold": {
+        "description": "Minimum Phred quality score for reliable base calling and mutation detection from sequencing chromatograms.",
+        "situations": {
+          "confident_base_call": {
+            "value_or_range": "Phred Q30 or higher (99.9% accuracy, 1 error per 1000 bases)",
+            "when": "Confirming mutations for publication, clinical diagnostics, or critical experiments",
+            "why": "Q30 is the gold standard benchmark where virtually all base calls are correct. At Q30, the probability of a miscall is 0.1%, making false positive mutations extremely unlikely.",
+            "source": "https://en.wikipedia.org/wiki/Phred_quality_score"
+          },
+          "acceptable_base_call": {
+            "value_or_range": "Phred Q20 or higher (99% accuracy, 1 error per 100 bases)",
+            "when": "Standard Sanger sequencing analysis; routine clone verification",
+            "why": "Q20 is the typical threshold for reliable Sanger reads. Sanger sequencing generally produces ~99.4% base call accuracy (Q22-Q23). Below Q20, error rate becomes significant (>1%).",
+            "source": "https://eurofinsgenomics.eu/en/eurofins-genomics/product-faqs/sanger-sequencing/technical-questions/what-are-q20-q30-q40-bases/"
+          },
+          "marginal_quality": {
+            "value_or_range": "Phred Q15-Q20 (96.8-99% accuracy)",
+            "when": "Sequences at the beginning or end of reads; difficult templates",
+            "why": "Quality drops at read termini. Mutations detected in Q15-Q20 regions should be confirmed by sequencing in the opposite direction or with a different primer.",
+            "source": "https://en.wikipedia.org/wiki/Phred_quality_score"
+          }
+        },
+        "common_mistakes": [
+          "Calling mutations from low-quality regions (Q<20) without confirmation from the reverse read",
+          "Not trimming low-quality ends before mutation analysis",
+          "Accepting base calls near the sequencing primer (first 30-50 bases often have mixed peaks from primer)"
+        ]
+      },
+      "heterozygosity_detection": {
+        "description": "Identifying positions where two different bases are present (heterozygous SNPs or mixed populations).",
+        "situations": {
+          "genuine_heterozygous": {
+            "value_or_range": "Two peaks at same baseline position, approximately equal height (1:1 ratio); secondary peak >25% of primary peak height",
+            "when": "Diploid organisms, heterozygous mutations, or mixed bacterial populations",
+            "why": "True heterozygous peaks arise from equal representation of two alleles. Both peaks are aligned at the same position. The 1:1 ratio distinguishes them from sequencing artifacts.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10643650/"
+          },
+          "background_noise": {
+            "value_or_range": "Secondary peaks <5% of primary peak intensity",
+            "when": "Normal background noise in high-quality Sanger traces",
+            "why": "Minor peaks due to background noise should on average be less than 5% of the major peak intensity. Peaks below this threshold are not meaningful.",
+            "source": "https://www.acgs.uk.com/media/10788/acgs_sanger_sequencing_bpg_update_2016.pdf"
+          },
+          "low_frequency_variant": {
+            "value_or_range": "Secondary peak 5-25% of primary peak; requires specialized software for detection",
+            "when": "Somatic mutations, heteroplasmy, mixed bacterial cultures",
+            "why": "Variants present at <25% frequency are difficult to detect by visual inspection. Software like Mutation Surveyor, CodonCode Aligner, or Poly Phred can detect variants at 10-20% allele frequency.",
+            "source": "https://biomedres.us/fulltexts/BJSTR.MS.ID.006715.php"
+          }
+        },
+        "common_mistakes": [
+          "Confusing dye blob artifacts (appear as broad, misshapen peaks) with real heterozygous variants",
+          "Not distinguishing genuine heterozygous peaks (aligned at baseline) from stutter peaks (shifted in position)",
+          "Calling heterozygosity from a single sequencing direction without confirming on the reverse read",
+          "Not accounting for polymerase errors when sequencing PCR products (error rate ~1/10,000 for Taq; ~1/1,000,000 for Q5)"
+        ]
+      },
+      "reference_sequence": {
+        "description": "Selection and quality of the reference sequence used for mutation detection.",
+        "situations": {
+          "exact_match_reference": {
+            "value_or_range": "Use the exact plasmid/construct sequence from which the sample was derived",
+            "when": "Verifying engineered constructs, confirming mutagenesis, clone verification",
+            "why": "Using the exact reference eliminates false positives from natural polymorphisms. Any deviation from the reference is a true mutation or sequencing error.",
+            "source": "https://www.codoncode.com/aligner/mutation-detection.htm"
+          },
+          "genome_reference": {
+            "value_or_range": "Use the most recent genome assembly for the organism/strain being studied",
+            "when": "Detecting mutations in genomic DNA",
+            "why": "Genome assemblies may contain errors or represent a different strain. Using an outdated or wrong-strain reference will produce false positive 'mutations'. Check assembly version and strain.",
+            "source": "https://www.codoncode.com/aligner/mutation-detection.htm"
+          },
+          "consensus_reference": {
+            "value_or_range": "Build a consensus from multiple sequences when no single reference exists",
+            "when": "Working with non-model organisms, field isolates, or highly variable regions",
+            "why": "When no definitive reference exists, a consensus from multiple sequences provides a neutral reference. Reduces bias toward any single sequence.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10643650/"
+          }
+        },
+        "common_mistakes": [
+          "Using a reference from a different strain or species, creating false positive variants",
+          "Not updating reference to match the actual construct (e.g., after cloning, silent mutations may have been introduced)",
+          "Using a reference that itself contains errors from an old sequencing run"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC10643650/",
+      "https://www.acgs.uk.com/media/10788/acgs_sanger_sequencing_bpg_update_2016.pdf",
+      "https://biomedres.us/fulltexts/BJSTR.MS.ID.006715.php",
+      "https://en.wikipedia.org/wiki/Phred_quality_score"
+    ],
+    "best_practice_notes": "Always sequence in both directions (forward and reverse) and confirm mutations are present in both reads. Use Q20 as minimum threshold for base calling; Q30 for publication-quality data. For heterozygosity, require secondary peak >25% of primary and confirmation on reverse read. Trim low-quality ends (typically first 30-50 bases and last 50-100 bases). Use the exact construct sequence as reference when verifying clones. Consider PCR polymerase error rate when analyzing PCR-amplified templates."
+  },
+  "codon_optimization": {
+    "description": "Modification of synonymous codons in a gene sequence to improve protein expression in a heterologous host, while maintaining the same amino acid sequence. Balances translation efficiency, mRNA stability, and protein folding.",
+    "key_parameters": {
+      "codon_adaptation_index_cai": {
+        "description": "Quantitative measure of how well the codons in a gene match the preferred codon usage of the host organism. Ranges from 0 (poor adaptation) to 1 (perfect adaptation).",
+        "situations": {
+          "high_expression_target": {
+            "value_or_range": "CAI > 0.8",
+            "when": "Maximizing protein yield in the expression host",
+            "why": "CAI >0.8 indicates strong adaptation to host codon preferences, correlating with high translation elongation rates. Highly expressed endogenous genes typically have CAI 0.7-0.9.",
+            "source": "https://en.wikipedia.org/wiki/Codon_Adaptation_Index"
+          },
+          "moderate_expression": {
+            "value_or_range": "CAI 0.5-0.8",
+            "when": "Standard recombinant expression; balanced expression level needed",
+            "why": "Moderate CAI avoids the pitfalls of over-optimization (see below) while still providing adequate translation efficiency. Some synonymous codon variation is retained.",
+            "source": "https://www.biologicscorp.com/tools/CAICalculator/"
+          },
+          "reference_set_selection": {
+            "value_or_range": "Use highly expressed genes from the target organism as the reference set (ribosomal proteins, elongation factors, glycolytic enzymes)",
+            "when": "Calculating CAI for any optimization project",
+            "why": "CAI is calculated relative to a reference set. Using all genes gives average codon usage; using highly expressed genes gives the codon preferences that correlate with high expression. The reference set dramatically affects the CAI value.",
+            "source": "https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-9-65"
+          }
+        },
+        "common_mistakes": [
+          "Comparing CAI values calculated with different reference sets",
+          "Assuming CAI alone predicts expression level (mRNA structure, promoter, RBS also matter greatly)",
+          "Using all genes as reference set instead of highly expressed genes"
+        ]
+      },
+      "rare_codons_ecoli": {
+        "description": "Codons with low tRNA abundance in E. coli that can cause translational pausing, frameshifting, or premature termination.",
+        "situations": {
+          "codons_to_avoid_ecoli": {
+            "value_or_range": "AGG (Arg, 1.2/1000), AGA (Arg, 2.1/1000), CGA (Arg, 3.1/1000), CUA (Leu, 3.2/1000), AUA (Ile, 4.1/1000), CCC (Pro, 4.3/1000)",
+            "when": "Expressing heterologous genes (especially eukaryotic) in E. coli",
+            "why": "These codons correspond to low-abundance tRNAs. Ribosomes pause at these codons waiting for rare tRNAs. Consecutive rare codons (especially AGG-AGA tandem) can cause -1 frameshifting and premature termination.",
+            "source": "https://www.pnas.org/doi/10.1073/pnas.1605856113"
+          },
+          "replace_with_preferred": {
+            "value_or_range": "Replace rare Arg codons with CGU or CGC; replace rare Leu CUA with CUG; replace rare Ile AUA with AUC",
+            "when": "Codon optimizing for E. coli expression",
+            "why": "CGU is the most abundant Arg codon in E. coli. CUG is the preferred Leu codon. AUC is the preferred Ile codon. These replacements match the most abundant tRNA species.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5361128/"
+          },
+          "use_rosetta_strains": {
+            "value_or_range": "BL21(DE3)-Rosetta or Rosetta2 strains supply 6 rare tRNAs: argU (AGA/AGG), argX (CGG), glyT (GGA), ileX (AUA), leuW (CUA), proL (CCC)",
+            "when": "Cannot codon-optimize the gene (e.g., need to maintain regulatory sequences) or want to express the native sequence",
+            "why": "Rosetta strains carry a plasmid with extra copies of 6 rare tRNA genes. This supplements the limited tRNA pools rather than changing the codons. Simpler than codon optimization but adds another plasmid.",
+            "source": "https://pubs.acs.org/doi/10.1021/acssynbio.8b00332"
+          }
+        },
+        "common_mistakes": [
+          "Having clusters of 2+ consecutive rare codons (tandem rare codons are much worse than isolated ones)",
+          "Not checking for rare codon clusters at the N-terminus where they cause the most damage to expression",
+          "Replacing all rare codons uniformly without considering that some strategic rare codons aid protein folding"
+        ]
+      },
+      "when_not_to_optimize": {
+        "description": "Situations where full codon optimization is counterproductive and may reduce functional protein yield.",
+        "situations": {
+          "co_translational_folding": {
+            "value_or_range": "Retain non-optimal codons in regions encoding structural domain boundaries and linkers",
+            "when": "Expressing multi-domain proteins or proteins known to require co-translational folding",
+            "why": "Non-optimal codons cause ribosome pausing that gives nascent polypeptide chains time to fold correctly. Codon-optimized luciferase mRNA produced more total protein but a large proportion was non-functional due to misfolding. Rare codons downstream of structural domain boundaries are evolutionarily conserved.",
+            "source": "https://www.nature.com/articles/nsmb.2466"
+          },
+          "mrna_structure_near_start": {
+            "value_or_range": "Avoid strong mRNA secondary structure in the first 30-50 codons; sometimes non-optimal codons produce less stable structures that improve translation initiation",
+            "when": "mRNA folding near the 5' end could occlude the RBS or start codon",
+            "why": "Stable RNA secondary structures near the start codon require more energy to unfold, reducing translation initiation efficiency. Paradoxically, non-optimal codons can decrease mRNA folding energy and increase translation in this region.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6594389/"
+          },
+          "disulfide_bonds": {
+            "value_or_range": "Consider retaining rare codons near cysteine residues involved in disulfide bonds",
+            "when": "Expressing proteins with critical disulfide bonds (e.g., antibodies, toxins)",
+            "why": "Translational pausing near cysteines can allow time for correct disulfide bond formation. Full optimization removes these pauses and may result in incorrect disulfide pairing.",
+            "source": "https://www.nature.com/articles/s41598-019-51984-2"
+          },
+          "tradeoff_stability_vs_expression": {
+            "value_or_range": "CAI and mRNA stability (MFE) cannot be simultaneously maximized",
+            "when": "Designing optimized sequences; choosing between translation speed and mRNA half-life",
+            "why": "Codons preferred for translation efficiency may form less stable mRNA structures. Conversely, codons that stabilize mRNA may slow translation. A balanced approach targeting CAI 0.7-0.85 often outperforms maximum optimization.",
+            "source": "https://www.frontiersin.org/journals/bioengineering-and-biotechnology/articles/10.3389/fbioe.2024.1371596/full"
+          }
+        },
+        "common_mistakes": [
+          "Uniformly maximizing CAI to 1.0 across the entire gene, disrupting co-translational folding",
+          "Ignoring mRNA secondary structure effects of synonymous changes, especially near the 5' end",
+          "Not considering that the 'best' codon for each amino acid depends on context (neighboring codons affect tRNA availability)",
+          "Assuming codon optimization always increases expression (it can decrease functional protein yield)"
+        ]
+      },
+      "optimization_tools": {
+        "description": "Software tools for codon optimization and analysis.",
+        "situations": {
+          "genscript_rare_codon_analysis": {
+            "value_or_range": "GenScript Rare Codon Analysis Tool (https://www.genscript.com/tools/rare-codon-analysis)",
+            "when": "Evaluating a gene for rare codon content before and after optimization",
+            "why": "Free tool that calculates CAI, GC content, codon frequency distribution (CFD), and identifies rare codon clusters. Visual output shows problematic regions.",
+            "source": "https://www.genscript.com/tools/rare-codon-analysis"
+          },
+          "idt_codon_optimization": {
+            "value_or_range": "IDT Codon Optimization Tool (integrated with gBlocks ordering)",
+            "when": "Ordering synthetic gene fragments from IDT",
+            "why": "Optimizes for IDT synthesis constraints while maximizing expression in the target host. Considers GC content, repeat avoidance, and restriction site removal.",
+            "source": "https://www.idtdna.com/pages/tools"
+          },
+          "jcat": {
+            "value_or_range": "JCat (Java Codon Adaptation Tool, http://www.jcat.de/)",
+            "when": "Codon optimization with options to avoid specific features (restriction sites, rho-independent terminators)",
+            "why": "Allows optimization while avoiding unwanted sequence elements. Supports many organisms. Free online tool.",
+            "source": "https://www.biologicscorp.com/tools/CAICalculator/"
+          }
+        },
+        "common_mistakes": [
+          "Not verifying that optimization did not introduce unwanted restriction sites, splice sites, or internal promoters",
+          "Using optimization tools from gene synthesis companies without verifying the optimization strategy",
+          "Not checking for homopolymer runs (>5 identical bases) that can cause synthesis failure or sequencing errors"
+        ]
+      }
+    },
+    "key_references": [
+      "https://www.nature.com/articles/nsmb.2466",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6594389/",
+      "https://www.pnas.org/doi/10.1073/pnas.1605856113",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC5361128/",
+      "https://www.frontiersin.org/journals/bioengineering-and-biotechnology/articles/10.3389/fbioe.2024.1371596/full"
+    ],
+    "best_practice_notes": "Calculate CAI using highly expressed genes as the reference set. Target CAI of 0.7-0.85 rather than maximum 1.0 to preserve co-translational folding signals. Eliminate clusters of consecutive rare codons (especially AGG/AGA tandem in E. coli). Avoid strong mRNA secondary structure in the first 50 codons. For multi-domain proteins, consider retaining strategic rare codons at domain boundaries. Always verify the optimized sequence for unwanted features (restriction sites, splice sites, repetitive sequences). Use GenScript Rare Codon Analysis Tool to evaluate before and after optimization."
+  }
+}

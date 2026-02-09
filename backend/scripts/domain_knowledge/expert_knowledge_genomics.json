@@ -1,0 +1,1424 @@
+{
+  "gsea_enrichment_analysis": {
+    "description": "Gene Set Enrichment Analysis (GSEA) determines whether an a priori defined set of genes shows statistically significant, concordant differences between two biological states. Includes ORA (Over-Representation Analysis), standard GSEA, and ssGSEA (single-sample GSEA) variants.",
+    "key_parameters": {
+      "database_selection": {
+        "description": "Which gene set database to use for enrichment testing",
+        "situations": {
+          "general_pathway_overview": {
+            "value_or_range": "MSigDB Hallmark collection (H)",
+            "when": "First-pass analysis, cancer studies, or when you want a summary of well-defined biological states with reduced redundancy",
+            "why": "Hallmark gene sets are curated summaries with decreased redundancy. The collection contains 50 well-defined gene sets representing specific biological states or processes, reducing multiple-testing burden and providing clearer interpretations.",
+            "source": "https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp"
+          },
+          "metabolic_and_signaling_pathways": {
+            "value_or_range": "KEGG (MSigDB C2:CP:KEGG) or Reactome (C2:CP:REACTOME)",
+            "when": "Investigating specific metabolic or signaling pathway involvement",
+            "why": "KEGG provides curated pathway maps with metabolic and signaling pathway context. Reactome offers the most comprehensive manually curated pathway database (>2,600 pathways in humans). Use KEGG for metabolism-focused questions, Reactome for signaling and immune pathways.",
+            "source": "https://www.sc-best-practices.org/conditions/gsea_pathway.html"
+          },
+          "biological_process_function": {
+            "value_or_range": "GO (MSigDB C5) - split into BP, MF, CC",
+            "when": "Exploring broad biological processes, molecular functions, or cellular compartments",
+            "why": "Gene Ontology provides the most comprehensive functional annotation. Use GO:BP for biological processes, GO:MF for molecular function, GO:CC for cellular localization. Be aware of redundancy in GO terms - use semantic similarity to reduce redundancy.",
+            "source": "https://www.sc-best-practices.org/conditions/gsea_pathway.html"
+          },
+          "immunology_studies": {
+            "value_or_range": "MSigDB C7 (immunologic signatures)",
+            "when": "Studying immune cell states, vaccination responses, or immunological perturbations",
+            "why": "C7 contains >5,000 gene sets representing immune cell types, states, and perturbations derived from microarray and RNA-seq studies of the immune system.",
+            "source": "https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp"
+          },
+          "community_curated_pathways": {
+            "value_or_range": "WikiPathways (C2:CP:WIKIPATHWAYS)",
+            "when": "When you need community-curated pathways that may be more up-to-date for niche biology areas",
+            "why": "WikiPathways is community-curated and often contains more specialized and recently updated pathways than KEGG, particularly for disease-specific pathways.",
+            "source": "https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp"
+          }
+        },
+        "common_mistakes": [
+          "Using all MSigDB collections simultaneously, inflating multiple testing burden",
+          "Not selecting databases based on the biological question - using GO when KEGG pathway maps would be more informative",
+          "Ignoring MSigDB version differences between analyses making results non-comparable"
+        ]
+      },
+      "gene_set_size_min": {
+        "description": "Minimum number of genes in a gene set to be included in analysis",
+        "situations": {
+          "default_recommended": {
+            "value_or_range": "15",
+            "when": "Standard GSEA analysis with 10,000-20,000 features",
+            "why": "Gene sets with fewer than 10-15 genes can generate significant NES scores with just 2-3 genes, making normalization inaccurate. The default of 15 provides a good balance between sensitivity and statistical reliability.",
+            "source": "https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/FAQ"
+          },
+          "targeted_small_sets": {
+            "value_or_range": "10",
+            "when": "Investigating specific small pathways known to be biologically relevant (e.g., specific TF target sets)",
+            "why": "Some biologically meaningful gene sets (e.g., specific microRNA targets) contain fewer than 15 genes. Lowering to 10 allows their detection, but results should be interpreted cautiously.",
+            "source": "https://www.researchgate.net/post/Is-there-a-minimum-size-for-the-gene-set-in-order-to-perform-Gene-Set-Enrichment-Analysis-GSEA"
+          }
+        },
+        "common_mistakes": [
+          "Setting min_size too low (<10), generating false positives from 1-2 genes driving enrichment",
+          "Not checking which gene sets were excluded due to size filtering"
+        ]
+      },
+      "gene_set_size_max": {
+        "description": "Maximum number of genes in a gene set to be included in analysis",
+        "situations": {
+          "default_recommended": {
+            "value_or_range": "500",
+            "when": "Standard GSEA analysis",
+            "why": "Very large gene sets (>500 genes) have inaccurate NES normalization and tend to reflect broad biological categories rather than specific pathways. They are also prone to false positives from inter-gene correlations.",
+            "source": "https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/FAQ"
+          },
+          "broad_go_terms": {
+            "value_or_range": "200-300",
+            "when": "Using GO gene sets which can be very large and hierarchically redundant",
+            "why": "GO terms near the root of the ontology can contain thousands of genes and are rarely informative. Restricting max_size to 200-300 focuses on more specific, interpretable GO terms.",
+            "source": "https://www.sc-best-practices.org/conditions/gsea_pathway.html"
+          }
+        },
+        "common_mistakes": [
+          "Using max_size > 1000, which leads to uninformative results dominated by large generic GO terms",
+          "Not understanding that both relaxing and restricting max_size affect NES normalization"
+        ]
+      },
+      "fdr_threshold": {
+        "description": "False Discovery Rate cutoff for significance",
+        "situations": {
+          "phenotype_permutation": {
+            "value_or_range": "0.25",
+            "when": "Using phenotype permutation mode (recommended when >= 7 samples per group)",
+            "why": "The Broad Institute recommends FDR < 0.25 for phenotype permutation because the permutation approach is more conservative. With >30 gene sets tested, FDR < 0.25 is the standard threshold.",
+            "source": "https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/FAQ"
+          },
+          "gene_set_permutation": {
+            "value_or_range": "0.05",
+            "when": "Using gene set permutation mode (used when fewer than 7 samples per group)",
+            "why": "Gene set permutation does not preserve inter-gene correlations, making the test more liberal. A stricter FDR threshold of 0.05 compensates for this.",
+            "source": "https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/FAQ"
+          },
+          "robust_data_stringent": {
+            "value_or_range": "0.05 or lower",
+            "when": "Large datasets with high statistical power, or for publication-quality results",
+            "why": "For robust datasets with many replicates, stricter thresholds increase confidence in reported pathways. Use FDR < 0.05 or even < 0.01 when powered to do so.",
+            "source": "https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/FAQ"
+          }
+        },
+        "common_mistakes": [
+          "Using FDR < 0.05 with phenotype permutation mode and concluding nothing is significant - the standard is 0.25 for this mode",
+          "Reporting nominal p-values instead of FDR-corrected q-values",
+          "Not reporting the permutation method used alongside the FDR threshold"
+        ]
+      },
+      "method_selection": {
+        "description": "Choice between ORA, GSEA, and ssGSEA methods",
+        "situations": {
+          "ranked_gene_list_two_groups": {
+            "value_or_range": "GSEA (preranked or standard)",
+            "when": "You have differential expression results with a ranking metric (logFC, t-statistic, signed -log10 p-value) and a two-group comparison",
+            "why": "GSEA uses the full ranked list, not just significant genes, making it more powerful than ORA. It detects coordinated changes in gene sets even when individual genes are not significant. Consistently among top-performing methods in benchmarks.",
+            "source": "https://academic.oup.com/bib/article/22/1/545/5722384"
+          },
+          "gene_list_only": {
+            "value_or_range": "ORA (Over-Representation Analysis)",
+            "when": "You only have a list of significant genes (e.g., from clustering, no ranking available)",
+            "why": "ORA is the only appropriate method when you lack gene-level ranking. Simple, fast, and widely understood. However, it discards information about genes that didn't make the significance cutoff.",
+            "source": "https://pluto.bio/resources/Learning%20Series/gsea-vs-ora-two-key-pathway-analysis-approaches-for-next-gen-sequencing-data"
+          },
+          "per_sample_scores": {
+            "value_or_range": "ssGSEA (single-sample GSEA)",
+            "when": "You need pathway activity scores for individual samples (e.g., for clustering, survival analysis, or patient stratification)",
+            "why": "ssGSEA computes enrichment scores for each sample independently, enabling per-sample pathway activity comparison. Essential for applications where group comparisons are not the goal.",
+            "source": "https://www.sc-best-practices.org/conditions/gsea_pathway.html"
+          }
+        },
+        "common_mistakes": [
+          "Using ORA after differential expression when GSEA would be more appropriate and powerful",
+          "Applying an arbitrary p-value cutoff to create a gene list for ORA, discarding sub-threshold but biologically meaningful genes",
+          "Not specifying the correct background gene universe for ORA (must match your experimental platform)"
+        ]
+      },
+      "background_genes": {
+        "description": "The gene universe used as baseline for enrichment testing (critical for ORA)",
+        "situations": {
+          "rna_seq_experiment": {
+            "value_or_range": "All expressed genes (e.g., CPM > 1 in at least N samples)",
+            "when": "RNA-seq differential expression followed by ORA",
+            "why": "Without limiting background to expressed genes, tissue-specific gene sets can appear enriched simply because tissue-specific genes are absent from non-expressed genes. The background should represent 'any gene that COULD HAVE been positive'.",
+            "source": "https://www.biostars.org/p/17628/"
+          },
+          "microarray_experiment": {
+            "value_or_range": "All probes/genes present on the array",
+            "when": "Microarray data analysis",
+            "why": "The array design determines which genes are detectable. Using all human genes as background when only a subset is on the array inflates enrichment statistics.",
+            "source": "https://www.biostars.org/p/17628/"
+          }
+        },
+        "common_mistakes": [
+          "Using default 'all genes in genome' as background for ORA instead of experiment-specific expressed genes",
+          "Using different background gene sets when comparing ORA results across experiments",
+          "Not filtering background to expressed genes, causing enrichment of tissue-specific gene sets as artifacts"
+        ]
+      }
+    },
+    "artifact_vs_real_signal": {
+      "ribosome_spliceosome_enrichment": {
+        "description": "Enrichment of ribosome, spliceosome, or proteasome pathways is extremely common and often artifactual",
+        "when_artifact": "These pathways show up in nearly every differential expression analysis because ribosomal and spliceosomal genes are: (1) ubiquitously expressed at high levels, (2) internally correlated (co-expressed), and (3) sensitive to any perturbation affecting transcription or translation. Artifacts from gene-gene expression correlation cause false enrichment of these large, internally correlated gene sets.",
+        "when_real": "Ribosome enrichment is biologically real in: translation regulation studies, mTOR pathway perturbations, ribosomal biogenesis disorders (Diamond-Blackfan anemia), stress responses (selective translation), and cancer (ribosome biogenesis upregulation). Spliceosome enrichment is real in: splicing factor mutations (e.g., SF3B1, U2AF1 in MDS/AML), neurodegenerative diseases with splicing dysfunction.",
+        "how_to_distinguish": "1) Check if enrichment is driven by consistent directional change or random correlation. 2) Examine leading edge genes - are they the same across all comparisons? 3) Use ssGSEA to check if enrichment score actually differs between groups at the sample level. 4) Compare against appropriate controls. 5) If ribosomal genes appear in EVERY comparison, they are likely artifacts.",
+        "source": "https://www.sc-best-practices.org/conditions/gsea_pathway.html"
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1073/pnas.0506580102",
+      "https://doi.org/10.1093/bib/bbz158",
+      "https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp",
+      "https://www.sc-best-practices.org/conditions/gsea_pathway.html",
+      "https://software.broadinstitute.org/cancer/software/gsea/wiki/index.php/FAQ"
+    ],
+    "best_practice_notes": "Always use hypothesis-driven database selection rather than testing all collections. For RNA-seq, prefer GSEA over ORA. Report the database version, permutation method, and FDR threshold. For ORA, always specify the background gene universe as expressed genes, not all genes. Watch for ribosome/spliceosome artifacts in every analysis."
+  },
+  "chip_seq_peak_calling_macs2": {
+    "description": "MACS2 (Model-based Analysis of ChIP-Seq) identifies enriched regions (peaks) in ChIP-seq data by modeling the shift size of sequenced tags and using a dynamic Poisson distribution to capture local biases. It supports both narrow (point-source) and broad (dispersed) peak calling.",
+    "key_parameters": {
+      "peak_type": {
+        "description": "Whether to call narrow or broad peaks, determined by the biological target",
+        "situations": {
+          "transcription_factors": {
+            "value_or_range": "Narrow peaks (default mode, no --broad flag)",
+            "when": "ChIP-seq for transcription factors (TFs), co-activators, mediator, or any point-source binding factor",
+            "why": "TFs bind specific short DNA sequences, creating sharp, narrow peaks typically 100-300 bp wide. The default narrow peak calling mode with model building is optimized for these.",
+            "source": "https://hbctraining.github.io/Intro-to-ChIPseq/lessons/05_peak_calling_macs.html"
+          },
+          "active_histone_marks": {
+            "value_or_range": "Narrow peaks for H3K4me3, H3K27ac, H3K4me1; or broad with --broad for H3K4me1",
+            "when": "ChIP-seq for activating histone modifications at promoters/enhancers",
+            "why": "H3K4me3 and H3K27ac typically produce sharp peaks at promoters and enhancers. H3K4me1 marks enhancers and can be either narrow or moderately broad. Use narrow calling for H3K4me3/H3K27ac; consider broad for H3K4me1 depending on context.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3868217/"
+          },
+          "repressive_histone_marks": {
+            "value_or_range": "--broad flag with --broad-cutoff 0.1",
+            "when": "ChIP-seq for H3K27me3, H3K9me3, H3K36me3, or any dispersed histone modification",
+            "why": "Repressive marks cover broad genomic domains (10-100 kb). MACS2 broad mode performs 2-level peak calling: identifying stronger enriched regions within broader enriched domains. The --broad-cutoff controls the q-value for the broad region calling.",
+            "source": "https://github.com/crazyhottommy/ChIP-seq-analysis/blob/master/part1.3_MACS2_peak_calling_details.md"
+          }
+        },
+        "common_mistakes": [
+          "Calling narrow peaks for H3K27me3/H3K9me3, missing the broad domains entirely",
+          "Using --broad for transcription factor ChIP-seq, creating falsely merged peaks",
+          "Not distinguishing between H3K4me3 (narrow) and H3K4me1 (can be broader)"
+        ]
+      },
+      "q_value_vs_p_value": {
+        "description": "Statistical threshold for peak significance (mutually exclusive parameters)",
+        "situations": {
+          "standard_narrow_peaks": {
+            "value_or_range": "-q 0.01",
+            "when": "Standard TF or sharp histone mark ChIP-seq with good signal-to-noise",
+            "why": "Q-value (BH-corrected FDR) of 0.01 provides a good balance between sensitivity and specificity for narrow peaks. More stringent than the default -q 0.05.",
+            "source": "http://barcwiki.wi.mit.edu/wiki/SOPs/chip_seq_peaks"
+          },
+          "standard_broad_peaks": {
+            "value_or_range": "-q 0.05 with --broad-cutoff 0.1",
+            "when": "Broad histone mark ChIP-seq",
+            "why": "Broad peaks have lower signal amplitude, requiring a more relaxed threshold. The --broad-cutoff separately controls the outer (broad) region calling while -q controls the inner (strong) region calling.",
+            "source": "https://github.com/crazyhottommy/ChIP-seq-analysis/blob/master/part1.3_MACS2_peak_calling_details.md"
+          },
+          "idr_workflow": {
+            "value_or_range": "-p 1e-3 (not -q)",
+            "when": "Using the ENCODE IDR (Irreproducible Discovery Rate) framework with biological replicates",
+            "why": "IDR requires a relaxed initial peak calling threshold to provide enough peaks for reproducibility analysis. Use p-value 1e-3 to call a large set of peaks, then IDR filters to the reproducible set.",
+            "source": "https://www.encodeproject.org/chip-seq/transcription_factor/"
+          }
+        },
+        "common_mistakes": [
+          "Using both -p and -q simultaneously (they are mutually exclusive)",
+          "Relaxing -q threshold and not realizing it also makes peaks wider, not just more numerous",
+          "Not using IDR framework when biological replicates are available"
+        ]
+      },
+      "atac_seq_parameters": {
+        "description": "Specific MACS2 parameter combinations for ATAC-seq data",
+        "situations": {
+          "paired_end_full_fragments": {
+            "value_or_range": "--format BAMPE --keep-dup all -q 0.05 --nomodel",
+            "when": "Paired-end ATAC-seq data where you want to use actual fragment sizes for pileup",
+            "why": "BAMPE format uses the actual insert size from paired reads to build fragment pileup. This is the general-purpose approach for ATAC-seq, preserving nucleosome-related fragment information. Note: --shift and --extsize are ignored in BAMPE mode.",
+            "source": "https://github.com/macs3-project/MACS/issues/331"
+          },
+          "cutting_site_focused": {
+            "value_or_range": "--nomodel --shift -100 --extsize 200 --keep-dup all",
+            "when": "You want to focus on Tn5 transposase cutting sites for maximum resolution of open chromatin",
+            "why": "This shifts reads to center on the Tn5 cut site and extends 200bp, amplifying the cutting site enrichment signal. Provides the sharpest peaks at open chromatin regions.",
+            "source": "https://github.com/macs3-project/MACS/issues/195"
+          },
+          "encode_style": {
+            "value_or_range": "--nomodel --shift -37 --extsize 73 --keep-dup all",
+            "when": "Following ENCODE project standards for ATAC-seq analysis",
+            "why": "Based on MNase-seq studies showing 75bp fragment centered on cutting site gives better resolution of nucleosome-free regions. Uses half-nucleosome fragment size.",
+            "source": "https://www.biostars.org/p/209592/"
+          }
+        },
+        "common_mistakes": [
+          "Using --shift and --extsize with BAMPE format (they are silently ignored)",
+          "Not using --nomodel for ATAC-seq when in single-end mode",
+          "Forgetting --keep-dup all for ATAC-seq (Tn5 can create genuine duplicate insertions at highly accessible sites)",
+          "Not adjusting for Tn5 insertion offset (+4/-5 bp adjustment for the 9bp duplication)"
+        ]
+      },
+      "input_control": {
+        "description": "Whether and how to use input/IgG control for normalization",
+        "situations": {
+          "chip_seq_standard": {
+            "value_or_range": "Always use matched input control (-c input.bam)",
+            "when": "Any ChIP-seq experiment with available input control",
+            "why": "Input control corrects for: (1) open chromatin bias from sonication, (2) mappability bias, (3) copy number variations, (4) GC content bias. Without input, false positive peaks appear in highly accessible or amplified regions.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3868217/"
+          },
+          "atac_seq": {
+            "value_or_range": "No input control needed",
+            "when": "ATAC-seq experiments",
+            "why": "ATAC-seq measures open chromatin directly without immunoprecipitation. There is no appropriate input control. MACS2 uses a local lambda background model instead.",
+            "source": "https://github.com/macs3-project/MACS/issues/195"
+          },
+          "no_control_available": {
+            "value_or_range": "Use --nolambda to disable local background estimation, or proceed without control with increased caution",
+            "when": "ChIP-seq without matched input (not recommended)",
+            "why": "Without control, MACS2 uses a local Poisson model to estimate background. Results will have more false positives. Consider using --nolambda to use a uniform background instead.",
+            "source": "https://hbctraining.github.io/Intro-to-ChIPseq/lessons/05_peak_calling_macs.html"
+          }
+        },
+        "common_mistakes": [
+          "Using IgG control from a different cell type or condition than the IP sample",
+          "Not sequencing input to sufficient depth (should be at least equal to IP depth)",
+          "Using input control for ATAC-seq (not appropriate)"
+        ]
+      },
+      "sequencing_depth": {
+        "description": "Minimum sequencing depth for reliable peak calling",
+        "situations": {
+          "transcription_factors": {
+            "value_or_range": ">=20 million uniquely mapped reads per replicate",
+            "when": "Point-source/narrow peak ChIP-seq for transcription factors",
+            "why": "ENCODE standards recommend >= 10M reads as minimum, with 20M as target for mammalian TF ChIP-seq. TFs have thousands of binding sites; sufficient depth ensures detection of weaker binding events.",
+            "source": "https://www.encodeproject.org/chip-seq/transcription_factor/"
+          },
+          "narrow_histone_marks": {
+            "value_or_range": ">=20 million usable fragments per replicate",
+            "when": "Narrow-peak histone modifications (H3K4me3, H3K27ac)",
+            "why": "ENCODE4 standards specify 20M usable fragments for narrow-peak histone experiments.",
+            "source": "https://www.encodeproject.org/chip-seq/histone/"
+          },
+          "broad_histone_marks": {
+            "value_or_range": ">=45 million usable fragments per replicate",
+            "when": "Broad-peak histone modifications (H3K27me3, H3K36me3, H3K9me3)",
+            "why": "Broad marks cover larger genomic regions and have lower signal amplitude, requiring more reads to distinguish enrichment from background. ENCODE4 specifies 45M usable fragments for broad marks.",
+            "source": "https://www.encodeproject.org/chip-seq/histone-encode4/"
+          },
+          "rna_pol2": {
+            "value_or_range": ">=40-60 million reads",
+            "when": "ChIP-seq for factors with very many binding sites (RNA Pol II, cohesin, CTCF)",
+            "why": "Proteins with widespread binding across the genome (>50,000 sites for Pol II) need proportionally more reads for saturation.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3431496/"
+          }
+        },
+        "common_mistakes": [
+          "Using the same depth guidelines for broad marks as narrow marks",
+          "Not accounting for PCR duplicates when assessing effective depth (NRF > 0.9 recommended)",
+          "Comparing peak numbers between experiments with very different sequencing depths"
+        ]
+      },
+      "paired_end_parameters": {
+        "description": "How to handle paired-end sequencing data in MACS2",
+        "situations": {
+          "chip_seq_paired_end": {
+            "value_or_range": "--format BAMPE",
+            "when": "Paired-end ChIP-seq data",
+            "why": "BAMPE mode uses actual fragment sizes from properly-paired reads instead of modeling the fragment size distribution. This is more accurate than single-end mode with --extsize. Only properly-paired read alignments are used.",
+            "source": "https://pypi.org/project/MACS2/"
+          },
+          "single_end_with_known_fragment_size": {
+            "value_or_range": "--nomodel --extsize <fragment_length>",
+            "when": "Single-end ChIP-seq where fragment size is known from bioanalyzer or cross-correlation analysis",
+            "why": "When model building is unreliable (e.g., low read count or broad marks), explicitly setting the fragment size from experimental measurements is more reliable.",
+            "source": "http://barcwiki.wi.mit.edu/wiki/SOPs/chip_seq_peaks"
+          }
+        },
+        "common_mistakes": [
+          "Not specifying --format BAMPE for paired-end data, causing MACS2 to treat reads as single-end",
+          "Using --extsize with BAMPE format (it is ignored)",
+          "Not filtering for properly-paired reads before MACS2 analysis"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1186/gb-2008-9-9-r137",
+      "https://doi.org/10.1038/nprot.2012.101",
+      "https://doi.org/10.1186/s12859-020-03927-2",
+      "https://www.encodeproject.org/chip-seq/histone/",
+      "https://www.encodeproject.org/chip-seq/transcription_factor/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3431496/"
+    ],
+    "best_practice_notes": "Always determine peak type (narrow vs broad) before analysis based on the target protein. Use matched input controls for ChIP-seq. For ENCODE-style analysis, use the IDR framework with relaxed p-value threshold. For ATAC-seq, choose between BAMPE (full fragments) and shift-based (cutting site focus) approaches based on your question. Always check library complexity metrics (NRF, PBC1, PBC2) before peak calling."
+  },
+  "motif_enrichment_homer": {
+    "description": "HOMER (Hypergeometric Optimization of Motif EnRichment) performs differential motif discovery by comparing two sets of sequences and identifying regulatory elements enriched in one set relative to the other. Uses ZOOPS scoring coupled with hypergeometric enrichment calculations.",
+    "key_parameters": {
+      "background_selection": {
+        "description": "Choice of background sequences for motif enrichment comparison",
+        "situations": {
+          "default_random_genomic": {
+            "value_or_range": "Auto-generated GC-matched random genomic regions (default behavior when no -bg specified)",
+            "when": "Standard ChIP-seq or ATAC-seq peak motif analysis without specific background requirements",
+            "why": "HOMER automatically selects random genomic sequences matched for GC content, which is critical because GC-rich regions (e.g., CpG islands at promoters) would otherwise bias motif discovery. This is the most common and generally appropriate approach.",
+            "source": "http://homer.ucsd.edu/homer/motif/practicalTips.html"
+          },
+          "custom_background_regions": {
+            "value_or_range": "-bg <background_peaks.bed>",
+            "when": "When you want to compare enrichment between two specific peak sets (e.g., condition-specific peaks vs shared peaks, or gained vs lost peaks)",
+            "why": "Custom backgrounds test whether motifs are differentially enriched between your target peaks and specific control peaks. Essential for comparative analyses like differential binding or condition-specific accessibility.",
+            "source": "http://homer.ucsd.edu/homer/ngs/peakMotifs.html"
+          },
+          "promoter_analysis": {
+            "value_or_range": "Use matched promoter regions as background or use findMotifs.pl with -bg flag for promoter sets",
+            "when": "Analyzing promoter-associated peaks or differentially expressed gene promoters",
+            "why": "Promoters have distinct GC composition compared to intergenic regions. Using random genomic background for promoter peaks would show CpG-related motifs as top hits rather than genuine TF binding motifs.",
+            "source": "http://homer.ucsd.edu/homer/motif/practicalTips.html"
+          }
+        },
+        "common_mistakes": [
+          "Not using GC-matched background, leading to GC-content-related artifacts in top motifs",
+          "Using peaks from a completely different cell type as background when cell-type-specific chromatin differences dominate the comparison",
+          "Using too few background sequences relative to target sequences"
+        ]
+      },
+      "motif_length": {
+        "description": "Length(s) of motifs to search for",
+        "situations": {
+          "default_comprehensive": {
+            "value_or_range": "-len 8,10,12",
+            "when": "Standard motif discovery analysis",
+            "why": "The default combination of 8, 10, and 12 bp covers most known TF binding motifs. Most TFs bind 6-12 bp core motifs. Running all three lengths simultaneously allows HOMER to find the optimal representation.",
+            "source": "http://homer.ucsd.edu/homer/ngs/peakMotifs.html"
+          },
+          "short_motifs_bzip_ets": {
+            "value_or_range": "-len 6,8",
+            "when": "Searching for short motifs like bZIP (7-8bp), ETS (7-8bp), or basic HLH motifs",
+            "why": "Some TF families have compact binding motifs. Adding length 6 captures these. However, shorter motifs increase false positive rate.",
+            "source": "http://homer.ucsd.edu/homer/motif/"
+          },
+          "longer_motifs_composite": {
+            "value_or_range": "-len 8,10,12,14,16",
+            "when": "Searching for composite motifs or cooperative binding elements",
+            "why": "Some regulatory elements involve closely spaced binding sites for two TFs (e.g., AP-1:IRF composite elements). Longer motif lengths can capture these. WARNING: lengths > 12 may cause memory issues - reduce input sequence count if needed.",
+            "source": "http://homer.ucsd.edu/homer/motif/practicalTips.html"
+          }
+        },
+        "common_mistakes": [
+          "Using only a single motif length, missing motifs of different sizes",
+          "Setting motif length > 12 without reducing input sequences, causing memory exhaustion",
+          "Not realizing that the optimal length depends on the TF family being studied"
+        ]
+      },
+      "known_vs_de_novo": {
+        "description": "Whether to search for known database motifs or discover novel motifs de novo",
+        "situations": {
+          "both_recommended": {
+            "value_or_range": "Run both (HOMER does this by default)",
+            "when": "Standard motif analysis",
+            "why": "HOMER automatically performs both known motif enrichment and de novo motif discovery in a single run. Known motifs test against a database of characterized TF binding profiles. De novo discovery can identify novel or variant motifs not in the database.",
+            "source": "http://homer.ucsd.edu/homer/ngs/peakMotifs.html"
+          },
+          "known_only": {
+            "value_or_range": "-nomotif (skip de novo) to speed up analysis",
+            "when": "When you have a specific hypothesis about which TFs should be enriched and want quick results",
+            "why": "De novo motif discovery is computationally expensive. If you only need to test for known TF binding, skipping de novo saves significant time.",
+            "source": "http://homer.ucsd.edu/homer/ngs/peakMotifs.html"
+          },
+          "de_novo_focused": {
+            "value_or_range": "Standard run with focus on de novo results",
+            "when": "Studying novel regulatory regions, non-model organisms, or looking for previously uncharacterized motifs",
+            "why": "Known motif databases are incomplete, especially for non-model organisms. De novo discovery is essential when exploring novel biology.",
+            "source": "http://homer.ucsd.edu/homer/motif/"
+          }
+        },
+        "common_mistakes": [
+          "Only looking at de novo results and ignoring known motif enrichment, which provides biological interpretation",
+          "Not recognizing that multiple known motif matches for the same TF family (e.g., JUN, FOS, BATF all matching AP-1) are expected, not independent findings",
+          "Interpreting de novo motifs without comparing them to known motif databases"
+        ]
+      },
+      "region_size": {
+        "description": "Size of region around peaks to analyze (-size parameter)",
+        "situations": {
+          "default_200bp": {
+            "value_or_range": "-size 200",
+            "when": "Standard TF ChIP-seq motif analysis",
+            "why": "200bp centered on peak summit captures the primary binding site while limiting noise from flanking sequences. This is the default and works well for most TF analyses.",
+            "source": "http://homer.ucsd.edu/homer/ngs/peakMotifs.html"
+          },
+          "given_regions": {
+            "value_or_range": "-size given",
+            "when": "Analyzing ATAC-seq peaks, broad histone marks, or specific regulatory regions of varying sizes",
+            "why": "Uses the actual coordinates from the input BED file rather than resizing. Important when peak sizes are biologically meaningful (e.g., nucleosome-free regions in ATAC-seq).",
+            "source": "http://homer.ucsd.edu/homer/ngs/peakMotifs.html"
+          }
+        },
+        "common_mistakes": [
+          "Using too large a region size (e.g., 1000bp) for TF motif analysis, diluting the signal",
+          "Not using -size given for ATAC-seq peaks where region boundaries are informative"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1016/j.molcel.2010.05.004",
+      "http://homer.ucsd.edu/homer/motif/practicalTips.html",
+      "http://homer.ucsd.edu/homer/ngs/peakMotifs.html"
+    ],
+    "best_practice_notes": "HOMER automatically normalizes for GC content, which is critical for unbiased motif discovery. The default -len 8,10,12 and -size 200 work well for most TF ChIP-seq analyses. For ATAC-seq, use -size given. Always examine both known and de novo results. Watch for AP-1 family motifs appearing as multiple separate hits (JUN, FOS, BATF, ATF) - these represent a single biological finding."
+  },
+  "scrna_seq_integration": {
+    "description": "Methods for integrating multiple single-cell RNA-seq datasets to remove batch effects while preserving biological variation. Major methods include Harmony (linear, fast), scVI (deep learning VAE), BBKNN (graph-based), and Scanorama (MNN-based).",
+    "key_parameters": {
+      "method_selection": {
+        "description": "Which integration method to use based on data characteristics",
+        "situations": {
+          "simple_batch_correction": {
+            "value_or_range": "Harmony",
+            "when": "Simple batch effects (same tissue, same protocol, different sequencing runs), small to medium datasets (<100k cells), quick analysis needed",
+            "why": "Harmony is fast, memory-efficient (30-50x less memory than Scanorama/MNN at 125k cells), and consistently performs well for simple integration tasks. Robust to parameter choices. Runs in <1 hour even for large datasets.",
+            "source": "https://doi.org/10.1038/s41592-019-0619-0"
+          },
+          "complex_integration_large_datasets": {
+            "value_or_range": "scVI",
+            "when": "Complex batch effects (different protocols, different tissues), large datasets (>100k cells), when downstream tasks need a generative model",
+            "why": "scVI uses a deep generative model that jointly models batch effects and biological variation. Performs best for complex integration tasks. Provides uncertainty estimates and supports downstream differential expression. Scales to millions of cells.",
+            "source": "https://doi.org/10.1038/s41592-021-01336-8"
+          },
+          "complex_nested_batch_effects": {
+            "value_or_range": "Scanorama",
+            "when": "Multiple nested batch variables (e.g., samples from different locations AND conditions), when robust handling of complex batch structure is needed",
+            "why": "Scanorama tends to perform best in complex integration tasks with nested batch effects, showing robustness in handling both subtle biological variation and strong batch effects.",
+            "source": "https://doi.org/10.1038/s41592-021-01336-8"
+          },
+          "graph_based_fast_robust": {
+            "value_or_range": "BBKNN",
+            "when": "When you need a fast, graph-based approach that modifies the k-nearest neighbor graph directly; when you don't need a corrected expression matrix",
+            "why": "BBKNN is computationally efficient and demonstrated consistently reliable performance even with millions of cells. More robust across runs compared to deep learning methods. However, it does NOT produce batch-corrected expression values, limiting some downstream analyses.",
+            "source": "https://doi.org/10.1038/s41592-021-01336-8"
+          },
+          "with_cell_type_labels": {
+            "value_or_range": "scANVI or scGen",
+            "when": "Cell identity labels are partially or fully known for reference data",
+            "why": "When cell type labels are available, semi-supervised methods (scANVI) and supervised methods (scGen) consistently outperform unsupervised approaches by using label information to preserve biological structure during integration.",
+            "source": "https://doi.org/10.1038/s41592-021-01336-8"
+          }
+        },
+        "common_mistakes": [
+          "Always using the same integration method without considering data characteristics",
+          "Using BBKNN when downstream analyses require corrected expression values",
+          "Not comparing multiple integration methods on the same data",
+          "Integrating data when batch effects are minimal and integration would only add noise"
+        ]
+      },
+      "scvi_n_latent": {
+        "description": "Dimensionality of the latent space in scVI",
+        "situations": {
+          "default": {
+            "value_or_range": "10",
+            "when": "Standard datasets with moderate cell type diversity",
+            "why": "Default value that works well for most datasets. The latent space captures the main axes of biological variation.",
+            "source": "https://docs.scvi-tools.org/en/1.3.3/api/reference/scvi.model.SCVI.html"
+          },
+          "complex_datasets": {
+            "value_or_range": "20-30",
+            "when": "Datasets with many cell types, subtypes, or continuous trajectories",
+            "why": "Higher dimensionality allows the model to capture more subtle biological variation. Useful for atlases with dozens of cell types.",
+            "source": "https://docs.scvi-tools.org/en/latest/user_guide/use_case/hyper_parameters_tuning.html"
+          },
+          "simple_datasets": {
+            "value_or_range": "5-10",
+            "when": "Simple datasets with few distinct cell types",
+            "why": "Lower dimensionality prevents overfitting and provides cleaner separation of major cell types.",
+            "source": "https://docs.scvi-tools.org/en/latest/user_guide/use_case/hyper_parameters_tuning.html"
+          }
+        },
+        "common_mistakes": [
+          "Using n_latent > 50, which leads to overfitting",
+          "Not using scVI's autotune module to systematically evaluate different n_latent values",
+          "Setting n_latent too low for complex atlas-scale datasets"
+        ]
+      },
+      "scvi_n_layers": {
+        "description": "Number of hidden layers in encoder and decoder neural networks",
+        "situations": {
+          "default_recommended": {
+            "value_or_range": "1",
+            "when": "Most standard analyses",
+            "why": "Hyperparameter tuning studies consistently retain architectures with a single hidden layer. One layer provides sufficient model capacity for most scRNA-seq datasets while avoiding overfitting.",
+            "source": "https://docs.scvi-tools.org/en/latest/user_guide/use_case/hyper_parameters_tuning.html"
+          },
+          "large_complex_datasets": {
+            "value_or_range": "2",
+            "when": "Atlas-scale datasets (>500k cells) with complex batch structure",
+            "why": "Two layers can capture more complex nonlinear relationships. However, diminishing returns beyond 2 layers for most biological datasets.",
+            "source": "https://docs.scvi-tools.org/en/latest/user_guide/use_case/hyper_parameters_tuning.html"
+          }
+        },
+        "common_mistakes": [
+          "Using 3+ layers without evidence of improvement, increasing training time and overfitting risk",
+          "Not adjusting training epochs when increasing model complexity"
+        ]
+      },
+      "scvi_n_hidden": {
+        "description": "Number of nodes per hidden layer in scVI",
+        "situations": {
+          "default": {
+            "value_or_range": "128",
+            "when": "Standard datasets",
+            "why": "Default value that balances model capacity and computational cost.",
+            "source": "https://docs.scvi-tools.org/en/1.3.3/api/reference/scvi.model.SCVI.html"
+          },
+          "large_datasets": {
+            "value_or_range": "256",
+            "when": "Large datasets (>100k cells) or datasets with many highly variable genes",
+            "why": "Best hyperparameter tuning results often come from configurations with 256 hidden neurons for larger datasets, suggesting more capacity is beneficial when data supports it.",
+            "source": "https://docs.scvi-tools.org/en/latest/user_guide/use_case/hyper_parameters_tuning.html"
+          }
+        },
+        "common_mistakes": [
+          "Using 512+ hidden nodes for small datasets, leading to overfitting",
+          "Not using the scVI autotune module to search over [64, 128, 256]"
+        ]
+      },
+      "harmony_theta": {
+        "description": "Diversity penalty parameter controlling the strength of batch correction",
+        "situations": {
+          "default": {
+            "value_or_range": "2",
+            "when": "Standard batch correction with moderate batch effects",
+            "why": "Default value (theta=2) provides moderate diversity penalty. Harmony was shown to be robust to the choice of theta across a wide range of values.",
+            "source": "https://doi.org/10.1038/s41592-019-0619-0"
+          },
+          "strong_batch_effects": {
+            "value_or_range": "3-4",
+            "when": "Strong batch effects where batches clearly separate in PCA space even after standard correction",
+            "why": "Higher theta increases the diversity penalty exponentially, forcing more aggressive batch mixing. Use when default theta fails to adequately mix batches.",
+            "source": "https://doi.org/10.1038/s41592-019-0619-0"
+          },
+          "subtle_batch_effects": {
+            "value_or_range": "1",
+            "when": "Subtle batch effects or when there is concern about overcorrection removing biological variation",
+            "why": "Lower theta reduces the diversity penalty, preserving more of the original data structure. Use when biological differences between batches are expected and should be maintained.",
+            "source": "https://doi.org/10.1038/s41592-019-0619-0"
+          },
+          "no_correction_control": {
+            "value_or_range": "0",
+            "when": "Testing whether batch correction is needed (negative control)",
+            "why": "theta=0 disables the diversity penalty entirely. Useful for comparing corrected vs uncorrected results.",
+            "source": "https://cran.r-project.org/web/packages/harmony/harmony.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Not testing multiple theta values to find the right balance",
+          "Using very high theta (>5) which can overcorrect and remove biological variation",
+          "Not assessing overcorrection after integration"
+        ]
+      },
+      "when_not_to_integrate": {
+        "description": "Situations where batch integration should NOT be performed",
+        "situations": {
+          "biological_differences_expected": {
+            "value_or_range": "Do NOT integrate",
+            "when": "Comparing different tissues, disease states, or experimental conditions where biological differences are the focus of the study",
+            "why": "Integration methods cannot distinguish batch effects from biological variation. Aggressive integration removes true biological signals. If your scientific question IS about differences between groups, integration will remove the signal you are trying to detect.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10197537/"
+          },
+          "minimal_batch_effects": {
+            "value_or_range": "Do NOT integrate",
+            "when": "Batches overlap well in PCA space and clustering is not driven by batch identity",
+            "why": "If batch effects are minimal, integration adds noise and computational complexity without benefit. Always visualize PCA colored by batch before deciding to integrate.",
+            "source": "https://doi.org/10.1038/s41592-021-01336-8"
+          },
+          "single_batch": {
+            "value_or_range": "Do NOT integrate",
+            "when": "All data comes from a single experimental batch",
+            "why": "There are no batch effects to correct. Running integration on single-batch data can introduce artifacts.",
+            "source": "https://doi.org/10.1038/s41592-021-01336-8"
+          }
+        },
+        "common_mistakes": [
+          "Automatically integrating all multi-sample datasets without assessing whether batch effects exist",
+          "Treating biological condition (e.g., healthy vs disease) as a batch variable and correcting for it",
+          "Not visualizing data before and after integration to assess what was removed"
+        ]
+      },
+      "overcorrection_detection": {
+        "description": "How to detect and assess overcorrection after batch integration",
+        "situations": {
+          "metrics_based_assessment": {
+            "value_or_range": "Use kBET, LISI, ASW (Average Silhouette Width), and ARI metrics together",
+            "when": "After any integration, before proceeding with downstream analysis",
+            "why": "kBET is the most sensitive measure of remaining batch effect. LISI measures both batch mixing and cell-type separation. ASW evaluates clustering quality. No single metric captures all aspects - use multiple metrics together. Note: kBET and LISI may NOT detect overcorrection; use RBET for overcorrection-aware evaluation.",
+            "source": "https://doi.org/10.1038/s41592-018-0254-1"
+          },
+          "biological_signs_of_overcorrection": {
+            "value_or_range": "Check for: (1) ribosomal genes as cluster markers, (2) overlapping markers between clusters, (3) absence of expected cell-type markers",
+            "when": "Evaluating integration results qualitatively",
+            "why": "If cluster-specific markers are dominated by ubiquitous genes (ribosomal), if markers overlap significantly between clusters, or if expected cell-type markers disappear, integration has likely removed biological signal.",
+            "source": "https://www.nature.com/articles/s42003-025-07947-7"
+          }
+        },
+        "common_mistakes": [
+          "Only checking batch mixing metrics (LISI) without checking cell-type preservation",
+          "Assuming high batch mixing = good integration (it could be overcorrection)",
+          "Not comparing clustering before and after integration to identify lost biological structure"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1038/s41592-021-01336-8",
+      "https://doi.org/10.1038/s41592-019-0619-0",
+      "https://doi.org/10.1038/s41592-018-0254-1",
+      "https://www.sc-best-practices.org/cellular_structure/integration.html",
+      "https://docs.scvi-tools.org/en/latest/user_guide/use_case/hyper_parameters_tuning.html",
+      "https://www.nature.com/articles/s42003-025-07947-7"
+    ],
+    "best_practice_notes": "Always visualize data (PCA, UMAP) colored by batch BEFORE deciding to integrate. If batches overlap well, integration may not be needed. When integrating, try multiple methods and compare using kBET + LISI + ASW + ARI. Watch for overcorrection signs: ribosomal genes as top markers, disappearance of expected cell type markers. For scVI, use the autotune module. For Harmony, theta=2 is a good default but test a range. Never treat biological conditions as batch variables."
+  },
+  "cell_type_annotation_scrnaseq": {
+    "description": "Methods for assigning cell type identities to clusters or individual cells in single-cell RNA-seq data. Approaches include marker-gene-based manual annotation, reference-based automated annotation (SingleR, CellTypist), and deep-learning-based methods (scArches).",
+    "key_parameters": {
+      "method_selection": {
+        "description": "Which annotation approach to use",
+        "situations": {
+          "well_characterized_tissue": {
+            "value_or_range": "CellTypist or SingleR with tissue-matched reference",
+            "when": "Studying well-characterized tissues (PBMC, brain, lung) where reference atlases exist",
+            "why": "Automated reference-based methods are fast, reproducible, and leverage expert-curated atlases. CellTypist provides pre-trained models for multiple organs in human and mouse. SingleR can differentiate highly similar cell types better than some alternatives.",
+            "source": "https://www.celltypist.org/"
+          },
+          "novel_tissue_or_species": {
+            "value_or_range": "Manual marker-gene annotation + de novo clustering",
+            "when": "Studying poorly characterized tissues, non-model organisms, or expecting novel cell types",
+            "why": "No reference atlas exists, so automated methods will misclassify cells. Manual annotation using known marker genes, combined with differential expression between clusters, is the only reliable approach.",
+            "source": "https://www.sc-best-practices.org/cellular_structure/annotation.html"
+          },
+          "atlas_scale_annotation": {
+            "value_or_range": "scArches or CellTypist (majority voting mode)",
+            "when": "Annotating large atlas-scale datasets (>500k cells) or mapping new data to existing atlases",
+            "why": "scArches enables efficient mapping of new datasets onto existing reference atlases using transfer learning. CellTypist's majority voting mode provides consensus annotation for large datasets.",
+            "source": "https://www.sc-best-practices.org/cellular_structure/annotation.html"
+          },
+          "immune_cells_specifically": {
+            "value_or_range": "CellTypist with Immune_All_Low (high resolution) or Immune_All_High (low resolution) models",
+            "when": "Annotating immune cell types across tissues",
+            "why": "CellTypist was specifically developed for immune cell characterization across tissues. The Immune_All_Low model covers 101 annotated cell types including rare subtypes collected from different tissues.",
+            "source": "https://www.celltypist.org/models"
+          },
+          "combined_approach_recommended": {
+            "value_or_range": "Use automated methods + manual verification of top markers",
+            "when": "Any annotation task requiring publication-quality results",
+            "why": "No single automated method is 100% accurate. The best approach combines computational tools for efficiency with manual review of cluster-specific markers for validation. Check that automated annotations agree with known marker gene expression patterns.",
+            "source": "https://www.sc-best-practices.org/cellular_structure/annotation.html"
+          }
+        },
+        "common_mistakes": [
+          "Blindly trusting automated annotations without manual verification",
+          "Using a reference atlas from a different technology platform (e.g., training on Drop-seq, applying to 10X Chromium) without considering platform effects",
+          "Not checking whether the reference atlas contains all expected cell types present in the query data"
+        ]
+      },
+      "minimum_cells_per_cluster": {
+        "description": "Minimum number of cells needed in a cluster for reliable annotation",
+        "situations": {
+          "standard_annotation": {
+            "value_or_range": "50-100 cells minimum per cluster",
+            "when": "Standard cell type annotation with reasonable confidence",
+            "why": "Sufficient cells are needed to reliably detect marker gene expression and distinguish signal from noise in sparse scRNA-seq data. Differential expression for cluster markers requires adequate sample sizes.",
+            "source": "https://www.sc-best-practices.org/cellular_structure/annotation.html"
+          },
+          "rare_cell_detection": {
+            "value_or_range": "As low as 0.5% of total cells (may be 20-50 cells)",
+            "when": "Detecting rare cell populations using specialized methods (e.g., MultiK)",
+            "why": "Specialized methods like MultiK can accurately identify rare cell populations at 0.5% frequency. However, annotation confidence is lower and should be validated with additional markers or orthogonal methods.",
+            "source": "https://doi.org/10.1186/s13059-021-02445-5"
+          },
+          "differential_expression_reliability": {
+            "value_or_range": ">=25 cells per group for DE testing",
+            "when": "Using differential expression to identify cluster markers",
+            "why": "Statistical tests for DE require minimum sample sizes. With fewer than 25 cells, power to detect differentially expressed markers drops substantially, leading to unreliable annotation.",
+            "source": "https://bioconductor.org/books/3.13/OSCA.basic/cell-type-annotation.html"
+          }
+        },
+        "common_mistakes": [
+          "Annotating clusters with <10 cells and treating the annotation as confident",
+          "Over-clustering data to create artificially small clusters, then struggling to annotate them",
+          "Not adjusting clustering resolution to avoid splitting real cell types into sub-clusters too small to annotate"
+        ]
+      },
+      "novel_cell_type_handling": {
+        "description": "How to handle cells that don't match any known cell type in the reference",
+        "situations": {
+          "uncertainty_based_detection": {
+            "value_or_range": "Use methods with uncertainty/rejection capability (scEMAIL, CAMLU)",
+            "when": "When novel cell types are expected in the query data",
+            "why": "Most supervised annotation methods label all cells as known types, potentially masking novel populations. Methods like scEMAIL use uncertainty measurement and bimodality tests to judge whether new cell types are present. CAMLU selects informative features to identify novel cells.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9801963/"
+          },
+          "two_pass_approach": {
+            "value_or_range": "First annotate with automated method, then identify unassigned/low-confidence cells for manual investigation",
+            "when": "General-purpose analysis of new datasets",
+            "why": "Automated methods provide annotations for known cell types. Low-confidence or unassigned cells can then be investigated manually for novel cell type markers using DE analysis against all other clusters.",
+            "source": "https://www.sc-best-practices.org/cellular_structure/annotation.html"
+          }
+        },
+        "common_mistakes": [
+          "Force-labeling all cells with the closest known cell type, missing novel populations",
+          "Not setting confidence thresholds for automated annotations",
+          "Assuming all cells must belong to a known cell type"
+        ]
+      },
+      "reference_atlas_selection": {
+        "description": "Choice of reference atlas for automated annotation",
+        "situations": {
+          "tissue_matched_atlas": {
+            "value_or_range": "Use tissue-specific atlas (e.g., Human Lung Cell Atlas for lung data)",
+            "when": "Analyzing a specific tissue with available tissue-specific reference",
+            "why": "Tissue-matched atlases provide the highest resolution cell type annotations because they include tissue-specific subtypes and were trained on similar data. CellTypist models trained on cross-dataset atlases (e.g., 14 lung datasets for Human Lung Cell Atlas) are more robust than single-dataset references.",
+            "source": "https://www.celltypist.org/models"
+          },
+          "pan_tissue_atlas": {
+            "value_or_range": "Use Tabula Sapiens, Human Cell Atlas, or CellTypist pan-tissue models",
+            "when": "Studying mixed tissues, dissociated tumors with stromal infiltration, or when tissue-specific atlas is unavailable",
+            "why": "Pan-tissue atlases cover broad cell type diversity across organs. Useful when multiple tissue types are mixed (e.g., tumor microenvironment) or for initial exploratory annotation.",
+            "source": "https://www.celltypist.org/models"
+          }
+        },
+        "common_mistakes": [
+          "Using a pan-tissue atlas when a high-quality tissue-specific atlas is available (lower resolution)",
+          "Not checking if the reference atlas technology matches the query data technology",
+          "Using a mouse reference for human data (or vice versa) without proper ortholog mapping"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1126/science.abl5197",
+      "https://www.sc-best-practices.org/cellular_structure/annotation.html",
+      "https://bioconductor.org/books/3.13/OSCA.basic/cell-type-annotation.html",
+      "https://www.celltypist.org/",
+      "https://doi.org/10.1093/bib/bbae392"
+    ],
+    "best_practice_notes": "Always combine automated annotation with manual verification of marker genes. Use tissue-matched reference atlases when available. Set confidence thresholds and investigate low-confidence cells for novel cell types. Check that the reference data technology matches your query data. For immune cells, CellTypist provides the most comprehensive pre-trained models. Report annotation confidence scores alongside cell type labels."
+  },
+  "protein_language_models_esm2": {
+    "description": "ESM-2 is a protein language model family from Meta AI trained on evolutionary-scale protein sequence data. Models range from 8M to 15B parameters and produce per-residue and per-sequence embeddings useful for structure prediction, function annotation, variant effect prediction, and more.",
+    "key_parameters": {
+      "model_size_selection": {
+        "description": "Which ESM-2 model variant to use based on task and computational resources",
+        "situations": {
+          "optimal_balance": {
+            "value_or_range": "ESM-2 650M (esm2_t33_650M_UR50D) - 33 layers, 1280 embedding dim",
+            "when": "Most downstream tasks where GPU resources are available",
+            "why": "The 650M model provides substantially better representation quality than smaller variants. Medium-sized models (650M) demonstrated consistently good performance, falling only slightly behind 15B despite being 23x smaller. Comparable performance to the 3B Prot-T5 model while being more parameter efficient. Validation perplexity 6.95 vs 10.33 for 8M.",
+            "source": "https://doi.org/10.1038/s41598-025-05674-x"
+          },
+          "resource_constrained": {
+            "value_or_range": "ESM-2 150M (esm2_t30_150M_UR50D) - 30 layers, 640 embedding dim",
+            "when": "Limited GPU memory, need to process many sequences, or running on consumer GPUs",
+            "why": "The 150M model outperforms the 650M parameter ESM-1b on structure-based tasks while being much smaller. Good compromise between quality and compute. Validation perplexity 7.75.",
+            "source": "https://www.biorxiv.org/content/10.1101/2022.07.20.500902v1.full"
+          },
+          "cpu_only_deployment": {
+            "value_or_range": "ESM-2 8M (esm2_t6_8M_UR50D) - 6 layers, 320 embedding dim",
+            "when": "CPU-only environments, real-time applications, or screening millions of sequences",
+            "why": "5-10x faster inference than 150M model. Suitable for large-scale screening where speed matters more than accuracy. Validation perplexity 10.33.",
+            "source": "https://biolm.ai/models/esm2-8m/"
+          },
+          "maximum_accuracy": {
+            "value_or_range": "ESM-2 3B (esm2_t36_3B_UR50D) - 36 layers, 2560 embedding dim",
+            "when": "When accuracy is paramount and computational resources are not limiting (e.g., academic cluster with A100/H100 GPUs)",
+            "why": "The 3B model provides the best balance at the high end. The 15B model is often impractical (cannot be fine-tuned even on H100 GPUs) and offers diminishing returns over 3B.",
+            "source": "https://doi.org/10.1038/s41598-025-05674-x"
+          }
+        },
+        "common_mistakes": [
+          "Defaulting to the largest model (15B) without considering that 650M achieves nearly equivalent results at 23x lower cost",
+          "Using 8M for tasks requiring high sensitivity (e.g., variant effect prediction) where accuracy matters",
+          "Not benchmarking multiple model sizes on your specific task"
+        ]
+      },
+      "layer_selection": {
+        "description": "Which transformer layer(s) to extract embeddings from",
+        "situations": {
+          "general_purpose": {
+            "value_or_range": "Last layer embeddings",
+            "when": "Most downstream tasks including variant effect prediction, function annotation",
+            "why": "Across most datasets, the last layer is the most commonly top-performing layer. In cases where it's not the best, the penultimate layer performs slightly better, and the last layer has only marginally lower performance. The last layer is the most effective and straightforward choice.",
+            "source": "https://doi.org/10.1038/s41598-025-05674-x"
+          },
+          "protein_function_classification": {
+            "value_or_range": "Mid-to-late layers (e.g., layers 20-33 in the 33-layer 650M model)",
+            "when": "Kinase classification, enzyme function prediction, or tasks where functional domain information is critical",
+            "why": "Mid-to-late transformer layers capture richer function-level and motif-level information than the last layer alone. Probing experiments showed that layers 20-33 boost ARI in unsupervised clustering by 32% and raise classification accuracy to 75.7% vs 70.2% for last-layer only.",
+            "source": "https://doi.org/10.1038/s41598-025-05674-x"
+          },
+          "sequence_level_representation": {
+            "value_or_range": "Mean pooling across all residue positions of the last layer",
+            "when": "When you need a single vector per protein sequence (classification, retrieval, clustering)",
+            "why": "Mean embeddings consistently perform well across datasets. ESM C 600M with mean embeddings offers an optimal balance between performance and efficiency for transfer learning in realistic biological applications.",
+            "source": "https://doi.org/10.1038/s41598-025-05674-x"
+          }
+        },
+        "common_mistakes": [
+          "Using the first few layers which contain primarily positional/token information rather than semantic protein representations",
+          "Not considering task-specific layer selection when maximum performance matters",
+          "Concatenating all layers, creating unnecessarily large feature vectors without proportional accuracy gains"
+        ]
+      },
+      "sequence_length": {
+        "description": "Maximum input sequence length and handling of long proteins",
+        "situations": {
+          "standard_proteins": {
+            "value_or_range": "Up to 1,022 amino acids (standard configuration)",
+            "when": "Most proteins (median human protein is ~375 aa)",
+            "why": "Standard ESM-2 was trained with a maximum input size of 1,022 amino acids. Most proteins fall within this limit.",
+            "source": "https://arxiv.org/html/2501.07747v1"
+          },
+          "long_proteins": {
+            "value_or_range": "Use sliding window approach: segment into <=1,022 aa slices, average embeddings position-wise",
+            "when": "Proteins longer than 1,022 amino acids (e.g., titin, dystrophin, mucins)",
+            "why": "Extended architectures support up to 2,046 aa. For longer sequences, a sliding window technique segments the sequence into non-overlapping slices, with embeddings aggregated by averaging feature vectors position-wise.",
+            "source": "https://arxiv.org/html/2501.07747v1"
+          }
+        },
+        "common_mistakes": [
+          "Truncating long proteins without implementing sliding window, losing C-terminal information",
+          "Not checking sequence length limits before batch processing, causing silent failures",
+          "Including non-standard amino acid characters without mapping them to standard tokens"
+        ]
+      },
+      "fine_tuning_vs_feature_extraction": {
+        "description": "Whether to fine-tune the entire model or use frozen embeddings as features",
+        "situations": {
+          "feature_extraction": {
+            "value_or_range": "Freeze ESM-2, extract embeddings, train lightweight classifier on top",
+            "when": "Limited training data (<5,000 samples), limited GPU resources, or when rapid experimentation is needed",
+            "why": "Feature extraction is fast, requires minimal compute, and works well for many tasks. Useful when fine-tuning would overfit on small datasets.",
+            "source": "https://doi.org/10.1038/s41467-024-51844-2"
+          },
+          "full_fine_tuning": {
+            "value_or_range": "Fine-tune entire model on task-specific data",
+            "when": "Large labeled datasets (>5,000 samples), task requires learning new protein features, and GPU resources are available",
+            "why": "Performance is systematically higher under fine-tuning compared to feature extraction. Task-specific supervised fine-tuning almost always improves downstream predictions. However, requires significant compute (cannot fine-tune 15B even on H100 with LoRA).",
+            "source": "https://doi.org/10.1038/s41467-024-51844-2"
+          },
+          "parameter_efficient_fine_tuning": {
+            "value_or_range": "LoRA or adapter fine-tuning of ESM-2 650M",
+            "when": "Moderate labeled data, want fine-tuning benefits with reduced compute cost",
+            "why": "Parameter-efficient fine-tuning achieves similar improvements to full fine-tuning with up to 4.5-fold acceleration. Enables fine-tuning of larger models on consumer GPUs.",
+            "source": "https://doi.org/10.1073/pnas.2405840121"
+          }
+        },
+        "common_mistakes": [
+          "Fine-tuning on very small datasets (<1,000 samples) and overfitting",
+          "Attempting to fine-tune ESM-2 15B or 3B without sufficient GPU memory",
+          "Not using early stopping and validation monitoring during fine-tuning"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1101/2022.07.20.500902",
+      "https://doi.org/10.1038/s41598-025-05674-x",
+      "https://doi.org/10.1038/s41467-024-51844-2",
+      "https://doi.org/10.1073/pnas.2405840121",
+      "https://arxiv.org/html/2501.07747v1"
+    ],
+    "best_practice_notes": "ESM-2 650M is the sweet spot for most applications - nearly as accurate as 3B/15B at a fraction of the cost. Use last-layer mean-pooled embeddings as a strong default. Consider mid-to-late layers for function classification tasks. For production, feature extraction with a lightweight head is often sufficient. Fine-tune only when you have >5,000 labeled samples and the task demands it. Use LoRA for parameter-efficient fine-tuning of larger models."
+  },
+  "crispr_guide_design": {
+    "description": "Design of single guide RNAs (sgRNAs) for CRISPR-Cas9 genome editing, including on-target efficiency scoring, off-target risk assessment, and application-specific design rules for knockout, CRISPRi, and screening applications.",
+    "key_parameters": {
+      "gc_content": {
+        "description": "GC content of the 20-nt spacer sequence",
+        "situations": {
+          "optimal_range": {
+            "value_or_range": "40-70%",
+            "when": "Designing guides for standard SpCas9 knockout",
+            "why": "97% of functional sgRNAs have GC content between 30-80%, with optimal efficiency at 40-70%. Too low GC (<30%) reduces binding stability of the guide:target duplex. Too high GC (>70%) increases off-target binding due to stable mismatched duplexes and can cause secondary structures in the guide RNA.",
+            "source": "https://doi.org/10.1038/nbt.3437"
+          },
+          "extended_acceptable": {
+            "value_or_range": "30-80%",
+            "when": "When no guides in the 40-70% range are available for a target region",
+            "why": "The outer range remains functional but with reduced average efficiency. Prioritize other design features (position, sequence context) when GC content is suboptimal.",
+            "source": "https://doi.org/10.1038/nbt.3437"
+          }
+        },
+        "common_mistakes": [
+          "Selecting guides with extreme GC content (<20% or >80%) without checking alternatives",
+          "Not considering that high GC content increases off-target binding stability",
+          "Treating GC content as the sole selection criterion when other features matter more"
+        ]
+      },
+      "position_specific_nucleotides": {
+        "description": "Preferred nucleotides at specific positions in the 20-nt spacer",
+        "situations": {
+          "pam_proximal_preferences": {
+            "value_or_range": "Prefer G at position 20 (PAM-proximal), avoid C at position 20; prefer purines at position 19; prefer C at position 18 (cleavage site); avoid U/T at positions 17-20",
+            "when": "Ranking candidate guides by predicted on-target efficiency",
+            "why": "Position 20 (immediately adjacent to PAM) is the most critical: G is strongly preferred, C is strongly disfavored. Multiple Us in the PAM-proximal spacer cause low sgRNA expression from the U6 promoter (runs of U act as Pol III terminators). C at position 18 (the Cas9 cleavage site) is associated with higher cutting efficiency.",
+            "source": "https://doi.org/10.1038/nbt.3437"
+          },
+          "seed_region_considerations": {
+            "value_or_range": "The 8-14 nt PAM-proximal seed region (positions ~7-20) is critical for specificity; a highly sensitive core is at positions 4-7 upstream of PAM",
+            "when": "Assessing off-target risk",
+            "why": "Single mismatches in the seed region (especially positions 4-7 from PAM) abolish cleavage at off-target sites. The seed region is where Cas9 initiates target DNA unwinding. Mismatches in the PAM-distal region are more tolerated.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5241822/"
+          }
+        },
+        "common_mistakes": [
+          "Ignoring position-specific preferences when multiple guides are available",
+          "Not checking for poly-T runs (TTTT) in the spacer which terminate U6 transcription",
+          "Treating all mismatch positions equally when evaluating off-target risk"
+        ]
+      },
+      "guides_per_gene": {
+        "description": "Number of independent sgRNAs to design per target gene",
+        "situations": {
+          "knockout_standard": {
+            "value_or_range": "3-4 guides per gene",
+            "when": "Individual gene knockout experiments",
+            "why": "Multiple independent guides confirm that the phenotype is due to gene disruption rather than off-target effects. 3 guides enables redundant targeting of 98.8% of genes. Use at least 2 effective guides to claim a phenotype.",
+            "source": "https://www.addgene.org/guides/crispr/"
+          },
+          "knockout_screen": {
+            "value_or_range": "6 guides per gene (optimal); 3 minimum for compact libraries",
+            "when": "Genome-wide or focused CRISPR knockout screens",
+            "why": "6 guides per gene provides the best trade-off for genome-wide screening performance. Compact library designs with 3 guides per gene enable screening with fewer cells while still covering 98.8% of genes.",
+            "source": "https://doi.org/10.1186/s13059-023-03132-3"
+          },
+          "crispri_screen": {
+            "value_or_range": "1-3 dual-sgRNA elements per gene",
+            "when": "CRISPRi-based gene knockdown screens",
+            "why": "Dual-sgRNA library designs achieve 82% median knockdown, significantly outperforming single-sgRNA libraries. Ultra-compact libraries with 1-3 elements per gene are sufficient due to higher CRISPRi efficiency.",
+            "source": "https://doi.org/10.7554/eLife.81856"
+          },
+          "crispri_individual": {
+            "value_or_range": "2-3 guides targeting within 500bp downstream of TSS",
+            "when": "Individual CRISPRi gene knockdown",
+            "why": "CRISPRi guides must be positioned near the transcription start site (within -50 to +300 bp of TSS) for effective repression. Multiple guides confirm the knockdown is not position-dependent.",
+            "source": "https://www.addgene.org/guides/crispr/"
+          }
+        },
+        "common_mistakes": [
+          "Using only 1 guide for knockout and attributing all phenotypes to on-target effects",
+          "Not using sufficient guides per gene in screens, reducing statistical power",
+          "Placing CRISPRi guides far from the TSS where they are ineffective"
+        ]
+      },
+      "off_target_scoring": {
+        "description": "Method for scoring off-target binding and cleavage risk",
+        "situations": {
+          "cfd_score": {
+            "value_or_range": "CFD (Cutting Frequency Determination) score",
+            "when": "Comprehensive off-target evaluation, especially for therapeutic applications",
+            "why": "CFD score uses position-specific mismatch weights that vary by nucleotide substitution type. Outperforms MIT score in predicting actual off-target cleavage. Considers that rG:dT mismatches are generally tolerated (89% active) while rC:dC mismatches are poorly tolerated (37% active).",
+            "source": "https://doi.org/10.1038/nbt.3437"
+          },
+          "mit_score": {
+            "value_or_range": "MIT specificity score",
+            "when": "Quick screening with widely available tools (e.g., CRISPOR, Benchling)",
+            "why": "MIT score is an older, simpler model that uses position-dependent weights but does not differentiate mismatch types. Still useful for initial screening but less accurate than CFD for detailed off-target assessment.",
+            "source": "https://doi.org/10.1038/nbt.3437"
+          }
+        },
+        "common_mistakes": [
+          "Only checking for perfectly matched off-target sites and ignoring 1-3 mismatch sites",
+          "Not considering RNA:DNA mismatch type (rG:dT tolerated vs rC:dC not tolerated) in off-target assessment",
+          "Ignoring off-targets in the seed region (positions 4-7 from PAM) which have the strongest impact on specificity"
+        ]
+      },
+      "pam_variants": {
+        "description": "PAM sequence recognition and activity for different Cas9 variants",
+        "situations": {
+          "standard_spcas9_ngg": {
+            "value_or_range": "NGG PAM - average efficiency ~48%",
+            "when": "Standard genome editing with wild-type SpCas9",
+            "why": "NGG is the canonical PAM with the highest cleavage efficiency. Should be the default choice when an NGG PAM is available at the target locus.",
+            "source": "https://www.nature.com/articles/srep05405"
+          },
+          "alternative_nga": {
+            "value_or_range": "NGA PAM - average efficiency ~16% (3x lower than NGG)",
+            "when": "When NGG PAM is not available at the desired cut site and NGA is the best alternative",
+            "why": "NGA is recognized by wild-type SpCas9 but with significantly reduced efficiency. Consider using engineered Cas9 variants (xCas9, SpCas9-NG) for better NGA recognition.",
+            "source": "https://www.nature.com/articles/srep05405"
+          },
+          "alternative_nag": {
+            "value_or_range": "NAG PAM - average efficiency ~4% (12x lower than NGG)",
+            "when": "Primarily relevant as a source of off-target activity, rarely used intentionally",
+            "why": "NAG PAMs support very low but detectable cleavage by wild-type SpCas9. Important to consider as off-target sites but not recommended for on-target design.",
+            "source": "https://www.nature.com/articles/srep05405"
+          },
+          "pam_flexible_variants": {
+            "value_or_range": "SpCas9-NG (NG PAM), SpRY (near-PAMless)",
+            "when": "When the target site absolutely requires a non-NGG PAM and no redesign is possible",
+            "why": "Engineered variants expand targetable sequence space but come with increased off-target activity. SpRY (near-PAMless) has the broadest targeting range but the highest off-target risk. Always validate with off-target analysis.",
+            "source": "https://doi.org/10.1093/nar/gkab357"
+          }
+        },
+        "common_mistakes": [
+          "Using NAG or NGA PAMs with wild-type SpCas9 and expecting NGG-level efficiency",
+          "Not considering NAG/NGA PAMs as potential off-target sites when evaluating guide specificity",
+          "Using PAM-flexible variants without increased off-target scrutiny"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1038/nbt.3437",
+      "https://doi.org/10.1038/nbt.2647",
+      "https://www.nature.com/articles/srep05405",
+      "https://doi.org/10.1186/s13059-023-03132-3",
+      "https://doi.org/10.7554/eLife.81856",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC5241822/"
+    ],
+    "best_practice_notes": "Design 3-6 guides per gene and validate at least 2. Use CFD score over MIT score for off-target assessment. Check GC content (40-70%), avoid poly-T runs, prefer G at position 20. For screens, 6 guides per gene with 50x cell coverage is optimal. For CRISPRi, target within 500bp downstream of TSS. Always use NGG PAM when available; engineered PAM-flexible variants increase off-target risk. Validate on-target editing efficiency experimentally before large-scale experiments."
+  },
+  "atac_seq_analysis": {
+    "description": "ATAC-seq (Assay for Transposase-Accessible Chromatin using sequencing) maps open chromatin regions genome-wide using Tn5 transposase. Analysis includes fragment size-based quality control, peak calling, differential accessibility, and integration with other epigenomic data.",
+    "key_parameters": {
+      "fragment_size_filtering": {
+        "description": "Filtering fragments based on size to isolate nucleosome-free and nucleosome-bound fractions",
+        "situations": {
+          "nucleosome_free_regions": {
+            "value_or_range": "< 100-147 bp",
+            "when": "Analyzing open chromatin / nucleosome-free regions (NFR)",
+            "why": "Fragments shorter than 147 bp (nucleosome footprint) represent DNA from nucleosome-free regions where Tn5 can insert on both sides of an accessible stretch. These fragments are enriched at TSSs and enhancers and represent the primary signal of interest for chromatin accessibility.",
+            "source": "https://doi.org/10.1186/s13059-020-1929-3"
+          },
+          "mononucleosome_fragments": {
+            "value_or_range": "147-294 bp",
+            "when": "Analyzing nucleosome positioning or phasing around regulatory elements",
+            "why": "Fragments spanning a single wrapped nucleosome (147 bp core + linker DNA) provide information about nucleosome occupancy. These are depleted at TSSs but show characteristic phasing flanking active promoters.",
+            "source": "https://doi.org/10.1186/s13059-020-1929-3"
+          },
+          "all_fragments": {
+            "value_or_range": "All sizes (no filtering)",
+            "when": "Standard peak calling for open chromatin regions",
+            "why": "For general peak calling, using all fragments maximizes signal. Fragment size filtering is more relevant for nucleosome-specific analyses.",
+            "source": "https://doi.org/10.1186/s13059-020-1929-3"
+          }
+        },
+        "common_mistakes": [
+          "Not checking fragment size distribution as a quality control step",
+          "Missing the expected nucleosome periodicity pattern (peaks at ~200, 400, 600 bp) which indicates failed ATAC-seq",
+          "Filtering to NFR only when total signal is needed for peak calling"
+        ]
+      },
+      "tss_enrichment_score": {
+        "description": "Signal-to-noise metric measuring read enrichment at transcription start sites",
+        "situations": {
+          "bulk_atac_seq": {
+            "value_or_range": ">= 5-7 (good quality); >= 10 (excellent quality)",
+            "when": "Bulk ATAC-seq quality assessment",
+            "why": "TSS enrichment is the primary signal-to-noise measure for ATAC-seq. NFR fragments should pile up at active TSSs. Low TSS enrichment indicates poor Tn5 insertion specificity or excessive background.",
+            "source": "https://www.encodeproject.org/atac-seq/"
+          },
+          "single_cell_atac_seq": {
+            "value_or_range": ">= 4 (minimum threshold per cell)",
+            "when": "Per-cell quality control in scATAC-seq",
+            "why": "ArchR and Signac use TSS enrichment >= 4 as a default threshold for pass-filter cells. Cells with lower TSS enrichment are likely dead cells, empty droplets, or failed tagmentation.",
+            "source": "https://www.archrproject.com/bookdown/per-cell-quality-control.html"
+          }
+        },
+        "common_mistakes": [
+          "Not calculating TSS enrichment as a primary QC metric",
+          "Proceeding with analysis despite low TSS enrichment, leading to unreliable peak calls",
+          "Using different TSS enrichment calculation methods across experiments, making comparisons invalid"
+        ]
+      },
+      "frip_score": {
+        "description": "Fraction of reads in peaks - proportion of total reads falling within called peaks",
+        "situations": {
+          "encode_standard": {
+            "value_or_range": "> 0.3 (ideal); > 0.2 (acceptable minimum)",
+            "when": "Assessing overall ATAC-seq data quality",
+            "why": "ENCODE recommends FRiP > 0.3. Lower FRiP indicates high background noise relative to signal. However, FRiP depends on peak calling parameters and the total number of peaks.",
+            "source": "https://www.encodeproject.org/atac-seq/"
+          }
+        },
+        "common_mistakes": [
+          "Using FRiP as the sole quality metric without TSS enrichment",
+          "Comparing FRiP values across datasets with different peak calling parameters",
+          "Not realizing that FRiP is circular (more relaxed peak calling = higher FRiP)"
+        ]
+      },
+      "single_cell_minimum_cells": {
+        "description": "Minimum cells and fragments for reliable scATAC-seq analysis",
+        "situations": {
+          "per_cell_fragment_threshold": {
+            "value_or_range": ">= 1,000 unique nuclear fragments per cell (minimum); >= 10,000-15,000 reads per cell (sequencing depth)",
+            "when": "Per-cell quality control filtering",
+            "why": "scATAC-seq data is inherently sparse (maximum 2 reads per locus per cell). Cells with fewer than 1,000 unique fragments lack sufficient information for reliable clustering and annotation. 10-15k reads per cell ensures adequate coverage.",
+            "source": "https://www.archrproject.com/bookdown/per-cell-quality-control.html"
+          },
+          "experiment_scale": {
+            "value_or_range": ">= 3,000 cells per sample for major cell type recovery; >= 5,000-10,000 for rare cell types",
+            "when": "Experimental design and cell number planning",
+            "why": "Benchmarking studies used 3,000 cells per sample to recover all major PBMC cell types. More cells improve resolution for rare populations and differential accessibility power.",
+            "source": "https://doi.org/10.1038/s41587-023-01881-x"
+          },
+          "peak_calling_pseudo_bulk": {
+            "value_or_range": "Aggregate cells per cluster into pseudo-bulk for peak calling; minimum ~100-500 cells per cluster",
+            "when": "Calling peaks from scATAC-seq data",
+            "why": "Per-cell data is essentially binary and peaks cannot be called at single-cell level. Pseudo-bulk aggregation provides sufficient read depth for MACS2 peak calling. Clusters with very few cells produce unreliable peaks.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9590475/"
+          }
+        },
+        "common_mistakes": [
+          "Attempting to call peaks at the single-cell level",
+          "Not filtering cells by both fragment count AND TSS enrichment",
+          "Using too few cells per cluster for pseudo-bulk peak calling, leading to unreliable peaks"
+        ]
+      },
+      "nucleosome_signal": {
+        "description": "Ratio of mononucleosome to nucleosome-free fragments",
+        "situations": {
+          "quality_threshold": {
+            "value_or_range": "Nucleosome signal < 4 (pass filter)",
+            "when": "Single-cell quality control",
+            "why": "High nucleosome signal indicates poor tagmentation or dead cells where DNA is wrapped around nucleosomes. A ratio < 4 ensures cells have adequate nucleosome-free fragments for accessibility analysis.",
+            "source": "https://stuartlab.org/signac/articles/pbmc_vignette.html"
+          }
+        },
+        "common_mistakes": [
+          "Not filtering cells with high nucleosome signal, including dead/dying cells in analysis",
+          "Confusing nucleosome signal with TSS enrichment - both are needed"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1186/s13059-020-1929-3",
+      "https://www.encodeproject.org/atac-seq/",
+      "https://doi.org/10.1038/s41587-023-01881-x",
+      "https://www.archrproject.com/bookdown/per-cell-quality-control.html",
+      "https://www.sc-best-practices.org/chromatin_accessibility/quality_control.html",
+      "https://doi.org/10.1038/s41467-024-53089-5"
+    ],
+    "best_practice_notes": "Fragment size distribution is the first quality check - verify nucleosome-free peak (<147bp) and mononucleosome peak (~200bp). TSS enrichment >= 5-7 for bulk, >= 4 per cell for scATAC. FRiP > 0.3 (ENCODE). For scATAC, filter cells by unique fragments (>1000), TSS enrichment (>4), and nucleosome signal (<4). Peak calling must be done on pseudo-bulk data. Use Tn5 offset correction (+4/-5 bp). For differential accessibility, account for technical covariates (fragment count, TSS enrichment)."
+  },
+  "tfbs_analysis_jaspar": {
+    "description": "Transcription Factor Binding Site (TFBS) prediction using Position Weight Matrices (PWMs) from the JASPAR database. Involves scanning genomic sequences with PWMs to identify potential TF binding sites, requiring careful selection of scoring thresholds and background models.",
+    "key_parameters": {
+      "score_threshold": {
+        "description": "Minimum score for calling a predicted binding site",
+        "situations": {
+          "relative_score_threshold": {
+            "value_or_range": "Relative score >= 0.80 (80% of maximum possible score)",
+            "when": "Standard TFBS scanning for enrichment analysis or regulatory element identification",
+            "why": "JASPAR uses a relative score >= 0.80 as default. This threshold balances sensitivity and specificity. The relative score normalizes for motif length and information content, making it comparable across different motifs.",
+            "source": "https://jaspar.genereg.net/faq/"
+          },
+          "stringent_scanning": {
+            "value_or_range": "Relative score >= 0.85-0.90",
+            "when": "When specificity is more important than sensitivity (e.g., predicting functional binding sites)",
+            "why": "Higher thresholds reduce false positives at the cost of missing weaker binding sites. Appropriate when predicting sites for experimental validation.",
+            "source": "https://jaspar.genereg.net/faq/"
+          },
+          "p_value_based": {
+            "value_or_range": "p-value < 0.05 (combined with relative score >= 0.80)",
+            "when": "Statistical framework for TFBS prediction",
+            "why": "P-value accounts for the background sequence composition and motif-specific score distribution. Using both relative score AND p-value provides dual quality control. P-value alone can be misleading because different motifs have different score distributions.",
+            "source": "https://jaspar.genereg.net/faq/"
+          }
+        },
+        "common_mistakes": [
+          "Using a fixed absolute score threshold across different motifs (unfair to short/low-information-content motifs)",
+          "Not using both relative score and p-value together for quality control",
+          "Setting thresholds too low and being overwhelmed by false positive predictions"
+        ]
+      },
+      "background_model": {
+        "description": "Background nucleotide frequency model for PWM scoring",
+        "situations": {
+          "uniform_background": {
+            "value_or_range": "Equal frequency: A=T=G=C=0.25",
+            "when": "Quick analysis or when genome composition is unknown",
+            "why": "Simplest model, does not require pre-computation. However, may be inaccurate for genomes with non-uniform base composition.",
+            "source": "https://bioconductor.org/packages//release/bioc/vignettes/TFBSTools/inst/doc/TFBSTools.html"
+          },
+          "genome_specific": {
+            "value_or_range": "Genomic nucleotide frequencies (e.g., human: A/T ~0.29, G/C ~0.21)",
+            "when": "Standard TFBS scanning in a specific genome",
+            "why": "Using genome-specific background frequencies accounts for compositional bias. In AT-rich genomes, AT-rich motifs would appear more often by chance, and genome-specific background corrects for this.",
+            "source": "https://bioconductor.org/packages//release/bioc/vignettes/TFBSTools/inst/doc/TFBSTools.html"
+          },
+          "region_specific": {
+            "value_or_range": "Nucleotide frequencies computed from the analyzed regions (e.g., promoter composition)",
+            "when": "Scanning specific genomic regions with distinct composition (e.g., CpG islands, enhancers)",
+            "why": "Promoters and CpG islands have very different GC content than intergenic regions. Using global genome frequencies as background for CpG island scanning would underestimate GC-rich motif occurrence by chance.",
+            "source": "https://bioconductor.org/packages//release/bioc/vignettes/TFBSTools/inst/doc/TFBSTools.html"
+          }
+        },
+        "common_mistakes": [
+          "Using uniform background for AT-rich or GC-rich genomes, biasing predictions",
+          "Not adjusting background when scanning promoters vs intergenic regions",
+          "Using whole-genome frequencies when only scanning a subset of regions with distinct composition"
+        ]
+      },
+      "redundant_motif_handling": {
+        "description": "How to handle multiple similar motifs from the same TF family",
+        "situations": {
+          "jaspar_non_redundant_core": {
+            "value_or_range": "Use JASPAR CORE collection (non-redundant by design)",
+            "when": "Standard TFBS analysis",
+            "why": "JASPAR CORE is curated to be non-redundant, with different profiles for the same factor only when they recognize significantly different motifs. This reduces but doesn't eliminate redundancy from related TF family members.",
+            "source": "https://doi.org/10.1093/nar/gkab1113"
+          },
+          "post_hoc_clustering": {
+            "value_or_range": "Cluster similar motifs using TOMTOM or motif similarity metrics, report representative motifs",
+            "when": "When scanning with all JASPAR motifs and getting many hits from the same TF family",
+            "why": "Related TFs (e.g., multiple ETS family members) have similar binding preferences. Reporting all individually inflates the number of findings. Clustering by motif similarity and reporting the best match per cluster provides cleaner results.",
+            "source": "https://doi.org/10.1093/nar/gkad1059"
+          }
+        },
+        "common_mistakes": [
+          "Reporting each TF family member as an independent finding when they share the same motif",
+          "Not using the CORE (non-redundant) collection and instead using all JASPAR profiles",
+          "Not clustering results by motif similarity for final reporting"
+        ]
+      },
+      "species_specificity": {
+        "description": "Whether to use species-specific or cross-species motif profiles",
+        "situations": {
+          "same_species": {
+            "value_or_range": "Use species-specific profiles from JASPAR (vertebrates, plants, fungi, insects, urochordata, nematodes)",
+            "when": "Analyzing a species with adequate representation in JASPAR",
+            "why": "JASPAR CORE is divided by taxonomic groups. Species-specific profiles may capture lineage-specific binding preferences and are derived from experiments in the relevant organism.",
+            "source": "https://doi.org/10.1093/nar/gkad1059"
+          },
+          "cross_species_conservation": {
+            "value_or_range": "Use JASPAR phyloFACTS collection or vertebrate collection for cross-species comparisons",
+            "when": "Studying conserved regulatory elements across species or analyzing non-model organisms without species-specific profiles",
+            "why": "phyloFACTS contains motifs derived from evolutionarily conserved sequences across mammals (human, mouse, rat, dog). For non-model organisms, using vertebrate profiles from closely related species is the best available approach.",
+            "source": "https://doi.org/10.1093/nar/gkj115"
+          }
+        },
+        "common_mistakes": [
+          "Using human motifs for plant genome analysis without considering divergent TF binding preferences",
+          "Not checking if the TF of interest has species-specific profiles available in JASPAR",
+          "Assuming TF binding preferences are identical across all vertebrates"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1093/nar/gkad1059",
+      "https://doi.org/10.1093/nar/gkab1113",
+      "https://jaspar.genereg.net/faq/",
+      "https://bioconductor.org/packages//release/bioc/vignettes/TFBSTools/inst/doc/TFBSTools.html",
+      "https://doi.org/10.1093/nar/gkj115"
+    ],
+    "best_practice_notes": "Use JASPAR CORE (non-redundant) collection with species-appropriate taxonomic group. Apply dual thresholds: relative score >= 0.80 AND p-value < 0.05. Match background model to the genomic context being scanned (promoter vs genome-wide). Cluster redundant motif hits from TF families. For cross-species work, use the phyloFACTS collection or the closest taxonomic group available. Always validate computationally predicted TFBSs with experimental evidence (ChIP-seq, footprinting)."
+  },
+  "genomic_coordinate_liftover": {
+    "description": "Converting genomic coordinates between different genome assemblies (e.g., hg19 to hg38, mm9 to mm10) using chain files that map aligned regions between assemblies. The UCSC liftOver tool is the standard utility for this task.",
+    "key_parameters": {
+      "min_match": {
+        "description": "Minimum fraction of bases in the input region that must remap to the target assembly",
+        "situations": {
+          "default_conservative": {
+            "value_or_range": "0.95 (95%)",
+            "when": "Standard coordinate conversion for point features (SNPs, peaks, binding sites)",
+            "why": "Default value ensures high confidence that the remapped region corresponds to the same genomic location. 95% of bases must map successfully. Appropriate for most coordinate conversion tasks.",
+            "source": "http://genomewiki.ucsc.edu/index.php/How_Liftover_Works"
+          },
+          "relaxed_for_larger_regions": {
+            "value_or_range": "0.5-0.8",
+            "when": "Converting larger genomic regions (>10kb) or regions near assembly gaps",
+            "why": "Large regions are more likely to span assembly changes (gap closures, sequence additions). A relaxed minMatch allows partial remapping while still ensuring the majority of the region maps successfully.",
+            "source": "https://groups.google.com/a/soe.ucsc.edu/g/genome/c/YbyOe7AEXj4"
+          },
+          "stringent_for_clinical": {
+            "value_or_range": "0.95-1.0",
+            "when": "Clinical variant annotation where coordinate accuracy is critical",
+            "why": "For clinical applications, incorrect coordinate mapping could lead to wrong variant interpretation. Use the most stringent threshold and manually review any unmapped or partially mapped variants.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10606611/"
+          }
+        },
+        "common_mistakes": [
+          "Setting minMatch to 0.0 which causes segfaults",
+          "Not checking the unmapped output file - it contains regions that failed to convert",
+          "Using minMatch=1.0 and losing too many regions unnecessarily"
+        ]
+      },
+      "problematic_regions": {
+        "description": "Genomic regions where liftOver is unreliable or fails",
+        "situations": {
+          "centromeres_and_telomeres": {
+            "value_or_range": "Expect high failure rate; pre-exclude or handle separately",
+            "when": "Converting coordinates in or near centromeric/telomeric regions",
+            "why": "Centromeres and telomeres are poorly assembled in most genome builds and differ substantially between assemblies. Unconvertible regions are mainly around telomeres and centromeres. These regions have repetitive sequences that cannot be reliably mapped between assemblies.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10606611/"
+          },
+          "segmental_duplications": {
+            "value_or_range": "Higher error rate; validate lifted coordinates manually",
+            "when": "Converting coordinates in segmentally duplicated regions",
+            "why": "Conversion-unstable positions are associated with segmental duplications. Duplicated sequences can map to multiple locations, leading to ambiguous coordinate conversion.",
+            "source": "https://doi.org/10.1093/bib/bbab069"
+          },
+          "assembly_gaps": {
+            "value_or_range": "Pre-exclude gap regions before liftOver",
+            "when": "Regions overlapping assembly gaps in either the source or target assembly",
+            "why": "Gaps represent unsequenced or unresolved regions. Coordinates overlapping gaps may remap incorrectly or not at all. Pre-excluding problematic positions prior to conversion results in stable, reliable conversions.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10606611/"
+          },
+          "indels_and_structural_variants": {
+            "value_or_range": "Use BCFtools/liftover for variants instead of UCSC liftOver for BED",
+            "when": "Converting variant calls (VCF format) between assemblies",
+            "why": "Indels/duplications are more complicated and error-prone than SNVs due to variant size and sequence context. BCFtools/liftover has the lowest rate of variants being dropped and an order of magnitude fewer indels incorrectly converted compared to alternatives.",
+            "source": "https://doi.org/10.1093/bioinformatics/btae038"
+          }
+        },
+        "common_mistakes": [
+          "Not pre-filtering known problematic regions (centromeres, gaps, segmental duplications) before liftOver",
+          "Using UCSC liftOver for VCF variant files instead of variant-aware tools like BCFtools/liftover or Picard LiftoverVcf",
+          "Not checking liftOver success rate and investigating unmapped regions",
+          "Assuming liftOver works for cross-species coordinate conversion (it is designed for same-species assembly updates only)"
+        ]
+      },
+      "chain_file_selection": {
+        "description": "Selection of the correct chain file for coordinate conversion",
+        "situations": {
+          "same_species_assembly_update": {
+            "value_or_range": "Use official UCSC chain files (e.g., hg19ToHg38.over.chain.gz)",
+            "when": "Converting between different assemblies of the same species",
+            "why": "UCSC provides pre-computed chain files for common assembly conversions. These are generated from whole-genome alignments and are the standard resource.",
+            "source": "https://genome.ucsc.edu/goldenPath/help/liftOver.html"
+          },
+          "reverse_conversion": {
+            "value_or_range": "Use the reverse chain file (e.g., hg38ToHg19.over.chain.gz)",
+            "when": "Converting from a newer assembly back to an older one",
+            "why": "Forward and reverse chain files are not symmetric. Always use the chain file matching the direction of conversion. The reverse chain is NOT simply the inverse of the forward chain.",
+            "source": "http://genomewiki.ucsc.edu/index.php/How_Liftover_Works"
+          }
+        },
+        "common_mistakes": [
+          "Using the wrong direction chain file (e.g., hg38ToHg19 when converting hg19 to hg38)",
+          "Using outdated chain files that don't incorporate recent assembly patches",
+          "Attempting cross-species liftOver with same-species chain files or vice versa"
+        ]
+      }
+    },
+    "key_references": [
+      "http://genomewiki.ucsc.edu/index.php/How_Liftover_Works",
+      "https://doi.org/10.1093/bioinformatics/btae038",
+      "https://doi.org/10.1093/bib/bbab069",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC10606611/",
+      "https://genome.ucsc.edu/goldenPath/help/liftOver.html"
+    ],
+    "best_practice_notes": "Always check the unmapped output file and report the conversion success rate. Pre-exclude regions overlapping centromeres, telomeres, assembly gaps, and segmental duplications for cleaner conversions. For variant data (VCF), use BCFtools/liftover instead of UCSC liftOver. The minMatch parameter controls coverage (how much of the region maps), not sequence identity. Use the correct direction chain file. For clinical/diagnostic applications, manually review all conversions and use stringent minMatch (0.95+). LiftOver is designed for same-species assembly conversion only."
+  }
+}

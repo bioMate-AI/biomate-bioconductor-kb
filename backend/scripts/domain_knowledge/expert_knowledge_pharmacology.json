@@ -1,0 +1,1425 @@
+{
+  "molecular_docking_autodock_vina": {
+    "description": "AutoDock Vina performs molecular docking to predict how small molecule ligands bind to protein targets. It uses a scoring function combining steric, hydrophobic, and hydrogen bonding terms with an efficient optimization algorithm to search conformational space and predict binding poses and affinities.",
+    "key_parameters": {
+      "exhaustiveness": {
+        "description": "Controls the thoroughness of the conformational search. Higher values produce more consistent results but increase computation time linearly.",
+        "situations": {
+          "quick_screening": {
+            "value_or_range": "8",
+            "when": "Virtual screening of large libraries (>100,000 compounds) where speed is essential",
+            "why": "Default value provides acceptable accuracy for ranking compounds. Docking power changes little above exhaustiveness of 8 for standard box sizes (<20 Angstrom).",
+            "source": "https://pubmed.ncbi.nlm.nih.gov/36262028/"
+          },
+          "standard_docking": {
+            "value_or_range": "16-32",
+            "when": "Docking a moderate number of ligands (<1000) with standard accuracy requirements",
+            "why": "Exhaustiveness of 25 slightly improves docking power vs. default of 8, but values above 25 yield diminishing returns. A value of 32 provides a good balance of accuracy and speed.",
+            "source": "https://autodock-vina.readthedocs.io/en/latest/faq.html"
+          },
+          "high_accuracy_pose_prediction": {
+            "value_or_range": "32-100",
+            "when": "Predicting binding poses for lead compounds, validating docking protocols, or when the search space is large (>25 Angstrom per dimension)",
+            "why": "Larger search volumes require more exhaustive sampling. Higher exhaustiveness reduces the probability of missing the global minimum, critical when precise binding mode prediction is needed.",
+            "source": "https://pubmed.ncbi.nlm.nih.gov/36262028/"
+          }
+        },
+        "common_mistakes": [
+          "Using default exhaustiveness of 8 with very large grid boxes (>30 Angstrom), leading to poor sampling",
+          "Setting exhaustiveness excessively high (>100) without proportional benefit, wasting computation",
+          "Not running multiple independent docking runs to assess reproducibility of results"
+        ]
+      },
+      "grid_box_size": {
+        "description": "Defines the 3D search space within which ligand poses are sampled. Specified as center coordinates and dimensions in Angstroms.",
+        "situations": {
+          "known_binding_site": {
+            "value_or_range": "15x15x15 to 22x22x22 Angstrom",
+            "when": "Binding site is known from crystal structure or mutagenesis data",
+            "why": "Box should be large enough to enclose the entire binding site with 5-8 Angstrom padding around the site boundaries. Smaller boxes improve sampling efficiency.",
+            "source": "https://autodock-vina.readthedocs.io/en/latest/docking_basic.html"
+          },
+          "optimal_sizing_by_ligand": {
+            "value_or_range": "2.9x radius of gyration of the ligand",
+            "when": "Sizing box based on the expected ligand dimensions",
+            "why": "Systematic analysis showed that the highest docking accuracy is achieved when search space dimensions are 2.9 times larger than the radius of gyration of the docking compound.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4468813/"
+          },
+          "blind_docking": {
+            "value_or_range": "Entire protein surface, typically 40x40x40 to 60x60x60 Angstrom",
+            "when": "Binding site is unknown and whole-protein scanning is needed",
+            "why": "Blind docking explores the entire protein surface. Must increase exhaustiveness proportionally (64-100) to maintain sampling quality. Results should be validated with focused re-docking.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4801993/"
+          }
+        },
+        "common_mistakes": [
+          "Making the box too large without increasing exhaustiveness, leading to poor convergence",
+          "Making the box too small, cutting off parts of the binding site and missing valid poses",
+          "Not centering the box on the binding site centroid, causing asymmetric sampling",
+          "Using boxes larger than 30x30x30 Angstrom without increasing exhaustiveness"
+        ]
+      },
+      "flexible_residues": {
+        "description": "Receptor side chains that are allowed to move during docking, enabling induced-fit effects.",
+        "situations": {
+          "standard_rigid_docking": {
+            "value_or_range": "0 flexible residues",
+            "when": "Initial screening runs or when the receptor conformation is well-defined from a high-resolution crystal structure with a similar ligand bound",
+            "why": "Rigid receptor docking is fastest and sufficient when the binding site conformation is well characterized. Adding flexibility increases search space exponentially.",
+            "source": "https://vina.scripps.edu/manual/"
+          },
+          "induced_fit_modeling": {
+            "value_or_range": "2-6 key residues",
+            "when": "Known flexible active-site residues (e.g., gatekeeper residues, catalytic residues) or when rigid docking fails to reproduce known binding modes",
+            "why": "Each flexible residue adds rotatable bonds, increasing search complexity. Limiting to 2-6 residues balances induced-fit modeling with computational tractability. Focus on residues known to change conformation upon ligand binding.",
+            "source": "https://autodock-vina.readthedocs.io/en/latest/docking_flexible.html"
+          }
+        },
+        "common_mistakes": [
+          "Making too many residues flexible (>6), dramatically increasing search space and reducing accuracy",
+          "Selecting flexible residues arbitrarily rather than based on crystallographic or mutagenesis evidence",
+          "Not separating the receptor into rigid and flexible PDBQT files correctly"
+        ]
+      },
+      "pose_selection_and_clustering": {
+        "description": "Method for selecting the best binding pose from multiple docking runs, typically using RMSD-based clustering.",
+        "situations": {
+          "standard_clustering": {
+            "value_or_range": "RMSD cutoff of 2.0 Angstrom",
+            "when": "Clustering poses from multiple docking runs to identify consensus binding modes",
+            "why": "An RMSD of 2.0 Angstrom is the accepted threshold for correct pose prediction in the docking community. Poses within 2 Angstrom RMSD of the crystallographic pose are considered successful predictions.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6067002/"
+          },
+          "top_pose_selection": {
+            "value_or_range": "Select lowest energy pose from largest cluster",
+            "when": "Choosing a single representative binding mode for downstream analysis",
+            "why": "The largest cluster represents the most frequently sampled binding mode, suggesting convergence. The lowest energy member of this cluster provides the best-scored representative pose.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6067002/"
+          }
+        },
+        "common_mistakes": [
+          "Always selecting the lowest energy pose without considering cluster size or convergence",
+          "Not performing multiple independent runs to assess pose reproducibility",
+          "Ignoring poses in the second-largest cluster that may represent alternative binding modes"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3041641/",
+      "https://pubmed.ncbi.nlm.nih.gov/36262028/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC4468813/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC4801993/"
+    ],
+    "best_practice_notes": "Always validate docking protocols by re-docking known co-crystallized ligands and comparing RMSD to the experimental pose (<2.0 Angstrom). For virtual screening, use rigid docking first, then refine hits with flexible docking. Prepare proteins carefully: add hydrogens, assign charges, remove water molecules (except conserved waters in the active site). Use RMSD clustering across multiple runs to assess convergence."
+  },
+  "admet_property_prediction": {
+    "description": "ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity) property prediction evaluates the pharmacokinetic and safety profile of drug candidates in silico. These properties account for the failure of approximately 60% of drug molecules during development.",
+    "key_parameters": {
+      "lipinski_rule_of_five": {
+        "description": "Empirical rules predicting oral bioavailability based on molecular properties. A compound violating more than one rule is unlikely to be orally bioavailable.",
+        "situations": {
+          "standard_oral_drugs": {
+            "value_or_range": "MW < 500 Da, LogP <= 5, HBD <= 5, HBA <= 10",
+            "when": "Designing or filtering compounds intended for oral administration",
+            "why": "Based on analysis of >2,000 drugs by Christopher Lipinski (1997). These thresholds represent the 90th percentile of orally available drugs. Compounds violating more than one rule have poor absorption or permeability.",
+            "source": "https://en.wikipedia.org/wiki/Lipinski's_rule_of_five"
+          },
+          "beyond_rule_of_five": {
+            "value_or_range": "MW 500-1000, violations allowed for natural products and peptidomimetics",
+            "when": "Working with antibiotics, antifungals, natural products, or PPI inhibitors that inherently violate Lipinski rules",
+            "why": "Many successful drugs violate Lipinski rules, especially those targeting protein-protein interactions or using active transport mechanisms. The 'beyond Rule of 5' (bRo5) chemical space includes approved drugs like cyclosporine.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4910824/"
+          }
+        },
+        "common_mistakes": [
+          "Treating Lipinski violations as absolute rejection criteria rather than guidelines",
+          "Applying Lipinski rules to non-oral routes (injectable, inhaled, topical drugs)",
+          "Ignoring that natural products and biologics routinely violate these rules"
+        ]
+      },
+      "tpsa": {
+        "description": "Topological Polar Surface Area - sum of surfaces of polar atoms. Correlates with intestinal absorption and blood-brain barrier penetration.",
+        "situations": {
+          "oral_absorption": {
+            "value_or_range": "20-130 square Angstrom",
+            "when": "Evaluating intestinal absorption potential for oral drugs",
+            "why": "Compounds with TPSA > 140 square Angstrom typically have poor intestinal absorption (<10%). The range 20-130 captures most orally bioavailable drugs.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5335600/"
+          },
+          "cns_penetration": {
+            "value_or_range": "< 90 square Angstrom (ideally < 70)",
+            "when": "Designing CNS-targeting drugs that must cross the blood-brain barrier",
+            "why": "The BBB is more restrictive than intestinal epithelium. CNS drugs generally require TPSA < 90 square Angstrom, with most successful CNS drugs having TPSA < 70.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5335600/"
+          }
+        },
+        "common_mistakes": [
+          "Not considering TPSA alongside LogP for permeability assessment",
+          "Using TPSA alone without considering charge state at physiological pH",
+          "Ignoring that TPSA thresholds differ for different tissues and barrier types"
+        ]
+      },
+      "logp": {
+        "description": "Logarithm of the octanol-water partition coefficient. Measures lipophilicity, which affects absorption, distribution, metabolism, and toxicity.",
+        "situations": {
+          "optimal_oral_absorption": {
+            "value_or_range": "1.35-1.8 (ideal), must be <= 5 (Lipinski)",
+            "when": "Optimizing oral and intestinal absorption",
+            "why": "LogP values between 1.35 and 1.8 provide optimal oral and intestinal absorption. Too hydrophilic (LogP < 0) compounds have poor membrane permeability; too lipophilic (LogP > 5) compounds have poor aqueous solubility.",
+            "source": "https://www.sailife.com/understanding-lipinskis-rule-of-5-and-the-role-of-logp-value-in-drug-design-and-development/"
+          },
+          "cns_drugs": {
+            "value_or_range": "~2.0",
+            "when": "Designing drugs to cross the blood-brain barrier",
+            "why": "CNS drugs require sufficient lipophilicity to cross the BBB but not so much that they become trapped in membranes. A LogP around 2.0 provides optimal CNS penetration.",
+            "source": "https://www.sailife.com/understanding-lipinskis-rule-of-5-and-the-role-of-logp-value-in-drug-design-and-development/"
+          },
+          "sublingual_absorption": {
+            "value_or_range": "> 5",
+            "when": "Designing drugs for sublingual or buccal absorption",
+            "why": "Sublingual absorption relies on passive diffusion through the lipophilic oral mucosa, favoring highly lipophilic compounds.",
+            "source": "https://www.sailife.com/understanding-lipinskis-rule-of-5-and-the-role-of-logp-value-in-drug-design-and-development/"
+          }
+        },
+        "common_mistakes": [
+          "Using calculated LogP without experimental validation for lead compounds",
+          "Not considering LogD (pH-dependent partition coefficient) for ionizable compounds",
+          "Optimizing for LogP without considering the impact on metabolic stability and off-target binding"
+        ]
+      },
+      "solubility": {
+        "description": "Aqueous solubility of compound, typically reported as LogS. Critical determinant of oral bioavailability.",
+        "situations": {
+          "acceptable_solubility": {
+            "value_or_range": "LogS > -4 (> 50 microg/mL)",
+            "when": "Screening for compounds with adequate solubility for oral dosing",
+            "why": "Compounds with aqueous solubility below 50 microg/mL frequently show dissolution-limited absorption, especially at higher doses.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5335600/"
+          },
+          "high_solubility": {
+            "value_or_range": "LogS > -3 (> 500 microg/mL)",
+            "when": "BCS Class I compounds or compounds requiring high doses",
+            "why": "High solubility reduces the risk of variable absorption and food effects, simplifying clinical development.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5335600/"
+          }
+        },
+        "common_mistakes": [
+          "Not measuring solubility at physiologically relevant pH values (1.2, 6.8, 7.4)",
+          "Relying solely on thermodynamic solubility without checking kinetic solubility",
+          "Ignoring the impact of polymorphism and salt form on solubility"
+        ]
+      },
+      "herg_toxicity": {
+        "description": "Inhibition of the hERG potassium channel, which can cause QT prolongation, arrhythmia, and potentially fatal cardiac events (Torsades de Pointes).",
+        "situations": {
+          "safe_threshold": {
+            "value_or_range": "hERG IC50 > 10 microM",
+            "when": "Screening compounds for cardiac safety liability",
+            "why": "Compounds with hERG IC50 > 10 microM are generally classified as non-inhibitors. Most hERG prediction models use 10 microM as the classification cutoff.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3324100/"
+          },
+          "concerning_threshold": {
+            "value_or_range": "hERG IC50 < 1 microM",
+            "when": "Compounds showing strong hERG inhibition requiring immediate medicinal chemistry attention",
+            "why": "Compounds with hERG IC50 below 1 microM have a high probability of clinical QT prolongation. A safety margin of at least 30-fold between therapeutic Cmax and hERG IC50 is typically required.",
+            "source": "https://www.nature.com/articles/s41598-025-99766-3"
+          }
+        },
+        "common_mistakes": [
+          "Using different IC50 thresholds (1-40 microM) without specifying which was used, making comparisons unreliable",
+          "Not considering the ratio of hERG IC50 to therapeutic Cmax (safety margin) rather than absolute IC50",
+          "Ignoring that lipophilic compounds (high LogP) have inherently higher hERG binding propensity"
+        ]
+      },
+      "clearance": {
+        "description": "Rate of drug elimination from the body, typically measured as hepatic clearance in microsomal or hepatocyte assays.",
+        "situations": {
+          "low_clearance": {
+            "value_or_range": "< 5 mL/min/kg (human)",
+            "when": "Compounds expected to have long half-lives suitable for once-daily dosing",
+            "why": "Low clearance compounds have favorable pharmacokinetics for sustained exposure. Indicates metabolic stability and potential for low dose.",
+            "source": "https://www.allucent.com/resources/blog/compartmental-modeling-pharmacokinetics"
+          },
+          "high_clearance": {
+            "value_or_range": "> 20 mL/min/kg (human)",
+            "when": "Compounds showing rapid metabolism requiring structural optimization",
+            "why": "High clearance reduces oral bioavailability and requires frequent dosing. May indicate metabolic soft spots that can be blocked through structural modification.",
+            "source": "https://www.allucent.com/resources/blog/compartmental-modeling-pharmacokinetics"
+          }
+        },
+        "common_mistakes": [
+          "Not scaling in vitro clearance to in vivo using appropriate well-stirred or parallel tube liver models",
+          "Ignoring species differences in clearance when extrapolating from preclinical to human",
+          "Not considering extrahepatic clearance (renal, intestinal) alongside hepatic clearance"
+        ]
+      }
+    },
+    "key_references": [
+      "https://en.wikipedia.org/wiki/Lipinski's_rule_of_five",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC5335600/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC4910824/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3324100/"
+    ],
+    "best_practice_notes": "Use multiple complementary ADMET prediction tools (SwissADME, ADMETlab, pkCSM) and compare results. Lipinski rules are guidelines, not absolute cutoffs. Always consider the intended route of administration when applying druglikeness filters. Evaluate ADMET properties early in lead optimization to avoid late-stage failures. For hERG, maintain a safety margin of at least 30-fold between therapeutic Cmax and hERG IC50."
+  },
+  "pharmacokinetic_modeling": {
+    "description": "Pharmacokinetic (PK) modeling uses mathematical compartment models to describe the time course of drug absorption, distribution, metabolism, and excretion. Models range from simple one-compartment to complex physiologically-based pharmacokinetic (PBPK) models.",
+    "key_parameters": {
+      "compartment_model_selection": {
+        "description": "Number of compartments used to describe drug distribution kinetics. Each compartment represents a kinetically homogeneous group of tissues.",
+        "situations": {
+          "one_compartment": {
+            "value_or_range": "1 compartment",
+            "when": "Drug distributes rapidly throughout the body, plasma concentration shows monoexponential decline, or limited sampling time points available",
+            "why": "Simplest model assuming instantaneous distribution equilibrium. Appropriate for hydrophilic drugs with small volume of distribution. Use when the data show a single exponential decay phase.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3636497/"
+          },
+          "two_compartment": {
+            "value_or_range": "2 compartments (central + peripheral)",
+            "when": "Plasma concentration shows biexponential decline with distinct distribution and elimination phases",
+            "why": "Most commonly used model for drugs with moderate tissue distribution. The initial rapid decline represents distribution to peripheral tissues, followed by slower elimination. Applicable to most small-molecule drugs.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3636497/"
+          },
+          "three_compartment": {
+            "value_or_range": "3 compartments (central + shallow + deep peripheral)",
+            "when": "Triexponential plasma decline observed, highly lipophilic drugs with deep tissue accumulation (e.g., amiodarone, thiopental)",
+            "why": "Needed for drugs that accumulate in deep tissue compartments (fat, bone) with very slow redistribution. Always employ the minimum number of compartments that adequately describe the data.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3636497/"
+          }
+        },
+        "common_mistakes": [
+          "Overparameterizing the model with too many compartments, leading to poor parameter precision",
+          "Not using objective function values (AIC, BIC) to compare competing models",
+          "Fitting a 2-compartment model to data with insufficient time points in the distribution phase"
+        ]
+      },
+      "clearance": {
+        "description": "Volume of plasma cleared of drug per unit time. The most important PK parameter, directly related to drug elimination and maintenance dosing.",
+        "situations": {
+          "hepatic_clearance_estimation": {
+            "value_or_range": "CL = Q * fu * CLint / (Q + fu * CLint) [well-stirred model]",
+            "when": "Estimating hepatic clearance from in vitro microsomal data",
+            "why": "The well-stirred model is the most commonly used liver model. Requires hepatic blood flow (Q ~20 mL/min/kg in humans), fraction unbound in blood (fu), and intrinsic clearance from microsomes (CLint).",
+            "source": "https://www.ncbi.nlm.nih.gov/books/NBK545280/"
+          },
+          "allometric_scaling": {
+            "value_or_range": "CL = a * BW^0.75",
+            "when": "Predicting human clearance from preclinical animal data using allometric scaling",
+            "why": "The allometric equation Y = a * W^b with b approximately 0.75 for clearance reflects the scaling of metabolic rate with body weight across species. Multiple species (mouse, rat, dog, monkey) improve prediction accuracy.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6523982/"
+          }
+        },
+        "common_mistakes": [
+          "Not accounting for protein binding differences between species in allometric scaling",
+          "Using in vitro CLint without proper scaling factors (mg protein per gram liver, liver weight per body weight)",
+          "Ignoring non-hepatic clearance routes (renal, intestinal, pulmonary)"
+        ]
+      },
+      "volume_of_distribution": {
+        "description": "Apparent volume relating drug amount in the body to plasma concentration. Reflects extent of tissue distribution.",
+        "situations": {
+          "loading_dose_calculation": {
+            "value_or_range": "Use Vss (volume at steady state)",
+            "when": "Calculating loading dose to rapidly achieve target plasma concentration",
+            "why": "Vss is the most representative of the drug's pharmacokinetic properties at desired steady-state plasma concentration. Loading Dose = Vss * Cp_target.",
+            "source": "https://www.ncbi.nlm.nih.gov/books/NBK545280/"
+          },
+          "allometric_scaling_vd": {
+            "value_or_range": "Vss = a * BW^1.0",
+            "when": "Predicting human Vss from animal data",
+            "why": "Volume of distribution scales roughly proportionally with body weight (exponent near 1.0), reflecting the proportional scaling of body fluid volumes.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6523982/"
+          }
+        },
+        "common_mistakes": [
+          "Confusing Vd (area), Vc (central), and Vss (steady-state) - each has a different use",
+          "Interpreting Vd as a real physiological volume rather than an apparent proportionality constant",
+          "Not considering that very large Vd (>10 L/kg) indicates extensive tissue binding"
+        ]
+      },
+      "half_life": {
+        "description": "Time required for plasma concentration to decrease by 50%. Determines dosing frequency and time to reach steady state (4-5 half-lives).",
+        "situations": {
+          "once_daily_dosing": {
+            "value_or_range": "t1/2 = 12-24 hours",
+            "when": "Designing drugs for convenient once-daily oral dosing",
+            "why": "A half-life of 12-24 hours provides acceptable peak-trough fluctuation for most drugs with once-daily dosing. Shorter half-lives require extended-release formulations.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3581066/"
+          },
+          "half_life_calculation": {
+            "value_or_range": "t1/2 = 0.693 * Vd / CL",
+            "when": "Estimating half-life from clearance and volume of distribution",
+            "why": "Half-life is a derived parameter dependent on both CL and Vd. It is not an intrinsic drug property and can change if either CL or Vd changes (e.g., in disease states).",
+            "source": "https://partone.litfl.com/pharmacokinetic_modelling.html"
+          }
+        },
+        "common_mistakes": [
+          "Treating half-life as a primary PK parameter rather than a derived parameter (from CL and Vd)",
+          "Not considering the operational multiple dosing half-life which may differ from terminal half-life",
+          "Ignoring that steady state takes 4-5 half-lives regardless of dose or dosing interval"
+        ]
+      },
+      "bioavailability": {
+        "description": "Fraction of administered dose that reaches systemic circulation unchanged. Determined by absorption, gut metabolism, and first-pass hepatic metabolism.",
+        "situations": {
+          "oral_bioavailability_estimation": {
+            "value_or_range": "F = fa * fg * fh",
+            "when": "Predicting oral bioavailability from in vitro data",
+            "why": "Oral bioavailability is the product of fraction absorbed (fa, from Caco-2 permeability), fraction escaping gut wall metabolism (fg), and fraction escaping hepatic first-pass metabolism (fh = 1 - ER, where ER is extraction ratio).",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6523982/"
+          },
+          "acceptable_oral_bioavailability": {
+            "value_or_range": "> 20-30%",
+            "when": "Evaluating whether oral dosing is feasible for a drug candidate",
+            "why": "Below 20% bioavailability, dose requirements increase substantially, leading to higher pill burden, greater inter-subject variability, and increased food effects.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6523982/"
+          }
+        },
+        "common_mistakes": [
+          "Not accounting for species differences in bioavailability when scaling from animals to humans",
+          "Ignoring the contribution of gut wall metabolism (CYP3A4) to first-pass extraction",
+          "Assuming bioavailability is constant when it can be dose-dependent or affected by food"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3636497/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6523982/",
+      "https://www.ncbi.nlm.nih.gov/books/NBK545280/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3581066/"
+    ],
+    "best_practice_notes": "Always employ the minimum number of compartments that adequately describe the data to avoid overparameterization. Use AIC/BIC for model comparison. For allometric scaling, use at least 3 species. Clearance is the most important PK parameter for maintenance dosing, while Vd is most important for loading dose. Remember that half-life is a derived parameter - changes in disease states affect CL and Vd independently."
+  },
+  "drug_drug_interaction_prediction": {
+    "description": "Prediction of pharmacokinetic drug-drug interactions (DDIs) mediated by metabolic enzymes (primarily CYP450 family) and drug transporters. DDIs can lead to clinically significant changes in drug exposure (AUC), efficacy, and toxicity.",
+    "key_parameters": {
+      "cyp_inhibition_assessment": {
+        "description": "In vitro evaluation of a drug's potential to inhibit CYP450 enzymes, which can increase exposure of co-administered drugs metabolized by the same enzyme.",
+        "situations": {
+          "reversible_inhibition_cutoff": {
+            "value_or_range": "[I]1/IC50 > 0.1 or [I]2/IC50 > 10 triggers in vivo study",
+            "when": "Determining whether a new drug candidate requires a clinical DDI study as inhibitor",
+            "why": "FDA guidance uses [I]1 (mean steady-state total Cmax at highest clinical dose) and [I]2 (theoretical maximal GI concentration = dose/250 mL). If either ratio exceeds the threshold, in vivo DDI evaluation is recommended.",
+            "source": "https://www.fda.gov/files/drugs/published/In-Vitro-Metabolism--and-Transporter--Mediated-Drug-Drug-Interaction-Studies-Guidance-for-Industry.pdf"
+          },
+          "time_dependent_inhibition": {
+            "value_or_range": "IC50 shift > 1.5-fold",
+            "when": "Assessing mechanism-based (time-dependent) CYP inhibition",
+            "why": "A fold shift greater than 1.5 in IC50 values (with vs. without preincubation with NADPH) indicates time-dependent inhibition, which is clinically more concerning because the enzyme is irreversibly inactivated.",
+            "source": "https://www.evotec.com/drug-metabolism/time-dependent-cyp-inhibition-ic50-shift"
+          },
+          "major_cyp_enzymes_to_test": {
+            "value_or_range": "CYP1A2, CYP2B6, CYP2C8, CYP2C9, CYP2C19, CYP2D6, CYP3A4/5",
+            "when": "Comprehensive CYP inhibition profiling per regulatory requirements",
+            "why": "These seven CYPs metabolize >90% of clinically used drugs. CYP3A4 alone accounts for ~50% of drug metabolism. ICH M12 (2024) harmonized guidance recommends testing all seven.",
+            "source": "https://database.ich.org/sites/default/files/ICH_M12_Step4_Guideline_2024_0521_0.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Not testing time-dependent inhibition alongside reversible inhibition",
+          "Using inappropriate substrate concentrations (should be at or near Km)",
+          "Not considering unbound fraction when calculating inhibitor concentrations for risk assessment"
+        ]
+      },
+      "cyp_induction_assessment": {
+        "description": "Evaluation of a drug's potential to increase CYP enzyme expression, leading to decreased exposure of co-administered drugs.",
+        "situations": {
+          "induction_threshold": {
+            "value_or_range": ">= 2-fold increase in mRNA or >= 40% of positive control response",
+            "when": "Determining whether a compound is a clinically relevant CYP inducer in hepatocyte assays",
+            "why": "FDA and ICH M12 guidance recommends using fold-increase in mRNA levels relative to vehicle control. A >= 2-fold increase or >= 40% of positive control (rifampin for CYP3A4) triggers further evaluation.",
+            "source": "https://database.ich.org/sites/default/files/ICH_M12_Step4_Guideline_2024_0521_0.pdf"
+          },
+          "clinical_significance_auc_ratio": {
+            "value_or_range": "AUC ratio < 0.8 (>20% decrease) is potentially clinically significant",
+            "when": "Predicting clinical impact of CYP induction on victim drug exposure",
+            "why": "An AUC decrease of >20% may require dose adjustment of co-administered drugs. Strong inducers (e.g., rifampin) can decrease AUC by >80%. The FDA classifies inducers as weak (AUC decrease 20-50%), moderate (50-80%), or strong (>80%).",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10813492/"
+          }
+        },
+        "common_mistakes": [
+          "Using only single-concentration testing instead of concentration-response curves",
+          "Not using multiple hepatocyte donors to account for inter-individual variability",
+          "Ignoring simultaneous inhibition and induction (net effect depends on relative potency)"
+        ]
+      },
+      "transporter_interactions": {
+        "description": "Drug interactions mediated by membrane transporters (P-gp, BCRP, OATP1B1/3, OAT1/3, OCT2, MATE1/2K).",
+        "situations": {
+          "efflux_transporter_assessment": {
+            "value_or_range": "Efflux ratio > 2 in bidirectional Caco-2 assay indicates P-gp/BCRP substrate",
+            "when": "Determining if a compound is a substrate of efflux transporters",
+            "why": "P-gp and BCRP limit oral absorption and CNS penetration. An efflux ratio >2 suggests the compound is actively pumped out, reducing its bioavailability.",
+            "source": "https://database.ich.org/sites/default/files/ICH_M12_Step4_Guideline_2024_0521_0.pdf"
+          },
+          "inhibition_of_transporters": {
+            "value_or_range": "[I]1/IC50 > 0.1 for systemic, [I]2/IC50 > 10 for GI transporters",
+            "when": "Assessing whether a drug inhibits key transporters",
+            "why": "Similar threshold approach to CYP inhibition. Hepatic uptake transporter inhibition (OATP1B1/3) can dramatically increase statin exposure, as seen with the gemfibrozil-cerivastatin interaction.",
+            "source": "https://database.ich.org/sites/default/files/ICH_M12_Step4_Guideline_2024_0521_0.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Only testing CYP-mediated interactions while ignoring transporter-mediated DDIs",
+          "Not testing the relevant transporters per ICH M12 guidance (P-gp, BCRP, OATP1B1, OATP1B3, OAT1, OAT3, OCT2, MATE1, MATE2K)",
+          "Ignoring the interplay between CYP metabolism and transporter-mediated DDIs"
+        ]
+      }
+    },
+    "key_references": [
+      "https://database.ich.org/sites/default/files/ICH_M12_Step4_Guideline_2024_0521_0.pdf",
+      "https://www.fda.gov/files/drugs/published/In-Vitro-Metabolism--and-Transporter--Mediated-Drug-Drug-Interaction-Studies-Guidance-for-Industry.pdf",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC10813492/",
+      "https://pubmed.ncbi.nlm.nih.gov/29503426/"
+    ],
+    "best_practice_notes": "Follow the ICH M12 harmonized guidance (adopted May 2024) for a stepwise, risk-based approach to DDI evaluation. Test all seven major CYP enzymes for both reversible and time-dependent inhibition. Include transporter assessments per current regulatory recommendations. Use PBPK modeling for complex DDI predictions involving multiple mechanisms. Consider clinical context: an interaction that doubles AUC may be clinically irrelevant for a wide therapeutic index drug but dangerous for a narrow therapeutic index drug."
+  },
+  "lead_optimization": {
+    "description": "Lead optimization is the iterative process of modifying a hit/lead compound to improve its potency, selectivity, ADMET properties, and overall drug-likeness while maintaining or improving synthetic accessibility. Key strategies include SAR analysis, scaffold hopping, and bioisosteric replacement.",
+    "key_parameters": {
+      "sar_analysis": {
+        "description": "Structure-Activity Relationship analysis systematically maps how chemical modifications affect biological activity, guiding the optimization of lead compounds.",
+        "situations": {
+          "systematic_analog_series": {
+            "value_or_range": "Vary one functional group at a time (matched molecular pair analysis)",
+            "when": "Early SAR exploration to identify key pharmacophoric features and tolerance for substitution",
+            "why": "Systematic single-point modifications allow clear attribution of activity changes to specific structural changes. Matched molecular pair (MMP) analysis provides quantitative SAR insights from large datasets.",
+            "source": "https://synapse.patsnap.com/article/what-are-the-methods-of-lead-optimization-in-drug-discovery"
+          },
+          "qsar_modeling": {
+            "value_or_range": "Build QSAR models with R-squared > 0.6 and Q-squared > 0.5 for predictive utility",
+            "when": "Sufficient data (>30 compounds) available to build quantitative SAR models",
+            "why": "QSAR models enable prediction of activity for untested compounds, guiding synthesis prioritization. Models should be validated using cross-validation (Q-squared) and external test sets.",
+            "source": "https://synapse.patsnap.com/article/what-are-the-methods-of-lead-optimization-in-drug-discovery"
+          }
+        },
+        "common_mistakes": [
+          "Changing multiple functional groups simultaneously, confounding SAR interpretation",
+          "Optimizing only potency without tracking ADMET properties in parallel",
+          "Not building in selectivity assays early to detect off-target activity trends"
+        ]
+      },
+      "scaffold_hopping": {
+        "description": "Replacement of the core framework of a molecule with a different scaffold that maintains or improves activity while accessing novel chemical space.",
+        "situations": {
+          "patent_circumvention": {
+            "value_or_range": "Replace core ring system while maintaining key pharmacophoric features",
+            "when": "Developing novel chemical matter around a validated target where existing scaffolds are patent-protected",
+            "why": "Scaffold hopping generates structurally distinct compounds that may fall outside existing patent claims while maintaining similar binding interactions.",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/S1359644623003616"
+          },
+          "property_optimization": {
+            "value_or_range": "Replace aromatic rings with sp3-rich fragments or bioisosteric heterocycles",
+            "when": "Improving solubility, metabolic stability, or reducing lipophilicity of flat, aromatic scaffolds",
+            "why": "Increasing Fsp3 (fraction of sp3-hybridized carbons) generally improves solubility and reduces CYP metabolism. Replacing phenyl rings with pyridines, cyclopropanes, or bicyclic motifs can improve drug-like properties.",
+            "source": "https://pubs.acs.org/doi/10.1021/acs.jmedchem.1c01215"
+          }
+        },
+        "common_mistakes": [
+          "Performing scaffold hopping without maintaining critical pharmacophoric distances and angles",
+          "Not considering the synthetic accessibility of new scaffolds",
+          "Ignoring the potential for new metabolic liabilities introduced by the replacement scaffold"
+        ]
+      },
+      "bioisostere_replacement": {
+        "description": "Swapping functional groups with bioisosteric equivalents that have similar size, shape, electronic properties, and biological activity.",
+        "situations": {
+          "metabolic_stability": {
+            "value_or_range": "Replace metabolically labile groups (e.g., ester to amide, methyl to CF3, phenol to indazole)",
+            "when": "Lead compound has identified metabolic soft spots from metabolite ID studies",
+            "why": "Bioisosteric replacements can block metabolism at specific sites while maintaining the electronic and steric properties needed for target binding. Classic examples include ester-to-amide (blocks esterase metabolism) and methyl-to-trifluoromethyl (blocks oxidation).",
+            "source": "https://pubmed.ncbi.nlm.nih.gov/27463193/"
+          },
+          "improving_solubility": {
+            "value_or_range": "Replace phenyl with pyridine, cyclohexane, or bicyclo[1.1.1]pentane (BCP)",
+            "when": "Compound has poor aqueous solubility due to excessive lipophilicity or crystal packing",
+            "why": "Phenyl-to-pyridine adds a polar atom reducing LogP by ~0.5 units. BCP maintains similar spatial geometry to phenyl with lower lipophilicity and improved aqueous solubility.",
+            "source": "https://pubs.acs.org/doi/10.1021/acs.jmedchem.1c01215"
+          }
+        },
+        "common_mistakes": [
+          "Assuming bioisosteric replacement is always activity-neutral without experimental verification",
+          "Not considering the pKa changes that accompany bioisosteric swaps (e.g., carboxylic acid to tetrazole)",
+          "Overlooking changes in stereochemistry or conformational preference with new bioisosteres"
+        ]
+      },
+      "selectivity_optimization": {
+        "description": "Improving selectivity for the target of interest over related off-target proteins to minimize side effects.",
+        "situations": {
+          "kinase_selectivity": {
+            "value_or_range": ">100-fold selectivity over closely related kinases, assessed across a kinase panel (e.g., 400+ kinases)",
+            "when": "Optimizing kinase inhibitors where the target kinase shares high structural homology with off-target kinases",
+            "why": "The human kinome contains 518 kinases with highly conserved ATP-binding sites. Selectivity panels (e.g., DiscoverX scanMAX, Eurofins KinaseProfiler) are essential to assess and optimize selectivity.",
+            "source": "https://lifesciences.danaher.com/us/en/library/lead-optimization-drug-discovery-guide.html"
+          },
+          "general_selectivity_target": {
+            "value_or_range": ">30-fold selectivity for primary pharmacology over key off-targets",
+            "when": "General lead optimization to minimize side effects",
+            "why": "A 30-fold selectivity window between therapeutic target and off-target activity provides a reasonable safety margin for most drug programs.",
+            "source": "https://lifesciences.danaher.com/us/en/library/lead-optimization-drug-discovery-guide.html"
+          }
+        },
+        "common_mistakes": [
+          "Optimizing potency without concurrently monitoring selectivity trends",
+          "Only testing selectivity against a narrow panel of closely related targets",
+          "Not accounting for active metabolites that may have different selectivity profiles"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pubmed.ncbi.nlm.nih.gov/27463193/",
+      "https://pubs.acs.org/doi/10.1021/acs.jmedchem.1c01215",
+      "https://www.sciencedirect.com/science/article/abs/pii/S1359644623003616",
+      "https://synapse.patsnap.com/article/what-are-the-methods-of-lead-optimization-in-drug-discovery"
+    ],
+    "best_practice_notes": "Lead optimization requires multiparameter optimization (MPO) tracking potency, selectivity, ADMET properties, and synthetic feasibility simultaneously. Use molecular matched pairs analysis to quantify the impact of structural changes. Apply bioisosteric replacements strategically at identified liability sites. Maintain a broad selectivity panel throughout optimization, not just at candidate selection. Consider using computational tools (FEP+, QSAR, molecular dynamics) to prioritize synthesis."
+  },
+  "target_identification_and_validation": {
+    "description": "Computational methods for identifying druggable protein targets, predicting binding sites, and assessing target druggability. Includes analysis of protein structure, sequence conservation, and binding site properties to evaluate the feasibility of modulating a target with small molecules.",
+    "key_parameters": {
+      "druggability_assessment": {
+        "description": "Evaluation of whether a protein target has a binding site suitable for small molecule drug binding, based on pocket properties.",
+        "situations": {
+          "structure_based_assessment": {
+            "value_or_range": "Pocket volume > 300 cubic Angstrom, hydrophobicity > 0.5, enclosure > 0.5",
+            "when": "3D structure of the target is available (X-ray, cryo-EM, or AlphaFold model)",
+            "why": "Druggable pockets require sufficient volume to accommodate drug-like molecules (MW 300-500), adequate hydrophobicity for binding enthalpy, and sufficient enclosure to shield bound ligand from solvent. SiteMap (Schrodinger) uses Dscore > 0.98 for druggable, 0.83-0.98 for difficult, <0.83 for undruggable.",
+            "source": "https://pubs.acs.org/doi/10.1021/ci800324m"
+          },
+          "sequence_based_assessment": {
+            "value_or_range": "Use DrugnomeAI or similar ML tools with AUC > 0.95",
+            "when": "No 3D structure available, or for genome-wide druggability screening",
+            "why": "Machine learning models trained on known drug targets can predict druggability from sequence features, gene expression profiles, and network properties. DrugnomeAI achieves median AUC of 0.97 across 324 features from 15 data sources.",
+            "source": "https://www.nature.com/articles/s42003-022-04245-4"
+          }
+        },
+        "common_mistakes": [
+          "Declaring a target undruggable based solely on the absence of a deep pocket (allosteric sites, PPI interfaces may be targetable)",
+          "Not considering conformational changes that may reveal cryptic binding sites",
+          "Relying on a single druggability tool without cross-validation"
+        ]
+      },
+      "binding_site_prediction": {
+        "description": "Computational identification of potential ligand binding sites on protein structures using geometric, energetic, or probe-based methods.",
+        "situations": {
+          "geometry_based_methods": {
+            "value_or_range": "Use fpocket, DoGSiteScorer, or SiteMap; rank by volume and druggability score",
+            "when": "Initial identification of all potential binding sites on a protein structure",
+            "why": "Geometry-based methods detect pockets by analyzing the protein surface topology. fpocket uses alpha spheres, DoGSiteScorer uses difference of Gaussian filters. These methods are fast and identify both orthosteric and allosteric sites.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9609013/"
+          },
+          "probe_based_methods": {
+            "value_or_range": "Use FTMap with 16 probe types to identify consensus binding hotspots",
+            "when": "Identifying druggable hotspots and fragment binding sites for fragment-based drug design",
+            "why": "FTMap distributes small organic probes across the protein surface and identifies consensus sites (hotspots) where multiple probe types cluster. Hotspots correlate with experimental fragment binding sites from X-ray crystallography.",
+            "source": "https://pubs.acs.org/doi/10.1021/ct300117j"
+          }
+        },
+        "common_mistakes": [
+          "Not validating predicted binding sites against known ligand-binding data when available",
+          "Ignoring the influence of crystal packing on binding site accessibility in X-ray structures",
+          "Not considering protein dynamics - static structures may miss transient binding sites"
+        ]
+      },
+      "off_target_analysis": {
+        "description": "Identification of unintended targets that a drug candidate may bind to, which can cause side effects or toxicity.",
+        "situations": {
+          "similarity_based_off_target_prediction": {
+            "value_or_range": "Screen against panels of >40 off-targets (safety pharmacology panel: CEREP/Eurofins SafetyScreen44)",
+            "when": "Lead optimization stage to identify potential safety liabilities",
+            "why": "The SafetyScreen44 panel covers the most common off-targets associated with clinical adverse events (GPCRs, ion channels, transporters, kinases). Significant binding (>50% inhibition at 10 microM) requires follow-up IC50 determination.",
+            "source": "https://www.tandfonline.com/doi/full/10.1080/17460441.2024.2430955"
+          },
+          "binding_site_similarity_search": {
+            "value_or_range": "Use ProBiS, SiteAlign, or KRIPO to find proteins with similar binding sites",
+            "when": "Predicting off-targets based on structural similarity of binding sites rather than overall protein sequence similarity",
+            "why": "Proteins with low sequence similarity can share similar binding sites and thus bind the same ligands. Binding site similarity searches capture these non-obvious off-target relationships.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9609013/"
+          }
+        },
+        "common_mistakes": [
+          "Only considering off-targets with high overall sequence similarity to the primary target",
+          "Not testing against the minimum recommended safety pharmacology panel",
+          "Ignoring active metabolites that may have different off-target profiles than the parent compound"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pubs.acs.org/doi/10.1021/ci800324m",
+      "https://www.nature.com/articles/s42003-022-04245-4",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC9609013/",
+      "https://www.tandfonline.com/doi/full/10.1080/17460441.2024.2430955"
+    ],
+    "best_practice_notes": "Combine multiple binding site prediction methods for higher confidence. Validate computationally predicted sites experimentally using fragment screening (X-ray, SPR, or NMR). Consider protein dynamics (MD simulations or ensemble docking) to identify cryptic binding sites. For druggability assessment, use both structure-based (SiteMap, FTMap) and sequence-based (DrugnomeAI) approaches. Screen against standard safety pharmacology panels at 10 microM to identify off-target liabilities early."
+  },
+  "virtual_screening": {
+    "description": "Computational method to screen large chemical libraries against a biological target to identify potential hit compounds. Includes structure-based (docking) and ligand-based (pharmacophore, shape, fingerprint similarity) approaches, typically applied to libraries of millions of compounds.",
+    "key_parameters": {
+      "library_preparation": {
+        "description": "Preparation and filtering of chemical libraries before virtual screening, including protonation, tautomer enumeration, and property filtering.",
+        "situations": {
+          "druglike_filtering": {
+            "value_or_range": "Apply Lipinski Ro5 + PAINS filters + reactive group removal",
+            "when": "Screening for oral drug candidates",
+            "why": "Removing compounds that violate drug-likeness rules, contain pan-assay interference (PAINS) substructures, or reactive/toxic functional groups reduces false positives and focuses screening on developable chemical matter.",
+            "source": "https://www.nature.com/articles/s41596-021-00597-z"
+          },
+          "large_library_preparation": {
+            "value_or_range": "Enumerate protonation states at pH 7.4, generate up to 2 tautomers, up to 4 stereoisomers",
+            "when": "Preparing ultra-large libraries (>1 million compounds) for docking",
+            "why": "Correct protonation states are critical for docking accuracy. Tautomers and stereoisomers can have dramatically different binding modes. Limiting enumeration prevents combinatorial explosion while capturing the most relevant forms.",
+            "source": "https://www.nature.com/articles/s41596-021-00659-2"
+          }
+        },
+        "common_mistakes": [
+          "Not filtering out PAINS compounds, leading to false positive hits in biochemical assays",
+          "Ignoring protonation state at physiological pH, causing incorrect docking predictions",
+          "Not removing duplicate entries or very close analogs that inflate hit lists without adding diversity"
+        ]
+      },
+      "docking_protocols": {
+        "description": "Configuration of molecular docking for virtual screening, including receptor preparation, scoring, and post-processing.",
+        "situations": {
+          "high_throughput_vina_screening": {
+            "value_or_range": "Exhaustiveness 8, top 9 poses per ligand, RMSD clustering at 2 Angstrom",
+            "when": "Screening >100,000 compounds with AutoDock Vina",
+            "why": "Default exhaustiveness is acceptable for large-scale screening where speed is paramount. Retaining 9 poses per ligand and clustering allows assessment of binding mode consensus.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4801993/"
+          },
+          "deep_docking_acceleration": {
+            "value_or_range": "Iterative docking of 10-15% of library per round, 3-5 rounds total",
+            "when": "Screening ultra-large libraries (>10 million compounds)",
+            "why": "Deep Docking uses machine learning to predict docking scores for unscreened compounds, enabling 100-fold acceleration. Only compounds predicted to score well are actually docked, achieving enrichment comparable to exhaustive docking.",
+            "source": "https://www.nature.com/articles/s41596-021-00659-2"
+          }
+        },
+        "common_mistakes": [
+          "Not validating the docking protocol by re-docking known actives and decoys before screening",
+          "Using a single receptor conformation without considering conformational flexibility",
+          "Not preparing the protein properly (missing hydrogens, unresolved loops, incorrect protonation of active site residues)"
+        ]
+      },
+      "enrichment_metrics": {
+        "description": "Statistical metrics to evaluate the ability of a virtual screening method to rank active compounds above inactive compounds.",
+        "situations": {
+          "roc_auc": {
+            "value_or_range": "AUC > 0.7 acceptable, > 0.8 good, > 0.9 excellent; random = 0.5",
+            "when": "Overall assessment of screening discrimination ability",
+            "why": "ROC AUC measures the probability that a randomly chosen active ranks higher than a randomly chosen inactive. It is independent of the ratio of actives to inactives and provides a single global performance metric.",
+            "source": "https://pubs.acs.org/doi/abs/10.1021/ci600426e"
+          },
+          "enrichment_factor_ef1": {
+            "value_or_range": "EF1% > 10 is good, > 20 is excellent for diverse targets",
+            "when": "Evaluating early enrichment (recovery of actives in the top 1% of ranked compounds)",
+            "why": "In practical screening, only the top-ranked compounds (typically top 0.1-1%) are tested experimentally. EF1% measures how many times better the method performs than random selection at the 1% threshold.",
+            "source": "https://pharmacelera.com/blog/science/measuring-virtual-screening-accuracy/"
+          },
+          "bedroc": {
+            "value_or_range": "BEDROC (alpha=20) > 0.5 indicates useful early enrichment",
+            "when": "Assessing early recognition with a continuous metric that is less sensitive to dataset composition",
+            "why": "BEDROC uses exponential weighting to emphasize early enrichment. With alpha=20, ~80% of the score comes from the top 8% of the ranked list. It is more robust than EF at fixed thresholds.",
+            "source": "https://pubs.acs.org/doi/abs/10.1021/ci600426e"
+          }
+        },
+        "common_mistakes": [
+          "Reporting only ROC AUC without early enrichment metrics (EF1%, BEDROC), which are more relevant to practical screening",
+          "Using biased decoy sets that are trivially distinguishable from actives by simple property filters",
+          "Not using proper decoy generation tools (DUD-E, DEKOIS) to ensure property-matched decoys"
+        ]
+      },
+      "consensus_scoring": {
+        "description": "Combining results from multiple docking programs or scoring functions to improve hit rate and reduce false positives.",
+        "situations": {
+          "multi_program_consensus": {
+            "value_or_range": "Use 2-3 docking programs (e.g., Vina + Glide + GOLD), select compounds ranked in top 5-10% by at least 2 programs",
+            "when": "When high confidence in hits is required and computational resources permit",
+            "why": "Different docking programs have complementary strengths and weaknesses. Consensus hits (scored well by multiple programs) are statistically more likely to be true positives than hits from any single program.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9821981/"
+          },
+          "z_score_averaging": {
+            "value_or_range": "Normalize scores to Z-scores per program, average Z-scores, select top-ranked",
+            "when": "Combining scores from programs with different score ranges and distributions",
+            "why": "Raw scores from different programs are not directly comparable. Z-score normalization places all scores on the same scale, enabling meaningful averaging and ranking.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11134635/"
+          }
+        },
+        "common_mistakes": [
+          "Averaging raw scores from different programs without normalization",
+          "Using too many programs (>4) where noise accumulation outweighs the benefit of consensus",
+          "Not considering that consensus docking approximately doubles computational cost per additional program"
+        ]
+      }
+    },
+    "key_references": [
+      "https://www.nature.com/articles/s41596-021-00597-z",
+      "https://www.nature.com/articles/s41596-021-00659-2",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC9821981/",
+      "https://pubs.acs.org/doi/abs/10.1021/ci600426e"
+    ],
+    "best_practice_notes": "Always validate virtual screening protocols with known actives and property-matched decoys before screening a real library. Use consensus scoring with 2-3 docking programs to improve hit rates. Apply PAINS and property filters before docking to reduce library size and remove problematic compounds. For ultra-large libraries (>10 million), consider deep docking or machine learning pre-filtering. Evaluate enrichment using both global (ROC AUC) and early enrichment (EF1%, BEDROC) metrics."
+  },
+  "dose_response_curve_fitting": {
+    "description": "Fitting dose-response data to mathematical models to extract pharmacological parameters (EC50/IC50, Hill coefficient, Emax). The standard approach uses the four-parameter logistic (4PL) model, also known as the Hill equation or sigmoidal dose-response model.",
+    "key_parameters": {
+      "ec50_ic50": {
+        "description": "The concentration of agonist (EC50) or inhibitor (IC50) producing 50% of the maximal response. The most commonly reported potency metric in pharmacology.",
+        "situations": {
+          "relative_ec50": {
+            "value_or_range": "Midpoint between fitted bottom and top plateaus",
+            "when": "Standard dose-response analysis where both plateaus are well-defined by the data",
+            "why": "Relative EC50 is the parameter directly fitted by the 4PL model. It represents the concentration at the inflection point of the sigmoidal curve, midway between the lower and upper asymptotes.",
+            "source": "https://onlinelibrary.wiley.com/doi/10.1002/pst.426"
+          },
+          "absolute_ic50": {
+            "value_or_range": "Concentration producing 50% of control response (not 50% of fitted curve)",
+            "when": "When the fitted top plateau is not 100% or fitted bottom is not 0%, and the absolute 50% response level is clinically relevant",
+            "why": "Absolute IC50 is more clinically meaningful when the compound does not achieve full inhibition (bottom > 0%) or has baseline activity. It should only be used when at least 2 concentrations above and 2 below the 50% response level are present.",
+            "source": "https://onlinelibrary.wiley.com/doi/10.1002/pst.426"
+          }
+        },
+        "common_mistakes": [
+          "Confusing relative and absolute EC50/IC50 values, which can differ substantially",
+          "Reporting EC50 when only 2-3 concentrations are tested, insufficient for reliable curve fitting",
+          "Not ensuring at least 2 data points beyond each bend point (lower and upper plateau) for reliable estimation"
+        ]
+      },
+      "hill_coefficient": {
+        "description": "The Hill slope (nH) describes the steepness of the dose-response curve. Reflects cooperative binding or multi-site effects.",
+        "situations": {
+          "standard_slope": {
+            "value_or_range": "nH = 1.0",
+            "when": "Simple bimolecular binding or competitive inhibition following mass action kinetics",
+            "why": "A Hill slope of 1.0 indicates simple, non-cooperative binding at a single site. This is the default assumption and should be used as the fixed model when data are limited.",
+            "source": "https://www.graphpad.com/guides/prism/latest/curve-fitting/reg_dr_stim_variable.htm"
+          },
+          "steep_curve_positive_cooperativity": {
+            "value_or_range": "nH > 1.0 (typically 1.5-4.0)",
+            "when": "Observed steep dose-response curves indicating positive cooperativity, multiple binding sites, or signal amplification",
+            "why": "Hill slope > 1 indicates that binding at one site increases affinity at other sites (positive cooperativity), or that a signal amplification cascade steepens the apparent response. Common in receptors with multiple subunits (e.g., nicotinic AChR, GABA-A).",
+            "source": "https://www.sciencedirect.com/science/article/pii/S1056871914002470"
+          },
+          "shallow_curve_negative_cooperativity": {
+            "value_or_range": "nH < 1.0 (typically 0.5-0.9)",
+            "when": "Shallow dose-response curves suggesting negative cooperativity, receptor heterogeneity, or mixed-population responses",
+            "why": "A Hill slope < 1 can indicate negative cooperativity, multiple receptor subtypes with different affinities, or multiple binding sites. May warrant fitting a biphasic model to check for two populations.",
+            "source": "https://www.sciencedirect.com/science/article/pii/S1056871914002470"
+          }
+        },
+        "common_mistakes": [
+          "Forcing the Hill slope to 1.0 when data clearly show a steeper or shallower curve",
+          "Interpreting Hill slope > 1 as proof of cooperativity without considering alternative explanations (assay artifacts, signal amplification)",
+          "Not using the variable slope model when sufficient data points (>8 concentrations) are available"
+        ]
+      },
+      "four_parameter_logistic_model": {
+        "description": "The 4PL model (Y = Bottom + (Top - Bottom) / (1 + (EC50/X)^nH)) fits four parameters: Bottom plateau, Top plateau, EC50, and Hill slope.",
+        "situations": {
+          "fixed_slope_model": {
+            "value_or_range": "Fix nH = 1.0, fit 3 parameters (Bottom, Top, EC50)",
+            "when": "Limited data (<6 concentrations per curve) or when Hill slope is expected to be 1.0",
+            "why": "With few data points, fitting all 4 parameters leads to overfitting and poorly determined Hill slopes. Fixing the slope to 1.0 provides more robust EC50 estimates with limited data.",
+            "source": "https://www.graphpad.com/guides/prism/latest/curve-fitting/reg_dr_inhibit_variable.htm"
+          },
+          "variable_slope_model": {
+            "value_or_range": "Fit all 4 parameters freely (Bottom, Top, EC50, nH)",
+            "when": "Sufficient data (>8 concentrations per curve, preferably 10-12) spanning the full sigmoidal range",
+            "why": "The variable slope model captures deviations from simple binding kinetics. When data quality supports it, freely fitting the Hill slope provides more accurate EC50 values and reveals biological information about binding mechanism.",
+            "source": "https://www.graphpad.com/guides/prism/latest/curve-fitting/reg_dr_stim_variable.htm"
+          },
+          "five_parameter_asymmetric_model": {
+            "value_or_range": "5PL model with asymmetry parameter S",
+            "when": "Dose-response curve is asymmetric (not perfectly sigmoidal)",
+            "why": "Some dose-response curves are not symmetric around the EC50. The 5PL model adds an asymmetry parameter that allows the curve to be steeper on one side of the EC50 than the other. Use when the 4PL fit shows systematic residual patterns.",
+            "source": "https://www.graphpad.com/guides/prism/latest/curve-fitting/reg_asymmetric_dose_response_ec.htm"
+          }
+        },
+        "common_mistakes": [
+          "Not constraining Bottom >= 0 and Top <= 100 when biologically meaningful bounds exist",
+          "Using linear interpolation instead of curve fitting to estimate EC50",
+          "Reporting EC50 from poorly fitted curves without confidence intervals or goodness-of-fit metrics"
+        ]
+      },
+      "data_requirements": {
+        "description": "Minimum experimental design requirements for reliable dose-response curve fitting.",
+        "situations": {
+          "minimum_for_4pl": {
+            "value_or_range": "8-12 concentrations per curve, half-log dilution series, 2-3 replicates per concentration",
+            "when": "Standard dose-response experiments",
+            "why": "Half-log (3.16-fold) dilution series with 8-12 concentrations ensures adequate sampling of both plateaus and the steep transition region. Fewer than 6 concentrations makes EC50 estimation unreliable.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3040458/"
+          },
+          "high_throughput_screening": {
+            "value_or_range": "6-8 concentrations, single replicate, full-log or half-log dilutions",
+            "when": "HTS campaigns where throughput is prioritized over precision",
+            "why": "Reduced concentration numbers and replicates are acceptable for screening (rank ordering) but EC50 values from HTS should be confirmed in follow-up concentration-response experiments.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3040458/"
+          }
+        },
+        "common_mistakes": [
+          "Using too few concentrations (<5) for reliable curve fitting",
+          "Not including concentrations that define both the upper and lower plateaus",
+          "Choosing a concentration range that misses the transition region around the EC50"
+        ]
+      }
+    },
+    "key_references": [
+      "https://onlinelibrary.wiley.com/doi/10.1002/pst.426",
+      "https://www.graphpad.com/guides/prism/latest/curve-fitting/reg_dr_stim_variable.htm",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3040458/",
+      "https://www.sciencedirect.com/science/article/pii/S1056871914002470"
+    ],
+    "best_practice_notes": "Use the 4-parameter logistic (Hill equation) model as the default for dose-response fitting. Fix Hill slope to 1.0 when data are limited; use variable slope when >8 concentrations are available. Always report confidence intervals for EC50 values. Ensure the concentration range spans at least 2 log units beyond the estimated EC50 in both directions. Use nonlinear regression with the Levenberg-Marquardt algorithm for parameter estimation. For HTS, use automated grid search algorithms for robust initial parameter estimation."
+  },
+  "drug_release_kinetics": {
+    "description": "Mathematical modeling of drug release from pharmaceutical dosage forms (tablets, nanoparticles, hydrogels, implants). Different kinetic models describe different release mechanisms (diffusion, erosion, swelling), and model selection reveals the dominant release mechanism.",
+    "key_parameters": {
+      "zero_order_model": {
+        "description": "Constant drug release rate independent of concentration: Qt = Q0 + K0*t. Release rate does not change over time.",
+        "situations": {
+          "when_to_use": {
+            "value_or_range": "R-squared > 0.99 for zero-order fit",
+            "when": "Osmotic pump systems, transdermal patches, matrix tablets with low-solubility drugs in non-swelling matrices, or dosage forms designed for constant release",
+            "why": "Zero-order release is the ideal profile for maintaining constant drug plasma levels. It occurs when the release rate is controlled by a rate-limiting membrane or when the drug is dispersed in excess in a non-eroding matrix.",
+            "source": "https://www.ptfarm.pl/pub/File/Acta_Poloniae/2010/3/217.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Assuming zero-order release without verifying R-squared and comparing with other models",
+          "Applying zero-order model to the entire release curve when it only fits the initial linear portion",
+          "Confusing sustained release with zero-order release - sustained release can follow first-order kinetics"
+        ]
+      },
+      "first_order_model": {
+        "description": "Release rate depends on remaining drug concentration: log(Qt) = log(Q0) - K1*t/2.303. Release rate decreases as drug depletes.",
+        "situations": {
+          "when_to_use": {
+            "value_or_range": "Best fit when R-squared > 0.95 for first-order and exceeds other models",
+            "when": "Water-soluble drugs in porous matrices, conventional dosage forms, immediate-release formulations",
+            "why": "First-order kinetics occur when the drug dissolves in the matrix pores and diffuses out along a concentration gradient. As drug concentration decreases, the release rate proportionally decreases.",
+            "source": "https://www.ptfarm.pl/pub/File/Acta_Poloniae/2010/3/217.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Not considering that many systems show first-order release initially but transition to zero-order as they approach depletion",
+          "Ignoring burst release effects that violate first-order assumptions in the initial phase"
+        ]
+      },
+      "higuchi_model": {
+        "description": "Drug release from an insoluble matrix by diffusion: Qt = KH * sqrt(t). Release is proportional to the square root of time.",
+        "situations": {
+          "when_to_use": {
+            "value_or_range": "Linear plot of Qt vs sqrt(t) with R-squared > 0.95",
+            "when": "Drug dispersed in uniform insoluble matrices (lipid or polymer), thin films, or ointments where diffusion through the matrix is the rate-limiting step",
+            "why": "Higuchi model assumes pseudo-steady-state diffusion with total drug loading >> solubility in the matrix. Drug release follows a square root of time dependence. Only valid when the drug loading greatly exceeds the drug solubility in the matrix.",
+            "source": "https://www.ptfarm.pl/pub/File/Acta_Poloniae/2010/3/217.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Applying Higuchi model to erodible matrices where matrix dissolution contributes to release",
+          "Using Higuchi for hydrophilic swelling matrices where polymer relaxation affects release",
+          "Applying to the entire release curve when Higuchi is only valid for the first 60% of release"
+        ]
+      },
+      "korsmeyer_peppas_model": {
+        "description": "Power law model: Mt/Minf = K * t^n. The release exponent n indicates the release mechanism (diffusion, swelling, erosion, or combinations).",
+        "situations": {
+          "fickian_diffusion": {
+            "value_or_range": "n = 0.50 (slab/film), 0.45 (cylinder), 0.43 (sphere)",
+            "when": "Drug release is purely diffusion-controlled through a non-swelling polymer matrix",
+            "why": "For Fickian diffusion, the release exponent n has limiting values that depend on the geometry of the dosage form. Values at or below these limits indicate diffusion-controlled release without contribution from polymer relaxation.",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/0168365987900344"
+          },
+          "anomalous_transport": {
+            "value_or_range": "0.43 < n < 0.85 (sphere); 0.45 < n < 0.89 (cylinder); 0.50 < n < 1.0 (slab)",
+            "when": "Combined diffusion and polymer relaxation/swelling control the release",
+            "why": "Anomalous (non-Fickian) transport indicates that both drug diffusion and polymer chain relaxation/swelling contribute to the release mechanism. The closer n is to the upper limit, the more dominant the relaxation/erosion mechanism.",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/0168365987900344"
+          },
+          "case_ii_transport": {
+            "value_or_range": "n = 0.85 (sphere), 0.89 (cylinder), 1.0 (slab)",
+            "when": "Release is dominated by polymer relaxation or erosion, with zero-order-like kinetics",
+            "why": "Case II transport occurs when polymer chain relaxation is the rate-limiting step, leading to constant release rate. Commonly seen in glassy polymer matrices undergoing solvent-induced glass-to-rubber transition.",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/0168365987900344"
+          }
+        },
+        "common_mistakes": [
+          "Applying Korsmeyer-Peppas model to more than the first 60% of the release profile",
+          "Not considering the geometry of the dosage form when interpreting the n exponent",
+          "Ignoring that n values below the Fickian limit can indicate quasi-Fickian diffusion or partial drug immobilization"
+        ]
+      },
+      "weibull_model": {
+        "description": "Empirical model: M = 1 - exp(-(t-Ti)^beta / alpha). The shape parameter beta indicates release mechanism, and alpha is the time scale parameter.",
+        "situations": {
+          "fickian_diffusion_weibull": {
+            "value_or_range": "beta <= 0.75",
+            "when": "Release follows Fickian diffusion in either fractal or Euclidean spaces",
+            "why": "Low beta values indicate diffusion-controlled release. The Weibull model can fit the entire release curve (unlike Korsmeyer-Peppas which is limited to 60%), making it useful for comparing complete release profiles.",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/S0378517323004374"
+          },
+          "combined_mechanism": {
+            "value_or_range": "0.75 < beta < 1.0",
+            "when": "Combined Fickian diffusion and swelling-controlled transport",
+            "why": "Intermediate beta values indicate that both diffusion and polymer relaxation contribute to the release mechanism, analogous to anomalous transport in the Korsmeyer-Peppas model.",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/S0378517323004374"
+          },
+          "complex_release": {
+            "value_or_range": "beta > 1.0",
+            "when": "Sigmoidal release profile with an initial lag phase followed by accelerating release",
+            "why": "beta > 1 produces a sigmoidal curve where the release rate initially increases non-linearly up to an inflection point and then decreases. This can occur with swelling-activated systems or formulations with an outer barrier layer.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8434431/"
+          }
+        },
+        "common_mistakes": [
+          "Treating the Weibull model as a mechanistic model when it is empirical without a kinetic basis",
+          "Not comparing Weibull with other models using AIC/BIC for proper model selection",
+          "Ignoring the lag time parameter (Ti) which may be important for delayed-release systems"
+        ]
+      },
+      "model_selection_criteria": {
+        "description": "Statistical criteria for selecting the best-fitting kinetic model from candidates.",
+        "situations": {
+          "recommended_approach": {
+            "value_or_range": "Select model with highest adjusted R-squared, lowest AIC, and highest MSC (model selection criterion)",
+            "when": "Comparing multiple release kinetic models fitted to the same data",
+            "why": "Using multiple criteria reduces the risk of selecting an inappropriate model. Adjusted R-squared penalizes for number of parameters; AIC balances goodness of fit with model complexity; MSC (Schwarz criterion) provides an absolute measure of model quality.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8912140/"
+          }
+        },
+        "common_mistakes": [
+          "Using unadjusted R-squared to compare models with different numbers of parameters",
+          "Not fitting all candidate models systematically and instead selecting based on preconceptions",
+          "Not visualizing residuals to check for systematic deviations from the fitted model"
+        ]
+      }
+    },
+    "key_references": [
+      "https://www.ptfarm.pl/pub/File/Acta_Poloniae/2010/3/217.pdf",
+      "https://www.sciencedirect.com/science/article/abs/pii/0168365987900344",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC8912140/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC8434431/"
+    ],
+    "best_practice_notes": "Always fit multiple models (zero order, first order, Higuchi, Korsmeyer-Peppas, Weibull) and use AIC/adjusted R-squared for model selection. Apply Korsmeyer-Peppas only to the first 60% of release data. Consider the geometry of the dosage form when interpreting n values. Weibull can fit the complete release curve but is empirical - use it for curve fitting, not mechanistic interpretation. For nanoparticle systems, account for burst release by excluding the first time points or using a modified model."
+  },
+  "molecular_dynamics_drug_binding": {
+    "description": "Molecular dynamics (MD) simulations model the time evolution of protein-ligand complexes at atomic resolution, enabling study of binding kinetics, conformational changes, and binding free energy estimation using end-point methods (MM-GBSA/MM-PBSA).",
+    "key_parameters": {
+      "force_field_selection": {
+        "description": "The mathematical potential energy function and its parameters that describe atomic interactions in the simulation.",
+        "situations": {
+          "amber_force_fields": {
+            "value_or_range": "ff14SB (protein) + GAFF2 (ligand) + TIP3P (water)",
+            "when": "Standard protein-ligand MD simulations, especially for binding free energy calculations",
+            "why": "AMBER ff14SB provides accurate protein backbone and side-chain conformations. GAFF2 (Generalized AMBER Force Field 2) handles drug-like small molecules. RESP charges for the ligand give the best performance with both MM/PBSA and MM/GBSA.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4487606/"
+          },
+          "charmm_force_fields": {
+            "value_or_range": "CHARMM36m (protein) + CGenFF (ligand) + TIP3P (water)",
+            "when": "Simulations involving membrane proteins, lipid bilayers, or when using CHARMM-GUI for system setup",
+            "why": "CHARMM36m includes improvements for intrinsically disordered proteins and membrane protein simulations. CGenFF provides parameters for drug-like molecules. CHARMM and AMBER generally outperform OPLS and GROMOS for side-chain rotamer populations.",
+            "source": "https://pubmed.ncbi.nlm.nih.gov/18446282/"
+          },
+          "opls_force_fields": {
+            "value_or_range": "OPLS-AA/M or OPLS4 (protein + ligand)",
+            "when": "Free energy perturbation (FEP) calculations or simulations focused on solvation thermodynamics",
+            "why": "OPLS force fields are specifically parameterized for liquid-state thermodynamic properties. OPLS4 (Schrodinger) includes extensive reparameterization for drug-like molecules and is commonly used with FEP+ for relative binding free energy predictions.",
+            "source": "https://pubs.acs.org/doi/10.1021/acs.jcim.5b00308"
+          }
+        },
+        "common_mistakes": [
+          "Mixing parameters from different force field families (e.g., AMBER protein with CHARMM ligand parameters)",
+          "Using GAFF instead of GAFF2 for ligands, missing important reparameterized torsional terms",
+          "Not validating ligand force field parameters against quantum mechanical calculations for key torsional profiles"
+        ]
+      },
+      "simulation_length": {
+        "description": "Total simulation time, which must be sufficient to observe the relevant conformational dynamics and converge binding free energy estimates.",
+        "situations": {
+          "mm_gbsa_mm_pbsa": {
+            "value_or_range": "5-20 ns production run, or multiple short (1-5 ns) independent simulations",
+            "when": "Calculating binding free energies using MM-GBSA or MM-PBSA end-point methods",
+            "why": "Longer MD simulation is not always necessary to achieve better predictions. Multiple short independent simulations are often more effective than a single long simulation, as a single long simulation can underestimate uncertainty. For short time-scales (1 ns or less), ff03 gives best predictions; for 2-4 ns, ff99 with MM/GBSA works best.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4487606/"
+          },
+          "conformational_sampling": {
+            "value_or_range": "100 ns - 1 microsecond",
+            "when": "Studying protein conformational changes, loop dynamics, or induced-fit effects upon ligand binding",
+            "why": "Major conformational changes (loop movements, domain motions) occur on timescales of 100 ns to microseconds. Accelerated MD or replica exchange methods may be needed for slower processes.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10705576/"
+          },
+          "binding_unbinding_events": {
+            "value_or_range": "1-100 microseconds (often requiring enhanced sampling)",
+            "when": "Observing spontaneous ligand binding or unbinding events for kinetic analysis",
+            "why": "Ligand binding/unbinding residence times are typically microseconds to milliseconds, requiring very long simulations or enhanced sampling methods (metadynamics, adaptive sampling, weighted ensemble).",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10705576/"
+          }
+        },
+        "common_mistakes": [
+          "Running a single very long simulation instead of multiple shorter independent replicas",
+          "Not checking convergence of binding free energy estimates across different time windows",
+          "Using production simulation frames from insufficiently equilibrated systems"
+        ]
+      },
+      "binding_free_energy_mm_gbsa": {
+        "description": "Molecular Mechanics-Generalized Born Surface Area method for estimating binding free energy from MD snapshots. More computationally efficient than MM-PBSA.",
+        "situations": {
+          "relative_ranking": {
+            "value_or_range": "Use for relative ranking of congeneric ligand series (correlation R > 0.5 expected)",
+            "when": "Comparing binding affinities of structurally similar ligands to the same target",
+            "why": "MM/GBSA is better suited for relative ranking than absolute binding free energy prediction. Systematic errors largely cancel when comparing similar ligands. Computational efficiency allows screening hundreds of compounds.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4487606/"
+          },
+          "key_parameters_gb": {
+            "value_or_range": "igb=2 or igb=5 (AMBER), 100-500 snapshots from MD trajectory, internal dielectric 1-4",
+            "when": "Setting up MM-GBSA calculations",
+            "why": "The GB model (igb=2 is OBC model) approximates the Poisson-Boltzmann equation more efficiently. 100-500 evenly spaced snapshots from the production MD provide stable averages. Internal dielectric of 1 (vacuum) or 2-4 (for charged binding sites) significantly affects results.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4487606/"
+          }
+        },
+        "common_mistakes": [
+          "Reporting absolute binding free energies from MM-GBSA as accurate predictions (typical errors are 5-10 kcal/mol)",
+          "Not including conformational entropy contributions (normal mode or quasi-harmonic analysis)",
+          "Using too few snapshots (<50) leading to poorly converged energy estimates"
+        ]
+      },
+      "binding_free_energy_mm_pbsa": {
+        "description": "Molecular Mechanics-Poisson Boltzmann Surface Area method. More rigorous solvation model than MM-GBSA but computationally more expensive.",
+        "situations": {
+          "absolute_binding_energy": {
+            "value_or_range": "Better for absolute binding free energies than MM/GBSA, but still typical errors of 3-5 kcal/mol",
+            "when": "When more accurate solvation electrostatics are needed, especially for highly charged binding sites",
+            "why": "MM/PBSA performed better in calculating absolute binding free energies compared to MM/GBSA. The Poisson-Boltzmann equation provides a more rigorous treatment of electrostatic solvation than the Generalized Born approximation.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4487606/"
+          },
+          "key_parameters_pb": {
+            "value_or_range": "Grid spacing 0.5 Angstrom, internal dielectric 1-4, external dielectric 80, PARSE radii",
+            "when": "Setting up MM-PBSA calculations",
+            "why": "Grid spacing of 0.5 Angstrom balances accuracy and speed for the PB numerical solver. Internal dielectric constant should be set based on the binding site properties (1 for hydrophobic, 2-4 for charged/polar sites). PARSE radii are optimized for PB calculations.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4487606/"
+          }
+        },
+        "common_mistakes": [
+          "Using the same internal dielectric constant for all systems without considering binding site polarity",
+          "Not accounting for structural water molecules that mediate protein-ligand interactions",
+          "Ignoring that conformational entropy often has large fluctuations requiring many snapshots (>200)"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC4487606/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC10705576/",
+      "https://pubmed.ncbi.nlm.nih.gov/18446282/",
+      "https://pubs.acs.org/doi/10.1021/acs.jpcb.4c06614"
+    ],
+    "best_practice_notes": "Use AMBER ff14SB + GAFF2 or CHARMM36m + CGenFF as default force field combinations. Never mix force field families. For MM-GBSA/MM-PBSA, run multiple short (5-10 ns) independent simulations rather than one long simulation. Use RESP charges for ligands. MM-GBSA is preferred for relative ranking of congeneric series; MM-PBSA is better for absolute binding energies. Always report uncertainty estimates. Consider the internal dielectric constant carefully based on binding site properties. Validate MD setup by checking RMSD stability, energy conservation, and structural integrity."
+  },
+  "chemical_fingerprint_similarity": {
+    "description": "Chemical fingerprints encode molecular structures as fixed-length binary vectors or count vectors, enabling rapid computation of molecular similarity using metrics like the Tanimoto coefficient. Used extensively in virtual screening, SAR analysis, and compound clustering.",
+    "key_parameters": {
+      "fingerprint_type": {
+        "description": "The algorithm used to generate the molecular fingerprint, which determines what structural features are encoded.",
+        "situations": {
+          "ecfp4_morgan_radius2": {
+            "value_or_range": "Morgan fingerprint with radius 2 (equivalent to ECFP4), 2048 bits",
+            "when": "General-purpose similarity searching, virtual screening, and SAR analysis",
+            "why": "ECFP4 (Morgan radius 2) captures local atomic environments up to 4 bonds from each atom. It is the most widely used fingerprint for bioactivity prediction due to its ability to capture pharmacophoric features. 2048 bits provides a good balance between information content and computational efficiency.",
+            "source": "https://projects.volkamerlab.org/teachopencadd/talktorials/T004_compound_similarity.html"
+          },
+          "ecfp6_morgan_radius3": {
+            "value_or_range": "Morgan fingerprint with radius 3 (equivalent to ECFP6), 2048 bits",
+            "when": "When larger structural context is needed, such as distinguishing compounds that differ in regions distant from pharmacophoric centers",
+            "why": "ECFP6 captures a larger neighborhood around each atom (6 bond diameter), providing more structural specificity. Better for distinguishing close analogs but may miss broader structural similarities that ECFP4 captures.",
+            "source": "https://www.sciencedirect.com/science/article/abs/pii/S135964462200349X"
+          },
+          "maccs_keys": {
+            "value_or_range": "166-bit MACCS structural keys",
+            "when": "Quick substructure-based similarity assessment or when interpretability of individual bits is needed",
+            "why": "MACCS keys encode predefined structural patterns (functional groups, ring systems). Each bit has a defined chemical meaning, making the fingerprint interpretable. Tends to give higher similarity values than circular fingerprints for the same compound pair.",
+            "source": "https://chembl.gitbook.io/surechembl/chemical-search/similarity-search-tanimoto-coefficient-and-fingerprint-generation"
+          }
+        },
+        "common_mistakes": [
+          "Comparing Tanimoto values from different fingerprint types as if they were equivalent",
+          "Using too few bits (256 or fewer) causing excessive bit collisions and artificial similarity inflation",
+          "Not specifying fingerprint type and parameters when reporting similarity values"
+        ]
+      },
+      "tanimoto_coefficient": {
+        "description": "The most widely used similarity metric for binary fingerprints. Tc = c / (a + b - c), where c is bits set in both molecules, a and b are bits set in each molecule.",
+        "situations": {
+          "high_confidence_analogs": {
+            "value_or_range": "Tanimoto >= 0.85",
+            "when": "Identifying close structural analogs expected to share biological activity",
+            "why": "At Tc >= 0.85, there is approximately a 30% probability that the database compound shares biological activity with the query. This threshold provides high-confidence analog retrieval with low false positive rates.",
+            "source": "https://en.wikipedia.org/wiki/Chemical_similarity"
+          },
+          "standard_similarity_search": {
+            "value_or_range": "Tanimoto >= 0.7",
+            "when": "Balanced retrieval of analogs with acceptable false positive rate",
+            "why": "Tc >= 0.7 provides a practical middle ground between sensitivity and specificity. Most active analogs are retrieved while keeping the false positive rate manageable.",
+            "source": "https://en.wikipedia.org/wiki/Chemical_similarity"
+          },
+          "scaffold_hopping_novelty": {
+            "value_or_range": "Tanimoto 0.4-0.65",
+            "when": "Searching for novel chemotypes with potentially similar activity (scaffold hopping)",
+            "why": "Lower similarity thresholds afford higher structural diversity and may identify novel chemotypes. Random compound pairs from PubChem average ~0.35 with MACCS keys. Going below ~0.65 enables discovery of structurally distinct actives.",
+            "source": "https://www.frontiersin.org/journals/bioinformatics/articles/10.3389/fbinf.2025.1695353/full"
+          }
+        },
+        "common_mistakes": [
+          "Applying the same Tanimoto threshold across different fingerprint types (MACCS values are typically higher than Morgan values for the same compound pair)",
+          "Interpreting high Tanimoto similarity as a guarantee of similar activity (activity cliffs exist)",
+          "Not understanding that Tanimoto similarity distributions differ by fingerprint type and dataset composition"
+        ]
+      },
+      "similarity_metrics": {
+        "description": "Alternative similarity coefficients to the Tanimoto index for comparing molecular fingerprints.",
+        "situations": {
+          "dice_coefficient": {
+            "value_or_range": "Dice = 2c / (a + b); always >= Tanimoto for the same fingerprint comparison",
+            "when": "When giving more weight to common features over unique features",
+            "why": "Dice coefficient double-counts shared features relative to unique features. It consistently gives higher values than Tanimoto for the same comparison. Useful when shared features are considered more important than differences.",
+            "source": "https://projects.volkamerlab.org/teachopencadd/talktorials/T004_compound_similarity.html"
+          },
+          "cosine_similarity": {
+            "value_or_range": "Cosine similarity for count-based fingerprints",
+            "when": "Using count-based (non-binary) fingerprints where feature frequency matters",
+            "why": "For count-based fingerprints (e.g., Morgan with counts instead of bits), cosine similarity accounts for feature multiplicity, which binary Tanimoto ignores.",
+            "source": "https://projects.volkamerlab.org/teachopencadd/talktorials/T004_compound_similarity.html"
+          }
+        },
+        "common_mistakes": [
+          "Using Euclidean distance for binary fingerprints (it does not handle variable fingerprint density well)",
+          "Not normalizing fingerprint-dependent thresholds when switching between similarity metrics",
+          "Assuming that numerical similarity always implies biological similarity (the similarity principle has many exceptions)"
+        ]
+      }
+    },
+    "key_references": [
+      "https://www.sciencedirect.com/science/article/abs/pii/S135964462200349X",
+      "https://projects.volkamerlab.org/teachopencadd/talktorials/T004_compound_similarity.html",
+      "https://en.wikipedia.org/wiki/Chemical_similarity",
+      "https://www.frontiersin.org/journals/bioinformatics/articles/10.3389/fbinf.2025.1695353/full"
+    ],
+    "best_practice_notes": "Use Morgan/ECFP4 fingerprints (radius 2, 2048 bits) as the default for general similarity searching. Always specify the fingerprint type, bit length, and similarity metric when reporting results. Tanimoto >= 0.85 for high-confidence analog retrieval, >= 0.7 for general similarity, 0.4-0.65 for scaffold hopping. Remember that similarity distributions depend on both the fingerprint type and the dataset composition. Use multiple fingerprint types in virtual screening for complementary structural coverage."
+  },
+  "receptor_ligand_binding_analysis": {
+    "description": "Quantitative analysis of receptor-ligand binding interactions using pharmacological parameters (Ki, Kd, IC50). Understanding the relationships between these parameters and the binding mechanism (competitive, non-competitive, uncompetitive) is essential for interpreting binding assay data.",
+    "key_parameters": {
+      "kd_dissociation_constant": {
+        "description": "Equilibrium dissociation constant. The concentration of ligand at which 50% of receptors are occupied at equilibrium. A direct measure of binding affinity independent of assay conditions.",
+        "situations": {
+          "measurement_methods": {
+            "value_or_range": "Determined from saturation binding curves or SPR/BLI kinetic analysis (Kd = koff/kon)",
+            "when": "Direct measurement of ligand-receptor binding affinity",
+            "why": "Kd is the most fundamental binding parameter. It equals the ligand concentration at which half the receptors are occupied at equilibrium. Lower Kd means higher affinity. Can be determined from equilibrium saturation binding or from kinetic rate constants.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3000649/"
+          },
+          "typical_drug_ranges": {
+            "value_or_range": "nM to microM range for small molecules; pM to nM for antibodies",
+            "when": "Evaluating whether binding affinity is in the pharmacologically relevant range",
+            "why": "Most approved small-molecule drugs have Kd values in the low nM to high pM range for their primary target. Antibodies typically have pM affinities. Compounds with Kd > 10 microM are generally considered weak binders.",
+            "source": "https://www.sciencesnail.com/science/the-difference-between-ki-kd-ic50-and-ec50-values"
+          }
+        },
+        "common_mistakes": [
+          "Confusing Kd with Ki - Kd is from direct binding, Ki is from competition experiments",
+          "Not reaching equilibrium in binding assays, leading to underestimated affinity",
+          "Ignoring non-specific binding correction when measuring Kd from saturation binding"
+        ]
+      },
+      "ki_inhibition_constant": {
+        "description": "Inhibition constant from competitive binding assays. The concentration of inhibitor that would occupy 50% of receptors if no competing ligand were present. Independent of assay conditions (unlike IC50).",
+        "situations": {
+          "cheng_prusoff_conversion": {
+            "value_or_range": "Ki = IC50 / (1 + [L]/Kd) for competitive inhibitors",
+            "when": "Converting IC50 from a competition assay to the assay-independent Ki value",
+            "why": "The Cheng-Prusoff equation corrects IC50 for the concentration and affinity of the competing ligand. Ki is always less than or equal to IC50 for competitive inhibitors. This correction is essential because IC50 changes with competitor concentration while Ki does not.",
+            "source": "https://pharmacologycanada.org/Cheng-Prusoff-equation"
+          },
+          "non_competitive_inhibition": {
+            "value_or_range": "Ki = IC50 (for non-competitive inhibitors, Cheng-Prusoff simplifies)",
+            "when": "Inhibitor binds to a site distinct from the substrate/ligand binding site",
+            "why": "For non-competitive inhibitors, IC50 is independent of substrate concentration, so Ki equals IC50. This distinction is critical for correctly interpreting binding data and mechanism.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2703898/"
+          }
+        },
+        "common_mistakes": [
+          "Reporting IC50 as Ki without applying the Cheng-Prusoff correction",
+          "Using the Cheng-Prusoff equation for non-competitive inhibitors where it is not applicable",
+          "Not specifying the radioligand/competitor concentration when reporting Ki values"
+        ]
+      },
+      "ic50": {
+        "description": "Half-maximal inhibitory concentration. The concentration of inhibitor that reduces the response to 50% of maximum. Depends on assay conditions (substrate/ligand concentration).",
+        "situations": {
+          "functional_assay_ic50": {
+            "value_or_range": "Varies with substrate concentration, assay format, and receptor expression level",
+            "when": "Reporting inhibitor potency from a functional (enzyme or cell-based) assay",
+            "why": "IC50 is the most commonly reported potency metric in HTS and pharmacological studies. However, it is assay-specific and cannot be directly compared across different assay formats or substrate concentrations without conversion to Ki.",
+            "source": "https://en.wikipedia.org/wiki/IC50"
+          },
+          "relationship_to_ki": {
+            "value_or_range": "IC50 >= Ki always; IC50 = 2*Ki when [S] = Km (for competitive enzyme inhibitors)",
+            "when": "Comparing potency values from different assays",
+            "why": "IC50 increases with substrate/ligand concentration for competitive inhibitors. At [S] = Km for enzymes, IC50 = 2*Ki. This relationship means IC50 values from different assays cannot be directly compared without knowing the assay conditions.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2703898/"
+          }
+        },
+        "common_mistakes": [
+          "Directly comparing IC50 values from different assays without considering assay conditions",
+          "Equating IC50 with Kd, which is only approximately valid under very specific conditions",
+          "Not reporting the substrate/radioligand concentration alongside IC50 values"
+        ]
+      },
+      "binding_mechanism": {
+        "description": "Classification of the inhibition mechanism based on how the inhibitor interacts with the receptor-substrate system.",
+        "situations": {
+          "competitive_binding": {
+            "value_or_range": "IC50 increases with increasing substrate concentration; Lineweaver-Burk: lines intersect on y-axis",
+            "when": "Inhibitor competes with substrate/ligand for the same binding site",
+            "why": "Competitive inhibitors can be overcome by increasing substrate concentration. In Lineweaver-Burk analysis, Km(app) increases while Vmax remains unchanged. The shift in IC50 with substrate concentration is the hallmark of competitive inhibition.",
+            "source": "https://www.sciencesnail.com/science/the-difference-between-ki-kd-ic50-and-ec50-values"
+          },
+          "non_competitive_binding": {
+            "value_or_range": "IC50 independent of substrate concentration; Lineweaver-Burk: lines intersect on x-axis",
+            "when": "Inhibitor binds at a site distinct from the substrate binding site, reducing maximal activity",
+            "why": "Non-competitive inhibitors reduce Vmax without affecting Km. IC50 = Ki regardless of substrate concentration. Cannot be overcome by increasing substrate. Allosteric inhibitors often show non-competitive kinetics.",
+            "source": "https://www.sciencesnail.com/science/the-difference-between-ki-kd-ic50-and-ec50-values"
+          },
+          "uncompetitive_binding": {
+            "value_or_range": "IC50 decreases with increasing substrate concentration; Lineweaver-Burk: parallel lines",
+            "when": "Inhibitor binds only to the enzyme-substrate complex",
+            "why": "Uncompetitive inhibitors require substrate binding first. Both Km(app) and Vmax decrease proportionally. This mechanism is rare for single-substrate enzymes but common for multi-substrate enzymes.",
+            "source": "https://www.sciencesnail.com/science/the-difference-between-ki-kd-ic50-and-ec50-values"
+          }
+        },
+        "common_mistakes": [
+          "Assuming competitive inhibition without experimentally verifying the mechanism",
+          "Not testing IC50 at multiple substrate concentrations to distinguish competitive from non-competitive mechanisms",
+          "Using double-reciprocal (Lineweaver-Burk) plots for quantitative analysis rather than nonlinear regression"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pharmacologycanada.org/Cheng-Prusoff-equation",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC2703898/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3000649/",
+      "https://pubmed.ncbi.nlm.nih.gov/30977282/"
+    ],
+    "best_practice_notes": "Always specify the assay conditions (substrate/ligand concentration, temperature, pH) when reporting IC50 values. Convert IC50 to Ki using the Cheng-Prusoff equation for cross-assay comparison. Determine binding mechanism by measuring IC50 at multiple substrate concentrations. For direct binding measurements, ensure equilibrium is reached and correct for non-specific binding. Use nonlinear regression (not Lineweaver-Burk) for quantitative parameter estimation. Report confidence intervals for all binding parameters."
+  },
+  "toxicity_prediction": {
+    "description": "Computational prediction of toxicological endpoints for drug candidates, including acute toxicity (LD50), chronic toxicity (NOAEL), mutagenicity (Ames test), and organ-specific toxicity (hepatotoxicity). Enables early filtering of toxic compounds in drug discovery pipelines.",
+    "key_parameters": {
+      "ld50_prediction": {
+        "description": "Lethal dose for 50% of test animals. The standard acute toxicity endpoint representing the amount of compound causing death in half of the test organisms.",
+        "situations": {
+          "ghs_classification": {
+            "value_or_range": "Category 1: LD50 <= 5 mg/kg (fatal); Category 2: 5-50 mg/kg (fatal); Category 3: 50-300 mg/kg (toxic); Category 4: 300-2000 mg/kg (harmful); Category 5: 2000-5000 mg/kg (may be harmful)",
+            "when": "Classifying acute oral toxicity per the Globally Harmonized System (GHS)",
+            "why": "GHS classification determines labeling, handling requirements, and regulatory classification. Computational LD50 prediction enables early hazard classification without animal testing.",
+            "source": "https://pubs.acs.org/doi/10.1021/acs.chemrestox.3c00352"
+          },
+          "prediction_tools": {
+            "value_or_range": "ProTox-II, TEST (EPA), GUSAR, PredAOT; typical prediction accuracy 70-80%",
+            "when": "Predicting LD50 for untested compounds in early drug discovery",
+            "why": "Multiple QSAR-based tools are available. ProTox-II uses fragment-based similarity and molecular descriptors. PredAOT uses a two-step approach: first classifying compounds as toxic/non-toxic, then predicting specific LD50 values for each class. Using multiple tools and taking a consensus improves reliability.",
+            "source": "https://pubs.acs.org/doi/10.1021/acsomega.2c05693"
+          }
+        },
+        "common_mistakes": [
+          "Treating predicted LD50 as a definitive value rather than a range estimate with significant uncertainty",
+          "Not considering route of administration (oral, dermal, inhalation LD50 values differ substantially)",
+          "Relying on a single prediction tool without cross-validation with other methods"
+        ]
+      },
+      "noael_prediction": {
+        "description": "No Observed Adverse Effect Level - the highest dose at which no statistically significant adverse effects are observed in chronic toxicity studies. Used to calculate safety margins.",
+        "situations": {
+          "safety_margin_calculation": {
+            "value_or_range": "Safety margin = NOAEL / therapeutic dose; should be >= 10x (preclinical), >= 100x (first-in-human with uncertainty)",
+            "when": "Establishing safe starting doses for clinical trials",
+            "why": "FDA guidance uses NOAEL from the most sensitive species to calculate the human equivalent dose (HED) for first-in-human studies. A 10-fold safety factor is applied to the HED to determine the maximum recommended starting dose (MRSD).",
+            "source": "https://pubs.acs.org/doi/10.1021/acs.chemrestox.3c00352"
+          },
+          "prediction_approaches": {
+            "value_or_range": "VEGA QSAR, ToxTree, COSMOS; predictions have high uncertainty (within 1 log unit)",
+            "when": "Estimating NOAEL for untested compounds before chronic toxicity studies",
+            "why": "NOAEL predictions from computational models are much less reliable than LD50 predictions due to the complexity of chronic toxicity mechanisms. Predictions should be used for prioritization only, not as a substitute for chronic toxicity testing.",
+            "source": "https://pubs.acs.org/doi/10.1021/acs.chemrestox.3c00352"
+          }
+        },
+        "common_mistakes": [
+          "Using NOAEL prediction as a substitute for chronic toxicity studies in regulatory submissions",
+          "Not applying appropriate species scaling factors (allometric scaling) when extrapolating from animal NOAEL to human doses",
+          "Ignoring organ-specific toxicity that may occur at doses below the general NOAEL"
+        ]
+      },
+      "ames_mutagenicity_prediction": {
+        "description": "Prediction of Ames test (bacterial reverse mutation) results - whether a compound can cause gene mutations. A positive Ames test is a regulatory red flag for genotoxic carcinogenicity.",
+        "situations": {
+          "structural_alert_screening": {
+            "value_or_range": "Screen for 29 validated toxicophores/structural alerts; sensitivity ~80%, specificity ~70%",
+            "when": "Initial filtering of compounds for mutagenic potential based on structure",
+            "why": "Structural alerts (toxicophores) are molecular substructures associated with mutagenicity (e.g., aromatic amines, nitro groups, alkylating agents, epoxides). A validated set of 29 toxicophores classified mutagenicity with 82% total accuracy.",
+            "source": "https://pubs.acs.org/doi/10.1021/jm040835a"
+          },
+          "expert_system_prediction": {
+            "value_or_range": "Derek Nexus, Leadscope, or CASE Ultra; use consensus of rule-based + statistical approaches",
+            "when": "Regulatory-grade mutagenicity prediction per ICH M7 guidance for impurity assessment",
+            "why": "ICH M7 requires two complementary in silico methods - one expert rule-based (e.g., Derek Nexus) and one statistical/QSAR-based (e.g., CASE Ultra). Both must predict negative for a compound to be classified as non-mutagenic without experimental testing.",
+            "source": "https://www.lhasalimited.org/wp-content/uploads/2023/04/Derek-Nexus-6.2-Mutagenicity-QMRF.pdf"
+          },
+          "machine_learning_models": {
+            "value_or_range": "Random Forest, SVM, or deep learning models; typical AUC 0.85-0.90 on benchmark datasets",
+            "when": "High-throughput screening of large compound libraries for mutagenic liability",
+            "why": "ML models trained on the Hansen benchmark dataset (>6,500 compounds) achieve AUC of 0.85-0.90. Models using molecular fingerprints (ECFP6) combined with physicochemical descriptors generally outperform those using either alone.",
+            "source": "https://pubs.acs.org/doi/10.1021/acs.chemrestox.7b00083"
+          }
+        },
+        "common_mistakes": [
+          "Using a single prediction method when ICH M7 requires two complementary methods",
+          "Not distinguishing between alerting structures that cause mutagenicity via different mechanisms (direct-acting vs. requiring metabolic activation)",
+          "Ignoring that many structural alerts have high false positive rates and require expert interpretation"
+        ]
+      },
+      "hepatotoxicity_prediction": {
+        "description": "Prediction of drug-induced liver injury (DILI), which is the leading cause of post-market drug withdrawals. Includes both intrinsic (dose-dependent) and idiosyncratic (unpredictable) hepatotoxicity.",
+        "situations": {
+          "dili_risk_assessment": {
+            "value_or_range": "Binary classification (DILI-positive vs DILI-negative); best models achieve ~71% accuracy with ECFP6 fingerprints",
+            "when": "Early assessment of hepatotoxicity risk for drug candidates",
+            "why": "DILI accounts for 18% of drug withdrawals. Early prediction allows design-out of hepatotoxic liability. Ensemble models combining molecular fingerprints with deep neural networks and traditional ML achieve the best performance.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11373136/"
+          },
+          "daily_dose_and_lipophilicity_rule": {
+            "value_or_range": "Daily dose > 100 mg AND LogP > 3: significantly elevated DILI risk",
+            "when": "Quick risk stratification based on simple physicochemical and dosing properties",
+            "why": "The '2-out-of-3 rule' (daily dose > 100 mg, LogP > 3, metabolism by CYPs) identifies compounds with significantly elevated DILI risk. This simple rule provides rapid risk stratification before more complex predictions.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10640386/"
+          },
+          "reactive_metabolite_assessment": {
+            "value_or_range": "Screen for bioactivation-prone functional groups (furans, thiophenes, anilines, hydrazines)",
+            "when": "Evaluating mechanism-based hepatotoxicity risk from reactive metabolites",
+            "why": "Many DILI cases are caused by reactive metabolites that form covalent adducts with cellular proteins (especially CYP-mediated bioactivation). Identifying bioactivation-prone substructures is a key component of hepatotoxicity risk assessment.",
+            "source": "https://pubs.acs.org/doi/10.1021/tx200148a"
+          }
+        },
+        "common_mistakes": [
+          "Treating DILI prediction as a solved problem when even the best models have ~30% error rates",
+          "Not considering dose as a critical factor (most DILI occurs at daily doses > 100 mg)",
+          "Ignoring reactive metabolite formation as a mechanism of DILI",
+          "Using single-endpoint models when DILI involves multiple mechanisms (mitochondrial toxicity, bile salt transport inhibition, immune-mediated injury)"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pubs.acs.org/doi/10.1021/acs.chemrestox.3c00352",
+      "https://pubs.acs.org/doi/10.1021/acsomega.2c05693",
+      "https://pubs.acs.org/doi/10.1021/jm040835a",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC11373136/"
+    ],
+    "best_practice_notes": "Use multiple complementary toxicity prediction methods and take a consensus. For Ames mutagenicity, follow ICH M7 guidance requiring two complementary in silico methods (expert rule-based + statistical). For DILI prediction, consider both structural alerts for reactive metabolites and physicochemical/dose-based rules. Always validate computational predictions experimentally for lead compounds. Consider dose-dependent vs. idiosyncratic toxicity mechanisms separately. LD50 predictions are most reliable for acute toxicity; chronic toxicity (NOAEL) predictions have much higher uncertainty."
+  }
+}

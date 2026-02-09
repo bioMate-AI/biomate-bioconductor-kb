@@ -1,0 +1,1451 @@
+{
+  "flow_cytometry_facs": {
+    "description": "Flow cytometry and fluorescence-activated cell sorting (FACS) for immunophenotyping, cell sorting, and quantitative analysis of cell surface and intracellular markers using fluorochrome-conjugated antibodies.",
+    "key_parameters": {
+      "gating_hierarchy": {
+        "description": "Sequential gating strategy to identify target cell populations from heterogeneous samples.",
+        "situations": {
+          "standard_immunophenotyping": {
+            "value_or_range": "Time gate -> FSC-A vs SSC-A (exclude debris) -> FSC-H vs FSC-A (singlets) -> Viability dye negative (live cells) -> Lineage markers",
+            "when": "Standard multi-color immunophenotyping of PBMCs or tissue-derived cells",
+            "why": "Sequential cleaning removes debris, doublets, and dead cells before phenotyping to prevent false positives. Dead cells have high autofluorescence and nonspecific antibody binding.",
+            "source": "https://www.bio-rad-antibodies.com/flow-cytometry-gating-strategies.html"
+          },
+          "rare_population_detection": {
+            "value_or_range": "Add dump channel (Lin-) gate before target population gating; collect >500,000 total events",
+            "when": "Target population is <1% of parent (e.g., antigen-specific T cells, circulating tumor cells)",
+            "why": "Rare populations require stringent exclusion of false positives and high event counts for statistical power. Need at least 100 events in target gate for reliable quantification.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8054300/"
+          }
+        },
+        "common_mistakes": [
+          "Skipping singlet discrimination, leading to doublet artifacts that mimic double-positive populations",
+          "Not using viability dye, causing dead cell autofluorescence to appear as false positives",
+          "Setting gates on unstained controls instead of FMO controls in multicolor panels",
+          "Gating too tightly on FSC/SSC, excluding activated or blasting lymphocytes which are larger"
+        ]
+      },
+      "compensation": {
+        "description": "Mathematical correction for spectral overlap between fluorochromes detected in multiple channels.",
+        "situations": {
+          "panels_up_to_4_colors": {
+            "value_or_range": "Standard compensation using single-stained controls (beads or cells)",
+            "when": "Simple 4-color panels with well-separated fluorochromes (e.g., FITC, PE, PerCP, APC)",
+            "why": "Minimal spectral overlap between these classic fluorochromes; standard compensation is usually sufficient.",
+            "source": "https://www.bio-rad-antibodies.com/flow-cytometry-multicolour-design-rules.html"
+          },
+          "panels_5_to_12_colors": {
+            "value_or_range": "Compensation matrix required; use single-stained compensation beads; spread fluorochromes across multiple lasers",
+            "when": "Multi-color panels where spectral overlap becomes significant",
+            "why": "Compensation errors compound with more fluorochromes. Spreading across lasers (405nm, 488nm, 561nm, 640nm) minimizes spillover between channels on same laser.",
+            "source": "https://www.abcam.com/en-us/technical-resources/guides/flow-cytometry-guide/designing-a-multicolor-protocol"
+          },
+          "panels_above_12_colors": {
+            "value_or_range": "Consider spectral flow cytometry; if conventional, use automated compensation with rigorous single-stained controls and FMO for every marker",
+            "when": "High-dimensional panels (>12 colors) or full spectral cytometry (30+ markers)",
+            "why": "Conventional compensation becomes unreliable above 12-15 colors due to compounding spillover. Spectral cytometry uses full emission spectra and unmixing algorithms instead.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10802916/"
+          }
+        },
+        "common_mistakes": [
+          "Using cells for compensation when beads would provide brighter, more consistent single-stained controls",
+          "Not matching compensation control fluorochrome brightness to experimental antibodies",
+          "Ignoring autofluorescence subtraction, especially for myeloid cells and macrophages",
+          "Under-compensating PE-Cy7 spillover into PE channel, a notoriously problematic pair"
+        ]
+      },
+      "fluorochrome_panel_design": {
+        "description": "Matching fluorochrome brightness to antigen expression density for optimal signal-to-noise.",
+        "situations": {
+          "low_density_antigens": {
+            "value_or_range": "Use brightest fluorochromes: PE, APC, PE-Cy7, BV421",
+            "when": "Detecting low-abundance markers (CCR7, CXCR5, IL-4, IL-17, cytokines, chemokine receptors)",
+            "why": "Low-density antigens produce weak signals; bright fluorochromes maximize signal-to-noise ratio and resolution between positive and negative populations.",
+            "source": "https://www.abcam.com/en-us/technical-resources/guides/flow-cytometry-guide/designing-a-multicolor-protocol"
+          },
+          "high_density_antigens": {
+            "value_or_range": "Can use dimmer fluorochromes: FITC, PerCP-Cy5.5, APC-Cy7, BV510",
+            "when": "Detecting highly expressed markers (CD3, CD4, CD8, CD45, CD19, CD20)",
+            "why": "High-abundance antigens generate strong signals even with dim fluorochromes, freeing bright channels for harder-to-detect markers.",
+            "source": "https://www.abcam.com/en-us/technical-resources/guides/flow-cytometry-guide/designing-a-multicolor-protocol"
+          }
+        },
+        "common_mistakes": [
+          "Putting a dim marker (e.g., cytokine) on a dim fluorochrome, making it undetectable",
+          "Not considering tandem dye degradation (PE-Cy7 and APC-Cy7 are light-sensitive)",
+          "Placing two markers with high spillover on co-expressed markers, creating resolution artifacts",
+          "Not titrating antibodies - more is not better; excess antibody increases background"
+        ]
+      },
+      "minimum_events": {
+        "description": "Number of events to collect for statistically reliable quantification.",
+        "situations": {
+          "standard_immunophenotyping": {
+            "value_or_range": "10,000-30,000 events in the lymphocyte gate",
+            "when": "Analyzing major populations (T cells, B cells) that are >5% of parent gate",
+            "why": "Provides CV <5% for populations >5% of parent. Standard for clinical and research immunophenotyping.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8054300/"
+          },
+          "rare_populations": {
+            "value_or_range": "500,000-1,000,000 total events; aim for >100 events in target population",
+            "when": "Target population <0.1% (e.g., antigen-specific T cells, regulatory T cells in some contexts, CTCs)",
+            "why": "Poisson statistics: need N>100 in target gate for CV <10%. For 0.01% population, need 1,000,000 total events to get 100 target events.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8054300/"
+          }
+        },
+        "common_mistakes": [
+          "Collecting 10,000 total events and trying to quantify a 0.1% population (only 10 events - unreliable)",
+          "Not accounting for gating losses when calculating required acquisition events",
+          "Comparing percentages of rare populations without considering absolute event counts"
+        ]
+      },
+      "fmo_controls": {
+        "description": "Fluorescence Minus One controls - sample stained with all fluorochromes except one to reveal spillover-driven spread.",
+        "situations": {
+          "essential_use": {
+            "value_or_range": "Run FMO for every marker in panels >4 colors",
+            "when": "Setting gates for markers with continuous expression (activation markers, chemokine receptors) or when positive/negative boundary is unclear",
+            "why": "FMOs reveal the true spread of fluorescence from other channels into the channel of interest. Without FMOs, gates based on unstained controls will be set too low, creating false positives.",
+            "source": "https://www.bio-rad-antibodies.com/flow-cytometry-fmo-controls.html"
+          },
+          "can_be_reduced": {
+            "value_or_range": "Run FMOs only for difficult-to-gate markers after panel validation",
+            "when": "Well-validated panel with clearly bimodal populations (e.g., CD4 vs CD8)",
+            "why": "Once panel is validated and gates are established, bimodal markers (clear positive/negative) may not need FMOs every run. But continuous markers always need FMOs.",
+            "source": "https://www.thermofisher.com/us/en/home/life-science/cell-analysis/flow-cytometry/flow-cytometry-learning-center/flow-cytometry-resource-library/flow-cytometry-methods/spectral-flow-cytometry-panel-controls-sample-preparation.html"
+          }
+        },
+        "common_mistakes": [
+          "Using isotype controls instead of FMOs for gate setting in multicolor panels",
+          "Not running FMOs for markers on a continuum (e.g., PD-1, CD25, CCR7)",
+          "Assuming FMOs from one experiment apply to another with different instrument settings"
+        ]
+      },
+      "common_cell_type_markers": {
+        "description": "Standard surface markers for identifying major immune cell populations.",
+        "situations": {
+          "t_cell_subsets": {
+            "value_or_range": "CD3+CD4+ (helper), CD3+CD8+ (cytotoxic); Naive: CD45RA+CCR7+; Central memory: CD45RA-CCR7+; Effector memory: CD45RA-CCR7-; TEMRA: CD45RA+CCR7-",
+            "when": "Immunophenotyping T cell differentiation states in peripheral blood",
+            "why": "CD45RA and CCR7 define the four canonical memory subsets. CD62L can substitute for CCR7 but CCR7 is preferred for human samples.",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/cyto.a.23724"
+          },
+          "b_cells": {
+            "value_or_range": "CD19+ or CD20+; Memory: CD27+; Naive: CD27-IgD+; Switched memory: CD27+IgD-; Plasmablasts: CD27hiCD38hi",
+            "when": "B cell subset analysis in blood or lymphoid tissue",
+            "why": "CD19 is the pan-B cell marker; CD27 distinguishes memory from naive. CD20 is lost on plasmablasts/plasma cells.",
+            "source": "https://www.abcam.com/en-us/knowledge-center/flow-cytometry/flow-cytometry-markers"
+          },
+          "nk_cells": {
+            "value_or_range": "CD3-CD56+; CD56bright CD16- (cytokine producing); CD56dim CD16+ (cytotoxic)",
+            "when": "NK cell identification and functional subset analysis",
+            "why": "CD3 negativity excludes NKT cells. CD56/CD16 distinguish two major functional NK subsets.",
+            "source": "https://www.abcam.com/en-us/knowledge-center/flow-cytometry/flow-cytometry-markers"
+          },
+          "monocyte_subsets": {
+            "value_or_range": "Classical: CD14++CD16-; Intermediate: CD14++CD16+; Non-classical: CD14+CD16++",
+            "when": "Monocyte subset analysis in PBMCs",
+            "why": "Three monocyte subsets have distinct functional properties; intermediate monocytes are expanded in inflammatory conditions.",
+            "source": "https://www.abcam.com/en-us/knowledge-center/flow-cytometry/flow-cytometry-markers"
+          },
+          "dendritic_cells": {
+            "value_or_range": "Lin-HLA-DR+; cDC1: CD141(BDCA3)+; cDC2: CD1c(BDCA1)+; pDC: CD303(BDCA2)+CD123+",
+            "when": "DC subset identification in blood or tissue",
+            "why": "DCs are rare (0.1-1% of PBMCs) and require lineage exclusion. BDCA markers distinguish the three major DC subsets with distinct functions.",
+            "source": "https://www.abcam.com/en-us/knowledge-center/flow-cytometry/flow-cytometry-markers"
+          }
+        },
+        "common_mistakes": [
+          "Forgetting to exclude CD3+ cells when identifying NK cells, leading to NKT contamination",
+          "Using CD20 alone for B cells and missing plasmablasts (CD20-)",
+          "Not using lineage dump channel for DC identification, leading to contamination by monocytes"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC8054300/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC10802916/",
+      "https://www.bio-rad-antibodies.com/flow-cytometry-multicolour-design-rules.html",
+      "https://onlinelibrary.wiley.com/doi/full/10.1002/cyto.a.23724"
+    ],
+    "best_practice_notes": "Always titrate antibodies to optimal concentration (not manufacturer recommended). Include single-stained compensation controls, FMO controls for continuous markers, and unstained controls. For multicolor panels, spread fluorochromes across multiple lasers and match fluorochrome brightness to antigen density. Viability dye is mandatory. Acquire sufficient events for the rarest population of interest."
+  },
+  "cell_cycle_analysis": {
+    "description": "Quantitative analysis of cell cycle phase distribution (G0/G1, S, G2/M) using DNA content staining and flow cytometry, with optional thymidine analog incorporation (EdU/BrdU) for S-phase kinetics.",
+    "key_parameters": {
+      "dna_stain_selection": {
+        "description": "Choice of DNA-binding fluorescent dye determines fixation requirements, laser compatibility, and multiparameter capability.",
+        "situations": {
+          "standard_fixed_cell_analysis": {
+            "value_or_range": "Propidium iodide (PI) at 50 ug/mL with RNase A (100 ug/mL)",
+            "when": "Standard cell cycle analysis on fixed cells using 488nm laser",
+            "why": "PI intercalates into double-stranded nucleic acids. RNase treatment is essential to eliminate RNA staining which distorts DNA histograms. Compatible with most standard flow cytometers.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4516267/"
+          },
+          "live_cell_analysis": {
+            "value_or_range": "Hoechst 33342 at 5-10 ug/mL for 30-60 min at 37C",
+            "when": "Live cell sorting by cell cycle phase, or combining with surface markers on live cells",
+            "why": "Hoechst 33342 is cell-permeant and does not require fixation. Requires UV laser (355nm). Slight AT-base preference but acceptable for cell cycle.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4516267/"
+          },
+          "multiparameter_with_antibodies": {
+            "value_or_range": "DAPI at 1 ug/mL after fixation/permeabilization",
+            "when": "Combining DNA content with intracellular antibody staining (e.g., cyclin expression, phospho-histone H3)",
+            "why": "DAPI requires UV laser (355nm) but does not interfere with FITC/PE/APC channels, enabling multiparameter analysis. Not compatible with PI which overlaps with PE.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4516267/"
+          }
+        },
+        "common_mistakes": [
+          "Omitting RNase when using PI, causing inflated S-phase and broad G1 peaks due to RNA staining",
+          "Using PI on live cells without fixation - PI only enters dead cells, so it becomes a viability dye not a cell cycle dye",
+          "Not allowing sufficient staining time - minimum 30 min for PI, ideally overnight at 4C for best CV",
+          "Using Hoechst 33342 at too high concentration causing toxicity and cell cycle arrest"
+        ]
+      },
+      "sub_g1_analysis": {
+        "description": "Detection of hypodiploid (sub-G1) DNA content as an indicator of apoptosis.",
+        "situations": {
+          "apoptosis_indicator": {
+            "value_or_range": "Sub-G1 peak with DNA content <2N; gate broadly to include all sub-G1 events",
+            "when": "Cells treated with apoptosis-inducing agents, drug screening",
+            "why": "Apoptotic DNA fragmentation produces nuclei with reduced DNA content appearing left of the G1 peak. However, sub-G1 is not 100% specific for apoptosis.",
+            "source": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0068425"
+          },
+          "debris_discrimination": {
+            "value_or_range": "Use pulse processing (FSC-H vs FSC-A) and set lower FSC threshold to exclude debris while retaining apoptotic nuclei",
+            "when": "Distinguishing true apoptotic sub-G1 events from cellular debris",
+            "why": "Debris has very low FSC and random fluorescence. Apoptotic nuclei retain some FSC signal. Confirm with Annexin V/PI or caspase assay.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC1550296/"
+          }
+        },
+        "common_mistakes": [
+          "Interpreting all sub-G1 events as apoptosis without confirmatory assay - mechanical damage also produces sub-G1",
+          "Gating too tightly on intact cells and excluding apoptotic nuclei from analysis",
+          "Not accounting for cell type-specific differences in apoptotic DNA fragmentation kinetics"
+        ]
+      },
+      "minimum_cell_count": {
+        "description": "Number of events required for reliable cell cycle phase distribution estimates.",
+        "situations": {
+          "standard_analysis": {
+            "value_or_range": "10,000-20,000 singlet events in the analysis gate",
+            "when": "Standard cell cycle distribution analysis with all phases represented",
+            "why": "At p<0.05, need N>400 in the smallest phase. S-phase is typically 15-30% of cells, so 10,000 total events gives 1,500-3,000 S-phase events. 20,000 events recommended for CV <5%.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4516267/"
+          },
+          "sub_g1_or_polyploid_detection": {
+            "value_or_range": "50,000+ events if sub-G1 or >4N populations are rare (<5%)",
+            "when": "Detecting minor apoptotic fractions or polyploid populations",
+            "why": "Rare events (<5%) require more total events for statistical reliability. Need at least 100-400 events in the sub-G1 or polyploid gate.",
+            "source": "https://www.researchgate.net/post/What-is-the-minimal-cell-number-per-sample-for-cell-cycle-profiling"
+          }
+        },
+        "common_mistakes": [
+          "Collecting too few events for meaningful phase distribution, especially after gating losses",
+          "Not excluding doublets, which create a false 4N peak mimicking G2/M"
+        ]
+      },
+      "mathematical_models": {
+        "description": "Algorithms for deconvolving overlapping cell cycle phases from DNA histograms.",
+        "situations": {
+          "dean_jett_fox": {
+            "value_or_range": "Dean-Jett-Fox model in FlowJo or similar software",
+            "when": "General-purpose cell cycle modeling; good for samples with clear G1 and G2 peaks and moderate S-phase",
+            "why": "Uses polynomial for S-phase estimation and Gaussian fits for G1/G2. More flexible than Watson for asymmetric or broad S-phase distributions.",
+            "source": "http://www.icms.qmul.ac.uk/flowcytometry/flowcytometry/guides/Cell%20Cycle%20Tutorial.pdf"
+          },
+          "watson_pragmatic": {
+            "value_or_range": "Watson Pragmatic model in FlowJo",
+            "when": "Clean data with well-defined G1 and G2/M peaks and low debris",
+            "why": "Watson model assumes simpler S-phase distribution. Works well for high-quality data but may give discrepant results with Dean-Jett-Fox on the same data. Report which model was used.",
+            "source": "http://www.icms.qmul.ac.uk/flowcytometry/flowcytometry/guides/Cell%20Cycle%20Tutorial.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Not reporting which mathematical model was used, making results non-reproducible",
+          "Applying models to poor-quality histograms with high CV (>8%) on G1 peak",
+          "Not constraining G2/G1 ratio to ~2.0 when appropriate, leading to incorrect fits"
+        ]
+      },
+      "edu_pulse_duration": {
+        "description": "Duration of EdU or BrdU pulse labeling to mark S-phase cells.",
+        "situations": {
+          "short_pulse_snapshot": {
+            "value_or_range": "15-30 minutes EdU pulse at 10 uM",
+            "when": "Measuring S-phase fraction at a single timepoint; cells with doubling time 18-24h",
+            "why": "Short pulse labels only cells actively in S-phase at time of labeling. EdU is detectable in as little as 3 minutes but 15-30 min gives robust signal.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7490834/"
+          },
+          "cumulative_labeling": {
+            "value_or_range": "2-4 hours EdU pulse at 10 uM",
+            "when": "Maximizing detection of S-phase cells across a broader window, or cells with slow proliferation",
+            "why": "Longer pulse captures more cells transiting through S-phase, increasing sensitivity but losing temporal precision.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5522303/"
+          },
+          "s_phase_duration_measurement": {
+            "value_or_range": "Dual EdU/BrdU pulse-chase with 1.5-5.5h chase intervals",
+            "when": "Measuring actual S-phase duration in asynchronous cultures",
+            "why": "Sequential pulses with different analogs and timed chases allow calculation of S-phase transit time via linear regression of double-positive fraction over time.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8951228/"
+          }
+        },
+        "common_mistakes": [
+          "Using EdU concentration too high (>20 uM) causing toxicity and S-phase arrest",
+          "Not accounting for EdU-induced DNA damage in long-term experiments",
+          "Comparing pulse-labeled fractions between cell lines with different doubling times without normalization"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC4516267/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC8951228/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC5522303/",
+      "http://www.icms.qmul.ac.uk/flowcytometry/flowcytometry/guides/Cell%20Cycle%20Tutorial.pdf"
+    ],
+    "best_practice_notes": "Always include RNase with PI staining. Report the mathematical model used. Collect 10,000-20,000 gated singlet events minimum. For EdU experiments, include unlabeled control to set EdU-positive gate. Doublet discrimination is critical because doublets of two G1 cells mimic G2/M cells. CV on G1 peak should be <8% for reliable modeling, ideally <5%."
+  },
+  "cell_senescence_and_apoptosis": {
+    "description": "Assays for detecting cellular senescence (irreversible growth arrest) and apoptosis (programmed cell death), including SA-beta-gal, Annexin V/PI, and molecular markers.",
+    "key_parameters": {
+      "sa_beta_gal_ph": {
+        "description": "Senescence-associated beta-galactosidase activity detected at specific pH values.",
+        "situations": {
+          "senescence_specific_ph6": {
+            "value_or_range": "pH 6.0 (X-gal staining buffer at pH 6.0)",
+            "when": "Detecting senescence-specific beta-galactosidase activity",
+            "why": "Normal lysosomal beta-gal is active at pH 4.0. Senescent cells accumulate enlarged lysosomes with increased beta-gal that remains active at the suboptimal pH 6.0. Activity at pH 6.0 is the senescence-specific readout.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9599972/"
+          },
+          "non_senescent_lysosomal_ph4": {
+            "value_or_range": "pH 4.0",
+            "when": "Detecting normal lysosomal beta-galactosidase (all cells)",
+            "why": "All cells have lysosomal beta-gal active at pH 4.0. This is NOT a senescence marker. Used as positive control for enzyme activity.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9599972/"
+          }
+        },
+        "common_mistakes": [
+          "Using pH 4.0 and claiming senescence detection",
+          "Relying on SA-beta-gal alone without confirming with additional markers (p21, p16)",
+          "Not controlling staining time rigorously - overstaining produces false positives",
+          "SA-beta-gal is not 100% specific: apoptotic cells and macrophages can also stain positive"
+        ]
+      },
+      "annexin_v_pi_quadrants": {
+        "description": "Annexin V binds phosphatidylserine (PS) exposed on apoptotic cells; PI enters cells with compromised membranes.",
+        "situations": {
+          "early_apoptosis": {
+            "value_or_range": "Annexin V+/PI- (lower right quadrant)",
+            "when": "PS externalization with intact membrane",
+            "why": "Early apoptotic cells flip PS to outer leaflet but exclude PI. Transient state lasting minutes to hours.",
+            "source": "https://www.bosterbio.com/blog/post/methods/flow-cytometry-with-annexin-v-pi-staining"
+          },
+          "late_apoptosis_secondary_necrosis": {
+            "value_or_range": "Annexin V+/PI+ (upper right quadrant)",
+            "when": "Both PS exposed and membrane compromised",
+            "why": "Cannot distinguish late apoptosis from secondary necrosis by Annexin V/PI alone.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5253725/"
+          },
+          "necrosis": {
+            "value_or_range": "Annexin V-/PI+ (upper left quadrant)",
+            "when": "Primary necrosis - membrane rupture without PS externalization",
+            "why": "Typically small quadrant; large populations suggest mechanical damage.",
+            "source": "https://www.bosterbio.com/blog/post/methods/flow-cytometry-with-annexin-v-pi-staining"
+          }
+        },
+        "common_mistakes": [
+          "Not using calcium-containing binding buffer (1-3 mM Ca2+)",
+          "Prolonged PI incubation causing false positives in viable cells",
+          "Fixing cells before Annexin V staining",
+          "Not including RNase - up to 40% false positives from PI staining RNA",
+          "Interpreting Annexin V+/PI+ as exclusively late apoptosis"
+        ]
+      },
+      "senescence_markers_by_context": {
+        "description": "Multiple molecular markers should be used in combination.",
+        "situations": {
+          "oncogene_induced_senescence": {
+            "value_or_range": "p16INK4a (primary), p21, SA-beta-gal, gamma-H2AX foci",
+            "when": "Detecting OIS in tumor suppression studies",
+            "why": "OIS engages p16/Rb pathway. p16 most reliable for OIS. gamma-H2AX marks persistent DDR.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9221567/"
+          },
+          "replicative_senescence": {
+            "value_or_range": "p21 (early), p16INK4a (late), telomere dysfunction foci (TIFs), SA-beta-gal",
+            "when": "Detecting replicative senescence from telomere shortening",
+            "why": "p21 induced first via p53. p16 accumulates later. TIFs confirm telomere-driven senescence.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9362342/"
+          },
+          "therapy_induced_senescence": {
+            "value_or_range": "gamma-H2AX foci, p21, SA-beta-gal, SASP factors (IL-6, IL-8)",
+            "when": "Senescence from chemotherapy or radiation",
+            "why": "Persistent DDR signaling. gamma-H2AX foci persist months after IR. SASP confirms functional phenotype.",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/aac2.12074"
+          }
+        },
+        "common_mistakes": [
+          "Using single marker to define senescence",
+          "Confusing quiescence with senescence",
+          "Not measuring SASP factors"
+        ]
+      },
+      "sasp_measurement": {
+        "description": "Quantification of senescence-associated secretory phenotype factors.",
+        "situations": {
+          "core_sasp_panel": {
+            "value_or_range": "IL-6, IL-8 (CXCL8), MCP-1 (CCL2), MMP-3, PAI-1, IL-1beta, TNF-alpha",
+            "when": "Confirming functional SASP",
+            "why": "IL-6 and IL-8 most conserved SASP factors. Measure by ELISA or multiplex.",
+            "source": "https://www.assaygenie.com/senescence-associated-secretory-phenotype-sasp-elisa-kit-pack/"
+          },
+          "conditioned_media_collection": {
+            "value_or_range": "Serum-free or 0.5% serum for 24-48h; IL-6 typically 50-100 pg/mL senescent fibroblasts",
+            "when": "Collecting SASP for quantification",
+            "why": "Serum interferes with detection. ELISA threshold ~10 pg/mL.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6535418/"
+          }
+        },
+        "common_mistakes": [
+          "Not normalizing to cell number",
+          "Confusing acute inflammation with SASP",
+          "Not accounting for cell type differences in SASP composition"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC9599972/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC9362342/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC9221567/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC5253725/"
+    ],
+    "best_practice_notes": "Define senescence by multiple criteria: growth arrest (Ki67-), SA-beta-gal at pH 6.0, molecular markers (p16/p21), SASP. No single marker sufficient. For apoptosis, combine Annexin V/PI with caspase-3 or TUNEL."
+  },
+  "cfse_cell_proliferation": {
+    "description": "Tracking cell division by dilution of fluorescent dyes (CFSE, CellTrace Violet) that halve with each division.",
+    "key_parameters": {
+      "dye_concentration": {
+        "description": "Working concentration during labeling.",
+        "situations": {
+          "cfse_standard": {
+            "value_or_range": "1-5 uM CFSE for 10-15 min at 37C in serum-free PBS",
+            "when": "Standard T cell/lymphocyte proliferation assays",
+            "why": "1 uM minimum for resolving generations; 5 uM brighter but may be toxic. Titrate per cell type.",
+            "source": "https://flowcytometry.utoronto.ca/wp-content/uploads/2016/01/Proliferation-CFSE.pdf"
+          },
+          "celltrace_violet": {
+            "value_or_range": "2.5-5 uM CellTrace Violet for 20 min at 37C in dark",
+            "when": "Multicolor experiments needing FITC channel; GFP-expressing cells",
+            "why": "CTV on 405nm laser, freeing 488nm channels. 5 uM resolves 5-6 peaks. >2.5 uM may retard sensitive cells.",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/cyto.a.24830"
+          },
+          "sensitive_cell_types": {
+            "value_or_range": "0.5-1 uM CFSE or 1-2.5 uM CTV",
+            "when": "Primary cells, stem cells, sensitive to toxicity",
+            "why": "Fewer resolvable generations (4-5) but maintains viability.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5831513/"
+          }
+        },
+        "common_mistakes": [
+          "Labeling in serum-containing media",
+          "Not quenching excess dye",
+          "Not titrating per cell type"
+        ]
+      },
+      "generation_tracking": {
+        "description": "Number of resolvable divisions.",
+        "situations": {
+          "maximum_generations": {
+            "value_or_range": "7-8 generations at 5 uM",
+            "when": "Strong stimulation",
+            "why": "After 8 divisions, signal is 1/256 of original.",
+            "source": "https://www.agilent.com/cs/library/applications/application-t-cell-rpoliferation-5994-1851en-agilent.pdf"
+          },
+          "practical_limit": {
+            "value_or_range": "5-6 generations typically",
+            "when": "Standard conditions",
+            "why": "Peak broadening reduces resolution beyond gen 5-6.",
+            "source": "https://docs.flowjo.com/flowjo/experiment-based-platforms/proliferation/"
+          }
+        },
+        "common_mistakes": [
+          "No unstimulated control for gen 0",
+          "Not gating on viable cells first"
+        ]
+      },
+      "proliferation_metrics": {
+        "description": "Quantitative measures from generation data.",
+        "situations": {
+          "division_index": {
+            "value_or_range": "Average divisions for ALL cells (including undivided). Range: 0+. Formula: sum(i*N(i)/2^i)/sum(N(i)/2^i)",
+            "when": "Comparing overall proliferative response",
+            "why": "Includes undivided cells. Reflects responder fraction.",
+            "source": "https://docs.flowjo.com/flowjo/experiment-based-platforms/proliferation/"
+          },
+          "proliferation_index": {
+            "value_or_range": "Average divisions for RESPONDING cells only. Range: >=1",
+            "when": "Assessing vigor of responding cells",
+            "why": "Separates responder frequency from division extent.",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/cyto.a.21010"
+          },
+          "percent_divided": {
+            "value_or_range": "Fraction that divided at least once. 0-100%",
+            "when": "Reporting responder fraction",
+            "why": "Simple metric. Combine with proliferation index.",
+            "source": "https://docs.flowjo.com/flowjo/experiment-based-platforms/proliferation/"
+          }
+        },
+        "common_mistakes": [
+          "Confusing division index with proliferation index - different definitions in FlowJo vs ModFit",
+          "Reporting only percent divided",
+          "Not accounting for cell death"
+        ]
+      }
+    },
+    "key_references": [
+      "https://onlinelibrary.wiley.com/doi/full/10.1002/cyto.a.21010",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC5831513/",
+      "https://docs.flowjo.com/flowjo/experiment-based-platforms/proliferation/"
+    ],
+    "best_practice_notes": "Include unstimulated control. Titrate dye. Report percent divided AND division/proliferation index. CTV when FITC needed. Label at 1e6/mL serum-free."
+  },
+  "cancer_copy_number_analysis": {
+    "description": "Detection and characterization of somatic copy number alterations in cancer genomes.",
+    "key_parameters": {
+      "minimum_tumor_purity": {
+        "description": "Minimum tumor cell fraction for reliable CNA detection.",
+        "situations": {
+          "standard_cna_detection": {
+            "value_or_range": ">30% for broad CNA; >50% for subclonal events",
+            "when": "Standard bulk tumor CNA profiling",
+            "why": "At 30% purity, single-copy gain log2R ~0.18. Below 20%, tools fail.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9302205/"
+          },
+          "high_sensitivity": {
+            "value_or_range": ">60% preferred; >20% minimum with deep sequencing",
+            "when": "Clinical focal amplification/deletion detection",
+            "why": "Focal events need higher SNR.",
+            "source": "https://www.nature.com/articles/s41379-022-01083-x"
+          }
+        },
+        "common_mistakes": [
+          "Not reporting purity",
+          "Using raw log-ratios without correction"
+        ]
+      },
+      "platform_resolution": {
+        "description": "WGS vs WES vs SNP array resolution.",
+        "situations": {
+          "wgs": {
+            "value_or_range": "~1-10 kb at 30x; focal events <100 kb",
+            "when": "Comprehensive profiling",
+            "why": "Uniform coverage. Gold standard.",
+            "source": "https://genomebiology.biomedcentral.com/articles/10.1186/gb-2011-12-4-r41"
+          },
+          "wes": {
+            "value_or_range": "~50-200 kb; blind in gene deserts",
+            "when": "Combined mutation+CNA analysis",
+            "why": "Cost-effective for coding regions.",
+            "source": "https://academic.oup.com/bioinformatics/article/34/14/2349/4904265"
+          },
+          "snp_array": {
+            "value_or_range": "~50-100 kb; 500K-5M probes",
+            "when": "Large cohorts",
+            "why": "Allele-specific (BAF) for LOH. FFPE-compatible.",
+            "source": "https://academic.oup.com/bioinformatics/article/34/14/2349/4904265"
+          }
+        },
+        "common_mistakes": [
+          "WES for gene-poor region focal events",
+          "Not using BAF when available"
+        ]
+      },
+      "logr_ratio_thresholds": {
+        "description": "Log2 ratio thresholds for CNA calling.",
+        "situations": {
+          "standard": {
+            "value_or_range": "Loss: <-0.4; Gain: >0.3; Amplification: >1.5; HomDel: <-1.0",
+            "when": "Known/estimated purity",
+            "why": "Pure diploid: loss=log2(1/2)=-1.0; gain=log2(3/2)=0.585. Must purity-adjust.",
+            "source": "https://cnvkit.readthedocs.io/en/stable/calling.html"
+          },
+          "purity_adjusted": {
+            "value_or_range": "Use ASCAT, ABSOLUTE, or FACETS",
+            "when": "Accurate integer CN needed",
+            "why": "Joint purity/ploidy estimation required.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5027494/"
+          }
+        },
+        "common_mistakes": [
+          "Fixed thresholds without purity correction"
+        ]
+      },
+      "focal_vs_arm_level": {
+        "description": "Event size classification.",
+        "situations": {
+          "focal": {
+            "value_or_range": "<50% arm; <3 Mb for GISTIC2 drivers",
+            "when": "Driver gene identification",
+            "why": "Focal amps (ERBB2, MYC) and dels (CDKN2A, PTEN) harbor drivers.",
+            "source": "https://genomebiology.biomedcentral.com/articles/10.1186/gb-2011-12-4-r41"
+          },
+          "arm_level": {
+            "value_or_range": ">50% of arm",
+            "when": "CIN/aneuploidy assessment",
+            "why": "Reflects chromosomal instability. Prognostic.",
+            "source": "https://elifesciences.org/articles/50267"
+          }
+        },
+        "common_mistakes": [
+          "Not separating focal from arm-level in GISTIC2"
+        ]
+      },
+      "ploidy_estimation": {
+        "description": "Diploid vs tetraploid disambiguation.",
+        "situations": {
+          "disambiguation": {
+            "value_or_range": "Use ABSOLUTE (outperforms ASCAT); compare with pathology purity",
+            "when": "Potential WGD samples",
+            "why": "Tetraploid with even CN indistinguishable from diploid at half purity.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4383288/"
+          },
+          "wgd_detection": {
+            "value_or_range": "WGD if >50% autosomal genome has ASCN >=2 both alleles",
+            "when": "WGD determination",
+            "why": "30-40% of tumors have WGD. Affects all downstream analysis.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4383288/"
+          }
+        },
+        "common_mistakes": [
+          "Assuming all tumors diploid",
+          "At <20% purity, ploidy estimation unreliable"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC4383288/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC5027494/",
+      "https://genomebiology.biomedcentral.com/articles/10.1186/gb-2011-12-4-r41"
+    ],
+    "best_practice_notes": "Report purity and ploidy. Use allele-specific methods. GISTIC2 for recurrent focal events. Compare algorithmic purity with pathology."
+  },
+  "nmf_cancer_subtypes": {
+    "description": "NMF for unsupervised cancer subtype discovery using consensus clustering.",
+    "key_parameters": {
+      "rank_selection": {
+        "description": "Choosing optimal k.",
+        "situations": {
+          "cophenetic_correlation": {
+            "value_or_range": "Screen k=2 to k=10+; select at cophenetic drop-off",
+            "when": "Exploratory subtype analysis",
+            "why": "First major drop = data no longer supports that many clusters.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC384712/"
+          },
+          "multi_metric": {
+            "value_or_range": "Cophenetic + silhouette + consensus matrix visualization",
+            "when": "Publication-quality determination",
+            "why": "No single metric definitive.",
+            "source": "https://gdac.broadinstitute.org/runs/analyses__2016_01_28/reports/cancer/BRCA/Methylation_Clustering_CNMF/nozzle.html"
+          }
+        },
+        "common_mistakes": [
+          "Selecting k at cophenetic maximum not drop-off",
+          "k=2 always most stable - not necessarily best",
+          "Not validating with independent data"
+        ]
+      },
+      "number_of_runs": {
+        "description": "Iterations for consensus matrix.",
+        "situations": {
+          "standard": {
+            "value_or_range": "50-200 runs per k",
+            "when": "Standard consensus NMF",
+            "why": "50 minimum; 200 more robust. GDAC uses 50.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC384712/"
+          },
+          "publication": {
+            "value_or_range": "200-500 runs",
+            "when": "Publication quality",
+            "why": "Diminishing returns above 200-500.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2912887/"
+          }
+        },
+        "common_mistakes": [
+          "Only 10-20 iterations",
+          "No random seed"
+        ]
+      },
+      "initialization": {
+        "description": "W and H matrix initialization.",
+        "situations": {
+          "random": {
+            "value_or_range": "Random init with multiple runs",
+            "when": "Consensus clustering",
+            "why": "Diversity across runs is basis of consensus.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC384712/"
+          },
+          "nndsvd": {
+            "value_or_range": "NNDSVD (deterministic)",
+            "when": "Single-run NMF",
+            "why": "Data-driven, converges faster. Use NNDSVDa for zeros.",
+            "source": "https://nimfa.biolab.si/nimfa.methods.factorization.nmf.html"
+          }
+        },
+        "common_mistakes": [
+          "NNDSVD for consensus (deterministic = no diversity)"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1073/pnas.0308531101",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC384712/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC2912887/"
+    ],
+    "best_practice_notes": "Screen k=2-10+ with 50-200 runs. Cophenetic drop-off + silhouette + consensus visualization. Validate with independent data. Pre-filter top 5000 variable genes. Log-transform and mean-center."
+  },
+  "somatic_mutation_detection": {
+    "description": "Somatic SNV and indel detection in cancer genomes using Mutect2 and related tools.",
+    "key_parameters": {
+      "minimum_tumor_depth": {
+        "description": "Sequencing depth for variant detection.",
+        "situations": {
+          "wgs": {
+            "value_or_range": "Tumor: 60-100x; Normal: 30-40x",
+            "when": "WGS with matched normal",
+            "why": "At 60x/50% purity, ~15 supporting reads for het variant.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4669575/"
+          },
+          "wes": {
+            "value_or_range": "Tumor: 100-200x; Normal: 50-100x",
+            "when": "WES variant calling",
+            "why": "Variable coverage; higher depth compensates. 200x detects VAF ~5%.",
+            "source": "https://www.nature.com/articles/s41598-020-60559-5"
+          },
+          "targeted": {
+            "value_or_range": "500-1000x; UMIs: 2000-10000x raw",
+            "when": "Clinical panels, liquid biopsy",
+            "why": "UMI correction enables VAF 0.1-0.5%.",
+            "source": "https://help.dragen.illumina.com/product-guides/dragen-v4.3/dragen-dna-pipeline/small-variant-calling/somatic-mode"
+          }
+        },
+        "common_mistakes": [
+          "<10 supporting reads without flagging",
+          "Assuming uniform coverage"
+        ]
+      },
+      "vaf_thresholds": {
+        "description": "VAF for filtering and interpretation.",
+        "situations": {
+          "clonal": {
+            "value_or_range": "VAF > 0.25 (purity-adjusted); ~purity/2 for het clonal",
+            "when": "Identifying clonal/truncal mutations",
+            "why": "60% purity het clonal = VAF ~0.30.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4383288/"
+          },
+          "subclonal": {
+            "value_or_range": "VAF 0.05-0.25",
+            "when": "Subclonal detection",
+            "why": "Need deeper sequencing; distinguish from artifacts.",
+            "source": "https://www.nature.com/articles/s41598-020-60559-5"
+          },
+          "minimum_filter": {
+            "value_or_range": ">=0.05 WGS/WES; >=0.01 targeted",
+            "when": "Artifact exclusion",
+            "why": "Below 5% at standard depth, errors dominate.",
+            "source": "https://www.nature.com/articles/s41598-020-60559-5"
+          }
+        },
+        "common_mistakes": [
+          "Fixed VAF without purity adjustment",
+          "Low VAF misinterpreted as subclonal vs low purity",
+          "Not considering CN state on VAF"
+        ]
+      },
+      "matched_normal": {
+        "description": "Germline filtering approach.",
+        "situations": {
+          "paired": {
+            "value_or_range": "Always use when available; blood preferred",
+            "when": "Standard pipeline",
+            "why": "Gold standard for somatic/germline distinction.",
+            "source": "https://gatk.broadinstitute.org/hc/en-us/articles/360035531132--How-to-Call-somatic-mutations-using-GATK4-Mutect2"
+          },
+          "tumor_only": {
+            "value_or_range": "Panel of normals (20-50) + gnomAD",
+            "when": "No matched normal",
+            "why": "10 normals: 94% sensitivity, 99% specificity.",
+            "source": "https://academic.oup.com/narcancer/article/3/4/zcab040/6382329"
+          }
+        },
+        "common_mistakes": [
+          "Tumor-only without PoN",
+          "No gnomAD filtering"
+        ]
+      },
+      "filters": {
+        "description": "PASS filter criteria.",
+        "situations": {
+          "mutect2": {
+            "value_or_range": "FilterMutectCalls defaults: TLOD>=5.3, contamination, orientation bias",
+            "when": "Standard Mutect2",
+            "why": "Well-calibrated defaults.",
+            "source": "https://gatk.broadinstitute.org/hc/en-us/articles/360036730391-FilterMutectCalls"
+          },
+          "hard_filters": {
+            "value_or_range": "Depth>=10; >=3 alt reads; BQ>=20; MQ>=30",
+            "when": "Additional filtering",
+            "why": "Catches edge cases.",
+            "source": "https://bioinformatics-core-shared-training.github.io/cruk-summer-school-2017/Day3/somatic_snv_filtering.html"
+          }
+        },
+        "common_mistakes": [
+          "No orientation bias for FFPE",
+          "Relaxing all filters"
+        ]
+      }
+    },
+    "key_references": [
+      "https://gatk.broadinstitute.org/hc/en-us/articles/360037593851-Mutect2",
+      "https://www.nature.com/articles/s41598-020-60559-5"
+    ],
+    "best_practice_notes": "Matched normal when possible. PoN of 20-50 for tumor-only. FilterMutectCalls defaults. Report purity. Ensemble calling for clinical. Validate key findings."
+  },
+  "cosinor_circadian_analysis": {
+    "description": "Statistical analysis of circadian rhythms estimating mesor, amplitude, acrophase.",
+    "key_parameters": {
+      "sampling_frequency": {
+        "description": "Temporal resolution.",
+        "situations": {
+          "minimum": {
+            "value_or_range": "Every 2-4h for >=48h (2 cycles)",
+            "when": "24h circadian rhythms",
+            "why": "Practically need 2-4h for reliable estimation. Two cycles minimum.",
+            "source": "https://tbiomed.biomedcentral.com/articles/10.1186/1742-4682-11-16"
+          },
+          "optimal": {
+            "value_or_range": "Every 30-60 min for 48-72h",
+            "when": "High-precision parameters",
+            "why": "30-min reliable for all parameters. >120 min fails period detection.",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.11243"
+          }
+        },
+        "common_mistakes": [
+          "Sampling every 6-8h",
+          "Only one 24h cycle"
+        ]
+      },
+      "period": {
+        "description": "Fix at 24h or estimate.",
+        "situations": {
+          "fixed": {
+            "value_or_range": "24h fixed",
+            "when": "Entrained (LD cycle)",
+            "why": "Period locked by zeitgebers. Improves parameter estimation power.",
+            "source": "https://tbiomed.biomedcentral.com/articles/10.1186/1742-4682-11-16"
+          },
+          "free_running": {
+            "value_or_range": "Estimate from data (23-25h mammals)",
+            "when": "Constant conditions (DD/LL)",
+            "why": "Free-running period differs from 24h.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9136527/"
+          }
+        },
+        "common_mistakes": [
+          "Fixing 24h in free-running conditions",
+          "Not reporting fixed vs estimated"
+        ]
+      },
+      "parameters": {
+        "description": "Core cosinor parameters.",
+        "situations": {
+          "mesor": {
+            "value_or_range": "Rhythm-adjusted mean level",
+            "when": "Always reported",
+            "why": "Differs from arithmetic mean with unequal sampling.",
+            "source": "https://tbiomed.biomedcentral.com/articles/10.1186/1742-4682-11-16"
+          },
+          "amplitude": {
+            "value_or_range": "Half peak-to-trough; always positive",
+            "when": "Oscillation magnitude",
+            "why": "Reduced = dampened rhythm. Report with CI.",
+            "source": "https://tbiomed.biomedcentral.com/articles/10.1186/1742-4682-11-16"
+          },
+          "acrophase": {
+            "value_or_range": "Peak time; hours (0-24) or degrees (0-360)",
+            "when": "Peak timing",
+            "why": "Use circular statistics for comparisons.",
+            "source": "https://academic.oup.com/bioinformatics/article/36/4/1208/5582266"
+          }
+        },
+        "common_mistakes": [
+          "Amplitude as full range not half",
+          "Linear stats for acrophase"
+        ]
+      },
+      "methods": {
+        "description": "Algorithm comparison.",
+        "situations": {
+          "jtk_cycle": {
+            "value_or_range": "Non-parametric; symmetric waveforms; robust to outliers",
+            "when": "Genome-scale detection",
+            "why": "Best sensitivity/specificity. Fast, rank-based.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3119870/"
+          },
+          "rain": {
+            "value_or_range": "Non-parametric; asymmetric waveforms",
+            "when": "Asymmetric rhythms",
+            "why": "Detects rhythms JTK misses.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4266694/"
+          },
+          "cosinor": {
+            "value_or_range": "Parametric; CIs for parameters",
+            "when": "Parameter estimation and comparison",
+            "why": "CIs enable statistical comparison. Non-equidistant OK.",
+            "source": "https://tbiomed.biomedcentral.com/articles/10.1186/1742-4682-11-16"
+          },
+          "metacycle": {
+            "value_or_range": "Meta-analysis: ARSER + JTK + Lomb-Scargle",
+            "when": "Maximum sensitivity",
+            "why": "Combined p-values increase power.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8138819/"
+          }
+        },
+        "common_mistakes": [
+          "Single method only",
+          "JTK for asymmetric data"
+        ]
+      }
+    },
+    "key_references": [
+      "https://tbiomed.biomedcentral.com/articles/10.1186/1742-4682-11-16",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3119870/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC8138819/"
+    ],
+    "best_practice_notes": "Sample every 2-4h, >=48h. Fix 24h under entrainment. Report mesor/amplitude/acrophase with CIs. CircaCompare for group comparison. Multiple testing correction."
+  },
+  "bone_micro_ct_morphometry": {
+    "description": "Quantitative bone microarchitecture analysis using micro-CT per ASBMR nomenclature.",
+    "key_parameters": {
+      "morphometric_parameters": {
+        "description": "Core parameters per ASBMR.",
+        "situations": {
+          "trabecular": {
+            "value_or_range": "BV/TV (%): 5-25% mouse; Tb.Th (um): 30-80; Tb.Sp (um): 150-400; Tb.N (1/mm): 2-8",
+            "when": "Cancellous bone analysis",
+            "why": "BV/TV primary mass measure. Report all four minimum.",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/jbmr.141"
+          },
+          "cortical": {
+            "value_or_range": "Ct.Th (um): 100-300 mouse; Ct.Ar; Tt.Ar; Ct.Ar/Tt.Ar",
+            "when": "Mid-diaphysis cortical analysis",
+            "why": "Ct.Th primary cortical measure.",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/jbmr.141"
+          }
+        },
+        "common_mistakes": [
+          "Not reporting all minimum parameters",
+          "Non-ASBMR nomenclature"
+        ]
+      },
+      "roi_selection": {
+        "description": "Standardized ROI.",
+        "situations": {
+          "distal_femur": {
+            "value_or_range": "0.1-0.5 mm proximal to growth plate; extend 1-2 mm; exclude cortex",
+            "when": "Mouse distal femur trabecular",
+            "why": "Growth plate = reproducible landmark.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8409170/"
+          },
+          "proximal_tibia": {
+            "value_or_range": "0.1-0.3 mm distal to growth plate; extend 1-1.5 mm",
+            "when": "Mouse proximal tibia (most common)",
+            "why": "Most frequently analyzed site.",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/jbmr.141"
+          },
+          "mid_diaphysis": {
+            "value_or_range": "50 slices above/below midpoint (~1 mm at 10 um)",
+            "when": "Cortical analysis",
+            "why": "Pure cortical bone.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8409170/"
+          }
+        },
+        "common_mistakes": [
+          "Including growth plate",
+          "Not excluding cortical shell from trabecular ROI"
+        ]
+      },
+      "resolution": {
+        "description": "Voxel size requirements.",
+        "situations": {
+          "mouse": {
+            "value_or_range": "<=10 um (6-10 um recommended)",
+            "when": "Mouse bone",
+            "why": "Trabeculae 30-80 um; need 3-5 voxels across.",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/jbmr.141"
+          },
+          "rat": {
+            "value_or_range": "<=20 um (10-18 um recommended)",
+            "when": "Rat bone",
+            "why": "Thicker trabeculae (50-120 um).",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/jbmr.141"
+          }
+        },
+        "common_mistakes": [
+          "Not reporting voxel size",
+          "Comparing across resolutions"
+        ]
+      },
+      "threshold": {
+        "description": "Binarization method.",
+        "situations": {
+          "global": {
+            "value_or_range": "Fixed from histogram; Otsu; report value",
+            "when": "Standard ex vivo, uniform conditions",
+            "why": "Reproducible. Same across study.",
+            "source": "https://www.nature.com/articles/s41598-022-11965-4"
+          },
+          "adaptive": {
+            "value_or_range": "Local adaptive",
+            "when": "In vivo with artifacts",
+            "why": "Handles local intensity variation.",
+            "source": "https://onlinelibrary.wiley.com/doi/full/10.1002/jbmr.141"
+          }
+        },
+        "common_mistakes": [
+          "Different thresholds per group",
+          "No noise reduction before thresholding"
+        ]
+      }
+    },
+    "key_references": [
+      "doi:10.1002/jbmr.141",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3672237/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC8409170/"
+    ],
+    "best_practice_notes": "Follow Bouxsein 2010 guidelines. Report scan medium, voltage, voxel, ROI, threshold. ASBMR nomenclature. 3D direct measurements preferred."
+  },
+  "multiplexed_tissue_imaging": {
+    "description": "Highly multiplexed imaging (CyCIF, CODEX, IMC, MIBI) with segmentation, phenotyping, spatial analysis.",
+    "key_parameters": {
+      "segmentation": {
+        "description": "Cell boundary identification.",
+        "situations": {
+          "mesmer": {
+            "value_or_range": "Mesmer/DeepCell on TissueNet",
+            "when": "General whole-cell segmentation",
+            "why": "Human-level performance. Top in benchmarks.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9010346/"
+          },
+          "stardist": {
+            "value_or_range": "StarDist star-convex polygons",
+            "when": "Nuclear-only; dense nuclei",
+            "why": "Excels at touching nuclei separation. Fast.",
+            "source": "https://www.nature.com/articles/s42003-025-08184-8"
+          },
+          "cellpose": {
+            "value_or_range": "Cellpose gradient-based",
+            "when": "Irregular shapes; extended processes",
+            "why": "Handles non-convex shapes. User-trainable.",
+            "source": "https://www.nature.com/articles/s42003-025-08184-8"
+          }
+        },
+        "common_mistakes": [
+          "Nuclear-only for membrane markers",
+          "No segmentation QC"
+        ]
+      },
+      "panel": {
+        "description": "TME marker panel.",
+        "situations": {
+          "core_tme": {
+            "value_or_range": "DAPI, panCK, Vimentin, aSMA, CD31, CD45, CD3, CD8, CD4, FOXP3, CD20, CD68, CD11c, Ki67, PD-L1, PD-1, GzmB",
+            "when": "Comprehensive TME profiling",
+            "why": "Captures tumor, stroma, vasculature, immune subsets, functional states.",
+            "source": "https://www.nature.com/articles/s43856-022-00197-2"
+          }
+        },
+        "common_mistakes": [
+          "No DAPI for segmentation",
+          "Missing negative markers"
+        ]
+      },
+      "phenotyping": {
+        "description": "Cell type assignment.",
+        "situations": {
+          "manual_gating": {
+            "value_or_range": "Sequential Boolean gating",
+            "when": "<15 markers; clinical",
+            "why": "Transparent, reproducible.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10985204/"
+          },
+          "unsupervised": {
+            "value_or_range": "FlowSOM, Leiden, Phenograph",
+            "when": ">15 markers; discovery",
+            "why": "FlowSOM scales to >1B observations.",
+            "source": "https://www.nature.com/articles/s41467-023-40068-5"
+          }
+        },
+        "common_mistakes": [
+          "No batch normalization",
+          "Over-clustering noise"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC9010346/",
+      "https://www.nature.com/articles/s41467-023-40068-5",
+      "https://www.nature.com/articles/s42003-025-08184-8"
+    ],
+    "best_practice_notes": "Deep learning segmentation. DAPI + membrane marker. Positive/negative markers per type. Pathologist validation."
+  },
+  "western_blot_quantification": {
+    "description": "Densitometric protein quantification from Western blots.",
+    "key_parameters": {
+      "loading_control": {
+        "description": "Normalization control.",
+        "situations": {
+          "total_protein": {
+            "value_or_range": "Ponceau S, stain-free, SYPRO Ruby, Coomassie",
+            "when": "Gold standard (JBC recommendation)",
+            "why": "Less susceptible to expression changes. Linear 10-50 ug.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3840294/"
+          },
+          "housekeeping_acceptable": {
+            "value_or_range": "Beta-actin, GAPDH, alpha-tubulin",
+            "when": "Verified stable; loading 1-10 ug in linear range",
+            "why": "Acceptable if validated.",
+            "source": "https://blog.cellsignal.com/am-i-setting-up-my-loading-controls-the-wrong-way"
+          },
+          "housekeeping_fails": {
+            "value_or_range": "Switch to total protein",
+            "when": "Hypoxia (GAPDH up), aging (actin/GAPDH down), differentiation",
+            "why": "These proteins change under experimental conditions.",
+            "source": "https://journals.physiology.org/doi/full/10.1152/japplphysiol.00840.2014"
+          }
+        },
+        "common_mistakes": [
+          "Saturated beta-actin at 30-50 ug",
+          "Assuming housekeeping invariance",
+          "Stripping for loading control"
+        ]
+      },
+      "linear_range": {
+        "description": "Signal proportionality range.",
+        "situations": {
+          "determine": {
+            "value_or_range": "Serial dilution (1-80 ug); R2 > 0.98",
+            "when": "Before quantitative experiment; each new antibody",
+            "why": "Both target and control must be linear.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3971489/"
+          },
+          "exposure": {
+            "value_or_range": "Multiple exposures; shortest non-saturated",
+            "when": "ECL detection",
+            "why": "ECL non-linear at high intensity. Fluorescent wider range.",
+            "source": "https://www.nature.com/articles/s41598-022-22294-x"
+          }
+        },
+        "common_mistakes": [
+          "Quantifying saturated bands",
+          "No loading titration",
+          "Comparing different exposures"
+        ]
+      },
+      "replicates": {
+        "description": "Biological replicates.",
+        "situations": {
+          "minimum": {
+            "value_or_range": "n >= 3 biological replicates",
+            "when": "All quantitative comparisons",
+            "why": "Minimum for statistics. Technical replicates insufficient.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3840294/"
+          }
+        },
+        "common_mistakes": [
+          "Single blot as quantitative evidence",
+          "Confusing technical with biological replicates"
+        ]
+      }
+    },
+    "key_references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3840294/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6360618/",
+      "https://www.nature.com/articles/s41598-022-22294-x"
+    ],
+    "best_practice_notes": "Total protein normalization preferred. Linear range titration. Fluorescent for wider range. n>=3 biological replicates. Never quantify saturated bands."
+  },
+  "hemodynamic_analysis": {
+    "description": "Cardiovascular hemodynamic parameters: blood pressure, cardiac output, vascular resistance, HRV.",
+    "key_parameters": {
+      "map": {
+        "description": "Mean arterial pressure.",
+        "situations": {
+          "standard": {
+            "value_or_range": "MAP = (SBP + 2*DBP)/3. Normal: 70-105 mmHg. Min perfusion: 60 mmHg",
+            "when": "Standard estimation",
+            "why": "Diastole ~2/3 of cycle. Approximation.",
+            "source": "https://www.ncbi.nlm.nih.gov/books/NBK538226/"
+          },
+          "direct": {
+            "value_or_range": "Integral of P(t)dt / T",
+            "when": "Invasive catheter",
+            "why": "True MAP. 1/3 formula overestimates at high HR.",
+            "source": "https://www.nature.com/articles/hr201641"
+          }
+        },
+        "common_mistakes": [
+          "1/3 formula at extreme HR",
+          "Confusing MAP with (SBP+DBP)/2"
+        ]
+      },
+      "hrv": {
+        "description": "Heart rate variability.",
+        "situations": {
+          "time_domain": {
+            "value_or_range": "SDNN: 50-100ms (5min); RMSSD: 20-50ms (vagal); pNN50: 5-25%",
+            "when": "Autonomic assessment",
+            "why": "SDNN=total; RMSSD=vagal.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5624990/"
+          },
+          "frequency_domain": {
+            "value_or_range": "VLF <0.04Hz; LF 0.04-0.15Hz; HF 0.15-0.4Hz (vagal); LF/HF ratio",
+            "when": "Autonomic decomposition",
+            "why": "HF=respiratory sinus arrhythmia. LF interpretation debated.",
+            "source": "https://www.ahajournals.org/doi/10.1161/01.cir.93.5.1043"
+          }
+        },
+        "common_mistakes": [
+          "Comparing SDNN across durations",
+          "LF as purely sympathetic",
+          "Not removing ectopics"
+        ]
+      },
+      "co_svr": {
+        "description": "Cardiac output and SVR.",
+        "situations": {
+          "normal": {
+            "value_or_range": "CO: 4-8 L/min; CI: 2.5-4.0; SVR: 900-1440 dyn*s/cm5",
+            "when": "Hemodynamic assessment",
+            "why": "MAP = CO*SVR. SVR = 80*(MAP-CVP)/CO.",
+            "source": "https://www.vumc.org/cvicu/sites/default/files/2020-03/Hemodynamic-Parameters.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Wrong SVR unit conversion",
+          "Ignoring CVP"
+        ]
+      },
+      "pwv": {
+        "description": "Pulse wave velocity.",
+        "situations": {
+          "cfpwv": {
+            "value_or_range": "cfPWV gold standard. Normal <10 m/s; risk >10 m/s",
+            "when": "Arterial stiffness",
+            "why": "Strongest CV predictor.",
+            "source": "https://www.nature.com/articles/hr2010217"
+          },
+          "aix": {
+            "value_or_range": "AIx75 (HR-normalized)",
+            "when": "Wave reflection",
+            "why": "Must HR-correct.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5012082/"
+          }
+        },
+        "common_mistakes": [
+          "Incorrect cfPWV distance",
+          "AIx without HR correction"
+        ]
+      }
+    },
+    "key_references": [
+      "https://www.ncbi.nlm.nih.gov/books/NBK538226/",
+      "https://www.ahajournals.org/doi/10.1161/01.cir.93.5.1043",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC5624990/"
+    ],
+    "best_practice_notes": "Report MAP method. Standardize HRV recording duration. Both time and frequency domain. Remove ectopics. cfPWV gold standard. ESC/NASPE guidelines."
+  },
+  "amyloid_plaque_quantification": {
+    "description": "Quantitative amyloid-beta plaque burden assessment in brain tissue for AD research.",
+    "key_parameters": {
+      "staining": {
+        "description": "Amyloid detection method.",
+        "situations": {
+          "thios": {
+            "value_or_range": "ThioS 1% in 50% ethanol, 5-10 min",
+            "when": "Dense-core (fibrillar) plaques; fluorescence",
+            "why": "Binds beta-sheet. NOT diffuse plaques.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7299244/"
+          },
+          "congo_red": {
+            "value_or_range": "Congo Red + polarized light birefringence",
+            "when": "Fibrillar amyloid confirmation; CAA vs parenchymal",
+            "why": "Definitive stain. Birefringence pathognomonic.",
+            "source": "https://www.nature.com/articles/nprot.2006.277"
+          },
+          "ihc": {
+            "value_or_range": "6E10, 4G8, or Abeta40/42-specific antibodies",
+            "when": "ALL plaques including diffuse; total burden",
+            "why": "Both fibrillar and diffuse. 6E10 cross-reacts APP.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7299244/"
+          }
+        },
+        "common_mistakes": [
+          "ThioS reported as total burden",
+          "6E10 APP cross-reactivity unaccounted"
+        ]
+      },
+      "quantification": {
+        "description": "Measurement approach.",
+        "situations": {
+          "area_fraction": {
+            "value_or_range": "Percent area in ROI",
+            "when": "Standard; high throughput",
+            "why": "Most commonly reported. Correlates biochemical Abeta.",
+            "source": "https://biospective.com/resources/plaque-analysis-in-alzheimer-disease"
+          },
+          "stereology": {
+            "value_or_range": "Optical fractionator with SRS",
+            "when": "Gold standard; absolute numbers",
+            "why": "Unbiased estimates.",
+            "source": "https://www.stereology.info/plaque-load-alzheimers-disease/"
+          }
+        },
+        "common_mistakes": [
+          "Inconsistent thresholding",
+          "Manual counting without stereological design"
+        ]
+      },
+      "roi_sections": {
+        "description": "Brain regions and section requirements.",
+        "situations": {
+          "regions": {
+            "value_or_range": "Cortex (frontal/parietal/temporal), hippocampus (CA1/CA3/DG/subiculum), entorhinal cortex",
+            "when": "Comprehensive AD assessment",
+            "why": "Distribution varies by region and model. Report separately.",
+            "source": "https://biospective.com/resources/plaque-analysis-in-alzheimer-disease"
+          },
+          "stereology_sections": {
+            "value_or_range": "8-12 SRS sections; 15-30 um thick",
+            "when": "Stereological quantification",
+            "why": "Guard zones needed. SRS through full ROI extent.",
+            "source": "https://stereology.info/sampling/"
+          }
+        },
+        "common_mistakes": [
+          "Only 1-2 sections",
+          "No systematic random sampling"
+        ]
+      }
+    },
+    "key_references": [
+      "https://www.nature.com/articles/nprot.2006.277",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC7299244/",
+      "https://www.stereology.info/plaque-load-alzheimers-disease/"
+    ],
+    "best_practice_notes": "ThioS/Congo Red for fibrillar; IHC for all. Stereology with SRS gold standard. Min 8 sections. Cortex/hippocampus separately. Validate automated thresholds."
+  },
+  "glycosylation_prediction": {
+    "description": "Computational prediction of N- and O-linked glycosylation sites with sequon rules and species considerations.",
+    "key_parameters": {
+      "n_glyc_sequon": {
+        "description": "N-X-S/T consensus rules.",
+        "situations": {
+          "necessary_not_sufficient": {
+            "value_or_range": "N-X-S/T (X!=P) necessary but ~50% occupied",
+            "when": "Sequence-based prediction",
+            "why": "Half buried/inaccessible. N-X-T > N-X-S efficiency.",
+            "source": "https://academic.oup.com/glycob/article/14/2/103/636042"
+          },
+          "proline": {
+            "value_or_range": "Pro at +1 abolishes; Pro at +3 and -1 inhibit",
+            "when": "Assessing sequon viability",
+            "why": "Prevents required tight turn for OST binding.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3047074/"
+          },
+          "structure": {
+            "value_or_range": "Must be in accessible loop/turn; 78% glycosylated Asn in loops",
+            "when": "Structure-informed prediction",
+            "why": "OST acts co-translationally in ER. Buried sequons not glycosylated.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3426846/"
+          }
+        },
+        "common_mistakes": [
+          "Assuming all sequons glycosylated",
+          "Ignoring structural context",
+          "Forgetting Pro at +3",
+          "C-terminal proximity effects"
+        ]
+      },
+      "prediction_tools": {
+        "description": "Computational tools.",
+        "situations": {
+          "sequence_based": {
+            "value_or_range": "NetNGlyc: 86% sens, 61% spec, 76% accuracy",
+            "when": "No structure available",
+            "why": "NN trained on verified sites.",
+            "source": "https://services.healthtech.dtu.dk/services/NetNGlyc-1.0/"
+          },
+          "structure_based": {
+            "value_or_range": "93% accuracy with structure; 74% without",
+            "when": "Structure known/predicted",
+            "why": "Structural features dramatically improve accuracy.",
+            "source": "https://academic.oup.com/bioinformatics/article/28/17/2249/245912"
+          }
+        },
+        "common_mistakes": [
+          "Sequon matching only",
+          "No MS validation"
+        ]
+      },
+      "o_glyc": {
+        "description": "O-GalNAc prediction (no strict consensus).",
+        "situations": {
+          "accuracy": {
+            "value_or_range": "~70% (ISOGlyP and NetOGlyc 4.0)",
+            "when": "O-glycosylation prediction",
+            "why": "No consensus. 20 GalNAc-T isoforms. Competition with phosphorylation.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8022967/"
+          },
+          "isoglyp": {
+            "value_or_range": "ISOGlyP: 11 of 20 human GalNAc-T isoforms",
+            "when": "Isoform-specific prediction",
+            "why": "Different isoforms, different preferences.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8022967/"
+          }
+        },
+        "common_mistakes": [
+          "Expecting N-glyc accuracy",
+          "Ignoring phosphorylation competition",
+          "Ignoring tissue GalNAc-T expression"
+        ]
+      },
+      "species": {
+        "description": "Species-specific differences.",
+        "situations": {
+          "mammalian": {
+            "value_or_range": "CHO: no alpha-2,6-sialylTF; HEK293 more human-like; mouse: Neu5Gc",
+            "when": "Comparing expression systems",
+            "why": "Terminal elaboration differs. Neu5Gc immunogenic.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3914773/"
+          },
+          "non_mammalian": {
+            "value_or_range": "Insect: paucimannose; Yeast: high-mannose immunogenic; Plant: xylose + alpha-1,3-fucose immunogenic",
+            "when": "Expression system choice",
+            "why": "Non-mammalian glycans immunogenic in humans.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3914773/"
+          }
+        },
+        "common_mistakes": [
+          "CHO = human assumption",
+          "Mouse Neu5Gc unaccounted",
+          "Non-mammalian for human studies"
+        ]
+      }
+    },
+    "key_references": [
+      "https://academic.oup.com/glycob/article/14/2/103/636042",
+      "https://services.healthtech.dtu.dk/services/NetNGlyc-1.0/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC8022967/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3047074/"
+    ],
+    "best_practice_notes": "N-glyc: scan N-X-S/T; use NetNGlyc or structure tools; validate MS. O-glyc: ~70% accuracy; ISOGlyP for isoform-specific. Always validate experimentally. Account for expression system."
+  }
+}

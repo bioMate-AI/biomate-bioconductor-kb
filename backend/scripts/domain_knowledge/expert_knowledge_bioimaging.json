@@ -1,0 +1,1245 @@
+{
+  "nnunet_medical_image_segmentation": {
+    "description": "nnU-Net is a self-configuring deep learning framework for biomedical image segmentation that automatically adapts network architecture, preprocessing, and training to each new dataset by analyzing a 'dataset fingerprint' comprising key properties like image sizes, voxel spacings, and class ratios.",
+    "key_parameters": {
+      "configuration_selection": {
+        "description": "Choice between 2D U-Net, 3D full resolution U-Net, or 3D U-Net cascade, which determines how the network processes input volumes.",
+        "situations": {
+          "anisotropic_data": {
+            "value_or_range": "2d",
+            "when": "Data has highly anisotropic voxel spacing (e.g., thick-slice CT, prostate MRI, cine MRI) where in-plane resolution is much higher than through-plane resolution (anisotropy ratio > 3).",
+            "why": "3D U-Nets struggle with anisotropy because convolution kernels assume roughly isotropic spacing; 2D networks avoid this by processing each slice independently at full in-plane resolution.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          },
+          "standard_3d_data": {
+            "value_or_range": "3d_fullres",
+            "when": "Isotropic or near-isotropic 3D data where patch size covers a substantial fraction of the image (default recommendation).",
+            "why": "3D full resolution is on average the best-performing configuration because it leverages full 3D context without information loss from downsampling. nnU-Net selects this as the default starting point.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          },
+          "very_large_images": {
+            "value_or_range": "3d_cascade",
+            "when": "Image volumes exceed 4x the maximal viable patch size after resampling, meaning the 3d_fullres patch covers only a tiny fraction of the image.",
+            "why": "A two-stage cascade first segments at low resolution for global context, then refines at full resolution. This is necessary when the receptive field of a single 3D U-Net cannot capture sufficient contextual information.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          },
+          "small_images": {
+            "value_or_range": "3d_fullres (cascade omitted)",
+            "when": "Image volumes are small enough that the 3d_fullres patch already covers a large portion of the image.",
+            "why": "The cascade is redundant when the full-resolution patch already captures most of the context; the low-resolution stage adds no benefit.",
+            "source": "https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/how_to_use_nnunet.md"
+          }
+        },
+        "common_mistakes": [
+          "Manually forcing 3D configuration on highly anisotropic data (e.g., 5mm slice thickness with 0.5mm in-plane), which produces poor through-plane predictions.",
+          "Not running all configurations and letting nnU-Net automatically select the best one via cross-validation Dice scores.",
+          "Skipping the cascade for very large images (e.g., whole-body CT), losing global context."
+        ]
+      },
+      "voxel_spacing_resampling": {
+        "description": "Target voxel spacing to which all training and inference images are resampled, ensuring consistent spatial scale across the dataset.",
+        "situations": {
+          "isotropic_datasets": {
+            "value_or_range": "Median spacing of training cases (computed independently per axis)",
+            "when": "All three axes have similar voxel spacing (anisotropy ratio < 3).",
+            "why": "The median is robust to outliers and ensures most images require minimal resampling, preserving image quality.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          },
+          "anisotropic_datasets": {
+            "value_or_range": "Lowest-resolution axis uses 10th percentile of spacings; in-plane axes use median",
+            "when": "Both voxel and spacing anisotropy exceed a factor of 3.",
+            "why": "Using the 10th percentile (rather than median) for the low-resolution axis avoids excessive interpolation that would introduce artifacts and hallucinate information that does not exist in the original data.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          }
+        },
+        "common_mistakes": [
+          "Not checking voxel spacing metadata before feeding data to nnU-Net; incorrect spacing in NIfTI headers causes the model to resample to wrong target spacing, producing severely degraded predictions.",
+          "Mixing datasets with different spacing conventions (e.g., some in mm, some in cm) without harmonizing metadata first.",
+          "Forgetting that nnU-Net resamples images using 3rd-order spline for images and nearest-neighbor for segmentation labels; custom preprocessing that changes this can degrade label quality."
+        ]
+      },
+      "patch_size": {
+        "description": "The spatial extent of input patches fed to the network during training, determined automatically as the median image shape after resampling, jointly optimized with batch size to maximize GPU utilization.",
+        "situations": {
+          "standard_gpu_12gb": {
+            "value_or_range": "Automatically determined; typically 64x128x128 to 128x128x128 for 3D",
+            "when": "Training on a standard GPU with ~12GB VRAM.",
+            "why": "Patch size and batch size are jointly selected to maximize GPU memory utilization without exceeding limits. Minimum feature map size is 8 voxels per axis after all downsampling operations.",
+            "source": "https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/explanation_plans_files.md"
+          },
+          "large_gpu_24gb_plus": {
+            "value_or_range": "Larger patches possible; up to 160x192x192 or larger",
+            "when": "Training on high-memory GPUs (A100, H100) with 24-80GB VRAM.",
+            "why": "Larger patches capture more context per forward pass, which can improve segmentation of large structures, but diminishing returns beyond a certain size.",
+            "source": "https://github.com/MIC-DKFZ/nnUNet/discussions/2720"
+          }
+        },
+        "common_mistakes": [
+          "Manually increasing patch size beyond GPU memory limits, causing out-of-memory errors during training.",
+          "Setting patch size smaller than the target structure, which prevents the network from seeing the full object in any single patch."
+        ]
+      },
+      "minimum_training_cases": {
+        "description": "The minimum number of annotated training cases needed for reasonable segmentation performance.",
+        "situations": {
+          "simple_binary_segmentation": {
+            "value_or_range": "10-20 cases can work",
+            "when": "Binary segmentation of a single, well-defined structure with clear contrast (e.g., liver in CT).",
+            "why": "nnU-Net's extensive data augmentation (rotation, scaling, elastic deformation, gamma correction, mirroring) effectively multiplies the training set. Simple tasks with consistent appearance need fewer examples.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          },
+          "complex_multi_class": {
+            "value_or_range": "50-200+ cases recommended",
+            "when": "Multi-class segmentation with many labels, variable anatomy, or low-contrast boundaries.",
+            "why": "More classes and higher variability require more training data to learn discriminative features. Rare classes need sufficient representation.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          },
+          "general_guidance": {
+            "value_or_range": "No universal minimum; depends on task complexity",
+            "when": "Any new segmentation task.",
+            "why": "nnU-Net documentation explicitly states: 'The number of required training cases varies heavily depending on the complexity of the segmentation problem. No one-fits-all number can be provided.' However, nnU-Net requires fewer cases than most alternatives due to extensive augmentation.",
+            "source": "https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/how_to_use_nnunet.md"
+          }
+        },
+        "common_mistakes": [
+          "Assuming a fixed minimum (e.g., always needing 100+ cases) regardless of task complexity.",
+          "Not using 5-fold cross-validation to assess if training data is sufficient; high variance across folds suggests more data is needed.",
+          "Ignoring class imbalance; a dataset with 200 cases but only 5 containing a rare class may still be insufficient for that class."
+        ]
+      },
+      "test_time_augmentation": {
+        "description": "During inference, input patches are mirrored along all valid axes, predictions are averaged, improving segmentation robustness at the cost of inference time.",
+        "situations": {
+          "maximum_accuracy": {
+            "value_or_range": "Enable TTA with mirroring along all axes (up to 8 passes in 3D)",
+            "when": "Accuracy is paramount and inference time is not critical (e.g., research, challenge submissions).",
+            "why": "Averaging predictions over mirrored versions reduces orientation-dependent artifacts and improves Dice by ~0.5-1% on average.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          },
+          "time_constrained": {
+            "value_or_range": "Reduce TTA to mirroring along 1 axis only, or disable entirely",
+            "when": "Clinical deployment or large-scale batch processing where inference speed matters.",
+            "why": "Full TTA increases inference time 8x in 3D. Mirroring along one axis gives a compromise (2x time, partial accuracy gain).",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          }
+        },
+        "common_mistakes": [
+          "Disabling TTA without measuring the accuracy impact on the specific dataset.",
+          "Not using Gaussian importance weighting during patch aggregation, which causes border artifacts in patch-based inference."
+        ]
+      },
+      "inference_overlap": {
+        "description": "Overlap between adjacent patches during sliding-window inference, with Gaussian importance weighting to reduce border artifacts.",
+        "situations": {
+          "standard": {
+            "value_or_range": "50% overlap (step size = 0.5 * patch size)",
+            "when": "Default inference setting for most applications.",
+            "why": "Predictions near patch borders are less accurate; 50% overlap with Gaussian weighting (higher weight at center, lower at borders) ensures every voxel receives contributions from the center of at least one patch.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          }
+        },
+        "common_mistakes": [
+          "Reducing overlap to speed up inference without realizing it causes visible tile boundary artifacts.",
+          "Not applying Gaussian weighting, which creates a checkerboard pattern at patch boundaries."
+        ]
+      },
+      "postprocessing": {
+        "description": "Connected-component filtering and ensemble strategies applied after network prediction to remove spurious predictions.",
+        "situations": {
+          "single_connected_organ": {
+            "value_or_range": "Keep only largest connected component per class",
+            "when": "Segmenting organs that appear as a single connected structure in all training cases (e.g., liver, spleen).",
+            "why": "Small disconnected false positive regions are removed without affecting the main prediction. nnU-Net automatically determines whether this improves Dice on cross-validation.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          },
+          "multi_instance_structures": {
+            "value_or_range": "Do NOT apply connected-component filtering",
+            "when": "Segmenting structures that naturally appear as multiple disconnected components (e.g., lymph nodes, lung nodules, metastases).",
+            "why": "Filtering would incorrectly remove valid predictions of separate instances.",
+            "source": "https://doi.org/10.1038/s41592-020-01008-z"
+          }
+        },
+        "common_mistakes": [
+          "Applying connected-component filtering without checking if the target structure is always connected in the training data.",
+          "Not running nnU-Net's automatic postprocessing selection, which evaluates whether filtering helps on the cross-validation set."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1038/s41592-020-01008-z",
+      "https://arxiv.org/abs/1904.08128",
+      "https://github.com/MIC-DKFZ/nnUNet",
+      "https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/how_to_use_nnunet.md",
+      "https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/dataset_format.md"
+    ],
+    "best_practice_notes": "Always verify dataset integrity with --verify_dataset_integrity on first run. Ensure NIfTI headers contain correct voxel spacing. Use 5-fold cross-validation to select the best configuration automatically. For nnU-Net v2, set nnUNet_raw, nnUNet_preprocessed, and nnUNet_results environment variables. Re-run planning and preprocessing whenever dataset changes. The framework handles most decisions automatically; manual overrides should only be done with strong justification."
+  },
+  "image_registration": {
+    "description": "Image registration aligns two or more images into a common coordinate system by finding a spatial transformation that optimizes a similarity metric. Used in medical imaging for atlas-based segmentation, longitudinal studies, and multi-modal fusion.",
+    "key_parameters": {
+      "transformation_type": {
+        "description": "The type of spatial transformation applied: rigid (rotation + translation), affine (+ scaling + shearing), or deformable (nonlinear warping).",
+        "situations": {
+          "intra_subject_same_session": {
+            "value_or_range": "Rigid (6 DOF in 3D)",
+            "when": "Aligning images of the same subject taken in the same session (e.g., different MRI sequences), where anatomy has not deformed.",
+            "why": "Only rotational and translational differences exist due to patient repositioning or different acquisition geometries. More complex transforms would overfit to noise.",
+            "source": "https://simpleitk.readthedocs.io/en/master/registrationOverview.html"
+          },
+          "intra_subject_longitudinal": {
+            "value_or_range": "Rigid -> Affine (12 DOF in 3D)",
+            "when": "Aligning images of the same subject over time (e.g., tumor follow-up, growth studies), where mild scaling or shape changes may occur.",
+            "why": "Affine accounts for global scaling and shearing that can occur with weight changes, growth, or scanner differences, while preserving straight lines.",
+            "source": "https://github.com/ANTsX/ANTs/wiki/Anatomy-of-an-antsRegistration-call"
+          },
+          "inter_subject_or_atlas": {
+            "value_or_range": "Rigid -> Affine -> Deformable (SyN)",
+            "when": "Aligning different subjects to each other or to an atlas template, where anatomical variability requires local deformations.",
+            "why": "ANTs SyN (Symmetric Normalization) is the gold standard for inter-subject brain registration. The hierarchical approach (rigid for coarse alignment, affine for global shape, SyN for local deformations) ensures convergence to the correct solution.",
+            "source": "https://doi.org/10.1016/j.neuroimage.2010.09.025"
+          }
+        },
+        "common_mistakes": [
+          "Skipping the rigid/affine initialization and jumping directly to deformable registration, which often leads to incorrect local minima.",
+          "Using deformable registration for intra-subject same-session alignment, which can introduce spurious deformations from noise.",
+          "Not initializing with center-of-mass or moment alignment before optimization, causing the optimizer to start far from the solution."
+        ]
+      },
+      "similarity_metric": {
+        "description": "The function that quantifies how well two images are aligned, driving the optimization.",
+        "situations": {
+          "same_modality": {
+            "value_or_range": "Normalized Cross-Correlation (NCC/CC) or Mean Squared Error (MSE)",
+            "when": "Both images are from the same imaging modality (e.g., T1 to T1, CT to CT), where aligned voxels have similar intensities.",
+            "why": "NCC assumes a linear relationship between intensities when aligned. MSE is simpler but assumes identical intensities. Both are computationally efficient and work well for same-modality registration.",
+            "source": "https://doi.org/10.1016/j.neuroimage.2010.09.025"
+          },
+          "cross_modality": {
+            "value_or_range": "Mattes Mutual Information (MI) with 32-50 histogram bins",
+            "when": "Registering images from different modalities (e.g., CT to MRI, PET to CT) where intensity relationships are complex and nonlinear.",
+            "why": "MI measures statistical dependence between intensity distributions and does not assume any specific intensity relationship. It is the most general metric and works across modalities. 32-50 bins balances histogram resolution with robustness.",
+            "source": "https://simpleitk.readthedocs.io/en/master/registrationOverview.html"
+          },
+          "deformable_same_modality": {
+            "value_or_range": "Cross-Correlation with radius 4 (CC[fixed,moving,1,4])",
+            "when": "Deformable registration of same-modality images, especially brain MRI.",
+            "why": "Local CC with a small neighborhood radius captures local intensity relationships better than global metrics for deformable registration. Radius 4 is a good default for brain images.",
+            "source": "https://doi.org/10.1016/j.neuroimage.2010.09.025"
+          },
+          "binary_or_label_images": {
+            "value_or_range": "Mean Squares (MSQ) or Demons",
+            "when": "Registering binary masks or label maps rather than intensity images.",
+            "why": "MI performs poorly on binary images because the histogram has only two bins, providing insufficient information for optimization. MSQ works directly on the discrete values.",
+            "source": "https://simpleitk.readthedocs.io/en/master/registrationOverview.html"
+          }
+        },
+        "common_mistakes": [
+          "Using MSE for cross-modality registration, which fails because different modalities have different intensity scales.",
+          "Using too few histogram bins for MI (e.g., 8-16), reducing metric sensitivity; or too many (>128), increasing noise in the histogram estimate.",
+          "Not understanding that CC is usually NOT suitable for cross-modality registration."
+        ]
+      },
+      "multi_resolution_levels": {
+        "description": "Number of hierarchical resolution levels in the registration pyramid, from coarse (heavily downsampled) to fine (original resolution).",
+        "situations": {
+          "standard_brain_registration": {
+            "value_or_range": "3-4 levels with shrink factors [8, 4, 2, 1]",
+            "when": "Standard brain MRI registration (1mm isotropic).",
+            "why": "Coarse levels capture large-scale alignment quickly, while fine levels refine local details. 4 levels with shrink factors 8/4/2/1 is a widely used default in ANTs.",
+            "source": "https://github.com/ANTsX/ANTs/wiki/Anatomy-of-an-antsRegistration-call"
+          },
+          "high_resolution_data": {
+            "value_or_range": "4-5 levels with shrink factors [12, 8, 4, 2, 1]",
+            "when": "Very high-resolution images (e.g., 0.3mm histology, high-res microscopy).",
+            "why": "Additional coarse levels help with initial alignment of high-res images that may have large initial misalignment relative to voxel size.",
+            "source": "https://layerfmri.com/2019/02/11/high-quality-registration/"
+          }
+        },
+        "common_mistakes": [
+          "Using only 1 resolution level, which makes the optimizer susceptible to local minima.",
+          "Not matching the number of shrink factors, smoothing sigmas, and convergence parameters across levels.",
+          "Using too aggressive smoothing at fine levels, which blurs anatomical detail."
+        ]
+      },
+      "learning_rate_step_size": {
+        "description": "Controls the magnitude of parameter updates at each optimization iteration.",
+        "situations": {
+          "rigid_affine": {
+            "value_or_range": "0.1 (gradient step)",
+            "when": "Rigid or affine registration stages.",
+            "why": "0.1 is a robust default. Smaller values (0.01) may be needed for fine structures. Larger values (>0.25) risk overshooting the optimal solution.",
+            "source": "https://github.com/ANTsX/ANTs/wiki/Anatomy-of-an-antsRegistration-call"
+          },
+          "deformable_syn": {
+            "value_or_range": "0.1-0.25 (gradient step), with update field sigma 3.0, total field sigma 0.0",
+            "when": "SyN diffeomorphic registration.",
+            "why": "The gradient step controls deformation magnitude per iteration. Regularization sigmas control smoothness of the deformation field.",
+            "source": "https://github.com/ANTsX/ANTs/wiki/Anatomy-of-an-antsRegistration-call"
+          }
+        },
+        "common_mistakes": [
+          "Setting learning rate too high (>0.5), causing oscillation and divergence.",
+          "Setting learning rate too low (<0.01), causing extremely slow convergence requiring many more iterations."
+        ]
+      },
+      "convergence": {
+        "description": "Criteria for stopping the optimization at each resolution level.",
+        "situations": {
+          "standard": {
+            "value_or_range": "Threshold 1e-6, window size 10 iterations; max iterations [1000, 500, 250, 100] per level",
+            "when": "Standard registration with 4 multi-resolution levels.",
+            "why": "The optimizer stops if the metric improvement over the last 10 iterations is less than 1e-6, preventing unnecessary computation once convergence is reached.",
+            "source": "https://github.com/ANTsX/ANTs/wiki/Anatomy-of-an-antsRegistration-call"
+          }
+        },
+        "common_mistakes": [
+          "Setting max iterations too low at coarse levels, preventing adequate initial alignment.",
+          "Not monitoring the metric value during registration to detect convergence issues."
+        ]
+      },
+      "masking": {
+        "description": "Using binary masks to restrict similarity metric computation to regions of interest, excluding background or irrelevant anatomy.",
+        "situations": {
+          "brain_registration": {
+            "value_or_range": "Brain mask on both fixed and moving images",
+            "when": "Registering brain images where the skull, eyes, and background would confound alignment.",
+            "why": "Background intensity differences and non-brain structures can dominate the similarity metric, leading to suboptimal brain alignment.",
+            "source": "https://github.com/ANTsX/ANTs/wiki/Tips-for-improving-registration-results"
+          },
+          "small_roi": {
+            "value_or_range": "Crop to mask bounding box instead of masking the full image",
+            "when": "The ROI occupies a very small area of the full image.",
+            "why": "Masking with sampling rejection can result in insufficient samples for metric computation (especially MI). Cropping ensures adequate sampling density.",
+            "source": "https://simpleitk.readthedocs.io/en/master/registrationOverview.html"
+          }
+        },
+        "common_mistakes": [
+          "Not masking background regions, which dominates the metric and causes poor alignment of the region of interest.",
+          "Using a mask so small that too few samples remain for stable metric computation, causing registration failure.",
+          "Not eroding the mask during multi-resolution smoothing, allowing artificial edge information to corrupt the metric."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1016/j.neuroimage.2010.09.025",
+      "https://simpleitk.readthedocs.io/en/master/registrationOverview.html",
+      "https://github.com/ANTsX/ANTs/wiki/Anatomy-of-an-antsRegistration-call",
+      "https://github.com/ANTsX/ANTs/wiki/Tips-for-improving-registration-results",
+      "https://insightsoftwareconsortium.github.io/SimpleITK-Notebooks/Python_html/60_Registration_Introduction.html"
+    ],
+    "best_practice_notes": "Always follow the hierarchical approach: rigid -> affine -> deformable. Initialize with center-of-mass alignment. Choose similarity metric based on modality pairing: MI for cross-modality, CC for same-modality deformable, MSQ for binary images. Use 3-4 multi-resolution levels. Mask background regions to prevent them from dominating the metric. Visually inspect registration results by overlaying fixed and transformed moving images in a checkerboard or color overlay."
+  },
+  "drug_release_kinetics": {
+    "description": "Mathematical modeling of drug release from pharmaceutical dosage forms to understand release mechanisms, predict in vivo behavior, and optimize formulations. Common models include zero-order, first-order, Higuchi, Korsmeyer-Peppas, Hixson-Crowell, and Weibull.",
+    "key_parameters": {
+      "korsmeyer_peppas_release_exponent_n": {
+        "description": "The diffusional exponent (n) in the Korsmeyer-Peppas equation Mt/Minf = k*t^n, which characterizes the drug transport mechanism based on dosage form geometry.",
+        "situations": {
+          "thin_film_fickian": {
+            "value_or_range": "n = 0.5",
+            "when": "Thin film (slab) geometry with Fickian diffusion as the dominant release mechanism.",
+            "why": "For thin films, n=0.5 corresponds to pure diffusion-controlled release (Higuchi kinetics). Values below 0.5 indicate quasi-Fickian diffusion (partial diffusion through partially swollen matrix).",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          },
+          "thin_film_anomalous": {
+            "value_or_range": "0.5 < n < 1.0",
+            "when": "Thin film with anomalous (non-Fickian) transport combining diffusion and polymer relaxation.",
+            "why": "Both diffusion and chain relaxation contribute to drug release. The closer to 1.0, the more dominated by polymer relaxation (erosion/swelling).",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          },
+          "thin_film_case_ii": {
+            "value_or_range": "n = 1.0",
+            "when": "Thin film with Case II transport (zero-order release driven by polymer relaxation).",
+            "why": "Drug release is entirely controlled by polymer chain relaxation/erosion, independent of diffusion. Results in constant release rate.",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          },
+          "thin_film_super_case_ii": {
+            "value_or_range": "n > 1.0",
+            "when": "Thin film with Super Case II transport.",
+            "why": "Acceleration of solvent uptake occurs, often due to stress-induced cracking or osmotic effects in the matrix.",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          },
+          "cylinder_fickian": {
+            "value_or_range": "n = 0.45",
+            "when": "Cylindrical geometry with Fickian diffusion.",
+            "why": "The critical exponent for Fickian diffusion shifts from 0.5 (slab) to 0.45 (cylinder) due to the additional radial diffusion pathway in cylindrical geometry.",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          },
+          "cylinder_anomalous": {
+            "value_or_range": "0.45 < n < 0.89",
+            "when": "Cylindrical geometry with anomalous (non-Fickian) transport.",
+            "why": "Combined diffusion and polymer relaxation mechanisms in cylindrical dosage forms.",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          },
+          "cylinder_case_ii": {
+            "value_or_range": "n = 0.89",
+            "when": "Cylindrical geometry with Case II (relaxation-controlled) transport.",
+            "why": "Pure polymer relaxation-driven release in cylindrical geometry. Note this is lower than 1.0 for thin films due to geometry effects.",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          },
+          "sphere_fickian": {
+            "value_or_range": "n = 0.43",
+            "when": "Spherical geometry (nanoparticles, microspheres, beads) with Fickian diffusion.",
+            "why": "The spherical geometry provides the smallest critical exponent due to 3D radial diffusion from all directions.",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          },
+          "sphere_anomalous": {
+            "value_or_range": "0.43 < n < 0.85",
+            "when": "Spherical geometry with anomalous transport.",
+            "why": "Combined diffusion and relaxation mechanisms in spherical dosage forms like nanoparticles and microspheres.",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          },
+          "sphere_case_ii": {
+            "value_or_range": "n = 0.85",
+            "when": "Spherical geometry with Case II transport.",
+            "why": "Pure relaxation-controlled release from spherical dosage forms.",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          }
+        },
+        "common_mistakes": [
+          "Using thin film exponent thresholds (0.5/1.0) to interpret release from cylindrical or spherical dosage forms; each geometry has different critical values.",
+          "Fitting Korsmeyer-Peppas to data beyond 60% fractional release, where the model assumptions break down.",
+          "Not reporting the geometry of the dosage form when interpreting n values, making the results uninterpretable.",
+          "Fitting less than 4-5 data points in the 0-60% range, yielding unreliable n estimates."
+        ]
+      },
+      "data_range_for_fitting": {
+        "description": "The fraction of the total release curve used for model fitting, which varies by model.",
+        "situations": {
+          "korsmeyer_peppas": {
+            "value_or_range": "First 60% of cumulative release only (Mt/Minf <= 0.6)",
+            "when": "Always when using the Korsmeyer-Peppas power law model.",
+            "why": "The power law approximation Mt/Minf = k*t^n is mathematically valid only for the initial 60% of fractional release. Beyond this, the assumption that the drug reservoir is not significantly depleted breaks down, and the model deviates from physical reality.",
+            "source": "https://doi.org/10.1016/j.actapolpharm.2010.05.001"
+          },
+          "other_models": {
+            "value_or_range": "Full release profile (0-100%)",
+            "when": "Using Weibull, first-order, or other models designed for the complete release curve.",
+            "why": "Models like Weibull can describe the entire sigmoidal release profile including the asymptotic approach to complete release.",
+            "source": "https://doi.org/10.1371/journal.pone.0264825"
+          }
+        },
+        "common_mistakes": [
+          "Fitting Korsmeyer-Peppas to the full 0-100% release data, which artificially depresses the n value and gives misleading mechanism interpretation.",
+          "Having fewer than 3 data points in the 0-60% window, making the fit unreliable.",
+          "Not checking if initial burst release violates model assumptions."
+        ]
+      },
+      "model_selection_criteria": {
+        "description": "Statistical criteria for choosing the best-fitting release model from multiple candidates.",
+        "situations": {
+          "standard_comparison": {
+            "value_or_range": "Highest adjusted R-squared, lowest AIC, highest MSC",
+            "when": "Comparing multiple kinetic models to determine the best fit.",
+            "why": "Adjusted R-squared penalizes model complexity (unlike R-squared). AIC (Akaike Information Criterion) balances goodness of fit with parsimony. MSC (Model Selection Criterion) is similar. Using all three together provides robust model selection.",
+            "source": "https://doi.org/10.1371/journal.pone.0264825"
+          },
+          "plga_nanoparticles": {
+            "value_or_range": "Weibull model often best (mean AIC = -36.37)",
+            "when": "PLGA-based nanoparticle drug delivery systems.",
+            "why": "The Weibull model has the flexibility to describe the complex biphasic release profile (burst + sustained) common in PLGA systems, consistently showing the highest R-squared and lowest AIC across multiple PLGA datasets.",
+            "source": "https://doi.org/10.1016/j.heliyon.2020.e03451"
+          },
+          "general_principle": {
+            "value_or_range": "Prefer simpler models when fits are comparable",
+            "when": "Two models have similar R-squared and AIC values.",
+            "why": "Simpler models are more stable to experimental variations and more interpretable. Overfitting with complex models can give misleading mechanistic conclusions.",
+            "source": "https://doi.org/10.1371/journal.pone.0264825"
+          }
+        },
+        "common_mistakes": [
+          "Using R-squared alone (not adjusted) for model comparison, which always favors more complex models.",
+          "Not examining residual patterns; a model with high R-squared but systematic residual patterns indicates poor mechanistic fit.",
+          "Selecting a model without physical justification; the best statistical fit may not be mechanistically appropriate for the dosage form."
+        ]
+      },
+      "higuchi_model_applicability": {
+        "description": "Conditions under which the Higuchi square-root-of-time model is valid for describing drug release from matrix systems.",
+        "situations": {
+          "valid_application": {
+            "value_or_range": "Drug loading >> drug solubility in the matrix (dispersed drug system)",
+            "when": "Matrix tablets, ointments, creams, gels, and transdermal systems where drug is dispersed (not dissolved) in the polymer matrix.",
+            "why": "The Higuchi model assumes: (1) initial drug concentration much higher than solubility (excess solid drug present), (2) one-dimensional diffusion, (3) negligible matrix swelling/dissolution, (4) constant diffusivity, (5) perfect sink conditions. When drug loading < solubility, the drug is fully dissolved and Higuchi does not apply.",
+            "source": "https://doi.org/10.1016/j.ijpharm.2010.10.037"
+          },
+          "invalid_application": {
+            "value_or_range": "Do NOT use Higuchi",
+            "when": "Drug loading is below solubility in the matrix (drug fully dissolved), or matrix significantly swells or erodes during release.",
+            "why": "Violates core assumptions. Swelling changes diffusion path length and geometry; full dissolution means no moving boundary condition exists.",
+            "source": "https://doi.org/10.1016/j.ijpharm.2010.10.037"
+          }
+        },
+        "common_mistakes": [
+          "Applying Higuchi to fully dissolved drug systems (loading < solubility), where the model is not valid.",
+          "Ignoring edge effects in non-slab geometries; Higuchi assumes 1D diffusion.",
+          "Not verifying perfect sink conditions in the dissolution medium."
+        ]
+      },
+      "zero_order_applicability": {
+        "description": "When zero-order release (constant rate) models are appropriate.",
+        "situations": {
+          "osmotic_pumps": {
+            "value_or_range": "Zero-order kinetics expected",
+            "when": "Osmotic pump delivery systems (e.g., OROS technology).",
+            "why": "Osmotic pressure drives drug release at a constant rate independent of drug concentration. The release rate is determined by the osmotic gradient and orifice size.",
+            "source": "https://pdfs.semanticscholar.org/2152/cdbe9a473e4a273f3071e882f35f0ae36de3.pdf"
+          },
+          "transdermal_patches": {
+            "value_or_range": "Zero-order kinetics expected",
+            "when": "Reservoir-type transdermal drug delivery patches.",
+            "why": "The rate-controlling membrane provides a constant flux independent of the drug reservoir concentration (as long as reservoir is not depleted).",
+            "source": "https://pdfs.semanticscholar.org/2152/cdbe9a473e4a273f3071e882f35f0ae36de3.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Expecting zero-order release from simple matrix tablets (which typically follow Higuchi or first-order kinetics).",
+          "Not distinguishing between zero-order and pseudo-zero-order release (where the rate appears constant over a limited time window but is not truly zero-order)."
+        ]
+      },
+      "first_order_applicability": {
+        "description": "When first-order release (rate proportional to remaining drug) models are appropriate.",
+        "situations": {
+          "water_soluble_porous_matrix": {
+            "value_or_range": "First-order kinetics expected",
+            "when": "Water-soluble drugs released from porous matrix systems where dissolution, not diffusion, is rate-limiting.",
+            "why": "As drug dissolves and is released, the concentration gradient driving release decreases proportionally, giving exponential decay in the release rate.",
+            "source": "https://pdfs.semanticscholar.org/2152/cdbe9a473e4a273f3071e882f35f0ae36de3.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Confusing first-order release kinetics with first-order dissolution kinetics.",
+          "Not verifying that the release medium maintains sink conditions throughout the experiment."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1016/j.actapolpharm.2010.05.001",
+      "https://doi.org/10.1016/j.ijpharm.2010.10.037",
+      "https://doi.org/10.1016/j.heliyon.2020.e03451",
+      "https://doi.org/10.1371/journal.pone.0264825",
+      "https://pdfs.semanticscholar.org/2152/cdbe9a473e4a273f3071e882f35f0ae36de3.pdf",
+      "https://doi.org/10.1016/j.ijpharm.2012.09.028"
+    ],
+    "best_practice_notes": "Always report dosage form geometry when interpreting Korsmeyer-Peppas n values. Use only the first 60% of release data for Korsmeyer-Peppas fitting. Compare multiple models using adjusted R-squared, AIC, and residual analysis together. Verify that model assumptions (sink conditions, drug loading vs solubility, matrix properties) are met before applying any model. The Weibull model often provides the best overall fit for complex systems but offers less mechanistic insight than Korsmeyer-Peppas."
+  },
+  "calcium_imaging_analysis": {
+    "description": "Analysis of fluorescent calcium indicator signals (e.g., GCaMP) to infer neural activity patterns, including signal extraction, motion correction, neuropil decontamination, and spike detection from optical recordings of neuronal populations.",
+    "key_parameters": {
+      "delta_f_over_f0_baseline": {
+        "description": "The baseline fluorescence F0 used to normalize calcium signals as (F - F0) / F0, converting raw fluorescence to a relative change measure.",
+        "situations": {
+          "sliding_percentile": {
+            "value_or_range": "8th-15th percentile of fluorescence in a 30-60 second sliding window",
+            "when": "Standard in vivo calcium imaging where baseline fluctuates slowly over time.",
+            "why": "Using a low percentile within a sliding window captures the true baseline even during periods of sustained activity. A 30-60s window accommodates slow baseline drift without being affected by transient calcium events.",
+            "source": "https://doi.org/10.1371/journal.pcbi.1005526"
+          },
+          "minimum_fluorescence": {
+            "value_or_range": "Global minimum F value + small offset (10-20 AU)",
+            "when": "Short recordings or in vitro preparations with stable baselines.",
+            "why": "Theoretically correct for ideal cases. The offset prevents division-by-near-zero artifacts, which is especially important for GCaMP indicators that have very low resting fluorescence.",
+            "source": "https://www.scientifica.uk.com/learning-zone/how-to-compute-%CE%B4f-f-from-calcium-imaging-data"
+          },
+          "gcamp_specific": {
+            "value_or_range": "Add safety margin of 10-20 intensity units to measured F0",
+            "when": "Using GCaMP indicators (especially GCaMP6s/6f) which have very low baseline brightness.",
+            "why": "GCaMP has extremely low brightness at resting calcium, making F0 values close to background noise. Without a safety margin, division by near-zero values amplifies noise dramatically.",
+            "source": "https://www.scientifica.uk.com/learning-zone/how-to-compute-%CE%B4f-f-from-calcium-imaging-data"
+          }
+        },
+        "common_mistakes": [
+          "Using the mean fluorescence as F0, which overestimates baseline in actively firing neurons and underestimates dF/F.",
+          "Not accounting for photobleaching-induced baseline drift over long recordings.",
+          "Using too narrow a sliding window (< 10s), which causes the baseline to track calcium transients rather than the true resting level."
+        ]
+      },
+      "spike_detection_threshold": {
+        "description": "The threshold above which a dF/F signal is classified as a calcium event or spike.",
+        "situations": {
+          "conservative": {
+            "value_or_range": "3 standard deviations above baseline noise (3-sigma rule)",
+            "when": "Default for most calcium imaging analyses; minimizes false positives.",
+            "why": "Assuming Gaussian baseline noise, 3 SD gives a false positive rate of ~0.3%. This is the most widely used threshold in the field.",
+            "source": "https://doi.org/10.1371/journal.pcbi.1005526"
+          },
+          "sensitive": {
+            "value_or_range": "2 standard deviations or dF/F > 0.4-0.5",
+            "when": "Detecting small signals from sparse-firing neurons or single action potentials with low-sensitivity indicators.",
+            "why": "Lower thresholds increase sensitivity at the cost of more false positives. Appropriate when the biological question requires detecting weak signals and false positives can be filtered by other criteria.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10813340/"
+          },
+          "model_based_deconvolution": {
+            "value_or_range": "Use spike deconvolution algorithms (OASIS, MLspike, CASCADE) instead of thresholding",
+            "when": "Quantitative spike rate estimation is needed, not just event detection.",
+            "why": "Deconvolution algorithms model the calcium indicator dynamics explicitly (rise time, decay time) and can resolve overlapping transients. More accurate than simple thresholding for spike rate estimation.",
+            "source": "https://doi.org/10.1523/JNEUROSCI.3339-17.2018"
+          }
+        },
+        "common_mistakes": [
+          "Computing noise SD from the entire trace including calcium events, which inflates the threshold and misses real events.",
+          "Using a fixed dF/F threshold across neurons with different baseline noise levels.",
+          "Not removing neuropil contamination before spike detection, leading to correlated false positives across nearby neurons."
+        ]
+      },
+      "neuropil_correction": {
+        "description": "Subtraction of contaminating fluorescence from surrounding neuropil (axons, dendrites, processes) that leaks into the somatic ROI signal.",
+        "situations": {
+          "standard_correction": {
+            "value_or_range": "r = 0.7 (neuropil coefficient), F_corrected = F_soma - r * F_neuropil",
+            "when": "Standard two-photon calcium imaging with GCaMP indicators.",
+            "why": "r = 0.7 is a commonly used default that balances under-subtraction (false positives from neuropil bleedthrough) and over-subtraction (false negatives from removing true somatic signal). The neuropil annulus is typically defined as a ring around the soma with inner radius offset by a few pixels.",
+            "source": "https://doi.org/10.7554/eLife.51675"
+          },
+          "optimized_per_neuron": {
+            "value_or_range": "r = 0.82 +/- 0.07 (mean +/- SEM for GCaMP6)",
+            "when": "When ground truth electrophysiology data is available to calibrate, or for maximal accuracy.",
+            "why": "The optimal r value varies by neuron due to differences in depth, scattering, and neuropil density. Per-neuron optimization using simultaneous electrophysiology gives the most accurate correction.",
+            "source": "https://doi.org/10.7554/eLife.51675"
+          }
+        },
+        "common_mistakes": [
+          "Skipping neuropil correction entirely, which can produce >30% false positive spikes from surrounding activity.",
+          "Using r = 1.0 (full subtraction), which over-corrects and removes real somatic signal in neurons with low SNR.",
+          "Defining the neuropil annulus too close to the soma (including real somatic fluorescence) or too far away (sampling unrelated neuropil)."
+        ]
+      },
+      "sampling_rate": {
+        "description": "The imaging frame rate in Hz, which determines temporal resolution for resolving calcium dynamics.",
+        "situations": {
+          "gcamps_slow_indicator": {
+            "value_or_range": "5-10 Hz minimum; 15-30 Hz recommended",
+            "when": "Using GCaMP6s or other slow indicators (decay time ~1.5s) for population imaging.",
+            "why": "GCaMP6s has slow kinetics (rise ~0.5s, decay ~1.5s), so even 5 Hz adequately samples the fluorescence waveform. Higher rates improve spike deconvolution accuracy. Suite2p and CaImAn commonly use 5 Hz for standard analyses.",
+            "source": "https://doi.org/10.7554/eLife.82691"
+          },
+          "gcampf_fast_indicator": {
+            "value_or_range": "15-30 Hz minimum; 30-60 Hz ideal",
+            "when": "Using GCaMP6f or other fast indicators (decay ~0.4s) for precise timing measurements.",
+            "why": "GCaMP6f has faster kinetics, and under-sampling causes temporal aliasing that blurs event timing. 30 Hz provides adequate Nyquist sampling of the ~0.4s decay.",
+            "source": "https://doi.org/10.1038/s41586-023-05828-9"
+          },
+          "fast_spiking_interneurons": {
+            "value_or_range": "30-100 Hz",
+            "when": "Studying fast-spiking interneurons or sub-second dynamics.",
+            "why": "Fast-spiking neurons can fire at >100 Hz; resolving individual calcium transients requires high frame rates. Use jGCaMP8f or similar ultra-fast indicators.",
+            "source": "https://doi.org/10.1038/s41586-023-05828-9"
+          }
+        },
+        "common_mistakes": [
+          "Imaging at 1-2 Hz with fast indicators, losing all temporal information about spike timing.",
+          "Not matching indicator kinetics to the biological dynamics of interest (e.g., using GCaMP6s to study fast oscillations).",
+          "Increasing frame rate beyond useful limits, reducing signal-to-noise through shorter pixel dwell times."
+        ]
+      },
+      "motion_correction": {
+        "description": "Algorithmic correction of sample drift and motion artifacts in calcium imaging time series.",
+        "situations": {
+          "rigid_correction": {
+            "value_or_range": "Phase correlation or template matching (e.g., Suite2p, CaImAn built-in)",
+            "when": "Standard in vivo two-photon imaging with moderate brain motion (< 5 microns).",
+            "why": "Rigid (translation-only) correction is fast and robust for typical brain motion. Suite2p and CaImAn both implement efficient rigid registration by default.",
+            "source": "https://doi.org/10.7554/eLife.38173"
+          },
+          "nonrigid_correction": {
+            "value_or_range": "Piecewise rigid or optical flow (e.g., Suite2p nonrigid mode, NoRMCorre in CaImAn)",
+            "when": "Large or non-uniform motion (e.g., awake behaving animals, widefield imaging, brain pulsation).",
+            "why": "Non-uniform motion from heartbeat, breathing, or animal movement cannot be corrected by translation alone. Piecewise rigid divides the image into patches and corrects each independently.",
+            "source": "https://doi.org/10.7554/eLife.38173"
+          }
+        },
+        "common_mistakes": [
+          "Not applying motion correction at all, which mixes signals between neighboring neurons as the tissue shifts.",
+          "Using a reference frame from a period of high activity (bright calcium transients), which biases the template.",
+          "Not checking motion correction quality by examining the displacement trace; sudden jumps indicate correction failure."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1371/journal.pcbi.1005526",
+      "https://doi.org/10.7554/eLife.51675",
+      "https://doi.org/10.7554/eLife.38173",
+      "https://doi.org/10.1038/s41586-023-05828-9",
+      "https://doi.org/10.1523/JNEUROSCI.3339-17.2018",
+      "https://www.scientifica.uk.com/learning-zone/how-to-compute-%CE%B4f-f-from-calcium-imaging-data"
+    ],
+    "best_practice_notes": "Always apply motion correction before signal extraction. Perform neuropil subtraction with r=0.7 as a starting point. Use sliding percentile baseline estimation for in vivo data. Match imaging frame rate to indicator kinetics (GCaMP6s: >=5 Hz; GCaMP6f: >=15 Hz). Validate spike detection against electrophysiology when possible. Consider model-based deconvolution (OASIS, CASCADE) over simple thresholding for quantitative analyses."
+  },
+  "cell_migration_analysis": {
+    "description": "Quantitative analysis of cell movement from time-lapse microscopy, including measurement of speed, directionality, persistence, and trajectory characteristics for wound healing assays, chemotaxis studies, and random migration analyses.",
+    "key_parameters": {
+      "velocity_calculation": {
+        "description": "Method for computing cell movement speed from tracked positions.",
+        "situations": {
+          "instantaneous_speed": {
+            "value_or_range": "Displacement between consecutive frames / frame interval",
+            "when": "Characterizing moment-to-moment cell dynamics, studying speed fluctuations, or comparing rapid responses to stimuli.",
+            "why": "Provides temporal resolution of speed changes but is highly sensitive to frame interval and tracking noise. Speed values are inversely related to frame interval due to the fractal-like nature of cell trajectories.",
+            "source": "https://doi.org/10.3389/fcell.2023.1155882"
+          },
+          "average_speed": {
+            "value_or_range": "Total path length / total time",
+            "when": "Comparing overall migratory capacity between conditions or cell types.",
+            "why": "More robust to tracking noise than instantaneous speed. Integrates over the entire trajectory, providing a single summary metric.",
+            "source": "https://doi.org/10.3389/fcell.2023.1155882"
+          },
+          "effective_speed": {
+            "value_or_range": "Net displacement (start to end) / total time",
+            "when": "Measuring directed migration efficiency (e.g., chemotaxis, wound healing).",
+            "why": "Captures how effectively the cell moves toward a target, not just how much it moves. Low effective speed with high average speed indicates random wandering.",
+            "source": "https://doi.org/10.3389/fcell.2023.1155882"
+          }
+        },
+        "common_mistakes": [
+          "Comparing instantaneous speeds across experiments with different frame intervals; speed depends on the measurement interval.",
+          "Not distinguishing between speed (scalar, always positive) and velocity (vector, includes direction).",
+          "Using displacement-based speed for highly tortuous paths, which dramatically underestimates actual movement."
+        ]
+      },
+      "frame_interval": {
+        "description": "Time between consecutive image acquisitions, which critically affects all measured migration parameters.",
+        "situations": {
+          "optimal_general": {
+            "value_or_range": "Cells should move less than one cell diameter between frames",
+            "when": "General cell migration tracking.",
+            "why": "If cells move more than their diameter between frames, tracking algorithms cannot reliably link cells across frames, and measured speeds become underestimates. If too short, measurement noise dominates over actual movement.",
+            "source": "https://doi.org/10.3389/fcell.2023.1155882"
+          },
+          "wound_healing": {
+            "value_or_range": "10-30 minutes",
+            "when": "Scratch wound healing assays with epithelial cells (typical speed 10-30 um/hr).",
+            "why": "At 20 um/hr, cells move ~3-10 um per frame at 10-30 min intervals, which is well within one cell diameter (~15-20 um) for most epithelial cells.",
+            "source": "https://doi.org/10.1016/j.jid.2016.11.015"
+          },
+          "fast_migrating_cells": {
+            "value_or_range": "1-5 minutes",
+            "when": "Tracking fast-migrating cells like neutrophils or Dictyostelium (speed 5-20 um/min).",
+            "why": "Fast cells can traverse multiple cell diameters per minute; shorter intervals are needed to maintain tracking accuracy.",
+            "source": "https://doi.org/10.3389/fcell.2023.1155882"
+          }
+        },
+        "common_mistakes": [
+          "Using the same frame interval for different cell types without considering their typical speed.",
+          "Not reporting the frame interval, making speed measurements unreproducible.",
+          "Phototoxicity from too-frequent imaging, which itself alters cell behavior."
+        ]
+      },
+      "minimum_track_length": {
+        "description": "Minimum number of consecutive frames a cell must be tracked to be included in analysis.",
+        "situations": {
+          "persistent_random_walk_analysis": {
+            "value_or_range": "At least 20-30 time points per track",
+            "when": "Fitting persistent random walk models or computing mean squared displacement (MSD) curves.",
+            "why": "MSD analysis requires many time lags for reliable curve fitting. The recommendation is to use only the first third of MSD values for regression, so a track of 30 points gives 10 reliable MSD values.",
+            "source": "https://doi.org/10.3389/fcell.2023.1155882"
+          },
+          "basic_speed_analysis": {
+            "value_or_range": "At least 5-10 time points",
+            "when": "Computing basic speed and directionality metrics without MSD analysis.",
+            "why": "Minimum number needed for stable mean speed estimates. Very short tracks are dominated by tracking noise.",
+            "source": "https://doi.org/10.3389/fcell.2023.1155882"
+          }
+        },
+        "common_mistakes": [
+          "Including very short tracks (1-2 frames), which are dominated by localization error.",
+          "Not filtering by track length before analysis, introducing a bias toward slow or stationary cells (which are easier to track for longer).",
+          "Using different minimum track lengths across conditions, creating systematic bias."
+        ]
+      },
+      "directionality_ratio": {
+        "description": "The ratio of net displacement to total path length, ranging from 0 (random) to 1 (perfectly straight line). Also called straightness index or confinement ratio.",
+        "situations": {
+          "directed_migration": {
+            "value_or_range": "0.6-1.0",
+            "when": "Cells migrating toward a chemotactic gradient, wound edge, or other directional cue.",
+            "why": "High directionality indicates the cell is efficiently navigating toward a target. Values > 0.7 suggest strong directional bias.",
+            "source": "https://doi.org/10.3389/fcell.2023.1155882"
+          },
+          "random_migration": {
+            "value_or_range": "0.1-0.4",
+            "when": "Cells migrating without directional cues on uniform substrates.",
+            "why": "Random walk produces low directionality that decreases with longer observation time (the trajectory becomes more tortuous over longer timescales).",
+            "source": "https://doi.org/10.3389/fcell.2023.1155882"
+          }
+        },
+        "common_mistakes": [
+          "Not accounting for the dependence of directionality ratio on observation time; it systematically decreases for longer tracks in random migration.",
+          "Comparing directionality ratios from tracks of different lengths without normalization.",
+          "Confusing directionality ratio with the forward migration index (FMI), which measures movement along a specific axis."
+        ]
+      },
+      "persistence": {
+        "description": "Quantification of how long a cell maintains its direction of movement before turning, related to the correlation time of the velocity autocorrelation function.",
+        "situations": {
+          "persistence_time_from_prw": {
+            "value_or_range": "Fit MSD = 2*n*D*(t - P*(1 - exp(-t/P))) where P = persistence time, D = diffusion coefficient, n = dimensionality",
+            "when": "Fitting the persistent random walk (PRW) model to MSD data.",
+            "why": "Persistence time P characterizes the timescale over which a cell maintains its direction. Longer P means more persistent (straighter) migration. The PRW model is the standard framework for quantifying cell migration.",
+            "source": "https://doi.org/10.1371/journal.pone.0127425"
+          },
+          "directionality_time": {
+            "value_or_range": "Characteristic directionality time (td) from angular analysis",
+            "when": "When PRW assumptions are violated or more robust measures are needed.",
+            "why": "Directionality time is inversely proportional to migration efficiency and decouples better from measurement error than persistence time, especially for highly persistent cells.",
+            "source": "https://doi.org/10.1371/journal.pone.0127425"
+          }
+        },
+        "common_mistakes": [
+          "Using only the first third of MSD time lags for fitting but not checking if the PRW model fits well (r-squared > 0.999).",
+          "Not distinguishing between persistence (temporal autocorrelation of direction) and directionality (overall straightness).",
+          "Reporting persistence from MSD without checking for anomalous diffusion (non-linear MSD vs time)."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.3389/fcell.2023.1155882",
+      "https://doi.org/10.1371/journal.pone.0127425",
+      "https://doi.org/10.1016/j.jid.2016.11.015",
+      "https://doi.org/10.3389/fcell.2019.00107",
+      "https://doi.org/10.1002/cyto.a.23249"
+    ],
+    "best_practice_notes": "Always report frame interval and minimum track length. Set frame interval so cells move less than one diameter between frames. Use at least 20-30 time points per track for MSD analysis. Compare same-length tracks or normalize metrics for track length. Distinguish between speed, velocity, and effective speed. Use the persistent random walk model with first-third MSD fitting. Check for anomalous diffusion before applying standard random walk models."
+  },
+  "neural_trajectory_decoding": {
+    "description": "Methods for extracting behavioral or cognitive variables from neural population activity using dimensionality reduction and decoding algorithms, applied to brain-machine interfaces and systems neuroscience.",
+    "key_parameters": {
+      "dimensionality_reduction_method": {
+        "description": "Algorithm for projecting high-dimensional neural population activity into a lower-dimensional latent space for visualization and analysis.",
+        "situations": {
+          "pca_trial_averaged": {
+            "value_or_range": "PCA (Principal Component Analysis)",
+            "when": "Analyzing trial-averaged neural trajectories to reveal dominant population dynamics patterns.",
+            "why": "PCA captures directions of maximum variance. It is linear, deterministic, and produces interpretable components. Best applied to trial-averaged data because it lacks a noise model to handle single-trial variability. GPFA (Gaussian Process Factor Analysis) is preferred for single trials as it combines smoothing and dimensionality reduction.",
+            "source": "https://sites.bu.edu/chandlab/2020/06/18/dimensionality-reduction-for-neural-data-analysis/"
+          },
+          "umap_cluster_visualization": {
+            "value_or_range": "UMAP (Uniform Manifold Approximation and Projection)",
+            "when": "Visualizing clusters or discrete states in neural activity (e.g., different behaviors, brain states).",
+            "why": "UMAP preserves both local and global structure, scales better than t-SNE to large datasets, and often produces clearer cluster separation. Unlike PCA, it can capture nonlinear structure.",
+            "source": "https://doi.org/10.1016/j.celrep.2021.109442"
+          },
+          "tsne_local_structure": {
+            "value_or_range": "t-SNE (t-distributed Stochastic Neighbor Embedding)",
+            "when": "Visualizing local neighborhood relationships in neural activity when global structure is less important.",
+            "why": "t-SNE excels at revealing local clusters but does NOT preserve global distances. Distances between clusters are NOT meaningful. Use only for visualization, never for downstream quantitative analysis.",
+            "source": "https://sites.bu.edu/chandlab/2020/06/18/dimensionality-reduction-for-neural-data-analysis/"
+          },
+          "factor_analysis_single_trial": {
+            "value_or_range": "Factor Analysis or GPFA",
+            "when": "Extracting latent dynamics from single-trial neural recordings.",
+            "why": "Unlike PCA, Factor Analysis has an explicit noise model that separates shared variance (signal) from independent variance (noise). GPFA additionally models temporal smoothness, making it optimal for single-trial trajectory estimation.",
+            "source": "https://sites.bu.edu/chandlab/2020/06/18/dimensionality-reduction-for-neural-data-analysis/"
+          }
+        },
+        "common_mistakes": [
+          "Applying PCA to single-trial data without temporal smoothing, producing noisy trajectories.",
+          "Interpreting t-SNE inter-cluster distances as meaningful (they are not).",
+          "Using UMAP or t-SNE for quantitative analysis rather than just visualization.",
+          "Not smoothing neural data before applying PCA; the optimal smoothing kernel depends on the timescale of the dynamics of interest."
+        ]
+      },
+      "number_of_components": {
+        "description": "Number of latent dimensions retained after dimensionality reduction.",
+        "situations": {
+          "variance_explained_threshold": {
+            "value_or_range": "Retain components explaining 80-95% of total shared variance",
+            "when": "Standard PCA/FA analysis.",
+            "why": "Components beyond this threshold capture mainly noise. The exact threshold depends on the application: 80% for visualization, 90-95% for decoding where every bit of signal matters.",
+            "source": "https://doi.org/10.1523/JNEUROSCI.0506-19.2020"
+          },
+          "visualization": {
+            "value_or_range": "2-3 components",
+            "when": "Visualizing neural trajectories in 2D or 3D plots.",
+            "why": "Human visual perception is limited to 3D. The first 2-3 PCs often capture the dominant task-related dynamics (condition, timing).",
+            "source": "https://sites.bu.edu/chandlab/2020/06/18/dimensionality-reduction-for-neural-data-analysis/"
+          },
+          "decoding": {
+            "value_or_range": "10-30 components (or cross-validate)",
+            "when": "Using latent dimensions as features for a decoder.",
+            "why": "Decoding benefits from more dimensions than visualization because even small-variance components can carry behaviorally relevant information. Cross-validate the number of components to find the optimal trade-off between signal and noise.",
+            "source": "https://doi.org/10.1523/JNEUROSCI.0506-19.2020"
+          }
+        },
+        "common_mistakes": [
+          "Using a fixed number of components across datasets with different numbers of neurons and signal properties.",
+          "Not using cross-validation to determine the optimal number of components for decoding.",
+          "Retaining too many components, which adds noise and worsens decoding performance."
+        ]
+      },
+      "temporal_bin_size": {
+        "description": "The duration of time bins used to aggregate spike counts before decoding.",
+        "situations": {
+          "standard_bmi": {
+            "value_or_range": "50-100 ms",
+            "when": "Standard brain-machine interface (BMI) applications using Kalman or Wiener filters.",
+            "why": "Provides good temporal resolution with sufficient spike counts per bin for the Gaussian assumption underlying these filters. 50 ms is a common default in motor BMI decoding.",
+            "source": "https://doi.org/10.1007/s00521-021-06589-0"
+          },
+          "high_temporal_resolution": {
+            "value_or_range": "5-10 ms bins in a sliding window of 50 ms",
+            "when": "When high temporal resolution is needed while maintaining decoding accuracy.",
+            "why": "5 ms bins alone violate the Gaussian assumption (0 or 1 spike per bin). A sliding window of 10 bins at 5 ms each (50 ms total) achieves both high temporal resolution (updates every 5 ms) and near-Gaussian spike count distributions for accurate decoding.",
+            "source": "https://doi.org/10.1038/s41598-021-98578-5"
+          },
+          "optimal_for_pca_methods": {
+            "value_or_range": "5-10 ms (toward 10 ms)",
+            "when": "Using PCA-based decoding methods.",
+            "why": "Decoding performance was found to be maximal with 5-10 ms bin sizes for PCA-based approaches. Wider bins reduce temporal resolution while smaller bins increase noise.",
+            "source": "https://doi.org/10.1038/s41598-021-98578-5"
+          }
+        },
+        "common_mistakes": [
+          "Using very wide bins (>200 ms) that average out fast dynamics and transient coding.",
+          "Using very narrow bins (<2 ms) without a sliding window, violating Gaussian assumptions in linear decoders.",
+          "Not matching bin size to the timescale of the behavioral variable being decoded."
+        ]
+      },
+      "cross_validation_strategy": {
+        "description": "Method for estimating out-of-sample decoding performance.",
+        "situations": {
+          "k_fold_preferred": {
+            "value_or_range": "10-fold cross-validation (leave out 10-20% per fold)",
+            "when": "Standard neural decoding evaluation with adequate data.",
+            "why": "Provides stable variance estimates while maintaining sufficient training data. Preferred over leave-one-out (LOOCV) which maximizes training data but has high variance and does not yield stable accuracy estimates.",
+            "source": "https://doi.org/10.1016/j.neuroimage.2016.10.038"
+          },
+          "stratified_for_classification": {
+            "value_or_range": "Stratified k-fold (same proportion of each class per fold)",
+            "when": "Classifying discrete behavioral states or stimulus categories.",
+            "why": "Ensures each fold contains representative samples of all classes, preventing biased accuracy estimates from unbalanced folds.",
+            "source": "https://doi.org/10.1016/j.neuroimage.2016.10.038"
+          },
+          "temporal_cross_validation": {
+            "value_or_range": "Leave-one-trial-out or blocked cross-validation",
+            "when": "Neural data with temporal autocorrelation (e.g., continuous recordings, not independent trials).",
+            "why": "Random k-fold on temporally autocorrelated data leaks information between train and test sets through temporal proximity, inflating accuracy. Block-based CV preserves temporal structure.",
+            "source": "https://doi.org/10.1523/JNEUROSCI.0506-19.2020"
+          }
+        },
+        "common_mistakes": [
+          "Using random k-fold on continuous time series, which leaks temporal information and inflates accuracy.",
+          "Using LOOCV which has high variance in accuracy estimates despite using maximal training data.",
+          "Not reporting the cross-validation scheme, making results unreproducible.",
+          "Training and testing on data from the same trial (data leakage)."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1523/JNEUROSCI.0506-19.2020",
+      "https://doi.org/10.1016/j.neuroimage.2016.10.038",
+      "https://doi.org/10.1038/s41598-021-98578-5",
+      "https://sites.bu.edu/chandlab/2020/06/18/dimensionality-reduction-for-neural-data-analysis/",
+      "https://doi.org/10.1016/j.celrep.2021.109442",
+      "https://doi.org/10.3389/fncir.2019.00075"
+    ],
+    "best_practice_notes": "Use PCA or GPFA for trajectory analysis, UMAP for cluster visualization, and never t-SNE for quantitative analysis. Smooth neural data before PCA with a kernel matched to dynamics of interest. Use 50-100 ms bins for standard BMI, 5-10 ms sliding windows for high temporal resolution. Cross-validate with blocked or leave-trial-out schemes for continuous data. Modern deep learning decoders (LSTM, TCN) outperform Wiener/Kalman filters by >40% unexplained variance."
+  },
+  "myofiber_morphology_analysis": {
+    "description": "Quantitative analysis of skeletal muscle fiber morphology from histological cross-sections, including fiber cross-sectional area (CSA), diameter measurements, fiber type classification, and distribution analysis for assessing muscle health, disease progression, and treatment effects.",
+    "key_parameters": {
+      "minimum_fiber_count": {
+        "description": "The minimum number of muscle fibers that must be measured per sample for statistically reliable results.",
+        "situations": {
+          "standard_analysis": {
+            "value_or_range": "200-300 fibers minimum per muscle sample",
+            "when": "Standard histomorphometric analysis for comparing conditions or genotypes.",
+            "why": "Muscle fibers show significant intra-sample variability in CSA. A minimum of 200 fibers is needed to obtain stable distribution statistics (mean, SD, coefficient of variation). Fewer fibers may miss subtle shifts in the distribution.",
+            "source": "https://www.treat-nmd.org/wp-content/uploads/2023/07/MDX-DMD_M.1.2.001.pdf"
+          },
+          "high_power_detection": {
+            "value_or_range": "500-6000 fibers per muscle",
+            "when": "Detecting subtle differences between groups (e.g., mild treatment effects, early disease).",
+            "why": "Measuring several hundred to thousands of fibers per sample allows detection of even subtle differences. Studies have measured up to 3,000 fibers per diaphragm and 6,000 per triceps brachii for maximum sensitivity.",
+            "source": "https://doi.org/10.1371/journal.pone.0243163"
+          }
+        },
+        "common_mistakes": [
+          "Measuring fewer than 100 fibers per sample, which gives unreliable distribution statistics.",
+          "Not accounting for regional variation within a muscle; sample from consistent anatomical regions.",
+          "Counting fibers at the edge of the cross-section that are cut obliquely, which inflates CSA measurements."
+        ]
+      },
+      "size_measurement_method": {
+        "description": "Choice of metric for quantifying muscle fiber size: cross-sectional area (CSA), Feret diameter, or minimum Feret diameter.",
+        "situations": {
+          "minimum_feret_diameter": {
+            "value_or_range": "Use minimum Feret diameter as primary size metric",
+            "when": "Standard muscle morphometry, especially when oblique sectioning is a concern.",
+            "why": "Minimum Feret diameter (the shortest distance between two parallel tangents of the fiber cross-section) is the LEAST affected by oblique sectioning artifacts. A perfectly circular fiber cut at an angle becomes elliptical, inflating CSA and maximum Feret, but minimum Feret remains close to the true diameter.",
+            "source": "https://www.treat-nmd.org/wp-content/uploads/2023/07/cmd-MDC1A_M.1.2.002-66.pdf"
+          },
+          "cross_sectional_area": {
+            "value_or_range": "CSA in um-squared, typically 200-10,000 um-squared",
+            "when": "When absolute fiber size matters (e.g., hypertrophy/atrophy quantification) and sectioning quality is excellent (truly transverse).",
+            "why": "CSA provides the most complete size information and is directly related to force production. However, it is more sensitive to oblique sectioning than minimum Feret diameter.",
+            "source": "https://doi.org/10.1371/journal.pone.0243163"
+          },
+          "size_exclusion_filters": {
+            "value_or_range": "Exclude objects with CSA < 200 um-squared or > 10,000 um-squared",
+            "when": "Automated segmentation pipelines to remove artifacts.",
+            "why": "Objects below 200 um-squared are likely debris, fragmented fibers, or segmentation errors. Objects above 10,000 um-squared may be merged fibers or connective tissue regions. Exact thresholds depend on species and muscle.",
+            "source": "https://doi.org/10.1371/journal.pone.0243163"
+          }
+        },
+        "common_mistakes": [
+          "Using maximum Feret diameter, which is heavily influenced by oblique sectioning.",
+          "Not reporting which diameter metric was used, making comparisons with other studies impossible.",
+          "Not filtering out edge fibers that are only partially captured in the cross-section."
+        ]
+      },
+      "fiber_type_classification": {
+        "description": "Classification of muscle fibers into types based on myosin heavy chain (MyHC) isoform expression.",
+        "situations": {
+          "standard_mhc_classification": {
+            "value_or_range": "Type I (MyHC I/slow), Type IIA (MyHC IIA/fast oxidative), Type IIX (MyHC IIX/fast glycolytic), plus hybrid fibers",
+            "when": "Standard fiber type analysis using immunohistochemistry (IHC) with anti-MyHC antibodies.",
+            "why": "IHC is the most widely used method because it allows simultaneous visualization of fiber type and morphology on the same section. Antibodies BA-D5 (Type I), SC-71 (Type IIA), BF-F3 (Type IIB, rodents), and 6H1 (Type IIX) are commonly used.",
+            "source": "https://doi.org/10.1152/japplphysiol.00624.2019"
+          },
+          "hybrid_fibers": {
+            "value_or_range": "Report I/IIA, IIA/IIX, and I/IIA/IIX hybrids separately",
+            "when": "Conditions involving fiber type transitions (exercise training, disease, denervation).",
+            "why": "Hybrid fibers coexpressing multiple MyHC isoforms exist along a continuum (I <-> I/IIA <-> IIA <-> IIA/IIX <-> IIX <-> IIX/IIB <-> IIB). Their prevalence increases during transitions and in disease. Not reporting hybrids can miss important biological changes.",
+            "source": "https://doi.org/10.1152/japplphysiol.00624.2019"
+          },
+          "human_vs_rodent": {
+            "value_or_range": "Humans: Types I, IIA, IIX; Rodents: Types I, IIA, IIX, IIB",
+            "when": "Comparing across species.",
+            "why": "Human skeletal muscle does not express MyHC IIB (fastest isoform), while rodent muscle does. Using rodent-specific Type IIB antibodies on human tissue gives no staining.",
+            "source": "https://doi.org/10.1152/japplphysiol.00624.2019"
+          },
+          "normal_human_fiber_distribution": {
+            "value_or_range": "Roughly 50% Type I, 35% Type IIA, 15% Type IIX in vastus lateralis",
+            "when": "Evaluating whether a sample falls within normal range for healthy adults.",
+            "why": "Normal fiber type distribution varies by muscle and individual, but vastus lateralis in healthy adults shows roughly equal proportions of Type I and IIA with fewer IIX fibers. Large deviations suggest pathology or specialized training.",
+            "source": "https://doi.org/10.1152/japplphysiol.00624.2019"
+          }
+        },
+        "common_mistakes": [
+          "Using only ATPase staining (pH 4.3/4.6/9.4) which is less specific than IHC and does not distinguish IIA from IIX reliably.",
+          "Not including hybrid fiber categories, which can comprise 5-20% of fibers in transitioning muscles.",
+          "Applying rodent fiber type antibody panels to human tissue without accounting for the absence of MyHC IIB in humans."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1371/journal.pone.0243163",
+      "https://www.treat-nmd.org/wp-content/uploads/2023/07/MDX-DMD_M.1.2.001.pdf",
+      "https://www.treat-nmd.org/wp-content/uploads/2023/07/cmd-MDC1A_M.1.2.002-66.pdf",
+      "https://doi.org/10.1152/japplphysiol.00624.2019",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC5564431/"
+    ],
+    "best_practice_notes": "Use minimum Feret diameter as the primary size metric because it is most robust to oblique sectioning. Measure at least 200 fibers per sample (500+ for detecting subtle effects). Use IHC with validated anti-MyHC antibodies for fiber type classification. Report hybrid fiber categories. Filter segmented objects by CSA range (200-10,000 um-squared). Always sample from the same anatomical region across subjects to control for regional variation within muscles."
+  },
+  "tissue_deformation_strain_analysis": {
+    "description": "Measurement and analysis of mechanical deformation in biological tissues using imaging-based methods (optical flow, PIV, digital image correlation) to compute strain fields, quantifying tissue mechanics and cellular force generation.",
+    "key_parameters": {
+      "strain_measure": {
+        "description": "The mathematical formulation of strain used to quantify deformation, which must be appropriate for the magnitude of deformation.",
+        "situations": {
+          "small_deformation_hard_tissue": {
+            "value_or_range": "Engineering (Cauchy) strain or infinitesimal strain tensor",
+            "when": "Hard biological tissues (bone, cartilage) or any tissue with deformations < 3-4%.",
+            "why": "Engineering strain (epsilon = deltaL/L0) is linear, simple, and equivalent to Green-Lagrange strain for small deformations (<3-4%). It is computationally simpler and sufficient when strains are small enough that the nonlinear terms are negligible.",
+            "source": "https://biomechanics.stanford.edu/me338/me338_n07.pdf"
+          },
+          "large_deformation_soft_tissue": {
+            "value_or_range": "Green-Lagrange strain tensor (E = 0.5*(F^T*F - I))",
+            "when": "Soft biological tissues (skin, muscle, lung, blood vessels) with deformations > 5%, which is typical for most soft tissues.",
+            "why": "Green-Lagrange strain is valid for arbitrarily large deformations and rotations. It correctly returns zero strain for pure rotation (unlike engineering strain). Most soft tissues undergo strains of 10-100%, making finite strain measures essential.",
+            "source": "https://doi.org/10.1371/journal.pone.0107689"
+          },
+          "reference_frame_choice": {
+            "value_or_range": "Lagrangian (material/reference frame) for Green-Lagrange; Eulerian (spatial/current frame) for Almansi strain",
+            "when": "Lagrangian is standard for solid tissue mechanics; Eulerian for fluid-like tissues or flow analyses.",
+            "why": "Lagrangian formulation tracks material points from their reference position, which is natural for solid tissues. Eulerian formulation is natural for fluids or highly deformable tissues where tracking material points is impractical.",
+            "source": "https://biomechanics.stanford.edu/me338/me338_n07.pdf"
+          }
+        },
+        "common_mistakes": [
+          "Using engineering strain for large soft tissue deformations (>5%), which gives erroneous results when rotations are significant.",
+          "Confusing Green-Lagrange strain (Lagrangian) with Almansi strain (Eulerian) and mixing reference frames.",
+          "Not specifying which strain measure was used in publications, making results uninterpretable."
+        ]
+      },
+      "reference_frame_selection": {
+        "description": "Choice of temporal reference configuration for computing deformation: first frame vs previous frame vs average.",
+        "situations": {
+          "cumulative_deformation": {
+            "value_or_range": "First frame as reference",
+            "when": "Measuring total cumulative deformation from an initial state (e.g., tissue stretching, wound contraction, growth).",
+            "why": "Provides the total deformation relative to the original configuration. Standard for engineering strain measurements and loading experiments.",
+            "source": "https://doi.org/10.1371/journal.pone.0107689"
+          },
+          "incremental_deformation": {
+            "value_or_range": "Previous frame as reference",
+            "when": "Measuring instantaneous strain rate or incremental deformation (e.g., cell contractility, cardiac motion).",
+            "why": "Captures the deformation occurring in each time step, which is proportional to strain rate. Better for oscillatory or cyclic motion where cumulative strain is less meaningful.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6409087/"
+          },
+          "updated_lagrangian": {
+            "value_or_range": "Periodically reset reference (e.g., every N frames)",
+            "when": "Very large cumulative deformations that cause loss of image correlation with the initial frame.",
+            "why": "In PIV/DIC, very large displacements (>50% of interrogation window) cause loss of correlation. Resetting the reference avoids this while tracking cumulative deformation through composition of incremental deformations.",
+            "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6409087/"
+          }
+        },
+        "common_mistakes": [
+          "Using first-frame reference for cyclic motion (e.g., cardiac), where cumulative strain is not meaningful.",
+          "Not accounting for drift in the reference frame over long time series.",
+          "Composing incremental deformations without proper finite-strain kinematics (simply adding incremental strains is only valid for small strains)."
+        ]
+      },
+      "spatial_resolution_and_noise": {
+        "description": "Trade-off between spatial resolution and noise in displacement/strain estimation from image-based methods.",
+        "situations": {
+          "piv_interrogation_window": {
+            "value_or_range": "32x32 to 64x64 pixels with 50% overlap for standard tissue imaging",
+            "when": "Using PIV (Particle Image Velocimetry) or DIC (Digital Image Correlation) for tissue deformation.",
+            "why": "Larger windows contain more texture information for reliable correlation, reducing displacement noise, but at the cost of spatial resolution. 32x32 with 50% overlap is a common starting point. Iterative methods with window refinement can achieve resolution of smaller windows while maintaining the robustness of larger ones.",
+            "source": "https://doi.org/10.5334/jors.334"
+          },
+          "cell_sheet_analysis": {
+            "value_or_range": "Window size ~2-3 cell diameters, typically 16x16 to 32x32 pixels",
+            "when": "Measuring deformation in cell monolayers or cell sheets.",
+            "why": "The interrogation window should be large enough to contain sufficient texture (cell boundaries, features) for correlation but small enough to resolve cell-scale mechanics. A window of 2-3 cell diameters typically provides a good balance.",
+            "source": "https://doi.org/10.1038/s41598-023-39635-z"
+          },
+          "strain_from_displacement": {
+            "value_or_range": "Apply spatial smoothing (Gaussian, sigma = 1-3 grid points) before computing strain from displacement",
+            "when": "Computing strain fields by differentiating displacement fields.",
+            "why": "Strain computation involves spatial derivatives of displacement, which amplifies noise. Smoothing the displacement field before differentiation is essential. The smoothing kernel size controls the trade-off: more smoothing reduces noise but blurs strain gradients.",
+            "source": "https://doi.org/10.1371/journal.pone.0107689"
+          }
+        },
+        "common_mistakes": [
+          "Computing strain directly from noisy displacement fields without smoothing, producing unusable strain maps dominated by noise.",
+          "Using interrogation windows smaller than the correlation length of the image texture, causing unreliable displacement estimates.",
+          "Not reporting the effective spatial resolution (window size * pixel size) in physical units."
+        ]
+      }
+    },
+    "key_references": [
+      "https://biomechanics.stanford.edu/me338/me338_n07.pdf",
+      "https://doi.org/10.1371/journal.pone.0107689",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6409087/",
+      "https://doi.org/10.5334/jors.334",
+      "https://doi.org/10.1038/s41598-023-39635-z"
+    ],
+    "best_practice_notes": "Use Green-Lagrange strain for soft tissues with deformations >5%, engineering strain for hard tissues <3-4%. Choose reference frame based on the question: first frame for cumulative deformation, previous frame for strain rate. Use PIV with 32x32 to 64x64 pixel interrogation windows and 50% overlap as a starting point. Always smooth displacement fields before computing strain derivatives. Report the strain measure, reference frame, and spatial resolution in physical units."
+  },
+  "whole_cell_ode_modeling": {
+    "description": "Mathematical modeling of cellular processes using systems of ordinary differential equations (ODEs), including metabolism, signaling, gene regulation, and cell cycle models. These systems often exhibit stiffness (widely varying timescales) requiring careful solver selection.",
+    "key_parameters": {
+      "ode_solver_selection": {
+        "description": "Choice of numerical integration method for solving the ODE system, which must match the mathematical character (stiff vs non-stiff) of the equations.",
+        "situations": {
+          "non_stiff_systems": {
+            "value_or_range": "RK45 (Runge-Kutta 4th/5th order, Dormand-Prince) or RK23",
+            "when": "Systems where all state variables change on similar timescales (e.g., simple kinetic models, population dynamics).",
+            "why": "Explicit Runge-Kutta methods are efficient, easy to implement, and accurate for non-stiff problems. RK45 is the recommended first-try solver in scipy.integrate.solve_ivp. If it takes unusually many iterations, diverges, or fails, the problem is likely stiff.",
+            "source": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html"
+          },
+          "stiff_systems": {
+            "value_or_range": "BDF (Backward Differentiation Formula, orders 1-5) or Radau (implicit Runge-Kutta)",
+            "when": "Systems with widely varying timescales (e.g., fast enzyme kinetics coupled with slow gene expression, metabolic models with fast equilibria).",
+            "why": "BDF is the most widely used method for stiff equations. Stiff systems have eigenvalues spanning many orders of magnitude; explicit methods require extremely small time steps for stability, making them impractically slow. Implicit methods like BDF remain stable with much larger step sizes.",
+            "source": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html"
+          },
+          "unknown_stiffness": {
+            "value_or_range": "LSODA (automatic switching between Adams and BDF)",
+            "when": "The stiffness character is unknown or changes during integration (e.g., complex whole-cell models with dynamic stiffness).",
+            "why": "LSODA automatically detects stiffness and switches between Adams methods (non-stiff, efficient) and BDF (stiff, stable). This is ideal for whole-cell models where some phases may be stiff and others non-stiff. It has demonstrated superior numerical stability compared to RK45 for systems with stiffness, chaotic behavior, or discontinuities.",
+            "source": "https://doi.org/10.1038/s41598-021-82196-2"
+          },
+          "large_scale_systems_biology": {
+            "value_or_range": "CVODE from SUNDIALS (variable-order, variable-step BDF)",
+            "when": "Large systems (100+ ODEs) typical of genome-scale or whole-cell models, or when performance is critical.",
+            "why": "CVODE is the industrial-strength solver used by most systems biology toolboxes. It supports variable-order (1-5) BDF with adaptive step size, error control, and efficient sparse Jacobian handling. Used in COPASI, libRoadRunner, PySB, and many other tools.",
+            "source": "https://sundials.readthedocs.io/en/latest/cvode/Mathematics_link.html"
+          }
+        },
+        "common_mistakes": [
+          "Using RK45 (or any explicit method) for stiff biological models, resulting in extremely slow integration or outright failure (divergence).",
+          "Not recognizing stiffness: if RK45 takes >10x more steps than expected, the problem is likely stiff.",
+          "Using fixed-step methods for stiff problems, requiring impractically small steps for stability.",
+          "Not providing an analytical Jacobian to implicit solvers when the system is large (>50 ODEs), which dramatically slows down BDF methods."
+        ]
+      },
+      "time_step_selection": {
+        "description": "Fixed vs adaptive time stepping and criteria for step size control.",
+        "situations": {
+          "adaptive_recommended": {
+            "value_or_range": "Adaptive time stepping with relative tolerance 1e-6 to 1e-8 and absolute tolerance 1e-8 to 1e-12",
+            "when": "Almost all biological ODE models (default recommendation).",
+            "why": "Adaptive methods automatically adjust step size to maintain accuracy: small steps during rapid changes and large steps during slow phases. This is far more efficient than fixed steps and prevents accuracy loss during transients. CVODE adjusts both step size and order to maximize efficiency.",
+            "source": "https://sundials.readthedocs.io/en/latest/cvode/Usage/index.html"
+          },
+          "fixed_step_rare_cases": {
+            "value_or_range": "Fixed step only when output timing must be precisely controlled or for hardware-in-the-loop",
+            "when": "Real-time applications, hardware interfaces, or when exact time alignment with external signals is required.",
+            "why": "Fixed steps simplify synchronization but require the step to be small enough for the fastest dynamics throughout the entire integration, which is wasteful during slow phases.",
+            "source": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html"
+          }
+        },
+        "common_mistakes": [
+          "Using fixed time steps for stiff systems, which requires extremely small steps for stability.",
+          "Setting tolerances too loose (>1e-3), which can cause significant drift in conserved quantities.",
+          "Setting tolerances too tight (1e-14), which wastes computation and can cause convergence failures at machine precision limits."
+        ]
+      },
+      "parameter_identifiability": {
+        "description": "Analysis of whether model parameters can be uniquely determined from available experimental data.",
+        "situations": {
+          "structural_identifiability": {
+            "value_or_range": "Perform structural identifiability analysis BEFORE parameter estimation",
+            "when": "Before fitting any model to data; this is a mathematical property of the model structure.",
+            "why": "Structural identifiability determines whether parameters CAN be uniquely estimated given perfect data. If a parameter is structurally unidentifiable, no amount of data will determine its value. Methods include differential algebra and generating series approaches.",
+            "source": "https://doi.org/10.1093/bioinformatics/btu006"
+          },
+          "practical_identifiability": {
+            "value_or_range": "Perform practical identifiability analysis AFTER parameter estimation using profile likelihood or Fisher Information Matrix (FIM)",
+            "when": "After parameter estimation, to assess confidence in estimated values given actual data quality and quantity.",
+            "why": "Practical identifiability evaluates whether parameters can be estimated accurately given noisy, sparse real data. Profile likelihood reveals parameter confidence intervals and correlations. FIM-based sensitivity analysis identifies which parameters the model output is most sensitive to.",
+            "source": "https://doi.org/10.1038/s41540-024-00460-3"
+          }
+        },
+        "common_mistakes": [
+          "Estimating parameters without first checking structural identifiability; structurally unidentifiable parameters give meaningless estimates.",
+          "Interpreting tight parameter confidence intervals as meaning the parameter is well-determined, without checking for structural identifiability.",
+          "Overfitting by estimating too many parameters relative to available data."
+        ]
+      },
+      "mass_conservation": {
+        "description": "Verification that the model correctly conserves mass/moles of chemical species that should be conserved.",
+        "situations": {
+          "conservation_check": {
+            "value_or_range": "Verify sum of conserved moieties remains constant (< 0.1% drift) throughout integration",
+            "when": "Any model with mass-balance constraints (metabolic models, signaling cascades with total protein conservation).",
+            "why": "Mass conservation violations indicate either model formulation errors (missing reactions, incorrect stoichiometry) or numerical integration errors (tolerance too loose, inappropriate solver). This is a fundamental sanity check.",
+            "source": "https://doi.org/10.1038/s41598-021-82196-2"
+          },
+          "reducing_conservation_moieties": {
+            "value_or_range": "Use conservation laws to eliminate dependent variables (reduce system dimensionality)",
+            "when": "Models with explicit conservation relationships (e.g., [A_free] + [A_bound] = [A_total]).",
+            "why": "Eliminating dependent variables through conservation laws reduces the system dimension, improves numerical stability, and automatically enforces mass conservation. This is especially important for stiff systems where numerical drift can accumulate.",
+            "source": "https://doi.org/10.1038/s41598-021-82196-2"
+          }
+        },
+        "common_mistakes": [
+          "Not checking mass conservation, allowing numerical drift to accumulate and produce physically impossible concentrations (including negative values).",
+          "Ignoring conservation laws, keeping redundant ODEs that make the system stiffer than necessary.",
+          "Not using absolute tolerance settings appropriate for species with very different concentration scales (set per-variable absolute tolerances)."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1038/s41598-021-82196-2",
+      "https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html",
+      "https://sundials.readthedocs.io/en/latest/cvode/Mathematics_link.html",
+      "https://doi.org/10.1093/bioinformatics/btu006",
+      "https://doi.org/10.1038/s41540-024-00460-3",
+      "https://computing.llnl.gov/projects/sundials/cvode"
+    ],
+    "best_practice_notes": "Always start with RK45; if it fails or is very slow, switch to BDF or LSODA. Use adaptive time stepping with tolerances rtol=1e-6, atol=1e-9 as a starting point. Provide analytical Jacobian for large stiff systems. Check structural identifiability before parameter estimation. Verify mass conservation after every integration. Use LSODA or CVODE for whole-cell models where stiffness character may change during simulation. Reduce system dimensionality using conservation laws when possible."
+  }
+}
