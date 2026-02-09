@@ -1538,7 +1538,9 @@ class AIAssistant:
                 'datasets_assigned': datasets_assigned,
                 'template_match_score': score,
                 'generated_parameters': generated_parameters,  # Include LLM-generated parameters with confidence scores
-                'tool_installation': tool_install_result  # Include tool installation results
+                'tool_installation': tool_install_result,  # Include tool installation results
+                'execution_engine': 'galaxy' if source == 'template_reuse' else 'nextflow',  # Explicit execution engine
+                'workflow_tags': workflow_ga.get('tags', [])  # Workflow tags for frontend detection
             }
 
         except Exception as e:
@@ -1584,6 +1586,7 @@ class AIAssistant:
             'annotation': workflow_desc,
             'format-version': '0.1',
             'name': workflow_name,
+            'tags': template.get('tags', []) + ['galaxy-reuse', 'ai-generated'],
             'steps': {}
         }
 
@@ -1638,6 +1641,7 @@ class AIAssistant:
             'annotation': workflow_desc,
             'format-version': '0.1',
             'name': workflow_name,
+            'tags': workflow_data.get('tags', []) + ['nextflow', 'ai-generated'],
             'steps': {}
         }
 

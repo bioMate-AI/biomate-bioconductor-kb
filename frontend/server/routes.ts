@@ -68,6 +68,44 @@ function getFileType(extension: string): string {
   return 'binary';
 }
 
+/**
+ * Determine workflow execution engine based on workflow definition.
+ * Centralizes the logic for detecting Galaxy reuse vs Nextflow execution.
+ *
+ * Detection priority:
+ * 1. Explicit Galaxy reuse markers (tags, metadata) → 'galaxy'
+ * 2. Explicit Nextflow markers (tags, metadata) → 'nextflow'
+ * 3. Default → 'nextflow' (as per integration plan)
+ */
+function getWorkflowExecutionEngine(workflowDef: any): 'galaxy' | 'nextflow' {
+  const tags = workflowDef?.tags || [];
+  const metadata = workflowDef?.metadata || {};
+
+  // Check for explicit Galaxy reuse markers
+  const isGalaxyReuse =
+    tags.includes('galaxy-reuse') ||
+    tags.includes('galaxy-import') ||
+    metadata.source === 'galaxy_reuse' ||
+    workflowDef?.isGalaxyWorkflow === true;
+
+  if (isGalaxyReuse) {
+    return 'galaxy';
+  }
+
+  // Check for Nextflow markers
+  const isNextflow =
+    tags.includes('nextflow') ||
+    tags.includes('native-execution') ||
+    metadata.source === 'nextflow';
+
+  if (isNextflow) {
+    return 'nextflow';
+  }
+
+  // Default to Nextflow (as per integration plan)
+  return 'nextflow';
+}
+
 // Initialize workflow notification service for email notifications
 const workflowNotificationService = createWorkflowNotificationService(galaxyPoller, storage);
 
@@ -3442,8 +3480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const historyContents = await galaxyAPIProxy.getHistoryContents(historyIdToUse);
 
       // Filter outputs created by this invocation (after invocation start time)
-      const workflowTags = invocation.workflowDefinition?.tags || [];
-      const isNextflowInvocation = workflowTags.includes('nextflow') || workflowTags.includes('native-execution');
+      const isNextflowInvocation = getWorkflowExecutionEngine(invocation.workflowDefinition) === 'nextflow';
       let invocationOutputs = historyContents.filter((item: any) => {
         const itemCreateTime = new Date(item.create_time);
         return (
@@ -3912,17 +3949,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Determine execution engine using standardized helper
+      const executionEngine = getWorkflowExecutionEngine(request.workflowDefinition);
       const workflowTags = request.workflowDefinition?.tags || [];
-      const workflowMetadata = request.workflowDefinition?.metadata || {};
-      const isGalaxyReuse =
-        workflowTags.includes('galaxy') ||
-        workflowMetadata.engine === 'galaxy' ||
-        workflowMetadata.source === 'galaxy' ||
-        request.workflowDefinition?.source === 'galaxy' ||
-        request.workflowDefinition?.reuseSource === 'galaxy' ||
-        request.workflowDefinition?.isGalaxyWorkflow === true;
-
-      const executionEngine = isGalaxyReuse ? 'galaxy' : 'nextflow';
       const workflowDefinitionForExecution = executionEngine === 'nextflow'
         ? {
             ...request.workflowDefinition,
@@ -4127,8 +4156,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Return lightweight status response
-      const workflowTags = run.workflowDefinition?.tags || [];
-      const isNextflowRun = workflowTags.includes('nextflow') || workflowTags.includes('native-execution') || run.execution?.executionEngine === 'nextflow';
+      const isNextflowRun =
+        getWorkflowExecutionEngine(run.workflowDefinition) === 'nextflow' ||
+        run.execution?.executionEngine === 'nextflow';
       let nextflowStatus: any | undefined = undefined;
       if (isNextflowRun && run.execution?.galaxyInvocationId) {
         try {
