@@ -10,7 +10,7 @@ This module implements systematic context gathering through:
 
 import json
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -39,15 +39,17 @@ class ContextGatherer:
         'downstream_analysis'
     ]
 
-    def __init__(self, tool_id: str, requirements_db_path: Optional[str] = None):
+    def __init__(self, tool_id: str, requirements_db_path: Optional[str] = None, enable_pilot_analysis: bool = True):
         """
         Initialize context gatherer for a specific tool.
 
         Args:
             tool_id: Tool identifier (e.g., 'biomni/genomics/perform_chipseq_peak_calling_with_macs2')
             requirements_db_path: Path to parameter context requirements JSON
+            enable_pilot_analysis: Enable automatic pilot analysis for data-dependent fields
         """
         self.tool_id = tool_id
+        self.enable_pilot_analysis = enable_pilot_analysis
 
         # Load context requirements
         if requirements_db_path is None:
@@ -65,6 +67,7 @@ class ContextGatherer:
         self.gathered_context = {}
         self.questions_asked = []
         self.conversation_history = []
+        self.pilot_analysis_results = {}  # Cache pilot analysis results
 
     def gather_context(
         self,
@@ -422,6 +425,88 @@ Only include fields where you have high confidence. Use null for uncertain field
         # Fallback to default
         return param_req.get('default')
 
+    def run_pilot_analysis(
+        self,
+        input_files: Dict[str, Union[str, Path]],
+        quick_only: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Run pilot analysis to extract data-dependent context.
+
+        Args:
+            input_files: Dict mapping input names to file paths (e.g., {'bam_file': '/path/to/data.bam'})
+            quick_only: Only run quick analyzers (<30s)
+
+        Returns:
+            Dict of extracted context from pilot analysis
+        """
+        if not self.enable_pilot_analysis:
+            logger.info("Pilot analysis disabled, skipping")
+            return {}
+
+        try:
+            # Lazy import to avoid circular dependency
+            from ..pilot_analysis import PilotAnalysisExecutor
+
+            executor = PilotAnalysisExecutor(use_fallback_on_error=True)
+            extracted_context = {}
+
+            # Find data-dependent parameters for this tool
+            for param_name, param_req in self.requirements.get('parameters', {}).items():
+                if param_req.get('context_type') != 'data_dependent':
+                    continue
+
+                # Get pilot analysis specification
+                pilot_spec = param_req.get('pilot_analysis')
+                if not pilot_spec:
+                    logger.warning(f"No pilot analysis specified for data-dependent parameter '{param_name}'")
+                    continue
+
+                # Get analyzer name
+                analyzer_name = pilot_spec if isinstance(pilot_spec, str) else pilot_spec.get('analyzer')
+                if not analyzer_name:
+                    logger.warning(f"Invalid pilot analysis spec for '{param_name}'")
+                    continue
+
+                # Get input file for this analyzer
+                input_file_param = param_req.get('pilot_params', {}).get('input_file')
+                if not input_file_param or input_file_param not in input_files:
+                    logger.warning(f"Input file '{input_file_param}' not provided for analyzer '{analyzer_name}'")
+                    continue
+
+                input_file = input_files[input_file_param]
+
+                # Check if already ran this analyzer
+                cache_key = f"{analyzer_name}:{input_file}"
+                if cache_key in self.pilot_analysis_results:
+                    logger.debug(f"Using cached result for {analyzer_name}")
+                    result = self.pilot_analysis_results[cache_key]
+                else:
+                    # Run analyzer
+                    logger.info(f"Running pilot analyzer '{analyzer_name}' on {input_file}")
+                    result = executor.run_analyzer(analyzer_name, input_file)
+                    self.pilot_analysis_results[cache_key] = result
+
+                # Extract context from result
+                if result.status in ['success', 'fallback']:
+                    extracted_context.update(result.extracted_data)
+                    logger.info(f"Extracted from {analyzer_name}: {result.extracted_data}")
+
+                    # Mark as gathered
+                    if result.used_fallback:
+                        logger.warning(f"Used fallback value for {analyzer_name}: {result.error_message}")
+                else:
+                    logger.error(f"Failed to run {analyzer_name}: {result.error_message}")
+
+            # Update gathered context
+            self.gathered_context.update(extracted_context)
+
+            return extracted_context
+
+        except Exception as e:
+            logger.error(f"Error running pilot analysis: {e}", exc_info=True)
+            return {}
+
     def validate_context(self) -> Dict[str, Any]:
         """
         Validate that gathered context is sufficient and consistent.
@@ -490,3 +575,15 @@ if __name__ == '__main__':
         # Get parameter values
         peak_type = gatherer.get_parameter_value('peak_type')
         print(f"Inferred peak_type: {peak_type}")
+
+    # Pilot Analysis Integration (if user has provided input files)
+    print("\n\n=== Pilot Analysis Integration ===")
+    print("If user uploads BAM file, system can extract data-dependent context:")
+
+    # Simulate having a BAM file
+    # In real usage: input_files = {'bam_file': user_uploaded_path}
+    print("\nExample: gatherer.run_pilot_analysis({'bam_file': '/path/to/chipseq.bam'})")
+    print("  → Would run 'estimate_fragment_size' analyzer")
+    print("  → Extract: fragment_size = 247 bp")
+    print("  → Auto-update gathered_context with this value")
+    print("\nResult: All parameters now have values (user context + pilot analysis + defaults)")
