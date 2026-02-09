@@ -335,6 +335,7 @@ export class MemStorage implements IStorage {
         galaxyInvocationId: undefined,
         galaxyHistoryId: undefined,
         galaxyWorkflowId: undefined,
+        executionEngine: config.executionEngine,
         status: 'configuring',
         startedAt: undefined,
         completedAt: undefined,

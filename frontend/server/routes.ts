@@ -3362,7 +3362,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fetch outputs from Galaxy after workflow completion
   app.post("/api/invocations/:id/fetch-outputs", async (req, res) => {
     try {
-      const invocation = await storage.getInvocation(req.params.id);
+      let invocation = await storage.getInvocation(req.params.id);
+      if (!invocation) {
+        const executionRun = await storage.getExecutionRun(req.params.id);
+        if (executionRun?.execution?.galaxyInvocationId) {
+          const resolved = await storage.getInvocationByGalaxyId(executionRun.execution.galaxyInvocationId);
+          if (resolved) {
+            invocation = resolved;
+          }
+        }
+      }
       if (!invocation) {
         return res.status(404).json({ error: "Invocation not found" });
       }
@@ -3385,7 +3394,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const historyContents = await galaxyAPIProxy.getHistoryContents(historyIdToUse);
 
       // Filter outputs created by this invocation (after invocation start time)
-      const invocationOutputs = historyContents.filter((item: any) => {
+      const workflowTags = invocation.workflowDefinition?.tags || [];
+      const isNextflowInvocation = workflowTags.includes('nextflow') || workflowTags.includes('native-execution');
+      let invocationOutputs = historyContents.filter((item: any) => {
         const itemCreateTime = new Date(item.create_time);
         return (
           !item.deleted &&
@@ -3394,6 +3405,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           itemCreateTime >= invocation.createdAt
         );
       });
+      if (isNextflowInvocation && invocationOutputs.length === 0) {
+        invocationOutputs = historyContents.filter((item: any) => (
+          !item.deleted &&
+          item.state === 'ok' &&
+          item.history_content_type === 'dataset'
+        ));
+      }
 
       // Store each output in our database
       const storedOutputs = [];
@@ -3846,16 +3864,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      const workflowTags = request.workflowDefinition?.tags || [];
+      const workflowMetadata = request.workflowDefinition?.metadata || {};
+      const isGalaxyReuse =
+        workflowTags.includes('galaxy') ||
+        workflowMetadata.engine === 'galaxy' ||
+        workflowMetadata.source === 'galaxy' ||
+        request.workflowDefinition?.source === 'galaxy' ||
+        request.workflowDefinition?.reuseSource === 'galaxy' ||
+        request.workflowDefinition?.isGalaxyWorkflow === true;
+
+      const executionEngine = isGalaxyReuse ? 'galaxy' : 'nextflow';
+      const workflowDefinitionForExecution = executionEngine === 'nextflow'
+        ? {
+            ...request.workflowDefinition,
+            tags: Array.from(new Set([...(workflowTags || []), 'nextflow'])),
+          }
+        : request.workflowDefinition;
+
       // Create execution run record
       executionRun = await storage.createExecutionRun(
-        request,
+        {
+          ...request,
+          workflowDefinition: workflowDefinitionForExecution,
+          executionConfig: {
+            ...(request.executionConfig || {}),
+            executionEngine,
+          }
+        },
         req.user?.id,
         request.projectId
       );
 
       // Determine history name based on mode
       const mode = request.executionConfig?.mode || 'sandbox';
-      const executionEngine = request.executionConfig?.executionEngine || 'nextflow';
       const historyPrefix = mode === 'sandbox' ? '[Sandbox]' : '[Production]';
       const engineSuffix = executionEngine === 'nextflow' ? ' [Nextflow]' : '';
       const historyName = `${historyPrefix}${engineSuffix} ${executionRun.workflowName} - Run ${executionRun.runSequence}`;
@@ -3894,7 +3936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create workflow in Galaxy
-      const galaxyWorkflow = await galaxyAPIProxy.createWorkflow(request.workflowDefinition);
+      const galaxyWorkflow = await galaxyAPIProxy.createWorkflow(workflowDefinitionForExecution);
       galaxyWorkflowId = galaxyWorkflow.id;
 
       // Invoke workflow in Galaxy
@@ -3940,7 +3982,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const workflowInvocation = await storage.createInvocation({
         userId: req.user?.id,
         workflowName: executionRun.workflowName,
-        workflowDefinition: request.workflowDefinition,
+        workflowDefinition: workflowDefinitionForExecution,
         executionEngine,
         galaxyInvocationId: invocationResult.id,
         galaxyHistoryId: galaxyHistoryId,
@@ -4037,6 +4079,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Return lightweight status response
+      const workflowTags = run.workflowDefinition?.tags || [];
+      const isNextflowRun = workflowTags.includes('nextflow') || workflowTags.includes('native-execution') || run.execution?.executionEngine === 'nextflow';
+      let nextflowStatus: any | undefined = undefined;
+      if (isNextflowRun && run.execution?.galaxyInvocationId) {
+        try {
+          nextflowStatus = await galaxyAPIProxy.getNextflowStatus(run.execution.galaxyInvocationId);
+        } catch (statusError: any) {
+          console.warn("[ExecutionRun] Failed to fetch Nextflow status:", statusError?.message || statusError);
+        }
+      }
+
       res.json({
         runId: run.id,
         status: run.execution.status,
@@ -4044,6 +4097,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metrics: run.metrics,
         steps: req.query.includeSteps === 'true' ? run.steps : undefined,
         errorMessage: run.execution.errorMessage,
+        nextflowStatus,
       });
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching run status:", error);

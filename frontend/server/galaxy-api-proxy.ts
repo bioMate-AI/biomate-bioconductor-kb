@@ -336,6 +336,15 @@ export class GalaxyAPIProxy {
   }
 
   /**
+   * Get Nextflow workflow status by invocation ID
+   * Maps to Galaxy's Nextflow status endpoint
+   */
+  async getNextflowStatus(invocationId: string): Promise<any> {
+    const response = await this.client.get(`/api/workflows/${invocationId}/nextflow/status`);
+    return response.data;
+  }
+
+  /**
    * Cancel workflow invocation
    * Maps to Galaxy's native DELETE /api/workflows/{workflow_id}/invocations/{invocation_id}
    */

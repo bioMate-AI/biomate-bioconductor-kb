@@ -660,6 +660,7 @@ export const executionConfigSchema = z.object({
   environment: executionEnvironmentSchema.optional(),
   tracking: trackingConfigSchema.optional(),
   parentRunId: z.string().optional(), // Links to previous iteration
+  executionEngine: z.enum(["nextflow", "galaxy"]).optional(),
 });
 
 export type ExecutionConfig = z.infer<typeof executionConfigSchema>;
@@ -882,6 +883,7 @@ export const executionRunSchema = z.object({
     galaxyInvocationId: z.string().optional(),
     galaxyHistoryId: z.string().optional(),
     galaxyWorkflowId: z.string().optional(),
+    executionEngine: z.string().optional(),
     status: executionRunStatusSchema,
     startedAt: z.coerce.date().optional(),
     completedAt: z.coerce.date().optional(),
@@ -943,6 +945,7 @@ export const createExecutionRunResponseSchema = z.object({
   runId: z.string(),
   galaxyInvocationId: z.string().optional(),
   galaxyHistoryId: z.string().optional(),
+  executionEngine: z.enum(["nextflow", "galaxy"]).optional(),
   status: executionRunStatusSchema,
   dataScopeApplied: z.object({
     fraction: z.number(),
@@ -967,6 +970,7 @@ export const executionRunStatusResponseSchema = z.object({
   metrics: executionMetricsSchema.optional(),
   steps: z.array(stepExecutionSchema).optional(),
   errorMessage: z.string().optional(),
+  nextflowStatus: z.any().optional(),
 });
 
 export type ExecutionRunStatusResponse = z.infer<typeof executionRunStatusResponseSchema>;
