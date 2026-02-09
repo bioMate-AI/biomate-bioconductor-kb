@@ -1,0 +1,574 @@
+{
+  "$schema": "parameter_context_requirements_v1",
+  "version": "1.0",
+  "last_updated": "2026-02-09",
+  "description": "Defines what context each parameter needs and how to obtain it for intelligent parameter inference",
+
+  "tools": {
+    "biomni/genomics/perform_chipseq_peak_calling_with_macs2": {
+      "tool_name": "MACS2 ChIP-seq Peak Calling",
+      "parameters": {
+        "peak_type": {
+          "context_type": "user_providable",
+          "required_context": ["antibody_target", "histone_mark_type"],
+          "question_template": "What histone mark or transcription factor are you targeting?",
+          "parse_function": "classify_mark_type",
+          "examples": {
+            "H3K27me3": {"value": "broad", "category": "repressive_histone"},
+            "H3K9me3": {"value": "broad", "category": "repressive_histone"},
+            "H3K36me3": {"value": "broad", "category": "active_histone"},
+            "H3K4me3": {"value": "narrow", "category": "active_histone"},
+            "H3K27ac": {"value": "narrow", "category": "active_histone"},
+            "H3K4me1": {"value": "narrow", "category": "active_histone"},
+            "CTCF": {"value": "narrow", "category": "transcription_factor"},
+            "p300": {"value": "narrow", "category": "transcription_factor"},
+            "Pol II": {"value": "narrow", "category": "transcription_factor"}
+          },
+          "help_text": "Narrow peaks for sharp binding (TFs, active marks), broad peaks for diffuse domains (repressive marks)"
+        },
+        "qvalue": {
+          "context_type": "expert_knowledge",
+          "depends_on": ["peak_type"],
+          "mapping": {
+            "broad": 0.05,
+            "narrow": 0.01
+          },
+          "reasoning": "Lower q-value for narrow peaks maximizes specificity; broader threshold for broad marks captures diffuse binding"
+        },
+        "extsize": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "estimate_fragment_size",
+          "pilot_params": {
+            "input_file": "bam_file",
+            "method": "cross_correlation",
+            "fallback": 200,
+            "sample_size": "10M_reads"
+          },
+          "help_text": "Estimated from your BAM file's fragment size distribution"
+        },
+        "gsize": {
+          "context_type": "user_providable",
+          "required_context": ["organism"],
+          "question_template": "What organism is this data from?",
+          "mapping": {
+            "human": "hs",
+            "homo sapiens": "hs",
+            "mouse": "mm",
+            "mus musculus": "mm",
+            "drosophila": "dm",
+            "drosophila melanogaster": "dm",
+            "c. elegans": "ce",
+            "caenorhabditis elegans": "ce",
+            "rat": "rn",
+            "rattus norvegicus": "rn"
+          },
+          "help_text": "Used to calculate genome-wide enrichment statistics"
+        },
+        "shift": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "detect_sequencing_protocol",
+          "depends_on": ["sequencing_protocol", "extsize"],
+          "decision_tree": {
+            "single_end": {"formula": "extsize / 2", "reasoning": "Half of fragment size for SE data"},
+            "paired_end": {"value": "auto", "reasoning": "MACS2 auto-detects from proper pairs"}
+          }
+        },
+        "bdg": {
+          "context_type": "user_providable",
+          "required_context": ["downstream_analysis"],
+          "question_template": "Do you need bedGraph files for visualization?",
+          "default": true,
+          "help_text": "Generate bedGraph for IGV/UCSC browser visualization"
+        }
+      }
+    },
+
+    "biomni/genomics/create_scvi_embeddings_scRNA": {
+      "tool_name": "scVI Single-Cell Integration",
+      "parameters": {
+        "n_latent": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "estimate_scrnaseq_complexity",
+          "pilot_params": {
+            "input_file": "counts_matrix",
+            "metrics": ["num_genes", "num_cell_types", "batch_effects"],
+            "quick_clustering_resolution": 0.5
+          },
+          "decision_tree": {
+            "num_cell_types <= 5 AND batch_effects == 'minimal'": {
+              "value": 10,
+              "reasoning": "Simple dataset with few cell types"
+            },
+            "num_cell_types 6-15 OR batch_effects == 'moderate'": {
+              "value": 20,
+              "reasoning": "Moderate complexity or batch effects"
+            },
+            "num_cell_types > 15 OR batch_effects == 'strong'": {
+              "value": 30,
+              "reasoning": "High complexity or strong batch effects need more latent dimensions"
+            }
+          },
+          "help_text": "Higher values for complex datasets or strong batch effects"
+        },
+        "n_layers": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "count_cells_and_genes",
+          "decision_tree": {
+            "num_cells < 5000": {
+              "value": 1,
+              "reasoning": "Small datasets don't need deep networks"
+            },
+            "num_cells 5000-50000": {
+              "value": 2,
+              "reasoning": "Medium datasets benefit from moderate depth"
+            },
+            "num_cells > 50000": {
+              "value": 3,
+              "reasoning": "Large datasets can support deeper networks"
+            }
+          }
+        },
+        "n_hidden": {
+          "context_type": "expert_knowledge",
+          "depends_on": ["num_cells"],
+          "decision_tree": {
+            "num_cells < 10000": 128,
+            "num_cells >= 10000": 256
+          }
+        },
+        "gene_likelihood": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "detect_data_distribution",
+          "decision_tree": {
+            "protocol == '10x' OR protocol == 'dropseq'": {
+              "value": "nb",
+              "reasoning": "Negative binomial for UMI-based protocols"
+            },
+            "protocol == 'smart-seq'": {
+              "value": "zinb",
+              "reasoning": "Zero-inflated for full-length protocols"
+            }
+          },
+          "fallback": "nb"
+        }
+      }
+    },
+
+    "biomni/molecular_biology/design_primer": {
+      "tool_name": "PCR Primer Design",
+      "parameters": {
+        "primer_length": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "analyze_template_gc_content",
+          "pilot_params": {
+            "input_file": "template_sequence",
+            "window_size": 100,
+            "analysis_type": "gc_percentage"
+          },
+          "decision_tree": {
+            "gc_content < 35": {
+              "value": "22-25",
+              "reasoning": "AT-rich templates need longer primers to achieve sufficient Tm"
+            },
+            "gc_content 35-65": {
+              "value": "20-22",
+              "reasoning": "Balanced GC content allows standard primer length"
+            },
+            "gc_content > 65": {
+              "value": "22-25",
+              "reasoning": "GC-rich templates need longer primers at moderate GC to avoid excessive Tm"
+            }
+          },
+          "help_text": "Automatically adjusted based on your template's GC content"
+        },
+        "melting_temperature": {
+          "context_type": "user_providable",
+          "required_context": ["application_type"],
+          "question_template": "What is the PCR application?",
+          "examples": {
+            "standard PCR": {"value": "58-62", "description": "General amplification"},
+            "qPCR": {"value": "60-63", "description": "Quantitative PCR"},
+            "mutagenesis": {"value": "78-82", "description": "Site-directed mutagenesis"},
+            "colony PCR": {"value": "55-58", "description": "Colony screening"}
+          }
+        },
+        "gc_content_target": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "analyze_template_gc_content",
+          "adjustment": "match_template_gc_within_10_percent",
+          "range": "40-60",
+          "help_text": "Primers should match template GC content within 10%"
+        },
+        "avoid_secondary_structure": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "predict_primer_secondary_structure",
+          "threshold": {
+            "max_hairpin_deltaG": -3.0,
+            "max_self_dimer_deltaG": -5.0,
+            "max_hetero_dimer_deltaG": -6.0
+          }
+        },
+        "product_size_range": {
+          "context_type": "user_providable",
+          "required_context": ["application_type"],
+          "question_template": "What is your target amplicon size?",
+          "defaults": {
+            "standard PCR": "200-2000",
+            "qPCR": "80-150",
+            "sequencing": "400-600"
+          }
+        }
+      }
+    },
+
+    "biomni/bioimaging/segment_with_nn_unet": {
+      "tool_name": "nnU-Net Medical Image Segmentation",
+      "parameters": {
+        "configuration": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "analyze_image_dimensions_and_anisotropy",
+          "pilot_params": {
+            "input_file": "image_stack",
+            "metrics": ["voxel_spacing", "image_size", "anisotropy_ratio"]
+          },
+          "decision_tree": {
+            "anisotropy_ratio < 3 AND image_size[2] >= 64": {
+              "value": "3d_fullres",
+              "reasoning": "Isotropic or near-isotropic volumes with sufficient depth"
+            },
+            "anisotropy_ratio >= 3 OR image_size[2] < 64": {
+              "value": "2d",
+              "reasoning": "Highly anisotropic (slice spacing >> in-plane) or thin stacks"
+            },
+            "image_size[0] > 512 OR image_size[1] > 512": {
+              "value": "3d_lowres_then_cascade",
+              "reasoning": "Very large images benefit from cascade approach"
+            }
+          },
+          "help_text": "Automatically selected based on your image properties"
+        },
+        "patch_size": {
+          "context_type": "environment_dependent",
+          "pilot_analysis": "detect_gpu_memory",
+          "adjustment": "scale_patch_size_to_gpu_memory",
+          "base_patch_sizes": {
+            "2d": [256, 256],
+            "3d_fullres": [128, 128, 128],
+            "3d_lowres": [160, 160, 160]
+          },
+          "constraints": {
+            "gpu_memory_gb < 8": {"scale": 0.5, "warning": "Low GPU memory - reducing patch size"},
+            "gpu_memory_gb 8-16": {"scale": 1.0},
+            "gpu_memory_gb > 16": {"scale": 1.25, "note": "Can increase patch size for better context"}
+          }
+        },
+        "num_epochs": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "count_training_cases",
+          "decision_tree": {
+            "num_cases < 30": {
+              "value": 1000,
+              "reasoning": "Small datasets need more epochs"
+            },
+            "num_cases 30-100": {
+              "value": 500,
+              "reasoning": "Medium datasets"
+            },
+            "num_cases > 100": {
+              "value": 250,
+              "reasoning": "Large datasets converge faster"
+            }
+          }
+        }
+      }
+    },
+
+    "biomni/pharmacology/docking_autodock_vina": {
+      "tool_name": "AutoDock Vina Molecular Docking",
+      "parameters": {
+        "exhaustiveness": {
+          "context_type": "user_providable",
+          "required_context": ["docking_purpose"],
+          "question_template": "What is the purpose of this docking?",
+          "examples": {
+            "virtual screening": {"value": 8, "description": "Fast screening of many compounds"},
+            "lead optimization": {"value": 24, "description": "Refining promising hits"},
+            "publication": {"value": 32, "description": "High-accuracy results for publication"}
+          },
+          "help_text": "Higher values increase accuracy but take longer"
+        },
+        "box_size": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "detect_protein_binding_site",
+          "pilot_params": {
+            "input_file": "protein_structure",
+            "method": "fpocket",
+            "extract": ["pocket_center", "pocket_radius"]
+          },
+          "formula": "pocket_radius * 2.9",
+          "min_size": 15,
+          "max_size": 30,
+          "help_text": "Automatically sized based on detected binding pocket"
+        },
+        "num_modes": {
+          "context_type": "user_providable",
+          "required_context": ["docking_purpose"],
+          "mapping": {
+            "virtual screening": 1,
+            "lead optimization": 9,
+            "publication": 20
+          },
+          "help_text": "Number of binding poses to generate"
+        },
+        "energy_range": {
+          "context_type": "expert_knowledge",
+          "default": 3,
+          "reasoning": "Standard 3 kcal/mol window captures relevant poses"
+        }
+      }
+    },
+
+    "biomni/biochemistry/michaelis_menten": {
+      "tool_name": "Michaelis-Menten Kinetics Analysis",
+      "parameters": {
+        "substrate_concentrations": {
+          "context_type": "user_providable",
+          "required_context": ["expected_km_range"],
+          "question_template": "Do you know the approximate Km for this enzyme-substrate pair?",
+          "guidance": {
+            "known_km": "Use concentrations spanning 0.2 * Km to 10 * Km (at least 8 points)",
+            "unknown_km": "Start with wide range (1 µM to 1 mM), then refine based on pilot"
+          },
+          "help_text": "Optimal: 8-12 concentrations spanning 0.2× to 10× Km"
+        },
+        "min_concentrations": {
+          "context_type": "expert_knowledge",
+          "value": 8,
+          "reasoning": "Minimum 8 points needed for reliable curve fitting"
+        },
+        "fit_method": {
+          "context_type": "user_providable",
+          "required_context": ["data_quality"],
+          "examples": {
+            "clean data": {"value": "nonlinear_least_squares", "description": "Standard method"},
+            "noisy data": {"value": "robust_regression", "description": "Resistant to outliers"},
+            "few points": {"value": "linearized_transform", "description": "Lineweaver-Burk (use with caution)"}
+          }
+        }
+      }
+    },
+
+    "biomni/genomics/annotate_celltype_scRNA": {
+      "tool_name": "Cell Type Annotation",
+      "parameters": {
+        "reference_atlas": {
+          "context_type": "user_providable",
+          "required_context": ["tissue_type", "organism"],
+          "question_template": "What tissue are these cells from?",
+          "atlas_recommendations": {
+            "human_pbmc": "azimuth_pbmc",
+            "human_lung": "hlca",
+            "human_pancreas": "pancreas_atlas",
+            "mouse_brain": "allen_brain",
+            "general_human": "cellxgene_census"
+          },
+          "help_text": "Tissue-specific atlases provide better accuracy than general references"
+        },
+        "annotation_method": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "assess_cell_type_novelty",
+          "decision_tree": {
+            "well_characterized_tissue == true": {
+              "value": "celltypist",
+              "reasoning": "Fast, accurate for known cell types"
+            },
+            "novel_cell_types_expected == true": {
+              "value": "manual_markers",
+              "reasoning": "Automated methods may miss novel populations"
+            },
+            "large_dataset": {
+              "value": "scarches",
+              "reasoning": "Scales well to atlas-size data"
+            }
+          }
+        },
+        "min_cells_per_cluster": {
+          "context_type": "expert_knowledge",
+          "decision_tree": {
+            "rare_cell_detection == true": 20,
+            "standard_analysis": 50
+          },
+          "help_text": "Lower threshold for rare cell type discovery"
+        }
+      }
+    },
+
+    "biomni/molecular_biology/golden_gate_assembly": {
+      "tool_name": "Golden Gate Assembly Design",
+      "parameters": {
+        "enzyme": {
+          "context_type": "user_providable",
+          "required_context": ["fragment_count", "assembly_complexity"],
+          "question_template": "How many fragments are you assembling?",
+          "recommendations": {
+            "2-4 fragments": {
+              "value": "BsaI-HFv2",
+              "reasoning": "Most commonly used, extensive overhang data"
+            },
+            "5-8 fragments": {
+              "value": "BsmBI-v2",
+              "reasoning": "Alternative recognition site avoids BsaI sites in genes"
+            },
+            "modular_cloning": {
+              "value": "hierarchical_BsaI_BpiI",
+              "reasoning": "MoClo-style hierarchical assembly"
+            }
+          }
+        },
+        "overhang_selection": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "analyze_fragment_sequences",
+          "check_for": [
+            "avoid_palindromic_overhangs",
+            "avoid_low_fidelity_pairs",
+            "maximize_ligation_efficiency"
+          ],
+          "use_database": "neb_ligase_fidelity_viewer",
+          "help_text": "Overhangs selected for maximum ligation fidelity"
+        },
+        "incubation_cycles": {
+          "context_type": "user_providable",
+          "required_context": ["fragment_count"],
+          "formula": "fragment_count * 10",
+          "range": [30, 100],
+          "help_text": "More cycles for complex assemblies"
+        }
+      }
+    },
+
+    "biomni/genomics/create_harmony_embeddings_scRNA": {
+      "tool_name": "Harmony Batch Correction",
+      "parameters": {
+        "theta": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "detect_batch_effects",
+          "pilot_params": {
+            "input_file": "counts_matrix",
+            "metrics": ["batch_entropy", "silhouette_by_batch"]
+          },
+          "decision_tree": {
+            "batch_effect_strength == 'minimal'": {
+              "value": 1,
+              "reasoning": "Light correction for subtle batch effects"
+            },
+            "batch_effect_strength == 'moderate'": {
+              "value": 2,
+              "reasoning": "Default strength for typical batch effects"
+            },
+            "batch_effect_strength == 'strong'": {
+              "value": 4,
+              "reasoning": "Stronger correction for pronounced batch effects"
+            }
+          },
+          "help_text": "Higher values apply stronger batch correction"
+        },
+        "nclust": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "estimate_cluster_number",
+          "default": "auto",
+          "help_text": "Usually auto-detection works well"
+        },
+        "max_iter_harmony": {
+          "context_type": "expert_knowledge",
+          "default": 10,
+          "reasoning": "Standard convergence iterations"
+        }
+      }
+    },
+
+    "biomni/bioimaging/register_images": {
+      "tool_name": "Image Registration (ANTs/ITK)",
+      "parameters": {
+        "transform_type": {
+          "context_type": "user_providable",
+          "required_context": ["registration_scenario"],
+          "question_template": "What type of alignment do you need?",
+          "examples": {
+            "same subject, same session": {
+              "value": "rigid",
+              "description": "Only rotation and translation (e.g., motion correction)"
+            },
+            "same subject, different sessions": {
+              "value": "affine",
+              "description": "Allows scaling and shearing (e.g., longitudinal imaging)"
+            },
+            "different subjects": {
+              "value": "deformable_syn",
+              "description": "Non-linear warping for inter-subject registration"
+            },
+            "atlas registration": {
+              "value": "affine_then_syn",
+              "description": "Two-stage registration for template alignment"
+            }
+          }
+        },
+        "metric": {
+          "context_type": "data_dependent",
+          "pilot_analysis": "detect_image_modality",
+          "decision_tree": {
+            "same_modality": {
+              "value": "NCC",
+              "reasoning": "Normalized cross-correlation for same contrast"
+            },
+            "different_modality": {
+              "value": "MattesMI",
+              "reasoning": "Mutual information for multi-modal registration"
+            },
+            "binary_masks": {
+              "value": "MeanSquares",
+              "reasoning": "Simple metric for binary images"
+            }
+          }
+        },
+        "shrink_factors": {
+          "context_type": "expert_knowledge",
+          "default": [8, 4, 2, 1],
+          "reasoning": "Multi-resolution pyramid for robust convergence"
+        },
+        "smoothing_sigmas": {
+          "context_type": "expert_knowledge",
+          "default": [3, 2, 1, 0],
+          "reasoning": "Smoothing at coarser scales for robustness"
+        }
+      }
+    }
+  },
+
+  "context_type_definitions": {
+    "user_providable": {
+      "description": "Information the user can directly provide",
+      "acquisition_method": "LLM dialogue with progressive questions",
+      "examples": ["organism", "experimental goal", "tissue type", "antibody target"]
+    },
+    "data_dependent": {
+      "description": "Information derived from analyzing the input data",
+      "acquisition_method": "Pilot analysis workflows",
+      "examples": ["GC content", "fragment size", "particle diameter", "image anisotropy"]
+    },
+    "environment_dependent": {
+      "description": "Information about computational resources",
+      "acquisition_method": "System detection",
+      "examples": ["GPU memory", "CPU cores", "disk space"]
+    },
+    "expert_knowledge": {
+      "description": "Parameters derived from other context via expert rules",
+      "acquisition_method": "Rule-based inference or expert knowledge lookup",
+      "examples": ["qvalue from peak_type", "n_hidden from n_layers"]
+    },
+    "empirical_optimal": {
+      "description": "Best-performing values from test harness results",
+      "acquisition_method": "Query test harness database",
+      "examples": ["optimal exhaustiveness for this protein family", "best theta for this batch structure"]
+    }
+  }
+}
