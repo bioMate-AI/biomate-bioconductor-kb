@@ -356,8 +356,8 @@
           "Not using calcium-containing binding buffer (1-3 mM Ca2+)",
           "Prolonged PI incubation causing false positives in viable cells",
           "Fixing cells before Annexin V staining",
-          "Not including RNase - up to 40% false positives from PI staining RNA",
-          "Interpreting Annexin V+/PI+ as exclusively late apoptosis"
+          "Interpreting Annexin V+/PI+ as exclusively late apoptosis",
+          "Using excessive PI concentration (>1 ug/mL) causing cytotoxicity"
         ]
       },
       "senescence_markers_by_context": {
