@@ -151,6 +151,9 @@ export function ChatMessage({
               validationWarnings={message.metadata.validation?.warnings || []}
               // Prerequisites validation (input data, parameters needed)
               prerequisitesValidation={message.metadata.prerequisitesValidation}
+              // Execution engine detection
+              executionEngine={message.metadata.execution_engine}
+              workflowTags={message.metadata.workflow_tags || []}
               // Invocation ID for workflow report viewer
               invocationId={message.invocationId}
               galaxyWorkflowId={currentExecutionRun?.execution?.galaxyWorkflowId}

@@ -247,7 +247,10 @@ export function ChatInterface({
           validation: data.workflow?.validation || { is_valid: true, issues: [], warnings: [] },
           tool_installation: data.workflow?.tool_installation || { success: true, failed_tools: [] },
           // Prerequisites validation (input data, parameters needed before execution)
-          prerequisitesValidation: data.prerequisitesValidation || null
+          prerequisitesValidation: data.prerequisitesValidation || null,
+          // Execution engine detection (from workflow generation response)
+          execution_engine: data.workflow?.execution_engine,
+          workflow_tags: data.workflow?.workflow_tags || []
         }
       }
 

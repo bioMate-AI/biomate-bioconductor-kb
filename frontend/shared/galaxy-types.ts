@@ -418,6 +418,10 @@ export interface WorkflowGenerationResponse {
   message?: string; // Human-readable message about workflow generation
   note?: string; // Additional notes about the generation strategy
 
+  // Execution engine detection (added 2026-02-09)
+  execution_engine?: 'galaxy' | 'nextflow'; // Explicit execution engine for frontend
+  workflow_tags?: string[]; // Tags for engine detection (galaxy-reuse, nextflow, ai-generated)
+
   // ===== Legacy Fields (kept for backward compatibility) =====
   tool_selections?: Array<{
     tool_id: string;
