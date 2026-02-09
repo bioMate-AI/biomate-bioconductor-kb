@@ -7,6 +7,7 @@ process DRUGCLIP {
     label 'process_medium'
 
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/drugclip:latest'
+    containerOptions '--entrypoint ""'
 
     input:
     tuple val(meta), path(protein_fasta)
