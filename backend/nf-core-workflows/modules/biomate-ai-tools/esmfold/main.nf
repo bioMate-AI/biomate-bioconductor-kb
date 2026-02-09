@@ -5,7 +5,8 @@ process ESMFOLD {
     tag "$meta.id"
     label 'process_low'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/syncraft:latest'
+    // API-based, use biomni-lite which has curl and bash
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     tuple val(meta), path(fasta)
