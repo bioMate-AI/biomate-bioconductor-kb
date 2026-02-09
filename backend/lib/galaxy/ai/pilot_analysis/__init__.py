@@ -41,6 +41,7 @@ from .plugins import (
     PharmacologyPilotPlugin,
     BiochemistryPilotPlugin,
 )
+from .executor import PilotAnalysisExecutor, AnalysisResult, run_pilot_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -290,4 +291,7 @@ __all__ = [
     "get_quick_analyzers",
     "PilotAnalysisPlugin",
     "AnalyzerSpec",
+    "PilotAnalysisExecutor",
+    "AnalysisResult",
+    "run_pilot_analysis",
 ]
