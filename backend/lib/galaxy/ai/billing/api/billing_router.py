@@ -287,6 +287,7 @@ def internal_s3_put(payload: S3PutPayload):
         size_bytes=payload.size_bytes,
         storage_usd=cost.storage_cost,
         request_usd=cost.request_cost,
+        object_key=payload.key,
     )
     get_lago_client().emit_s3_put(
         user_id=payload.user_id,
@@ -321,9 +322,57 @@ def internal_add_credits(payload: AddCreditsPayload):
 
 @router.post("/internal/billing/s3_delete", dependencies=[Depends(require_internal_key)])
 def internal_s3_delete(payload: S3DeletePayload):
-    # TODO: subtract storage cost for remaining days of the retention period
-    log.info("S3 delete user=%s key=%s", payload.user_id, payload.key)
-    return {"ok": True}
+    svc    = get_cost_service()
+    refund = svc.record_s3_delete(
+        user_id=payload.user_id,
+        object_key=payload.key,
+    )
+    log.info("S3 delete user=%s key=%s refund_usd=%.6f",
+             payload.user_id, payload.key, refund)
+    return {"ok": True, "refund_usd": refund}
+
+
+# ---------------------------------------------------------------------------
+# Internal API: User registration
+# ---------------------------------------------------------------------------
+
+class RegisterUserPayload(BaseModel):
+    user_id: str
+    email: str
+    name: str
+    plan: str = "free"      # Lago plan code, e.g. "free", "basic", "pro"
+    metadata: dict = {}     # optional key-value tags forwarded to Lago
+
+
+@router.post("/internal/billing/register_user", dependencies=[Depends(require_internal_key)])
+def internal_register_user(payload: RegisterUserPayload):
+    """
+    Called when a new BioMate user signs up.
+      1. Creates / updates the Lago customer record (idempotent)
+      2. Subscribes the customer to their plan in Lago (so usage events are billed)
+      3. Sets initial quota in Redis based on the plan
+    """
+    lago = get_lago_client()
+
+    # 1. Upsert Lago customer
+    lago.upsert_customer(
+        user_id=payload.user_id,
+        email=payload.email,
+        name=payload.name,
+        metadata=payload.metadata or {},
+    )
+
+    # 2. Assign the plan subscription in Lago
+    lago.assign_plan(payload.user_id, payload.plan)
+
+    # 3. Set quota in Redis so the quota enforcer can gate job submissions immediately
+    ensure_quota_set(payload.user_id, payload.plan)
+
+    log.info(
+        "User registered: user_id=%s email=%s plan=%s",
+        payload.user_id, payload.email, payload.plan,
+    )
+    return {"ok": True, "user_id": payload.user_id, "plan": payload.plan}
 
 
 # ---------------------------------------------------------------------------

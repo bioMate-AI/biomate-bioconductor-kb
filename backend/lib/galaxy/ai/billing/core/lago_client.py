@@ -34,6 +34,9 @@ LAGO_BASE_URL  = os.environ.get("LAGO_API_URL", "http://lago:3000")
 LAGO_API_KEY   = os.environ.get("LAGO_API_KEY", "")
 LAGO_TIMEOUT   = 5.0   # seconds; fire-and-forget pattern, don't block requests
 
+# Exponential backoff delays for transient network errors (1s, 2s, 4s)
+_RETRY_DELAYS: tuple[float, ...] = (1.0, 2.0, 4.0)
+
 
 # ---------------------------------------------------------------------------
 # Event codes — must match exactly what is configured in Lago
@@ -84,6 +87,34 @@ class LagoClient:
         )
 
     # -----------------------------------------------------------------------
+    # Internal: retry helper
+    # -----------------------------------------------------------------------
+
+    def _retry_post(self, url: str, **kwargs) -> httpx.Response:
+        """
+        POST with exponential backoff on transient network errors.
+        Retries up to len(_RETRY_DELAYS) times on TimeoutException or ConnectError.
+        HTTP error responses (4xx/5xx) are returned immediately — no retry.
+        Raises the last exception if all attempts fail.
+        """
+        last_exc: Exception = RuntimeError("no attempts made")
+        for attempt, delay in enumerate(_RETRY_DELAYS):
+            try:
+                return self._client.post(url, **kwargs)
+            except (httpx.TimeoutException, httpx.ConnectError) as exc:
+                last_exc = exc
+                if attempt + 1 < len(_RETRY_DELAYS):
+                    log.warning(
+                        "Lago POST %s attempt %d/%d: %s — retrying in %.1fs",
+                        url, attempt + 1, len(_RETRY_DELAYS), exc, delay,
+                    )
+                    time.sleep(delay)
+                else:
+                    log.error("Lago POST %s failed after %d attempts: %s",
+                              url, len(_RETRY_DELAYS), exc)
+        raise last_exc
+
+    # -----------------------------------------------------------------------
     # Events
     # -----------------------------------------------------------------------
 
@@ -92,6 +123,7 @@ class LagoClient:
         POST /api/v1/events
         Returns True on success; logs and returns False on failure.
         This should NOT raise — billing failures must never block user requests.
+        Retries up to 3 times on transient network errors.
         """
         payload = {
             "event": {
@@ -103,7 +135,7 @@ class LagoClient:
             }
         }
         try:
-            r = self._client.post("/api/v1/events", json=payload)
+            r = self._retry_post("/api/v1/events", json=payload)
             if r.status_code in (200, 201):
                 return True
             log.warning("Lago event rejected %s %s → %s %s",
@@ -117,6 +149,7 @@ class LagoClient:
         """
         POST /api/v1/events/batch  (up to 100 events per call)
         Returns number of events successfully accepted.
+        Retries up to 3 times on transient network errors.
         """
         payload = {
             "events": [
@@ -131,7 +164,7 @@ class LagoClient:
             ]
         }
         try:
-            r = self._client.post("/api/v1/events/batch", json=payload)
+            r = self._retry_post("/api/v1/events/batch", json=payload)
             if r.status_code in (200, 201):
                 return len(events)
             log.warning("Lago batch event rejected: %s %s", r.status_code, r.text[:200])
@@ -349,6 +382,34 @@ class LagoClient:
             return None
         except Exception as exc:
             log.error("Lago get_current_usage failed: %s", exc)
+            return None
+
+    def get_plan_limit_usd(self, plan_code: str) -> Optional[float]:
+        """
+        Query Lago for the monthly spend limit of a given plan.
+
+        Lago plans can have a `amount_cents` / `amount_currency` field on the
+        plan object.  We use this as the quota cap when it is set.
+
+        Returns the limit in USD, or None if the plan is not found or does
+        not declare a fixed amount (e.g. pure usage-based plans).
+        """
+        try:
+            r = self._client.get(f"/api/v1/plans/{plan_code}")
+            if r.status_code != 200:
+                return None
+            plan = r.json().get("plan", {})
+            amount_cents    = plan.get("amount_cents")
+            amount_currency = plan.get("amount_currency", "USD").upper()
+            if amount_cents is None:
+                return None
+            # Convert cents to dollars; only handle USD for now
+            if amount_currency != "USD":
+                log.warning("Lago plan %s uses currency %s; USD expected", plan_code, amount_currency)
+                return None
+            return float(amount_cents) / 100.0
+        except Exception as exc:
+            log.error("Lago get_plan_limit_usd(%s) failed: %s", plan_code, exc)
             return None
 
     def close(self):

@@ -21,12 +21,14 @@ import os
 
 from .realtime_cost_service import get_cost_service
 from .cost_calculator import CostCalculator, EC2_INSTANCE_PRICING
+from .lago_client import get_lago_client
 
 log = logging.getLogger(__name__)
 
 calculator = CostCalculator()
 
-# Plan quotas in USD per month.  Override via env vars or from your user DB.
+# Fallback plan quotas in USD per month when Lago is unavailable or the plan
+# does not declare a fixed amount_cents value.
 DEFAULT_PLAN_LIMITS: dict[str, float] = {
     "free":       5.00,
     "basic":     50.00,
@@ -46,13 +48,34 @@ class QuotaExceededError(Exception):
         )
 
 
-def ensure_quota_set(user_id: str, plan: str) -> None:
+def ensure_quota_set(user_id: str, plan: str) -> float:
     """
     Called at login / plan-change to set the quota in Redis.
     Should also be called when Lago sends a subscription_updated webhook.
+
+    Priority:
+      1. Lago plan amount_cents (live — reflects any price changes in Lago UI)
+      2. DEFAULT_PLAN_LIMITS[plan] (hardcoded fallback)
+
+    Returns the limit that was set (in USD).
     """
-    limit = DEFAULT_PLAN_LIMITS.get(plan, DEFAULT_PLAN_LIMITS["free"])
+    # Try Lago first so custom / enterprise plan amounts are respected
+    lago_limit: float | None = None
+    try:
+        lago_limit = get_lago_client().get_plan_limit_usd(plan)
+    except Exception as exc:
+        log.warning("Lago plan limit query failed for plan=%s: %s", plan, exc)
+
+    if lago_limit is not None:
+        limit = lago_limit
+        log.debug("quota from Lago: user=%s plan=%s limit=$%.2f", user_id, plan, limit)
+    else:
+        limit = DEFAULT_PLAN_LIMITS.get(plan, DEFAULT_PLAN_LIMITS["free"])
+        log.debug("quota from DEFAULT_PLAN_LIMITS: user=%s plan=%s limit=$%.2f",
+                  user_id, plan, limit)
+
     get_cost_service().set_quota(user_id, limit)
+    return limit
 
 
 def check_and_reserve(user_id: str, estimated_cost_usd: float = 0.0) -> None:

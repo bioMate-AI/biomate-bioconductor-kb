@@ -114,6 +114,7 @@ class RealtimeCostService:
         size_bytes: int,
         storage_usd: float,
         request_usd: float,
+        object_key: str = "",
     ) -> None:
         month = _month_key()
         key   = f"cost:{user_id}:month:{month}:storage"
@@ -123,8 +124,68 @@ class RealtimeCostService:
         pipe.hincrbyfloat(key, "bytes_stored", size_bytes)
         pipe.hincrby(key, "puts", 1)
         pipe.expire(key, TTL_SECONDS)
+        # Per-object metadata for delete reversal (keyed by truncated sha256 of object path)
+        if object_key:
+            import hashlib
+            key_hash = hashlib.sha256(object_key.encode()).hexdigest()[:20]
+            obj_meta_key = f"s3:{user_id}:obj:{key_hash}"
+            pipe.hset(obj_meta_key, mapping={
+                "put_at":      int(time.time()),
+                "size_bytes":  size_bytes,
+                "storage_usd": str(storage_usd),
+                "month":       month,
+            })
+            pipe.expire(obj_meta_key, TTL_SECONDS)
         pipe.execute()
         self._update_total(user_id, month, storage_usd + request_usd)
+
+    def record_s3_delete(
+        self,
+        user_id: str,
+        object_key: str,
+    ) -> float:
+        """
+        Credit back the unused portion of pre-charged storage cost when an
+        object is deleted before the 30-day retention period ends.
+
+        Returns the refund amount in USD (≥ 0.0).
+        """
+        import hashlib
+        key_hash    = hashlib.sha256(object_key.encode()).hexdigest()[:20]
+        obj_meta_key = f"s3:{user_id}:obj:{key_hash}"
+        meta = self._r.hgetall(obj_meta_key)
+        if not meta:
+            log.debug("record_s3_delete: no PUT metadata found for user=%s key=%s",
+                      user_id, object_key)
+            return 0.0
+
+        put_at      = int(meta.get("put_at", 0))
+        storage_usd = float(meta.get("storage_usd", 0.0))
+        month       = meta.get("month", _month_key())
+
+        if storage_usd <= 0.0 or put_at <= 0:
+            return 0.0
+
+        # Prorate: credit back (retention_days_remaining / 30) of storage cost.
+        # emit_s3_put charged for 30 days upfront (30 * 24 gb_hours).
+        RETENTION_DAYS = 30
+        elapsed_days   = (time.time() - put_at) / 86400.0
+        remaining_days = max(0.0, RETENTION_DAYS - elapsed_days)
+        refund         = storage_usd * (remaining_days / RETENTION_DAYS)
+
+        if refund > 0.0:
+            cost_key = f"cost:{user_id}:month:{month}:storage"
+            self._r.hincrbyfloat(cost_key, "storage_usd", -refund)
+            self._r.incrbyfloat(f"cost:{user_id}:month:{month}:total", -refund)
+            log.info(
+                "S3 delete refund user=%s key=%s storage_usd=%.6f "
+                "elapsed_days=%.1f refund=%.6f",
+                user_id, object_key, storage_usd, elapsed_days, refund,
+            )
+
+        # Remove per-object metadata (object is gone)
+        self._r.delete(obj_meta_key)
+        return refund
 
     def record_s3_get(
         self,
