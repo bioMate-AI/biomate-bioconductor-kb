@@ -1,0 +1,3 @@
+# Lambda handler dependencies
+# Packaged separately from the main BioMate app — deployed as a Lambda layer or zip.
+httpx==0.28.1

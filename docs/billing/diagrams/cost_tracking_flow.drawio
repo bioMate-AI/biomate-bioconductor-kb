@@ -1,0 +1,237 @@
+<mxfile host="app.diagrams.net" modified="2026-02-18T00:00:00.000Z" agent="Claude Code" version="24.0.0" type="device">
+  <diagram name="Cost Tracking Flow" id="cost-tracking">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BioMate Cost Tracking Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ── LAYER 1: Event Sources ─────────────────────────────────── -->
+        <mxCell id="layer1" value="Event Sources" style="text;html=1;strokeColor=none;fillColor=#dae8fc;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="160" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- LLM API Call -->
+        <mxCell id="llm_call" value="LLM API Call&#xa;(Claude / GPT)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="140" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- AWS Batch Job -->
+        <mxCell id="batch_job" value="AWS Batch Job&#xa;(RUNNING → DONE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- S3 Upload -->
+        <mxCell id="s3_event" value="S3 Upload&#xa;(ObjectCreated)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ── LAYER 2: Event Collectors ──────────────────────────────── -->
+        <mxCell id="layer2" value="Event Collectors" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="80" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- LLM Client -->
+        <mxCell id="llm_client" value="llm_client.py&#xa;_emit_llm_billing()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="140" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Batch Lambda -->
+        <mxCell id="batch_lambda" value="batch_billing Lambda&#xa;(EventBridge trigger)" style="shape=mxgraph.aws4.lambda;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;html=1;pointerEvents=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="240" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="batch_lambda_label" value="batch_billing Lambda&#xa;(EventBridge → RUNNING/DONE)" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="255" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- S3 Lambda -->
+        <mxCell id="s3_lambda" value="s3_billing Lambda&#xa;(SQS trigger)" style="shape=mxgraph.aws4.lambda;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;html=1;pointerEvents=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="340" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_lambda_label" value="s3_billing Lambda&#xa;(SQS → ObjectCreated)" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="355" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ── LAYER 3: Billing API ───────────────────────────────────── -->
+        <mxCell id="layer3" value="Billing API (port 8081)" style="text;html=1;strokeColor=none;fillColor=#ffe6cc;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="80" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- billing_router.py box -->
+        <mxCell id="billing_router" value="billing_router.py&#xa;(FastAPI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="120" width="200" height="310" as="geometry" />
+        </mxCell>
+
+        <!-- Endpoints inside -->
+        <mxCell id="ep1" value="POST /internal/billing/&#xa;record_llm_cost()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="595" y="145" width="170" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ep2" value="POST /internal/billing/&#xa;job_started + job_completed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="595" y="205" width="170" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ep3" value="POST /internal/billing/&#xa;s3_put + s3_delete" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="595" y="265" width="170" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ep4" value="POST /internal/billing/&#xa;add-credits" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="595" y="325" width="170" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ep5" value="GET /api/billing/usage&#xa;GET /api/billing/quota" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="595" y="385" width="170" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ── LAYER 4: Core Services ─────────────────────────────────── -->
+        <mxCell id="layer4" value="Core Services" style="text;html=1;strokeColor=none;fillColor=#e1d5e7;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="80" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- cost_calculator -->
+        <mxCell id="cost_calc" value="cost_calculator.py&#xa;AWS Pricing Tables&#xa;(EC2, S3, LLM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="870" y="140" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- realtime_cost_service -->
+        <mxCell id="rcs" value="realtime_cost_service.py&#xa;write → Redis&#xa;_check_quota()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="870" y="240" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- quota_enforcer -->
+        <mxCell id="q_enf" value="quota_enforcer.py&#xa;check_and_reserve()&#xa;Pre-job gate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="870" y="340" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- lago_client -->
+        <mxCell id="lago_c" value="lago_client.py&#xa;emit events to Lago&#xa;(invoicing)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="870" y="440" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ── LAYER 5: Storage / External ────────────────────────────── -->
+        <mxCell id="layer5" value="Storage &amp; External" style="text;html=1;strokeColor=none;fillColor=#f8cecc;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="80" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Redis -->
+        <mxCell id="redis" value="Redis&#xa;(ElastiCache)&#xa;Live cost ledger&#xa;35-day TTL" style="shape=mxgraph.cisco.servers.standard_server;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="140" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="redis_label" value="Redis (ElastiCache)&#xa;Live cost ledger / quota caps" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="155" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Lago -->
+        <mxCell id="lago" value="Lago&#xa;Billing Platform&#xa;Invoices" style="shape=mxgraph.azure.media_service;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="440" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lago_label" value="Lago Billing Platform&#xa;Metered invoicing" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="455" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Node.js Frontend -->
+        <mxCell id="nodejs" value="Node.js Frontend&#xa;(port 5000)&#xa;/internal/notify/quota&#xa;→ email" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="280" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ── ARROWS ─────────────────────────────────────────────────── -->
+        <!-- LLM → llm_client -->
+        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="llm_call" target="llm_client" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- batch_job → batch_lambda -->
+        <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="batch_job" target="batch_lambda" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- s3_event → s3_lambda -->
+        <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="s3_event" target="s3_lambda" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- llm_client → ep1 -->
+        <mxCell id="a4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="llm_client" target="ep1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- batch_lambda → ep2 -->
+        <mxCell id="a5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="batch_lambda" target="ep2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- s3_lambda → ep3 -->
+        <mxCell id="a6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="s3_lambda" target="ep3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ep1,ep2,ep3 → rcs (cost calc intermediate) -->
+        <mxCell id="a7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="ep2" target="cost_calc" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a8" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="cost_calc" target="rcs" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a9" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="ep1" target="rcs" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a10" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="ep3" target="rcs" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a11" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="ep4" target="rcs" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- rcs → Redis -->
+        <mxCell id="a12" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;fontColor=#b85450;" edge="1" source="rcs" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- rcs → quota_enforcer (check) -->
+        <mxCell id="a13" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="rcs" target="q_enf" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- rcs → nodejs (quota notify) -->
+        <mxCell id="a14" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#b85450;" edge="1" source="rcs" target="nodejs" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a14label" value="@80%/100%" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="a14">
+          <mxGeometry x="-0.1" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ep2 → lago_c -->
+        <mxCell id="a15" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="ep2" target="lago_c" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- lago_c → lago -->
+        <mxCell id="a16" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="lago_c" target="lago" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ep5 → Redis (read) -->
+        <mxCell id="a17" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#6c8ebf;" edge="1" source="ep5" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a17label" value="read &lt;5ms" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="a17">
+          <mxGeometry x="-0.1" relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ── NOTES ──────────────────────────────────────────────────── -->
+        <mxCell id="note1" value="⚠️ BILLING_INTERNAL_KEY required&#xa;on all Lambda + Galaxy backend env vars" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="580" y="490" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note2" value="⚠️ REDIS_URL must be set on&#xa;Galaxy backend EC2 + both Lambdas" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="870" y="560" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note3" value="Background poller thread&#xa;updates running job est_usd&#xa;every 10 seconds" style="shape=callout;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="240" width="180" height="60" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

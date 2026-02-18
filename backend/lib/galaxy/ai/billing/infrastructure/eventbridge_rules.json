@@ -1,0 +1,46 @@
+{
+  "_comment": "AWS EventBridge rules for BioMate billing event collection. Deploy via AWS CLI or CloudFormation.",
+
+  "rules": [
+    {
+      "Name": "biomate-batch-job-state-change",
+      "Description": "Captures all AWS Batch job state transitions for billing",
+      "EventPattern": {
+        "source": ["aws.batch"],
+        "detail-type": ["Batch Job State Change"],
+        "detail": {
+          "status": ["RUNNING", "SUCCEEDED", "FAILED"]
+        }
+      },
+      "Targets": [
+        {
+          "Id": "batch-billing-lambda",
+          "Arn": "arn:aws:lambda:REGION:ACCOUNT:function:biomate-batch-billing-handler",
+          "Comment": "Replace REGION and ACCOUNT with your values"
+        }
+      ],
+      "State": "ENABLED"
+    }
+  ],
+
+  "_deploy_commands": [
+    "# Create the EventBridge rule",
+    "aws events put-rule \\",
+    "  --name biomate-batch-job-state-change \\",
+    "  --event-pattern '{\"source\":[\"aws.batch\"],\"detail-type\":[\"Batch Job State Change\"],\"detail\":{\"status\":[\"RUNNING\",\"SUCCEEDED\",\"FAILED\"]}}' \\",
+    "  --state ENABLED",
+    "",
+    "# Add Lambda target",
+    "aws events put-targets \\",
+    "  --rule biomate-batch-job-state-change \\",
+    "  --targets 'Id=batch-billing-lambda,Arn=arn:aws:lambda:REGION:ACCOUNT:function:biomate-batch-billing-handler'",
+    "",
+    "# Grant EventBridge permission to invoke Lambda",
+    "aws lambda add-permission \\",
+    "  --function-name biomate-batch-billing-handler \\",
+    "  --statement-id EventBridgeBatchBilling \\",
+    "  --action lambda:InvokeFunction \\",
+    "  --principal events.amazonaws.com \\",
+    "  --source-arn arn:aws:events:REGION:ACCOUNT:rule/biomate-batch-job-state-change"
+  ]
+}
