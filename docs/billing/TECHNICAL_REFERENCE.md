@@ -404,13 +404,15 @@ Receives Lago subscription and invoice lifecycle events. Signature verified usin
 
 ## 3. Redis Key Schema
 
-All keys use `:` as separator. No TTL unless noted.
+All keys use `:` as separator. TTL is 35 days (`35 * 24 * 3600` seconds) unless noted.
+
+**Month format:** `YYYY-MM` computed as `datetime.now(timezone.utc).strftime("%Y-%m")` — always UTC. When calling any API endpoint with an optional `?month=` param, use this same format (e.g. `2026-02`).
 
 | Key pattern | Type | Contents | Example |
 |-------------|------|----------|---------|
 | `cost:<uid>:month:<YYYY-MM>:llm` | Hash | `input_usd`, `output_usd`, `input_tokens`, `output_tokens`, `calls` | `cost:42:month:2026-02:llm` |
 | `cost:<uid>:month:<YYYY-MM>:compute` | Hash | `vcpu_usd`, `gpu_usd`, `mem_usd`, `seconds`, `jobs` | `cost:42:month:2026-02:compute` |
-| `cost:<uid>:month:<YYYY-MM>:storage` | Hash | `storage_usd`, `request_usd`, `transfer_usd`, `puts`, `gets` | `cost:42:month:2026-02:storage` |
+| `cost:<uid>:month:<YYYY-MM>:storage` | Hash | `storage_usd`, `request_usd`, `transfer_usd`, `bytes_stored`, `puts`, `gets` | `cost:42:month:2026-02:storage` |
 | `cost:<uid>:month:<YYYY-MM>:total` | String | Committed total USD (float as string) | `cost:42:month:2026-02:total` |
 | `cost:<uid>:job:<job_id>:running` | String (JSON) | `instance_type`, `vcpus`, `gpu_count`, `started_ms`, `est_usd` — TTL 48h | `cost:42:job:abc123:running` |
 | `quota:<uid>:month:<YYYY-MM>:limit` | String | Quota ceiling in USD | `quota:42:month:2026-02:limit` |
@@ -692,18 +694,21 @@ redis-cli -u $REDIS_URL SET "quota:1:month:${MONTH}:limit" 30.0
 
 ```bash
 redis-cli -u $REDIS_URL HSET "cost:1:month:${MONTH}:llm" \
-  input_usd 1.23 output_usd 0.45 total_usd 1.68 \
+  input_usd 1.23 output_usd 0.45 \
   input_tokens 85000 output_tokens 12000 calls 47
-# Expected: (integer) 6
+# Expected: (integer) 5
+# NOTE: Do NOT seed total_usd — the API computes it dynamically from input_usd + output_usd
 ```
 
 ### Step 4 — Seed mock compute usage
 
 ```bash
 redis-cli -u $REDIS_URL HSET "cost:1:month:${MONTH}:compute" \
-  vcpu_usd 2.10 gpu_usd 1.80 mem_usd 0.66 total_usd 4.56 \
+  vcpu_usd 2.10 gpu_usd 1.80 mem_usd 0.66 \
   seconds 7200 jobs 5
+# NOTE: Do NOT seed total_usd — the API computes it dynamically from component fields
 redis-cli -u $REDIS_URL SET "cost:1:month:${MONTH}:total" 6.24
+# The :total key IS the committed total and IS read directly
 ```
 
 ### Step 5 — Verify frontend billing page reads correctly
@@ -779,16 +784,16 @@ curl -s -X POST http://localhost:8081/internal/billing/s3_put \
   -H "X-Internal-Key: $BILLING_INTERNAL_KEY" \
   -d '{
     "user_id": "1",
+    "workflow_id": "wf-mock-001",
     "bucket": "biomate-production-data-399683337364",
     "key": "results/wf-mock-001/output.bam",
-    "size_bytes": 1073741824,
-    "storage_class": "STANDARD"
+    "size_bytes": 1073741824
   }'
-# Expected: {"ok": true, ...}
+# Expected: {"ok": true, "total_cost_usd": <small number>}
 
 # Verify storage cost
 redis-cli -u $REDIS_URL HGETALL "cost:1:month:${MONTH}:storage"
-# Expected: s3_usd > 0, gb = 1.0
+# Expected: storage_usd > 0, request_usd > 0, bytes_stored = 1073741824, puts = 1
 ```
 
 ### Step 9 — Trigger quota warning email (80% threshold)

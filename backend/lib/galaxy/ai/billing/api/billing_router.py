@@ -33,7 +33,7 @@ from pydantic import BaseModel
 
 from ..core.cost_calculator import CostCalculator
 from ..core.lago_client import get_lago_client
-from ..core.realtime_cost_service import get_cost_service
+from ..core.realtime_cost_service import get_cost_service, _month_key
 from ..core.quota_enforcer import ensure_quota_set
 
 log = logging.getLogger(__name__)
@@ -414,7 +414,7 @@ async def admin_health():
 
     # Active jobs tracked in Redis
     try:
-        job_keys = r.keys("job:*:start")
+        job_keys = r.keys("cost:*:job:*:running")
         result["active_jobs"] = len(job_keys)
     except Exception:
         result["active_jobs"] = -1
