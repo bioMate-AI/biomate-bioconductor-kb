@@ -16,8 +16,8 @@
 | Cost tracking flow diagram | [`diagrams/cost_tracking_flow.drawio`](./diagrams/cost_tracking_flow.drawio) |
 | User registration flow diagram | [`diagrams/user_registration_flow.drawio`](./diagrams/user_registration_flow.drawio) |
 | Billing page architecture diagram | [`diagrams/billing_page_architecture.drawio`](./diagrams/billing_page_architecture.drawio) |
-| Infrastructure checklist | [Section 4 of TECHNICAL_REFERENCE.md](./TECHNICAL_REFERENCE.md#4-work-remaining-for-backend-programmer) |
-| Mock data test script | [Section 4.5 of TECHNICAL_REFERENCE.md](./TECHNICAL_REFERENCE.md#45-end-to-end-mock-test-checklist) |
+| Infrastructure checklist | [Section 6 of TECHNICAL_REFERENCE.md](./TECHNICAL_REFERENCE.md#6-infrastructure-setup-checklist) |
+| Mock data test script | [Section 7 of TECHNICAL_REFERENCE.md](./TECHNICAL_REFERENCE.md#7-end-to-end-mock-test-checklist) |
 
 To open diagrams: download and open at **[app.diagrams.net](https://app.diagrams.net)** (File → Open from → This device), or open in the VS Code draw.io extension.
 
@@ -58,7 +58,7 @@ User runs a workflow
 | `core/cost_calculator.py` | Pure-function AWS cost calculator. EC2 pricing tables (m6i, c6i, g4dn, g5, p3, p4d), S3, and LLM model pricing. |
 | `core/quota_enforcer.py` | Pre-job quota gate. Raises `QuotaExceededError` before submitting to AWS Batch. |
 | `core/lago_client.py` | HTTP client for Lago billing platform. Emits 9 metered event types. Fire-and-forget. |
-| `api/billing_router.py` | 11 FastAPI endpoints: 4 public (JWT auth), 5 internal (X-Internal-Key), 2 admin monitoring (X-Internal-Key), 1 Lago webhook. |
+| `api/billing_router.py` | 12 FastAPI endpoints: 4 public (JWT auth), 5 internal (X-Internal-Key), 2 admin monitoring (X-Internal-Key), 1 Lago webhook. |
 | `lambda/batch_billing.py` | AWS Lambda triggered by EventBridge on Batch job state changes (RUNNING/SUCCEEDED/FAILED). |
 | `lambda/s3_billing.py` | AWS Lambda triggered by SQS on S3 uploads. |
 | `tests/test_billing_regression.py` | 29 regression tests (62 total). All passing. |
@@ -137,6 +137,7 @@ STRIPE_PRICE_ACADEMIC_YEARLY=price_...
 STRIPE_PRICE_PROFESSIONAL_MONTHLY=price_...
 STRIPE_PRICE_PROFESSIONAL_YEARLY=price_...
 STRIPE_PRICE_ENTERPRISE_MONTHLY=price_...
+STRIPE_PRICE_ENTERPRISE_YEARLY=price_...
 
 # Billing service communication
 BILLING_API_URL=http://localhost:8081
@@ -179,7 +180,7 @@ REDIS_URL=redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:637
 
 ## Infrastructure Still Needed
 
-See **[TECHNICAL_REFERENCE.md Section 4](./TECHNICAL_REFERENCE.md#4-work-remaining-for-backend-programmer)** for the full checklist with details. Summary:
+See **[TECHNICAL_REFERENCE.md Section 6](./TECHNICAL_REFERENCE.md#6-infrastructure-setup-checklist)** for the full checklist with details. Summary:
 
 ### AWS
 - [ ] Deploy `batch_billing` Lambda (us-west-2, VPC, EventBridge rule)
@@ -189,12 +190,12 @@ See **[TECHNICAL_REFERENCE.md Section 4](./TECHNICAL_REFERENCE.md#4-work-remaini
 
 ### Lago (Metered Billing)
 - [ ] Deploy Lago (self-hosted or Lago Cloud)
-- [ ] Create 9 billable metrics (exact codes in TECHNICAL_REFERENCE.md Section 1.5)
+- [ ] Create 9 billable metrics (exact codes in [TECHNICAL_REFERENCE.md Section 4](./TECHNICAL_REFERENCE.md#4-lago-billable-metrics))
 - [ ] Create subscription plans (`academic_monthly`, `professional_monthly`, `enterprise_monthly`)
 - [ ] Configure Lago webhook → `https://api.biomate.dev/webhooks/lago`
 
 ### Stripe
-- [ ] Create 5 products/prices in Stripe dashboard
+- [ ] Create 6 products/prices in Stripe dashboard (5 monthly + 1 enterprise yearly)
 - [ ] Set all `STRIPE_PRICE_*` env vars on Node.js server
 - [ ] Register webhook endpoint with 6 event types
 - [ ] Configure Stripe Customer Portal (update payment, cancel, view invoices)

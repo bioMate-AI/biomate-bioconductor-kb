@@ -101,28 +101,36 @@ Returns real-time cost breakdown for the current month. Reads from Redis → <5m
 {
   "user_id": "42",
   "month": "2026-02",
-  "llm": {
-    "input_usd": 1.23,
-    "output_usd": 0.45,
-    "total_usd": 1.68,
-    "input_tokens": 85000,
-    "output_tokens": 12000,
-    "calls": 47
+  "currency": "USD",
+  "breakdown": {
+    "llm": {
+      "total_usd": 1.68,
+      "input_usd": 1.23,
+      "output_usd": 0.45,
+      "input_tokens": 85000,
+      "output_tokens": 12000,
+      "calls": 47
+    },
+    "compute": {
+      "total_usd": 4.56,
+      "vcpu_usd": 2.10,
+      "gpu_usd": 1.80,
+      "memory_usd": 0.66,
+      "total_seconds": 7200.0,
+      "jobs": 5
+    },
+    "storage": {
+      "total_usd": 0.23,
+      "storage_usd": 0.15,
+      "request_usd": 0.08,
+      "transfer_usd": 0.00,
+      "puts": 2,
+      "gets": 14
+    }
   },
-  "compute": {
-    "vcpu_usd": 2.10,
-    "gpu_usd": 1.80,
-    "mem_usd": 0.66,
-    "total_usd": 4.56,
-    "seconds": 7200,
-    "jobs": 5
-  },
-  "storage": {
-    "s3_usd": 0.23,
-    "total_usd": 0.23,
-    "gb": 10.0
-  },
-  "running_jobs_estimate_usd": 0.12,
+  "running_jobs": [],
+  "running_estimate_usd": 0.12,
+  "committed_usd": 6.47,
   "total_usd": 6.59,
   "quota_usd": 30.0,
   "quota_pct": 21.97
@@ -158,14 +166,10 @@ Returns plan limits and current quota percentage.
 ```json
 {
   "user_id": "42",
-  "month": "2026-02",
   "quota_usd": 30.0,
   "used_usd": 6.59,
-  "pct": 21.97,
-  "is_over_soft_limit": false,
-  "is_over_hard_limit": false,
-  "soft_limit_pct": 80,
-  "hard_limit_pct": 100
+  "quota_pct": 21.97,
+  "over_quota": false
 }
 ```
 
@@ -182,16 +186,12 @@ Returns in-flight Batch jobs with live cost estimates.
   "running_jobs": [
     {
       "job_id": "abc123",
-      "workflow_id": "wf-456",
       "instance_type": "m6i.2xlarge",
-      "vcpus": 8,
-      "gpu_count": 0,
-      "started_at_ms": 1708900000000,
       "elapsed_seconds": 1234,
-      "estimated_cost_usd": 0.12
+      "estimated_usd": 0.12
     }
   ],
-  "total_estimate_usd": 0.12
+  "running_total_usd": 0.12
 }
 ```
 
@@ -224,7 +224,7 @@ Called by `batch_billing` Lambda when a Batch job transitions to RUNNING.
 }
 ```
 
-**Effect:** Writes `job:<job_id>` hash to Redis with start time and resource config. Used by `GET /api/billing/jobs/running` to estimate live cost.
+**Effect:** Writes `cost:<user_id>:job:<job_id>:running` JSON string to Redis with start time and resource config (TTL 48h). Used by `GET /api/billing/jobs/running` to estimate live cost.
 
 ---
 
@@ -350,25 +350,29 @@ curl -H "X-Internal-Key: $BILLING_INTERNAL_KEY" \
 {
   "redis": "ok",
   "active_jobs": 3,
-  "last_batch_event_age_seconds": 142,
+  "last_batch_event_age_sec": 142,
   "lago": "ok",
-  "warnings": []
+  "total_users_tracked": 12,
+  "month": "2026-02"
 }
 ```
 
-**Response (Lambda stale):**
+**Response (Lambda stale or never fired):**
 ```json
 {
   "redis": "ok",
   "active_jobs": 0,
-  "last_batch_event_age_seconds": 7200,
+  "last_batch_event_age_sec": null,
   "lago": "ok",
-  "warnings": ["batch_billing Lambda has not fired in 7200s — check EventBridge rule"]
+  "total_users_tracked": 0,
+  "month": "2026-02"
 }
 ```
 
+`last_batch_event_age_sec` is `null` if the Lambda has never fired (no heartbeat key in Redis yet), or an integer number of seconds since the last event.
+
 **Alarm thresholds:**
-- `last_batch_event_age_seconds > 3600` → Lambda may be down
+- `last_batch_event_age_sec > 3600` (or `null` in production) → Lambda may be down
 - `redis != "ok"` → complete billing outage
 - `lago != "ok"` → invoicing broken (costs still tracked in Redis)
 
@@ -393,15 +397,15 @@ All keys use `:` as separator. No TTL unless noted.
 
 | Key pattern | Type | Contents | Example |
 |-------------|------|----------|---------|
-| `cost:<uid>:month:<YYYY-MM>:llm` | Hash | `input_usd`, `output_usd`, `total_usd`, `input_tokens`, `output_tokens`, `calls` | `cost:42:month:2026-02:llm` |
-| `cost:<uid>:month:<YYYY-MM>:compute` | Hash | `vcpu_usd`, `gpu_usd`, `mem_usd`, `total_usd`, `seconds`, `jobs` | `cost:42:month:2026-02:compute` |
-| `cost:<uid>:month:<YYYY-MM>:storage` | Hash | `s3_usd`, `total_usd`, `gb` | `cost:42:month:2026-02:storage` |
-| `cost:<uid>:month:<YYYY-MM>:total` | String | Total USD (float as string) | `cost:42:month:2026-02:total` |
+| `cost:<uid>:month:<YYYY-MM>:llm` | Hash | `input_usd`, `output_usd`, `input_tokens`, `output_tokens`, `calls` | `cost:42:month:2026-02:llm` |
+| `cost:<uid>:month:<YYYY-MM>:compute` | Hash | `vcpu_usd`, `gpu_usd`, `mem_usd`, `seconds`, `jobs` | `cost:42:month:2026-02:compute` |
+| `cost:<uid>:month:<YYYY-MM>:storage` | Hash | `storage_usd`, `request_usd`, `transfer_usd`, `puts`, `gets` | `cost:42:month:2026-02:storage` |
+| `cost:<uid>:month:<YYYY-MM>:total` | String | Committed total USD (float as string) | `cost:42:month:2026-02:total` |
+| `cost:<uid>:job:<job_id>:running` | String (JSON) | `instance_type`, `vcpus`, `gpu_count`, `started_ms`, `est_usd` — TTL 48h | `cost:42:job:abc123:running` |
 | `quota:<uid>:month:<YYYY-MM>:limit` | String | Quota ceiling in USD | `quota:42:month:2026-02:limit` |
-| `quota:<uid>:month:<YYYY-MM>:warn80_sent` | String | `"1"` if 80% warning email sent | — |
-| `quota:<uid>:month:<YYYY-MM>:warn100_sent` | String | `"1"` if 100% hard-limit email sent | — |
-| `job:<job_id>` | Hash | `user_id`, `instance_type`, `vcpus`, `gpu_count`, `started_at_ms` | TTL: 48h after completion |
-| `billing:last_batch_event_ts` | String | Unix epoch of last Lambda invocation | Written by `batch_billing` Lambda on every event |
+| `quota:<uid>:month:<YYYY-MM>:warn80_sent` | String | `"1"` if 80% warning email sent this month | — |
+| `quota:<uid>:month:<YYYY-MM>:warn100_sent` | String | `"1"` if 100% hard-limit email sent this month | — |
+| `billing:last_batch_event_ts` | String | Unix epoch of last `batch_billing` Lambda invocation | Written on every Batch state-change event |
 
 ### Quick Redis inspection
 
@@ -429,26 +433,28 @@ GET billing:last_batch_event_ts
 Lago must be configured with exactly these 9 billable metrics **before** going live.
 The `code` values must match exactly — they are the strings sent by `lago_client.py`.
 
-| # | Code (exact string) | Unit | Description |
-|---|---------------------|------|-------------|
-| 1 | `llm_input_tokens` | tokens | LLM prompt tokens consumed |
-| 2 | `llm_output_tokens` | tokens | LLM completion tokens generated |
-| 3 | `batch_vcpu_seconds` | vCPU-seconds | Batch job vCPU time |
-| 4 | `batch_gpu_seconds` | GPU-seconds | Batch job GPU time |
-| 5 | `batch_memory_gb_sec` | GB-seconds | Batch job memory time |
-| 6 | `s3_storage_gb_hours` | GB-hours | S3 object storage consumed |
-| 7 | `s3_put_requests` | requests | S3 PUT/COPY/POST/LIST operations |
-| 8 | `s3_get_requests` | requests | S3 GET operations |
-| 9 | `s3_data_transfer_gb` | GB | S3 cross-region data transfer |
+| # | Code (exact string) | Properties field name | Unit | Description |
+|---|---------------------|-----------------------|------|-------------|
+| 1 | `llm_input_tokens` | `tokens` | tokens | LLM prompt tokens consumed |
+| 2 | `llm_output_tokens` | `tokens` | tokens | LLM completion tokens generated |
+| 3 | `batch_vcpu_seconds` | `seconds` | vCPU-seconds | Batch job vCPU × duration |
+| 4 | `batch_gpu_seconds` | `seconds` | GPU-seconds | Batch job GPU × duration |
+| 5 | `batch_memory_gb_sec` | `gb_seconds` | GB-seconds | Batch job memory GB × duration |
+| 6 | `s3_storage_gb_hours` | `gb_hours` | GB-hours | S3 object storage (30-day retention estimate) |
+| 7 | `s3_put_requests` | `count` | requests | S3 PUT/COPY/POST/LIST operations |
+| 8 | `s3_get_requests` | `count` | requests | S3 GET operations |
+| 9 | `s3_data_transfer_gb` | `gb` | GB | S3 cross-region data transfer |
+
+**The "Properties field name" column is the key inside the Lago `properties` object that holds the quantity.** Each event sends `"properties": {"<field_name>": <quantity>}`. This must match the **Aggregation field** configured in Lago for each metric.
 
 ### Creating metrics in Lago (self-hosted UI)
 
 1. Go to **Lago UI → Billable Metrics → Add**
-2. For each code above:
+2. For each row in the table above:
    - **Name**: human-readable (e.g. "LLM Input Tokens")
-   - **Code**: exactly as shown in the table (e.g. `llm_input_tokens`)
+   - **Code**: exactly as shown in the `Code` column (e.g. `llm_input_tokens`)
    - **Aggregation type**: `SUM`
-   - **Field name**: `value` (all events send `"properties": {"value": <n>}`)
+   - **Field name / Aggregation field**: exactly as shown in the `Properties field name` column (e.g. `tokens` for LLM, `seconds` for Batch vCPU, `gb_hours` for S3 storage)
 3. Create 3 plans: `academic_monthly`, `professional_monthly`, `enterprise_monthly`
 4. Attach all 9 metrics to each plan
 
@@ -489,12 +495,12 @@ Spot pricing: multiply by 0.3 (approximate 70% discount).
 |-------|-----------|------------|
 | `claude-opus-4-6` | $15.00 | $75.00 |
 | `claude-sonnet-4-5-20250929` | $3.00 | $15.00 |
-| `claude-haiku-4-5-20251001` | $0.80 | $4.00 |
+| `claude-haiku-4-5-20251001` | $0.25 | $1.25 |
 | `gpt-4o` | $5.00 | $15.00 |
 | `gpt-4o-mini` | $0.15 | $0.60 |
 | `gemini-1.5-pro` | $3.50 | $10.50 |
 | `deepseek-chat` | $0.27 | $1.10 |
-| `default` (unknown) | $1.00 | $3.00 |
+| `default` (unknown model) | $3.00 | $15.00 |
 
 ### S3 Pricing
 
@@ -671,7 +677,10 @@ curl -s -X POST http://localhost:8081/internal/billing/job_started \
 # Verify the running job appears
 curl -s http://localhost:8081/api/billing/jobs/running \
   -H "Authorization: Bearer 1" | python3 -m json.tool
-# Expected: running_jobs list with test-job-001 and an estimated cost
+# Expected: running_jobs array with one entry containing:
+#   "job_id": "test-job-001", "instance_type": "m6i.2xlarge",
+#   "elapsed_seconds": <small number>, "estimated_usd": <small number>
+# And "running_total_usd" at the top level
 ```
 
 ### Step 7 — Simulate job completion (job_completed)
@@ -810,6 +819,7 @@ STRIPE_PRICE_ACADEMIC_YEARLY=price_...
 STRIPE_PRICE_PROFESSIONAL_MONTHLY=price_...
 STRIPE_PRICE_PROFESSIONAL_YEARLY=price_...
 STRIPE_PRICE_ENTERPRISE_MONTHLY=price_...
+STRIPE_PRICE_ENTERPRISE_YEARLY=price_...
 
 # Billing service
 BILLING_API_URL=http://localhost:8081

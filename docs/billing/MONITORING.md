@@ -356,19 +356,19 @@ Once Lago is deployed, navigate to:
 
 Key Lago billable metric codes (must be created before going live):
 
-| Code | Description |
-|------|-------------|
-| `llm_input_tokens` | LLM input token usage |
-| `llm_output_tokens` | LLM output token usage |
-| `batch_vcpu_seconds` | AWS Batch vCPU seconds |
-| `batch_gpu_seconds` | AWS Batch GPU seconds |
-| `batch_memory_gb_seconds` | AWS Batch memory GB-seconds |
-| `s3_gb_months` | S3 storage GB-months |
-| `s3_get_requests` | S3 GET request count |
-| `s3_put_requests` | S3 PUT request count |
-| `workflow_invocations` | Number of workflow runs |
+| Code | Properties field | Description |
+|------|-----------------|-------------|
+| `llm_input_tokens` | `tokens` | LLM input token usage |
+| `llm_output_tokens` | `tokens` | LLM output token usage |
+| `batch_vcpu_seconds` | `seconds` | AWS Batch vCPU × duration |
+| `batch_gpu_seconds` | `seconds` | AWS Batch GPU × duration |
+| `batch_memory_gb_sec` | `gb_seconds` | AWS Batch memory GB × duration |
+| `s3_storage_gb_hours` | `gb_hours` | S3 storage (30-day retention estimate) |
+| `s3_get_requests` | `count` | S3 GET request count |
+| `s3_put_requests` | `count` | S3 PUT request count |
+| `s3_data_transfer_gb` | `gb` | S3 cross-region transfer GB |
 
-Full setup details: `TECHNICAL_REFERENCE.md` Section 3.4.
+Full setup details: `TECHNICAL_REFERENCE.md` Section 4.
 
 ---
 
