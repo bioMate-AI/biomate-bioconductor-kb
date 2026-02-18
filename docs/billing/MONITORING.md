@@ -1,0 +1,295 @@
+# BioMate Billing — Real-Time Monitoring Guide
+
+**Audience:** Backend programmer setting up the billing infrastructure
+**Prerequisite:** Billing system deployed per `README.md` and `TECHNICAL_REFERENCE.md`
+
+---
+
+## 1. What Gets Monitored
+
+| Layer | What it tracks | Where data lives |
+|-------|---------------|-----------------|
+| LLM costs | Tokens + USD per model per user | Redis `cost:{uid}:month:{YY-MM}:llm` |
+| Compute costs | AWS Batch vCPU, GPU, memory seconds | Redis `cost:{uid}:month:{YY-MM}:compute` |
+| Storage costs | S3 GB-months | Redis `cost:{uid}:month:{YY-MM}:storage` |
+| Quota usage | % of monthly limit consumed | Redis `quota:{uid}:month:{YY-MM}:limit` |
+| Running jobs | In-flight Batch jobs with live cost | Redis `job:{job_id}:*` |
+| Lambda health | Last event timestamp | Redis `billing:last_batch_event_ts` |
+
+---
+
+## 2. Admin API Endpoints
+
+Both require the `X-Internal-Key` header (value = `BILLING_INTERNAL_KEY` env var).
+
+### 2.1 All Users — Live Costs
+
+```bash
+curl -s -H "X-Internal-Key: $BILLING_INTERNAL_KEY" \
+  http://localhost:8081/internal/billing/admin/users | python3 -m json.tool
+```
+
+Response:
+```json
+{
+  "month": "2026-02",
+  "user_count": 42,
+  "users": [
+    { "user_id": "7", "total_usd": 12.34, "quota_usd": 30.0, "pct": 41.1,
+      "llm_usd": 5.20, "compute_usd": 6.80, "storage_usd": 0.34 },
+    ...
+  ]
+}
+```
+
+Users are sorted by total spend descending. Use this to spot high spenders.
+
+### 2.2 System Health
+
+```bash
+curl -s -H "X-Internal-Key: $BILLING_INTERNAL_KEY" \
+  http://localhost:8081/internal/billing/admin/health | python3 -m json.tool
+```
+
+Response:
+```json
+{
+  "redis": "ok",
+  "active_jobs": 3,
+  "last_batch_event_age_sec": 145,
+  "lago": "ok",
+  "total_users_tracked": 42,
+  "month": "2026-02"
+}
+```
+
+**Alarm thresholds:**
+
+| Field | Warn | Critical |
+|-------|------|----------|
+| `redis` | — | anything other than `"ok"` |
+| `last_batch_event_age_sec` | > 600s (10 min) | > 3600s (1 hr) — Lambda may be down |
+| `lago` | `"disabled"` | `"error: ..."` |
+
+---
+
+## 3. Redis Monitoring Commands
+
+Connect to the ElastiCache cluster:
+```bash
+redis-cli -u $REDIS_URL
+```
+
+### Inspect a specific user
+
+```bash
+# Current month costs
+MONTH=$(date +%Y-%m)
+USER_ID=7
+
+redis-cli -u $REDIS_URL HGETALL "cost:${USER_ID}:month:${MONTH}:llm"
+redis-cli -u $REDIS_URL HGETALL "cost:${USER_ID}:month:${MONTH}:compute"
+redis-cli -u $REDIS_URL GET     "cost:${USER_ID}:month:${MONTH}:total"
+redis-cli -u $REDIS_URL GET     "quota:${USER_ID}:month:${MONTH}:limit"
+```
+
+### Find all users over 80% quota this month
+
+```bash
+MONTH=$(date +%Y-%m)
+redis-cli -u $REDIS_URL KEYS "quota:*:month:${MONTH}:limit" | while read key; do
+  uid=$(echo $key | cut -d: -f2)
+  limit=$(redis-cli -u $REDIS_URL GET "$key")
+  total=$(redis-cli -u $REDIS_URL GET "cost:${uid}:month:${MONTH}:total")
+  pct=$(python3 -c "print(f'{float(\"${total:-0}\")/float(\"${limit:-1}\")*100:.0f}%')" 2>/dev/null)
+  echo "$pct  user=$uid  used=$total  limit=$limit"
+done | sort -rn
+```
+
+### Check Redis memory pressure
+
+```bash
+redis-cli -u $REDIS_URL INFO memory | grep -E "used_memory_human|maxmemory_human|mem_fragmentation_ratio"
+```
+
+**Alert if:** `used_memory` > 80% of `maxmemory`, or `mem_fragmentation_ratio` > 1.5.
+
+---
+
+## 4. AWS CloudWatch Alarms
+
+Set these up in the AWS Console or via CLI after deploying the Lambda functions.
+
+### 4.1 batch_billing Lambda errors
+
+```bash
+aws cloudwatch put-metric-alarm \
+  --alarm-name "billing-batch-lambda-errors" \
+  --namespace AWS/Lambda \
+  --metric-name Errors \
+  --dimensions Name=FunctionName,Value=batch_billing \
+  --statistic Sum --period 300 --threshold 1 \
+  --comparison-operator GreaterThanOrEqualToThreshold \
+  --evaluation-periods 1 \
+  --alarm-actions arn:aws:sns:us-west-2:399683337364:billing-alerts
+```
+
+### 4.2 s3_billing Lambda errors
+
+```bash
+aws cloudwatch put-metric-alarm \
+  --alarm-name "billing-s3-lambda-errors" \
+  --namespace AWS/Lambda \
+  --metric-name Errors \
+  --dimensions Name=FunctionName,Value=s3_billing \
+  --statistic Sum --period 300 --threshold 1 \
+  --comparison-operator GreaterThanOrEqualToThreshold \
+  --evaluation-periods 1 \
+  --alarm-actions arn:aws:sns:us-east-1:399683337364:billing-alerts
+```
+
+### 4.3 ElastiCache memory alarm
+
+```bash
+aws cloudwatch put-metric-alarm \
+  --alarm-name "billing-redis-memory-high" \
+  --namespace AWS/ElastiCache \
+  --metric-name DatabaseMemoryUsagePercentage \
+  --dimensions Name=CacheClusterId,Value=biomate-billing-redis \
+  --statistic Average --period 300 --threshold 80 \
+  --comparison-operator GreaterThanOrEqualToThreshold \
+  --evaluation-periods 2 \
+  --alarm-actions arn:aws:sns:us-west-2:399683337364:billing-alerts
+```
+
+> **Note:** Replace the SNS ARN with your actual alerts topic. Create it with:
+> ```bash
+> aws sns create-topic --name billing-alerts --region us-west-2
+> aws sns subscribe --topic-arn <arn> --protocol email --notification-endpoint ops@biomate.dev
+> ```
+
+---
+
+## 5. Monitoring Script (Daily Cron)
+
+Save as `scripts/billing_health_check.sh` and run via cron:
+
+```bash
+#!/bin/bash
+# Daily billing health check — email ops if anything is wrong
+# Cron: 0 9 * * * /path/to/billing_health_check.sh
+
+BILLING_URL="http://172.31.8.116:8081"
+KEY="${BILLING_INTERNAL_KEY}"
+
+# Health check
+HEALTH=$(curl -s -H "X-Internal-Key: $KEY" \
+  "${BILLING_URL}/internal/billing/admin/health")
+
+REDIS=$(echo "$HEALTH" | python3 -c "import sys,json; print(json.load(sys.stdin)['redis'])")
+LAGO=$(echo "$HEALTH"  | python3 -c "import sys,json; print(json.load(sys.stdin)['lago'])")
+LAST=$(echo "$HEALTH"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('last_batch_event_age_sec','null'))")
+
+ERRORS=""
+[ "$REDIS" != "ok" ]   && ERRORS+="REDIS ERROR: $REDIS\n"
+[ "$LAGO"  != "ok" ]   && ERRORS+="LAGO ERROR: $LAGO\n"
+[ "$LAST"  != "null" ] && [ "$LAST" -gt 3600 ] && \
+  ERRORS+="LAMBDA STALE: last_batch_event was ${LAST}s ago\n"
+
+if [ -n "$ERRORS" ]; then
+  echo -e "BioMate billing alert:\n$ERRORS" | \
+    mail -s "[BioMate] Billing system alert" ops@biomate.dev
+fi
+
+# Top spenders report
+echo "=== Top 10 spenders this month ==="
+curl -s -H "X-Internal-Key: $KEY" \
+  "${BILLING_URL}/internal/billing/admin/users" | \
+  python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print(f'Month: {d[\"month\"]}  Users: {d[\"user_count\"]}')
+for u in d['users'][:10]:
+    print(f'  user={u[\"user_id\"]:>6}  \${u[\"total_usd\"]:6.2f} / \${u[\"quota_usd\"]:5.1f}  ({u[\"pct\"]:5.1f}%)')
+"
+```
+
+---
+
+## 6. Lago Analytics Dashboard
+
+Once Lago is deployed, navigate to:
+
+- **Lago UI:** `https://app.getlago.com` (or your self-hosted URL)
+- **Analytics → Usage** — see per-metric consumption per customer
+- **Customers → [user]** — full billing history, invoices, subscriptions
+- **Webhooks → Logs** — verify events are being received
+
+Key Lago billable metric codes (must be created before going live):
+
+| Code | Description |
+|------|-------------|
+| `llm_input_tokens` | LLM input token usage |
+| `llm_output_tokens` | LLM output token usage |
+| `batch_vcpu_seconds` | AWS Batch vCPU seconds |
+| `batch_gpu_seconds` | AWS Batch GPU seconds |
+| `batch_memory_gb_seconds` | AWS Batch memory GB-seconds |
+| `s3_gb_months` | S3 storage GB-months |
+| `s3_get_requests` | S3 GET request count |
+| `s3_put_requests` | S3 PUT request count |
+| `workflow_invocations` | Number of workflow runs |
+
+Full setup details: `TECHNICAL_REFERENCE.md` Section 3.4.
+
+---
+
+## 7. Grafana Dashboard (Optional)
+
+If you want a visual dashboard, connect Grafana to Redis using the **Redis Data Source** plugin:
+
+1. Install plugin: `grafana-cli plugins install redis-datasource`
+2. Add data source: `redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379`
+3. Import dashboard JSON from `docs/billing/grafana_dashboard.json` (template — create as needed)
+
+Useful panel queries:
+- **Total cost trend:** `GET cost:*:month:*:total` → time series
+- **Active jobs:** `KEYS job:*:start` → stat panel (count)
+- **Quota utilization:** scatter plot of `total/limit` per user
+
+---
+
+## 8. Quick Diagnostic Checklist
+
+Run this after initial setup to confirm everything is wired:
+
+```bash
+BILLING_URL="http://localhost:8081"
+KEY="${BILLING_INTERNAL_KEY}"
+
+echo "1. Redis reachable?"
+redis-cli -u $REDIS_URL PING
+
+echo "2. Billing API up?"
+curl -s "${BILLING_URL}/api/version" | python3 -m json.tool
+
+echo "3. Health check?"
+curl -s -H "X-Internal-Key: $KEY" "${BILLING_URL}/internal/billing/admin/health" \
+  | python3 -m json.tool
+
+echo "4. Seed test user (user_id=1) and read back?"
+MONTH=$(date +%Y-%m)
+redis-cli -u $REDIS_URL SET "quota:1:month:${MONTH}:limit" 30.0
+redis-cli -u $REDIS_URL HSET "cost:1:month:${MONTH}:llm" input_usd 1.23 output_usd 0.45
+redis-cli -u $REDIS_URL SET  "cost:1:month:${MONTH}:total" 1.68
+curl -s -H "Authorization: 1" "${BILLING_URL}/api/billing/usage"
+
+echo "5. Admin users endpoint shows user 1?"
+curl -s -H "X-Internal-Key: $KEY" "${BILLING_URL}/internal/billing/admin/users" \
+  | python3 -c "import sys,json; [print(u) for u in json.load(sys.stdin)['users']]"
+```
+
+Expected: step 5 shows `user_id: "1"` with `total_usd: 1.68`.
+
+---
+
+*See also: `README.md` for infrastructure checklist, `TECHNICAL_REFERENCE.md` for full API reference.*

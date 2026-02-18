@@ -12,6 +12,9 @@ Internal endpoints (require X-Internal-Key header, not exposed to public):
   POST /internal/billing/job_completed  — called by Batch Lambda on SUCCEEDED/FAILED
   POST /internal/billing/s3_put         — called by S3 Lambda on upload
   POST /internal/billing/s3_delete      — called by S3 Lambda on delete
+  POST /internal/billing/add-credits    — called by Stripe webhook to top up quota
+  GET  /internal/billing/admin/users    — admin: all users' live costs this month
+  GET  /internal/billing/admin/health   — admin: system health (Redis, Lambda, Lago)
 
 Lago webhook endpoint:
   POST /webhooks/lago               — subscription events, invoice events
@@ -323,6 +326,135 @@ def internal_s3_delete(payload: S3DeletePayload):
     # TODO: subtract storage cost for remaining days of the retention period
     log.info("S3 delete user=%s key=%s", payload.user_id, payload.key)
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Admin / Monitoring Endpoints  (X-Internal-Key required)
+# ---------------------------------------------------------------------------
+
+@router.get("/internal/billing/admin/users", dependencies=[Depends(require_internal_key)])
+async def admin_all_users():
+    """
+    Return live cost data for ALL users this month.
+    Used by admin dashboards and monitoring scripts.
+
+    Response:
+      { "month": "2026-02", "users": [{ "user_id", "total_usd", "quota_usd",
+        "pct", "llm_usd", "compute_usd", "storage_usd" }, ...] }
+
+    Example (curl):
+      curl -H "X-Internal-Key: $BILLING_INTERNAL_KEY" \
+           http://localhost:8081/internal/billing/admin/users
+    """
+    svc = get_cost_service()
+    month = _month_key()
+    r = svc._r  # Redis client
+
+    # Scan all quota keys to find every tracked user this month
+    pattern = f"quota:*:month:{month}:limit"
+    user_ids = []
+    cursor = 0
+    while True:
+        cursor, keys = r.scan(cursor, match=pattern, count=500)
+        for k in keys:
+            # key format: quota:{user_id}:month:{month}:limit
+            parts = k.decode() if isinstance(k, bytes) else k
+            uid = parts.split(":")[1]
+            user_ids.append(uid)
+        if cursor == 0:
+            break
+
+    users = []
+    for uid in sorted(set(user_ids)):
+        costs = svc.get_current_costs(uid, month)
+        quota = float(r.get(f"quota:{uid}:month:{month}:limit") or 0)
+        total = costs.get("total_usd", 0)
+        users.append({
+            "user_id": uid,
+            "total_usd": round(total, 4),
+            "quota_usd": round(quota, 2),
+            "pct": round(total / quota * 100, 1) if quota else 0,
+            "llm_usd": round(costs.get("llm", {}).get("total_usd", 0), 4),
+            "compute_usd": round(costs.get("compute", {}).get("total_usd", 0), 4),
+            "storage_usd": round(costs.get("storage", {}).get("total_usd", 0), 6),
+        })
+
+    # Sort by total spend descending
+    users.sort(key=lambda u: u["total_usd"], reverse=True)
+    return {"month": month, "user_count": len(users), "users": users}
+
+
+@router.get("/internal/billing/admin/health", dependencies=[Depends(require_internal_key)])
+async def admin_health():
+    """
+    Health check for the entire billing pipeline.
+    Returns status of Redis, Lambda reachability (via recent events), and Lago.
+
+    Response:
+      { "redis": "ok"|"error", "active_jobs": N,
+        "last_batch_event_age_sec": N,   # seconds since last Lambda event
+        "lago": "ok"|"disabled"|"error",
+        "total_users_tracked": N }
+
+    Example (curl):
+      curl -H "X-Internal-Key: $BILLING_INTERNAL_KEY" \
+           http://localhost:8081/internal/billing/admin/health
+    """
+    svc = get_cost_service()
+    r = svc._r
+    month = _month_key()
+    result: dict = {}
+
+    # Redis ping
+    try:
+        r.ping()
+        result["redis"] = "ok"
+    except Exception as exc:
+        result["redis"] = f"error: {exc}"
+
+    # Active jobs tracked in Redis
+    try:
+        job_keys = r.keys("job:*:start")
+        result["active_jobs"] = len(job_keys)
+    except Exception:
+        result["active_jobs"] = -1
+
+    # Last Lambda event timestamp (stored by batch_billing handler)
+    try:
+        ts = r.get("billing:last_batch_event_ts")
+        if ts:
+            age = int(datetime.now(timezone.utc).timestamp()) - int(ts)
+            result["last_batch_event_age_sec"] = age
+        else:
+            result["last_batch_event_age_sec"] = None
+    except Exception:
+        result["last_batch_event_age_sec"] = None
+
+    # Lago reachability
+    lago = get_lago_client()
+    if not lago._api_key:
+        result["lago"] = "disabled (LAGO_API_KEY not set)"
+    else:
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                f"{lago._base_url}/billable_metrics?per_page=1",
+                headers={"Authorization": f"Bearer {lago._api_key}"},
+            )
+            with urllib.request.urlopen(req, timeout=3):
+                result["lago"] = "ok"
+        except Exception as exc:
+            result["lago"] = f"error: {exc}"
+
+    # Total users tracked this month
+    try:
+        cursor, keys = r.scan(0, match=f"quota:*:month:{month}:limit", count=1000)
+        result["total_users_tracked"] = len(keys)
+    except Exception:
+        result["total_users_tracked"] = -1
+
+    result["month"] = month
+    return result
 
 
 # ---------------------------------------------------------------------------
