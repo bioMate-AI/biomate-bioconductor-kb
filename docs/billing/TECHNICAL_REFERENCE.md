@@ -224,7 +224,9 @@ Called by `batch_billing` Lambda when a Batch job transitions to RUNNING.
 }
 ```
 
-**Effect:** Writes `cost:<user_id>:job:<job_id>:running` JSON string to Redis with start time and resource config (TTL 48h). Used by `GET /api/billing/jobs/running` to estimate live cost.
+**Response:** `{"ok": true}`
+
+**Effect:** Writes `cost:<user_id>:job:<job_id>:running` JSON string to Redis with start time and resource config (TTL 35 days). Used by `GET /api/billing/jobs/running` to estimate live cost.
 
 ---
 
@@ -248,12 +250,15 @@ Called by `batch_billing` Lambda when a job reaches SUCCEEDED or FAILED.
 }
 ```
 
+**Response:** `{"ok": true, "total_cost_usd": 0.384}`
+
 **Effect:**
 1. Calculates final compute cost using `CostCalculator.batch_job_cost()`
 2. Writes to `cost:<user_id>:month:<YYYY-MM>:compute` hash in Redis
 3. Updates `cost:<user_id>:month:<YYYY-MM>:total` in Redis
-4. Emits `batch_vcpu_seconds`, `batch_memory_gb_sec`, `batch_gpu_seconds` events to Lago
-5. Checks quota — triggers 80%/100% warning email if threshold crossed
+4. Deletes the running-job estimate key (`cost:<uid>:job:<job_id>:running`)
+5. Emits `batch_vcpu_seconds`, `batch_memory_gb_sec`, `batch_gpu_seconds` events to Lago
+6. Checks quota — triggers 80%/100% warning email if threshold crossed
 
 ---
 
@@ -265,12 +270,14 @@ Called by `s3_billing` Lambda on S3 object creation.
 ```json
 {
   "user_id": "42",
+  "workflow_id": "wf-456",
   "bucket": "biomate-production-data-399683337364",
   "key": "results/wf-456/output.bam",
-  "size_bytes": 1073741824,
-  "storage_class": "STANDARD"
+  "size_bytes": 1073741824
 }
 ```
+
+**Response:** `{"ok": true, "total_cost_usd": 0.023}`
 
 **Effect:** Writes to `cost:<user_id>:month:<YYYY-MM>:storage` in Redis. Emits `s3_put_requests` and `s3_storage_gb_hours` events to Lago.
 
@@ -291,9 +298,13 @@ Called by Stripe webhook (`checkout.session.completed`) when user purchases a cr
 {
   "user_id": "42",
   "amount_usd": 25.00,
-  "stripe_session_id": "cs_live_..."
+  "payment_id": "cs_live_..."
 }
 ```
+
+(`payment_id` is the Stripe PaymentIntent or CheckoutSession ID — used for audit logging only, can be empty string.)
+
+**Response:** `{"ok": true, "new_quota_usd": 55.0}`
 
 **Effect:** Increments `quota:<user_id>:month:<YYYY-MM>:limit` in Redis by `amount_usd`.
 
@@ -403,8 +414,8 @@ All keys use `:` as separator. No TTL unless noted.
 | `cost:<uid>:month:<YYYY-MM>:total` | String | Committed total USD (float as string) | `cost:42:month:2026-02:total` |
 | `cost:<uid>:job:<job_id>:running` | String (JSON) | `instance_type`, `vcpus`, `gpu_count`, `started_ms`, `est_usd` — TTL 48h | `cost:42:job:abc123:running` |
 | `quota:<uid>:month:<YYYY-MM>:limit` | String | Quota ceiling in USD | `quota:42:month:2026-02:limit` |
-| `quota:<uid>:month:<YYYY-MM>:warn80_sent` | String | `"1"` if 80% warning email sent this month | — |
-| `quota:<uid>:month:<YYYY-MM>:warn100_sent` | String | `"1"` if 100% hard-limit email sent this month | — |
+| `quota:<uid>:month:<YYYY-MM>:alert_sent` | String | `"1"` if 80% warning email sent this month | — |
+| `quota:<uid>:month:<YYYY-MM>:exceeded_sent` | String | `"1"` if 100% hard-limit email sent this month | — |
 | `billing:last_batch_event_ts` | String | Unix epoch of last `batch_billing` Lambda invocation | Written on every Batch state-change event |
 
 ### Quick Redis inspection
@@ -460,11 +471,24 @@ The `code` values must match exactly — they are the strings sent by `lago_clie
 
 ### Required Lago subscription plans
 
-| Plan code | Display name | Monthly price |
-|-----------|-------------|---------------|
+| Plan code (Lago) | Display name | Monthly price |
+|------------------|-------------|---------------|
 | `academic_monthly` | Academic | $30/mo included |
 | `professional_monthly` | Professional | $100/mo included |
 | `enterprise_monthly` | Enterprise | Custom |
+
+### Default quota limits (quota_enforcer.py)
+
+These are the hardcoded fallback limits used when Lago is not yet integrated or for pre-subscription users. Plan names here are internal (`free/basic/pro/enterprise`) — distinct from Lago plan codes above.
+
+| Internal plan name | Monthly quota (USD) |
+|--------------------|---------------------|
+| `free` | $5.00 |
+| `basic` | $50.00 |
+| `pro` | $500.00 |
+| `enterprise` | Unlimited |
+
+> **Note:** Once Lago subscriptions are live, quota limits should come from Lago via subscription metadata, not these hardcoded defaults. Updating this is listed in the Known Gaps section of README.md.
 
 ---
 
@@ -474,20 +498,55 @@ These tables are in `cost_calculator.py`. They are approximate; update periodica
 
 ### AWS Batch (EC2 on-demand per hour)
 
+**General purpose (m6i):**
+
 | Instance type | vCPUs | RAM (GB) | GPU | $/hr |
 |--------------|-------|----------|-----|------|
 | `m6i.large` | 2 | 8 | 0 | 0.096 |
 | `m6i.xlarge` | 4 | 16 | 0 | 0.192 |
 | `m6i.2xlarge` | 8 | 32 | 0 | 0.384 |
 | `m6i.4xlarge` | 16 | 64 | 0 | 0.768 |
+| `m6i.8xlarge` | 32 | 128 | 0 | 1.536 |
+
+**Compute optimized (c6i):**
+
+| Instance type | vCPUs | RAM (GB) | GPU | $/hr |
+|--------------|-------|----------|-----|------|
+| `c6i.large` | 2 | 4 | 0 | 0.085 |
+| `c6i.xlarge` | 4 | 8 | 0 | 0.170 |
 | `c6i.2xlarge` | 8 | 16 | 0 | 0.340 |
+| `c6i.4xlarge` | 16 | 32 | 0 | 0.680 |
+| `c6i.8xlarge` | 32 | 64 | 0 | 1.360 |
+
+**GPU — T4 (g4dn):**
+
+| Instance type | vCPUs | RAM (GB) | GPU | $/hr |
+|--------------|-------|----------|-----|------|
 | `g4dn.xlarge` | 4 | 16 | 1×T4 | 0.526 |
 | `g4dn.2xlarge` | 8 | 32 | 1×T4 | 0.752 |
-| `g5.xlarge` | 4 | 16 | 1×A10G | 1.006 |
-| `p3.2xlarge` | 8 | 61 | 1×V100 | 3.06 |
-| `FARGATE` | varies | varies | 0 | vCPU: 0.04048/hr, mem: 0.004445/GB-hr |
+| `g4dn.4xlarge` | 16 | 64 | 1×T4 | 1.204 |
+| `g4dn.8xlarge` | 32 | 128 | 1×T4 | 2.264 |
 
-Spot pricing: multiply by 0.3 (approximate 70% discount).
+**GPU — A10G (g5):**
+
+| Instance type | vCPUs | RAM (GB) | GPU | $/hr |
+|--------------|-------|----------|-----|------|
+| `g5.xlarge` | 4 | 16 | 1×A10G | 1.006 |
+| `g5.2xlarge` | 8 | 32 | 1×A10G | 1.212 |
+| `g5.4xlarge` | 16 | 64 | 1×A10G | 1.624 |
+
+**High-performance GPU:**
+
+| Instance type | vCPUs | RAM (GB) | GPU | $/hr |
+|--------------|-------|----------|-----|------|
+| `p3.2xlarge` | 8 | 61 | 1×V100 | 3.06 |
+| `p4d.24xlarge` | 96 | 1152 | 8×A100 | 32.77 |
+
+**Fargate (fallback for unknown instance types):**
+- vCPU: $0.04048/hr
+- Memory: $0.004445/GB-hr
+
+Spot pricing: multiply by 0.35 (65% discount — default in `cost_calculator.py`).
 
 ### LLM Model Pricing (per 1M tokens)
 
@@ -583,11 +642,12 @@ Complete these steps in order before the billing system goes live.
 ### 6.5 Stripe Setup
 
 - [ ] Create 5 products/prices in Stripe Dashboard:
-  - Academic Monthly, Academic Yearly, Professional Monthly, Professional Yearly, Enterprise Monthly
+  - Academic Monthly, Academic Yearly, Professional Monthly, Professional Yearly, Enterprise Monthly, Enterprise Yearly (6 total)
 - [ ] Set `STRIPE_PRICE_*` env vars on Node.js server (see Section 8)
 - [ ] Register webhook endpoint: `https://api.biomate.dev/api/stripe/webhook`
-  - Events: `checkout.session.completed`, `customer.subscription.updated`,
-    `customer.subscription.deleted`, `invoice.payment_failed`, `customer.payment_failed`
+  - Events: `checkout.session.completed`, `customer.subscription.created`,
+    `customer.subscription.updated`, `customer.subscription.deleted`,
+    `invoice.payment_succeeded`, `invoice.payment_failed`, `payment_intent.succeeded`
 - [ ] Set `STRIPE_WEBHOOK_SECRET` env var
 - [ ] Enable Stripe Customer Portal (Settings → Billing → Customer portal)
 
@@ -672,7 +732,7 @@ curl -s -X POST http://localhost:8081/internal/billing/job_started \
     "started_at_ms": '"$(date +%s000)"',
     "is_spot": false
   }'
-# Expected: {"status": "ok"} or 200
+# Expected: {"ok": true}
 
 # Verify the running job appears
 curl -s http://localhost:8081/api/billing/jobs/running \
@@ -704,7 +764,7 @@ curl -s -X POST http://localhost:8081/internal/billing/job_completed \
     "duration_seconds": 3600.0,
     "is_spot": false
   }'
-# Expected: {"status": "ok"}
+# Expected: {"ok": true, ...}
 
 # Verify compute cost was recorded
 redis-cli -u $REDIS_URL HGETALL "cost:1:month:${MONTH}:compute"
@@ -724,7 +784,7 @@ curl -s -X POST http://localhost:8081/internal/billing/s3_put \
     "size_bytes": 1073741824,
     "storage_class": "STANDARD"
   }'
-# Expected: {"status": "ok"}
+# Expected: {"ok": true, ...}
 
 # Verify storage cost
 redis-cli -u $REDIS_URL HGETALL "cost:1:month:${MONTH}:storage"
@@ -740,7 +800,7 @@ Bump usage to 80%+ of the $30 quota to trigger a warning email:
 redis-cli -u $REDIS_URL SET "cost:1:month:${MONTH}:total" 25.0
 
 # Remove any existing warn flag so the email fires again
-redis-cli -u $REDIS_URL DEL "quota:1:month:${MONTH}:warn80_sent"
+redis-cli -u $REDIS_URL DEL "quota:1:month:${MONTH}:alert_sent"
 
 # Trigger via the next billing write (job_completed also calls _check_quota)
 curl -s -X POST http://localhost:8081/internal/billing/job_completed \
@@ -780,9 +840,9 @@ curl -s -X POST http://localhost:8081/internal/billing/add-credits \
   -d '{
     "user_id": "1",
     "amount_usd": 25.0,
-    "stripe_session_id": "cs_test_mock_001"
+    "payment_id": "cs_test_mock_001"
   }'
-# Expected: {"status": "ok"}
+# Expected: {"ok": true, ...}
 
 # Verify quota increased from 30.0 to 55.0
 redis-cli -u $REDIS_URL GET "quota:1:month:${MONTH}:limit"

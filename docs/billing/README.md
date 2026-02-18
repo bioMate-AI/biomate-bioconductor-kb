@@ -197,7 +197,7 @@ See **[TECHNICAL_REFERENCE.md Section 6](./TECHNICAL_REFERENCE.md#6-infrastructu
 ### Stripe
 - [ ] Create 6 products/prices in Stripe dashboard (5 monthly + 1 enterprise yearly)
 - [ ] Set all `STRIPE_PRICE_*` env vars on Node.js server
-- [ ] Register webhook endpoint with 6 event types
+- [ ] Register webhook endpoint with 7 event types (see TECHNICAL_REFERENCE.md Section 6.5)
 - [ ] Configure Stripe Customer Portal (update payment, cancel, view invoices)
 
 ### Email
