@@ -147,6 +147,27 @@
         <mxCell id="a11" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="portal_ui" target="portal_node" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a12" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="portal_node" target="portal_stripe" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
 
+        <!-- ── ADMIN MONITORING SECTION ─────────────────────────────── -->
+        <mxCell id="admin_title" value="Admin Monitoring Endpoints (X-Internal-Key)" style="text;html=1;strokeColor=none;fillColor=#f8cecc;align=center;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1280" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="admin_users_box" value="GET /internal/billing/admin/users&#xa;↓&#xa;Scan quota:*:month:* keys&#xa;→ get_current_costs() per user&#xa;→ Returns sorted user spend list" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1320" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="admin_health_box" value="GET /internal/billing/admin/health&#xa;↓&#xa;Redis PING&#xa;+ KEYS job:* (active jobs)&#xa;+ GET billing:last_batch_event_ts&#xa;+ Lago API test&#xa;→ Returns system status JSON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="1320" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="heartbeat_box" value="billing:last_batch_event_ts&#xa;Written by batch_billing Lambda&#xa;on every EventBridge invocation.&#xa;Health endpoint reads age in seconds." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="1320" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="admin_tools" value="Admin Tools to Install&#xa;───────────────────────&#xa;• RedisInsight — live key browser&#xa;• AWS Console → Lambda Monitor&#xa;• Lago UI — per-user billing history&#xa;• Grafana (optional) — dashboards&#xa;See: docs/billing/MONITORING.md" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=left;verticalAlign=top;spacingLeft=8;whiteSpace=pre;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="1310" width="300" height="110" as="geometry" />
+        </mxCell>
+
         <!-- ── ENV VAR REFERENCE BOX ──────────────────────────────────── -->
         <mxCell id="envbox" value="Required Env Vars (Node.js)&#xa;───────────────────────────────────&#xa;STRIPE_SECRET_KEY=sk_live_...&#xa;STRIPE_WEBHOOK_SECRET=whsec_...&#xa;STRIPE_PRICE_ACADEMIC_MONTHLY=price_...&#xa;BILLING_API_URL=http://localhost:8081&#xa;BILLING_INTERNAL_KEY=w498JF1...&#xa;APP_URL=https://app.biomate.dev&#xa;EMAIL_HOST / EMAIL_USER / EMAIL_PASS" style="text;html=1;strokeColor=#82b366;fillColor=#d5e8d4;align=left;verticalAlign=top;spacingLeft=8;whiteSpace=pre;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
           <mxGeometry x="900" y="1080" width="340" height="160" as="geometry" />

@@ -12,6 +12,7 @@
 | What you need | Where to look |
 |---------------|---------------|
 | Full system documentation | [`TECHNICAL_REFERENCE.md`](./TECHNICAL_REFERENCE.md) |
+| **Real-time monitoring setup** | **[`MONITORING.md`](./MONITORING.md)** — admin tools, CloudWatch alarms, daily cron |
 | Cost tracking flow diagram | [`diagrams/cost_tracking_flow.drawio`](./diagrams/cost_tracking_flow.drawio) |
 | User registration flow diagram | [`diagrams/user_registration_flow.drawio`](./diagrams/user_registration_flow.drawio) |
 | Billing page architecture diagram | [`diagrams/billing_page_architecture.drawio`](./diagrams/billing_page_architecture.drawio) |
@@ -57,7 +58,7 @@ User runs a workflow
 | `core/cost_calculator.py` | Pure-function AWS cost calculator. EC2 pricing tables (m6i, c6i, g4dn, g5, p3, p4d), S3, and LLM model pricing. |
 | `core/quota_enforcer.py` | Pre-job quota gate. Raises `QuotaExceededError` before submitting to AWS Batch. |
 | `core/lago_client.py` | HTTP client for Lago billing platform. Emits 9 metered event types. Fire-and-forget. |
-| `api/billing_router.py` | 9 FastAPI endpoints: 4 public (JWT auth), 5 internal (X-Internal-Key), 1 Lago webhook. |
+| `api/billing_router.py` | 11 FastAPI endpoints: 4 public (JWT auth), 5 internal (X-Internal-Key), 2 admin monitoring (X-Internal-Key), 1 Lago webhook. |
 | `lambda/batch_billing.py` | AWS Lambda triggered by EventBridge on Batch job state changes (RUNNING/SUCCEEDED/FAILED). |
 | `lambda/s3_billing.py` | AWS Lambda triggered by SQS on S3 uploads. |
 | `tests/test_billing_regression.py` | 29 regression tests (62 total). All passing. |
@@ -168,9 +169,11 @@ JWT_SECRET=<your_jwt_secret>
 
 ```bash
 BILLING_API_URL=http://172.31.8.116:8081   # Galaxy backend private IP
-BILLING_INTERNAL_KEY=w498JF1dufdEd9O8AInfhS4VyJXi7CKiBz_0qzNVGOE
+BILLING_API_KEY=w498JF1dufdEd9O8AInfhS4VyJXi7CKiBz_0qzNVGOE   # same value as BILLING_INTERNAL_KEY
 REDIS_URL=redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379
 ```
+
+> **Note:** The Lambda code uses `BILLING_API_KEY`; the billing router accepts both `BILLING_INTERNAL_KEY` and `BILLING_API_KEY`. Use the same value for both. The `REDIS_URL` is used by `batch_billing` to write the heartbeat timestamp (`billing:last_batch_event_ts`) for health monitoring.
 
 ---
 

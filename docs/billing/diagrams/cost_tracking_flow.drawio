@@ -83,6 +83,31 @@
           <mxGeometry x="595" y="385" width="170" height="30" as="geometry" />
         </mxCell>
 
+        <!-- Admin monitoring endpoints -->
+        <mxCell id="ep6" value="GET /internal/billing/&#xa;admin/users" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="595" y="425" width="170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ep7" value="GET /internal/billing/&#xa;admin/health" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="595" y="465" width="170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="admin_label" value="Admin (X-Internal-Key)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="595" y="408" width="170" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- batch_lambda writes heartbeat to Redis -->
+        <mxCell id="a_heartbeat" value="billing:last_batch_event_ts" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#b85450;fontSize=9;" edge="1" source="batch_lambda" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- admin/health reads Redis -->
+        <mxCell id="a_health_redis" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#b85450;" edge="1" source="ep7" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- admin/users reads Redis -->
+        <mxCell id="a_users_redis" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#b85450;" edge="1" source="ep6" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
         <!-- ── LAYER 4: Core Services ─────────────────────────────────── -->
         <mxCell id="layer4" value="Core Services" style="text;html=1;strokeColor=none;fillColor=#e1d5e7;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="870" y="80" width="180" height="30" as="geometry" />
