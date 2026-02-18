@@ -5,6 +5,135 @@
 
 ---
 
+## 0. Administration Tools to Install
+
+These are the actual software tools your colleague needs to have running. Install them in this order.
+
+### 0.1 RedisInsight (Redis GUI — required)
+
+The primary admin tool for inspecting live cost data, quotas, and job state in Redis.
+
+**Install:**
+```bash
+# Ubuntu/Debian
+wget https://download.redis.io/redisinsight/latest/linux/RedisInsight-latest.deb
+sudo dpkg -i RedisInsight-latest.deb
+# Or: download from https://redis.io/insight (free)
+```
+
+**Connect:**
+- Host: `biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com`
+- Port: `6379`
+- No TLS (internal VPC only — connect via SSH tunnel or from EC2)
+
+**SSH tunnel to connect from laptop:**
+```bash
+ssh -L 6380:biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379 \
+  -i ~/.ssh/your-ec2-key.pem ubuntu@35.89.57.94 -N
+# Then connect RedisInsight to localhost:6380
+```
+
+**Key namespaces to monitor in RedisInsight:**
+| Pattern | Meaning |
+|---------|---------|
+| `cost:*:month:*` | All user cost breakdowns |
+| `quota:*:month:*:limit` | All user quota limits |
+| `job:*` | In-flight Batch job state |
+| `billing:last_batch_event_ts` | Last Lambda heartbeat |
+
+---
+
+### 0.2 AWS Console Dashboards (required)
+
+**Lambda monitoring:**
+1. Go to **AWS Console → Lambda → batch_billing** (us-west-2)
+2. Click **Monitor** tab → view Invocations, Errors, Duration graphs
+3. Do the same for **s3_billing** (us-east-1)
+4. Set up alarms per Section 4 below
+
+**ElastiCache monitoring:**
+1. **AWS Console → ElastiCache → Redis clusters → biomate-billing-redis**
+2. Key metrics to watch: `CurrConnections`, `DatabaseMemoryUsagePercentage`, `CacheHits`
+
+**CloudWatch Logs (Lambda output):**
+```bash
+# View batch_billing Lambda logs
+aws logs tail /aws/lambda/batch_billing --follow --region us-west-2
+
+# View s3_billing Lambda logs
+aws logs tail /aws/lambda/s3_billing --follow --region us-east-1
+```
+
+---
+
+### 0.3 Lago Admin UI (required for billing)
+
+Lago is the metered billing platform that generates invoices. You must deploy it before going live.
+
+**Option A — Lago Cloud (fastest):**
+1. Sign up at https://app.getlago.com
+2. Create organization `biomate`
+3. Note your API key → set `LAGO_API_KEY` on Galaxy EC2
+4. Note your webhook secret → set `LAGO_WEBHOOK_SECRET` on Galaxy EC2
+
+**Option B — Self-hosted (Docker):**
+```bash
+git clone https://github.com/getlago/lago.git
+cd lago
+docker-compose up -d
+# Admin UI at http://localhost:3000
+# API at http://localhost:3000/api/v1
+```
+
+**Post-install: create the 9 billable metrics** (see `TECHNICAL_REFERENCE.md` Section 3.4 for exact JSON payloads):
+```bash
+# Example: create llm_input_tokens metric
+curl -X POST https://api.getlago.com/api/v1/billable_metrics \
+  -H "Authorization: Bearer $LAGO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"billable_metric": {"name": "LLM Input Tokens", "code": "llm_input_tokens",
+       "aggregation_type": "sum_agg", "field_name": "tokens"}}'
+```
+
+---
+
+### 0.4 Stripe Dashboard (required for payments)
+
+1. Go to https://dashboard.stripe.com
+2. Create the 5 subscription products (see `README.md` → Stripe section)
+3. Configure webhook endpoint: `https://api.biomate.dev/webhooks/stripe`
+   - Events to listen for: `checkout.session.completed`, `customer.subscription.updated`,
+     `customer.subscription.deleted`, `invoice.payment_failed`, `invoice.payment_succeeded`,
+     `payment_intent.payment_failed`
+4. Copy webhook signing secret → set `STRIPE_WEBHOOK_SECRET` on Node.js server
+
+**Stripe billing dashboard** (live revenue view):
+- https://dashboard.stripe.com/billing → shows all subscriptions, MRR, churn
+
+---
+
+### 0.5 Grafana (optional, recommended for team dashboards)
+
+```bash
+# Docker
+docker run -d -p 3000:3000 --name grafana grafana/grafana
+
+# Or install on EC2
+sudo apt-get install -y grafana
+sudo systemctl enable grafana-server
+sudo systemctl start grafana-server
+# Admin UI at http://localhost:3000 (default: admin/admin)
+```
+
+**Connect to Redis:**
+1. Install plugin: `grafana-cli plugins install redis-datasource`
+2. Add datasource → Redis → URL: `redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379` (via SSH tunnel)
+
+**Connect to CloudWatch:**
+1. Add datasource → CloudWatch → use EC2 instance role (no keys needed if running on EC2)
+
+---
+
 ## 1. What Gets Monitored
 
 | Layer | What it tracks | Where data lives |
