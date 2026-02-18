@@ -59,8 +59,8 @@ User runs a workflow
 | `core/quota_enforcer.py` | Pre-job quota gate. Raises `QuotaExceededError` before submitting to AWS Batch. |
 | `core/lago_client.py` | HTTP client for Lago billing platform. Emits 9 metered event types. Fire-and-forget. |
 | `api/billing_router.py` | 12 FastAPI endpoints: 4 public (JWT auth), 5 internal (X-Internal-Key), 2 admin monitoring (X-Internal-Key), 1 Lago webhook. |
-| `lambda/batch_billing.py` | AWS Lambda triggered by EventBridge on Batch job state changes (RUNNING/SUCCEEDED/FAILED). |
-| `lambda/s3_billing.py` | AWS Lambda triggered by SQS on S3 uploads. |
+| `lambda/batch_event_handler.py` | AWS Lambda triggered by EventBridge on Batch job state changes (RUNNING/SUCCEEDED/FAILED). |
+| `lambda/s3_event_handler.py` | AWS Lambda triggered by SQS on S3 uploads. |
 | `tests/test_billing_regression.py` | 29 regression tests (62 total). All passing. |
 
 #### Frontend (TypeScript — `frontend/`)
@@ -166,7 +166,7 @@ LAGO_WEBHOOK_SECRET=<random_secret>
 JWT_SECRET=<your_jwt_secret>
 ```
 
-### AWS Lambdas (`batch_billing` + `s3_billing`)
+### AWS Lambdas (`batch_event_handler` + `s3_event_handler`)
 
 ```bash
 BILLING_API_URL=http://172.31.8.116:8081   # Galaxy backend private IP
@@ -174,7 +174,7 @@ BILLING_API_KEY=w498JF1dufdEd9O8AInfhS4VyJXi7CKiBz_0qzNVGOE   # same value as BI
 REDIS_URL=redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379
 ```
 
-> **Note:** The Lambda code uses `BILLING_API_KEY`; the billing router accepts both `BILLING_INTERNAL_KEY` and `BILLING_API_KEY`. Use the same value for both. The `REDIS_URL` is used by `batch_billing` to write the heartbeat timestamp (`billing:last_batch_event_ts`) for health monitoring.
+> **Note:** The Lambda code uses `BILLING_API_KEY`; the billing router accepts both `BILLING_INTERNAL_KEY` and `BILLING_API_KEY`. Use the same value for both. The `REDIS_URL` is used by `batch_event_handler` to write the heartbeat timestamp (`billing:last_batch_event_ts`) for health monitoring.
 
 ---
 
@@ -183,8 +183,8 @@ REDIS_URL=redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:637
 See **[TECHNICAL_REFERENCE.md Section 6](./TECHNICAL_REFERENCE.md#6-infrastructure-setup-checklist)** for the full checklist with details. Summary:
 
 ### AWS
-- [ ] Deploy `batch_billing` Lambda (us-west-2, VPC, EventBridge rule)
-- [ ] Deploy `s3_billing` Lambda (us-east-1, SQS trigger)
+- [ ] Deploy `batch_event_handler` Lambda (us-west-2, VPC, EventBridge rule)
+- [ ] Deploy `s3_event_handler` Lambda (us-east-1, SQS trigger)
 - [ ] Configure S3 → SQS event notifications on both S3 buckets
 - [ ] Set env vars on Galaxy backend EC2 (`REDIS_URL`, `BILLING_INTERNAL_KEY`, `NOTIFY_URL`)
 

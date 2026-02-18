@@ -38,7 +38,7 @@ ssh -L 6380:biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379 \
 |---------|---------|
 | `cost:*:month:*` | All user cost breakdowns |
 | `quota:*:month:*:limit` | All user quota limits |
-| `job:*` | In-flight Batch job state |
+| `cost:*:job:*:running` | In-flight Batch job state (JSON string, TTL 35 days) |
 | `billing:last_batch_event_ts` | Last Lambda heartbeat |
 
 ---
@@ -46,9 +46,9 @@ ssh -L 6380:biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379 \
 ### 0.2 AWS Console Dashboards (required)
 
 **Lambda monitoring:**
-1. Go to **AWS Console → Lambda → batch_billing** (us-west-2)
+1. Go to **AWS Console → Lambda → batch_event_handler** (us-west-2)
 2. Click **Monitor** tab → view Invocations, Errors, Duration graphs
-3. Do the same for **s3_billing** (us-east-1)
+3. Do the same for **s3_event_handler** (us-east-1)
 4. Set up alarms per Section 4 below
 
 **ElastiCache monitoring:**
@@ -57,11 +57,11 @@ ssh -L 6380:biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379 \
 
 **CloudWatch Logs (Lambda output):**
 ```bash
-# View batch_billing Lambda logs
-aws logs tail /aws/lambda/batch_billing --follow --region us-west-2
+# View batch_event_handler Lambda logs
+aws logs tail /aws/lambda/batch_event_handler --follow --region us-west-2
 
-# View s3_billing Lambda logs
-aws logs tail /aws/lambda/s3_billing --follow --region us-east-1
+# View s3_event_handler Lambda logs
+aws logs tail /aws/lambda/s3_event_handler --follow --region us-east-1
 ```
 
 ---
@@ -249,28 +249,28 @@ redis-cli -u $REDIS_URL INFO memory | grep -E "used_memory_human|maxmemory_human
 
 Set these up in the AWS Console or via CLI after deploying the Lambda functions.
 
-### 4.1 batch_billing Lambda errors
+### 4.1 batch_event_handler Lambda errors
 
 ```bash
 aws cloudwatch put-metric-alarm \
   --alarm-name "billing-batch-lambda-errors" \
   --namespace AWS/Lambda \
   --metric-name Errors \
-  --dimensions Name=FunctionName,Value=batch_billing \
+  --dimensions Name=FunctionName,Value=batch_event_handler \
   --statistic Sum --period 300 --threshold 1 \
   --comparison-operator GreaterThanOrEqualToThreshold \
   --evaluation-periods 1 \
   --alarm-actions arn:aws:sns:us-west-2:399683337364:billing-alerts
 ```
 
-### 4.2 s3_billing Lambda errors
+### 4.2 s3_event_handler Lambda errors
 
 ```bash
 aws cloudwatch put-metric-alarm \
   --alarm-name "billing-s3-lambda-errors" \
   --namespace AWS/Lambda \
   --metric-name Errors \
-  --dimensions Name=FunctionName,Value=s3_billing \
+  --dimensions Name=FunctionName,Value=s3_event_handler \
   --statistic Sum --period 300 --threshold 1 \
   --comparison-operator GreaterThanOrEqualToThreshold \
   --evaluation-periods 1 \
@@ -382,7 +382,7 @@ If you want a visual dashboard, connect Grafana to Redis using the **Redis Data 
 
 Useful panel queries:
 - **Total cost trend:** `GET cost:*:month:*:total` → time series
-- **Active jobs:** `KEYS job:*:start` → stat panel (count)
+- **Active jobs:** `KEYS cost:*:job:*:running` → stat panel (count)
 - **Quota utilization:** scatter plot of `total/limit` per user
 
 ---

@@ -32,7 +32,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 
 from ..core.cost_calculator import CostCalculator
-from ..core.lago_client import get_lago_client
+from ..core.lago_client import get_lago_client, LAGO_API_KEY as _LAGO_API_KEY
 from ..core.realtime_cost_service import get_cost_service, _month_key
 from ..core.quota_enforcer import ensure_quota_set
 
@@ -432,14 +432,14 @@ async def admin_health():
 
     # Lago reachability
     lago = get_lago_client()
-    if not lago._api_key:
+    if not _LAGO_API_KEY:
         result["lago"] = "disabled (LAGO_API_KEY not set)"
     else:
         try:
             import urllib.request
             req = urllib.request.Request(
-                f"{lago._base_url}/billable_metrics?per_page=1",
-                headers={"Authorization": f"Bearer {lago._api_key}"},
+                f"{lago._base}/api/v1/billable_metrics?per_page=1",
+                headers=lago._headers,
             )
             with urllib.request.urlopen(req, timeout=3):
                 result["lago"] = "ok"

@@ -27,8 +27,8 @@
 │                                                                     │
 │  ┌──────────────────┐   ┌──────────────────┐   ┌───────────────┐  │
 │  │  LLM API calls   │   │  AWS Batch jobs  │   │  S3 uploads   │  │
-│  │  (llm_client.py) │   │  (batch_billing  │   │  (s3_billing  │  │
-│  │  tracks tokens   │   │   Lambda)        │   │   Lambda)     │  │
+│  │  (llm_client.py) │   │  (batch_event_  │   │  (s3_event_    │  │
+│  │  tracks tokens   │   │  handler Lambda) │   │  handler Lambda│  │
 │  └────────┬─────────┘   └────────┬─────────┘   └──────┬────────┘  │
 │           │                      │                     │           │
 │           └──────────────────────┼─────────────────────┘          │
@@ -36,7 +36,7 @@
 │                                  ▼                                  │
 │              ┌────────────────────────────────┐                    │
 │              │  billing_router.py (port 8081) │                    │
-│              │  FastAPI — 11 endpoints        │                    │
+│              │  FastAPI — 12 endpoints        │                    │
 │              └──────────┬─────────────────────┘                    │
 │                         │                                           │
 │           ┌─────────────┼──────────────┐                          │
@@ -72,7 +72,7 @@
 | Quota Enforcer | `billing/core/quota_enforcer.py` | Python | In-process |
 | Lago Client | `billing/core/lago_client.py` | Python | In-process → Lago API |
 | Batch Lambda | `billing/lambda/batch_event_handler.py` | Python | Lambda (us-west-2) |
-| S3 Lambda | `billing/lambda/s3_billing.py` | Python | Lambda (us-east-1) |
+| S3 Lambda | `billing/lambda/s3_event_handler.py` | Python | Lambda (us-east-1) |
 | Billing Page | `frontend/client/src/pages/billing.tsx` | TypeScript/React | Browser |
 | Registration | `frontend/client/src/pages/auth/register.tsx` | TypeScript/React | Browser |
 | Email Service | `frontend/server/email-service.ts` | TypeScript/Node | Node.js (port 5000) |
@@ -141,7 +141,7 @@ Returns real-time cost breakdown for the current month. Reads from Redis → <5m
 
 #### `GET /api/billing/usage/history`
 
-Returns usage totals for past N months.
+Returns usage totals for past N months. Each history entry is the **full `get_current_costs()` response** for that month (same structure as `GET /api/billing/usage`).
 
 **Query params:** `?months=6` (1–24, default 3)
 
@@ -150,8 +150,23 @@ Returns usage totals for past N months.
 {
   "user_id": "42",
   "history": [
-    { "month": "2026-02", "total_usd": 6.59, "llm_usd": 1.68, "compute_usd": 4.56, "storage_usd": 0.23 },
-    { "month": "2026-01", "total_usd": 12.30, ... }
+    {
+      "user_id": "42",
+      "month": "2026-02",
+      "currency": "USD",
+      "breakdown": {
+        "llm": { "total_usd": 1.68, "input_usd": 1.23, "output_usd": 0.45, ... },
+        "compute": { "total_usd": 4.56, "vcpu_usd": 2.10, ... },
+        "storage": { "total_usd": 0.23, "storage_usd": 0.15, ... }
+      },
+      "running_jobs": [],
+      "running_estimate_usd": 0.0,
+      "committed_usd": 6.47,
+      "total_usd": 6.47,
+      "quota_usd": 30.0,
+      "quota_pct": 21.57
+    },
+    { "month": "2026-01", ... }
   ]
 }
 ```
@@ -207,7 +222,7 @@ These are **never exposed** to the public internet. Called by Lambda functions a
 
 #### `POST /internal/billing/job_started`
 
-Called by `batch_billing` Lambda when a Batch job transitions to RUNNING.
+Called by `batch_event_handler` Lambda when a Batch job transitions to RUNNING.
 
 **Request body:**
 ```json
@@ -232,7 +247,7 @@ Called by `batch_billing` Lambda when a Batch job transitions to RUNNING.
 
 #### `POST /internal/billing/job_completed`
 
-Called by `batch_billing` Lambda when a job reaches SUCCEEDED or FAILED.
+Called by `batch_event_handler` Lambda when a job reaches SUCCEEDED or FAILED.
 
 **Request body:**
 ```json
@@ -264,7 +279,7 @@ Called by `batch_billing` Lambda when a job reaches SUCCEEDED or FAILED.
 
 #### `POST /internal/billing/s3_put`
 
-Called by `s3_billing` Lambda on S3 object creation.
+Called by `s3_event_handler` Lambda on S3 object creation.
 
 **Request body:**
 ```json
@@ -285,7 +300,7 @@ Called by `s3_billing` Lambda on S3 object creation.
 
 #### `POST /internal/billing/s3_delete`
 
-Called by `s3_billing` Lambda on S3 object deletion. **Currently stubbed** — storage cost reversal not yet implemented (known gap, deferred to next sprint).
+Called by `s3_event_handler` Lambda on S3 object deletion. **Currently stubbed** — storage cost reversal not yet implemented (known gap, deferred to next sprint).
 
 ---
 
@@ -418,7 +433,7 @@ All keys use `:` as separator. TTL is 35 days (`35 * 24 * 3600` seconds) unless 
 | `quota:<uid>:month:<YYYY-MM>:limit` | String | Quota ceiling in USD | `quota:42:month:2026-02:limit` |
 | `quota:<uid>:month:<YYYY-MM>:alert_sent` | String | `"1"` if 80% warning email sent this month | — |
 | `quota:<uid>:month:<YYYY-MM>:exceeded_sent` | String | `"1"` if 100% hard-limit email sent this month | — |
-| `billing:last_batch_event_ts` | String | Unix epoch of last `batch_billing` Lambda invocation | Written on every Batch state-change event |
+| `billing:last_batch_event_ts` | String | Unix epoch of last `batch_event_handler` Lambda invocation | Written on every Batch state-change event |
 
 ### Quick Redis inspection
 
@@ -597,7 +612,7 @@ Complete these steps in order before the billing system goes live.
 - [ ] Restart Galaxy (gunicorn)
 - [ ] Verify: `curl -H "X-Internal-Key: $BILLING_INTERNAL_KEY" http://localhost:8081/internal/billing/admin/health`
 
-### 6.2 AWS Lambda — batch_billing
+### 6.2 AWS Lambda — batch_event_handler
 
 - [ ] Create Lambda in **us-west-2** (must be same region as Batch)
 - [ ] Upload `batch_event_handler.py` as Lambda function code
@@ -616,10 +631,10 @@ Complete these steps in order before the billing system goes live.
   - Target: this Lambda
 - [ ] Test: trigger manually with a fake RUNNING event, verify `billing:last_batch_event_ts` written to Redis
 
-### 6.3 AWS Lambda — s3_billing
+### 6.3 AWS Lambda — s3_event_handler
 
 - [ ] Create Lambda in **us-east-1** (S3 buckets are in us-east-1)
-- [ ] Upload `s3_billing.py` as function code
+- [ ] Upload `s3_event_handler.py` as function code
 - [ ] Set env vars:
   ```
   BILLING_API_URL = http://172.31.8.116:8081
@@ -913,7 +928,7 @@ LAGO_WEBHOOK_SECRET=<random_secret_min_32_chars>
 JWT_SECRET=<your_jwt_secret>
 ```
 
-### AWS Lambda — batch_billing and s3_billing
+### AWS Lambda — batch_event_handler and s3_event_handler
 
 ```bash
 BILLING_API_URL=http://172.31.8.116:8081   # Galaxy backend private IP
@@ -922,7 +937,7 @@ BILLING_API_KEY=w498JF1dufdEd9O8AInfhS4VyJXi7CKiBz_0qzNVGOE
 # BILLING_API_KEY and BILLING_INTERNAL_KEY with fallback. Use the same value.
 ```
 
-**batch_billing only:**
+**batch_event_handler only:**
 ```bash
 REDIS_URL=redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379
 # Used to write billing:last_batch_event_ts heartbeat key for health monitoring
