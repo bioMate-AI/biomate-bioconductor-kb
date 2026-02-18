@@ -100,17 +100,13 @@ def _get_instance_info(job: dict) -> tuple[str, float, int, int, bool]:
 
 
 def _write_heartbeat() -> None:
-    """
-    Write the current Unix timestamp to Redis so /internal/billing/admin/health
-    can verify this Lambda is alive and receiving events.
-    Key: billing:last_batch_event_ts  (no TTL — health check reads age)
-    """
+    """Write current timestamp to Redis so health-check can detect Lambda staleness."""
     redis_url = os.environ.get("REDIS_URL", "")
     if not redis_url or redis is None:
         return
     try:
-        r = redis.from_url(redis_url, socket_connect_timeout=2)
-        r.set("billing:last_batch_event_ts", int(time.time()))
+        r = redis.from_url(redis_url, decode_responses=True)
+        r.set("billing:last_batch_event_ts", str(time.time()))
     except Exception as exc:
         log.warning("heartbeat write failed: %s", exc)
 
@@ -155,6 +151,8 @@ def handler(event: dict, context) -> dict:
         }
     }
     """
+    _write_heartbeat()
+
     detail = event.get("detail", {})
     job_id = detail.get("jobId")
     status = detail.get("status")
@@ -164,9 +162,6 @@ def handler(event: dict, context) -> dict:
         return {"statusCode": 400, "body": "missing jobId or status"}
 
     log.info("Batch job %s → %s", job_id, status)
-
-    # Write heartbeat timestamp so /admin/health can verify Lambda is alive
-    _write_heartbeat()
 
     # Fetch full job details (tags, resource requirements)
     job = _describe_job(job_id)

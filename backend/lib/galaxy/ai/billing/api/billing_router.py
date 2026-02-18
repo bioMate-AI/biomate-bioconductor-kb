@@ -12,9 +12,6 @@ Internal endpoints (require X-Internal-Key header, not exposed to public):
   POST /internal/billing/job_completed  — called by Batch Lambda on SUCCEEDED/FAILED
   POST /internal/billing/s3_put         — called by S3 Lambda on upload
   POST /internal/billing/s3_delete      — called by S3 Lambda on delete
-  POST /internal/billing/add-credits    — called by Stripe webhook to top up quota
-  GET  /internal/billing/admin/users    — admin: all users' live costs this month
-  GET  /internal/billing/admin/health   — admin: system health (Redis, Lambda, Lago)
 
 Lago webhook endpoint:
   POST /webhooks/lago               — subscription events, invoice events
@@ -24,6 +21,7 @@ import os
 import hmac
 import hashlib
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -329,132 +327,100 @@ def internal_s3_delete(payload: S3DeletePayload):
 
 
 # ---------------------------------------------------------------------------
-# Admin / Monitoring Endpoints  (X-Internal-Key required)
+# Admin monitoring endpoints
 # ---------------------------------------------------------------------------
 
-@router.get("/internal/billing/admin/users", dependencies=[Depends(require_internal_key)])
-async def admin_all_users():
-    """
-    Return live cost data for ALL users this month.
-    Used by admin dashboards and monitoring scripts.
-
-    Response:
-      { "month": "2026-02", "users": [{ "user_id", "total_usd", "quota_usd",
-        "pct", "llm_usd", "compute_usd", "storage_usd" }, ...] }
-
-    Example (curl):
-      curl -H "X-Internal-Key: $BILLING_INTERNAL_KEY" \
-           http://localhost:8081/internal/billing/admin/users
-    """
-    svc = get_cost_service()
-    month = _month_key()
-    r = svc._r  # Redis client
-
-    # Scan all quota keys to find every tracked user this month
-    pattern = f"quota:*:month:{month}:limit"
-    user_ids = []
-    cursor = 0
-    while True:
-        cursor, keys = r.scan(cursor, match=pattern, count=500)
-        for k in keys:
-            # key format: quota:{user_id}:month:{month}:limit
-            parts = k.decode() if isinstance(k, bytes) else k
-            uid = parts.split(":")[1]
-            user_ids.append(uid)
-        if cursor == 0:
-            break
-
-    users = []
-    for uid in sorted(set(user_ids)):
-        costs = svc.get_current_costs(uid, month)
-        quota = float(r.get(f"quota:{uid}:month:{month}:limit") or 0)
-        total = costs.get("total_usd", 0)
-        users.append({
-            "user_id": uid,
-            "total_usd": round(total, 4),
-            "quota_usd": round(quota, 2),
-            "pct": round(total / quota * 100, 1) if quota else 0,
-            "llm_usd": round(costs.get("llm", {}).get("total_usd", 0), 4),
-            "compute_usd": round(costs.get("compute", {}).get("total_usd", 0), 4),
-            "storage_usd": round(costs.get("storage", {}).get("total_usd", 0), 6),
-        })
-
-    # Sort by total spend descending
-    users.sort(key=lambda u: u["total_usd"], reverse=True)
-    return {"month": month, "user_count": len(users), "users": users}
-
-
 @router.get("/internal/billing/admin/health", dependencies=[Depends(require_internal_key)])
-async def admin_health():
-    """
-    Health check for the entire billing pipeline.
-    Returns status of Redis, Lambda reachability (via recent events), and Lago.
-
-    Response:
-      { "redis": "ok"|"error", "active_jobs": N,
-        "last_batch_event_age_sec": N,   # seconds since last Lambda event
-        "lago": "ok"|"disabled"|"error",
-        "total_users_tracked": N }
-
-    Example (curl):
-      curl -H "X-Internal-Key: $BILLING_INTERNAL_KEY" \
-           http://localhost:8081/internal/billing/admin/health
-    """
+def admin_health():
+    """System health: Redis connectivity, active jobs, Lago status, Lambda heartbeat."""
+    import urllib.request
     svc = get_cost_service()
-    r = svc._r
+    r   = svc._r
     month = _month_key()
-    result: dict = {}
 
-    # Redis ping
+    # Redis
     try:
         r.ping()
-        result["redis"] = "ok"
+        redis_status = "ok"
     except Exception as exc:
-        result["redis"] = f"error: {exc}"
+        redis_status = f"error: {exc}"
 
-    # Active jobs tracked in Redis
+    # Active in-flight Batch jobs
     try:
-        job_keys = r.keys("cost:*:job:*:running")
-        result["active_jobs"] = len(job_keys)
+        job_keys     = r.keys("cost:*:job:*:running")
+        active_jobs  = len(job_keys)
     except Exception:
-        result["active_jobs"] = -1
+        active_jobs  = -1
 
-    # Last Lambda event timestamp (stored by batch_billing handler)
+    # Lambda heartbeat
     try:
-        ts = r.get("billing:last_batch_event_ts")
-        if ts:
-            age = int(datetime.now(timezone.utc).timestamp()) - int(ts)
-            result["last_batch_event_age_sec"] = age
-        else:
-            result["last_batch_event_age_sec"] = None
+        last_ts = r.get("billing:last_batch_event_ts")
+        last_age = int(time.time() - float(last_ts)) if last_ts else None
     except Exception:
-        result["last_batch_event_age_sec"] = None
+        last_age = None
 
-    # Lago reachability
-    lago = get_lago_client()
+    # Lago connectivity
     if not _LAGO_API_KEY:
-        result["lago"] = "disabled (LAGO_API_KEY not set)"
+        lago_status = "disabled (LAGO_API_KEY not set)"
     else:
+        lago = get_lago_client()
         try:
-            import urllib.request
             req = urllib.request.Request(
                 f"{lago._base}/api/v1/billable_metrics?per_page=1",
                 headers=lago._headers,
             )
-            with urllib.request.urlopen(req, timeout=3):
-                result["lago"] = "ok"
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                lago_status = "ok" if resp.status == 200 else f"error: {resp.status}"
         except Exception as exc:
-            result["lago"] = f"error: {exc}"
+            lago_status = f"error: {exc}"
 
-    # Total users tracked this month
+    # Total users tracked
     try:
-        cursor, keys = r.scan(0, match=f"quota:*:month:{month}:limit", count=1000)
-        result["total_users_tracked"] = len(keys)
+        user_keys       = r.keys(f"cost:*:month:{month}:total")
+        total_users     = len(user_keys)
     except Exception:
-        result["total_users_tracked"] = -1
+        total_users = 0
 
-    result["month"] = month
+    result = {
+        "redis":                   redis_status,
+        "active_jobs":             active_jobs,
+        "lago":                    lago_status,
+        "total_users_tracked":     total_users,
+        "month":                   month,
+    }
+    if last_age is not None:
+        result["last_batch_event_age_sec"] = last_age
     return result
+
+
+@router.get("/internal/billing/admin/users", dependencies=[Depends(require_internal_key)])
+def admin_users():
+    """List all users sorted by total spend this month."""
+    svc   = get_cost_service()
+    r     = svc._r
+    month = _month_key()
+
+    total_keys = r.keys(f"cost:*:month:{month}:total")
+    users = []
+    for key in total_keys:
+        uid       = key.split(":")[1]
+        total     = float(r.get(key) or 0)
+        quota     = float(r.get(f"quota:{uid}:month:{month}:limit") or 0)
+        pct       = round(total / quota * 100, 1) if quota else 0.0
+        llm_h     = r.hgetall(f"cost:{uid}:month:{month}:llm")
+        compute_h = r.hgetall(f"cost:{uid}:month:{month}:compute")
+        storage_h = r.hgetall(f"cost:{uid}:month:{month}:storage")
+        users.append({
+            "user_id":     uid,
+            "total_usd":   round(total, 4),
+            "quota_usd":   round(quota, 2),
+            "pct":         pct,
+            "llm_usd":     round(float(llm_h.get("input_usd", 0)) + float(llm_h.get("output_usd", 0)), 4),
+            "compute_usd": round(float(compute_h.get("vcpu_usd", 0)) + float(compute_h.get("gpu_usd", 0)) + float(compute_h.get("mem_usd", 0)), 4),
+            "storage_usd": round(float(storage_h.get("storage_usd", 0)) + float(storage_h.get("request_usd", 0)), 4),
+        })
+    users.sort(key=lambda u: u["total_usd"], reverse=True)
+    return {"month": month, "user_count": len(users), "users": users}
 
 
 # ---------------------------------------------------------------------------
