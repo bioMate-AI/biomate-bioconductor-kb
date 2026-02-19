@@ -192,15 +192,23 @@ class CostCalculator:
 
             # Distribute the attributed instance cost across the three
             # cost dimensions so they sum exactly to 100 %.
+            # Dynamic GPU share: multi-GPU workloads are GPU-dominant
             base = full_hr * hours * compute_share
-            if gpu_count > 0:
+            if gpu_count == 0:
+                # CPU-only: vCPU and memory split
+                vcpu_cost   = base * 0.60
+                memory_cost = base * 0.40
+                gpu_cost    = 0.0
+            elif gpu_count == 1:
+                # Single GPU: balanced attribution
                 vcpu_cost   = base * 0.50
                 memory_cost = base * 0.30
                 gpu_cost    = base * 0.20
             else:
-                vcpu_cost   = base * 0.60
-                memory_cost = base * 0.40
-                gpu_cost    = 0.0
+                # Multi-GPU (2+): GPU-dominant workload
+                vcpu_cost   = base * 0.30
+                memory_cost = base * 0.20
+                gpu_cost    = base * 0.50
 
         if is_spot:
             factor = 1.0 - spot_discount
