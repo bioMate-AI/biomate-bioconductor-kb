@@ -30,9 +30,22 @@ import httpx
 
 log = logging.getLogger(__name__)
 
-LAGO_BASE_URL  = os.environ.get("LAGO_API_URL", "http://lago:3000")
-LAGO_API_KEY   = os.environ.get("LAGO_API_KEY", "")
-LAGO_TIMEOUT   = 5.0   # seconds; fire-and-forget pattern, don't block requests
+# Environment configuration
+_ALLOW_INSECURE_DEV_MODE = os.environ.get("BILLING_DEV_MODE", "").lower() == "true"
+
+LAGO_BASE_URL = os.environ.get("LAGO_API_URL", "http://lago:3000")
+LAGO_API_KEY = os.environ.get("LAGO_API_KEY")
+if not LAGO_API_KEY:
+    if _ALLOW_INSECURE_DEV_MODE:
+        LAGO_API_KEY = "dev-insecure-lago-key"
+        log.warning("BILLING_DEV_MODE enabled: using insecure default LAGO_API_KEY")
+    else:
+        raise RuntimeError(
+            "LAGO_API_KEY environment variable is required for billing event submission. "
+            "Get your API key from Lago's organization settings. "
+            "For local development only, set BILLING_DEV_MODE=true to bypass this check."
+        )
+LAGO_TIMEOUT = 5.0  # seconds; fire-and-forget pattern, don't block requests
 
 # Exponential backoff delays for transient network errors (1s, 2s, 4s)
 _RETRY_DELAYS: tuple[float, ...] = (1.0, 2.0, 4.0)

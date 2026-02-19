@@ -1,0 +1,613 @@
+/**
+ * Long-Term Memory Database Schema
+ *
+ * Implements the architecture from LONG_TERM_MEMORY_ARCHITECTURE_20251031.md
+ * with agentic extensions for episodic memory and procedural learning.
+ *
+ * Tables:
+ * 1. users (enhanced) - User profiles with expertise and preferences
+ * 2. projects - Project context with domain-specific metadata
+ * 3. sessions - Session tracking with summaries
+ * 4. conversation_messages - Full message history
+ * 5. user_preferences - Learned preferences with confidence
+ * 6. correction_log - Learning from mistakes
+ * 7. project_knowledge - Project-specific knowledge base
+ * 8. workflows - Workflow execution history
+ * 9. project_episodes - Agentic episodic memory
+ * 10. project_procedures - Learned procedures
+ */
+
+import { sql, relations } from "drizzle-orm";
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  boolean,
+  integer,
+  real,
+  jsonb,
+  uuid,
+  serial,
+  index,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// ============================================================================
+// Table 1: Users (Enhanced with LTM fields)
+// ============================================================================
+
+export const ltmUsers = pgTable("ltm_users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+
+  // Profile (from LTM architecture)
+  expertiseLevel: varchar("expertise_level", { length: 20 }).default("intermediate"),
+  // 'beginner' | 'intermediate' | 'expert'
+  researchDomain: varchar("research_domain", { length: 100 }),
+  affiliation: text("affiliation"),
+
+  // Preferences
+  preferredCommunicationStyle: varchar("preferred_communication_style", { length: 20 }).default("balanced"),
+  // 'concise' | 'detailed' | 'balanced'
+  workflowGenerationMode: varchar("workflow_generation_mode", { length: 20 }).default("auto-accept"),
+  // 'plan' | 'auto-accept' | 'yolo'
+
+  // Statistics
+  totalWorkflows: integer("total_workflows").default(0),
+  successfulWorkflows: integer("successful_workflows").default(0),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  lastActive: timestamp("last_active").defaultNow(),
+}, (table) => ({
+  emailIdx: index("ltm_users_email_idx").on(table.email),
+  lastActiveIdx: index("ltm_users_last_active_idx").on(table.lastActive),
+}));
+
+// ============================================================================
+// Table 2: Projects
+// ============================================================================
+
+export const projects = pgTable("projects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => ltmUsers.id, { onDelete: "cascade" }),
+
+  // Project details
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  researchGoal: text("research_goal"),
+  instructions: text("instructions"), // Background context
+
+  // Domain context (critical for project-level memory)
+  primaryDomain: varchar("primary_domain", { length: 100 }),
+  // 'proteomics', 'genomics', 'transcriptomics', 'metabolomics', etc.
+  organisms: text("organisms").array(), // ['mouse', 'human']
+  tissueTypes: text("tissue_types").array(),
+  conditions: text("conditions").array(), // ['control', 'treatment', 'disease']
+  dataModalities: text("data_modalities").array(), // ['RNA-seq', 'ATAC-seq', 'DIA']
+
+  // Project lifecycle
+  status: varchar("status", { length: 20 }).default("active"),
+  // 'active' | 'archived' | 'completed'
+  progress: integer("progress").default(0), // 0-100
+
+  // Storage paths
+  storagePath: text("storage_path"),
+  // File system path: /storage/projects/{user_id}/{project_id}/
+
+  // Metadata
+  category: varchar("category", { length: 100 }),
+  tags: text("tags").array().default([]),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  archivedAt: timestamp("archived_at"),
+}, (table) => ({
+  userIdIdx: index("projects_user_id_idx").on(table.userId),
+  statusIdx: index("projects_status_idx").on(table.status),
+  domainIdx: index("projects_domain_idx").on(table.primaryDomain),
+}));
+
+// ============================================================================
+// Table 3: Sessions
+// ============================================================================
+
+export const sessions = pgTable("sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => ltmUsers.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+
+  // Session metadata
+  title: text("title"),
+  startedAt: timestamp("started_at").defaultNow(),
+  endedAt: timestamp("ended_at"),
+  durationSeconds: integer("duration_seconds"),
+
+  // Context summary (generated by Claude when session ends)
+  summary: text("summary"),
+  keyDecisions: jsonb("key_decisions"),
+  // [{"decision": "Used DIA-NN instead of MaxQuant", "reason": "DIA data"}]
+
+  toolsDiscussed: text("tools_discussed").array(),
+  workflowsCreated: integer("workflows_created").default(0),
+  workflowsExecuted: integer("workflows_executed").default(0),
+
+  // Full transcript location
+  transcriptPath: text("transcript_path"),
+  // File path: /storage/sessions/{user_id}/{session_id}/transcript.md
+
+  // Statistics
+  messageCount: integer("message_count").default(0),
+  totalTokens: integer("total_tokens").default(0),
+
+  // Conversation state (pre-compaction flush — persisted every turn)
+  conversationState: jsonb("conversation_state"),
+}, (table) => ({
+  userIdIdx: index("sessions_user_id_idx").on(table.userId),
+  projectIdIdx: index("sessions_project_id_idx").on(table.projectId),
+  startedAtIdx: index("sessions_started_at_idx").on(table.startedAt),
+}));
+
+// ============================================================================
+// Table 4: Conversation Messages
+// ============================================================================
+
+export const conversationMessages = pgTable("conversation_messages", {
+  id: serial("id").primaryKey(),
+  sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+
+  // Message content
+  role: varchar("role", { length: 20 }).notNull(), // 'user' | 'assistant' | 'system'
+  content: text("content").notNull(),
+
+  // Tool usage (if assistant message)
+  toolsUsed: jsonb("tools_used"),
+  // [{"tool": "SearchTools", "input": {...}, "output": {...}}]
+
+  // Context at time of message
+  contextSnapshot: jsonb("context_snapshot"),
+
+  // Metadata
+  tokenCount: integer("token_count"),
+  createdAt: timestamp("created_at").defaultNow(),
+
+  // Thinking mode
+  thinkingContent: text("thinking_content"),
+  thinkingLevel: varchar("thinking_level", { length: 20 }),
+}, (table) => ({
+  sessionIdIdx: index("messages_session_id_idx").on(table.sessionId),
+  createdAtIdx: index("messages_created_at_idx").on(table.createdAt),
+}));
+
+// ============================================================================
+// Table 5: User Preferences (Learned)
+// ============================================================================
+
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").references(() => ltmUsers.id, { onDelete: "cascade" }),
+
+  // Preference type
+  preferenceType: varchar("preference_type", { length: 50 }).notNull(),
+  // 'tool_selection' | 'parameter_default' | 'workflow_structure' | 'communication'
+
+  // Context (when does this preference apply?)
+  context: jsonb("context"),
+  // {"domain": "proteomics", "data_type": "DIA"}
+
+  // Preference
+  preferenceKey: varchar("preference_key", { length: 255 }).notNull(),
+  preferenceValue: jsonb("preference_value").notNull(),
+
+  // Evidence (how was this learned?)
+  learnedFrom: varchar("learned_from", { length: 50 }),
+  // 'explicit_choice' | 'repeated_usage' | 'correction'
+
+  confidence: real("confidence").default(1.0),
+  usageCount: integer("usage_count").default(1),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  lastUsed: timestamp("last_used").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("preferences_user_id_idx").on(table.userId),
+  typeIdx: index("preferences_type_idx").on(table.preferenceType),
+}));
+
+// ============================================================================
+// Table 6: Correction Log (Learning from Mistakes)
+// ============================================================================
+
+export const correctionLog = pgTable("correction_log", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").references(() => ltmUsers.id, { onDelete: "cascade" }),
+  sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "set null" }),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+
+  // What Claude suggested (wrong)
+  suggestedApproach: jsonb("suggested_approach").notNull(),
+  // {"tool": "maxquant", "parameters": {...}, "reasoning": "..."}
+
+  // What user corrected to (right)
+  correctedApproach: jsonb("corrected_approach").notNull(),
+  // {"tool": "dia_nn", "parameters": {...}, "reasoning": "MaxQuant doesn't work for DIA"}
+
+  // Context
+  workflowContext: jsonb("workflow_context"),
+  // {"data_type": "DIA", "organism": "mouse", "goal": "quantification"}
+
+  // User explanation
+  userExplanation: text("user_explanation"),
+
+  // Learning (was this applied to improve future suggestions?)
+  appliedToFuture: boolean("applied_to_future").default(false),
+
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("corrections_user_id_idx").on(table.userId),
+  createdAtIdx: index("corrections_created_at_idx").on(table.createdAt),
+}));
+
+// ============================================================================
+// Table 7: Project Knowledge Base
+// ============================================================================
+
+export const projectKnowledge = pgTable("project_knowledge", {
+  id: serial("id").primaryKey(),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+
+  // Knowledge type
+  knowledgeType: varchar("knowledge_type", { length: 50 }).notNull(),
+  // 'dataset_info' | 'experimental_design' | 'analysis_approach' |
+  // 'key_finding' | 'technical_note'
+
+  // Content
+  title: varchar("title", { length: 255 }),
+  content: text("content").notNull(),
+
+  // Relationships
+  relatedWorkflows: uuid("related_workflows").array(),
+  relatedSessions: uuid("related_sessions").array(),
+
+  // Source
+  source: varchar("source", { length: 50 }),
+  // 'user_provided' | 'claude_inferred' | 'workflow_result'
+
+  // Relevance
+  relevanceScore: real("relevance_score").default(1.0),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  projectIdIdx: index("knowledge_project_id_idx").on(table.projectId),
+  typeIdx: index("knowledge_type_idx").on(table.knowledgeType),
+}));
+
+// ============================================================================
+// Table 8: Workflows (Execution History)
+// ============================================================================
+
+export const workflows = pgTable("workflows", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => ltmUsers.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+  sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "set null" }),
+
+  // Workflow definition
+  name: varchar("name", { length: 255 }),
+  description: text("description"),
+  workflowJson: jsonb("workflow_json").notNull(),
+
+  // Domain context
+  domain: varchar("domain", { length: 100 }),
+  dataType: varchar("data_type", { length: 100 }),
+  analysisGoal: text("analysis_goal"),
+
+  // Execution status
+  status: varchar("status", { length: 20 }).default("draft"),
+  // 'draft' | 'validated' | 'executing' | 'completed' | 'failed'
+
+  // Galaxy integration
+  galaxyWorkflowId: varchar("galaxy_workflow_id", { length: 255 }),
+  executionId: varchar("execution_id", { length: 255 }),
+  executionStartedAt: timestamp("execution_started_at"),
+  executionCompletedAt: timestamp("execution_completed_at"),
+  executionDurationSeconds: integer("execution_duration_seconds"),
+
+  // Results
+  success: boolean("success"),
+  errorMessage: text("error_message"),
+  outputDatasets: uuid("output_datasets").array(),
+
+  // Storage
+  workflowPath: text("workflow_path"),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("workflows_user_id_idx").on(table.userId),
+  projectIdIdx: index("workflows_project_id_idx").on(table.projectId),
+  statusIdx: index("workflows_status_idx").on(table.status),
+  createdAtIdx: index("workflows_created_at_idx").on(table.createdAt),
+}));
+
+// ============================================================================
+// Table 9: Project Episodes (Agentic Episodic Memory)
+// ============================================================================
+
+export const projectEpisodes = pgTable("project_episodes", {
+  id: serial("id").primaryKey(),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "set null" }),
+
+  // Episode context
+  userQuery: text("user_query").notNull(),
+  assistantResponse: text("assistant_response").notNull(),
+  userIntent: text("user_intent"), // Parsed intent
+
+  // Actions taken
+  toolsUsed: jsonb("tools_used"), // [{tool_id, parameters, output_summary}]
+  workflowGenerated: boolean("workflow_generated").default(false),
+  workflowId: uuid("workflow_id").references(() => workflows.id, { onDelete: "set null" }),
+  parametersSet: jsonb("parameters_set"),
+
+  // Outcome
+  outcomeSuccess: boolean("outcome_success"),
+  userFeedback: integer("user_feedback"), // 1-5 rating if provided
+  errorOccurred: boolean("error_occurred").default(false),
+  errorType: varchar("error_type", { length: 100 }),
+  errorMessage: text("error_message"),
+
+  // Reflection (generated by Claude)
+  whatWorked: text("what_worked").array(),
+  whatFailed: text("what_failed").array(),
+  lessonsLearned: text("lessons_learned").array(),
+  alternativeApproaches: text("alternative_approaches").array(),
+
+  // Importance for memory consolidation
+  importanceScore: real("importance_score").default(0.5),
+  accessCount: integer("access_count").default(0),
+  lastAccessed: timestamp("last_accessed").defaultNow(),
+
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  projectIdIdx: index("episodes_project_id_idx").on(table.projectId),
+  sessionIdIdx: index("episodes_session_id_idx").on(table.sessionId),
+  outcomeIdx: index("episodes_outcome_idx").on(table.outcomeSuccess),
+  importanceIdx: index("episodes_importance_idx").on(table.importanceScore),
+}));
+
+// ============================================================================
+// Table 10: Project Procedures (Learned Workflows)
+// ============================================================================
+
+export const projectProcedures = pgTable("project_procedures", {
+  id: serial("id").primaryKey(),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+
+  // Procedure definition
+  name: varchar("name", { length: 255 }).notNull(),
+  triggerPattern: text("trigger_pattern").notNull(), // What activates this procedure
+  description: text("description"),
+
+  // Steps
+  steps: jsonb("steps").notNull(),
+  // [{order, action, tool_id, parameters, expected_outcome, fallback_action}]
+
+  // Preconditions and postconditions
+  preconditions: text("preconditions").array(),
+  postconditions: text("postconditions").array(),
+
+  // Learning metrics
+  successRate: real("success_rate").default(0.5),
+  timesUsed: integer("times_used").default(0),
+  lastUsed: timestamp("last_used"),
+
+  // Source (which episodes was this learned from?)
+  learnedFrom: integer("learned_from").array(), // Episode IDs
+
+  // Applicable domains
+  applicableDomains: text("applicable_domains").array(),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  projectIdIdx: index("procedures_project_id_idx").on(table.projectId),
+  successRateIdx: index("procedures_success_rate_idx").on(table.successRate),
+}));
+
+// ============================================================================
+// Table 11: Conversation State Facts (Cross-Session Analysis)
+// ============================================================================
+
+export const conversationStateFacts = pgTable("conversation_state_facts", {
+  id: serial("id").primaryKey(),
+  sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+
+  // Fact data
+  category: varchar("category", { length: 50 }).notNull(),
+  value: text("value").notNull(),
+  confidence: real("confidence").default(0.5),
+  turnIndex: integer("turn_index").notNull(),
+  supersededBy: integer("superseded_by"),
+  sourceType: varchar("source_type", { length: 50 }),
+
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  sessionIdIdx: index("state_facts_session_id_idx").on(table.sessionId),
+  categoryIdx: index("state_facts_category_idx").on(table.category),
+}));
+
+// ============================================================================
+// Relations
+// ============================================================================
+
+export const ltmUsersRelations = relations(ltmUsers, ({ many }) => ({
+  projects: many(projects),
+  sessions: many(sessions),
+  preferences: many(userPreferences),
+  corrections: many(correctionLog),
+  workflows: many(workflows),
+}));
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  user: one(ltmUsers, {
+    fields: [projects.userId],
+    references: [ltmUsers.id],
+  }),
+  sessions: many(sessions),
+  knowledge: many(projectKnowledge),
+  workflows: many(workflows),
+  episodes: many(projectEpisodes),
+  procedures: many(projectProcedures),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one, many }) => ({
+  user: one(ltmUsers, {
+    fields: [sessions.userId],
+    references: [ltmUsers.id],
+  }),
+  project: one(projects, {
+    fields: [sessions.projectId],
+    references: [projects.id],
+  }),
+  messages: many(conversationMessages),
+  episodes: many(projectEpisodes),
+  stateFacts: many(conversationStateFacts),
+}));
+
+export const conversationMessagesRelations = relations(conversationMessages, ({ one }) => ({
+  session: one(sessions, {
+    fields: [conversationMessages.sessionId],
+    references: [sessions.id],
+  }),
+}));
+
+export const projectKnowledgeRelations = relations(projectKnowledge, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectKnowledge.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const workflowsRelations = relations(workflows, ({ one, many }) => ({
+  user: one(ltmUsers, {
+    fields: [workflows.userId],
+    references: [ltmUsers.id],
+  }),
+  project: one(projects, {
+    fields: [workflows.projectId],
+    references: [projects.id],
+  }),
+  session: one(sessions, {
+    fields: [workflows.sessionId],
+    references: [sessions.id],
+  }),
+  episodes: many(projectEpisodes),
+}));
+
+export const projectEpisodesRelations = relations(projectEpisodes, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectEpisodes.projectId],
+    references: [projects.id],
+  }),
+  session: one(sessions, {
+    fields: [projectEpisodes.sessionId],
+    references: [sessions.id],
+  }),
+  workflow: one(workflows, {
+    fields: [projectEpisodes.workflowId],
+    references: [workflows.id],
+  }),
+}));
+
+export const projectProceduresRelations = relations(projectProcedures, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectProcedures.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const conversationStateFactsRelations = relations(conversationStateFacts, ({ one }) => ({
+  session: one(sessions, {
+    fields: [conversationStateFacts.sessionId],
+    references: [sessions.id],
+  }),
+}));
+
+// ============================================================================
+// Zod Schemas for Validation
+// ============================================================================
+
+export const insertProjectSchema = createInsertSchema(projects);
+export const selectProjectSchema = createSelectSchema(projects);
+
+export const insertSessionSchema = createInsertSchema(sessions);
+export const selectSessionSchema = createSelectSchema(sessions);
+
+export const insertMessageSchema = createInsertSchema(conversationMessages);
+export const selectMessageSchema = createSelectSchema(conversationMessages);
+
+export const insertPreferenceSchema = createInsertSchema(userPreferences);
+export const selectPreferenceSchema = createSelectSchema(userPreferences);
+
+export const insertCorrectionSchema = createInsertSchema(correctionLog);
+export const selectCorrectionSchema = createSelectSchema(correctionLog);
+
+export const insertKnowledgeSchema = createInsertSchema(projectKnowledge);
+export const selectKnowledgeSchema = createSelectSchema(projectKnowledge);
+
+export const insertWorkflowSchema = createInsertSchema(workflows);
+export const selectWorkflowSchema = createSelectSchema(workflows);
+
+export const insertEpisodeSchema = createInsertSchema(projectEpisodes);
+export const selectEpisodeSchema = createSelectSchema(projectEpisodes);
+
+export const insertProcedureSchema = createInsertSchema(projectProcedures);
+export const selectProcedureSchema = createSelectSchema(projectProcedures);
+
+export const insertStateFactSchema = createInsertSchema(conversationStateFacts);
+export const selectStateFactSchema = createSelectSchema(conversationStateFacts);
+
+// ============================================================================
+// Type Exports
+// ============================================================================
+
+export type LtmUser = typeof ltmUsers.$inferSelect;
+export type InsertLtmUser = typeof ltmUsers.$inferInsert;
+
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = typeof projects.$inferInsert;
+
+export type Session = typeof sessions.$inferSelect;
+export type InsertSession = typeof sessions.$inferInsert;
+
+export type ConversationMessage = typeof conversationMessages.$inferSelect;
+export type InsertConversationMessage = typeof conversationMessages.$inferInsert;
+
+export type UserPreference = typeof userPreferences.$inferSelect;
+export type InsertUserPreference = typeof userPreferences.$inferInsert;
+
+export type CorrectionLogEntry = typeof correctionLog.$inferSelect;
+export type InsertCorrectionLog = typeof correctionLog.$inferInsert;
+
+export type ProjectKnowledgeEntry = typeof projectKnowledge.$inferSelect;
+export type InsertProjectKnowledge = typeof projectKnowledge.$inferInsert;
+
+export type Workflow = typeof workflows.$inferSelect;
+export type InsertWorkflow = typeof workflows.$inferInsert;
+
+export type ProjectEpisode = typeof projectEpisodes.$inferSelect;
+export type InsertProjectEpisode = typeof projectEpisodes.$inferInsert;
+
+export type ProjectProcedure = typeof projectProcedures.$inferSelect;
+export type InsertProjectProcedure = typeof projectProcedures.$inferInsert;
+
+export type ConversationStateFact = typeof conversationStateFacts.$inferSelect;
+export type InsertConversationStateFact = typeof conversationStateFacts.$inferInsert;

@@ -36,20 +36,47 @@ from ..core.quota_enforcer import ensure_quota_set
 
 log = logging.getLogger(__name__)
 
-INTERNAL_API_KEY    = os.environ.get("BILLING_INTERNAL_KEY", os.environ.get("BILLING_API_KEY", "change-me"))
-if INTERNAL_API_KEY == "change-me":
-    log.warning(
-        "BILLING_INTERNAL_KEY is not set — internal billing endpoints are using the insecure "
-        "default key. Set BILLING_INTERNAL_KEY in production."
-    )
-LAGO_WEBHOOK_SECRET = os.environ.get("LAGO_WEBHOOK_SECRET", "")
+# Environment configuration
+_ALLOW_INSECURE_DEV_MODE = os.environ.get("BILLING_DEV_MODE", "").lower() == "true"
+
+# CRITICAL: These secrets MUST be set in production
+# Set BILLING_DEV_MODE=true to allow local development without secrets
+INTERNAL_API_KEY = os.environ.get("BILLING_INTERNAL_KEY") or os.environ.get("BILLING_API_KEY")
+if not INTERNAL_API_KEY:
+    if _ALLOW_INSECURE_DEV_MODE:
+        INTERNAL_API_KEY = "dev-insecure-key"
+        log.warning("BILLING_DEV_MODE enabled: using insecure default INTERNAL_API_KEY")
+    else:
+        raise RuntimeError(
+            "BILLING_INTERNAL_KEY environment variable is required. "
+            "Set it to a strong random key (e.g., openssl rand -base64 32). "
+            "For local development only, set BILLING_DEV_MODE=true to bypass this check."
+        )
+
+LAGO_WEBHOOK_SECRET = os.environ.get("LAGO_WEBHOOK_SECRET")
 if not LAGO_WEBHOOK_SECRET:
-    log.warning(
-        "LAGO_WEBHOOK_SECRET is not set — Lago webhook signature verification is disabled. "
-        "Any caller can trigger subscription/invoice events. Set LAGO_WEBHOOK_SECRET in production."
-    )
-_JWT_SECRET         = os.environ.get("JWT_SECRET", "")
-_JWT_ALGORITHM      = "HS256"
+    if _ALLOW_INSECURE_DEV_MODE:
+        LAGO_WEBHOOK_SECRET = "dev-insecure-webhook-secret"
+        log.warning("BILLING_DEV_MODE enabled: using insecure default LAGO_WEBHOOK_SECRET")
+    else:
+        raise RuntimeError(
+            "LAGO_WEBHOOK_SECRET environment variable is required for webhook signature verification. "
+            "Get this from your Lago account settings. "
+            "For local development only, set BILLING_DEV_MODE=true to bypass this check."
+        )
+
+_JWT_SECRET = os.environ.get("JWT_SECRET")
+if not _JWT_SECRET:
+    if _ALLOW_INSECURE_DEV_MODE:
+        _JWT_SECRET = "dev-insecure-jwt-secret"
+        log.warning("BILLING_DEV_MODE enabled: JWT validation disabled")
+    else:
+        raise RuntimeError(
+            "JWT_SECRET environment variable is required for user authentication. "
+            "This should match the secret used by your auth service. "
+            "For local development only, set BILLING_DEV_MODE=true to bypass this check."
+        )
+_JWT_ALGORITHM = "HS256"
 
 router    = APIRouter()
 calculator = CostCalculator()
@@ -69,10 +96,12 @@ def current_user_id(authorization: str = Header(...)) -> str:
     Decodes the Bearer JWT produced by AuthService._create_jwt_token().
     Token payload: {'user_id': int, 'email': str, 'exp': ..., 'iat': ...}
     Returns user_id as a string so it matches the Redis key schema.
+
+    In BILLING_DEV_MODE, accepts raw user_id strings without JWT validation.
     """
     token = authorization.removeprefix("Bearer ").strip()
-    if not _JWT_SECRET:
-        # Dev fallback: accept raw user_id strings when JWT_SECRET is not set
+    if _ALLOW_INSECURE_DEV_MODE:
+        # Dev fallback: accept raw user_id strings when in dev mode
         if not token:
             raise HTTPException(status_code=401, detail="Empty user_id")
         return token
