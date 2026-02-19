@@ -101,7 +101,9 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
             log.info(f"[DEBUG] Got app: {app}")
 
             log.info("[DEBUG] Getting enable_ai_assistant config...")
-            ai_enabled = getattr(app.config, 'enable_ai_assistant', False)
+            # Check environment variable directly as fallback
+            import os
+            ai_enabled = getattr(app.config, 'enable_ai_assistant', os.environ.get('GALAXY_CONFIG_ENABLE_AI_ASSISTANT', 'false').lower() == 'true')
             log.info(f"[DEBUG] enable_ai_assistant config value: {ai_enabled}")
 
             if not ai_enabled:
@@ -112,7 +114,10 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
             log.info("[DEBUG] Importing configure_ai_assistant...")
             from galaxy.config.ai_config import configure_ai_assistant
             log.info("[DEBUG] Calling configure_ai_assistant...")
-            ai_config = configure_ai_assistant(app.config.__dict__, app.config.config_dir)
+            # Explicitly set enable_ai_assistant in config_dict
+            config_dict = dict(app.config.__dict__)
+            config_dict['enable_ai_assistant'] = True
+            ai_config = configure_ai_assistant(config_dict, app.config.config_dir)
             log.info(f"[DEBUG] configure_ai_assistant returned: {ai_config}")
 
             if not ai_config:
@@ -1182,6 +1187,35 @@ def start_pilot_run(
             parameters_normalized=True,
             allow_tool_state_corrections=True
         )
+
+        # [NEW] Run test harness validation before invoking workflow
+        from galaxy.jobs.harness_factory import get_harness_for_workflow
+
+        # Get workflow file path if available (for test harness)
+        workflow_path = None
+        # TODO: Extract workflow path from stored_workflow if available
+
+        # Create harness and run pre-execution validation
+        harness = None
+        if workflow_path:
+            harness = get_harness_for_workflow(
+                workflow_path=str(workflow_path),
+                parameters=request.parameters or {},
+                app=trans.app,
+                enable_pilot=True,
+                max_pilot_retries=2
+            )
+
+            if harness:
+                log.info(f"[Pilot] Running pre-execution validation with {harness.__class__.__name__}")
+                validation_report = harness.validate_pre_execution()
+
+                if not validation_report.validation_passed:
+                    log.warning(f"[Pilot] Pre-execution validation failed: {validation_report.checks}")
+                    # Continue anyway but log the issues
+                    for check in validation_report.checks:
+                        if check.status == "failed":
+                            log.error(f"  - {check.check_name}: {check.message}")
 
         # Get workflow and invoke
         stored_workflow = workflows_manager.get_stored_workflow(trans, galaxy_workflow_id, by_stored_id=True)
