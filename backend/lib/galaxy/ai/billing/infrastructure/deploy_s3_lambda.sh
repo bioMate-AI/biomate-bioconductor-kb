@@ -117,7 +117,7 @@ cd "$(dirname "$0")/../lambda"
 rm -rf package lambda_package_s3.zip
 mkdir -p package
 
-pip install -r requirements.txt -t package/ --quiet
+pip install -r 20260219_1545_lambda_requirements.txt -t package/ --quiet
 cp s3_event_handler.py package/
 
 cd package

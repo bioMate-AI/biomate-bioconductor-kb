@@ -60,7 +60,7 @@ rm -rf package lambda_package.zip
 mkdir -p package
 
 # Install dependencies to package/
-pip install -r requirements.txt -t package/ --quiet
+pip install -r 20260219_1545_lambda_requirements.txt -t package/ --quiet
 
 # Copy handler code
 cp batch_event_handler.py package/
