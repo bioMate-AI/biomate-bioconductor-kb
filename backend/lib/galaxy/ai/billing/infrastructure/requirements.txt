@@ -1,0 +1,8 @@
+# Lambda function dependencies for billing event handlers
+# Used by both batch_event_handler.py and s3_event_handler.py
+
+# HTTP client for calling billing API
+httpx==0.28.1
+
+# Redis client for heartbeat timestamps and health monitoring
+redis==5.0.0
