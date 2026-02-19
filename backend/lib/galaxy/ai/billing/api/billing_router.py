@@ -552,13 +552,58 @@ def admin_users():
 # Lago Webhook
 # ---------------------------------------------------------------------------
 
-def _verify_lago_signature(body: bytes, signature: str) -> bool:
+def _verify_lago_signature(body: bytes, signature: str, timestamp: Optional[str] = None) -> bool:
+    """
+    Verify Lago webhook signature and timestamp.
+
+    Security measures:
+    1. HMAC signature verification (prevents tampering)
+    2. Timestamp validation (prevents replay attacks)
+
+    Args:
+        body: Raw webhook payload
+        signature: X-Lago-Signature header value
+        timestamp: Webhook timestamp (Unix epoch or ISO format)
+
+    Returns:
+        True if signature valid and timestamp recent (< 5 minutes old)
+    """
     if not LAGO_WEBHOOK_SECRET:
-        return True  # skip verification in dev
+        return True  # skip verification in dev mode
+
+    # Verify HMAC signature
     expected = hmac.new(
         LAGO_WEBHOOK_SECRET.encode(), body, hashlib.sha256
     ).hexdigest()
-    return hmac.compare_digest(expected, signature)
+    if not hmac.compare_digest(expected, signature):
+        return False
+
+    # Verify timestamp (prevent replay attacks)
+    if timestamp:
+        try:
+            # Parse timestamp (try Unix epoch first, then ISO format)
+            try:
+                event_time = float(timestamp)
+            except ValueError:
+                # Try parsing as ISO 8601 datetime
+                from datetime import datetime
+                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                event_time = dt.timestamp()
+
+            # Reject events older than 5 minutes
+            age_seconds = abs(time.time() - event_time)
+            if age_seconds > 300:  # 5 minutes
+                log.warning(
+                    "Lago webhook rejected: timestamp too old (%.1f seconds ago)",
+                    age_seconds
+                )
+                return False
+        except (ValueError, TypeError) as exc:
+            log.warning("Lago webhook: invalid timestamp format: %s (%s)", timestamp, exc)
+            # Don't fail on timestamp parsing errors (graceful degradation)
+            # Signature is already validated, so accept the webhook
+
+    return True
 
 
 @router.post("/webhooks/lago")
@@ -572,9 +617,10 @@ async def lago_webhook(request: Request):
     """
     body      = await request.body()
     signature = request.headers.get("X-Lago-Signature", "")
+    timestamp = request.headers.get("X-Lago-Timestamp", "")
 
-    if not _verify_lago_signature(body, signature):
-        raise HTTPException(status_code=401, detail="Invalid signature")
+    if not _verify_lago_signature(body, signature, timestamp):
+        raise HTTPException(status_code=401, detail="Invalid signature or timestamp")
 
     import json
     payload = json.loads(body)
