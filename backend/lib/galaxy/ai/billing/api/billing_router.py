@@ -463,12 +463,39 @@ def admin_health():
     r   = svc._r
     month = _month_key()
 
-    # Redis
+    # Redis connectivity and connection pool health
     try:
         r.ping()
         redis_status = "ok"
+
+        # Connection pool monitoring
+        pool = r.connection_pool
+        pool_stats = {
+            "max_connections": pool.max_connections,
+            "created_connections": len(pool._created_connections) if hasattr(pool, '_created_connections') else None,
+            "available_connections": len(pool._available_connections) if hasattr(pool, '_available_connections') else None,
+            "in_use_connections": len(pool._in_use_connections) if hasattr(pool, '_in_use_connections') else None,
+        }
+
+        # Calculate pool utilization
+        if pool_stats["in_use_connections"] is not None and pool_stats["max_connections"]:
+            utilization_pct = (pool_stats["in_use_connections"] / pool_stats["max_connections"]) * 100
+            pool_stats["utilization_percent"] = round(utilization_pct, 1)
+
+            # Warn if pool utilization is high
+            if utilization_pct > 80:
+                log.warning(
+                    "Redis connection pool utilization high: %.1f%% (%d/%d connections)",
+                    utilization_pct,
+                    pool_stats["in_use_connections"],
+                    pool_stats["max_connections"]
+                )
+        else:
+            pool_stats["utilization_percent"] = None
+
     except Exception as exc:
         redis_status = f"error: {exc}"
+        pool_stats = None
 
     # Active in-flight Batch jobs
     try:
@@ -515,6 +542,8 @@ def admin_health():
     }
     if last_age is not None:
         result["last_batch_event_age_sec"] = last_age
+    if pool_stats is not None:
+        result["redis_connection_pool"] = pool_stats
     return result
 
 

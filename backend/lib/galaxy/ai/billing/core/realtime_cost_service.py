@@ -56,6 +56,7 @@ class RealtimeCostService:
         self._r = redis.from_url(redis_url, decode_responses=True)
         self._running_jobs: dict[str, dict] = {}   # job_id → metadata
         self._lock = threading.Lock()
+        self._pool_check_counter = 0  # Check pool health every N poll cycles
         self._poller = threading.Thread(target=self._poll_running_jobs, daemon=True)
         self._poller.start()
 
@@ -233,10 +234,50 @@ class RealtimeCostService:
         with self._lock:
             self._running_jobs[job_id] = meta
 
+    def _check_connection_pool_health(self) -> None:
+        """
+        Monitor Redis connection pool health and log warnings if utilization is high.
+        Called periodically from the polling thread.
+        """
+        try:
+            pool = self._r.connection_pool
+            max_conn = pool.max_connections
+
+            # Get current pool stats
+            in_use = len(pool._in_use_connections) if hasattr(pool, '_in_use_connections') else 0
+
+            if max_conn and in_use:
+                utilization_pct = (in_use / max_conn) * 100
+
+                # Log warning if utilization exceeds 80%
+                if utilization_pct > 80:
+                    log.warning(
+                        "Redis connection pool utilization high: %.1f%% (%d/%d connections in use)",
+                        utilization_pct,
+                        in_use,
+                        max_conn
+                    )
+                # Log info at 60% threshold for early awareness
+                elif utilization_pct > 60:
+                    log.info(
+                        "Redis connection pool utilization elevated: %.1f%% (%d/%d connections)",
+                        utilization_pct,
+                        in_use,
+                        max_conn
+                    )
+        except Exception as exc:
+            log.debug("Connection pool health check failed: %s", exc)
+
     def _poll_running_jobs(self) -> None:
         """Background thread: refresh running-job cost estimates."""
         while True:
             try:
+                # Check connection pool health every 6 cycles (60 seconds)
+                self._pool_check_counter += 1
+                if self._pool_check_counter >= 6:
+                    self._check_connection_pool_health()
+                    self._pool_check_counter = 0
+
                 with self._lock:
                     jobs = dict(self._running_jobs)
                 now_ms = int(time.time() * 1000)
