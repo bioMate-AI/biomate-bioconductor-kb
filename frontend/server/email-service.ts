@@ -465,6 +465,116 @@ class EmailService {
     });
   }
 
+
+  async sendPaymentFailedEmail(
+    email: string,
+    userName: string,
+    amountDue: string,     // e.g. "$20.00"
+    nextAttemptDate: string, // e.g. "March 5, 2026"
+    updateUrl: string,
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #DC2626; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
+          .button { display: inline-block; padding: 12px 30px; background-color: #DC2626; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
+          .warning { background-color: #FEF3C7; padding: 15px; border-left: 4px solid #F59E0B; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header"><h1>Payment Failed</h1></div>
+          <div class="content">
+            <h2>Hi ${userName},</h2>
+            <p>We were unable to process your BioMate subscription payment of <strong>${amountDue}</strong>.</p>
+            <div class="warning">
+              <strong>Action required:</strong> Please update your payment method to keep your account active.
+              We will retry on <strong>${nextAttemptDate}</strong>.
+            </div>
+            <p><a href="${updateUrl}" class="button">Update Payment Method</a></p>
+            <p>Or copy and paste this link: <span style="color:#DC2626;">${updateUrl}</span></p>
+            <p>If you continue to experience issues, contact support at support@biomate.dev</p>
+          </div>
+          <div class="footer"><p>© 2026 BioMate. All rights reserved.</p></div>
+        </div>
+      </body>
+      </html>
+    `;
+    return this.sendEmail({
+      to: email,
+      subject: 'Action Required: BioMate Payment Failed',
+      html,
+      text: `Payment Failed\n\nHi ${userName},\n\nWe could not process your payment of ${amountDue}.\nUpdate your payment method: ${updateUrl}\nWe will retry on ${nextAttemptDate}.\n\nContact support@biomate.dev if you need help.`,
+    });
+  }
+
+  async sendQuotaWarningEmail(
+    email: string,
+    userName: string,
+    pct: number,           // e.g. 80 or 100
+    usedUsd: string,       // e.g. "$24.00"
+    quotaUsd: string,      // e.g. "$30.00"
+    addCreditsUrl: string,
+  ): Promise<boolean> {
+    const exceeded = pct >= 100;
+    const color = exceeded ? '#DC2626' : '#F59E0B';
+    const subject = exceeded
+      ? 'Your BioMate quota is exhausted — jobs paused'
+      : `BioMate: you've used ${pct}% of your monthly quota`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: ${color}; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 5px 5px; }
+          .button { display: inline-block; padding: 12px 30px; background-color: ${color}; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { margin-top: 20px; font-size: 12px; color: #666; text-align: center; }
+          .meter { background: #E5E7EB; border-radius: 999px; height: 12px; margin: 10px 0; }
+          .fill { background: ${color}; border-radius: 999px; height: 12px; width: ${Math.min(pct, 100)}%; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${exceeded ? 'Quota Exhausted' : `${pct}% Quota Used`}</h1>
+          </div>
+          <div class="content">
+            <h2>Hi ${userName},</h2>
+            <p>${exceeded
+              ? 'You have used all of your BioMate monthly compute quota. <strong>New workflow jobs are currently paused.</strong>'
+              : `You have used <strong>${pct}%</strong> (${usedUsd}) of your <strong>${quotaUsd}</strong> monthly BioMate quota.`
+            }</p>
+            <div class="meter"><div class="fill"></div></div>
+            <p style="font-size:13px;color:#666;">${usedUsd} used of ${quotaUsd} limit</p>
+            <p>Add more credits to ${exceeded ? 'resume' : 'continue running'} your workflows without interruption.</p>
+            <p><a href="${addCreditsUrl}" class="button">Add Credits Now</a></p>
+            <p style="font-size:13px;color:#666;">You can also upgrade your plan for a higher monthly quota.</p>
+          </div>
+          <div class="footer">
+            <p>© 2026 BioMate. All rights reserved.</p>
+            <p><a href="${this.appUrl}/billing">Manage billing</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    return this.sendEmail({
+      to: email,
+      subject,
+      html,
+      text: `${subject}\n\nHi ${userName},\n\n${usedUsd} used of ${quotaUsd} quota (${pct}%).\nAdd credits: ${addCreditsUrl}\n\n© 2026 BioMate.`,
+    });
+  }
+
   async testConnection(): Promise<boolean> {
     if (!this.transporter) {
       return false;

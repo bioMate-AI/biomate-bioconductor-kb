@@ -38,6 +38,10 @@ import passport from "passport";
 import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
 import { auditService, auditMiddleware } from "./audit-service";
+import { emailService } from "./email-service";
+import { db } from "./db";
+import { users } from "../shared/schema";
+import { eq } from "drizzle-orm";
 import { conversationStateManager, createEmptyState, type ConversationState } from "./conversation-state";
 
 // Initialize OpenAI (optional for development)
@@ -107,7 +111,7 @@ function getWorkflowExecutionEngine(workflowDef: any): 'galaxy' | 'nextflow' {
 }
 
 // Initialize workflow notification service for email notifications
-const workflowNotificationService = createWorkflowNotificationService(galaxyPoller, storage);
+const workflowNotificationService = createWorkflowNotificationService(galaxyPoller, storage as any);
 
 // Listen for workflow completion to update bioMate invocation records
 galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; state: string }) => {
@@ -115,12 +119,13 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
     // Update legacy invocation record
     const invocation = await storage.getInvocationByGalaxyId(data.invocation_id);
     if (invocation) {
-      const finalStatus = data.state === 'ok' || data.state === 'scheduled' ? 'ok' : 'error';
+      // Legacy Invocation Status: 'ok' | 'error' | 'running' | ...
+      const invocationStatus = data.state === 'ok' || data.state === 'scheduled' ? 'ok' : 'error';
 
       // Retrieve outputs from Galaxy for the invocation record
       let outputDatasets: any[] = [];
       let totalOutputSize = 0;
-      if (finalStatus === 'ok' && invocation.galaxyHistoryId) {
+      if (invocationStatus === 'ok' && invocation.galaxyHistoryId) {
         try {
           // Get the actual history_id from Galaxy invocation (may differ from stored)
           const galaxyInvocation = await galaxyAPIProxy.getInvocation(
@@ -172,7 +177,7 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
       }
 
       await storage.updateInvocation(invocation.id, {
-        status: finalStatus,
+        status: invocationStatus,
         completedAt: new Date(),
         completedSteps: invocation.totalSteps,
         outputDatasets,
@@ -185,26 +190,34 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
     // CRITICAL FIX: Also update execution run records
     const executionRun = await storage.getExecutionRunByGalaxyId(data.invocation_id);
     if (executionRun) {
-      const finalStatus = data.state === 'ok' || data.state === 'scheduled' ? 'ok' : 'error';
-      await storage.updateExecutionRunStatus(executionRun.id, finalStatus as any);
-      // Update progress to 100%
+      // Execution Run Status: 'completed' | 'failed' | 'cancelled'
+      let runStatus: 'completed' | 'failed' | 'cancelled' = 'failed';
+      if (data.state === 'ok' || data.state === 'scheduled') {
+        runStatus = 'completed';
+      } else if (data.state === 'cancelled') {
+        runStatus = 'cancelled';
+      }
+
+      await storage.updateExecutionRunStatus(executionRun.id, runStatus);
+      // Update progress to 100% — completedSteps == totalSteps, currentStepIndex == totalSteps - 1
+      const totalSteps = executionRun.progress.totalSteps || 1;
       await storage.updateExecutionRunProgress(
         executionRun.id,
-        executionRun.progress.totalSteps,
-        executionRun.progress.totalSteps - 1,
+        totalSteps,         // completedSteps = all done
+        totalSteps - 1,     // currentStepIndex = last step (0-indexed)
         'Complete'
       );
-      console.log(`[WorkflowComplete] Updated execution run ${executionRun.id} to ${finalStatus}`);
+      console.log(`[WorkflowComplete] Updated execution run ${executionRun.id} to ${runStatus}`);
 
       // CRITICAL FIX: Retrieve and store workflow outputs from Galaxy
-      if (finalStatus === 'ok' && executionRun.execution.galaxyWorkflowId) {
+      if (runStatus === 'completed' && executionRun.execution.galaxyWorkflowId) {
         try {
           // Get the actual history_id from the Galaxy invocation (may differ from what we requested)
           const galaxyInvocation = await galaxyAPIProxy.getInvocation(
             executionRun.execution.galaxyWorkflowId,
             data.invocation_id
           );
-          const actualHistoryId = galaxyInvocation.history_id || executionRun.execution.galaxyHistoryId;
+          const actualHistoryId = galaxyInvocation.history_id || executionRun.execution.galaxyHistoryId || '';
           console.log(`[WorkflowComplete] Using actual history_id: ${actualHistoryId} (stored: ${executionRun.execution.galaxyHistoryId})`);
 
           const historyContents = await galaxyAPIProxy.getHistoryContents(actualHistoryId);
@@ -436,6 +449,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         error: error.message || 'Registration failed',
       });
+    }
+  });
+
+  // Start free trial: create Stripe checkout session with 7-day trial
+  // Called after account creation to collect payment method without charging
+  app.post("/api/auth/start-trial", authenticateToken, async (req, res) => {
+    try {
+      if (!stripeService.isConfigured()) {
+        // Dev mode: skip Stripe, just redirect to dashboard
+        return res.json({ success: true, url: null, devMode: true });
+      }
+      const { returnUrl } = req.body;
+      const priceId = process.env.STRIPE_PRICE_ACADEMIC_MONTHLY;
+      if (!priceId) {
+        return res.status(400).json({ error: 'No plan price configured. Set STRIPE_PRICE_ACADEMIC_MONTHLY.' });
+      }
+      const session = await stripeService.createTrialCheckoutSession(
+        req.user!.id,
+        priceId,
+        returnUrl || `${process.env.APP_URL || 'http://localhost:5000'}/dashboard`,
+      );
+      res.json({ success: true, sessionId: session.id, url: session.url });
+    } catch (error: any) {
+      console.error('[Auth] start-trial error:', error);
+      res.status(500).json({ error: 'Failed to create trial session', message: error.message });
+    }
+  });
+
+  // Internal quota notification: called by Python billing service to trigger emails
+  app.post("/internal/notify/quota", async (req, res) => {
+    const key = req.headers['x-internal-key'] as string;
+    const internalKey = process.env.BILLING_INTERNAL_KEY || 'change-me';
+    if (key !== internalKey) return res.status(403).json({ error: 'Forbidden' });
+
+    try {
+      const { user_id, pct, used_usd, quota_usd } = req.body as {
+        user_id: string; pct: number; used_usd: number; quota_usd: number;
+      };
+      // Look up user email
+      const [user] = await db.select().from(users).where(eq(users.id, user_id)).limit(1);
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      const addCreditsUrl = `${process.env.APP_URL || 'http://localhost:5000'}/billing`;
+      await emailService.sendQuotaWarningEmail(
+        user.email,
+        user.fullName ?? user.email,
+        Math.round(pct),
+        `$${used_usd.toFixed(2)}`,
+        `$${quota_usd.toFixed(2)}`,
+        addCreditsUrl,
+      );
+      console.log(`[Notify] Quota warning email sent to ${user.email} (${pct.toFixed(1)}%)`);
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('[Notify] quota email error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Internal: Python backend pushes QC gate events for immediate SSE delivery.
+  // Without this, events are only delivered on the next 2s polling cycle.
+  app.post("/internal/qc-gate-event", (req, res) => {
+    const key = req.headers['x-internal-key'] as string;
+    const internalKey = process.env.BILLING_INTERNAL_KEY || 'change-me';
+    if (key !== internalKey) return res.status(403).json({ error: 'Forbidden' });
+
+    try {
+      const { invocation_id, event_type, data } = req.body as {
+        invocation_id: string;
+        event_type: string;
+        data: any;
+      };
+      if (!invocation_id || !event_type) {
+        return res.status(400).json({ error: 'invocation_id and event_type required' });
+      }
+      sseManager.broadcastEvent(invocation_id, event_type, data ?? {});
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('[QC push] Error broadcasting event:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -976,6 +1069,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'Failed to cancel subscription',
         message: error.message,
       });
+    }
+  });
+
+  // One-time credit top-up
+  app.post("/api/payments/add-credits", authenticateToken, async (req, res) => {
+    try {
+      if (!stripeService.isConfigured()) {
+        return res.status(503).json({ error: 'Payment system not configured' });
+      }
+      const { amountCents, returnUrl } = req.body;
+      const cents = Number(amountCents);
+      if (!cents || cents < 100) {
+        return res.status(400).json({ error: 'amountCents must be >= 100' });
+      }
+      const session = await stripeService.createCreditTopupSession(
+        req.user!.id, cents, returnUrl,
+      );
+      res.json({ success: true, sessionId: session.id, url: session.url });
+    } catch (error: any) {
+      console.error('[Payments] Credit top-up error:', error);
+      res.status(500).json({ error: 'Failed to create top-up session', message: error.message });
     }
   });
 
@@ -1657,7 +1771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (req as any).user?.id || null,
         invocation.id,
         workflow_id,
-        invocation.history_id
+        invocation.history_id || ''
       );
 
       // Create local invocation record for Workflow History panel
@@ -1677,7 +1791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           workflowId: workflow_id,
           workflowName: workflowName,
           userId: (req as any).user?.id || 'anonymous',
-          status: invocation.state || 'new',
+          status: (invocation.state === 'failed' || invocation.state === 'cancelled' ? 'error' : invocation.state || 'new') as 'new' | 'queued' | 'running' | 'ok' | 'error' | 'paused' | 'deleted',
           totalSteps: invocation.steps?.length || 0,
           completedSteps: 0,
           createdAt: new Date(),
@@ -1855,8 +1969,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     sseManager.handleConnection(req, res);
   });
 
+  // SSE endpoint for QC gate events - used by workflow-artifact.tsx
+  // Accepts connections with only invocationId (no workflowId required)
+  app.get("/api/workflows/:invocationId/events", (req, res) => {
+    sseManager.handleConnectionByInvocationId(req, res);
+  });
+
+  // Proxy for QC gate endpoints — frontend POSTs to /api/qc-gates/:id/decision
+  // which must be forwarded to the Galaxy backend. No dedicated route existed before.
+  app.all("/api/qc-gates/*", async (req: any, res: any) => {
+    try {
+      const path = req.path;
+      const method = req.method.toLowerCase();
+      let response: any;
+      if (method === 'get') {
+        response = await galaxyAPIProxy.client.get(path, { params: req.query });
+      } else if (method === 'post') {
+        response = await galaxyAPIProxy.client.post(path, req.body);
+      } else if (method === 'patch') {
+        response = await (galaxyAPIProxy.client as any).patch(path, req.body);
+      } else {
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+      return res.status(response.status).json(response.data);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json(err.response?.data || { error: 'QC gate proxy error' });
+    }
+  });
+
   // Chat endpoint with Galaxy Assistant integration
-  app.post("/api/chat", async (req, res) => {
+  app.post("/api/chat", optionalAuth, async (req, res) => {
     const requestStartTime = Date.now();
     const timings: { step: string; elapsed: number }[] = [];
     const addTiming = (step: string) => {
@@ -1917,6 +2060,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               value: f.value,
             }))
           : undefined,
+        // Billing: pass authenticated user id so the Python backend can track LLM costs
+        billingUserId: req.user ? String(req.user.id) : undefined,
       };
 
       addTiming('Starting AI processing');
@@ -3279,7 +3424,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user?.id,
         workflowName: invocationData.workflowName,
         workflowDefinition: invocationData.workflowDefinition,
-        executionEngine: invocationData.executionEngine || 'nextflow',
         galaxyInvocationId: invocationData.galaxyInvocationId,
         galaxyHistoryId: invocationData.galaxyHistoryId,
         galaxyWorkflowId: invocationData.galaxyWorkflowId,
@@ -3416,6 +3560,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Invocation Nextflow] Error fetching status:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Validate Nextflow compute configuration (proxies to Galaxy backend)
+  app.post("/api/nextflow/validate-compute", async (req, res) => {
+    try {
+      const GALAXY_URL = process.env.GALAXY_URL || 'http://localhost:8081';
+      const GALAXY_API_KEY = process.env.GALAXY_API_KEY || '';
+      const response = await fetch(`${GALAXY_URL}/api/nextflow/validate-compute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': GALAXY_API_KEY,
+        },
+        body: JSON.stringify(req.body),
+      });
+      const data = await response.json();
+      res.status(response.ok ? 200 : 400).json(data);
+    } catch (error: any) {
+      console.error("[Compute Validate] Error:", error);
+      res.status(500).json({ ok: false, error: error.message });
     }
   });
 
@@ -3940,7 +4105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Validate inputs are provided if workflow has input steps
-      const inputs = request.inputs || [];
+      const inputs = Array.isArray(request.inputs) ? request.inputs : [];
       if (inputSteps.length > 0 && inputs.length === 0) {
         return res.status(400).json({
           error: "inputs_required",
@@ -4012,7 +4177,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Create workflow in Galaxy
+      // ==================== NEXTFLOW DIRECT EXECUTION ====================
+      // Check if this is a DIRECT Nextflow workflow (new format from NextflowWorkflowGenerator)
+      if (request.workflowDefinition.workflow_type === 'nextflow') {
+        console.log('[Nextflow Direct] Detected workflow_type=nextflow');
+        console.log('[Nextflow Direct] Path:', request.workflowDefinition.nextflow_path);
+        console.log('[Nextflow Direct] Parameters:', request.workflowDefinition.parameters);
+
+        try {
+          // Call /api/nextflow/execute directly — backend creates its own tracking
+          // workflow and invocation internally. No need to pre-create them in Galaxy.
+          console.log('[Nextflow Direct] Executing workflow via /api/nextflow/execute...');
+
+          const nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': process.env.GALAXY_API_KEY || '',
+            },
+            body: JSON.stringify({
+              history_id: galaxyHistoryId,
+              nextflow_path: request.workflowDefinition.nextflow_path,
+              parameters: request.workflowDefinition.parameters || {},
+              billing_user_id: req.user?.id,
+              profile: request.executionConfig?.nextflow_profile || 'standard',
+              // Forward user compute config (from frontend settings → executionConfig)
+              compute_config: request.executionConfig?.computeConfig
+                ? {
+                    executor: request.executionConfig.computeConfig.executor || 'local',
+                    local_output_dir: request.executionConfig.computeConfig.localOutputDir || null,
+                    slurm_partition: request.executionConfig.computeConfig.slurmPartition || null,
+                    slurm_qos: request.executionConfig.computeConfig.slurmQos || null,
+                    slurm_account: request.executionConfig.computeConfig.slurmAccount || null,
+                    aws_region: request.executionConfig.computeConfig.awsRegion || null,
+                    aws_s3_bucket: request.executionConfig.computeConfig.awsS3Bucket || null,
+                    aws_access_key_id: request.executionConfig.computeConfig.awsAccessKeyId || null,
+                    aws_secret_access_key: request.executionConfig.computeConfig.awsSecretAccessKey || null,
+                    aws_batch_queue: request.executionConfig.computeConfig.awsBatchQueue || null,
+                  }
+                : undefined,
+            })
+          });
+
+          if (!nextflowResponse.ok) {
+            const errBody = await nextflowResponse.text().catch(() => nextflowResponse.statusText);
+            throw new Error(`Nextflow execution failed (${nextflowResponse.status}): ${errBody}`);
+          }
+
+          const nextflowData = await nextflowResponse.json();
+          console.log('[Nextflow Direct] Execution result:', nextflowData);
+
+          // The backend returns invocation_id it created internally
+          const backendInvocationId = nextflowData.invocation_id || nextflowData.run_id || '';
+
+          // Update execution run with backend-returned tracking IDs
+          await storage.updateExecutionRun(executionRun.id, {
+            execution: {
+              ...executionRun.execution,
+              galaxyInvocationId: backendInvocationId,
+              galaxyHistoryId: galaxyHistoryId,
+              status: nextflowData.success ? 'running' : 'failed',
+              startedAt: new Date(),
+              executionEngine: 'nextflow',
+              nextflowRunId: nextflowData.run_id,
+              nextflowOutputDir: nextflowData.outputs?.outdir
+            }
+          });
+
+          // Start polling for status updates using backend invocation ID
+          if (backendInvocationId) {
+            galaxyPoller.startPolling(backendInvocationId, '');
+          }
+
+          // Create legacy invocation record
+          await storage.createInvocation({
+            userId: req.user?.id,
+            workflowName: executionRun.workflowName,
+            workflowDefinition: request.workflowDefinition,
+            galaxyInvocationId: backendInvocationId,
+            galaxyHistoryId: galaxyHistoryId,
+            galaxyWorkflowId: '',
+            inputDatasets: [],
+            totalSteps: executionRun.progress.totalSteps,
+            status: nextflowData.success ? 'ok' : 'error',
+          });
+
+          // Return success response
+          return res.json({
+            runId: executionRun.id,
+            galaxyInvocationId: backendInvocationId,
+            galaxyHistoryId: galaxyHistoryId,
+            executionEngine: 'nextflow',
+            nextflowRunId: nextflowData.run_id,
+            status: nextflowData.success ? 'running' : 'failed',
+            message: `Nextflow workflow queued (run_id: ${nextflowData.run_id})`,
+            outputs: nextflowData.outputs,
+            results: nextflowData.results
+          });
+
+        } catch (error) {
+          console.error('[Nextflow Direct] Execution error:', error);
+
+          if (executionRun) {
+            await storage.updateExecutionRun(executionRun.id, {
+              execution: {
+                ...executionRun.execution,
+                status: 'failed',
+                error: error instanceof Error ? error.message : String(error)
+              }
+            });
+          }
+
+          return res.status(500).json({
+            error: 'nextflow_execution_failed',
+            message: error instanceof Error ? error.message : String(error),
+            runId: executionRun?.id
+          });
+        }
+      }
+      // ==================== END NEXTFLOW DIRECT EXECUTION ====================
+
+      // Create workflow in Galaxy (for non-Nextflow workflows)
       const galaxyWorkflow = await galaxyAPIProxy.createWorkflow(workflowDefinitionForExecution);
       galaxyWorkflowId = galaxyWorkflow.id;
 
@@ -4060,7 +4345,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user?.id,
         workflowName: executionRun.workflowName,
         workflowDefinition: workflowDefinitionForExecution,
-        executionEngine,
         galaxyInvocationId: invocationResult.id,
         galaxyHistoryId: galaxyHistoryId,
         galaxyWorkflowId: galaxyWorkflow.id,
@@ -5097,18 +5381,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Include tool recommendations if present
       if (result.recommendedTools && result.recommendedTools.length > 0) {
         response.tools = result.recommendedTools.slice(0, 5).map(t => ({
-          name: t.name,
-          description: t.description?.substring(0, 200),
-          score: t.score
+          name: t.tool.name,
+          description: t.tool.description?.substring(0, 200),
+          score: t.relevanceScore
         }));
       }
 
       // Include workflow suggestion if present
       if (result.workflowSuggestion) {
         response.workflowSuggestion = {
-          name: result.workflowSuggestion.name,
-          description: result.workflowSuggestion.description,
-          stepCount: result.workflowSuggestion.steps?.length || 0
+          shouldGenerate: result.workflowSuggestion.shouldGenerate,
+          userIntent: result.workflowSuggestion.userIntent,
+          confidence: result.workflowSuggestion.confidence,
+          reasoning: result.workflowSuggestion.reasoning
         };
       }
 
@@ -5148,25 +5433,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/biomate/status/:invocationId", async (req, res) => {
     try {
       const { invocationId } = req.params;
-
-      // Try to get from Galaxy poller
-      const state = galaxyPoller.getInvocationState(invocationId);
+      const state = galaxyPoller.getState(invocationId);
 
       if (!state) {
         return res.status(404).json({
           error: 'NotFound',
-          message: 'Invocation not found'
+          message: 'Invocation not found or not being tracked'
         });
       }
 
-      res.json({
+      const totalSteps = state.steps.length;
+      const completedSteps = state.steps.filter(
+        (s: any) => s.state === 'ok' || s.state === 'error' || s.state === 'failed'
+      ).length;
+
+      return res.json({
         invocationId,
         state: state.state,
-        completedSteps: state.completedSteps,
-        totalSteps: state.totalSteps,
-        percentComplete: state.totalSteps > 0
-          ? Math.round((state.completedSteps / state.totalSteps) * 100)
-          : 0
+        completedSteps,
+        totalSteps,
+        percentComplete: totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0,
+        isPolling: galaxyPoller.isPolling(invocationId),
       });
 
     } catch (error: any) {
@@ -5174,6 +5461,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'InternalError',
         message: error.message || 'Failed to get status'
       });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Billing API proxy: forward /api/billing/* and /internal/billing/* to the
+  // Galaxy Python backend so the React frontend can reach the billing endpoints
+  // without needing a direct connection to port 8081.
+  // ---------------------------------------------------------------------------
+  const GALAXY_URL = process.env.GALAXY_URL || 'http://localhost:8081';
+
+  app.all("/api/billing/*", async (req, res) => {
+    try {
+      const target = `${GALAXY_URL}${req.path}${req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''}`;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      // Forward Authorization header if present (JWT from frontend localStorage)
+      const auth = req.headers["authorization"];
+      if (auth) headers["Authorization"] = auth as string;
+
+      const fetchInit: RequestInit = { method: req.method, headers };
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        fetchInit.body = JSON.stringify(req.body);
+      }
+
+      const upstream = await fetch(target, fetchInit);
+      res.status(upstream.status);
+      upstream.headers.forEach((v, k) => {
+        if (!["transfer-encoding", "connection"].includes(k)) res.setHeader(k, v);
+      });
+      const text = await upstream.text();
+      res.send(text);
+    } catch (err: any) {
+      res.status(502).json({ error: "BillingProxyError", message: err.message });
     }
   });
 

@@ -35,6 +35,7 @@ import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
 import ContactPage from "@/pages/contact";
 import DashboardPage from "@/pages/dashboard";
+import BillingPage from "@/pages/billing";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -87,6 +88,8 @@ function PublicPageLayout({ children }: { children: React.ReactNode }) {
     </>
   );
 }
+
+import NextflowDemoPage from "@/pages/nextflow-demo";
 
 // Authenticated pages wrapper with header
 function AuthenticatedPageLayout({ children }: { children: React.ReactNode }) {
@@ -272,10 +275,22 @@ function Router({
         </PublicPageLayout>
       </Route>
 
+      <Route path="/nextflow-demo">
+        <AuthenticatedPageLayout>
+          <NextflowDemoPage />
+        </AuthenticatedPageLayout>
+      </Route>
+
       {/* Authenticated pages */}
       <Route path="/dashboard">
         <AuthenticatedPageLayout>
           <DashboardPage />
+        </AuthenticatedPageLayout>
+      </Route>
+
+      <Route path="/billing">
+        <AuthenticatedPageLayout>
+          <BillingPage />
         </AuthenticatedPageLayout>
       </Route>
 

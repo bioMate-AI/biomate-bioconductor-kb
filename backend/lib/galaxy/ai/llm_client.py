@@ -6,6 +6,8 @@ Supports multiple LLM providers: OpenAI, Anthropic Claude, and local models.
 
 import json
 import logging
+import time
+import uuid
 import httpx
 from typing import Dict, Any, Optional
 from .config import AIConfig
@@ -13,16 +15,79 @@ from .config import AIConfig
 log = logging.getLogger(__name__)
 
 
+def _emit_llm_billing(
+    user_id: str,
+    session_id: str,
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    duration_ms: float,
+) -> None:
+    """Fire-and-forget billing emit after every successful Anthropic/OpenAI call."""
+    if not user_id or user_id in ("", "unknown"):
+        return
+    try:
+        from galaxy.ai.analytics.tracking_decorator import manual_track_call
+        manual_track_call(
+            session_id=session_id,
+            step_name="llm_generate",
+            scenario_name="ai_assistant",
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            duration_ms=duration_ms,
+            model_name=model,
+            success=True,
+        )
+    except Exception as exc:
+        log.debug("analytics track skipped: %s", exc)
+    try:
+        from galaxy.ai.billing.core.realtime_cost_service import get_cost_service
+        from galaxy.ai.billing.core.cost_calculator import CostCalculator
+        calc = CostCalculator()
+        cost = calc.llm_call_cost(
+            user_id=user_id,
+            session_id=session_id,
+            model=model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+        )
+        get_cost_service().record_llm_cost(
+            user_id=user_id,
+            input_usd=cost.input_cost,
+            output_usd=cost.output_cost,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+        )
+    except Exception as exc:
+        log.debug("billing Redis emit skipped: %s", exc)
+    try:
+        from galaxy.ai.billing.core.lago_client import get_lago_client
+        get_lago_client().emit_llm(
+            user_id=user_id,
+            session_id=session_id,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            model=model,
+        )
+    except Exception as exc:
+        log.debug("billing Lago emit skipped: %s", exc)
+
+
 class LLMClient:
     """Universal LLM client supporting multiple providers."""
-    
+
     def __init__(self, config: AIConfig):
         self.config = config
         self.provider = config.llm_provider.lower()
         self.model = config.llm_model
         self.api_key = config.llm_api_key
         self.base_url = config.llm_base_url
-        
+
+        # Billing context — set by callers that have a user in scope.
+        # All generate() calls will forward these to _emit_llm_billing automatically.
+        self.user_id: str = ""
+        self.session_id: str = str(uuid.uuid4())
+
         # Initialize provider-specific settings
         self._setup_provider()
         
@@ -86,6 +151,10 @@ class LLMClient:
     
     async def generate_async(self, prompt: str, **kwargs) -> str:
         """Generate response asynchronously with automatic fallback to Claude."""
+        # Inject billing context from instance unless caller already provided them
+        kwargs.setdefault("user_id",    self.user_id)
+        kwargs.setdefault("session_id", self.session_id)
+
         primary_error = None
 
         try:
@@ -207,6 +276,15 @@ class LLMClient:
             
             if response.status_code == 200:
                 result = response.json()
+                usage = result.get("usage", {})
+                _emit_llm_billing(
+                    user_id=kwargs.get("user_id", self.user_id),
+                    session_id=kwargs.get("session_id", ""),
+                    model=self.model,
+                    input_tokens=usage.get("prompt_tokens", 0),
+                    output_tokens=usage.get("completion_tokens", 0),
+                    duration_ms=0.0,
+                )
                 return result['choices'][0]['message']['content'].strip()
             else:
                 raise Exception(f"OpenAI API error: {response.status_code} {response.text}")
@@ -218,17 +296,18 @@ class LLMClient:
             "max_tokens": kwargs.get('max_tokens', 1000),
             "messages": [
                 {
-                    "role": "user", 
+                    "role": "user",
                     "content": f"You are a helpful bioinformatics assistant. {prompt}"
                 }
             ]
         }
-        
+
         # Add temperature if provided
         temperature = kwargs.get('temperature', 0.3)
         if temperature:
             data["temperature"] = temperature
-        
+
+        t0 = time.monotonic()
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{self.api_base}/v1/messages",
@@ -236,9 +315,19 @@ class LLMClient:
                 json=data,
                 timeout=120.0
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
+                # Emit billing for every successful call (fire-and-forget)
+                usage = result.get("usage", {})
+                _emit_llm_billing(
+                    user_id=kwargs.get("user_id", ""),
+                    session_id=kwargs.get("session_id", str(uuid.uuid4())),
+                    model=self.model,
+                    input_tokens=usage.get("input_tokens", 0),
+                    output_tokens=usage.get("output_tokens", 0),
+                    duration_ms=(time.monotonic() - t0) * 1000,
+                )
                 return result['content'][0]['text'].strip()
             else:
                 raise Exception(f"Anthropic API error: {response.status_code} {response.text}")
@@ -277,6 +366,15 @@ class LLMClient:
                     content = candidates[0].get('content', {})
                     parts = content.get('parts', [])
                     if parts:
+                        meta = result.get("usageMetadata", {})
+                        _emit_llm_billing(
+                            user_id=kwargs.get("user_id", self.user_id),
+                            session_id=kwargs.get("session_id", ""),
+                            model=self.model,
+                            input_tokens=meta.get("promptTokenCount", 0),
+                            output_tokens=meta.get("candidatesTokenCount", 0),
+                            duration_ms=0.0,
+                        )
                         return parts[0].get('text', '').strip()
                 raise Exception("No content in Gemini response")
             else:
@@ -304,6 +402,15 @@ class LLMClient:
             
             if response.status_code == 200:
                 result = response.json()
+                usage = result.get("usage", {})
+                _emit_llm_billing(
+                    user_id=kwargs.get("user_id", self.user_id),
+                    session_id=kwargs.get("session_id", ""),
+                    model=self.model,
+                    input_tokens=usage.get("prompt_tokens", 0),
+                    output_tokens=usage.get("completion_tokens", 0),
+                    duration_ms=0.0,
+                )
                 return result['choices'][0]['message']['content'].strip()
             else:
                 raise Exception(f"{self.provider.upper()} API error: {response.status_code} {response.text}")
@@ -339,6 +446,15 @@ class LLMClient:
 
             if response.status_code == 200:
                 result = response.json()
+                usage = result.get("usage", {})
+                _emit_llm_billing(
+                    user_id=kwargs.get("user_id", self.user_id),
+                    session_id=kwargs.get("session_id", ""),
+                    model=self.model,
+                    input_tokens=usage.get("prompt_tokens", 0),
+                    output_tokens=usage.get("completion_tokens", 0),
+                    duration_ms=0.0,
+                )
                 return result['choices'][0]['message']['content'].strip()
             else:
                 raise Exception(f"Ollama API error: {response.status_code} {response.text}")
@@ -369,6 +485,15 @@ class LLMClient:
 
             if response.status_code == 200:
                 result = response.json()
+                usage = result.get("usage", {})
+                _emit_llm_billing(
+                    user_id=kwargs.get("user_id", self.user_id),
+                    session_id=kwargs.get("session_id", ""),
+                    model=self.model,
+                    input_tokens=usage.get("prompt_tokens", 0),
+                    output_tokens=usage.get("completion_tokens", 0),
+                    duration_ms=0.0,
+                )
                 return result['choices'][0]['message']['content'].strip()
             else:
                 raise Exception(f"Zhipu API error: {response.status_code} {response.text}")
@@ -395,6 +520,15 @@ class LLMClient:
 
             if response.status_code == 200:
                 result = response.json()
+                usage = result.get("usage", {})
+                _emit_llm_billing(
+                    user_id=kwargs.get("user_id", self.user_id),
+                    session_id=kwargs.get("session_id", ""),
+                    model=self.model,
+                    input_tokens=usage.get("prompt_tokens", 0),
+                    output_tokens=usage.get("completion_tokens", 0),
+                    duration_ms=0.0,
+                )
                 return result['choices'][0]['message']['content'].strip()
             else:
                 raise Exception(f"Local model API error: {response.status_code} {response.text}")

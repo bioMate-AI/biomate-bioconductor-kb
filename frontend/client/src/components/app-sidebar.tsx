@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { useLocation } from "wouter"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -10,12 +11,12 @@ import { RecentToolsDialog } from "./recent-tools-dialog"
 import { projectService } from "@/lib/projects"
 import type { Project } from "@shared/schema"
 import { 
-  MessageCircle, 
-  Plus, 
-  Dna, 
-  BarChart3, 
-  Database, 
-  Settings, 
+  MessageCircle,
+  Plus,
+  Dna,
+  BarChart3,
+  Database,
+  Settings,
   Workflow,
   Clock,
   Star,
@@ -33,7 +34,10 @@ import {
   PieChart,
   TrendingUp,
   FolderOpen,
-  PanelLeft
+  PanelLeft,
+  DollarSign,
+  AlertCircle,
+  Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
@@ -102,6 +106,133 @@ const toolCategories: ToolCategory[] = [
 ]
 
 
+// ---------------------------------------------------------------------------
+// Billing widget
+// ---------------------------------------------------------------------------
+
+interface BillingData {
+  total_usd: number
+  llm_usd: number
+  compute_usd: number
+  storage_usd: number
+  running_estimate_usd: number
+  quota_usd: number | null
+  quota_pct: number | null
+  running_jobs: any[]
+}
+
+const BILLING_POLL_MS = 30_000
+
+function useBillingData(): BillingData | null {
+  const [data, setData] = useState<BillingData | null>(null)
+
+  const fetchBilling = useCallback(async () => {
+    const token = localStorage.getItem("auth_token")
+    if (!token) return
+    try {
+      const res = await fetch("/api/billing/usage", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        setData(await res.json())
+      }
+    } catch {
+      // Silently ignore — billing is non-critical
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchBilling()
+    const id = setInterval(fetchBilling, BILLING_POLL_MS)
+    return () => clearInterval(id)
+  }, [fetchBilling])
+
+  return data
+}
+
+function BillingWidget() {
+  const billing = useBillingData()
+  const [, setLocation] = useLocation()
+
+  if (!billing) return null
+
+  const total = billing.total_usd ?? 0
+  const quota = billing.quota_usd
+  const pct   = billing.quota_pct ?? (quota ? Math.min((total / quota) * 100, 100) : null)
+  const over  = pct !== null && pct >= 100
+  const running = billing.running_estimate_usd ?? 0
+
+  const fmt = (v: number) =>
+    v < 0.01 ? "<$0.01" : `$${v.toFixed(2)}`
+
+  return (
+    <div className="p-4 border-t border-border">
+      <button
+        className="flex items-center gap-2 mb-2 w-full hover:opacity-80 transition-opacity"
+        onClick={() => setLocation("/billing")}
+      >
+        <DollarSign className="w-3 h-3 text-sidebar-foreground/60" />
+        <h3 className="text-xs font-semibold text-sidebar-foreground uppercase tracking-wider">
+          Usage this month
+        </h3>
+      </button>
+
+      {/* Quota progress bar */}
+      {pct !== null && (
+        <div className="mb-2">
+          <div className="flex justify-between text-xs text-sidebar-foreground/60 mb-1">
+            <span>{fmt(total)}</span>
+            <span>{quota ? fmt(quota) : "∞"}</span>
+          </div>
+          <div className="h-1.5 bg-sidebar-accent rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${over ? "bg-destructive" : pct > 80 ? "bg-yellow-500" : "bg-primary"}`}
+              style={{ width: `${Math.min(pct, 100)}%` }}
+            />
+          </div>
+          {over && (
+            <div className="flex items-center gap-1 mt-1">
+              <AlertCircle className="w-3 h-3 text-destructive" />
+              <span className="text-xs text-destructive">Quota exceeded</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cost breakdown */}
+      <div className="space-y-0.5 text-xs text-sidebar-foreground/70">
+        {billing.llm_usd > 0 && (
+          <div className="flex justify-between">
+            <span>AI / LLM</span><span>{fmt(billing.llm_usd)}</span>
+          </div>
+        )}
+        {billing.compute_usd > 0 && (
+          <div className="flex justify-between">
+            <span>Compute</span><span>{fmt(billing.compute_usd)}</span>
+          </div>
+        )}
+        {billing.storage_usd > 0 && (
+          <div className="flex justify-between">
+            <span>Storage</span><span>{fmt(billing.storage_usd)}</span>
+          </div>
+        )}
+        {running > 0 && (
+          <div className="flex justify-between text-yellow-600 dark:text-yellow-400">
+            <span className="flex items-center gap-1">
+              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              Running
+            </span>
+            <span>~{fmt(running)}</span>
+          </div>
+        )}
+        {total === 0 && running === 0 && (
+          <div className="text-center text-sidebar-foreground/40 py-1">No usage yet</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 interface AppSidebarProps {
   onNewChat?: () => void
   onChatSelect?: (chatId: string) => void
@@ -138,6 +269,7 @@ export function AppSidebar({
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showStarredDialog, setShowStarredDialog] = useState(false);
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
+  const [, setLocation] = useLocation();
   
   // Get recent projects
   const recentProjects = projectService.getAllProjects().slice(0, 5);
@@ -412,6 +544,15 @@ export function AppSidebar({
             <Button
               variant="ghost"
               className="w-full justify-start"
+              data-testid="button-billing"
+              onClick={() => setLocation("/billing")}
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              <span>Billing &amp; Invoices</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
               data-testid="button-settings"
               onClick={() => setShowSettingsDialog(true)}
             >
@@ -421,6 +562,9 @@ export function AppSidebar({
           </div>
         </div>
       </div>
+
+      {/* Billing summary */}
+      <BillingWidget />
 
       {/* Footer */}
       <div className="p-4 border-t border-border">

@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { db } from './db';
 import { users } from '../shared/schema';
 import { eq } from 'drizzle-orm';
+import { emailService } from './email-service';
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
@@ -173,6 +174,10 @@ export class StripeService {
         await this.handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
         break;
 
+      case 'payment_intent.succeeded':
+        // Credit top-ups are handled via checkout.session.completed; no action needed here
+        break;
+
       default:
         console.log(`[Stripe] Unhandled event type: ${event.type}`);
     }
@@ -205,7 +210,7 @@ export class StripeService {
         subscriptionStatus: subscription.status,
         subscriptionTier: tier,
         subscriptionId: subscription.id,
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
         trialUsed: true,
         updatedAt: new Date(),
       })
@@ -241,7 +246,7 @@ export class StripeService {
    * Handle successful payment
    */
   private async handlePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
-    if (!invoice.customer || !invoice.subscription) {
+    if (!invoice.customer || !(invoice as any).subscription) {
       return;
     }
 
@@ -253,14 +258,14 @@ export class StripeService {
    * Handle failed payment
    */
   private async handlePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
-    if (!invoice.customer || !invoice.subscription) {
+    if (!invoice.customer || !(invoice as any).subscription) {
       return;
     }
 
     console.log(`[Stripe] Payment failed for invoice ${invoice.id}`);
 
     // Update subscription status to past_due
-    const subscription = await this.stripe?.subscriptions.retrieve(invoice.subscription as string);
+    const subscription = await this.stripe?.subscriptions.retrieve((invoice as any).subscription as string);
     if (subscription?.metadata.userId) {
       await db
         .update(users)
@@ -269,13 +274,37 @@ export class StripeService {
           updatedAt: new Date(),
         })
         .where(eq(users.id, subscription.metadata.userId));
-    }
 
-    // TODO: Send payment failed email to user
+      // Send payment failed email
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, subscription.metadata.userId))
+        .limit(1);
+      if (user) {
+        const amountDue = invoice.amount_due
+          ? `$${(invoice.amount_due / 100).toFixed(2)}`
+          : 'your subscription amount';
+        const nextAttemptTs = (invoice as any).next_payment_attempt;
+        const nextAttempt = nextAttemptTs
+          ? new Date(nextAttemptTs * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+          : 'soon';
+        const updateUrl = `${APP_URL}/billing`;
+        await emailService.sendPaymentFailedEmail(
+          user.email,
+          user.fullName ?? user.email,
+          amountDue,
+          nextAttempt,
+          updateUrl,
+        );
+      }
+    }
   }
 
   /**
-   * Handle checkout session completed
+   * Handle checkout session completed.
+   * For subscription checkouts: subscription webhooks handle the rest.
+   * For credit top-ups: call the billing API to add credits to Redis quota.
    */
   private async handleCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
     const userId = session.metadata?.userId;
@@ -284,8 +313,162 @@ export class StripeService {
       return;
     }
 
-    console.log(`[Stripe] Checkout completed for user ${userId}`);
-    // Subscription will be updated via subscription.created webhook
+    console.log(`[Stripe] Checkout completed for user ${userId} mode=${session.mode}`);
+
+    // Credit top-up: add purchased amount to the user's Redis quota
+    if (session.metadata?.credit_topup === 'true') {
+      const amountCents = Number(session.metadata?.amount_cents ?? 0);
+      if (amountCents > 0) {
+        await this._creditBillingQuota(userId, amountCents / 100, session.id);
+      }
+    }
+    // Subscription checkouts are handled via subscription.created/updated webhooks
+  }
+
+  /**
+   * POST to the internal billing API to add credits to a user's Redis quota.
+   * Uses BILLING_INTERNAL_KEY for service-to-service auth.
+   */
+  private async _creditBillingQuota(
+    userId: string,
+    amountUsd: number,
+    paymentId: string,
+  ): Promise<void> {
+    const billingUrl  = process.env.BILLING_API_URL  || 'http://localhost:8081';
+    const billingKey  = process.env.BILLING_INTERNAL_KEY || process.env.BILLING_API_KEY || 'change-me';
+    try {
+      const res = await fetch(`${billingUrl}/internal/billing/add-credits`, {
+        method: 'POST',
+        headers: {
+          'Content-Type':   'application/json',
+          'X-Internal-Key': billingKey,
+        },
+        body: JSON.stringify({ user_id: userId, amount_usd: amountUsd, payment_id: paymentId }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        console.error(`[Stripe] add-credits failed (${res.status}): ${text}`);
+      } else {
+        const body = await res.json() as { new_quota_usd?: number };
+        console.log(`[Stripe] Credits applied user=${userId} +$${amountUsd} → limit=$${body.new_quota_usd}`);
+      }
+    } catch (err) {
+      console.error('[Stripe] _creditBillingQuota network error:', err);
+    }
+  }
+
+  /**
+   * Create a Stripe Checkout session for a new subscription WITH a 7-day trial.
+   * Payment method is collected but not charged until the trial ends.
+   * Stripe automatically converts to a paid subscription after the trial.
+   */
+  async createTrialCheckoutSession(
+    userId: string,
+    priceId: string,
+    returnUrl?: string,
+  ): Promise<Stripe.Checkout.Session> {
+    if (!this.stripe) throw new Error('Stripe not configured');
+
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) throw new Error('User not found');
+
+    let customerId = user.stripeCustomerId;
+    if (!customerId) {
+      const customer = await this.stripe.customers.create({
+        email: user.email,
+        name: user.fullName ?? undefined,
+        metadata: { userId },
+      });
+      customerId = customer.id;
+      await db
+        .update(users)
+        .set({ stripeCustomerId: customerId, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+    }
+
+    const session = await this.stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: {
+        trial_period_days: 7,
+        metadata: { userId },
+      },
+      // Collect payment method but don't charge during trial
+      payment_method_collection: 'always',
+      success_url: returnUrl
+        ? `${returnUrl}?trial=started`
+        : `${APP_URL}/dashboard?trial=started`,
+      cancel_url: returnUrl ?? `${APP_URL}/register?trial=canceled`,
+      metadata: { userId, trial_start: 'true' },
+    });
+
+    console.log(`[Stripe] Trial checkout session created for user ${userId}`);
+    return session;
+  }
+
+  /**
+   * Create a one-time credit top-up checkout session.
+   * On success, the webhook handler (checkout.session.completed) will call
+   * POST /internal/billing/add-credits to credit the user's Redis quota.
+   */
+  async createCreditTopupSession(
+    userId: string,
+    amountCents: number,       // e.g. 1000 = $10.00
+    returnUrl?: string,
+  ): Promise<Stripe.Checkout.Session> {
+    if (!this.stripe) throw new Error('Stripe not configured');
+    if (amountCents < 100) throw new Error('Minimum top-up is $1.00');
+
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) throw new Error('User not found');
+
+    // Create or reuse Stripe customer
+    let customerId = user.stripeCustomerId;
+    if (!customerId) {
+      const customer = await this.stripe.customers.create({
+        email: user.email,
+        name: user.fullName ?? undefined,
+        metadata: { userId },
+      });
+      customerId = customer.id;
+      await db
+        .update(users)
+        .set({ stripeCustomerId: customerId, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+    }
+
+    const session = await this.stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'usd',
+            unit_amount: amountCents,
+            product_data: {
+              name: `BioMate Credits — $${(amountCents / 100).toFixed(0)}`,
+              description: `Add $${(amountCents / 100).toFixed(2)} to your monthly compute quota`,
+            },
+          },
+        },
+      ],
+      success_url: returnUrl
+        ? `${returnUrl}?topup=success&amount=${amountCents}`
+        : `${APP_URL}/billing?topup=success&amount=${amountCents}`,
+      cancel_url: returnUrl ?? `${APP_URL}/billing?topup=canceled`,
+      metadata: {
+        userId,
+        credit_topup: 'true',
+        amount_cents: String(amountCents),
+      },
+    });
+
+    console.log(`[Stripe] Credit top-up session created for user ${userId}: $${amountCents / 100}`);
+    return session;
   }
 
   /**
