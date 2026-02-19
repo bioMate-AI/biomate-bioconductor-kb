@@ -165,6 +165,10 @@ class CostCalculator:
         full instance price so that partial allocations are correctly attributed.
         For Fargate launch type: use Fargate rates directly.
         """
+        # Security: Clamp negative values to zero to prevent credit exploits
+        duration_seconds = max(0, duration_seconds)
+        spot_discount = max(0, min(1.0, spot_discount))  # Clamp to [0, 1]
+
         hours = duration_seconds / 3600.0
         memory_gb = memory_mb / 1024.0
 
@@ -323,6 +327,10 @@ class CostCalculator:
         input_tokens: int,
         output_tokens: int,
     ) -> LLMCallCost:
+        # Security: Clamp negative token counts to zero to prevent credit exploits
+        input_tokens = max(0, input_tokens)
+        output_tokens = max(0, output_tokens)
+
         pricing = LLM_PRICING.get(model, LLM_PRICING["default"])
         input_cost  = (input_tokens  / 1_000_000) * pricing["input_per_1m"]
         output_cost = (output_tokens / 1_000_000) * pricing["output_per_1m"]
