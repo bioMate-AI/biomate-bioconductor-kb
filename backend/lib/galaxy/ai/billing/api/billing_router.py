@@ -29,6 +29,17 @@ import jwt as _jwt
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
+    _RATE_LIMITING_AVAILABLE = True
+except ImportError:
+    _RATE_LIMITING_AVAILABLE = False
+    Limiter = None
+    get_remote_address = None
+    RateLimitExceeded = None
+
 from ..core.cost_calculator import CostCalculator
 from ..core.lago_client import get_lago_client, LAGO_API_KEY as _LAGO_API_KEY
 from ..core.realtime_cost_service import get_cost_service, _month_key
@@ -78,7 +89,18 @@ if not _JWT_SECRET:
         )
 _JWT_ALGORITHM = "HS256"
 
-router    = APIRouter()
+# Rate limiting setup
+if _RATE_LIMITING_AVAILABLE:
+    limiter = Limiter(key_func=get_remote_address)
+    log.info("Rate limiting enabled for billing endpoints: 60 requests/minute per IP")
+else:
+    limiter = None
+    log.warning(
+        "slowapi not installed - rate limiting disabled. "
+        "Install with: pip install slowapi"
+    )
+
+router = APIRouter()
 calculator = CostCalculator()
 
 
@@ -125,7 +147,8 @@ def current_user_id(authorization: str = Header(...)) -> str:
 # ---------------------------------------------------------------------------
 
 @router.get("/api/billing/usage")
-def get_usage(
+async def get_usage(
+    request: Request,
     month: Optional[str] = None,
     user_id: str = Depends(current_user_id),
 ):
@@ -134,18 +157,30 @@ def get_usage(
     Reads from Redis → <5ms response.
 
     Response includes committed costs + running-job estimates.
+
+    Rate limit: 60 requests/minute per IP address.
     """
+    if _RATE_LIMITING_AVAILABLE:
+        await limiter.limit("60/minute")(request)
+
     svc  = get_cost_service()
     data = svc.get_current_costs(user_id, month)
     return data
 
 
 @router.get("/api/billing/usage/history")
-def get_usage_history(
+async def get_usage_history(
+    request: Request,
     months: int = 3,
     user_id: str = Depends(current_user_id),
 ):
-    """Past N months of cost data (from Redis, falls back to Lago)."""
+    """
+    Past N months of cost data (from Redis, falls back to Lago).
+    Rate limit: 60 requests/minute per IP address.
+    """
+    if _RATE_LIMITING_AVAILABLE:
+        await limiter.limit("60/minute")(request)
+
     months = max(1, min(months, 24))   # clamp: 1–24 months
     svc     = get_cost_service()
     now     = datetime.now(timezone.utc)
@@ -168,8 +203,14 @@ def get_usage_history(
 
 
 @router.get("/api/billing/quota")
-def get_quota(user_id: str = Depends(current_user_id)):
-    """Returns plan limit, current usage, and overage warning."""
+async def get_quota(request: Request, user_id: str = Depends(current_user_id)):
+    """
+    Returns plan limit, current usage, and overage warning.
+    Rate limit: 60 requests/minute per IP address.
+    """
+    if _RATE_LIMITING_AVAILABLE:
+        await limiter.limit("60/minute")(request)
+
     svc   = get_cost_service()
     costs = svc.get_current_costs(user_id)
     return {
@@ -182,8 +223,14 @@ def get_quota(user_id: str = Depends(current_user_id)):
 
 
 @router.get("/api/billing/jobs/running")
-def get_running_jobs(user_id: str = Depends(current_user_id)):
-    """Returns in-flight AWS Batch jobs with live cost estimates."""
+async def get_running_jobs(request: Request, user_id: str = Depends(current_user_id)):
+    """
+    Returns in-flight AWS Batch jobs with live cost estimates.
+    Rate limit: 60 requests/minute per IP address.
+    """
+    if _RATE_LIMITING_AVAILABLE:
+        await limiter.limit("60/minute")(request)
+
     svc   = get_cost_service()
     costs = svc.get_current_costs(user_id)
     return {
