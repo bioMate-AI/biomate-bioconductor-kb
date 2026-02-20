@@ -82,6 +82,79 @@ router = Router(tags=["ai_assistant"])
 _ai_assistant_instance = None
 
 
+# ── Lightweight Nextflow workflow search (NO LLM required) ──────────────────
+try:
+    from galaxy.ai.unified_workflow_search import get_workflow_search as _get_workflow_search
+    _workflow_search = _get_workflow_search()
+    WORKFLOW_SEARCH_AVAILABLE = True
+except Exception as _e:
+    logging.warning(f"UnifiedWorkflowSearch not available: {_e}")
+    _workflow_search = None
+    WORKFLOW_SEARCH_AVAILABLE = False
+
+
+class NextflowSearchRequest(BaseModel):
+    user_intent: Optional[str] = None
+    request_text: Optional[str] = None
+
+
+@router.post(
+    "/api/ai_assistant/search_nextflow_workflow",
+    summary="Search Nextflow workflow database (no LLM required)."
+)
+def search_nextflow_workflow(
+    request: NextflowSearchRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Lightweight endpoint: search workflow database and return Nextflow path.
+    Does NOT require AI assistant or LLM API key.
+    """
+    user_intent = request.user_intent or request.request_text or ""
+    if not user_intent:
+        raise HTTPException(status_code=400, detail="user_intent is required")
+
+    if not _workflow_search:
+        raise HTTPException(status_code=503, detail="Workflow search not available")
+
+    try:
+        results = _workflow_search.search(user_intent, limit=5, include_workflow_json=False)
+        if not results:
+            return {"success": False, "message": "No matching workflows found"}
+
+        best = results[0]
+        return {
+            "success": True,
+            "workflow_type": best.format,
+            "nextflow_path": best.filename if best.format == "nextflow" else None,
+            "workflow_name": best.name,
+            "format": best.format,
+            "source": "template_reuse",
+            "confidence": int(best.score),
+            "message": f"Found workflow: {best.name}",
+            "description": best.description,
+            "domain": best.domain,
+            "step_count": best.step_count,
+            "workflow_ga": {
+                "name": best.name,
+                "description": best.description,
+                "annotation": best.description,
+                "tags": best.tags,
+                "format": best.format,
+                "nextflow_path": best.filename if best.format == "nextflow" else None,
+                "workflow_type": best.format,
+                "steps": {}
+            },
+            "datasets_assigned": False,
+            "generated_parameters": [],
+            "validation": {"is_valid": True, "issues": [], "warnings": [], "suggestions": []},
+            "tool_installation": {"success": True, "message": "Nextflow workflow", "failed_tools": []}
+        }
+    except Exception as e:
+        log.error(f"Nextflow workflow search failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 def get_ai_assistant(trans) -> Optional[AIAssistant]:
     """Get or create AI Assistant instance."""
     global _ai_assistant_instance
@@ -115,8 +188,13 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
             from galaxy.config.ai_config import configure_ai_assistant
             log.info("[DEBUG] Calling configure_ai_assistant...")
             # Explicitly set enable_ai_assistant in config_dict
+            # Also force anthropic provider if ANTHROPIC_API_KEY is set but provider defaults to openai
+            import os as _os
             config_dict = dict(app.config.__dict__)
             config_dict['enable_ai_assistant'] = True
+            if _os.environ.get('ANTHROPIC_API_KEY') and not _os.environ.get('GALAXY_AI_LLM_PROVIDER'):
+                config_dict['ai_llm_provider'] = 'anthropic'
+                config_dict['ai_llm_api_key'] = _os.environ['ANTHROPIC_API_KEY']
             ai_config = configure_ai_assistant(config_dict, app.config.config_dir)
             log.info(f"[DEBUG] configure_ai_assistant returned: {ai_config}")
 
