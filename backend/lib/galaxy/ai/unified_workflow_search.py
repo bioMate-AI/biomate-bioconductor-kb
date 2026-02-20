@@ -128,6 +128,17 @@ class UnifiedWorkflowSearch:
 
             # General analysis terms
             'analysis': 1.0, 'pipeline': 1.5, 'workflow': 1.0,
+
+            # Cryo-EM / Structural biology
+            'cryo': 3.0, 'cryoem': 3.0, 'cryo-em': 3.0,
+            'cryosparc': 3.0, 'relion': 3.0,
+            'single': 1.5, 'particle': 2.5, 'spa': 2.5,
+            'micrograph': 3.0, 'ctf': 2.5, 'motion': 2.0,
+            'reconstruction': 2.5, 'refinement': 2.5,
+            'tomography': 3.0, 'cryo-et': 3.0, 'tiltseries': 2.5,
+            'electron': 2.0, 'microscopy': 2.0,
+            'resolution': 2.0, 'map': 1.5, 'density': 1.5,
+            'sharpening': 2.5, 'fsc': 2.5,
         }
 
         log.info(f"UnifiedWorkflowSearch initialized with DB: {self.db_path}")
