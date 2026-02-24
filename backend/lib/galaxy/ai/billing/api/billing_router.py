@@ -108,8 +108,8 @@ calculator = CostCalculator()
 # Auth helpers
 # ---------------------------------------------------------------------------
 
-def require_internal_key(x_internal_key: str = Header(...)):
-    if x_internal_key != INTERNAL_API_KEY:
+def require_internal_key(x_internal_key: Optional[str] = Header(default=None)):
+    if not x_internal_key or x_internal_key != INTERNAL_API_KEY:
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
@@ -160,9 +160,6 @@ async def get_usage(
 
     Rate limit: 60 requests/minute per IP address.
     """
-    if _RATE_LIMITING_AVAILABLE:
-        await limiter.limit("60/minute")(request)
-
     svc  = get_cost_service()
     data = svc.get_current_costs(user_id, month)
     return data
@@ -178,9 +175,6 @@ async def get_usage_history(
     Past N months of cost data (from Redis, falls back to Lago).
     Rate limit: 60 requests/minute per IP address.
     """
-    if _RATE_LIMITING_AVAILABLE:
-        await limiter.limit("60/minute")(request)
-
     months = max(1, min(months, 24))   # clamp: 1–24 months
     svc     = get_cost_service()
     now     = datetime.now(timezone.utc)
@@ -208,9 +202,6 @@ async def get_quota(request: Request, user_id: str = Depends(current_user_id)):
     Returns plan limit, current usage, and overage warning.
     Rate limit: 60 requests/minute per IP address.
     """
-    if _RATE_LIMITING_AVAILABLE:
-        await limiter.limit("60/minute")(request)
-
     svc   = get_cost_service()
     costs = svc.get_current_costs(user_id)
     return {
@@ -228,9 +219,6 @@ async def get_running_jobs(request: Request, user_id: str = Depends(current_user
     Returns in-flight AWS Batch jobs with live cost estimates.
     Rate limit: 60 requests/minute per IP address.
     """
-    if _RATE_LIMITING_AVAILABLE:
-        await limiter.limit("60/minute")(request)
-
     svc   = get_cost_service()
     costs = svc.get_current_costs(user_id)
     return {
@@ -373,6 +361,66 @@ def internal_s3_put(payload: S3PutPayload):
     return {"ok": True, "total_cost_usd": cost.total_cost}
 
 
+# ---------------------------------------------------------------------------
+# Internal API: LLM cost recording
+# ---------------------------------------------------------------------------
+
+class LLMCostPayload(BaseModel):
+    user_id: str
+    session_id: str
+    model: str
+    input_tokens: int
+    output_tokens: int
+    duration_ms: float = 0.0
+
+
+@router.post("/internal/billing/llm_cost", dependencies=[Depends(require_internal_key)])
+def internal_llm_cost(payload: LLMCostPayload):
+    """Record LLM API call cost from any service (AI assistant, etc.)."""
+    cost = calculator.llm_call_cost(
+        user_id=payload.user_id,
+        session_id=payload.session_id,
+        model=payload.model,
+        input_tokens=payload.input_tokens,
+        output_tokens=payload.output_tokens,
+    )
+    svc = get_cost_service()
+    svc.record_llm_cost(
+        user_id=payload.user_id,
+        input_usd=cost.input_cost,
+        output_usd=cost.output_cost,
+        input_tokens=cost.input_tokens,
+        output_tokens=cost.output_tokens,
+    )
+    log.info(
+        "llm_cost user=%s model=%s in=%d out=%d cost=$%.8f",
+        payload.user_id, payload.model,
+        payload.input_tokens, payload.output_tokens, cost.total_cost,
+    )
+    return {"ok": True, "total_cost_usd": cost.total_cost}
+
+
+# ---------------------------------------------------------------------------
+# Internal API: Quota management
+# ---------------------------------------------------------------------------
+
+class SetQuotaPayload(BaseModel):
+    user_id: str
+    quota_usd: float
+    month: Optional[str] = None   # defaults to current month if omitted
+
+
+@router.post("/internal/billing/set_quota", dependencies=[Depends(require_internal_key)])
+def internal_set_quota(payload: SetQuotaPayload):
+    """Directly set the monthly quota cap for a user (admin/test use)."""
+    if payload.quota_usd < 0:
+        raise HTTPException(status_code=400, detail="quota_usd must be >= 0")
+    svc = get_cost_service()
+    svc.set_quota(user_id=payload.user_id, quota_usd=payload.quota_usd, month=payload.month)
+    log.info("set_quota user=%s quota=$%.2f", payload.user_id, payload.quota_usd)
+    return {"ok": True, "user_id": payload.user_id, "quota_usd": payload.quota_usd}
+
+
 class AddCreditsPayload(BaseModel):
     user_id: str
     amount_usd: float      # e.g. 10.0, 25.0, 50.0
@@ -468,13 +516,19 @@ def admin_health():
         r.ping()
         redis_status = "ok"
 
-        # Connection pool monitoring
+        # Connection pool monitoring (redis-py stores these as sets or ints depending on version)
         pool = r.connection_pool
+        def _pool_count(attr):
+            val = getattr(pool, attr, None)
+            if val is None:
+                return None
+            return val if isinstance(val, int) else len(val)
+
         pool_stats = {
-            "max_connections": pool.max_connections,
-            "created_connections": len(pool._created_connections) if hasattr(pool, '_created_connections') else None,
-            "available_connections": len(pool._available_connections) if hasattr(pool, '_available_connections') else None,
-            "in_use_connections": len(pool._in_use_connections) if hasattr(pool, '_in_use_connections') else None,
+            "max_connections":    pool.max_connections,
+            "created_connections":  _pool_count('_created_connections'),
+            "available_connections": _pool_count('_available_connections'),
+            "in_use_connections":   _pool_count('_in_use_connections'),
         }
 
         # Calculate pool utilization

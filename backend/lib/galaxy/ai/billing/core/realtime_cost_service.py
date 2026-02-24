@@ -244,7 +244,13 @@ class RealtimeCostService:
             max_conn = pool.max_connections
 
             # Get current pool stats
-            in_use = len(pool._in_use_connections) if hasattr(pool, '_in_use_connections') else 0
+            _in_use = getattr(pool, '_in_use_connections', None)
+            if _in_use is None:
+                in_use = 0
+            elif isinstance(_in_use, int):
+                in_use = _in_use
+            else:
+                in_use = len(_in_use)
 
             if max_conn and in_use:
                 utilization_pct = (in_use / max_conn) * 100
