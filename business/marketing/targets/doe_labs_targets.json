@@ -1,0 +1,154 @@
+{
+  "meta": {
+    "created": "2026-02-25",
+    "description": "DOE National Laboratory targets for BioMate beta outreach",
+    "total": 16,
+    "focus": "DOE BER (Biological and Environmental Research) — metagenomics, environmental genomics, bioenergy synthetic biology"
+  },
+  "targets": [
+    {
+      "id": "doe-jgi-001",
+      "name": "DOE Joint Genome Institute (JGI)",
+      "city": "Walnut Creek", "state": "CA",
+      "segment": "doe_labs", "sub_segment": "genomics_facility",
+      "key_contacts": [
+        {"name": "Nigel Mouncey", "title": "Director", "email_hint": "njmouncey@lbl.gov"}
+      ],
+      "domains": ["metagenomics", "environmental-genomics", "bioenergy", "comparative-genomics", "synthetic-biology"],
+      "biomate_workflows": ["metagenomics", "wgs", "functional-annotation", "16s-rrna"],
+      "priority": "A",
+      "reach_channel": "paper-citation, DOE BER program officers, conference (ISME)",
+      "notes": "World's largest public genomics facility. Processes tens of thousands of metagenomics samples/year for DOE BER. BioMate's QC governance + metagenomics workflows are directly complementary. Strategic partnership or co-publication opportunity.",
+      "energy_link": true,
+      "website": "https://jgi.doe.gov/"
+    },
+    {
+      "id": "doe-ornl-001",
+      "name": "Oak Ridge National Laboratory — Biosciences Division",
+      "city": "Oak Ridge", "state": "TN",
+      "segment": "doe_labs", "sub_segment": "national_lab_biosciences",
+      "key_contacts": [
+        {"name": "Biosciences Division Director", "title": "Director", "email_hint": "biodir@ornl.gov"}
+      ],
+      "domains": ["metagenomics", "synthetic-biology", "bioenergy", "carbon-capture", "environmental-genomics"],
+      "biomate_workflows": ["metagenomics", "wgs", "rnaseq", "functional-annotation"],
+      "priority": "A",
+      "reach_channel": "DOE BER networking, cold-email, paper-citation",
+      "notes": "Major DOE BER-funded biosciences research. Switchgrass + poplar bioenergy crop genomics. Metagenomics for carbon capture via soil microbiome.",
+      "energy_link": true,
+      "website": "https://biosciences.ornl.gov/"
+    },
+    {
+      "id": "doe-pnnl-001",
+      "name": "Pacific Northwest National Laboratory — Biological Sciences Division",
+      "city": "Richland", "state": "WA",
+      "segment": "doe_labs", "sub_segment": "national_lab_biosciences",
+      "key_contacts": [
+        {"name": "Jon Magnuson", "title": "Chief Scientist, Biomass Science", "email_hint": "jon.magnuson@pnnl.gov"}
+      ],
+      "domains": ["metagenomics", "proteomics", "bioenergy", "systems-biology", "environmental-genomics"],
+      "biomate_workflows": ["metagenomics", "proteomics", "rnaseq", "wgs"],
+      "priority": "A",
+      "reach_channel": "DOE BER networking, cold-email, paper-citation",
+      "notes": "EMSL (Environmental Molecular Sciences Lab) — one of the most powerful multiomics facilities in the world. Mass spec proteomics + metagenomics. BioMate proteomics QC is directly relevant.",
+      "energy_link": true,
+      "website": "https://www.pnnl.gov/biological-sciences"
+    },
+    {
+      "id": "doe-llnl-001",
+      "name": "Lawrence Livermore National Laboratory — Biosciences & Biotechnology Division",
+      "city": "Livermore", "state": "CA",
+      "segment": "doe_labs", "sub_segment": "national_lab_biosciences",
+      "key_contacts": [
+        {"name": "BTD Division Leader", "title": "Division Leader", "email_hint": "btd@llnl.gov"}
+      ],
+      "domains": ["metagenomics", "synthetic-biology", "biosecurity", "environmental-genomics", "isotope-tracing"],
+      "biomate_workflows": ["metagenomics", "wgs", "functional-annotation", "rnaseq"],
+      "priority": "B",
+      "reach_channel": "DOE BER networking, paper-citation",
+      "notes": "Focus includes biosecurity genomics and environmental metagenomics. NanoSIMS isotope-tracing methods for microbial activity characterization.",
+      "energy_link": true,
+      "website": "https://www.llnl.gov/biosciences"
+    },
+    {
+      "id": "doe-anl-001",
+      "name": "Argonne National Laboratory — Biosciences Division",
+      "city": "Lemont", "state": "IL",
+      "segment": "doe_labs", "sub_segment": "national_lab_biosciences",
+      "key_contacts": [
+        {"name": "Folker Meyer", "title": "Senior Bioinformatics Scientist (MG-RAST)", "email_hint": "folker@anl.gov"}
+      ],
+      "domains": ["metagenomics", "environmental-genomics", "soil-microbiome", "bioenergy"],
+      "biomate_workflows": ["metagenomics", "16s-rrna", "wgs", "functional-annotation"],
+      "priority": "B",
+      "reach_channel": "paper-citation (MG-RAST), DOE BER networking",
+      "notes": "Home of MG-RAST (one of the most-used metagenomics analysis platforms globally). Folker Meyer's team processes millions of samples. BioMate's QC governance layer could complement MG-RAST.",
+      "energy_link": true,
+      "website": "https://www.anl.gov/bio"
+    },
+    {
+      "id": "doe-lbnl-001",
+      "name": "Lawrence Berkeley National Laboratory — Environmental Genomics & Systems Biology",
+      "city": "Berkeley", "state": "CA",
+      "segment": "doe_labs", "sub_segment": "national_lab_biosciences",
+      "key_contacts": [
+        {"name": "Adam Arkin", "title": "Director, EGSB Division", "email_hint": "aparkin@lbl.gov"}
+      ],
+      "domains": ["systems-biology", "metagenomics", "synthetic-biology", "bioenergy", "soil-microbiome"],
+      "biomate_workflows": ["metagenomics", "rnaseq", "wgs", "functional-annotation"],
+      "priority": "B",
+      "reach_channel": "paper-citation, DOE BER networking",
+      "notes": "Adam Arkin is one of the most prominent systems biologists. KBase bioinformatics platform originates here — BioMate could position as a researcher-facing complement.",
+      "energy_link": true,
+      "website": "https://egsb.lbl.gov/"
+    },
+    {
+      "id": "doe-nrel-001",
+      "name": "National Renewable Energy Laboratory (NREL) — Biosciences Center",
+      "city": "Golden", "state": "CO",
+      "segment": "doe_labs", "sub_segment": "national_lab_bioenergy",
+      "key_contacts": [
+        {"name": "Biosciences Center Director", "title": "Director", "email_hint": "biosciences@nrel.gov"}
+      ],
+      "domains": ["biofuels", "algae-biofuels", "metabolic-engineering", "synthetic-biology", "biomass"],
+      "biomate_workflows": ["rnaseq", "wgs", "metagenomics", "functional-annotation"],
+      "priority": "B",
+      "reach_channel": "DOE BER networking, algae biofuels conferences",
+      "notes": "DOE's primary renewable energy lab. Major algae biofuels and cellulosic biomass program. BioMate's metagenomics + metabolic engineering workflows directly relevant.",
+      "energy_link": true,
+      "website": "https://www.nrel.gov/bioenergy/"
+    },
+    {
+      "id": "doe-sandia-001",
+      "name": "Sandia National Laboratories — Systems Biology Group",
+      "city": "Albuquerque", "state": "NM",
+      "segment": "doe_labs", "sub_segment": "national_lab_systems_bio",
+      "key_contacts": [
+        {"name": "Systems Biology Group Lead", "title": "Group Lead", "email_hint": "sysbiodept@sandia.gov"}
+      ],
+      "domains": ["systems-biology", "synthetic-biology", "biosecurity", "metagenomics"],
+      "biomate_workflows": ["rnaseq", "wgs", "metagenomics"],
+      "priority": "C",
+      "reach_channel": "DOE networking, cold-email",
+      "notes": "Biosecurity + national security genomics applications. Growing synthetic biology program.",
+      "energy_link": false,
+      "website": "https://www.sandia.gov/"
+    },
+    {
+      "id": "doe-lanl-001",
+      "name": "Los Alamos National Laboratory — Biosecurity & Public Health Division",
+      "city": "Los Alamos", "state": "NM",
+      "segment": "doe_labs", "sub_segment": "national_lab_biosecurity",
+      "key_contacts": [
+        {"name": "B-10 Division Leader", "title": "Division Leader", "email_hint": "b10@lanl.gov"}
+      ],
+      "domains": ["biosecurity", "metagenomics", "pathogen-surveillance", "environmental-genomics"],
+      "biomate_workflows": ["metagenomics", "wgs", "functional-annotation"],
+      "priority": "C",
+      "reach_channel": "DOE networking, cold-email",
+      "notes": "Pathogen surveillance + biosecurity genomics. Metagenomics QC workflows relevant.",
+      "energy_link": false,
+      "website": "https://www.lanl.gov/"
+    }
+  ]
+}

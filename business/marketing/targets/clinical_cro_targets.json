@@ -1,0 +1,154 @@
+{
+  "meta": {
+    "created": "2026-02-25",
+    "description": "Clinical labs and CRO (Contract Research Organization) targets — national. Focus: QC governance, FDA 21 CFR Part 11 audit trails, NGS standardization.",
+    "total": 18,
+    "focus": "CLIA/CAP-certified labs, top-5 CROs, genomics core facilities at cancer centers"
+  },
+  "targets": [
+    {
+      "id": "labcorp-genomics-001",
+      "name": "Labcorp Drug Development (Covance) — Genomics & Translational Services",
+      "city": "Durham", "state": "NC",
+      "segment": "cro", "sub_segment": "top_cro",
+      "key_contacts": [
+        {"name": "Head of Genomics", "title": "Head of Genomics", "email_hint": "genomics.services@labcorp.com"}
+      ],
+      "domains": ["clinical-genomics", "oncology-ngs", "pharmacogenomics", "translational-research"],
+      "biomate_workflows": ["wgs", "wes", "rnaseq", "pharmacogenomics", "variant-calling"],
+      "priority": "A",
+      "reach_channel": "cold-email, CRO industry conferences (DIA), LinkedIn",
+      "notes": "One of the world's largest CROs. QC governance + 21 CFR Part 11 audit trail = primary differentiator for FDA submissions. Oncology NGS panels.",
+      "energy_link": false,
+      "website": "https://www.labcorp.com/drug-development"
+    },
+    {
+      "id": "charles-river-genomics-001",
+      "name": "Charles River Laboratories — Genomics & Translational Sciences",
+      "city": "Wilmington", "state": "MA",
+      "segment": "cro", "sub_segment": "top_cro",
+      "key_contacts": [
+        {"name": "VP Genomics Services", "title": "VP, Genomics Services", "email_hint": "genomics@crl.com"}
+      ],
+      "domains": ["preclinical-genomics", "toxicogenomics", "pharmacogenomics", "safety-genomics"],
+      "biomate_workflows": ["rnaseq", "wgs", "proteomics", "pharmacogenomics"],
+      "priority": "A",
+      "reach_channel": "cold-email, DIA conference, industry CRO networks",
+      "notes": "Top global CRO for preclinical safety. Toxicogenomics (FDA SEND standard) + pharmacogenomics. QC governance and audit logs directly support GLP study compliance.",
+      "energy_link": false,
+      "website": "https://www.crl.com/"
+    },
+    {
+      "id": "ppd-thermo-fisher-001",
+      "name": "PPD (Thermo Fisher) — Genomics & Central Lab Services",
+      "city": "Wilmington", "state": "NC",
+      "segment": "cro", "sub_segment": "top_cro",
+      "key_contacts": [
+        {"name": "Head of Central Lab Genomics", "title": "Head of Central Lab", "email_hint": "central.lab@ppd.com"}
+      ],
+      "domains": ["clinical-trial-genomics", "pharmacogenomics", "oncology-ngs", "biomarkers"],
+      "biomate_workflows": ["wgs", "rnaseq", "pharmacogenomics", "variant-calling"],
+      "priority": "A",
+      "reach_channel": "cold-email, DIA conference, pharma partnerships",
+      "notes": "Thermo Fisher acquisition (2021). Global clinical trial genomics operations. 21 CFR Part 11 compliance and audit trail are essential.",
+      "energy_link": false,
+      "website": "https://www.ppd.com/"
+    },
+    {
+      "id": "iqvia-genomics-001",
+      "name": "IQVIA — Genomics & Real-World Evidence",
+      "city": "Durham", "state": "NC",
+      "segment": "cro", "sub_segment": "top_cro",
+      "key_contacts": [
+        {"name": "Head of Genomics", "title": "Head of Genomics", "email_hint": "genomics@iqvia.com"}
+      ],
+      "domains": ["real-world-genomics", "pharmacogenomics", "oncology-biomarkers", "clinical-trial-genomics"],
+      "biomate_workflows": ["wgs", "rnaseq", "pharmacogenomics", "proteomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, DIA conference",
+      "notes": "Massive real-world evidence + clinical genomics platform. BioMate's reproducible QC framework for multi-site trial data.",
+      "energy_link": false,
+      "website": "https://www.iqvia.com/"
+    },
+    {
+      "id": "syneos-genomics-001",
+      "name": "Syneos Health — Translational Genomics",
+      "city": "Morrisville", "state": "NC",
+      "segment": "cro", "sub_segment": "top_cro",
+      "key_contacts": [
+        {"name": "Biomarker & Genomics Lead", "title": "Lead Scientist", "email_hint": "genomics@syneoshealth.com"}
+      ],
+      "domains": ["translational-genomics", "biomarkers", "clinical-trial-genomics"],
+      "biomate_workflows": ["rnaseq", "wgs", "proteomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, DIA conference",
+      "notes": "CRO with growing genomics capabilities. Multi-site trial data harmonization angle.",
+      "energy_link": false,
+      "website": "https://www.syneoshealth.com/"
+    },
+    {
+      "id": "genomic-health-exact-001",
+      "name": "Exact Sciences (Genomic Health) — Oncology Diagnostics",
+      "city": "Madison", "state": "WI",
+      "segment": "clinical_lab", "sub_segment": "molecular_diagnostics",
+      "key_contacts": [
+        {"name": "Chief Scientific Officer", "title": "CSO", "email_hint": "science@exactsciences.com"}
+      ],
+      "domains": ["oncology-diagnostics", "liquid-biopsy", "cancer-genomics", "clinical-wgs"],
+      "biomate_workflows": ["wgs", "rnaseq", "variant-calling", "proteomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, AACC conference, oncology networks",
+      "notes": "Oncotype DX maker. Major clinical genomics testing lab. QC governance for clinical assay development.",
+      "energy_link": false,
+      "website": "https://www.exactsciences.com/"
+    },
+    {
+      "id": "foundation-medicine-001",
+      "name": "Foundation Medicine (Roche) — Comprehensive Genomic Profiling",
+      "city": "Cambridge", "state": "MA",
+      "segment": "clinical_lab", "sub_segment": "molecular_diagnostics",
+      "key_contacts": [
+        {"name": "Head of R&D Bioinformatics", "title": "Head of Bioinformatics", "email_hint": "bioinformatics@foundationmedicine.com"}
+      ],
+      "domains": ["tumor-profiling", "clinical-wgs", "oncology-ngs", "liquid-biopsy"],
+      "biomate_workflows": ["wgs", "rnaseq", "variant-calling"],
+      "priority": "B",
+      "reach_channel": "cold-email, AACR conference, oncology bioinformatics networks",
+      "notes": "FDA-cleared comprehensive genomic profiling. Very high-volume NGS. QC reproducibility and audit trail are critical for FDA 510(k) compliance.",
+      "energy_link": false,
+      "website": "https://www.foundationmedicine.com/"
+    },
+    {
+      "id": "genoptix-novartis-001",
+      "name": "Tempus AI — Clinical Genomics & AI",
+      "city": "Chicago", "state": "IL",
+      "segment": "clinical_lab", "sub_segment": "ai_clinical_genomics",
+      "key_contacts": [
+        {"name": "Chief Scientific Officer", "title": "CSO", "email_hint": "science@tempus.com"}
+      ],
+      "domains": ["clinical-genomics", "oncology-ai", "real-world-data", "multi-omics"],
+      "biomate_workflows": ["rnaseq", "wgs", "scrna", "proteomics"],
+      "priority": "A",
+      "reach_channel": "cold-email, AACR, LinkedIn, AI healthcare networks",
+      "notes": "AI-first clinical genomics company. Recently IPO'd. Multi-omics data at massive scale. BioMate QC governance could complement their platform — partnership angle possible.",
+      "energy_link": false,
+      "website": "https://www.tempus.com/"
+    },
+    {
+      "id": "invitae-001",
+      "name": "Invitae — Genetic Testing Laboratory",
+      "city": "San Francisco", "state": "CA",
+      "segment": "clinical_lab", "sub_segment": "genetic_testing",
+      "key_contacts": [
+        {"name": "Chief Scientific Officer", "title": "CSO", "email_hint": "info@invitae.com"}
+      ],
+      "domains": ["rare-disease-genetics", "hereditary-cancer", "pharmacogenomics", "clinical-wgs"],
+      "biomate_workflows": ["wgs", "wes", "variant-calling", "pharmacogenomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, ACMG conference",
+      "notes": "High-volume genetic testing. Pharmacogenomics and rare disease panel workflows.",
+      "energy_link": false,
+      "website": "https://www.invitae.com/"
+    }
+  ]
+}

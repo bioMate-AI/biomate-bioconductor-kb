@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "created": "2026-02-25",
+    "description": "Agricultural genomics belt targets — Kansas, Iowa, Nebraska, Indiana, Minnesota. Soil microbiome, crop genomics, precision agriculture.",
+    "total": 22,
+    "focus": "USDA-ARS, land-grant university genomics cores, agricultural biotech companies"
+  },
+  "targets": [
+    {
+      "id": "kstate-genomics-001",
+      "name": "Kansas State University — Wheat Genetics & Genomics",
+      "city": "Manhattan", "state": "KS",
+      "segment": "ag_genomics", "sub_segment": "crop_genomics",
+      "key_contacts": [
+        {"name": "Jesse Poland", "title": "Professor (Wheat Genetics)", "email_hint": "jpoland@ksu.edu"},
+        {"name": "Sundar Sankaranarayanan", "title": "Bioinformatics Core Director", "email_hint": "ssankaran@ksu.edu"}
+      ],
+      "domains": ["wheat-genomics", "crop-genomics", "metagenomics", "transcriptomics", "precision-agriculture"],
+      "biomate_workflows": ["wgs", "rnaseq", "metagenomics", "variant-calling"],
+      "priority": "A",
+      "reach_channel": "cold-email, PAG (Plant & Animal Genome Conference), USDA networks",
+      "notes": "Major wheat genomics center. Jesse Poland developed the Wheat iSelect SNP chip. High throughput genomics with direct BioMate workflow fit.",
+      "energy_link": false,
+      "website": "https://www.ksu.edu/wgrc/"
+    },
+    {
+      "id": "iastate-bioinformatics-001",
+      "name": "Iowa State University — Bioinformatics & Computational Biology",
+      "city": "Ames", "state": "IA",
+      "segment": "ag_genomics", "sub_segment": "bioinformatics",
+      "key_contacts": [
+        {"name": "Hank Bass", "title": "Professor (Plant Genomics)", "email_hint": "hbass@iastate.edu"},
+        {"name": "Carolyn Lawrence-Dill", "title": "Professor (Computational Biology)", "email_hint": "triffid@iastate.edu"}
+      ],
+      "domains": ["maize-genomics", "plant-bioinformatics", "metagenomics", "precision-agriculture"],
+      "biomate_workflows": ["wgs", "rnaseq", "metagenomics"],
+      "priority": "A",
+      "reach_channel": "cold-email, PAG conference, USDA networks",
+      "notes": "Premier maize and soybean genomics institution. BCB (Bioinformatics & Computational Biology) PhD program. High pipeline usage.",
+      "energy_link": false,
+      "website": "https://www.bcb.iastate.edu/"
+    },
+    {
+      "id": "unl-genomics-001",
+      "name": "University of Nebraska Lincoln — Center for Plant Science Innovation",
+      "city": "Lincoln", "state": "NE",
+      "segment": "ag_genomics", "sub_segment": "plant_science",
+      "key_contacts": [
+        {"name": "Tom Clemente", "title": "Director, CPSI", "email_hint": "tclemente2@unl.edu"}
+      ],
+      "domains": ["plant-genomics", "metabolic-engineering", "crop-biotech", "metagenomics"],
+      "biomate_workflows": ["wgs", "rnaseq", "metagenomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, PAG conference",
+      "notes": "Plant Science Innovation Center. Sorghum, soybean, drought-resistant crop genomics.",
+      "energy_link": false,
+      "website": "https://www.unl.edu/cpsi/"
+    },
+    {
+      "id": "purdue-genomics-001",
+      "name": "Purdue University — Center for Plant Biology & Genomics",
+      "city": "West Lafayette", "state": "IN",
+      "segment": "ag_genomics", "sub_segment": "plant_genomics",
+      "key_contacts": [
+        {"name": "Philip Benfey", "title": "Professor (Root Biology, Genomics)", "email_hint": "Philip.Benfey@duke.edu"}
+      ],
+      "domains": ["plant-genomics", "root-microbiome", "precision-agriculture", "bioinformatics"],
+      "biomate_workflows": ["rnaseq", "metagenomics", "scrna", "wgs"],
+      "priority": "B",
+      "reach_channel": "cold-email, PAG, Purdue Ag research networks",
+      "notes": "Strong plant + microbiome interface research. Single-cell plant genomics growing rapidly.",
+      "energy_link": false,
+      "website": "https://www.purdue.edu/hla/"
+    },
+    {
+      "id": "umn-genomics-001",
+      "name": "University of Minnesota — Institute for Plant Genomics & Evolution",
+      "city": "Minneapolis", "state": "MN",
+      "segment": "ag_genomics", "sub_segment": "plant_genomics",
+      "key_contacts": [
+        {"name": "Nevin Young", "title": "Professor (Legume Genomics)", "email_hint": "neviny@umn.edu"}
+      ],
+      "domains": ["legume-genomics", "plant-genomics", "microbiome", "metagenomics"],
+      "biomate_workflows": ["wgs", "rnaseq", "metagenomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, PAG conference",
+      "notes": "Soybean and alfalfa genomics. Strong USDA-NIFA funding.",
+      "energy_link": false,
+      "website": "https://cbs.umn.edu/"
+    },
+    {
+      "id": "usda-ars-corn-001",
+      "name": "USDA-ARS — National Laboratory for Agriculture & the Environment",
+      "city": "Ames", "state": "IA",
+      "segment": "ag_genomics", "sub_segment": "federal_research",
+      "key_contacts": [
+        {"name": "NLAE Lab Director", "title": "Lab Director", "email_hint": "nlae@ars.usda.gov"}
+      ],
+      "domains": ["agricultural-genomics", "soil-microbiome", "environmental-genomics", "metagenomics"],
+      "biomate_workflows": ["metagenomics", "16s-rrna", "rnaseq"],
+      "priority": "B",
+      "reach_channel": "USDA-ARS networks, cold-email",
+      "notes": "Federal agricultural research. Soil microbiome + watershed genomics for nutrient management.",
+      "energy_link": false,
+      "website": "https://www.ars.usda.gov/mwaa/nlae/"
+    },
+    {
+      "id": "corteva-genomics-001",
+      "name": "Corteva Agriscience — Genomics & Digital Agriculture",
+      "city": "Johnston", "state": "IA",
+      "segment": "ag_genomics", "sub_segment": "agbiotech_company",
+      "key_contacts": [
+        {"name": "Chief Science Officer", "title": "CSO", "email_hint": "scienceleadership@corteva.com"}
+      ],
+      "domains": ["crop-genomics", "plant-breeding", "metabolic-engineering", "precision-agriculture"],
+      "biomate_workflows": ["wgs", "rnaseq", "variant-calling"],
+      "priority": "B",
+      "reach_channel": "cold-email, ag biotech conferences, LinkedIn",
+      "notes": "Spinout from Dow/DuPont. Major crop genomics operations. BioMate audit trail relevant for regulatory submissions.",
+      "energy_link": false,
+      "website": "https://www.corteva.com/"
+    },
+    {
+      "id": "bayer-crop-science-001",
+      "name": "Bayer Crop Science — Genomics Research (Chesterfield, MO)",
+      "city": "Chesterfield", "state": "MO",
+      "segment": "ag_genomics", "sub_segment": "agbiotech_company",
+      "key_contacts": [
+        {"name": "Head of Genomics Research", "title": "Head of Research", "email_hint": "cropscience.genomics@bayer.com"}
+      ],
+      "domains": ["crop-genomics", "plant-breeding", "metabolic-engineering"],
+      "biomate_workflows": ["wgs", "rnaseq", "variant-calling"],
+      "priority": "B",
+      "reach_channel": "cold-email, PAG conference, ag biotech networks",
+      "notes": "Massive crop science R&D operation in St. Louis corridor. QC audit trails for regulatory submissions is a key differentiator.",
+      "energy_link": false,
+      "website": "https://www.cropscience.bayer.com/"
+    }
+  ]
+}

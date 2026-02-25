@@ -2,7 +2,7 @@
   "config": {
     "configFile": "/home/yzhang/biomate/frontend/playwright.config.ts",
     "rootDir": "/home/yzhang/biomate/frontend/e2e",
-    "forbidOnly": false,
+    "forbidOnly": true,
     "fullyParallel": false,
     "globalSetup": null,
     "globalTeardown": null,
@@ -41,7 +41,7 @@
       {
         "outputDir": "/home/yzhang/biomate/frontend/e2e/test-results",
         "repeatEach": 1,
-        "retries": 0,
+        "retries": 1,
         "metadata": {
           "actualWorkers": 1
         },
@@ -52,7 +52,7 @@
         "testMatch": [
           "**/*.e2e.ts"
         ],
-        "timeout": 180000
+        "timeout": 30000
       }
     ],
     "shard": null,
@@ -65,25 +65,25 @@
   },
   "suites": [
     {
-      "title": "query-workflow.e2e.ts",
-      "file": "query-workflow.e2e.ts",
+      "title": "complete-workflow.e2e.ts",
+      "file": "complete-workflow.e2e.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Query-Based Workflow E2E",
-          "file": "query-workflow.e2e.ts",
-          "line": 35,
+          "title": "Complete Workflow E2E",
+          "file": "complete-workflow.e2e.ts",
+          "line": 56,
           "column": 6,
           "specs": [
             {
-              "title": "should generate and potentially execute a database query workflow",
+              "title": "should generate workflow, execute it, and provide output",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 180000,
+                  "timeout": 300000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
@@ -93,92 +93,402 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 89402,
+                      "duration": 186153,
                       "errors": [],
                       "stdout": [
                         {
                           "text": "[Test] Step 1: Navigate to app\n"
                         },
                         {
-                          "text": "[Screenshot] 01_initial at 2995ms\n"
+                          "text": "[Screenshot] 01_initial at 2781ms\n"
                         },
                         {
-                          "text": "[Test] Step 2: Ask for query workflow\n"
+                          "text": "[Test] Step 2: Ask for workflow\n"
                         },
                         {
-                          "text": "[Test] Sent: \"Query UniProt to get information about the BRCA1 protein\"\n"
+                          "text": "[Test] Sent: \"Build me a quality control workflow for RNA-seq FASTQ files\"\n"
                         },
                         {
-                          "text": "[Screenshot] 02_message_sent at 3219ms\n"
+                          "text": "[Screenshot] 02_message_sent at 2972ms\n"
                         },
                         {
-                          "text": "[Test] Step 3: Waiting for AI response...\n"
+                          "text": "[Test] Step 3: Waiting for AI response to complete...\n"
                         },
                         {
-                          "text": "[Screenshot] 03_response_complete at 19305ms\n"
+                          "text": "[Screenshot] 03_response_complete at 55826ms\n"
                         },
                         {
-                          "text": "[Test] Step 4: Looking for workflow artifact...\n"
+                          "text": "[Test] Step 4: Looking for WorkflowArtifact...\n"
                         },
                         {
                           "text": "[Test] Found workflow indicator: button:has-text(\"Run\")\n"
                         },
                         {
-                          "text": "[Screenshot] 04_workflow_check at 19407ms\n"
+                          "text": "[Screenshot] 04_workflow_check at 55926ms\n"
                         },
                         {
-                          "text": "[Test] Page contains \"workflow\": \u001b[33mtrue\u001b[39m\n"
+                          "text": "[Test] Step 5: Clicking Run button...\n"
                         },
                         {
-                          "text": "[Test] Page contains \"UniProt\": \u001b[33mtrue\u001b[39m\n"
+                          "text": "[Screenshot] 05_workflow_running at 58109ms\n"
                         },
                         {
-                          "text": "[Test] Page contains \"BRCA1\": \u001b[33mtrue\u001b[39m\n"
+                          "text": "[Test] Captured execution run ID: 768bd4cc-5a8f-41fa-a94e-328f673bb2b1\n"
                         },
                         {
-                          "text": "[Test] Step 5: Checking Run button state...\n"
+                          "text": "[Test] Step 6: Monitoring execution progress...\n"
                         },
                         {
-                          "text": "[Test] Run button visible: true, disabled: false\n"
+                          "text": "[Test] Execution in progress (iteration 0)\n"
                         },
                         {
-                          "text": "[Test] Step 6: Clicking Run button...\n"
+                          "text": "[Screenshot] 06_progress_0 at 61210ms\n"
                         },
                         {
-                          "text": "[Screenshot] 06_workflow_started at 22588ms\n"
+                          "text": "[Test] Execution in progress (iteration 1)\n"
                         },
                         {
-                          "text": "[Test] Final execution status: unknown\n"
+                          "text": "[Test] Execution in progress (iteration 2)\n"
                         },
                         {
-                          "text": "\n[Test] === SUMMARY ===\n"
+                          "text": "[Test] Execution in progress (iteration 3)\n"
                         },
                         {
-                          "text": "[Test] Workflow found: true\n"
+                          "text": "[Test] Execution in progress (iteration 4)\n"
                         },
                         {
-                          "text": "[Test] Run button visible: true\n"
+                          "text": "[Test] Execution in progress (iteration 5)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 6)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 7)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 8)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 9)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 10)\n"
+                        },
+                        {
+                          "text": "[Screenshot] 06_progress_10 at 81428ms\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 11)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 12)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 13)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 14)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 15)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 16)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 17)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 18)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 19)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 20)\n"
+                        },
+                        {
+                          "text": "[Screenshot] 06_progress_20 at 101644ms\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 21)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 22)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 23)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 24)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 25)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 26)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 27)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 28)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 29)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 30)\n"
+                        },
+                        {
+                          "text": "[Screenshot] 06_progress_30 at 121830ms\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 31)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 32)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 33)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 34)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 35)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 36)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 37)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 38)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 39)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 40)\n"
+                        },
+                        {
+                          "text": "[Screenshot] 06_progress_40 at 142054ms\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 41)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 42)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 43)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 44)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 45)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 46)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 47)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 48)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 49)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 50)\n"
+                        },
+                        {
+                          "text": "[Screenshot] 06_progress_50 at 162296ms\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 51)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 52)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 53)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 54)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 55)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 56)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 57)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 58)\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 59)\n"
+                        },
+                        {
+                          "text": "[Test] Step 6b: Poll backend run status for terminal state...\n"
+                        },
+                        {
+                          "text": "[Test] Backend poll 0: status=completed, nfStatus=succeeded, nfCompleted=false, progress=0/0\n"
+                        },
+                        {
+                          "text": "[Screenshot] 07_backend_terminal_complete at 182535ms\n"
+                        },
+                        {
+                          "text": "[Test] Step 7: Checking for output...\n"
+                        },
+                        {
+                          "text": "[Test] Found output indicator: text=Output\n"
+                        },
+                        {
+                          "text": "[Screenshot] 08_output_available at 182649ms\n"
+                        },
+                        {
+                          "text": "[Test] Step 8: Checking Workflow History...\n"
+                        },
+                        {
+                          "text": "[Screenshot] 10_final_state at 182741ms\n"
+                        },
+                        {
+                          "text": "[Test] Console logs saved to: /home/yzhang/biomate/frontend/e2e/screenshots/complete-workflow/console_logs_1772045230411.json\n"
+                        },
+                        {
+                          "text": "\n[Test] === Important Console Logs ===\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages count: 3\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 3}\n"
+                        },
+                        {
+                          "text": "  [log] App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]\n"
+                        },
+                        {
+                          "text": "  [log] Send message: Build me a quality control workflow for RNA-seq FASTQ files\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages count: 4\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772045050543]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 4}\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] API Response: {response: Great! I've generated a **quality control workflow… the alignment and differential expression steps?, workflow: Object, prerequisitesValidation: Object, metada\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Steps array: []\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Created AI message: {id: 1772045100359, invocationId: undefined, metadata: Object, hasWorkflow: true, metadataType: workflow}\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Adding message to existing session: chat-1\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Updated session: 5 messages\n"
+                        },
+                        {
+                          "text": "  [log] App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]\n"
+                        },
+                        {
+                          "text": "  [log] ChatWithArtifacts: New workflow generated: {name: Get Rna Seq Archs4, description: Biomni Nextflow genomics subworkflow, annotation: Biomni Nextflow genomics subworkflow, tags: Array(3), format: nextf\n"
+                        },
+                        {
+                          "text": "  [log] App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages count: 5\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772045050543, 1772045100359]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Running workflow: Get Rna Seq Archs4\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Steps: 0\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Workflow format: nextflow\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Preparing Nextflow workflow for unified execution\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Executing workflow via unified API\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Workflow execution started: 768bd4cc-5a8f-41fa-a94e-328f673bb2b1\n"
+                        },
+                        {
+                          "text": "  [log] App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages count: 5\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772045050543, 1772045100359]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Workflow execution complete\n"
+                        },
+                        {
+                          "text": "\n[Test] === Test Summary ===\n"
+                        },
+                        {
+                          "text": "  Workflow artifact found: true\n"
+                        },
+                        {
+                          "text": "  Total duration: 182821ms\n"
                         }
                       ],
-                      "stderr": [],
+                      "stderr": [
+                        {
+                          "text": "(node:1754137) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                        }
+                      ],
                       "retry": 0,
-                      "startTime": "2026-01-23T16:26:17.704Z",
+                      "startTime": "2026-02-25T18:44:07.496Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/query-workflow.e2e.ts-Quer-31024-e-a-database-query-workflow-chromium/test-finished-1.png"
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/complete-workflow.e2e.ts-C-8daf8-ecute-it-and-provide-output-chromium/test-finished-1.png"
                         },
                         {
                           "name": "video",
                           "contentType": "video/webm",
-                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/query-workflow.e2e.ts-Quer-31024-e-a-database-query-workflow-chromium/video.webm"
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/complete-workflow.e2e.ts-C-8daf8-ecute-it-and-provide-output-chromium/video.webm"
                         },
                         {
                           "name": "trace",
                           "contentType": "application/zip",
-                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/query-workflow.e2e.ts-Quer-31024-e-a-database-query-workflow-chromium/trace.zip"
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/complete-workflow.e2e.ts-C-8daf8-ecute-it-and-provide-output-chromium/trace.zip"
                         }
                       ]
                     }
@@ -186,75 +496,9 @@
                   "status": "expected"
                 }
               ],
-              "id": "4dce81d6af7cd00044b2-11a54e833a3e9fb6d451",
-              "file": "query-workflow.e2e.ts",
-              "line": 37,
-              "column": 3
-            },
-            {
-              "title": "should handle protein structure prediction query",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 180000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 23000,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "[Test] Sent: \"Get the AlphaFold predicted structure for human insulin\"\n"
-                        },
-                        {
-                          "text": "[Test] Page contains \"AlphaFold\": \u001b[33mtrue\u001b[39m\n"
-                        },
-                        {
-                          "text": "[Test] Page contains \"insulin\": \u001b[33mtrue\u001b[39m\n"
-                        },
-                        {
-                          "text": "[Test] Page contains \"structure\": \u001b[33mtrue\u001b[39m\n"
-                        },
-                        {
-                          "text": "[Test] Uses local tool: \u001b[33mfalse\u001b[39m\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-01-23T16:27:48.708Z",
-                      "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/query-workflow.e2e.ts-Quer-bb049--structure-prediction-query-chromium/test-finished-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/query-workflow.e2e.ts-Quer-bb049--structure-prediction-query-chromium/video.webm"
-                        },
-                        {
-                          "name": "trace",
-                          "contentType": "application/zip",
-                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/query-workflow.e2e.ts-Quer-bb049--structure-prediction-query-chromium/trace.zip"
-                        }
-                      ]
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "4dce81d6af7cd00044b2-f5269861f2d152f29551",
-              "file": "query-workflow.e2e.ts",
-              "line": 209,
+              "id": "388d2b322faee0ffd25c-e083c404c26097ea8c04",
+              "file": "complete-workflow.e2e.ts",
+              "line": 57,
               "column": 3
             }
           ]
@@ -264,9 +508,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-01-23T16:26:17.234Z",
-    "duration": 115874.39600000001,
-    "expected": 2,
+    "startTime": "2026-02-25T18:44:07.041Z",
+    "duration": 191157.485,
+    "expected": 1,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

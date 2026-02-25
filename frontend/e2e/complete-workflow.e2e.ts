@@ -38,6 +38,21 @@ interface ConsoleLog {
   timestamp: string;
 }
 
+interface RunStatusResponse {
+  runId: string;
+  status: string;
+  progress?: {
+    completedSteps?: number;
+    totalSteps?: number;
+  };
+  errorMessage?: string;
+  nextflowStatus?: {
+    status?: string;
+    completed?: boolean;
+    error?: string;
+  };
+}
+
 test.describe('Complete Workflow E2E', () => {
   test('should generate workflow, execute it, and provide output', async ({ page }) => {
     const consoleLogs: ConsoleLog[] = [];
@@ -75,6 +90,7 @@ test.describe('Complete Workflow E2E', () => {
     await expect(chatInput).toBeVisible({ timeout: 10000 });
 
     // Use a specific request that should trigger workflow generation
+    // Use a request that consistently returns a real executable workflow card.
     const workflowRequest = 'Build me a quality control workflow for RNA-seq FASTQ files';
     await chatInput.fill(workflowRequest);
     await chatInput.press('Enter');
@@ -140,19 +156,56 @@ test.describe('Complete Workflow E2E', () => {
       console.log('[Test] Saved page HTML to debug_page.html');
     }
 
-    // ===== STEP 5: Click "Run" button if available =====
-    // The button text is "▶ Run" or just "Run" in the WorkflowArtifact
-    const runButton = page.locator('button:has-text("Run")').first();
+    // ===== STEP 5: Click execution button if available =====
+    // Some workflow cards use "Execute"/"Start"/"Run Workflow" instead of literal "Run".
+    const runButtonCandidates = [
+      page.getByRole('button', { name: /run workflow/i }).first(),
+      page.getByRole('button', { name: /^run$/i }).first(),
+      page.getByRole('button', { name: /execute/i }).first(),
+      page.getByRole('button', { name: /start/i }).first(),
+      page.locator('button:has-text("▶ Run")').first(),
+      page.locator('button:has-text("Run")').first(),
+    ];
+    let runButton = runButtonCandidates[runButtonCandidates.length - 1];
+    for (const candidate of runButtonCandidates) {
+      if (await candidate.isVisible().catch(() => false)) {
+        runButton = candidate;
+        break;
+      }
+    }
+    let executionRunId: string | null = null;
+    let backendTerminalStatus: string | null = null;
+    let executionComplete = false;
+    let outputFound = false;
+    let outputVisualizable = false;
+    let outputDownloadable = false;
+
     if (await runButton.isVisible().catch(() => false)) {
       console.log('[Test] Step 5: Clicking Run button...');
       await runButton.click();
       await page.waitForTimeout(2000);
       await saveScreenshot('05_workflow_running');
 
+      // Capture the run id emitted by frontend log.
+      for (let i = 0; i < 15; i++) {
+        const runLog = [...consoleLogs].reverse().find((log) =>
+          log.text.includes('Workflow execution started:')
+        );
+        if (runLog) {
+          const match = runLog.text.match(/Workflow execution started:\s*([a-f0-9-]+)/i);
+          if (match?.[1]) {
+            executionRunId = match[1];
+            console.log(`[Test] Captured execution run ID: ${executionRunId}`);
+            break;
+          }
+        }
+        await page.waitForTimeout(1000);
+      }
+      expect(executionRunId).toBeTruthy();
+
       // ===== STEP 6: Monitor execution progress =====
       console.log('[Test] Step 6: Monitoring execution progress...');
 
-      let executionComplete = false;
       for (let i = 0; i < 60; i++) { // Up to 2 minutes
         await page.waitForTimeout(2000);
 
@@ -182,6 +235,51 @@ test.describe('Complete Workflow E2E', () => {
         }
       }
 
+      // ===== STEP 6b: Backend-truth check for terminal state =====
+      console.log('[Test] Step 6b: Poll backend run status for terminal state...');
+      const terminalStatuses = new Set(['completed', 'failed', 'error', 'cancelled']);
+      let statusPayload: RunStatusResponse | null = null;
+
+      for (let i = 0; i < 120; i++) { // Up to 4 minutes
+        await page.waitForTimeout(2000);
+        const response = await page.request.get(`${BASE_URL}/api/workflows/runs/${executionRunId}/status`);
+        if (!response.ok()) {
+          console.log(`[Test] Backend poll ${i}: HTTP ${response.status()}`);
+          continue;
+        }
+
+        statusPayload = (await response.json()) as RunStatusResponse;
+        const status = (statusPayload.status || '').toLowerCase();
+        const nfStatus = (statusPayload.nextflowStatus?.status || '').toLowerCase();
+        const nfCompleted = !!statusPayload.nextflowStatus?.completed;
+
+        if (i % 5 === 0) {
+          console.log(
+            `[Test] Backend poll ${i}: status=${status}, nfStatus=${nfStatus}, nfCompleted=${nfCompleted}, ` +
+            `progress=${statusPayload.progress?.completedSteps ?? 0}/${statusPayload.progress?.totalSteps ?? 0}`
+          );
+        }
+
+        if (terminalStatuses.has(status)) {
+          backendTerminalStatus = status;
+          break;
+        }
+
+        if (nfCompleted && (status === 'running' || status === 'pending')) {
+          backendTerminalStatus = 'completed';
+          break;
+        }
+      }
+
+      expect(backendTerminalStatus, 'Run did not reach terminal backend state in time').toBeTruthy();
+      expect(
+        backendTerminalStatus,
+        `Run reached non-success terminal state. Backend error: ${statusPayload?.errorMessage || statusPayload?.nextflowStatus?.error || 'n/a'}`
+      ).toBe('completed');
+
+      executionComplete = true;
+      await saveScreenshot('07_backend_terminal_complete');
+
       // ===== STEP 7: Check for output/download =====
       if (executionComplete) {
         console.log('[Test] Step 7: Checking for output...');
@@ -198,13 +296,49 @@ test.describe('Complete Workflow E2E', () => {
           if (await element.isVisible().catch(() => false)) {
             console.log(`[Test] Found output indicator: ${indicator}`);
             await saveScreenshot('08_output_available');
+            outputFound = true;
             break;
           }
+        }
+
+        // Enforce frontend completion standard:
+        // 1) output should be visualizable
+        // 2) output should be downloadable
+        const reportButton = page.getByRole('button', { name: /^report$/i }).first();
+        const downloadButton = page.getByRole('button', { name: /^download$/i }).first();
+
+        if (await reportButton.isVisible().catch(() => false)) {
+          outputVisualizable = await reportButton.isEnabled().catch(() => false);
+          console.log(`[Test] Report button visible, enabled=${outputVisualizable}`);
+        } else {
+          const viewerIndicator = page.locator('[data-testid="output-viewer"], text=View Results, text=Visualization').first();
+          outputVisualizable = await viewerIndicator.isVisible().catch(() => false);
+          console.log(`[Test] Visualization indicator visible=${outputVisualizable}`);
+        }
+
+        if (await downloadButton.isVisible().catch(() => false)) {
+          outputDownloadable = await downloadButton.isEnabled().catch(() => false);
+          console.log(`[Test] Download button visible, enabled=${outputDownloadable}`);
+        } else {
+          const downloadIndicator = page.locator('a:has-text("Download"), button:has-text("Download All")').first();
+          outputDownloadable = await downloadIndicator.isVisible().catch(() => false);
+          console.log(`[Test] Download indicator visible=${outputDownloadable}`);
+        }
+
+        if (outputVisualizable && outputDownloadable) {
+          await saveScreenshot('09_output_visualizable_and_downloadable');
         }
       }
     } else {
       console.log('[Test] No Run button found in WorkflowArtifact');
     }
+
+    // Hard requirements for real E2E success.
+    expect(foundWorkflow, 'Workflow artifact was not rendered').toBe(true);
+    expect(executionComplete, 'Execution did not complete successfully').toBe(true);
+    expect(outputFound, 'No output indicators were found after completion').toBe(true);
+    expect(outputVisualizable, 'Output is not visualizable from frontend').toBe(true);
+    expect(outputDownloadable, 'Output is not downloadable from frontend').toBe(true);
 
     // ===== STEP 8: Check Workflow History =====
     console.log('[Test] Step 8: Checking Workflow History...');

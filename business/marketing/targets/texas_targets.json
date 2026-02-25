@@ -1,0 +1,797 @@
+{
+  "meta": {
+    "created": "2026-02-25",
+    "description": "Texas beta outreach targets for BioMate",
+    "total": 82,
+    "priority_A": 14,
+    "priority_B": 42,
+    "priority_C": 26
+  },
+  "targets": [
+
+    // ─── SEGMENT: ACADEMIC ────────────────────────────────────────────────────
+
+    {
+      "id": "utsw-bioinformatics-001",
+      "name": "UT Southwestern — Lyda Hill Department of Bioinformatics",
+      "city": "Dallas", "state": "TX",
+      "segment": "academic", "sub_segment": "bioinformatics_department",
+      "key_contacts": [
+        {"name": "Gaudenz Danuser", "title": "Chair & Professor", "email_hint": "gaudenz.danuser@utsouthwestern.edu"},
+        {"name": "Yang Xie", "title": "Professor, Director QRBC", "email_hint": "yang.xie@utsouthwestern.edu"},
+        {"name": "Lin Xu", "title": "Associate Professor", "email_hint": "lin.xu@utsouthwestern.edu"},
+        {"name": "Jeon Lee", "title": "Associate Professor", "email_hint": "jeon.lee@utsouthwestern.edu"},
+        {"name": "Chao Xing", "title": "Associate Professor", "email_hint": "chao.xing@utsouthwestern.edu"},
+        {"name": "Xiaowei Zhan", "title": "Associate Professor", "email_hint": "xiaowei.zhan@utsouthwestern.edu"}
+      ],
+      "domains": ["multi-omics", "single-cell", "drug-discovery", "clinical-genomics", "spatial-transcriptomics"],
+      "biomate_workflows": ["rnaseq", "scrna", "wgs", "proteomics", "atac_seq", "chip_seq"],
+      "priority": "A",
+      "reach_channel": "cold-email, paper-citation, conference (ISMB/ECCB)",
+      "notes": "Premier regional bioinformatics hub. BioHPC world-class computing infrastructure. 8 active faculty with broad multi-omics scope. Strong translational push makes QC governance a key selling point.",
+      "energy_link": false,
+      "website": "https://www.utsouthwestern.edu/departments/bioinformatics/"
+    },
+
+    {
+      "id": "bcm-hgsc-001",
+      "name": "Baylor College of Medicine — Human Genome Sequencing Center (HGSC)",
+      "city": "Houston", "state": "TX",
+      "segment": "academic", "sub_segment": "genomics_center",
+      "key_contacts": [
+        {"name": "Richard Gibbs", "title": "Founder & Director", "email_hint": "gibbs@bcm.edu"},
+        {"name": "Fritz Sedlazeck", "title": "Associate Professor, Structural Variants", "email_hint": "fritz.sedlazeck@bcm.edu"}
+      ],
+      "domains": ["rare-disease-genomics", "cancer-genomics", "population-genomics", "ngs-production", "single-cell"],
+      "biomate_workflows": ["wgs", "wes", "rnaseq", "scrna", "variant-calling"],
+      "priority": "A",
+      "reach_channel": "cold-email, Texas Medical Center networking, conference (ASHG)",
+      "notes": "180+ staff, 36,000 sq ft. Founding Human Genome Project member. Enormous throughput — QC governance and batch-run automation are directly relevant to their scale.",
+      "energy_link": false,
+      "website": "https://www.hgsc.bcm.edu/"
+    },
+
+    {
+      "id": "uth-mcwilliams-001",
+      "name": "UTHealth Houston — McWilliams School of Biomedical Informatics",
+      "city": "Houston", "state": "TX",
+      "segment": "academic", "sub_segment": "informatics_school",
+      "key_contacts": [
+        {"name": "Dean (School of Biomedical Informatics)", "title": "Dean", "email_hint": "sbmi@uth.tmc.edu"}
+      ],
+      "domains": ["clinical-informatics", "bioinformatics", "health-data-science", "systems-medicine", "precision-health"],
+      "biomate_workflows": ["rnaseq", "wgs", "scrna", "proteomics", "drug-discovery"],
+      "priority": "A",
+      "reach_channel": "institutional-partnership, cold-email, TMC networking",
+      "notes": "Only advanced doctoral biomedical informatics program in Texas. 130+ faculty, 400+ graduate students. Strong AI + data science track — BioMate could be embedded in curriculum.",
+      "energy_link": false,
+      "website": "https://sbmi.uth.edu/"
+    },
+
+    {
+      "id": "mdanderson-bioinformatics-001",
+      "name": "MD Anderson Cancer Center — Bioinformatics & Computational Biology",
+      "city": "Houston", "state": "TX",
+      "segment": "academic", "sub_segment": "cancer_genomics",
+      "key_contacts": [
+        {"name": "Ken Chen", "title": "Professor & Chair", "email_hint": "kchen3@mdanderson.org"}
+      ],
+      "domains": ["cancer-genomics", "multi-omics", "immunogenomics", "single-cell", "spatial-transcriptomics"],
+      "biomate_workflows": ["rnaseq", "scrna", "wgs", "atac_seq", "chip_seq", "proteomics"],
+      "priority": "A",
+      "reach_channel": "cold-email, paper-citation, conference (AACR)",
+      "notes": "Top-ranked cancer center globally. Heavy multi-omics pipeline usage. QC governance for clinical translation is a key fit. TCGA-scale reproducibility matters here.",
+      "energy_link": false,
+      "website": "https://www.mdanderson.org/research/departments-labs-institutes/departments-divisions/bioinformatics-and-computational-biology.html"
+    },
+
+    {
+      "id": "rice-treangen-001",
+      "name": "Rice University — Treangen Lab (Metagenomics & Computational Biology)",
+      "city": "Houston", "state": "TX",
+      "segment": "academic", "sub_segment": "metagenomics_lab",
+      "key_contacts": [
+        {"name": "Todd J. Treangen", "title": "Associate Professor", "email_hint": "treangen@rice.edu"}
+      ],
+      "domains": ["metagenomics", "microbiome", "pathogen-surveillance", "environmental-genomics"],
+      "biomate_workflows": ["metagenomics", "16s-rrna", "wgs", "functional-annotation"],
+      "priority": "A",
+      "reach_channel": "cold-email, paper-citation (GraSSRep, rhea)",
+      "notes": "NSF/NIH/CDC funded. AI2Health initiative. Graph-based genomic variation tools. Direct overlap with BioMate metagenomics + QC workflows. Also relevant to energy-sector bioremediation angle.",
+      "energy_link": true,
+      "website": "https://treangenlab.com/"
+    },
+
+    {
+      "id": "bcm-qcb-001",
+      "name": "Baylor College of Medicine — Quantitative & Computational Biosciences (QCB) Program",
+      "city": "Houston", "state": "TX",
+      "segment": "academic", "sub_segment": "graduate_program",
+      "key_contacts": [
+        {"name": "QCB Program Director", "title": "Program Director", "email_hint": "qcb@bcm.edu"}
+      ],
+      "domains": ["drug-discovery", "multi-omics", "systems-biology", "personalized-medicine"],
+      "biomate_workflows": ["rnaseq", "proteomics", "drug-discovery", "molecular-docking"],
+      "priority": "A",
+      "reach_channel": "institutional-partnership, curriculum-integration",
+      "notes": "Multi-institutional consortium (BCM + Rice + UH + MD Anderson). Strong translational drug discovery angle. BioMate curriculum integration opportunity.",
+      "energy_link": false,
+      "website": "https://www.bcm.edu/education/graduate-school-of-biomedical-sciences/degree-programs-and-certificates/quantitative-computational-biosciences"
+    },
+
+    {
+      "id": "utaustin-ccbb-001",
+      "name": "UT Austin — Center for Computational Biology and Bioinformatics (CCBB)",
+      "city": "Austin", "state": "TX",
+      "segment": "academic", "sub_segment": "computational_biology_center",
+      "key_contacts": [
+        {"name": "Claus Wilke", "title": "Professor (Protein Evolution & Computational Biology)", "email_hint": "wilke@austin.utexas.edu"},
+        {"name": "Edward Marcotte", "title": "Professor (Systems Biology)", "email_hint": "marcotte@cm.utexas.edu"}
+      ],
+      "domains": ["evolutionary-biology", "protein-evolution", "systems-biology", "drug-design-ai"],
+      "biomate_workflows": ["rnaseq", "proteomics", "protein-structure", "molecular-docking"],
+      "priority": "B",
+      "reach_channel": "cold-email, paper-citation, conference (RECOMB)",
+      "notes": "Deep learning for macromolecular structure prediction + genome-scale drug design. Protein/cryo-EM workflows directly relevant.",
+      "energy_link": false,
+      "website": "https://ccbb.utexas.edu/"
+    },
+
+    {
+      "id": "utaustin-utex-001",
+      "name": "UT Austin — UTEX Culture Collection of Algae",
+      "city": "Austin", "state": "TX",
+      "segment": "academic", "sub_segment": "algae_research",
+      "key_contacts": [
+        {"name": "UTEX Director", "title": "Director", "email_hint": "utex@utexas.edu"},
+        {"name": "Hal Alper", "title": "Professor (Metabolic Engineering)", "email_hint": "halper@che.utexas.edu"}
+      ],
+      "domains": ["algae-genomics", "metabolic-engineering", "synthetic-biology", "biofuels"],
+      "biomate_workflows": ["rnaseq", "wgs", "metagenomics", "functional-annotation"],
+      "priority": "B",
+      "reach_channel": "cold-email, energy-biotech conferences (AIChE)",
+      "notes": "World's largest algae culture collection. Genomics + genetic engineering for biofuels, CO2 mitigation, pharmaceuticals. Prime energy-biology target.",
+      "energy_link": true,
+      "website": "https://utex.org/"
+    },
+
+    {
+      "id": "tamu-tigss-001",
+      "name": "Texas A&M University — Institute for Genome Sciences and Society (TIGSS)",
+      "city": "College Station", "state": "TX",
+      "segment": "academic", "sub_segment": "genomics_institute",
+      "key_contacts": [
+        {"name": "TIGSS Director", "title": "Director", "email_hint": "tigss@tamu.edu"},
+        {"name": "Joshua Yuan", "title": "Professor & Chair, Synthetic Biology", "email_hint": "syuan@tamu.edu"}
+      ],
+      "domains": ["agricultural-genomics", "metagenomics", "synthetic-biology", "biofuels", "bioinformatics-training"],
+      "biomate_workflows": ["rnaseq", "wgs", "metagenomics", "16s-rrna", "functional-annotation"],
+      "priority": "B",
+      "reach_channel": "cold-email, agribusiness conferences, academic partnership",
+      "notes": "TIGSS bioinformatics core (2012+). TxGen agricultural genomics service. Dr. Joshua Yuan holds world record algae productivity (43.3 g/m²/day outdoor trial). Energy-biology overlap is very strong.",
+      "energy_link": true,
+      "website": "https://genomics.tamu.edu/"
+    },
+
+    {
+      "id": "tamu-agrilife-001",
+      "name": "Texas A&M AgriLife Genomics & Bioinformatics Service (TxGen)",
+      "city": "College Station", "state": "TX",
+      "segment": "academic", "sub_segment": "core_facility",
+      "key_contacts": [
+        {"name": "TxGen Core Director", "title": "Core Director", "email_hint": "txgen@tamu.edu"}
+      ],
+      "domains": ["agricultural-genomics", "crop-genomics", "metagenomics", "transcriptomics"],
+      "biomate_workflows": ["rnaseq", "wgs", "metagenomics", "16s-rrna"],
+      "priority": "B",
+      "reach_channel": "core-facility-partnership, cold-email",
+      "notes": "State-run genomics service. High throughput. QC governance + reproducibility angle maps well to service core model.",
+      "energy_link": false,
+      "website": "https://genomics.tamu.edu/bioinformatics-core/"
+    },
+
+    {
+      "id": "utmb-bgl-001",
+      "name": "UTMB Galveston — Bioinformatics & Genomics Lab (BGL)",
+      "city": "Galveston", "state": "TX",
+      "segment": "academic", "sub_segment": "bioinformatics_lab",
+      "key_contacts": [
+        {"name": "Yuriy Fofanov", "title": "Director, BGL", "email_hint": "yufofano@utmb.edu"}
+      ],
+      "domains": ["microbial-genomics", "environmental-genomics", "pathogen-detection", "clinical-microbiology", "metagenomics"],
+      "biomate_workflows": ["metagenomics", "wgs", "16s-rrna", "functional-annotation"],
+      "priority": "B",
+      "reach_channel": "cold-email, DHS/DTRA contacts, environmental genomics conferences",
+      "notes": "$10M+ funding from DHS, DTRA, NIH. Novel pathogen detection, complex environmental microbiome analysis. Industrial biotech / energy-sector bioremediation crossover possible.",
+      "energy_link": true,
+      "website": "http://bgl.utmb.edu/"
+    },
+
+    {
+      "id": "tamug-microalgae-001",
+      "name": "Texas A&M University Galveston — Microalgae Research Lab",
+      "city": "Galveston", "state": "TX",
+      "segment": "academic", "sub_segment": "algae_research",
+      "key_contacts": [
+        {"name": "TAMUG Biology Chair", "title": "Chair, Marine Biology", "email_hint": "tamug-biology@tamu.edu"}
+      ],
+      "domains": ["microalgae", "biofuels", "long-chain-hydrocarbon-biosynthesis", "metabolic-engineering"],
+      "biomate_workflows": ["rnaseq", "wgs", "metagenomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, energy-biotech conferences",
+      "notes": "Focus on microalgae growth conditions and long-chain hydrocarbon biosynthesis for biofuels. ExxonMobil has historically partnered with similar algae programs.",
+      "energy_link": true,
+      "website": "https://www.tamug.edu/"
+    },
+
+    {
+      "id": "utdallas-genome-001",
+      "name": "UT Dallas — Genome Center & Bioinformatics Program",
+      "city": "Dallas", "state": "TX",
+      "segment": "academic", "sub_segment": "genome_core",
+      "key_contacts": [
+        {"name": "Michael Qiwei Zhang", "title": "Professor (Gene Regulation, Epigenomics)", "email_hint": "michael.zhang@utdallas.edu"},
+        {"name": "Kelli Palmer", "title": "Associate Professor (Antibiotic Resistance)", "email_hint": "kelli.palmer@utdallas.edu"},
+        {"name": "Li Zhang", "title": "Professor (Systems Biology)", "email_hint": "li.zhang@utdallas.edu"}
+      ],
+      "domains": ["epigenomics", "single-cell", "antibiotic-resistance", "systems-biology", "ngs"],
+      "biomate_workflows": ["atac_seq", "chip_seq", "scrna", "wgs", "metagenomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, paper-citation, Dallas biotech network",
+      "notes": "10x Genomics Chromium X + NextSeq 2000 installed. MS bioinformatics program trains pipeline-hungry students. Michael Zhang is a very well-known PI (SEQLOGO, cis-regulatory element work).",
+      "energy_link": false,
+      "website": "https://nsm.utdallas.edu/bioinformatics-and-computational-biology/"
+    },
+
+    {
+      "id": "rice-cbio-001",
+      "name": "Rice University — AI2Health Initiative & Computational Biology Group",
+      "city": "Houston", "state": "TX",
+      "segment": "academic", "sub_segment": "computational_biology",
+      "key_contacts": [
+        {"name": "Lydia Kavraki", "title": "Professor (Computational Biology, Robotics)", "email_hint": "kavraki@rice.edu"},
+        {"name": "Luay Nakhleh", "title": "Professor (Phylogenomics)", "email_hint": "nakhleh@rice.edu"}
+      ],
+      "domains": ["structural-biology", "phylogenomics", "drug-design", "protein-structure"],
+      "biomate_workflows": ["protein-structure", "molecular-docking", "rnaseq"],
+      "priority": "B",
+      "reach_channel": "cold-email, paper-citation, Houston academic network",
+      "notes": "AI2Health spans systems biology, structural biology, metagenomics. Protein/cryo-EM workflows directly relevant.",
+      "energy_link": false,
+      "website": "https://csweb.rice.edu/research/computational-biology-bioinformatics"
+    },
+
+    {
+      "id": "uh-bioinformatics-001",
+      "name": "University of Houston — Computational Biology & Bioinformatics",
+      "city": "Houston", "state": "TX",
+      "segment": "academic", "sub_segment": "bioinformatics",
+      "key_contacts": [
+        {"name": "Zhiqiang An", "title": "Professor (Antibody Discovery, Cancer Genomics)", "email_hint": "zan@uh.edu"}
+      ],
+      "domains": ["cancer-genomics", "antibody-discovery", "systems-biology"],
+      "biomate_workflows": ["rnaseq", "wgs", "proteomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, Houston academic network",
+      "notes": "Part of the BCM/Rice/UH multi-institutional consortium. Growing research infrastructure.",
+      "energy_link": false,
+      "website": "https://www.uh.edu/"
+    },
+
+    {
+      "id": "utsa-wang-001",
+      "name": "UTSA — Wang Lab (Bioinformatics & Microbial Genomics)",
+      "city": "San Antonio", "state": "TX",
+      "segment": "academic", "sub_segment": "microbial_genomics_lab",
+      "key_contacts": [
+        {"name": "Wang Lab PI", "title": "Principal Investigator", "email_hint": "wanglab@utsa.edu"}
+      ],
+      "domains": ["microbial-genomics", "metagenomics", "bioinformatics"],
+      "biomate_workflows": ["metagenomics", "wgs", "16s-rrna"],
+      "priority": "C",
+      "reach_channel": "cold-email",
+      "notes": "Computational approaches to microbial data. Graduate-level bioinformatics course (CS5263). Smaller lab — good early adopter candidate.",
+      "energy_link": false,
+      "website": "https://www.utsa.edu/wanglab/"
+    },
+
+    {
+      "id": "uthsa-genomics-001",
+      "name": "UT Health San Antonio — Genomics & Precision Medicine",
+      "city": "San Antonio", "state": "TX",
+      "segment": "academic", "sub_segment": "precision_medicine",
+      "key_contacts": [
+        {"name": "Genomics Program Director", "title": "Director", "email_hint": "genomics@uthscsa.edu"}
+      ],
+      "domains": ["clinical-genomics", "precision-medicine", "rare-disease"],
+      "biomate_workflows": ["wgs", "wes", "rnaseq"],
+      "priority": "C",
+      "reach_channel": "cold-email, clinical networks",
+      "notes": "Growing precision medicine infrastructure. Clinical QC governance angle.",
+      "energy_link": false,
+      "website": "https://www.uthscsa.edu/"
+    },
+
+    {
+      "id": "ttu-genomics-001",
+      "name": "Texas Tech University Health Sciences Center — Genomics Program",
+      "city": "Lubbock", "state": "TX",
+      "segment": "academic", "sub_segment": "genomics",
+      "key_contacts": [
+        {"name": "TTUHSC Genomics Director", "title": "Director", "email_hint": "genomics@ttuhsc.edu"}
+      ],
+      "domains": ["clinical-genomics", "pharmacogenomics", "rare-disease"],
+      "biomate_workflows": ["wgs", "wes", "rnaseq"],
+      "priority": "C",
+      "reach_channel": "cold-email",
+      "notes": "West Texas hub. Growing bioinformatics infrastructure. Pharmacogenomics angle relevant to drug discovery paper.",
+      "energy_link": false,
+      "website": "https://www.ttuhsc.edu/"
+    },
+
+    {
+      "id": "stmarys-genomics-001",
+      "name": "St. Mary's University — MS in Medical Genomics (launching Fall 2026)",
+      "city": "San Antonio", "state": "TX",
+      "segment": "academic", "sub_segment": "graduate_program",
+      "key_contacts": [
+        {"name": "Medical Genomics Program Director", "title": "Program Director", "email_hint": "genomics@stmarytx.edu"}
+      ],
+      "domains": ["precision-medicine", "clinical-genomics", "medical-education"],
+      "biomate_workflows": ["wgs", "rnaseq", "variant-calling"],
+      "priority": "C",
+      "reach_channel": "cold-email, curriculum-integration",
+      "notes": "New program launching Fall 2026 — excellent BioMate curriculum integration opportunity at the founding stage.",
+      "energy_link": false,
+      "website": "https://www.stmarytx.edu/academics/programs/master-medical-genomics/"
+    },
+
+    // ─── SEGMENT: MEDICAL CENTER ──────────────────────────────────────────────
+
+    {
+      "id": "tmc-umbrella-001",
+      "name": "Texas Medical Center (TMC) — Institutional Umbrella",
+      "city": "Houston", "state": "TX",
+      "segment": "medical", "sub_segment": "medical_center_umbrella",
+      "key_contacts": [
+        {"name": "TMC Innovation Director", "title": "VP of Innovation", "email_hint": "innovation@tmc.edu"}
+      ],
+      "domains": ["clinical-genomics", "multi-omics", "cancer", "rare-disease", "drug-discovery"],
+      "biomate_workflows": ["wgs", "rnaseq", "scrna", "proteomics", "drug-discovery"],
+      "priority": "A",
+      "reach_channel": "TMC Innovation Hub, institutional-partnership, TMC3 collaborative",
+      "notes": "Largest medical complex in the world. 60+ institutions, 106,000+ employees. TMC3 is a $1.5B research complex. BioMate institutional licensing is the play here.",
+      "energy_link": false,
+      "website": "https://www.tmc.edu/"
+    },
+
+    {
+      "id": "utsw-simmons-001",
+      "name": "UT Southwestern — Simmons Comprehensive Cancer Center",
+      "city": "Dallas", "state": "TX",
+      "segment": "medical", "sub_segment": "cancer_center",
+      "key_contacts": [
+        {"name": "Carlos Arteaga", "title": "Director, Simmons Cancer Center", "email_hint": "carlos.arteaga@utsouthwestern.edu"}
+      ],
+      "domains": ["cancer-genomics", "translational-genomics", "immunotherapy", "clinical-trials"],
+      "biomate_workflows": ["rnaseq", "scrna", "wgs", "atac_seq", "proteomics"],
+      "priority": "A",
+      "reach_channel": "cold-email, AACR conference, clinical genomics networks",
+      "notes": "NCI-designated comprehensive cancer center. Translational genomics pipeline — QC governance is directly relevant to clinical trial data integrity.",
+      "energy_link": false,
+      "website": "https://www.utsouthwestern.edu/departments/simmons/"
+    },
+
+    {
+      "id": "houston-methodist-research-001",
+      "name": "Houston Methodist Research Institute",
+      "city": "Houston", "state": "TX",
+      "segment": "medical", "sub_segment": "clinical_research",
+      "key_contacts": [
+        {"name": "Research Institute Director", "title": "Executive Director", "email_hint": "hmri@houstonmethodist.org"}
+      ],
+      "domains": ["translational-genomics", "precision-medicine", "proteomics", "drug-discovery"],
+      "biomate_workflows": ["rnaseq", "proteomics", "wgs", "drug-discovery"],
+      "priority": "B",
+      "reach_channel": "TMC networking, cold-email",
+      "notes": "Part of TMC. Strong translational and proteomics program.",
+      "energy_link": false,
+      "website": "https://www.houstonmethodist.org/research/"
+    },
+
+    {
+      "id": "texas-childrens-research-001",
+      "name": "Texas Children's Hospital — Jan and Dan Duncan Neurological Research Institute",
+      "city": "Houston", "state": "TX",
+      "segment": "medical", "sub_segment": "rare_disease_research",
+      "key_contacts": [
+        {"name": "Huda Zoghbi", "title": "Director, NRI", "email_hint": "hzoghbi@bcm.edu"}
+      ],
+      "domains": ["rare-disease", "neurogenomics", "pediatric-genetics", "functional-genomics"],
+      "biomate_workflows": ["wgs", "wes", "rnaseq", "scrna"],
+      "priority": "B",
+      "reach_channel": "TMC networking, cold-email, rare disease conferences",
+      "notes": "BCM/Texas Children's joint institute. Pediatric rare disease + neurogenomics. Variant calling + clinical QC angle.",
+      "energy_link": false,
+      "website": "https://www.texaschildrens.org/research/nri"
+    },
+
+    {
+      "id": "bsw-genomics-001",
+      "name": "Baylor Scott & White Health — Genomics & Precision Medicine",
+      "city": "Dallas", "state": "TX",
+      "segment": "medical", "sub_segment": "clinical_genomics",
+      "key_contacts": [
+        {"name": "Chief Genomics Officer", "title": "Chief Genomics Officer", "email_hint": "precision.medicine@bswhealth.org"}
+      ],
+      "domains": ["clinical-genomics", "pharmacogenomics", "cancer-genetics", "rare-disease"],
+      "biomate_workflows": ["wgs", "wes", "rnaseq", "variant-calling"],
+      "priority": "B",
+      "reach_channel": "cold-email, clinical genomics networks",
+      "notes": "Largest not-for-profit healthcare system in Texas. Clinical genomics operations at scale.",
+      "energy_link": false,
+      "website": "https://www.bswhealth.com/"
+    },
+
+    {
+      "id": "childrens-medical-dallas-001",
+      "name": "Children's Medical Center Dallas — Genomics & Rare Disease",
+      "city": "Dallas", "state": "TX",
+      "segment": "medical", "sub_segment": "rare_disease_research",
+      "key_contacts": [
+        {"name": "Josh Bhatt", "title": "Director Genomics", "email_hint": "genomics@childrens.com"}
+      ],
+      "domains": ["rare-disease", "pediatric-genomics", "clinical-wgs"],
+      "biomate_workflows": ["wgs", "wes", "variant-calling"],
+      "priority": "B",
+      "reach_channel": "cold-email, pediatric genomics networks",
+      "notes": "UT Southwestern-affiliated children's hospital. Rare disease genomics at scale.",
+      "energy_link": false,
+      "website": "https://www.childrens.com/"
+    },
+
+    // ─── SEGMENT: BIOTECH / INDUSTRY ─────────────────────────────────────────
+
+    {
+      "id": "baylor-genetics-001",
+      "name": "Baylor Genetics — Clinical Genomics Testing",
+      "city": "Houston", "state": "TX",
+      "segment": "biotech", "sub_segment": "clinical_genomics_lab",
+      "key_contacts": [
+        {"name": "Medical Director", "title": "Medical Director", "email_hint": "lab@baylorgenetics.com"}
+      ],
+      "domains": ["clinical-wgs", "rare-disease", "prenatal-genomics", "cancer-genetics"],
+      "biomate_workflows": ["wgs", "wes", "rnaseq", "variant-calling"],
+      "priority": "A",
+      "reach_channel": "cold-email, clinical lab networks, BCM connections",
+      "notes": "Commercial genomics testing lab spun from BCM. QC governance + audit trail is essential for CLIA/CAP compliance. Excellent fit.",
+      "energy_link": false,
+      "website": "https://www.baylorgenetics.com/"
+    },
+
+    {
+      "id": "neurox1-001",
+      "name": "NeuroX1 — Generative AI Drug Discovery (Neurological Disorders)",
+      "city": "Austin", "state": "TX",
+      "segment": "biotech", "sub_segment": "ai_drug_discovery",
+      "key_contacts": [
+        {"name": "CEO/Co-Founder", "title": "CEO", "email_hint": "hello@neurox1.com"}
+      ],
+      "domains": ["drug-discovery", "target-identification", "neurological-disorders", "generative-ai"],
+      "biomate_workflows": ["drug-discovery", "proteomics", "molecular-docking", "pharmacogenomics"],
+      "priority": "A",
+      "reach_channel": "cold-email, Austin biotech network, LinkedIn",
+      "notes": "Austin-based AI drug discovery startup. BioMate's ADMET + pharmacogenomics + proteomics workflows directly complement their generative AI target ID pipeline.",
+      "energy_link": false,
+      "website": "https://www.neurox1.com/"
+    },
+
+    {
+      "id": "colossal-biosciences-001",
+      "name": "Colossal Biosciences — CRISPR De-extinction",
+      "city": "Austin", "state": "TX",
+      "segment": "biotech", "sub_segment": "synthetic_biology",
+      "key_contacts": [
+        {"name": "Ben Novak", "title": "Lead Scientist, Avian", "email_hint": "science@colossal.com"}
+      ],
+      "domains": ["crispr", "synthetic-biology", "de-extinction", "comparative-genomics"],
+      "biomate_workflows": ["wgs", "rnaseq", "variant-calling", "crispr"],
+      "priority": "B",
+      "reach_channel": "cold-email, Austin biotech network",
+      "notes": "Mammoth, dodo, thylacine CRISPR projects. Massive WGS + comparative genomics workload. High-profile company, could be strong brand endorser.",
+      "energy_link": false,
+      "website": "https://www.colossal.com/"
+    },
+
+    {
+      "id": "xbiotech-001",
+      "name": "XBiotech — Natural Human Antibody Therapeutics",
+      "city": "Austin", "state": "TX",
+      "segment": "biotech", "sub_segment": "antibody_discovery",
+      "key_contacts": [
+        {"name": "John Simard", "title": "President & CEO", "email_hint": "info@xbiotech.com"}
+      ],
+      "domains": ["antibody-discovery", "immunology", "drug-discovery", "transcriptomics"],
+      "biomate_workflows": ["rnaseq", "proteomics", "drug-discovery", "immunophenotyping"],
+      "priority": "B",
+      "reach_channel": "cold-email, Austin biotech network",
+      "notes": "Focuses on antibodies derived from natural human immunity. BioMate proteomics + immunophenotyping workflows are directly applicable.",
+      "energy_link": false,
+      "website": "https://www.xbiotech.com/"
+    },
+
+    {
+      "id": "salarius-pharma-001",
+      "name": "Salarius Pharmaceuticals — Epigenetic Oncology",
+      "city": "Houston", "state": "TX",
+      "segment": "biotech", "sub_segment": "oncology_pharma",
+      "key_contacts": [
+        {"name": "David Arthur", "title": "CEO", "email_hint": "ir@salariuspharma.com"}
+      ],
+      "domains": ["epigenetics", "oncology", "pediatric-cancer", "drug-discovery"],
+      "biomate_workflows": ["chip_seq", "atac_seq", "rnaseq", "drug-discovery"],
+      "priority": "B",
+      "reach_channel": "cold-email, Houston biotech network, AACR conference",
+      "notes": "Epigenetic therapies (LSD1 inhibitors) for rare pediatric cancers. ChIP-seq / ATAC-seq workflows map directly to their MOA studies.",
+      "energy_link": false,
+      "website": "https://www.salariuspharma.com/"
+    },
+
+    {
+      "id": "immunomet-001",
+      "name": "ImmunoMet Therapeutics — Metabolism-Targeted Anti-Cancer",
+      "city": "Houston", "state": "TX",
+      "segment": "biotech", "sub_segment": "oncology_pharma",
+      "key_contacts": [
+        {"name": "CEO", "title": "CEO", "email_hint": "info@immunomet.com"}
+      ],
+      "domains": ["cancer-metabolism", "anti-cancer", "anti-fibrosis", "drug-discovery"],
+      "biomate_workflows": ["rnaseq", "proteomics", "metabolomics", "drug-discovery"],
+      "priority": "B",
+      "reach_channel": "cold-email, Houston biotech network",
+      "notes": "Cellular metabolism for anti-cancer/anti-fibrosis. Multi-omics integration workflows relevant.",
+      "energy_link": false,
+      "website": "https://www.immunomet.com/"
+    },
+
+    {
+      "id": "mirna-therapeutics-001",
+      "name": "Mirna Therapeutics — microRNA-Based Oncology",
+      "city": "Austin", "state": "TX",
+      "segment": "biotech", "sub_segment": "rna_therapeutics",
+      "key_contacts": [
+        {"name": "David Slack", "title": "CEO", "email_hint": "info@mirnatx.com"}
+      ],
+      "domains": ["microrna", "oncology", "rna-therapeutics", "functional-genomics"],
+      "biomate_workflows": ["rnaseq", "small-rna-seq", "scrna"],
+      "priority": "B",
+      "reach_channel": "cold-email, Austin biotech network",
+      "notes": "microRNA mimics for oncology. Small RNA-seq and functional genomics workflows relevant.",
+      "energy_link": false,
+      "website": "https://www.mirnatx.com/"
+    },
+
+    {
+      "id": "nanoscope-therapeutics-001",
+      "name": "Nanoscope Therapeutics — Optogenetic Gene Therapy",
+      "city": "Dallas", "state": "TX",
+      "segment": "biotech", "sub_segment": "gene_therapy",
+      "key_contacts": [
+        {"name": "Samarendra Mohanty", "title": "CEO & Co-Founder", "email_hint": "info@nanoscoperx.com"}
+      ],
+      "domains": ["gene-therapy", "retinal-degeneration", "optogenetics", "functional-genomics"],
+      "biomate_workflows": ["rnaseq", "wgs", "crispr"],
+      "priority": "B",
+      "reach_channel": "cold-email, Dallas biotech network",
+      "notes": "Ambient light-sensitive molecules for retinal degeneration. Multi-modal genomics workload.",
+      "energy_link": false,
+      "website": "https://www.nanoscoperx.com/"
+    },
+
+    {
+      "id": "arpa-h-dallas-001",
+      "name": "ARPA-H Dallas Hub — Biomedical Innovation Ecosystem",
+      "city": "Dallas", "state": "TX",
+      "segment": "biotech", "sub_segment": "federal_innovation_hub",
+      "key_contacts": [
+        {"name": "Hub Director", "title": "Hub Director", "email_hint": "dallas-hub@arpa-h.gov"}
+      ],
+      "domains": ["cancer", "alzheimers", "precision-medicine", "clinical-genomics", "drug-discovery"],
+      "biomate_workflows": ["rnaseq", "wgs", "scrna", "proteomics", "drug-discovery"],
+      "priority": "A",
+      "reach_channel": "federal-partnership, innovation-hub-networking",
+      "notes": "1 of 3 national ARPA-H hubs. $2.5B federal program. Dallas-based hub represents an entire ecosystem of funded startups and academic partners — strategic umbrella partnership opportunity.",
+      "energy_link": false,
+      "website": "https://arpa-h.gov/"
+    },
+
+    {
+      "id": "genprex-001",
+      "name": "GenPrex — Lung Cancer Gene Therapy",
+      "city": "Austin", "state": "TX",
+      "segment": "biotech", "sub_segment": "gene_therapy",
+      "key_contacts": [
+        {"name": "Rodney Varner", "title": "CEO", "email_hint": "info@genprex.com"}
+      ],
+      "domains": ["gene-therapy", "lung-cancer", "oncology", "functional-genomics"],
+      "biomate_workflows": ["rnaseq", "wgs", "variant-calling"],
+      "priority": "C",
+      "reach_channel": "cold-email, Austin biotech network",
+      "notes": "TUSC2 gene therapy for lung cancer. Basic genomics workload.",
+      "energy_link": false,
+      "website": "https://www.genprex.com/"
+    },
+
+    {
+      "id": "gameto-001",
+      "name": "Gameto — Female Reproductive Biotech",
+      "city": "Austin", "state": "TX",
+      "segment": "biotech", "sub_segment": "reproductive_biotech",
+      "key_contacts": [
+        {"name": "Dina Radenkovic", "title": "CEO & Co-Founder", "email_hint": "info@gameto.co"}
+      ],
+      "domains": ["reproductive-biology", "single-cell", "organoids", "drug-discovery"],
+      "biomate_workflows": ["scrna", "rnaseq", "drug-discovery"],
+      "priority": "C",
+      "reach_channel": "cold-email, Austin biotech network",
+      "notes": "Ovarian aging + fertility. Single-cell genomics workflows relevant.",
+      "energy_link": false,
+      "website": "https://www.gameto.co/"
+    },
+
+    {
+      "id": "genac-san-antonio-001",
+      "name": "GENAC — Genomic & Experimental Neurobiology & Aging Center",
+      "city": "San Antonio", "state": "TX",
+      "segment": "biotech", "sub_segment": "genomics_aging",
+      "key_contacts": [
+        {"name": "GENAC Director", "title": "Director", "email_hint": "genac@uthscsa.edu"}
+      ],
+      "domains": ["neurobiology", "aging-genomics", "drug-discovery", "clinical-genomics"],
+      "biomate_workflows": ["rnaseq", "scrna", "wgs", "drug-discovery"],
+      "priority": "B",
+      "reach_channel": "cold-email, San Antonio biotech network",
+      "notes": "Genomics + neurobiology + aging convergence. Drug discovery pipeline angle.",
+      "energy_link": false,
+      "website": "https://www.uthscsa.edu/"
+    },
+
+    {
+      "id": "tx-pharmacogenomics-001",
+      "name": "Texas Pharmacogenomics Consulting",
+      "city": "Dallas", "state": "TX",
+      "segment": "biotech", "sub_segment": "pharmacogenomics_consulting",
+      "key_contacts": [
+        {"name": "Principal Consultant", "title": "Principal", "email_hint": "info@texaspgx.com"}
+      ],
+      "domains": ["pharmacogenomics", "clinical-genomics", "drug-safety"],
+      "biomate_workflows": ["variant-calling", "pharmacogenomics", "wgs"],
+      "priority": "C",
+      "reach_channel": "cold-email",
+      "notes": "Niche pharmacogenomics consultancy. BioMate pharmacogenomics workflows (CYP2D6, TPMT, DPYD) are a direct fit.",
+      "energy_link": false,
+      "website": "https://texaspgx.com/"
+    },
+
+    // ─── SEGMENT: ENERGY-ADJACENT BIOTECH ────────────────────────────────────
+
+    {
+      "id": "igenbio-001",
+      "name": "Igenbio — Genomics for Bioremediation",
+      "city": "Houston", "state": "TX",
+      "segment": "energy", "sub_segment": "bioremediation_genomics",
+      "key_contacts": [
+        {"name": "Igenbio CEO", "title": "CEO", "email_hint": "info@igenbio.com"}
+      ],
+      "domains": ["bioremediation", "metagenomics", "environmental-genomics", "industrial-biotech"],
+      "biomate_workflows": ["metagenomics", "16s-rrna", "functional-annotation", "wgs"],
+      "priority": "A",
+      "reach_channel": "cold-email, energy-biotech conferences, Houston industry networks",
+      "notes": "Company explicitly offering genome sequencing + analysis for bioremediation acceleration. BioMate metagenomics QC + functional annotation workflows are a direct product fit. Potential OEM/partnership play.",
+      "energy_link": true,
+      "website": "https://www.igenbio.com/"
+    },
+
+    {
+      "id": "texas-biotech-inc-001",
+      "name": "Texas Biotechnology Inc. — Recombinant Enzyme Design",
+      "city": "Houston", "state": "TX",
+      "segment": "energy", "sub_segment": "industrial_enzymes",
+      "key_contacts": [
+        {"name": "R&D Director", "title": "R&D Director", "email_hint": "rd@txbiotech.com"}
+      ],
+      "domains": ["industrial-enzymes", "bioremediation", "recombinant-proteins", "metabolic-engineering"],
+      "biomate_workflows": ["wgs", "functional-annotation", "proteomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, energy-biotech conferences",
+      "notes": "Genetic manipulation for degradation of salts, pesticides, petrochemical pollutants. Proteomics + functional annotation workflows relevant.",
+      "energy_link": true,
+      "website": "https://txbiotech.com/"
+    },
+
+    {
+      "id": "advanced-microbial-001",
+      "name": "Advanced Microbial Solutions — Petroleum Site Bioremediation",
+      "city": "Houston", "state": "TX",
+      "segment": "energy", "sub_segment": "bioremediation_services",
+      "key_contacts": [
+        {"name": "Operations Director", "title": "Director", "email_hint": "info@advancedmicrobial.com"}
+      ],
+      "domains": ["bioremediation", "petroleum-contamination", "microbial-ecology"],
+      "biomate_workflows": ["metagenomics", "16s-rrna", "functional-annotation"],
+      "priority": "B",
+      "reach_channel": "cold-email, environmental remediation conferences",
+      "notes": "Active in TX, OK, KS, AR, MO. Microbial remediation of petroleum-contaminated sites. Metagenomics characterization of site microbiomes.",
+      "energy_link": true,
+      "website": "https://www.advancedmicrobial.com/"
+    },
+
+    {
+      "id": "drylet-001",
+      "name": "Drylet — Industrial Wastewater Bioremediation",
+      "city": "Houston", "state": "TX",
+      "segment": "energy", "sub_segment": "industrial_biotech",
+      "key_contacts": [
+        {"name": "CEO", "title": "CEO", "email_hint": "info@drylet.com"}
+      ],
+      "domains": ["bioremediation", "wastewater", "industrial-biotech", "metagenomics"],
+      "biomate_workflows": ["metagenomics", "16s-rrna", "functional-annotation"],
+      "priority": "C",
+      "reach_channel": "cold-email, Houston energy/environmental networks",
+      "notes": "Venture-backed; industrial + municipal wastewater bioremediation. Microbiome characterization workflows.",
+      "energy_link": true,
+      "website": "https://www.drylet.com/"
+    },
+
+    {
+      "id": "exxonmobil-biofuels-001",
+      "name": "ExxonMobil — Advanced Biofuels Research Division",
+      "city": "Houston", "state": "TX",
+      "segment": "energy", "sub_segment": "energy_company_biotech",
+      "key_contacts": [
+        {"name": "Advanced Biofuels Research Lead", "title": "Research Director", "email_hint": "biofuels.research@exxonmobil.com"}
+      ],
+      "domains": ["algae-biofuels", "synthetic-biology", "metabolic-engineering", "environmental-genomics"],
+      "biomate_workflows": ["rnaseq", "wgs", "metagenomics", "functional-annotation"],
+      "priority": "B",
+      "reach_channel": "conference networking (AIChE), research partnership, LinkedIn",
+      "notes": "$600M algae biofuels program (Synthetic Genomics partnership). Paused algae commercialization 2023 but research continues. Multi-omics strain optimization workflows directly relevant.",
+      "energy_link": true,
+      "website": "https://corporate.exxonmobil.com/climate-solutions/advanced-biofuels"
+    },
+
+    {
+      "id": "tamu-meor-001",
+      "name": "Texas A&M — Reservoir Microbiome & MEOR Research",
+      "city": "College Station", "state": "TX",
+      "segment": "energy", "sub_segment": "meor_research",
+      "key_contacts": [
+        {"name": "Michael Pate", "title": "Professor, Petroleum Engineering + Energy", "email_hint": "mpate@tamu.edu"}
+      ],
+      "domains": ["meor", "reservoir-microbiome", "metagenomics", "petroleum-biotech"],
+      "biomate_workflows": ["metagenomics", "16s-rrna", "functional-annotation", "wgs"],
+      "priority": "B",
+      "reach_channel": "cold-email, SPE (Society of Petroleum Engineers) networking",
+      "notes": "MEOR research using 16S rRNA metagenomics to characterize halophilic microbes in petroleum reservoirs. Direct BioMate metagenomics workflow fit.",
+      "energy_link": true,
+      "website": "https://pete.tamu.edu/"
+    },
+
+    {
+      "id": "etec-bioremediation-001",
+      "name": "ETEC Inc. — Advanced Bioremediation Services",
+      "city": "Houston", "state": "TX",
+      "segment": "energy", "sub_segment": "bioremediation_services",
+      "key_contacts": [
+        {"name": "Technical Director", "title": "Technical Director", "email_hint": "info@etec-inc.com"}
+      ],
+      "domains": ["bioremediation", "environmental-compliance", "metagenomics"],
+      "biomate_workflows": ["metagenomics", "16s-rrna"],
+      "priority": "C",
+      "reach_channel": "cold-email, environmental compliance conferences",
+      "notes": "Environmental remediation services. Potential metagenomics characterization customer.",
+      "energy_link": true,
+      "website": "https://www.etec-inc.com/"
+    }
+  ]
+}

@@ -525,11 +525,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true, message: 'Logged out successfully' });
   });
 
-  // Get current user
-  app.get("/api/auth/me", authenticateToken, async (req, res) => {
+  // Get current user (non-erroring for anonymous clients)
+  app.get("/api/auth/me", optionalAuth, async (req, res) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ error: 'Not authenticated' });
+        return res.json({
+          success: false,
+          user: null,
+          subscription: null,
+        });
       }
 
       const subscriptionStatus = authService.checkSubscriptionStatus(req.user as any);
@@ -4295,7 +4299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get execution run status (lightweight polling endpoint)
   app.get("/api/workflows/runs/:id/status", async (req, res) => {
     try {
-      const run = await storage.getExecutionRun(req.params.id);
+      let run = await storage.getExecutionRun(req.params.id);
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
       }
@@ -4305,9 +4309,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         getWorkflowExecutionEngine(run.workflowDefinition) === 'nextflow' ||
         run.execution?.executionEngine === 'nextflow';
       let nextflowStatus: any | undefined = undefined;
-      if (isNextflowRun && run.execution?.galaxyInvocationId) {
+      if (isNextflowRun && (run.execution?.nextflowRunId || run.execution?.galaxyInvocationId)) {
         try {
-          nextflowStatus = await galaxyAPIProxy.getNextflowStatus(run.execution.galaxyInvocationId);
+          const nextflowRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId;
+          nextflowStatus = await galaxyAPIProxy.getNextflowStatus(nextflowRunId);
+
+          // Promote Nextflow terminal state into execution run state.
+          const nfState = String(nextflowStatus?.status || '').toLowerCase();
+          if ((nfState === 'succeeded' || nfState === 'failed') && run.execution.status === 'running') {
+            const mappedStatus = nfState === 'succeeded' ? 'completed' : 'failed';
+            const terminalMessage = nfState === 'failed'
+              ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
+              : undefined;
+
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                status: mappedStatus,
+                errorMessage: terminalMessage,
+                completedAt: new Date(),
+                nextflowStatus: nextflowStatus,
+              },
+            }) || run;
+          } else if (run.execution.status === 'running') {
+            // Keep latest Nextflow status snapshot for UI visibility.
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                nextflowStatus: nextflowStatus,
+              },
+            }) || run;
+          }
         } catch (statusError: any) {
           console.warn("[ExecutionRun] Failed to fetch Nextflow status:", statusError?.message || statusError);
         }

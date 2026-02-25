@@ -8,6 +8,7 @@ Does NOT require Galaxy workflow/invocation infrastructure.
 """
 import logging
 import os
+import re
 import subprocess
 import threading
 import uuid
@@ -163,6 +164,264 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
         f"Could not resolve Nextflow script '{raw_path}'. "
         f"Set NEXTFLOW_SEARCH_ROOTS to include your workflow roots."
     )
+
+
+def _extract_documented_images() -> list[str]:
+    """
+    Extract workflow container images from local BioMate docs.
+    This keeps runtime image selection aligned with documented, previously built images.
+    """
+    docs = [
+        Path(__file__).resolve().parents[5] / "20260119_1538_DOCKER_CONTAINER_ROUTING_APPROACH.md",
+        Path(__file__).resolve().parents[5] / "20260116_BIOMNI_DOCKER_TEST_RESULTS.md",
+        Path(__file__).resolve().parents[5] / "biomni_workflows" / "galaxy" / "docker" / "20251203_DOCKER_TOOL_EXECUTION_GUIDE.md",
+        Path(__file__).resolve().parents[5] / "biomni_workflows" / "20251204_NEXTFLOW_DOCKER_CONFIGURATION.md",
+    ]
+    image_pattern = re.compile(r"(biomate/[a-zA-Z0-9._-]+(?::[a-zA-Z0-9._-]+)?)")
+    images: list[str] = []
+    for doc in docs:
+        if not doc.exists():
+            continue
+        try:
+            text = doc.read_text(errors="replace")
+        except OSError:
+            continue
+        for match in image_pattern.findall(text):
+            if match not in images:
+                images.append(match)
+    return images
+
+
+def _is_local_docker_image(image: str) -> bool:
+    """Return True if Docker image exists locally."""
+    try:
+        result = subprocess.run(
+            ["docker", "image", "inspect", image],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=10,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def _host_arch() -> str:
+    """Return normalized host architecture: arm64 | amd64 | unknown."""
+    machine = os.uname().machine.lower()
+    if machine in ("aarch64", "arm64"):
+        return "arm64"
+    if machine in ("x86_64", "amd64"):
+        return "amd64"
+    return "unknown"
+
+
+def _image_declared_arch(image: str) -> str:
+    """
+    Best-effort arch hint from image tag naming convention.
+    Returns: arm64 | amd64 | unknown
+    """
+    image_l = image.lower()
+    if ":arm64" in image_l or "-arm64" in image_l:
+        return "arm64"
+    if ":x86" in image_l or ":amd64" in image_l or "-x86" in image_l or "-amd64" in image_l:
+        return "amd64"
+    return "unknown"
+
+
+def _image_runtime_arch(image: str) -> str:
+    """Inspect local image architecture via Docker metadata."""
+    try:
+        result = subprocess.run(
+            ["docker", "image", "inspect", "--format", "{{.Architecture}}", image],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            return "unknown"
+        arch = result.stdout.strip().lower()
+        if arch in ("arm64", "aarch64"):
+            return "arm64"
+        if arch in ("amd64", "x86_64"):
+            return "amd64"
+        return "unknown"
+    except Exception:
+        return "unknown"
+
+
+def _is_image_arch_compatible(image: str) -> tuple[bool, str, str]:
+    """
+    Returns (compatible, host_arch, image_arch).
+    By default cross-arch is disabled; enable with NEXTFLOW_ALLOW_CROSS_ARCH_DOCKER=true.
+    """
+    host_arch = _host_arch()
+    image_arch = _image_runtime_arch(image)
+    if image_arch == "unknown":
+        image_arch = _image_declared_arch(image)
+
+    allow_cross = os.environ.get("NEXTFLOW_ALLOW_CROSS_ARCH_DOCKER", "false").lower() in ("1", "true", "yes")
+    if allow_cross:
+        return True, host_arch, image_arch
+    if host_arch == "unknown" or image_arch == "unknown":
+        return True, host_arch, image_arch
+    return host_arch == image_arch, host_arch, image_arch
+
+
+def _extract_python_imports(nf_path: Path) -> list[str]:
+    """
+    Best-effort extraction of Python imports embedded in Nextflow scripts.
+    """
+    try:
+        text = nf_path.read_text(errors="replace")
+    except OSError:
+        return []
+
+    imports: set[str] = set()
+    for mod in re.findall(r"^\s*import\s+([a-zA-Z_][a-zA-Z0-9_\.]*)", text, flags=re.MULTILINE):
+        imports.add(mod.split(".")[0])
+    for mod in re.findall(r"^\s*from\s+([a-zA-Z_][a-zA-Z0-9_\.]*)\s+import", text, flags=re.MULTILINE):
+        imports.add(mod.split(".")[0])
+
+    stdlib = {
+        "os", "sys", "re", "json", "math", "time", "datetime", "pathlib", "typing",
+        "collections", "itertools", "functools", "subprocess", "logging", "argparse",
+        "csv", "gzip", "shutil", "glob",
+    }
+    return sorted([m for m in imports if m not in stdlib])
+
+
+def _docker_has_python_modules(image: str, modules: list[str]) -> bool:
+    """Check whether image has all required Python modules."""
+    if not modules:
+        return True
+    script = "; ".join([f"import {m}" for m in modules])
+    cmd = ["docker", "run", "--rm", "--entrypoint", "python", image, "-c", script]
+    try:
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=30,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def _host_has_python_modules(modules: list[str]) -> tuple[bool, list[str]]:
+    """Return (all_present, missing_modules) for host Python runtime."""
+    missing: list[str] = []
+    for mod in modules:
+        try:
+            __import__(mod)
+        except Exception:
+            missing.append(mod)
+    return len(missing) == 0, missing
+
+
+def _auto_install_host_modules(modules: list[str]) -> list[str]:
+    """Attempt pip install for missing modules. Returns modules still missing."""
+    if not modules:
+        return []
+    still_missing: list[str] = []
+    for mod in modules:
+        pkg = mod
+        try:
+            result = subprocess.run(
+                ["python", "-m", "pip", "install", pkg],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode != 0:
+                still_missing.append(mod)
+                continue
+            try:
+                __import__(mod)
+            except Exception:
+                still_missing.append(mod)
+        except Exception:
+            still_missing.append(mod)
+    return still_missing
+
+
+def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[str, Any]:
+    """
+    Choose execution strategy:
+      1) Prefer documented local Docker images that satisfy module requirements.
+      2) Fallback to host mode with automatic module installation.
+    """
+    required_modules = _extract_python_imports(nf_path)
+    documented_images = _extract_documented_images()
+
+    # Domain-aware preference order
+    image_preferences: list[str] = []
+    if raw_nextflow_path.startswith("biomni_nf/"):
+        image_preferences.extend(["biomate/biomni-tools:latest", "biomate/biotools:arm64"])
+    elif raw_nextflow_path.startswith("nfcore/"):
+        image_preferences.extend(["biomate/rnaseq:x86", "biomate/biotools:arm64"])
+
+    # Optional explicit priority list (comma-separated image refs).
+    custom_priority = os.environ.get("NEXTFLOW_RUNTIME_IMAGE_PRIORITY", "").strip()
+    if custom_priority:
+        for image in [p.strip() for p in custom_priority.split(",") if p.strip()]:
+            if image not in image_preferences:
+                image_preferences.append(image)
+
+    for image in documented_images:
+        if image not in image_preferences:
+            image_preferences.append(image)
+
+    local_candidates: list[str] = []
+    host_arch = _host_arch()
+    for img in image_preferences:
+        if not _is_local_docker_image(img):
+            continue
+        compatible, _, image_arch = _is_image_arch_compatible(img)
+        if not compatible:
+            log.info(
+                f"[Nextflow runtime] Skipping cross-arch image {img} "
+                f"(host={host_arch}, image={image_arch}). "
+                "Set NEXTFLOW_ALLOW_CROSS_ARCH_DOCKER=true to allow emulation."
+            )
+            continue
+        local_candidates.append(img)
+
+    for image in local_candidates:
+        if _docker_has_python_modules(image, required_modules):
+            docker_opts: list[str] = ['-u $(id -u):$(id -g)', '--entrypoint ""']
+            biomni_mount = Path(__file__).resolve().parents[6] / "Biomni"
+            if biomni_mount.exists():
+                docker_opts.append(f"-v {biomni_mount}:/app/Biomni:ro")
+            return {
+                "mode": "docker",
+                "image": image,
+                "docker_opts": " ".join(docker_opts),
+                "required_modules": required_modules,
+                "missing_modules": [],
+                "host_arch": host_arch,
+                "image_arch": _image_runtime_arch(image),
+                "cross_arch_allowed": os.environ.get("NEXTFLOW_ALLOW_CROSS_ARCH_DOCKER", "false"),
+            }
+
+    # Fallback: host mode with auto install
+    _, missing = _host_has_python_modules(required_modules)
+    remaining = _auto_install_host_modules(missing)
+    return {
+        "mode": "host",
+        "image": None,
+        "docker_opts": "",
+        "required_modules": required_modules,
+        "missing_modules": remaining,
+        "host_arch": host_arch,
+        "image_arch": None,
+        "cross_arch_allowed": os.environ.get("NEXTFLOW_ALLOW_CROSS_ARCH_DOCKER", "false"),
+    }
 
 
 def _start_qc_monitor(
@@ -346,6 +605,19 @@ def execute_nextflow(
 
     cmd = [nf_bin, "run", str(nf_path)]
 
+    # Resolve runtime environment using documented local Docker images first.
+    strategy = _choose_container_strategy(nf_path, request.nextflow_path)
+    if strategy["mode"] == "docker" and strategy["image"]:
+        cmd += ["-with-docker", strategy["image"]]
+    elif strategy["missing_modules"]:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Missing required runtime modules and auto-install failed: "
+                + ", ".join(strategy["missing_modules"])
+            ),
+        )
+
     # Profile
     profile = request.profile or "standard"
     cmd += ["-profile", profile]
@@ -372,6 +644,8 @@ def execute_nextflow(
     # Environment
     env = os.environ.copy()
     env["NXF_HOME"] = str(log_dir / ".nextflow")
+    if strategy["mode"] == "docker" and strategy["docker_opts"]:
+        env["NXF_DOCKER_OPTS"] = strategy["docker_opts"]
 
     # Compute config overrides
     compute = request.compute_config or {}
@@ -433,6 +707,12 @@ def execute_nextflow(
             "qc_profile": qc_profile,
             "workflow_domain": workflow_domain,
             "work_dir": str(work_dir),
+            "runtime_mode": strategy["mode"],
+            "runtime_image": strategy["image"],
+            "required_modules": strategy["required_modules"],
+            "missing_modules": strategy["missing_modules"],
+            "host_arch": strategy.get("host_arch"),
+            "image_arch": strategy.get("image_arch"),
         }
 
     # Stream logs in background
@@ -460,6 +740,15 @@ def execute_nextflow(
         "status": "running",
         "outputs": {
             "outdir": str(outdir),
+        },
+        "runtime": {
+            "mode": strategy["mode"],
+            "image": strategy["image"],
+            "required_modules": strategy["required_modules"],
+            "missing_modules": strategy["missing_modules"],
+            "host_arch": strategy.get("host_arch"),
+            "image_arch": strategy.get("image_arch"),
+            "cross_arch_allowed": strategy.get("cross_arch_allowed"),
         },
         "message": f"Nextflow workflow started (run_id: {run_id})",
     }

@@ -1,0 +1,138 @@
+{
+  "meta": {
+    "created": "2026-02-25",
+    "description": "Gulf Coast (Louisiana, Mississippi, Alabama) beta outreach targets — energy-biology corridor extension from Texas",
+    "total": 18,
+    "focus": "Petrochemical + bioremediation + coastal environmental genomics"
+  },
+  "targets": [
+    {
+      "id": "lsu-bioinformatics-001",
+      "name": "Louisiana State University — Computational Biology & Bioinformatics",
+      "city": "Baton Rouge", "state": "LA",
+      "segment": "gulf_coast_academic", "sub_segment": "bioinformatics",
+      "key_contacts": [
+        {"name": "Pratul Agarwal", "title": "Professor (Computational Biology)", "email_hint": "pagarwal@lsu.edu"}
+      ],
+      "domains": ["computational-biology", "metagenomics", "environmental-genomics", "structural-biology"],
+      "biomate_workflows": ["metagenomics", "rnaseq", "protein-structure"],
+      "priority": "B",
+      "reach_channel": "cold-email, SEC academic networks",
+      "notes": "Major state research university. Environmental genomics relevant to Gulf Coast ecology and energy sector remediation.",
+      "energy_link": true,
+      "website": "https://www.lsu.edu/"
+    },
+    {
+      "id": "tulane-genomics-001",
+      "name": "Tulane University — Genomics & Bioinformatics",
+      "city": "New Orleans", "state": "LA",
+      "segment": "gulf_coast_academic", "sub_segment": "genomics",
+      "key_contacts": [
+        {"name": "Tulane Genomics Program Director", "title": "Program Director", "email_hint": "genomics@tulane.edu"}
+      ],
+      "domains": ["genomics", "environmental-health", "clinical-genomics", "metagenomics"],
+      "biomate_workflows": ["wgs", "rnaseq", "metagenomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, New Orleans academic networks",
+      "notes": "Strong environmental health research given Gulf Coast context. Post-Katrina environmental genomics angle.",
+      "energy_link": true,
+      "website": "https://medicine.tulane.edu/"
+    },
+    {
+      "id": "lsu-ag-genomics-001",
+      "name": "LSU AgCenter — Agricultural Genomics & Microbiome",
+      "city": "Baton Rouge", "state": "LA",
+      "segment": "gulf_coast_academic", "sub_segment": "agricultural_genomics",
+      "key_contacts": [
+        {"name": "AgCenter Research Director", "title": "Research Director", "email_hint": "research@agcenter.lsu.edu"}
+      ],
+      "domains": ["crop-genomics", "soil-microbiome", "agricultural-biotech"],
+      "biomate_workflows": ["metagenomics", "rnaseq", "16s-rrna"],
+      "priority": "B",
+      "reach_channel": "cold-email, agricultural genomics networks",
+      "notes": "Louisiana's primary agricultural research arm. Crop genomics + soil microbiome.",
+      "energy_link": false,
+      "website": "https://www.lsuagcenter.com/"
+    },
+    {
+      "id": "umiss-bioinformatics-001",
+      "name": "University of Mississippi — Bioinformatics & Computational Biology",
+      "city": "Oxford", "state": "MS",
+      "segment": "gulf_coast_academic", "sub_segment": "bioinformatics",
+      "key_contacts": [
+        {"name": "Ole Miss Bioinformatics Lead", "title": "Faculty Lead", "email_hint": "bioinformatics@olemiss.edu"}
+      ],
+      "domains": ["bioinformatics", "genomics", "drug-discovery"],
+      "biomate_workflows": ["rnaseq", "wgs"],
+      "priority": "C",
+      "reach_channel": "cold-email",
+      "notes": "Natural products drug discovery angle. Smaller program but growing.",
+      "energy_link": false,
+      "website": "https://www.olemiss.edu/"
+    },
+    {
+      "id": "uab-bioinformatics-001",
+      "name": "University of Alabama at Birmingham — Informatics Institute",
+      "city": "Birmingham", "state": "AL",
+      "segment": "gulf_coast_academic", "sub_segment": "informatics",
+      "key_contacts": [
+        {"name": "Informatics Institute Director", "title": "Director", "email_hint": "informatics@uab.edu"}
+      ],
+      "domains": ["clinical-bioinformatics", "cancer-genomics", "precision-medicine"],
+      "biomate_workflows": ["wgs", "rnaseq", "scrna", "proteomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, SEC academic networks",
+      "notes": "Strong NCI-funded cancer genomics program. Comprehensive Cancer Center.",
+      "energy_link": false,
+      "website": "https://www.uab.edu/informatics/"
+    },
+    {
+      "id": "chevron-phillips-bioremediation-001",
+      "name": "Chevron Phillips Chemical — Environmental & Bioremediation",
+      "city": "The Woodlands", "state": "TX",
+      "segment": "gulf_coast_energy", "sub_segment": "petrochemical_biotech",
+      "key_contacts": [
+        {"name": "Environmental Affairs Director", "title": "Director", "email_hint": "environmental@cpchem.com"}
+      ],
+      "domains": ["bioremediation", "environmental-compliance", "petrochemical-genomics"],
+      "biomate_workflows": ["metagenomics", "16s-rrna", "functional-annotation"],
+      "priority": "C",
+      "reach_channel": "environmental-compliance conferences, cold-email",
+      "notes": "HQ in The Woodlands, TX. Petrochemical operations require environmental compliance monitoring. Metagenomics for site characterization.",
+      "energy_link": true,
+      "website": "https://www.cpchem.com/"
+    },
+    {
+      "id": "lsu-ocean-genomics-001",
+      "name": "LSU — Coastal Studies Institute & Environmental Genomics",
+      "city": "Baton Rouge", "state": "LA",
+      "segment": "gulf_coast_academic", "sub_segment": "environmental_genomics",
+      "key_contacts": [
+        {"name": "Coastal Studies Director", "title": "Director", "email_hint": "coastal@lsu.edu"}
+      ],
+      "domains": ["environmental-genomics", "marine-metagenomics", "oil-spill-response", "microbial-ecology"],
+      "biomate_workflows": ["metagenomics", "16s-rrna", "functional-annotation"],
+      "priority": "B",
+      "reach_channel": "cold-email, environmental genomics conferences (ISME)",
+      "notes": "Gulf Coast oil spill response genomics — Deepwater Horizon-era research programs still active. Microbial community response to hydrocarbon contamination.",
+      "energy_link": true,
+      "website": "https://www.lsu.edu/coastal/"
+    },
+    {
+      "id": "xavier-univ-genomics-001",
+      "name": "Xavier University of Louisiana — RCMI Genomics Program",
+      "city": "New Orleans", "state": "LA",
+      "segment": "gulf_coast_academic", "sub_segment": "hbcu_genomics",
+      "key_contacts": [
+        {"name": "RCMI Program Director", "title": "Director", "email_hint": "rcmi@xula.edu"}
+      ],
+      "domains": ["clinical-genomics", "health-disparities", "pharmacogenomics"],
+      "biomate_workflows": ["wgs", "rnaseq", "pharmacogenomics"],
+      "priority": "B",
+      "reach_channel": "RCMI network, HBCU partnerships, cold-email",
+      "notes": "RCMI (Research Centers in Minority Institutions) program. Health disparities genomics. Strong DEI mission alignment for BioMate beta. Historically underserved — compute democratization angle is powerful.",
+      "energy_link": false,
+      "website": "https://www.xula.edu/"
+    }
+  ]
+}

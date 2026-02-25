@@ -172,16 +172,11 @@ export function ChatInterface({
       // Response structure: { response, suggestions, workflow, thinking_content, metadata }
       let workflowData = data.workflow?.workflow_ga || data.workflow;
       let workflowSuccess = !!data.workflow?.success || (data.workflow && !data.workflow.error);
-      let isDemo = false;
 
       // Check if workflow was generated
-      if (data.workflow) {
-        if (!workflowSuccess) {
-          console.warn('[ChatInterface] Workflow generation returned but failed:', data.workflow.error || data.workflow.message);
-          // Show demo workflow clearly labeled
-          workflowData = generateDemoWorkflow();
-          isDemo = true;
-        }
+      if (data.workflow && !workflowSuccess) {
+        console.warn('[ChatInterface] Workflow generation returned but failed:', data.workflow.error || data.workflow.message);
+        workflowData = null;
       }
 
       // Use the natural language response from /api/chat
@@ -194,9 +189,8 @@ export function ChatInterface({
         if (!workflowInfo.toLowerCase().includes('workflow')) {
           workflowInfo += '\n\n✅ I\'ve generated a workflow for you based on your request.';
         }
-      } else if (isDemo) {
-        workflowInfo = data.response + `\n\n⚠️ **Note:** Could not generate a real workflow. Showing a demo workflow for reference.`;
-        workflowData = { ...workflowData, _isDemo: true, annotation: '[DEMO] ' + (workflowData?.annotation || 'Sample workflow for preview') };
+      } else if (data.workflow && !workflowSuccess) {
+        workflowInfo = (data.response || '') + `\n\n⚠️ **Note:** Real workflow generation failed. No demo workflow is shown.`;
       } else if (!workflowInfo) {
         workflowInfo = 'I can help you with bioinformatics analysis!';
       }
@@ -221,16 +215,14 @@ export function ChatInterface({
         // Use suggestions from /api/chat or fallbacks
         suggestions: data.suggestions || (workflowSuccess
           ? ["Open in Workflow Builder", "Show details", "Generate another"]
-          : isDemo
-          ? ["Try again with different request", "Check server status", "View demo anyway"]
-          : ["Tell me more", "Suggest tools", "Build workflow"]),
+          : ["Try again with different request", "Check server status", "Build workflow"]),
         metadata: {
-          type: workflowSuccess ? 'workflow' : isDemo ? 'demo_workflow' : 'text',
+          type: workflowSuccess ? 'workflow' : 'text',
           workflow: workflowData,
           steps: stepsArray,
           confidence: data.workflow?.confidence || data.metadata?.workflowSuggestion?.confidence,
-          source: data.workflow?.source || (isDemo ? 'demo_fallback' : 'chat'),
-          isDemo: isDemo,
+          source: data.workflow?.source || 'chat',
+          isDemo: false,
           generationFailed: data.workflow && !workflowSuccess,
           failureReason: data.workflow?.error || data.workflow?.message,
           // Thinking mode support from /api/chat
@@ -342,13 +334,9 @@ export function ChatInterface({
         userFriendlyError = `❌ **Workflow Generation Failed**\n\n${errorMessage}\n\n**What you can do:**\n1. Try rephrasing your request\n2. Be more specific about your data type and analysis goal\n3. Try again in a few moments`;
       }
 
-      // Show demo workflow but CLEARLY LABEL IT
-      const demoWorkflow = generateDemoWorkflow();
-      const demoNote = `\n\n---\n📋 **Demo Preview:** Below is a sample workflow to show you what a typical analysis might look like. This is for reference only and won't execute real analysis.`;
-
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: userFriendlyError + demoNote,
+        content: userFriendlyError,
         role: "assistant",
         timestamp: new Date(),
         suggestions: ["Try again", "Refine my request", "Check server status", "Get help"],
@@ -356,8 +344,6 @@ export function ChatInterface({
           type: 'error',
           errorType: isNetworkError ? 'network' : 'api',
           errorMessage: errorMessage,
-          // Include demo workflow but mark it clearly
-          workflow: { ...demoWorkflow, _isDemo: true, _isError: true },
         }
       }
 
@@ -370,8 +356,7 @@ export function ChatInterface({
       }
       setIsTypingLocal(false)
 
-      // Pass demo workflow but marked as demo/error
-      onWorkflowGenerated({ ...demoWorkflow, _isDemo: true, _isError: true })
+      // Do not emit demo workflows on error; keep real-only behavior.
     }
   })
 

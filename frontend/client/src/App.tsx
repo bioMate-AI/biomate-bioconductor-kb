@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { ChatWithArtifacts } from "@/components/chat-with-artifacts";
 import ProjectsPage from "@/pages/projects";
 import ProjectDetailPage from "@/pages/project-detail";
@@ -421,43 +422,57 @@ function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="biomate-ui-theme">
-        <AuthProvider>
-          <TooltipProvider>
-            <Router
-              currentChatSession={currentChatSession}
-              onChatUpdated={handleChatUpdated}
-              sidebarCollapsed={sidebarCollapsed}
-              setSidebarCollapsed={setSidebarCollapsed}
-              onNewChat={handleNewChat}
-              onChatSelect={handleChatSelect}
-              onCategorySelect={handleCategorySelect}
-              onToolSelect={handleToolSelect}
-              onProjectSelect={handleProjectSelect}
-              onNewProject={handleNewProject}
-              chatSessions={chatSessions}
-            />
+    <TooltipProvider>
+      <Router
+        currentChatSession={currentChatSession}
+        onChatUpdated={handleChatUpdated}
+        sidebarCollapsed={sidebarCollapsed}
+        setSidebarCollapsed={setSidebarCollapsed}
+        onNewChat={handleNewChat}
+        onChatSelect={handleChatSelect}
+        onCategorySelect={handleCategorySelect}
+        onToolSelect={handleToolSelect}
+        onProjectSelect={handleProjectSelect}
+        onNewProject={handleNewProject}
+        chatSessions={chatSessions}
+      />
 
-            <ToolIntroductionDialog
-              open={showToolDialog}
-              onOpenChange={setShowToolDialog}
-              tool={selectedTool}
-              onAddToWorkflow={handleAddToWorkflow}
-              onStartChat={handleStartChat}
-            />
+      <ToolIntroductionDialog
+        open={showToolDialog}
+        onOpenChange={setShowToolDialog}
+        tool={selectedTool}
+        onAddToWorkflow={handleAddToWorkflow}
+        onStartChat={handleStartChat}
+      />
 
-            <CreateProjectDialog
-              open={showCreateProjectDialog}
-              onOpenChange={setShowCreateProjectDialog}
-              onProjectCreated={handleProjectCreated}
-            />
-            <Toaster />
-          </TooltipProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+      <CreateProjectDialog
+        open={showCreateProjectDialog}
+        onOpenChange={setShowCreateProjectDialog}
+        onProjectCreated={handleProjectCreated}
+      />
+      <Toaster />
+    </TooltipProvider>
   );
 }
 
-export default App;
+function AppWithAuthSync() {
+  const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    chatHistoryService.setBackendSyncActive(isAuthenticated)
+  }, [isAuthenticated])
+
+  return <App />
+}
+
+export default function RootApp() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="biomate-ui-theme">
+        <AuthProvider>
+          <AppWithAuthSync />
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  )
+}

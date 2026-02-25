@@ -7,6 +7,7 @@ Main orchestrator that combines all AI components to provide intelligent researc
 import uuid
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+from pathlib import Path
 
 from .types import (
     UserRequest, AIResponse, Task, Tool, ToolRecommendation,
@@ -1381,6 +1382,97 @@ class AIAssistant:
             log.error(f"Tool installation error: {e}", exc_info=True)
             return {'success': False, 'message': f'Installation error: {str(e)}', 'failed_tools': []}
 
+    def _is_executable_nextflow_match(self, match: Any) -> bool:
+        """
+        Return True only for directly runnable Nextflow workflows.
+
+        We exclude nf-core subworkflows (library components) because they are not
+        standalone entry workflows and fail with "No entry workflow specified".
+        """
+        if getattr(match, 'format', '') != 'nextflow':
+            return False
+
+        filename = (getattr(match, 'filename', '') or '').lower()
+        name = (getattr(match, 'name', '') or '').lower()
+        tags = [str(t).lower() for t in (getattr(match, 'tags', []) or [])]
+
+        # Exclude known non-entry nf-core subworkflow library paths.
+        if filename.startswith('nfcore/subworkflows/'):
+            return False
+        if '/nf-core-modules/subworkflows/' in filename:
+            return False
+        if '/nfcore/subworkflows/' in filename:
+            return False
+        if 'subworkflow' in name:
+            return False
+        if any('subworkflow' in t for t in tags):
+            return False
+
+        # Prefer canonical runnable entry scripts.
+        if filename.endswith('/main.nf'):
+            return True
+        if filename.endswith('.nf') and ('/workflows/' in filename or 'biomni_nf/' in filename):
+            return True
+        return False
+
+    def _nextflow_workflow_key(self, filename: str) -> Optional[str]:
+        """
+        Normalize path to "domain/workflow" key used by passed_workflows.txt.
+        """
+        path = (filename or "").strip().lower()
+        if not path:
+            return None
+
+        # Pattern: biomni_nf/<domain>/<workflow>/main.nf
+        if path.startswith("biomni_nf/"):
+            parts = [p for p in path.split("/") if p]
+            if len(parts) >= 3:
+                return f"{parts[1]}/{parts[2]}"
+
+        # Pattern: .../subworkflows/<domain>/<workflow>/main.nf
+        marker = "/subworkflows/"
+        if marker in path:
+            tail = path.split(marker, 1)[1]
+            parts = [p for p in tail.split("/") if p]
+            if len(parts) >= 2:
+                return f"{parts[0]}/{parts[1]}"
+
+        return None
+
+    def _load_runnable_nextflow_keys(self) -> set[str]:
+        """
+        Load pre-validated runnable workflow keys for complete tests.
+        """
+        backend_root = Path(__file__).resolve().parents[3]
+        passed_file = backend_root / "biomni_workflows" / "nextflow_nfcore" / "test_results" / "passed_workflows.txt"
+        if not passed_file.exists():
+            return set()
+        try:
+            lines = [ln.strip().lower() for ln in passed_file.read_text(errors="replace").splitlines()]
+            return {ln for ln in lines if ln and "/" in ln}
+        except OSError:
+            return set()
+
+    def _is_runnable_nextflow_match(self, match: Any) -> bool:
+        """
+        Check if workflow is in pre-validated runnable set when available.
+        """
+        keys = self._load_runnable_nextflow_keys()
+        if not keys:
+            return True
+        key = self._nextflow_workflow_key(getattr(match, "filename", "") or "")
+        return bool(key and key in keys)
+
+    def _pick_best_executable_nextflow_match(self, matches: List[Any]) -> Optional[Any]:
+        """Pick highest-scoring executable Nextflow workflow, preferring runnable tested ones."""
+        for match in matches or []:
+            if self._is_executable_nextflow_match(match) and self._is_runnable_nextflow_match(match):
+                return match
+        for match in matches or []:
+            if self._is_executable_nextflow_match(match):
+                return match
+        return None
+
     def generate_workflow_unified(self, user_intent: str, uploaded_datasets: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Unified workflow generation with search-first approach.
@@ -1419,6 +1511,7 @@ class AIAssistant:
             else:
                 # WorkflowMatch is a dataclass, access via attributes
                 best_match = search_results[0]
+                executable_nextflow_match = self._pick_best_executable_nextflow_match(search_results)
                 score = best_match.score
                 match_type = best_match.match_type  # high_confidence, medium_confidence, low_confidence
                 log.info(f"[UnifiedWorkflowGeneration] Best match: {best_match.name} (score: {score:.2f}, match: {match_type})")
@@ -1439,6 +1532,33 @@ class AIAssistant:
 
                 # Check if this is a Nextflow workflow
                 if best_match.format == 'nextflow':
+                    if not self._is_executable_nextflow_match(best_match):
+                        if executable_nextflow_match:
+                            log.warning(
+                                "[UnifiedWorkflowGeneration] Top Nextflow match is non-executable "
+                                f"subworkflow ({best_match.filename}); using executable candidate "
+                                f"{executable_nextflow_match.filename}"
+                            )
+                            best_match = executable_nextflow_match
+                            score = best_match.score
+                        else:
+                            log.warning(
+                                "[UnifiedWorkflowGeneration] No executable Nextflow workflow found in top results; "
+                                "falling back to best non-Nextflow template match if available"
+                            )
+                            fallback_match = next(
+                                (m for m in search_results if getattr(m, 'format', '') != 'nextflow'),
+                                None
+                            )
+                            if fallback_match:
+                                best_match = fallback_match
+                                score = best_match.score
+                                log.warning(
+                                    "[UnifiedWorkflowGeneration] Using fallback template match: "
+                                    f"{best_match.name} ({best_match.format})"
+                                )
+
+                if match_type == "high_confidence" and best_match and best_match.format == 'nextflow':
                     log.info(f"[UnifiedWorkflowGeneration] Matched Nextflow workflow: {best_match.filename}")
 
                     # Build scientific rationale + parameter hints from Bioconductor KB.

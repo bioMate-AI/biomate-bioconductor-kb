@@ -16,7 +16,9 @@ class ChatHistoryService {
   private syncTimer: NodeJS.Timeout | null = null;
   private syncStatus: SyncStatus = 'idle';
   private lastSyncError: string | null = null;
+  private backendSyncActive = false;
   private backendSyncBlocked = false;
+  private loggedAuthBlock = false;
 
   // Get all chat sessions (from localStorage cache)
   getAllSessions(): ChatSession[] {
@@ -137,10 +139,11 @@ class ChatHistoryService {
     this.saveSessions(filteredSessions);
 
     // Delete from backend
-    if (BACKEND_SYNC_ENABLED) {
+    if (BACKEND_SYNC_ENABLED && this.backendSyncActive) {
       try {
         const response = await fetch(`${BACKEND_URL}/api/sessions/${sessionId}`, {
           method: 'DELETE',
+          credentials: 'include',
           headers: {
             'x-api-key': API_KEY,
             'Content-Type': 'application/json'
@@ -196,10 +199,35 @@ class ChatHistoryService {
   }
 
   /**
+   * Enable/disable backend sync based on auth state.
+   */
+  setBackendSyncActive(active: boolean): void {
+    this.backendSyncActive = active;
+
+    if (!active) {
+      if (this.syncTimer) {
+        clearTimeout(this.syncTimer);
+        this.syncTimer = null;
+      }
+      this.syncQueue.clear();
+      this.syncStatus = 'idle';
+      this.lastSyncError = null;
+      return;
+    }
+
+    // Re-enable sync after login and attempt initial pull.
+    this.backendSyncBlocked = false;
+    this.loggedAuthBlock = false;
+    this.initializeBackendSync().catch((error) => {
+      console.error('[ChatHistory] Failed to initialize backend sync:', error);
+    });
+  }
+
+  /**
    * Initialize and sync with backend on startup
    */
   async initializeBackendSync(): Promise<void> {
-    if (!BACKEND_SYNC_ENABLED) {
+    if (!BACKEND_SYNC_ENABLED || !this.backendSyncActive) {
       console.log('[ChatHistory] Backend sync disabled');
       return;
     }
@@ -219,11 +247,12 @@ class ChatHistoryService {
    * Pull sessions from backend and merge with localStorage
    */
   async pullFromBackend(): Promise<void> {
-    if (!BACKEND_SYNC_ENABLED || this.backendSyncBlocked) return;
+    if (!BACKEND_SYNC_ENABLED || !this.backendSyncActive || this.backendSyncBlocked) return;
 
     try {
       this.syncStatus = 'syncing';
       const response = await fetch(`${BACKEND_URL}/api/sessions`, {
+        credentials: 'include',
         headers: {
           'x-api-key': API_KEY,
           'Content-Type': 'application/json'
@@ -269,7 +298,7 @@ class ChatHistoryService {
    * Push a session to backend (debounced)
    */
   async pushToBackend(sessionId: string): Promise<void> {
-    if (!BACKEND_SYNC_ENABLED || this.backendSyncBlocked) return;
+    if (!BACKEND_SYNC_ENABLED || !this.backendSyncActive || this.backendSyncBlocked) return;
 
     // Add to sync queue
     this.syncQueue.add(sessionId);
@@ -288,7 +317,7 @@ class ChatHistoryService {
    * Flush the sync queue (sync all pending sessions)
    */
   private async flushSyncQueue(): Promise<void> {
-    if (this.syncQueue.size === 0) return;
+    if (this.syncQueue.size === 0 || this.backendSyncBlocked) return;
 
     const sessionIds = Array.from(this.syncQueue);
     this.syncQueue.clear();
@@ -297,8 +326,16 @@ class ChatHistoryService {
       try {
         await this.syncSessionToBackend(sessionId);
       } catch (error) {
+        // Auth failures are expected for anonymous sessions; disable noisy retries.
+        if (this.backendSyncBlocked) {
+          if (!this.loggedAuthBlock) {
+            console.warn('[ChatHistory] Backend sync disabled: authentication required');
+            this.loggedAuthBlock = true;
+          }
+          this.syncQueue.clear();
+          return;
+        }
         console.error(`[ChatHistory] Failed to sync session ${sessionId}:`, error);
-        // Re-add to queue for retry
         this.syncQueue.add(sessionId);
       }
     }
@@ -308,7 +345,7 @@ class ChatHistoryService {
    * Sync a single session to backend
    */
   private async syncSessionToBackend(sessionId: string): Promise<void> {
-    if (this.backendSyncBlocked) return;
+    if (!this.backendSyncActive || this.backendSyncBlocked) return;
     const session = this.getSession(sessionId);
     if (!session) return;
 
@@ -317,6 +354,7 @@ class ChatHistoryService {
     try {
       // Check if session exists on backend
       const checkResponse = await fetch(`${BACKEND_URL}/api/sessions/${sessionId}`, {
+        credentials: 'include',
         headers: {
           'x-api-key': API_KEY,
           'Content-Type': 'application/json'
@@ -338,6 +376,7 @@ class ChatHistoryService {
 
       const response = await fetch(url, {
         method,
+        credentials: 'include',
         headers: {
           'x-api-key': API_KEY,
           'Content-Type': 'application/json'
@@ -356,6 +395,11 @@ class ChatHistoryService {
       this.lastSyncError = null;
       console.log(`[ChatHistory] Successfully synced session ${sessionId}`);
     } catch (error) {
+      if (this.backendSyncBlocked) {
+        this.syncStatus = 'error';
+        this.lastSyncError = error instanceof Error ? error.message : 'Authentication required';
+        throw error;
+      }
       console.error(`[ChatHistory] Failed to sync session ${sessionId}:`, error);
       this.syncStatus = 'error';
       this.lastSyncError = error instanceof Error ? error.message : 'Unknown error';

@@ -336,11 +336,11 @@ export class GalaxyAPIProxy {
   }
 
   /**
-   * Get Nextflow workflow status by invocation ID
-   * Maps to Galaxy's Nextflow status endpoint
+   * Get Nextflow workflow status by run ID.
+   * Maps to backend endpoint: GET /api/nextflow/status/{run_id}
    */
-  async getNextflowStatus(invocationId: string): Promise<any> {
-    const response = await this.client.get(`/api/workflows/${invocationId}/nextflow/status`);
+  async getNextflowStatus(runId: string): Promise<any> {
+    const response = await this.client.get(`/api/nextflow/status/${runId}`);
     return response.data;
   }
 

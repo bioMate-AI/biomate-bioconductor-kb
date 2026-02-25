@@ -428,8 +428,16 @@ export class GalaxyAssistant {
             recommendedDatasets.map(d => d.dataset),
             intent.inlineParameters
           );
-          workflowGenerated = true;
-          log('Step 5 complete - Workflow generated');
+          workflowGenerated = !!(
+            generatedWorkflow?.success &&
+            !generatedWorkflow?.error &&
+            (generatedWorkflow?.workflow_ga || generatedWorkflow?.nextflow_path)
+          );
+          if (workflowGenerated) {
+            log('Step 5 complete - Workflow generated');
+          } else {
+            log('Step 5 complete - Generation returned no runnable workflow');
+          }
         } catch (error: any) {
           log('Step 5 failed: ' + error.message);
           console.error('[GalaxyAssistant] Workflow generation failed:', error);

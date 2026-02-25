@@ -9,6 +9,7 @@ import json
 import logging
 import uuid
 from datetime import datetime
+from pathlib import Path as FilePath
 from typing import Dict, List, Any, Optional
 
 from fastapi import HTTPException, Path, Query, Depends
@@ -98,6 +99,35 @@ class NextflowSearchRequest(BaseModel):
     request_text: Optional[str] = None
 
 
+def _nextflow_workflow_key(filename: str) -> Optional[str]:
+    path = (filename or "").strip().lower()
+    if not path:
+        return None
+    if path.startswith("biomni_nf/"):
+        parts = [p for p in path.split("/") if p]
+        if len(parts) >= 3:
+            return f"{parts[1]}/{parts[2]}"
+    marker = "/subworkflows/"
+    if marker in path:
+        tail = path.split(marker, 1)[1]
+        parts = [p for p in tail.split("/") if p]
+        if len(parts) >= 2:
+            return f"{parts[0]}/{parts[1]}"
+    return None
+
+
+def _load_runnable_nextflow_keys() -> set[str]:
+    backend_root = FilePath(__file__).resolve().parents[5]
+    passed_file = backend_root / "biomni_workflows" / "nextflow_nfcore" / "test_results" / "passed_workflows.txt"
+    if not passed_file.exists():
+        return set()
+    try:
+        lines = [ln.strip().lower() for ln in passed_file.read_text(errors="replace").splitlines()]
+        return {ln for ln in lines if ln and "/" in ln}
+    except OSError:
+        return set()
+
+
 @router.post(
     "/api/ai_assistant/search_nextflow_workflow",
     summary="Search Nextflow workflow database (no LLM required)."
@@ -122,7 +152,59 @@ def search_nextflow_workflow(
         if not results:
             return {"success": False, "message": "No matching workflows found"}
 
+        def _is_executable_nextflow_match(match: Any) -> bool:
+            if getattr(match, "format", "") != "nextflow":
+                return False
+            filename = (getattr(match, "filename", "") or "").lower()
+            name = (getattr(match, "name", "") or "").lower()
+            tags = [str(t).lower() for t in (getattr(match, "tags", []) or [])]
+
+            # Exclude known non-entry nf-core subworkflow library paths.
+            if filename.startswith("nfcore/subworkflows/"):
+                return False
+            if "/nf-core-modules/subworkflows/" in filename:
+                return False
+            if "/nfcore/subworkflows/" in filename:
+                return False
+            if "subworkflow" in name:
+                return False
+            if any("subworkflow" in t for t in tags):
+                return False
+
+            return filename.endswith("/main.nf") or (
+                filename.endswith(".nf") and ("/workflows/" in filename or "biomni_nf/" in filename)
+            )
+
+        runnable_keys = _load_runnable_nextflow_keys()
+
+        def _is_runnable_nextflow_match(match: Any) -> bool:
+            if not runnable_keys:
+                return True
+            key = _nextflow_workflow_key((getattr(match, "filename", "") or ""))
+            return bool(key and key in runnable_keys)
+
         best = results[0]
+        if best.format == "nextflow" and not _is_executable_nextflow_match(best):
+            executable = next(
+                (r for r in results if _is_executable_nextflow_match(r) and _is_runnable_nextflow_match(r)),
+                None,
+            )
+            if not executable:
+                executable = next((r for r in results if _is_executable_nextflow_match(r)), None)
+            if executable:
+                best = executable
+            else:
+                fallback = next((r for r in results if getattr(r, "format", "") != "nextflow"), None)
+                if fallback:
+                    best = fallback
+        elif best.format == "nextflow" and not _is_runnable_nextflow_match(best):
+            runnable_executable = next(
+                (r for r in results if _is_executable_nextflow_match(r) and _is_runnable_nextflow_match(r)),
+                None,
+            )
+            if runnable_executable:
+                best = runnable_executable
+
         return {
             "success": True,
             "workflow_type": best.format,

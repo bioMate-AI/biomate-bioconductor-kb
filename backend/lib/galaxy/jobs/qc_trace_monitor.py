@@ -346,6 +346,76 @@ QC_NAMED_PROFILES: Dict[str, Dict[str, Any]] = {
         },
         "references": ["[BRONZE] FIB-SEM cryo-ET community practice; Bharat & Bharat 2024"],
     },
+    # ---------------------------------------------------------------
+    # Proteomics (LC-MS/MS)
+    # ---------------------------------------------------------------
+    "proteomics_standard": {
+        "description": (
+            "Standard label-free DDA proteomics of cell lysate (default). "
+            "Applies GOLD PSM/protein FDR gate (Elias & Gygi 2007) and "
+            "SILVER missed cleavage / CV gates (EuBIC 2018 community standards). "
+            "Use for standard bottom-up LC-MS/MS protein identification."
+        ),
+        "domain_hint": "proteomics",
+        "overrides": {},
+        "references": [
+            "[GOLD] Elias & Gygi 2007, Nature Methods — PSM/protein FDR < 1%",
+            "[SILVER] EuBIC 2018 community standards — missed cleavage < 20%, CV < 20%",
+        ],
+    },
+    "proteomics_phospho": {
+        "description": (
+            "Phosphopeptide enrichment proteomics (TiO2, IMAC, Fe-NTA). "
+            "PSM count is reduced by design after enrichment; phosphosite localization "
+            "score > 0.75 is the primary quality indicator (Beausoleil et al. 2006). "
+            "CV gate relaxed to 25% (enrichment adds technical variance). "
+            "Missed cleavage gate relaxed to 30% (phosphopeptides resist tryptic digestion "
+            "at pSer/pThr/pTyr sites)."
+        ),
+        "domain_hint": "proteomics",
+        "overrides": {
+            "psm_count": 500,              # vs default 1000 — enrichment reduces PSM count
+            "missed_cleavage_pct": 30.0,   # vs default 20.0 — phosphopeptides resist digestion
+            "cv_pct": 25.0,                # vs default 20.0 — enrichment adds technical variance
+        },
+        "references": [
+            "[SILVER] Beausoleil et al. 2006, Nature Biotechnology — localization score > 0.75",
+            "[BRONZE] EuBIC 2018 phosphoproteomics community practice",
+        ],
+    },
+    "proteomics_plasma_biomarker": {
+        "description": (
+            "Depleted plasma DIA/DDA proteomics for biomarker discovery. "
+            "Tighter CV gate (< 15%) required for biomarker-grade reproducibility "
+            "(Geyer et al. 2017, Cell Systems). Missing value fraction gate applied "
+            "(< 30% missing per protein). Lower protein FDR thresholds remain GOLD."
+        ),
+        "domain_hint": "proteomics",
+        "overrides": {
+            "cv_pct": 15.0,             # vs default 20.0 — biomarker-grade reproducibility
+            "missing_value_pct": 30.0,  # explicit gate: < 30% missing values per protein
+        },
+        "references": [
+            "[SILVER] Geyer et al. 2017, Cell Systems — plasma DIA proteomics CV standards",
+            "[SILVER] EuBIC 2018 — depleted plasma QC community practice",
+        ],
+    },
+    "proteomics_chemoproteomics": {
+        "description": (
+            "Affinity proteomics / chemoproteomics pulldown (ABPP, drug bead pulldown). "
+            "Enrichment ratio gate (prey/input > 3×) is the primary quality indicator. "
+            "Protein FDR gate remains GOLD (Elias & Gygi 2007). PSM count gate relaxed "
+            "(pulldown reduces total protein coverage compared to whole lysate input)."
+        ),
+        "domain_hint": "proteomics",
+        "overrides": {
+            "psm_count": 200,              # vs default 1000 — pulldown reduces proteome coverage
+        },
+        "references": [
+            "[GOLD] Elias & Gygi 2007 — protein FDR < 1% (unchanged)",
+            "[SILVER] ABPP community practice — enrichment ratio > 3× input proteome",
+        ],
+    },
 }
 
 
@@ -673,6 +743,10 @@ class NextflowQCGateHandler:
             return self._parse_ctf_metrics(task_work_dir)
         elif "PARTICLE_PICKING" in process_upper or "PICKING" in process_upper:
             return self._parse_picking_metrics(task_work_dir)
+        elif any(k in process_upper for k in ("HOMOGENEOUS_REFINEMENT", "NONUNIFORM_REFINEMENT",
+                                               "HETEROGENEOUS_REFINEMENT", "VALIDATION_FSC",
+                                               "LOCAL_CTF_REFINEMENT", "AB_INITIO")):
+            return self._parse_refinement_metrics(task_work_dir)
 
         # --- RNA-seq / general sequencing quality ---
         elif any(k in process_upper for k in ("FASTQC", "MULTIQC")):
@@ -715,6 +789,22 @@ class NextflowQCGateHandler:
         elif any(k in process_upper for k in ("KRAKEN2", "KRAKEN", "BRACKEN",
                                                "METAPHLAN", "KAIJU")):
             return self._parse_metagenomics_metrics(task_work_dir)
+
+        # --- Proteomics (LC-MS/MS) ---
+        elif any(k in process_upper for k in ("MAXQUANT", "MAXQUANT_SEARCH",
+                                               "MAXQUANT_ANDROMEDA")):
+            return self._parse_maxquant_metrics(task_work_dir)
+        elif any(k in process_upper for k in ("DIANN", "DIANN_CONVERT", "SPECTRONAUT",
+                                               "DIANN_SEARCH")):
+            return self._parse_diann_metrics(task_work_dir)
+        elif any(k in process_upper for k in ("PULLDOWN_QC", "CHEMOPROTEOMICS_QC",
+                                               "ENRICHMENT_QC", "PULLDOWN_ANALYSIS")):
+            return self._parse_pulldown_metrics(task_work_dir)
+
+        # --- Cheminformatics / compound structure QC ---
+        elif any(k in process_upper for k in ("SMILES_QC", "COMPOUND_QC", "STRUCTURE_QC",
+                                               "ADMET_PRECHECK", "DOCKING_PRECHECK")):
+            return self._parse_smiles_metrics(task_work_dir)
 
         else:
             return None
@@ -1456,6 +1546,476 @@ class NextflowQCGateHandler:
             return None
         return metrics
 
+    def _parse_refinement_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse CryoSPARC refinement / FSC validation output.
+
+        CryoSPARC writes a JSON results file with FSC data; also supports
+        a simple text file with "FSC_resolution: X.X" for testing purposes.
+        Returns None when no readable output is present.
+        """
+        import json as _json
+        metrics: Dict[str, Any] = {}
+
+        # Try CryoSPARC JSON output first (job.json or *_results.json)
+        for json_file in (list(task_work_dir.glob("*_results.json"))
+                          + list(task_work_dir.glob("job.json"))
+                          + list(task_work_dir.glob("*.json"))):
+            try:
+                data = _json.loads(json_file.read_text(errors="replace"))
+                # CryoSPARC stores FSC resolution in results dict
+                fsc = data.get("fsc_resolution_angstrom")
+                if fsc is None:
+                    fsc = data.get("FSC_resolution_A")
+                if fsc is None:
+                    fsc = data.get("resolution_A")
+                if fsc is not None:
+                    try:
+                        metrics["fsc_resolution_angstrom"] = float(fsc)
+                    except (ValueError, TypeError):
+                        pass
+                # Junk class fraction (from 2D classification step)
+                junk = data.get("junk_class_fraction")
+                if junk is None:
+                    junk = data.get("rejected_fraction")
+                if junk is not None:
+                    try:
+                        metrics["junk_class_fraction"] = float(junk)
+                    except (ValueError, TypeError):
+                        pass
+                if metrics:
+                    break
+            except (OSError, _json.JSONDecodeError):
+                continue
+
+        # Fallback: simple text file (used in tests + pipeline summary outputs)
+        if not metrics:
+            for txt_file in (list(task_work_dir.glob("*fsc*.txt"))
+                             + list(task_work_dir.glob("*refinement*.txt"))
+                             + list(task_work_dir.glob("*.txt"))):
+                try:
+                    for line in txt_file.read_text(errors="replace").splitlines():
+                        line_lower = line.lower()
+                        if "fsc_resolution" in line_lower or "fsc resolution" in line_lower:
+                            parts = line.split(":")
+                            if len(parts) >= 2:
+                                try:
+                                    metrics["fsc_resolution_angstrom"] = float(parts[-1].strip())
+                                except ValueError:
+                                    pass
+                        elif "junk_class_fraction" in line_lower or "junk fraction" in line_lower:
+                            parts = line.split(":")
+                            if len(parts) >= 2:
+                                try:
+                                    metrics["junk_class_fraction"] = float(parts[-1].strip())
+                                except ValueError:
+                                    pass
+                    if metrics:
+                        break
+                except OSError:
+                    continue
+
+        if not metrics:
+            log.debug(f"[QC] No refinement metrics found in {task_work_dir}")
+            return None
+        return metrics
+
+    def _parse_maxquant_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse MaxQuant output files.
+
+        Primary sources:
+          summary.txt    — PSM count, missed cleavage rate (per-experiment row)
+          proteinGroups.txt — protein FDR proxy (decoy/reverse fraction), CV
+          Phospho (STY)Sites.txt — phosphosite localization scores (phospho experiments only)
+
+        Returns None when no MaxQuant output files are found.
+        """
+        import csv as _csv
+        import statistics as _stats
+
+        metrics: Dict[str, Any] = {}
+
+        # --- summary.txt: overall PSM count and missed cleavages ---
+        for summary_file in (list(task_work_dir.glob("**/summary.txt"))
+                             + list(task_work_dir.glob("summary.txt"))):
+            try:
+                with open(summary_file, newline="", errors="replace") as f:
+                    reader = _csv.DictReader(f, delimiter="\t")
+                    for row in reader:
+                        # MaxQuant summary: "MS/MS Identified" column
+                        psm_val = row.get("MS/MS Identified")
+                        if psm_val is None:
+                            psm_val = row.get("MS/MS identified")
+                        if psm_val is not None:
+                            try:
+                                metrics["psm_count"] = int(str(psm_val).replace(",", ""))
+                            except ValueError:
+                                pass
+                        mc = row.get("Missed Cleavages")
+                        if mc is None:
+                            mc = row.get("Missed cleavages")
+                        if mc is not None:
+                            try:
+                                metrics.setdefault("missed_cleavage_pct", float(mc))
+                            except ValueError:
+                                pass
+                        break  # first data row only
+                if "psm_count" in metrics:
+                    break
+            except OSError:
+                continue
+
+        # --- proteinGroups.txt: protein FDR (decoy ratio) and LFQ CV ---
+        for pg_file in (list(task_work_dir.glob("**/proteinGroups.txt"))
+                        + list(task_work_dir.glob("proteinGroups.txt"))):
+            try:
+                with open(pg_file, newline="", errors="replace") as f:
+                    reader = _csv.DictReader(f, delimiter="\t")
+                    total = 0
+                    decoy = 0
+                    cvs = []
+                    for row in reader:
+                        total += 1
+                        # MaxQuant marks reverse/contaminant hits with "+"
+                        if (row.get("Reverse", "").strip() == "+"
+                                or row.get("Potential contaminant", "").strip() == "+"):
+                            decoy += 1
+                        # Collect LFQ CV columns (column names vary by MQ version)
+                        for key in row:
+                            if "cv" in key.lower() and "intensity" in key.lower():
+                                try:
+                                    val = float(row[key])
+                                    if 0 < val < 300:
+                                        cvs.append(val)
+                                except (ValueError, TypeError):
+                                    pass
+                    if total > 0:
+                        metrics.setdefault("protein_fdr_pct", round((decoy / total) * 100.0, 3))
+                    if cvs:
+                        metrics.setdefault("cv_pct", round(_stats.median(cvs), 1))
+                break
+            except OSError:
+                continue
+
+        # --- Phospho (STY)Sites.txt: median localization probability ---
+        for phospho_file in (list(task_work_dir.glob("**/Phospho (STY)Sites.txt"))
+                             + list(task_work_dir.glob("Phospho (STY)Sites.txt"))
+                             + list(task_work_dir.glob("**/PhosphoSites.txt"))):
+            try:
+                with open(phospho_file, newline="", errors="replace") as f:
+                    reader = _csv.DictReader(f, delimiter="\t")
+                    scores = []
+                    for row in reader:
+                        score_val = row.get("Localization prob")
+                        if score_val is None:
+                            score_val = row.get("Localization Prob")
+                        if score_val is not None:
+                            try:
+                                scores.append(float(score_val))
+                            except ValueError:
+                                pass
+                if scores:
+                    metrics["phosphosite_localization_score"] = round(_stats.median(scores), 3)
+                break
+            except OSError:
+                continue
+
+        if not metrics:
+            log.debug(f"[QC] No MaxQuant metrics found in {task_work_dir}")
+            return None
+        return metrics
+
+    def _parse_diann_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse DIA-NN output files.
+
+        Primary sources:
+          report.stats.tsv  — high-level run statistics (PSM count, FDR)
+          report.tsv        — precursor-level data (used to compute CV and missing values)
+
+        Returns None when no DIA-NN output files are found.
+        """
+        import csv as _csv
+        import statistics as _stats
+
+        metrics: Dict[str, Any] = {}
+
+        # --- report.stats.tsv: summary statistics ---
+        for stats_file in (list(task_work_dir.glob("**/report.stats.tsv"))
+                           + list(task_work_dir.glob("report.stats.tsv"))):
+            try:
+                with open(stats_file, newline="", errors="replace") as f:
+                    reader = _csv.DictReader(f, delimiter="\t")
+                    for row in reader:
+                        for key in row:
+                            key_l = key.lower()
+                            if "precursor" in key_l and "count" in key_l:
+                                try:
+                                    metrics.setdefault("psm_count", int(row[key]))
+                                except (ValueError, TypeError):
+                                    pass
+                            elif "protein" in key_l and "fdr" in key_l:
+                                try:
+                                    fdr = float(row[key])
+                                    # DIA-NN reports FDR as 0–1; convert to percent
+                                    fdr_pct = fdr * 100.0 if fdr <= 1.0 else fdr
+                                    metrics.setdefault("protein_fdr_pct", round(fdr_pct, 3))
+                                except (ValueError, TypeError):
+                                    pass
+                break
+            except OSError:
+                continue
+
+        # --- report.tsv: CV and missing value calculation ---
+        for report_file in (list(task_work_dir.glob("**/report.tsv"))
+                            + list(task_work_dir.glob("report.tsv"))):
+            try:
+                protein_intensities: Dict[str, list] = {}
+                with open(report_file, newline="", errors="replace") as f:
+                    reader = _csv.DictReader(f, delimiter="\t")
+                    for row in reader:
+                        prot = (row.get("Protein.Group")
+                                or row.get("ProteinName")
+                                or row.get("Protein.Name"))
+                        intensity = (row.get("Precursor.Normalised")
+                                     or row.get("Intensity"))
+                        if prot and intensity:
+                            try:
+                                val = float(intensity)
+                                if val > 0:
+                                    protein_intensities.setdefault(prot, []).append(val)
+                            except ValueError:
+                                pass
+
+                # Median CV across proteins with ≥ 2 replicate observations
+                cvs = []
+                for vals in protein_intensities.values():
+                    if len(vals) >= 2:
+                        mean_v = _stats.mean(vals)
+                        if mean_v > 0:
+                            cv = (_stats.stdev(vals) / mean_v) * 100.0
+                            if 0 < cv < 300:
+                                cvs.append(cv)
+                if cvs:
+                    metrics.setdefault("cv_pct", round(_stats.median(cvs), 1))
+
+                # Missing value fraction: proteins with fewer observations than the modal count
+                if protein_intensities:
+                    max_obs = max(len(v) for v in protein_intensities.values())
+                    if max_obs > 1:
+                        n_missing = sum(1 for v in protein_intensities.values()
+                                        if len(v) < max_obs)
+                        total_prot = len(protein_intensities)
+                        metrics["missing_value_pct"] = round(
+                            (n_missing / total_prot) * 100.0, 1
+                        )
+                break
+            except OSError:
+                continue
+
+        if not metrics:
+            log.debug(f"[QC] No DIA-NN metrics found in {task_work_dir}")
+            return None
+        return metrics
+
+    def _parse_pulldown_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse chemoproteomics pulldown enrichment output.
+
+        Expected input: a TSV file (enrichment_ratios.tsv or similar) with columns:
+            protein_id, prey_intensity, input_intensity, enrichment_ratio
+
+        Falls back to a JSON summary file. Returns None if no readable data found.
+
+        The median enrichment ratio across all identified proteins is the primary
+        quality metric: values < 3× indicate a failed pulldown (matrix binder list).
+        """
+        import csv as _csv
+        import statistics as _stats
+
+        metrics: Dict[str, Any] = {}
+
+        # TSV with per-protein enrichment ratios (pipeline-generated)
+        for tsv_file in (list(task_work_dir.glob("**/enrichment_ratios.tsv"))
+                         + list(task_work_dir.glob("enrichment_ratios.tsv"))
+                         + list(task_work_dir.glob("*enrichment*.tsv"))
+                         + list(task_work_dir.glob("*pulldown*.tsv"))):
+            try:
+                ratios = []
+                prey_above_threshold = 0
+                with open(tsv_file, newline="", errors="replace") as f:
+                    reader = _csv.DictReader(f, delimiter="\t")
+                    for row in reader:
+                        ratio_val = (row.get("enrichment_ratio")
+                                     or row.get("Enrichment_Ratio")
+                                     or row.get("ratio"))
+                        if ratio_val:
+                            try:
+                                r = float(ratio_val)
+                                if r > 0:
+                                    ratios.append(r)
+                                    if r >= 3.0:
+                                        prey_above_threshold += 1
+                            except ValueError:
+                                pass
+                if ratios:
+                    metrics["median_enrichment_ratio"] = round(_stats.median(ratios), 3)
+                    metrics["prey_protein_count"] = prey_above_threshold
+                    metrics["total_proteins_quantified"] = len(ratios)
+                    break
+            except OSError:
+                continue
+
+        # JSON summary fallback (pipeline summary output)
+        if not metrics:
+            import json as _json
+            for json_file in (list(task_work_dir.glob("*pulldown*summary*.json"))
+                              + list(task_work_dir.glob("enrichment_summary.json"))
+                              + list(task_work_dir.glob("*.json"))):
+                try:
+                    data = _json.loads(json_file.read_text(errors="replace"))
+                    enr = data.get("median_enrichment_ratio")
+                    if enr is None:
+                        enr = data.get("enrichment_ratio")
+                    if enr is not None:
+                        metrics["median_enrichment_ratio"] = float(enr)
+                    prey = data.get("prey_protein_count")
+                    if prey is not None:
+                        metrics["prey_protein_count"] = int(prey)
+                    crap = data.get("crapome_contamination_fraction")
+                    if crap is not None:
+                        metrics["crapome_contamination_fraction"] = float(crap)
+                    if metrics:
+                        break
+                except (OSError, _json.JSONDecodeError, ValueError, TypeError):
+                    continue
+
+        if not metrics:
+            log.debug(f"[QC] No pulldown enrichment metrics found in {task_work_dir}")
+            return None
+        return metrics
+
+    def _parse_smiles_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse compound SMILES input and run structural quality checks with RDKit.
+
+        Reads a text file of SMILES (one per line, with optional compound ID):
+            COMPOUND_ID  SMILES_STRING
+        or just:
+            SMILES_STRING
+
+        Checks performed:
+          [GOLD]   SMILES parseable by RDKit (invalid → hard gate)
+          [SILVER] Salt form (disconnected fragments via '.')
+          [SILVER] Undefined stereocenters (@ notation absent where expected)
+          [BRONZE] Molecular weight > 900 Da
+
+        Falls back to gracefully handling RDKit import failures (CI/CD environments).
+        """
+        metrics: Dict[str, Any] = {}
+
+        # Find SMILES input file — search recursively then top-level
+        smiles_files = (list(task_work_dir.glob("**/*.smi"))
+                        + list(task_work_dir.glob("*.smi"))
+                        + list(task_work_dir.glob("**/*.smiles"))
+                        + list(task_work_dir.glob("*.smiles"))
+                        + list(task_work_dir.glob("*compounds*.txt"))
+                        + list(task_work_dir.glob("compounds.txt")))
+
+        # Characters that appear in SMILES but not in compound IDs — used to identify
+        # the SMILES token on lines that also contain ID fields.
+        _SMILES_CHARS = frozenset("()=[]#@/\\")
+
+        smiles_list = []
+        for smi_file in smiles_files:
+            try:
+                for line in smi_file.read_text(errors="replace").splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    parts = line.split()
+                    # Identify the SMILES token using unambiguous SMILES-specific characters.
+                    # Standard .smi format has SMILES first; reversed (ID SMILES) puts it second.
+                    smiles_str = None
+                    for part in parts:
+                        if any(c in part for c in _SMILES_CHARS):
+                            smiles_str = part
+                            break
+                    if smiles_str is None and parts:
+                        # Fallback: take first token (standard .smi format: SMILES first)
+                        smiles_str = parts[0]
+                    if smiles_str:
+                        smiles_list.append(smiles_str)
+                if smiles_list:
+                    break
+            except OSError:
+                continue
+
+        if not smiles_list:
+            log.debug(f"[QC] No SMILES files found in {task_work_dir}")
+            return None
+
+        # Try RDKit validation
+        try:
+            from rdkit import Chem
+            from rdkit.Chem import Descriptors, rdMolDescriptors
+        except ImportError:
+            log.warning("[QC] RDKit not available — SMILES QC gate skipped")
+            return None
+
+        total = len(smiles_list)
+        invalid_count = 0
+        salt_count = 0
+        undefined_stereo_count = 0
+        high_mw_count = 0
+        mw_limit = 900.0
+
+        for smi in smiles_list:
+            mol = Chem.MolFromSmiles(smi, sanitize=False)
+            if mol is None:
+                invalid_count += 1
+                continue
+
+            try:
+                Chem.SanitizeMol(mol)
+            except Exception:
+                invalid_count += 1
+                continue
+
+            # Salt form: disconnected fragments
+            if "." in smi:
+                salt_count += 1
+                # Strip salts for subsequent checks
+                frags = Chem.GetMolFrags(mol, asMols=True)
+                mol = max(frags, key=lambda m: m.GetNumHeavyAtoms()) if frags else mol
+
+            # Undefined stereocenters
+            si = Chem.FindMolChiralCenters(mol, includeUnassigned=True)
+            if any(s[1] == "?" for s in si):
+                undefined_stereo_count += 1
+
+            # Molecular weight
+            try:
+                mw = Descriptors.MolWt(mol)
+                if mw > mw_limit:
+                    high_mw_count += 1
+            except Exception:
+                pass
+
+        metrics["total_compounds"] = total
+        metrics["invalid_smiles_count"] = invalid_count
+        metrics["salt_form_count"] = salt_count
+        metrics["undefined_stereo_count"] = undefined_stereo_count
+        metrics["high_mw_count"] = high_mw_count
+        metrics["valid_fraction"] = round((total - invalid_count) / max(total, 1), 4)
+
+        log.debug(
+            f"[QC] SMILES QC: {total} compounds, {invalid_count} invalid, "
+            f"{salt_count} salt form, {undefined_stereo_count} undefined stereo"
+        )
+        return metrics
+
     def _check_qc_thresholds(
         self,
         process_name: str,
@@ -1575,6 +2135,46 @@ class NextflowQCGateHandler:
                     "message": f"High duplicate fraction: {duplicate_frac:.1%} (threshold: {_dup_pick_t:.0%})"
                 })
 
+        elif any(k in process_upper for k in ("HOMOGENEOUS_REFINEMENT", "NONUNIFORM_REFINEMENT",
+                                               "HETEROGENEOUS_REFINEMENT", "VALIDATION_FSC",
+                                               "LOCAL_CTF_REFINEMENT", "AB_INITIO")):
+            # [GOLD] FSC 0.143 resolution gate — Henderson et al. 2012 gold-standard criterion.
+            # 10Å as the gate: coarser than 10Å is not interpretable for drug discovery targets.
+            # Note: smaller Å value = higher resolution (better). Gate fires when value > threshold.
+            fsc_res = qc_metrics.get("fsc_resolution_angstrom")
+            _fsc_t = self._get_threshold("fsc_resolution_angstrom", 10.0)
+            if fsc_res is not None and fsc_res > _fsc_t:
+                failures.append({
+                    "metric": "fsc_resolution_angstrom",
+                    "value": fsc_res,
+                    "threshold": _fsc_t,
+                    "operator": ">",
+                    "message": (
+                        f"Poor reconstruction: FSC 0.143 resolution {fsc_res:.1f}Å "
+                        f"(gate: better than {_fsc_t:.0f}Å). "
+                        f"Consider increasing particle count, re-examining 2D class selection, "
+                        f"or checking for preferred orientation artifacts."
+                    ),
+                })
+
+            # [advisory] Junk class fraction — high fraction of particles in rejected 2D classes.
+            # Threshold 0.5 (50%) is a community heuristic; does not block workflow.
+            junk_frac = qc_metrics.get("junk_class_fraction")
+            _junk_t = self._get_threshold("junk_class_fraction", 0.5)
+            if junk_frac is not None and junk_frac > _junk_t:
+                failures.append({
+                    "metric": "junk_class_fraction",
+                    "value": junk_frac,
+                    "threshold": _junk_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"High junk class fraction: {junk_frac:.1%} of particles in low-quality "
+                        f"2D classes (advisory threshold: {_junk_t:.0%}). "
+                        f"Consider lowering the particle picker threshold or re-selecting 2D classes."
+                    ),
+                })
+
         # --- RNA-seq / sequencing quality ---
         elif any(k in process_upper for k in ("FASTQC", "MULTIQC")):
             module_failures = qc_metrics.get("module_failures")
@@ -1612,7 +2212,9 @@ class NextflowQCGateHandler:
         elif any(k in process_upper for k in ("STAR_ALIGN", "STAR_GENOME", "HISAT2_ALIGN",
                                                "HISAT2", "BOWTIE2_ALIGN", "BOWTIE2",
                                                "BWA_MEM", "BWA_MEM2", "BWAMEM")):
-            rate = qc_metrics.get("alignment_rate") or qc_metrics.get("uniquely_mapped_pct")
+            rate = qc_metrics.get("alignment_rate")
+            if rate is None:
+                rate = qc_metrics.get("uniquely_mapped_pct")
             _align_t = self._get_threshold("alignment_rate", 70.0)
             if rate is not None and rate < _align_t:
                 # The critical sub-tier (< 25%) detects sample swap / catastrophic contamination.
@@ -1888,6 +2490,292 @@ class NextflowQCGateHandler:
                                    f"the confidence threshold."
                     })
 
+        elif any(k in process_upper for k in ("MAXQUANT", "MAXQUANT_SEARCH",
+                                               "MAXQUANT_ANDROMEDA")):
+            # [GOLD] PSM FDR — Elias & Gygi 2007, Nature Methods (8,000+ citations)
+            # Target-decoy approach: 1% FDR is universally accepted as the standard.
+            psm_fdr = qc_metrics.get("psm_fdr_pct")
+            _psm_fdr_t = self._get_threshold("psm_fdr_pct", 1.0)
+            if psm_fdr is not None and psm_fdr > _psm_fdr_t:
+                failures.append({
+                    "metric": "psm_fdr_pct",
+                    "value": psm_fdr,
+                    "threshold": _psm_fdr_t,
+                    "operator": ">",
+                    "message": (
+                        f"[GOLD] PSM FDR {psm_fdr:.2f}% exceeds 1% threshold (Elias & Gygi 2007). "
+                        f"Check peptide search parameters: enzyme specificity, mass tolerances, "
+                        f"and database size."
+                    ),
+                })
+
+            # [GOLD] Protein FDR — same authority as PSM FDR
+            protein_fdr = qc_metrics.get("protein_fdr_pct")
+            _prot_fdr_t = self._get_threshold("protein_fdr_pct", 1.0)
+            if protein_fdr is not None and protein_fdr > _prot_fdr_t:
+                failures.append({
+                    "metric": "protein_fdr_pct",
+                    "value": protein_fdr,
+                    "threshold": _prot_fdr_t,
+                    "operator": ">",
+                    "message": (
+                        f"[GOLD] Protein FDR {protein_fdr:.2f}% exceeds 1% threshold (Elias & Gygi 2007). "
+                        f"Re-examine search database composition and score cutoffs."
+                    ),
+                })
+
+            # [SILVER] Missed cleavage rate — EuBIC 2018 proteomics QC community standards
+            mc_pct = qc_metrics.get("missed_cleavage_pct")
+            _mc_t = self._get_threshold("missed_cleavage_pct", 20.0)
+            if mc_pct is not None and mc_pct > _mc_t:
+                failures.append({
+                    "metric": "missed_cleavage_pct",
+                    "value": mc_pct,
+                    "threshold": _mc_t,
+                    "operator": ">",
+                    "message": (
+                        f"[SILVER] Missed cleavage rate {mc_pct:.1f}% exceeds {_mc_t:.0f}% "
+                        f"(EuBIC 2018 community standards). Check for incomplete digestion: "
+                        f"increase trypsin concentration, extend digestion time, or verify "
+                        f"sample denaturation."
+                    ),
+                })
+
+            # [SILVER] CV across technical replicates — EuBIC 2018
+            cv_pct = qc_metrics.get("cv_pct")
+            _cv_t = self._get_threshold("cv_pct", 20.0)
+            if cv_pct is not None and cv_pct > _cv_t:
+                failures.append({
+                    "metric": "cv_pct",
+                    "value": cv_pct,
+                    "threshold": _cv_t,
+                    "operator": ">",
+                    "message": (
+                        f"[SILVER] Median CV {cv_pct:.1f}% exceeds {_cv_t:.0f}% "
+                        f"(EuBIC 2018 community standards). Check for sample preparation "
+                        f"variability, LC column degradation, or instrument instability."
+                    ),
+                })
+
+            # [SILVER] Phosphosite localization score — Beausoleil et al. 2006, Nature Biotechnology
+            # Only fires if localization data is present (i.e., phospho enrichment experiment)
+            loc_score = qc_metrics.get("phosphosite_localization_score")
+            _loc_t = self._get_threshold("phosphosite_localization_score", 0.75)
+            if loc_score is not None and loc_score < _loc_t:
+                failures.append({
+                    "metric": "phosphosite_localization_score",
+                    "value": loc_score,
+                    "threshold": _loc_t,
+                    "operator": "<",
+                    "message": (
+                        f"[SILVER] Median phosphosite localization score {loc_score:.3f} "
+                        f"below 0.75 (Beausoleil et al. 2006, Nat Biotechnology). "
+                        f"Consider improving phosphopeptide enrichment efficiency or "
+                        f"extending gradient length for better fragmentation."
+                    ),
+                })
+
+            # [BRONZE] PSM count — minimum for meaningful protein identification
+            psm_count = qc_metrics.get("psm_count")
+            _psm_t = self._get_threshold("psm_count", 1000)
+            if psm_count is not None and psm_count < _psm_t:
+                failures.append({
+                    "metric": "psm_count",
+                    "value": psm_count,
+                    "threshold": _psm_t,
+                    "operator": "<",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] PSM count {psm_count} is low (advisory: ≥ {_psm_t:.0f} for "
+                        f"standard cell lysate). This may be expected for phospho-enriched or "
+                        f"pulldown samples. Check loading amount and spray stability."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("DIANN", "DIANN_CONVERT", "SPECTRONAUT",
+                                               "DIANN_SEARCH")):
+            # DIA-NN / Spectronaut DIA proteomics gates
+            # [GOLD] Protein FDR — same standard as MaxQuant (universal proteomics consensus)
+            protein_fdr = qc_metrics.get("protein_fdr_pct")
+            _prot_fdr_t = self._get_threshold("protein_fdr_pct", 1.0)
+            if protein_fdr is not None and protein_fdr > _prot_fdr_t:
+                failures.append({
+                    "metric": "protein_fdr_pct",
+                    "value": protein_fdr,
+                    "threshold": _prot_fdr_t,
+                    "operator": ">",
+                    "message": (
+                        f"[GOLD] Protein FDR {protein_fdr:.2f}% exceeds 1% threshold. "
+                        f"Verify spectral library specificity and DIA-NN confidence settings."
+                    ),
+                })
+
+            # [SILVER] CV across replicates — DIA community standards (Stenbratt et al. 2021)
+            cv_pct = qc_metrics.get("cv_pct")
+            _cv_t = self._get_threshold("cv_pct", 15.0)  # DIA typically achieves < 15%
+            if cv_pct is not None and cv_pct > _cv_t:
+                failures.append({
+                    "metric": "cv_pct",
+                    "value": cv_pct,
+                    "threshold": _cv_t,
+                    "operator": ">",
+                    "message": (
+                        f"[SILVER] Median CV {cv_pct:.1f}% exceeds {_cv_t:.0f}% "
+                        f"(DIA community standards; Stenbratt et al. 2021). "
+                        f"Check chromatographic reproducibility and spectral library quality."
+                    ),
+                })
+
+            # [SILVER] Missing value fraction — applied when profile sets explicit threshold
+            missing_pct = qc_metrics.get("missing_value_pct")
+            _miss_t = self._get_threshold("missing_value_pct", None)
+            if missing_pct is not None and _miss_t is not None and missing_pct > _miss_t:
+                failures.append({
+                    "metric": "missing_value_pct",
+                    "value": missing_pct,
+                    "threshold": _miss_t,
+                    "operator": ">",
+                    "message": (
+                        f"[SILVER] Missing value fraction {missing_pct:.1f}% exceeds {_miss_t:.0f}% "
+                        f"(plasma biomarker profile). Increase sample loading or "
+                        f"reduce the stringency of the missing value filter."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("PULLDOWN_QC", "CHEMOPROTEOMICS_QC",
+                                               "ENRICHMENT_QC", "PULLDOWN_ANALYSIS")):
+            # [SILVER] Enrichment ratio gate — prey/input > 3× (ABPP community practice).
+            # A pulldown failing this gate means the bead coupling failed or the drug loading
+            # was insufficient; downstream protein list will be dominated by matrix contaminants.
+            enrichment_ratio = qc_metrics.get("median_enrichment_ratio")
+            _enr_t = self._get_threshold("median_enrichment_ratio", 3.0)
+            if enrichment_ratio is not None and enrichment_ratio < _enr_t:
+                failures.append({
+                    "metric": "median_enrichment_ratio",
+                    "value": enrichment_ratio,
+                    "threshold": _enr_t,
+                    "operator": "<",
+                    "message": (
+                        f"[SILVER] Pulldown enrichment ratio {enrichment_ratio:.2f}× "
+                        f"below threshold {_enr_t:.0f}× (ABPP community practice). "
+                        f"Check bead coupling efficiency, drug loading concentration, "
+                        f"and input proteome quality. Results will contain predominantly "
+                        f"non-specific matrix binders."
+                    ),
+                })
+
+            # [SILVER] Minimum prey protein count — too few proteins suggests failed pulldown
+            prey_count = qc_metrics.get("prey_protein_count")
+            _prey_t = self._get_threshold("prey_protein_count", 50)
+            if prey_count is not None and prey_count < _prey_t:
+                failures.append({
+                    "metric": "prey_protein_count",
+                    "value": prey_count,
+                    "threshold": _prey_t,
+                    "operator": "<",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] Only {prey_count} proteins above enrichment threshold "
+                        f"(advisory: ≥ {_prey_t:.0f}). Low prey count may indicate failed "
+                        f"pulldown or very specific interaction. Review manually before "
+                        f"committing to wet-lab follow-up."
+                    ),
+                })
+
+            # [advisory] CRAPome contamination fraction — fraction of prey proteins that are
+            # known common mass-spec contaminants (high = pulldown failed)
+            crapome_frac = qc_metrics.get("crapome_contamination_fraction")
+            _crap_t = self._get_threshold("crapome_contamination_fraction", 0.5)
+            if crapome_frac is not None and crapome_frac > _crap_t:
+                failures.append({
+                    "metric": "crapome_contamination_fraction",
+                    "value": crapome_frac,
+                    "threshold": _crap_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[ADVISORY] {crapome_frac:.1%} of prey proteins are known CRAPome "
+                        f"contaminants (threshold: {_crap_t:.0%}). "
+                        f"High contaminant fraction strongly suggests non-specific binding. "
+                        f"Cross-reference hits against CRAPome (crapome.org) before "
+                        f"prioritising for wet-lab validation."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("SMILES_QC", "COMPOUND_QC", "STRUCTURE_QC",
+                                               "ADMET_PRECHECK", "DOCKING_PRECHECK")):
+            # [GOLD] SMILES parseable — hard gate before any ADMET/docking computation.
+            # An unparseable SMILES produces undefined predictions that propagate silently.
+            invalid_count = qc_metrics.get("invalid_smiles_count", 0)
+            total_count = qc_metrics.get("total_compounds", 1)
+            if invalid_count > 0:
+                invalid_pct = (invalid_count / max(total_count, 1)) * 100.0
+                failures.append({
+                    "metric": "invalid_smiles_count",
+                    "value": invalid_count,
+                    "threshold": 0,
+                    "operator": ">",
+                    "message": (
+                        f"[GOLD] {invalid_count} compound(s) ({invalid_pct:.1f}%) have "
+                        f"unparseable SMILES (RDKit sanitize failed). These will produce "
+                        f"undefined ADMET/docking predictions. Fix or exclude before "
+                        f"downstream computation."
+                    ),
+                })
+
+            # [SILVER] Salt form — multi-fragment SMILES may bias MW and ADMET predictions
+            salt_count = qc_metrics.get("salt_form_count", 0)
+            if salt_count > 0:
+                salt_pct = (salt_count / max(total_count, 1)) * 100.0
+                failures.append({
+                    "metric": "salt_form_count",
+                    "value": salt_count,
+                    "threshold": 0,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] {salt_count} compound(s) ({salt_pct:.1f}%) are in salt "
+                        f"form (SMILES contains '.'). Salt stripping applied automatically. "
+                        f"Verify that the largest fragment is the intended drug molecule."
+                    ),
+                })
+
+            # [SILVER] Undefined stereocenters — may produce incorrect ADMET estimates
+            undefined_stereo_count = qc_metrics.get("undefined_stereo_count", 0)
+            if undefined_stereo_count > 0:
+                stereo_pct = (undefined_stereo_count / max(total_count, 1)) * 100.0
+                failures.append({
+                    "metric": "undefined_stereo_count",
+                    "value": undefined_stereo_count,
+                    "threshold": 0,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] {undefined_stereo_count} compound(s) ({stereo_pct:.1f}%) "
+                        f"have undefined stereocenters. ADMET predictions may differ "
+                        f"significantly between enantiomers. Specify stereochemistry where known."
+                    ),
+                })
+
+            # [BRONZE] MW outside drug-like space
+            high_mw_count = qc_metrics.get("high_mw_count", 0)
+            _mw_t = self._get_threshold("compound_mw_limit", 900.0)
+            if high_mw_count > 0:
+                high_mw_pct = (high_mw_count / max(total_count, 1)) * 100.0
+                failures.append({
+                    "metric": "high_mw_count",
+                    "value": high_mw_count,
+                    "threshold": int(_mw_t),
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] {high_mw_count} compound(s) ({high_mw_pct:.1f}%) have "
+                        f"MW > {_mw_t:.0f} Da. Standard ADMET models are validated for "
+                        f"drug-like molecules (< 900 Da). Predictions may be unreliable "
+                        f"for large or macrocyclic compounds."
+                    ),
+                })
+
         # Advisory items (advisory=True) are informational only — they do not block the workflow.
         # qc_passed is determined solely by hard (non-advisory) failures.
         blocking_failures = [f for f in failures if not f.get("advisory", False)]
@@ -1969,7 +2857,9 @@ class NextflowQCGateHandler:
 
         if any(k in process_upper for k in ("STAR_ALIGN", "STAR_GENOME", "HISAT2_ALIGN",
                                              "HISAT2", "BOWTIE2_ALIGN", "BWA_MEM")):
-            rate = qc_metrics.get("alignment_rate") or qc_metrics.get("uniquely_mapped_pct")
+            rate = qc_metrics.get("alignment_rate")
+            if rate is None:
+                rate = qc_metrics.get("uniquely_mapped_pct")
             _align_t = self._get_threshold("alignment_rate", 70.0)
             if rate is not None and _near_above(rate, _align_t):
                 warnings.append({
