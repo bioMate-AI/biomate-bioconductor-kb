@@ -361,6 +361,81 @@ Nextflow compute (AWS Batch) is billed per run — monitored via billing Lambda.
 
 ---
 
+## Part 7 — AWS Marketplace Listing
+
+### Registration (free — do this now, 1–2 week approval)
+
+Registration is free. AWS takes a service fee (default 20%, negotiable to ~8% above $1M ARR)
+only when a customer pays through Marketplace. No upfront or listing fee.
+
+**Registration steps (owner action required):**
+1. Go to **AWS Marketplace Management Portal** → Seller Registration
+   `https://aws.amazon.com/marketplace/management/seller-settings/register`
+2. Sign in with the AWS root/admin account you want to receive payouts
+3. Provide: legal business name, registered address, bank account (for ACH payouts), W-9 / W-8BEN tax form
+4. AWS reviews in 1–2 weeks → you receive a Seller ID
+
+**Status: ❌ Not started — register now; it is the critical-path blocker for all Marketplace revenue**
+
+---
+
+### Listing Strategy
+
+| Phase | Type | When | Notes |
+|---|---|---|---|
+| Closed beta (now) | **Private Offer** | Immediately after seller approval | Send direct offer to specific orgs; they pay through their AWS account, no public listing needed |
+| Open beta (Week 5+) | **SaaS Contract** | After seller approval | Flat monthly fee per tier; no metering SDK required |
+| Enterprise (post-beta) | **SaaS Contract + Metering** | When usage-based billing needed | Add AWS Marketplace Metering API for per-run billing on top of base subscription |
+
+---
+
+### SaaS Contract Listing — Tiers and Pricing
+
+Map directly to the existing plan codes:
+
+| Marketplace dimension | BioMate tier | Monthly price |
+|---|---|---|
+| `free` | academic / trial | $0 (free trial only, not listed publicly) |
+| `professional` | professional | $49/month |
+| `enterprise` | enterprise | $499/month |
+| `enterprise_plus` | admin / custom | Custom private offer |
+
+These prices are suggestions — final pricing is your call before submitting the listing.
+
+---
+
+### What the Engineering Team Needs to Do (before Marketplace listing goes live)
+
+- [ ] **AWS seller account approved** (owner action — register at link above)
+- [ ] **Webhook endpoint**: `POST /api/billing/marketplace/webhook` to receive AWS Marketplace
+  subscription notifications (new subscription, cancellation, entitlement change).
+  AWS sends a signed SNS notification; you must acknowledge within 5 minutes.
+- [ ] **Entitlement check**: on login, call AWS Marketplace Entitlement Service to verify the
+  customer's subscription is still active (supplement existing quota check).
+- [ ] **Registration redirect**: after a customer subscribes on Marketplace, AWS redirects them
+  to `https://biomate.ai/marketplace/register?token=<fulfillment_token>`. This page calls
+  the Marketplace `resolveCustomer` API to exchange the token for a CustomerIdentifier, then
+  creates or links the BioMate account.
+- [ ] Map `CustomerIdentifier` → `user_id` in DB (new column `marketplace_customer_id` on users table).
+
+For the SaaS Contract model (no usage metering), the webhook + entitlement check + registration
+redirect are the only three integration points. Estimated effort: 1–2 days.
+
+---
+
+### Cost Impact on AWS Marketplace Revenue
+
+AWS takes 20% of every transaction. At the suggested pricing:
+
+| Tier | Your price | AWS cut (20%) | You receive |
+|---|---|---|---|
+| professional | $49/mo | $9.80 | $39.20/mo per user |
+| enterprise | $499/mo | $99.80 | $399.20/mo per user |
+
+Break-even on fixed infrastructure ($266/mo) requires only **7 professional subscribers**.
+
+---
+
 ## Appendix A — Secrets Rotation Checklist
 
 Before every deploy, verify these are rotated and not defaults:
