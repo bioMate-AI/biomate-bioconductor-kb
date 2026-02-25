@@ -38,6 +38,9 @@ class NextflowExecuteRequest(BaseModel):
     profile: Optional[str] = "standard"
     history_id: Optional[str] = None
     compute_config: Optional[Dict[str, Any]] = None
+    qc_overrides: Optional[Dict[str, Any]] = None
+    qc_profile: Optional[str] = None
+    workflow_domain: Optional[str] = None
 
 
 class NextflowStatusRequest(BaseModel):
@@ -58,6 +61,126 @@ def _get_nextflow_bin() -> str:
     raise RuntimeError(
         f"Nextflow binary '{nf}' not found on PATH. "
         "Install with: curl -s https://get.nextflow.io | bash"
+    )
+
+
+def _start_qc_monitor(
+    invocation_id: str,
+    work_dir: Path,
+    qc_overrides: Dict[str, Any],
+    workflow_domain: str,
+    qc_profile: Optional[str] = None,
+) -> None:
+    """
+    Spawn a background thread that polls the Nextflow trace file and fires
+    QC gate / warning events via SSE inject for the direct-executor path.
+
+    The thread exits gracefully once the process finishes (no more trace updates
+    for 120 s with a COMPLETED/FAILED final status) or after a 12-hour hard cap.
+    """
+    try:
+        from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
+    except ImportError:
+        log.warning("[QC Monitor] QC gate handler not available — skipping QC monitoring")
+        return
+
+    import os as _os
+    import json as _json
+    import urllib.request as _urllib
+
+    frontend_url = _os.environ.get("FRONTEND_URL", "http://localhost:5000")
+    inject_url = f"{frontend_url}/internal/sse-inject"
+
+    def _sse_callback(event_type: str, data: dict) -> None:
+        payload = _json.dumps({
+            "invocation_id": invocation_id,
+            "event_type": event_type,
+            "data": data,
+        }).encode("utf-8")
+        try:
+            req = _urllib.Request(
+                inject_url,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            with _urllib.urlopen(req, timeout=5):
+                pass
+        except Exception as exc:
+            log.debug(f"[QC Monitor] SSE inject failed for {event_type}: {exc}")
+
+    handler = NextflowQCGateHandler(
+        invocation_id=invocation_id,
+        work_dir=work_dir,
+        sse_callback=_sse_callback,
+        app=None,
+        workflow_domain=workflow_domain,
+        qc_overrides=qc_overrides,
+        qc_profile=qc_profile,
+    )
+
+    def _poll() -> None:
+        import time as _time
+        trace_file = work_dir / "workflow-trace.txt"
+        seen_tasks: set = set()
+        idle_seconds = 0
+        max_idle = 120  # seconds without new trace lines before giving up
+        hard_cap = 12 * 3600  # 12-hour hard stop
+
+        deadline = _time.monotonic() + hard_cap
+
+        while _time.monotonic() < deadline:
+            _time.sleep(5)
+            if not trace_file.exists():
+                idle_seconds += 5
+                if idle_seconds >= max_idle:
+                    break
+                continue
+
+            try:
+                lines = trace_file.read_text(errors="replace").splitlines()
+            except OSError:
+                continue
+
+            new_task_found = False
+            for line in lines[1:]:  # skip header
+                if not line.strip():
+                    continue
+                parts = line.split("\t")
+                if len(parts) < 5:
+                    continue
+                task_id = parts[0].strip()
+                process_hash = parts[1].strip()
+                process_name = parts[3].strip()
+                task_status = parts[4].strip()
+
+                task_key = f"{task_id}:{task_status}"
+                if task_key not in seen_tasks and task_status in ("COMPLETED", "FAILED"):
+                    seen_tasks.add(task_key)
+                    new_task_found = True
+                    try:
+                        handler.handle_process_completion(
+                            task_id=task_id,
+                            process_name=process_name,
+                            process_hash=process_hash,
+                            status=task_status,
+                        )
+                    except Exception as exc:
+                        log.warning(f"[QC Monitor] Error handling {process_name}: {exc}")
+
+            if new_task_found:
+                idle_seconds = 0
+            else:
+                idle_seconds += 5
+                if idle_seconds >= max_idle:
+                    break
+
+        log.debug(f"[QC Monitor] Monitoring thread for {invocation_id} exiting")
+
+    t = threading.Thread(target=_poll, daemon=True, name=f"qc-monitor-{invocation_id[:8]}")
+    t.start()
+    log.info(
+        f"[QC Monitor] Started QC monitoring for {invocation_id} "
+        f"(domain={workflow_domain}, profile={qc_profile!r}, overrides={list(qc_overrides.keys())})"
     )
 
 
@@ -170,6 +293,29 @@ def execute_nextflow(
         log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
         raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
 
+    # Validate qc_overrides and qc_profile if provided
+    qc_overrides = request.qc_overrides or {}
+    qc_profile = request.qc_profile or None
+    workflow_domain = request.workflow_domain or "unknown"
+    try:
+        from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
+        if qc_overrides:
+            valid, errors = NextflowQCGateHandler.validate_qc_overrides(qc_overrides)
+            if not valid:
+                raise HTTPException(
+                    status_code=422,
+                    detail={"error": "Invalid qc_overrides", "errors": errors}
+                )
+        if qc_profile:
+            valid, errors = NextflowQCGateHandler.validate_qc_profile(qc_profile)
+            if not valid:
+                raise HTTPException(
+                    status_code=422,
+                    detail={"error": "Unknown qc_profile", "errors": errors}
+                )
+    except ImportError:
+        log.warning("[QC] QC gate handler not available — skipping override/profile validation")
+
     # Register run
     with _runs_lock:
         _runs[run_id] = {
@@ -181,6 +327,10 @@ def execute_nextflow(
             "log_path": str(log_path),
             "nextflow_path": str(nf_path),
             "profile": profile,
+            "qc_overrides": qc_overrides,
+            "qc_profile": qc_profile,
+            "workflow_domain": workflow_domain,
+            "work_dir": str(work_dir),
         }
 
     # Stream logs in background
@@ -191,6 +341,15 @@ def execute_nextflow(
         name=f"nf-log-{run_id[:8]}",
     )
     t.start()
+
+    # QC monitoring thread — reads trace file and fires QC gate events
+    _start_qc_monitor(
+        invocation_id=invocation_id,
+        work_dir=work_dir,
+        qc_overrides=qc_overrides,
+        workflow_domain=workflow_domain,
+        qc_profile=qc_profile,
+    )
 
     return {
         "success": True,
@@ -233,4 +392,27 @@ def get_nextflow_status(
         "returncode": info["returncode"],
         "outdir": info["outdir"],
         "log_tail": log_tail,
+    }
+
+
+@router.get("/api/qc/profiles", summary="List available named QC profiles")
+def list_qc_profiles() -> Dict[str, Any]:
+    """
+    Return all available named QC profiles (Layer 3 — curated threshold sets).
+
+    Each profile includes:
+      - id:          str  — profile identifier for use in qc_profile field
+      - description: str  — human-readable summary
+      - domain_hint: str  — primary workflow domain
+      - overrides:   dict — threshold keys and values applied when profile is selected
+      - references:  list — primary literature / guideline citations
+    """
+    try:
+        from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
+        profiles = NextflowQCGateHandler.list_profiles()
+    except ImportError:
+        profiles = []
+    return {
+        "profiles": profiles,
+        "count": len(profiles),
     }

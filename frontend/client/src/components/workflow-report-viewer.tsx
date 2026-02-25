@@ -1,4 +1,5 @@
 import { useState } from "react"
+import DOMPurify from "dompurify"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -194,11 +195,11 @@ export function WorkflowReportViewer({
               {reportFormat === 'html' ? (
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: report }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(report) }}
                 />
               ) : (
                 <div
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(report) }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderMarkdown(report)) }}
                 />
               )}
             </div>

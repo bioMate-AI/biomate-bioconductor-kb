@@ -50,6 +50,18 @@ log = logging.getLogger(__name__)
 # Environment configuration
 _ALLOW_INSECURE_DEV_MODE = os.environ.get("BILLING_DEV_MODE", "").lower() == "true"
 
+# Guard: BILLING_DEV_MODE must never be enabled in production
+if _ALLOW_INSECURE_DEV_MODE and os.environ.get("ENV", "development") == "production":
+    raise RuntimeError(
+        "BILLING_DEV_MODE=true is not allowed when ENV=production. "
+        "Unset BILLING_DEV_MODE before deploying."
+    )
+if _ALLOW_INSECURE_DEV_MODE:
+    log.warning(
+        "BILLING_DEV_MODE is enabled — internal key auth and JWT validation are "
+        "bypassed. This MUST NOT be used in production."
+    )
+
 # CRITICAL: These secrets MUST be set in production
 # Set BILLING_DEV_MODE=true to allow local development without secrets
 INTERNAL_API_KEY = os.environ.get("BILLING_INTERNAL_KEY") or os.environ.get("BILLING_API_KEY")

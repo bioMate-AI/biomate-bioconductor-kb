@@ -3,7 +3,10 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { datasetConfigSchema } from "../shared/schema";
+import { datasetConfigSchema, inviteCodes, inviteCodeUses } from "../shared/schema";
+import type { InsertInviteCode } from "../shared/schema";
+import { db } from "./db";
+import { eq, desc, and } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
 import { createPoller } from "./galaxy-state-poller";
@@ -34,14 +37,11 @@ import {
   emailVerificationLimiter,
   uploadLimiter,
 } from "./rate-limit";
+import { checkBillingQuota } from "./quota-middleware";
 import passport from "passport";
 import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
 import { auditService, auditMiddleware } from "./audit-service";
-import { emailService } from "./email-service";
-import { db } from "./db";
-import { users } from "../shared/schema";
-import { eq } from "drizzle-orm";
 import { conversationStateManager, createEmptyState, type ConversationState } from "./conversation-state";
 
 // Initialize OpenAI (optional for development)
@@ -119,13 +119,12 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
     // Update legacy invocation record
     const invocation = await storage.getInvocationByGalaxyId(data.invocation_id);
     if (invocation) {
-      // Legacy Invocation Status: 'ok' | 'error' | 'running' | ...
-      const invocationStatus = data.state === 'ok' || data.state === 'scheduled' ? 'ok' : 'error';
+      const finalStatus = data.state === 'ok' || data.state === 'scheduled' ? 'ok' : 'error';
 
       // Retrieve outputs from Galaxy for the invocation record
       let outputDatasets: any[] = [];
       let totalOutputSize = 0;
-      if (invocationStatus === 'ok' && invocation.galaxyHistoryId) {
+      if (finalStatus === 'ok' && invocation.galaxyHistoryId) {
         try {
           // Get the actual history_id from Galaxy invocation (may differ from stored)
           const galaxyInvocation = await galaxyAPIProxy.getInvocation(
@@ -177,7 +176,7 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
       }
 
       await storage.updateInvocation(invocation.id, {
-        status: invocationStatus,
+        status: finalStatus,
         completedAt: new Date(),
         completedSteps: invocation.totalSteps,
         outputDatasets,
@@ -190,15 +189,8 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
     // CRITICAL FIX: Also update execution run records
     const executionRun = await storage.getExecutionRunByGalaxyId(data.invocation_id);
     if (executionRun) {
-      // Execution Run Status: 'completed' | 'failed' | 'cancelled'
-      let runStatus: 'completed' | 'failed' | 'cancelled' = 'failed';
-      if (data.state === 'ok' || data.state === 'scheduled') {
-        runStatus = 'completed';
-      } else if (data.state === 'cancelled') {
-        runStatus = 'cancelled';
-      }
-
-      await storage.updateExecutionRunStatus(executionRun.id, runStatus);
+      const finalStatus = data.state === 'ok' || data.state === 'scheduled' ? 'ok' : 'error';
+      await storage.updateExecutionRunStatus(executionRun.id, finalStatus as any);
       // Update progress to 100% — completedSteps == totalSteps, currentStepIndex == totalSteps - 1
       const totalSteps = executionRun.progress.totalSteps || 1;
       await storage.updateExecutionRunProgress(
@@ -207,10 +199,10 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
         totalSteps - 1,     // currentStepIndex = last step (0-indexed)
         'Complete'
       );
-      console.log(`[WorkflowComplete] Updated execution run ${executionRun.id} to ${runStatus}`);
+      console.log(`[WorkflowComplete] Updated execution run ${executionRun.id} to ${finalStatus}`);
 
       // CRITICAL FIX: Retrieve and store workflow outputs from Galaxy
-      if (runStatus === 'completed' && executionRun.execution.galaxyWorkflowId) {
+      if (finalStatus === 'ok' && executionRun.execution.galaxyWorkflowId) {
         try {
           // Get the actual history_id from the Galaxy invocation (may differ from what we requested)
           const galaxyInvocation = await galaxyAPIProxy.getInvocation(
@@ -425,6 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phone: req.body.phone,
         termsAccepted: req.body.terms_accepted || req.body.termsAccepted || false,
         marketingEmailsOptIn: req.body.marketing_emails_opt_in || req.body.marketingEmailsOptIn || false,
+        inviteCode: req.body.inviteCode || req.body.invite_code,
       };
 
       const result = await authService.register(registerData);
@@ -449,86 +442,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         error: error.message || 'Registration failed',
       });
-    }
-  });
-
-  // Start free trial: create Stripe checkout session with 7-day trial
-  // Called after account creation to collect payment method without charging
-  app.post("/api/auth/start-trial", authenticateToken, async (req, res) => {
-    try {
-      if (!stripeService.isConfigured()) {
-        // Dev mode: skip Stripe, just redirect to dashboard
-        return res.json({ success: true, url: null, devMode: true });
-      }
-      const { returnUrl } = req.body;
-      const priceId = process.env.STRIPE_PRICE_ACADEMIC_MONTHLY;
-      if (!priceId) {
-        return res.status(400).json({ error: 'No plan price configured. Set STRIPE_PRICE_ACADEMIC_MONTHLY.' });
-      }
-      const session = await stripeService.createTrialCheckoutSession(
-        req.user!.id,
-        priceId,
-        returnUrl || `${process.env.APP_URL || 'http://localhost:5000'}/dashboard`,
-      );
-      res.json({ success: true, sessionId: session.id, url: session.url });
-    } catch (error: any) {
-      console.error('[Auth] start-trial error:', error);
-      res.status(500).json({ error: 'Failed to create trial session', message: error.message });
-    }
-  });
-
-  // Internal quota notification: called by Python billing service to trigger emails
-  app.post("/internal/notify/quota", async (req, res) => {
-    const key = req.headers['x-internal-key'] as string;
-    const internalKey = process.env.BILLING_INTERNAL_KEY || 'change-me';
-    if (key !== internalKey) return res.status(403).json({ error: 'Forbidden' });
-
-    try {
-      const { user_id, pct, used_usd, quota_usd } = req.body as {
-        user_id: string; pct: number; used_usd: number; quota_usd: number;
-      };
-      // Look up user email
-      const [user] = await db.select().from(users).where(eq(users.id, user_id)).limit(1);
-      if (!user) return res.status(404).json({ error: 'User not found' });
-
-      const addCreditsUrl = `${process.env.APP_URL || 'http://localhost:5000'}/billing`;
-      await emailService.sendQuotaWarningEmail(
-        user.email,
-        user.fullName ?? user.email,
-        Math.round(pct),
-        `$${used_usd.toFixed(2)}`,
-        `$${quota_usd.toFixed(2)}`,
-        addCreditsUrl,
-      );
-      console.log(`[Notify] Quota warning email sent to ${user.email} (${pct.toFixed(1)}%)`);
-      res.json({ ok: true });
-    } catch (error: any) {
-      console.error('[Notify] quota email error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Internal: Python backend pushes QC gate events for immediate SSE delivery.
-  // Without this, events are only delivered on the next 2s polling cycle.
-  app.post("/internal/qc-gate-event", (req, res) => {
-    const key = req.headers['x-internal-key'] as string;
-    const internalKey = process.env.BILLING_INTERNAL_KEY || 'change-me';
-    if (key !== internalKey) return res.status(403).json({ error: 'Forbidden' });
-
-    try {
-      const { invocation_id, event_type, data } = req.body as {
-        invocation_id: string;
-        event_type: string;
-        data: any;
-      };
-      if (!invocation_id || !event_type) {
-        return res.status(400).json({ error: 'invocation_id and event_type required' });
-      }
-      sseManager.broadcastEvent(invocation_id, event_type, data ?? {});
-      res.json({ ok: true });
-    } catch (error: any) {
-      console.error('[QC push] Error broadcasting event:', error);
-      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1072,27 +985,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // One-time credit top-up
-  app.post("/api/payments/add-credits", authenticateToken, async (req, res) => {
-    try {
-      if (!stripeService.isConfigured()) {
-        return res.status(503).json({ error: 'Payment system not configured' });
-      }
-      const { amountCents, returnUrl } = req.body;
-      const cents = Number(amountCents);
-      if (!cents || cents < 100) {
-        return res.status(400).json({ error: 'amountCents must be >= 100' });
-      }
-      const session = await stripeService.createCreditTopupSession(
-        req.user!.id, cents, returnUrl,
-      );
-      res.json({ success: true, sessionId: session.id, url: session.url });
-    } catch (error: any) {
-      console.error('[Payments] Credit top-up error:', error);
-      res.status(500).json({ error: 'Failed to create top-up session', message: error.message });
-    }
-  });
-
   // Get pricing tiers
   app.get("/api/payments/pricing", (req, res) => {
     if (!stripeService.isConfigured()) {
@@ -1133,6 +1025,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
   // Galaxy Tool Search API
   // ============================================================================
+
+  app.get("/api/galaxy/version", async (_req, res) => {
+    try {
+      const response = await galaxyAPIProxy.client.get("/api/version", { timeout: 10000 });
+      res.json(response.data);
+    } catch (error: any) {
+      console.error("Get Galaxy version error:", error.message);
+      res.status(error.response?.status || 502).json({
+        error: "GalaxyVersionError",
+        message: error.message || "Failed to fetch backend version",
+      });
+    }
+  });
 
   app.get("/api/galaxy/tools/search", async (req, res) => {
     try {
@@ -1232,7 +1137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // File Upload API
-  app.post("/api/datasets/upload", upload.single('file'), async (req, res) => {
+  app.post("/api/datasets/upload", authenticateToken, upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -1320,7 +1225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // URL Import API - Galaxy fetches file from URL (no size limit, faster for large files)
   // Leverages Galaxy's built-in URL fetching capabilities (HTTP, FTP, S3)
-  app.post("/api/datasets/import-url", async (req, res) => {
+  app.post("/api/datasets/import-url", authenticateToken, checkBillingQuota('URL import'), async (req, res) => {
     try {
       const { url, filename } = req.body;
 
@@ -1975,6 +1880,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     sseManager.handleConnectionByInvocationId(req, res);
   });
 
+  // Internal endpoint: Python backend POSTs here to push QC gate / phase events
+  // to SSE clients.  Not authenticated — only reachable from localhost.
+  app.post("/internal/sse-inject", (req: any, res: any) => {
+    const { invocation_id, event_type, data } = req.body || {};
+    if (!invocation_id || !event_type || data === undefined) {
+      return res.status(400).json({ error: 'Missing invocation_id, event_type, or data' });
+    }
+    sseManager.injectRawEvent(String(invocation_id), String(event_type), data);
+    res.json({ ok: true });
+  });
+
   // Proxy for QC gate endpoints — frontend POSTs to /api/qc-gates/:id/decision
   // which must be forwarded to the Galaxy backend. No dedicated route existed before.
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
@@ -2108,15 +2024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           conversationStateManager.addFacts(convState, facts);
         }
 
-        // Update candidate tools from recommendations
-        if (assistantResponse.recommendedTools && assistantResponse.recommendedTools.length > 0) {
-          convState.candidateTools = assistantResponse.recommendedTools.map((t: any) => ({
-            toolId: t.tool?.tool_id || t.tool_id || '',
-            toolName: t.tool?.name || t.name || '',
-            relevanceScore: t.relevanceScore || t.rank || 0,
-            source: 'search' as const,
-          }));
-        }
+        // Recommendations update removed
 
         // Update phase if workflow was generated
         if (assistantResponse.generatedWorkflow) {
@@ -2204,7 +2112,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       addTiming('Sending response');
       res.json({
         response: assistantResponse.message,
-        suggestions: assistantResponse.suggestions,
         workflow: assistantResponse.generatedWorkflow,
 
         // Pre-execution validation (if workflow was generated)
@@ -2221,8 +2128,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: {
           intentType: assistantResponse.intentType,
           inlineParameters: assistantResponse.inlineParameters,
-          recommendedTools: assistantResponse.recommendedTools,
-          recommendedDatasets: assistantResponse.recommendedDatasets,
           workflowSuggestion: assistantResponse.workflowSuggestion,
           sources: assistantResponse.sources,
           memoryUsed: useMemory,
@@ -2280,16 +2185,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Fallback response
       const fallbackResponse = "I'm here to help you with bioinformatics analysis! What kind of data or workflow would you like to work on?";
-      const fallbackSuggestions = [
-        "Analyze RNA-seq data",
-        "Create variant calling pipeline",
-        "Build quality control workflow",
-        "Help with gene expression analysis"
-      ];
 
       res.json({
         response: fallbackResponse,
-        suggestions: fallbackSuggestions,
         workflow: null,
         metadata: {
           error: error.message,
@@ -2348,7 +2246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Workflow generation endpoint - proxies to Galaxy backend
-  app.post("/api/ai_assistant/generate_workflow", async (req, res) => {
+  app.post("/api/ai_assistant/generate_workflow", optionalAuth, checkBillingQuota('AI generation'), async (req, res) => {
     try {
       const { request_text, available_datasets, context, preferred_tools, constraints } = req.body;
 
@@ -2390,7 +2288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
 
   // Start a pilot run for parameter tuning
-  app.post("/api/ai_assistant/pilot/start", async (req, res) => {
+  app.post("/api/ai_assistant/pilot/start", optionalAuth, async (req, res) => {
     try {
       const { workflow_id, total_samples, config } = req.body;
 
@@ -3416,7 +3314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
 
   // Create a new invocation record (called when workflow starts)
-  app.post("/api/invocations", async (req, res) => {
+  app.post("/api/invocations", optionalAuth, async (req, res) => {
     try {
       const invocationData = req.body;
 
@@ -3455,7 +3353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get a specific invocation by ID
-  app.get("/api/invocations/:id", async (req, res) => {
+  app.get("/api/invocations/:id", optionalAuth, async (req, res) => {
     try {
       const invocation = await storage.getInvocation(req.params.id);
       if (!invocation) {
@@ -3469,7 +3367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update an invocation (status, outputs, etc.)
-  app.patch("/api/invocations/:id", async (req, res) => {
+  app.patch("/api/invocations/:id", optionalAuth, async (req, res) => {
     try {
       const updates = req.body;
       const invocation = await storage.updateInvocation(req.params.id, updates);
@@ -3486,7 +3384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete an invocation
-  app.delete("/api/invocations/:id", async (req, res) => {
+  app.delete("/api/invocations/:id", authenticateToken, async (req, res) => {
     try {
       const success = await storage.deleteInvocation(req.params.id);
       if (!success) {
@@ -3560,27 +3458,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Invocation Nextflow] Error fetching status:", error);
       res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Validate Nextflow compute configuration (proxies to Galaxy backend)
-  app.post("/api/nextflow/validate-compute", async (req, res) => {
-    try {
-      const GALAXY_URL = process.env.GALAXY_URL || 'http://localhost:8081';
-      const GALAXY_API_KEY = process.env.GALAXY_API_KEY || '';
-      const response = await fetch(`${GALAXY_URL}/api/nextflow/validate-compute`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': GALAXY_API_KEY,
-        },
-        body: JSON.stringify(req.body),
-      });
-      const data = await response.json();
-      res.status(response.ok ? 200 : 400).json(data);
-    } catch (error: any) {
-      console.error("[Compute Validate] Error:", error);
-      res.status(500).json({ ok: false, error: error.message });
     }
   });
 
@@ -4085,7 +3962,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
 
   // Create a new execution run (unified sandbox/production)
-  app.post("/api/workflows/execute", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/execute", optionalAuth, checkBillingQuota('workflow execution'), async (req, res) => {
     let executionRun: any = null;
     let galaxyHistoryId: string | null = null;
     let galaxyWorkflowId: string | null = null;
@@ -4199,23 +4076,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: request.workflowDefinition.parameters || {},
-              billing_user_id: req.user?.id,
-              profile: request.executionConfig?.nextflow_profile || 'standard',
-              // Forward user compute config (from frontend settings → executionConfig)
-              compute_config: request.executionConfig?.computeConfig
-                ? {
-                    executor: request.executionConfig.computeConfig.executor || 'local',
-                    local_output_dir: request.executionConfig.computeConfig.localOutputDir || null,
-                    slurm_partition: request.executionConfig.computeConfig.slurmPartition || null,
-                    slurm_qos: request.executionConfig.computeConfig.slurmQos || null,
-                    slurm_account: request.executionConfig.computeConfig.slurmAccount || null,
-                    aws_region: request.executionConfig.computeConfig.awsRegion || null,
-                    aws_s3_bucket: request.executionConfig.computeConfig.awsS3Bucket || null,
-                    aws_access_key_id: request.executionConfig.computeConfig.awsAccessKeyId || null,
-                    aws_secret_access_key: request.executionConfig.computeConfig.awsSecretAccessKey || null,
-                    aws_batch_queue: request.executionConfig.computeConfig.awsBatchQueue || null,
-                  }
-                : undefined,
+              profile: request.executionConfig?.nextflow_profile || 'standard'
             })
           });
 
@@ -4496,7 +4357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Pause execution run
-  app.post("/api/workflows/runs/:id/pause", async (req, res) => {
+  app.post("/api/workflows/runs/:id/pause", optionalAuth, async (req, res) => {
     try {
       const { reason } = req.body;
       const run = await storage.getExecutionRun(req.params.id);
@@ -4537,7 +4398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Resume execution run
-  app.post("/api/workflows/runs/:id/resume", async (req, res) => {
+  app.post("/api/workflows/runs/:id/resume", optionalAuth, async (req, res) => {
     try {
       const run = await storage.getExecutionRun(req.params.id);
 
@@ -4576,7 +4437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Cancel execution run
-  app.post("/api/workflows/runs/:id/cancel", async (req, res) => {
+  app.post("/api/workflows/runs/:id/cancel", optionalAuth, async (req, res) => {
     try {
       const { reason } = req.body;
       const run = await storage.getExecutionRun(req.params.id);
@@ -5433,28 +5294,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/biomate/status/:invocationId", async (req, res) => {
     try {
       const { invocationId } = req.params;
-      const state = galaxyPoller.getState(invocationId);
 
+      // TODO: Implement getInvocationState method in GalaxyStatePoller
+      // const state = galaxyPoller.getInvocationState(invocationId);
+
+      // For now, return a placeholder response
+      return res.status(501).json({
+        error: 'NotImplemented',
+        message: 'Invocation state endpoint not yet implemented'
+      });
+
+      /*
       if (!state) {
         return res.status(404).json({
           error: 'NotFound',
-          message: 'Invocation not found or not being tracked'
+          message: 'Invocation not found'
         });
       }
 
-      const totalSteps = state.steps.length;
-      const completedSteps = state.steps.filter(
-        (s: any) => s.state === 'ok' || s.state === 'error' || s.state === 'failed'
-      ).length;
-
-      return res.json({
+      res.json({
         invocationId,
         state: state.state,
-        completedSteps,
-        totalSteps,
-        percentComplete: totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0,
-        isPolling: galaxyPoller.isPolling(invocationId),
+        completedSteps: state.completedSteps,
+        totalSteps: state.totalSteps,
+        percentComplete: state.totalSteps > 0
+          ? Math.round((state.completedSteps / state.totalSteps) * 100)
+          : 0
       });
+      */
 
     } catch (error: any) {
       res.status(500).json({
@@ -5495,6 +5362,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(502).json({ error: "BillingProxyError", message: err.message });
     }
   });
+
+  // ============================================================================
+  // Admin — Invite Code Management
+  // Only users with subscriptionTier === 'admin' can access these routes.
+  // ============================================================================
+
+  function requireAdmin(req: any, res: any, next: any) {
+    if (!req.user || req.user.subscriptionTier !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    next();
+  }
+
+  // List all invite codes with use stats
+  app.get("/api/admin/invite-codes", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const codes = await db.select().from(inviteCodes).orderBy(desc(inviteCodes.createdAt));
+      res.json({ codes });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Create one or more invite codes
+  app.post("/api/admin/invite-codes", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const {
+        prefix = 'BETA',
+        count = 1,
+        trialDays,
+        quotaOverrideUsd,
+        subscriptionTier,
+        expiresAt,
+        maxUses = 1,
+        description,
+      } = req.body;
+
+      if (count < 1 || count > 1000) {
+        return res.status(400).json({ error: 'count must be between 1 and 1000' });
+      }
+
+      const { randomBytes } = await import('crypto');
+      const generateCode = (pfx: string) => {
+        const part1 = randomBytes(3).toString('hex').toUpperCase();
+        const part2 = randomBytes(3).toString('hex').toUpperCase();
+        return `${pfx.toUpperCase()}-${part1}-${part2}`;
+      };
+
+      const createdBy = (req as any).user?.id ?? null;
+      const values: InsertInviteCode[] = Array.from({ length: count }, () => ({
+        code: generateCode(prefix),
+        description: description ?? null,
+        createdBy,
+        maxUses: maxUses ?? 1,
+        trialDays: trialDays ?? null,
+        quotaOverrideUsd: quotaOverrideUsd ?? null,
+        subscriptionTier: subscriptionTier ?? 'academic',
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      }));
+
+      const created = await db.insert(inviteCodes).values(values).returning();
+      res.status(201).json({ created });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Update an invite code (deactivate, extend expiry, change limits, etc.)
+  app.patch("/api/admin/invite-codes/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { active, expiresAt, maxUses, description, trialDays, quotaOverrideUsd } = req.body;
+      const updates: Record<string, any> = {};
+      if (active !== undefined) updates.active = active;
+      if (expiresAt !== undefined) updates.expiresAt = expiresAt ? new Date(expiresAt) : null;
+      if (maxUses !== undefined) updates.maxUses = maxUses;
+      if (description !== undefined) updates.description = description;
+      if (trialDays !== undefined) updates.trialDays = trialDays;
+      if (quotaOverrideUsd !== undefined) updates.quotaOverrideUsd = quotaOverrideUsd;
+
+      const [updated] = await db
+        .update(inviteCodes)
+        .set(updates)
+        .where(eq(inviteCodes.id, req.params.id))
+        .returning();
+
+      if (!updated) return res.status(404).json({ error: 'Invite code not found' });
+      res.json({ code: updated });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // List users who used a specific invite code
+  app.get("/api/admin/invite-codes/:id/uses", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const uses = await db
+        .select()
+        .from(inviteCodeUses)
+        .where(eq(inviteCodeUses.inviteCodeId, req.params.id))
+        .orderBy(desc(inviteCodeUses.usedAt));
+      res.json({ uses });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Hard-delete an invite code (only if never used; otherwise deactivate)
+  app.delete("/api/admin/invite-codes/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const [code] = await db
+        .select()
+        .from(inviteCodes)
+        .where(eq(inviteCodes.id, req.params.id))
+        .limit(1);
+
+      if (!code) return res.status(404).json({ error: 'Invite code not found' });
+      if (code.usedCount > 0) {
+        return res.status(409).json({
+          error: 'Cannot delete a code that has been used. Set active=false to deactivate it instead.',
+        });
+      }
+
+      await db.delete(inviteCodes).where(eq(inviteCodes.id, req.params.id));
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ============================================================================
 
   const httpServer = createServer(app);
 

@@ -8,6 +8,13 @@
       "when": 1761705139388,
       "tag": "0000_add_auth_system",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1761705200000,
+      "tag": "0001_invite_codes",
+      "breakpoints": true
     }
   ]
 }

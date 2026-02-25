@@ -103,18 +103,5 @@ export const uploadLimiter = rateLimit({
   },
 });
 
-// Workflow execution rate limit - 10 workflows per hour (adjust based on compute costs)
-export const workflowLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // 10 workflow executions per window
-  message: 'Too many workflow execution requests, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req: Request, res: Response) => {
-    res.status(429).json({
-      success: false,
-      error: 'WORKFLOW_LIMIT_EXCEEDED',
-      message: 'Workflow execution limit reached. Please try again in 1 hour or upgrade your plan.',
-    });
-  },
-});
+// Workflow execution, AI generation, and URL import are all gated by billing quota.
+// See quota-middleware.ts → checkBillingQuota().

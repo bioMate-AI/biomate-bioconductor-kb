@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -42,7 +42,66 @@ export const users = pgTable("users", {
   galaxyUserId: text("galaxy_user_id"),
   galaxyApiKey: text("galaxy_api_key"),
   galaxyUsername: text("galaxy_username"),
+
+  // Invite code (set at registration) — FK added via migration; lazy ref avoids circular init
+  inviteCodeId: varchar("invite_code_id"),
+  // NOTE: .references(() => inviteCodes.id) can't be set here because inviteCodes is defined
+  // after users in this file. Add the FK constraint in your next Drizzle migration:
+  //   ALTER TABLE users ADD CONSTRAINT users_invite_code_id_fkey
+  //     FOREIGN KEY (invite_code_id) REFERENCES invite_codes(id);
 });
+
+// ============================================================================
+// Invite Code Tables — for closed beta access control
+// ============================================================================
+
+export const inviteCodes = pgTable("invite_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  description: text("description"),
+  createdBy: varchar("created_by"),
+
+  // Usage limits
+  maxUses: integer("max_uses").default(1),       // null = unlimited
+  usedCount: integer("used_count").default(0).notNull(),
+
+  // Trial overrides (null = use platform defaults)
+  trialDays: integer("trial_days"),              // e.g. 30 for extended beta
+  quotaOverrideUsd: numeric("quota_override_usd", { precision: 10, scale: 2 }),
+  subscriptionTier: text("subscription_tier").default("academic"),
+
+  // Validity
+  expiresAt: timestamp("expires_at"),
+  active: boolean("active").default(true).notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type InviteCode = typeof inviteCodes.$inferSelect;
+
+export const inviteCodeUses = pgTable("invite_code_uses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  inviteCodeId: varchar("invite_code_id").notNull().references(() => inviteCodes.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  usedAt: timestamp("used_at").defaultNow().notNull(),
+});
+
+export type InviteCodeUse = typeof inviteCodeUses.$inferSelect;
+
+export const insertInviteCodeSchema = createInsertSchema(inviteCodes).pick({
+  code: true,
+  description: true,
+  createdBy: true,
+  maxUses: true,
+  trialDays: true,
+  quotaOverrideUsd: true,
+  subscriptionTier: true,
+  expiresAt: true,
+});
+
+export type InsertInviteCode = z.infer<typeof insertInviteCodeSchema>;
+
+// ============================================================================
 
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,

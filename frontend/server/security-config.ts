@@ -29,15 +29,16 @@ export function getSecurityConfig(): SecurityConfig {
   const env = (process.env.NODE_ENV as any) || 'development';
   const isProd = env === 'production';
 
+  const defaultOrigins = isProd
+    ? ['https://biomate.ai']
+    : ['http://localhost:5173', 'http://localhost:5000'];
+
   return {
     env,
     enableHSTS: isProd,
     enableCSP: true,
     enableCSRF: isProd,
-    corsOrigins: process.env.CORS_ORIGINS?.split(',') || [
-      isProd ? 'https://biomate.ai' : 'http://localhost:5173',
-      'http://localhost:5000', // E2E test origin
-    ],
+    corsOrigins: process.env.CORS_ORIGINS?.split(',') || defaultOrigins,
     forceHTTPS: isProd,
     sessionTimeout: 15, // HIPAA requirement: 15-minute inactivity timeout
   };
@@ -81,8 +82,7 @@ export function configureSecurityHeaders(app: Express) {
               defaultSrc: ["'self'"],
               scriptSrc: [
                 "'self'",
-                "'unsafe-inline'", // Required for Vite in dev
-                "'unsafe-eval'", // Required for Vite in dev
+                ...(config.env !== 'production' ? ["'unsafe-inline'", "'unsafe-eval'"] : []),
                 'https://cdn.jsdelivr.net',
               ],
               styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
@@ -92,7 +92,9 @@ export function configureSecurityHeaders(app: Express) {
                 "'self'",
                 'https://api.anthropic.com',
                 'https://api.openai.com',
-                'wss://localhost:*', // WebSocket for dev
+                ...(config.env !== 'production' ? ['wss://localhost:*'] : [
+                  process.env.WEBSOCKET_URL || 'wss://biomate.ai',
+                ]),
               ],
               frameSrc: ["'none'"],
               objectSrc: ["'none'"],

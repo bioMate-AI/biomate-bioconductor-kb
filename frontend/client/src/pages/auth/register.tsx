@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useLocation } from "wouter"
+import { useLocation, useSearch } from "wouter"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,8 +12,12 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation()
+  const search = useSearch()
   const { loginWithGoogle, loginWithGithub } = useAuth()
   const { toast } = useToast()
+
+  // Pre-fill invite code from ?invite=CODE query param
+  const prefilledCode = new URLSearchParams(search).get('invite') || ''
 
   // Two-step: "account" then "trial"
   const [step, setStep] = useState<"account" | "trial">("account")
@@ -23,6 +27,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
+    inviteCode: prefilledCode,
     agreeToTerms: false
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -63,10 +68,20 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
           termsAccepted: true,
+          ...(formData.inviteCode ? { inviteCode: formData.inviteCode } : {}),
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Registration failed')
+      if (!res.ok) {
+        const msg = data.error || 'Registration failed'
+        const friendlyMsg: Record<string, string> = {
+          INVITE_CODE_REQUIRED: 'An invite code is required to register during our closed beta.',
+          INVALID_INVITE_CODE: 'That invite code is not valid. Please check it and try again.',
+          INVITE_CODE_EXPIRED: 'That invite code has expired. Please request a new one.',
+          INVITE_CODE_EXHAUSTED: 'That invite code has already been used the maximum number of times.',
+        }
+        throw new Error(friendlyMsg[msg] ?? msg)
+      }
 
       // Store token so start-trial call can authenticate
       localStorage.setItem('auth_token', data.token)
@@ -257,6 +272,22 @@ export default function RegisterPage() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 disabled={isLoading}
                 required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="inviteCode">
+                Invite Code
+                <span className="ml-1 text-xs text-muted-foreground">(required during closed beta)</span>
+              </Label>
+              <Input
+                id="inviteCode"
+                type="text"
+                placeholder="BETA-XXXX-XXXX"
+                value={formData.inviteCode}
+                onChange={(e) => setFormData({ ...formData, inviteCode: e.target.value.toUpperCase() })}
+                disabled={isLoading}
+                className="font-mono tracking-wider"
               />
             </div>
 

@@ -12,10 +12,22 @@ import { initializeSecurity } from "./security-config";
 // Crash diagnostics — log fatal errors before exit
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught exception:', err);
+  process.exit(1);
 });
 process.on('unhandledRejection', (reason) => {
   console.error('[FATAL] Unhandled rejection:', reason);
+  process.exit(1);
 });
+
+// Validate required secrets at module load time (synchronous, crashes immediately in prod)
+if (process.env.NODE_ENV === 'production') {
+  const required = ['JWT_SECRET', 'SESSION_SECRET', 'BILLING_INTERNAL_KEY'];
+  const missing = required.filter((k) => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(`[FATAL] Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+}
 
 const app = express();
 
@@ -30,8 +42,13 @@ app.use(cookieParser());
 async function initializeSession() {
   const store = await createSessionStore();
 
+  const sessionSecret = process.env.SESSION_SECRET || 'dev-only-insecure-session-secret';
+  if (!process.env.SESSION_SECRET) {
+    console.warn('[session] WARNING: SESSION_SECRET not set — using insecure default for development only');
+  }
+
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'biomate-session-secret-change-in-production',
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     store,
