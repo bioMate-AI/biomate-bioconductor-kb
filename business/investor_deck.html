@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioMate AI — Introduction Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:          #060d18;
+    --bg-card:     #0d1f35;
+    --bg-card2:    #0a1929;
+    --teal:        #22d3ee;
+    --teal-dim:    rgba(34,211,238,0.12);
+    --teal-border: rgba(34,211,238,0.28);
+    --blue:        #3b82f6;
+    --blue-dim:    rgba(59,130,246,0.12);
+    --indigo:      #818cf8;
+    --purple:      #a78bfa;
+    --green:       #4ade80;
+    --amber:       #fbbf24;
+    --red-dim:     rgba(239,68,68,0.12);
+    --text:        #e2f4fb;
+    --text-muted:  #7dd3fc;
+    --text-dim:    #3d6080;
+    --border:      rgba(255,255,255,0.06);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .presentation { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: none; flex-direction: column;
+    padding: 44px 64px 76px;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .slide.active  { display: flex; }
+  .slide.visible { opacity: 1; }
+
+  /* slide 1 cover needs special centering */
+  .slide.cover { align-items: center; justify-content: center; text-align: center; }
+
+  /* ─── SLIDE HEADER ─── */
+  .slide-eyebrow {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--teal); margin-bottom: 6px;
+  }
+  .slide-title {
+    font-size: 30px; font-weight: 800; line-height: 1.15;
+    color: #fff; margin-bottom: 5px;
+  }
+  .slide-sub {
+    font-size: 14px; color: var(--text-muted);
+    margin-bottom: 28px; font-weight: 400;
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  .progress-bar {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: linear-gradient(90deg, var(--teal), var(--blue));
+    transition: width 0.4s ease; z-index: 200;
+  }
+
+  /* ─── NAV ─── */
+  .nav {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px; z-index: 100;
+  }
+  .nav-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid var(--teal-border); background: var(--bg-card2);
+    color: var(--teal); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover:not(:disabled) { background: var(--teal-dim); border-color: var(--teal); }
+  .nav-btn:disabled { opacity: 0.25; cursor: default; }
+  .nav-dots { display: flex; gap: 7px; align-items: center; }
+  .nav-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-dim); cursor: pointer; transition: all 0.25s;
+  }
+  .nav-dot.active { background: var(--teal); width: 20px; border-radius: 3px; }
+  .slide-counter { font-size: 11px; color: var(--text-dim); font-weight: 600; min-width: 40px; text-align: center; }
+
+  /* ─── SHARED ─── */
+  .card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); }
+  .label-caps { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; }
+  .divider { height: 1px; background: var(--border); margin: 6px 0; }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 1 — COVER
+  ═══════════════════════════════════════════════ */
+  .cover-logo {
+    font-size: 13px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--teal); margin-bottom: 36px;
+  }
+  .cover-title {
+    font-size: 52px; font-weight: 900; line-height: 1.1; color: #fff;
+    margin-bottom: 16px; max-width: 720px;
+  }
+  .cover-title span { color: var(--teal); }
+  .cover-tagline {
+    font-size: 17px; color: var(--text-muted); margin-bottom: 48px;
+    max-width: 540px; line-height: 1.6;
+  }
+  .cover-pills { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 52px; }
+  .cover-pill {
+    padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--teal-border); background: var(--teal-dim); color: var(--teal);
+  }
+  .cover-foot { font-size: 12px; color: var(--text-dim); }
+  .cover-foot a { color: var(--teal); text-decoration: none; }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 2 — PROBLEM
+  ═══════════════════════════════════════════════ */
+  .problem-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .problem-quote {
+    padding: 28px 32px;
+    display: flex; flex-direction: column; justify-content: center;
+    border-left: 3px solid var(--teal);
+    background: var(--bg-card);
+    border-radius: 12px;
+  }
+  .problem-quote blockquote {
+    font-size: 16px; line-height: 1.7; color: #fff;
+    font-style: italic; margin-bottom: 16px;
+  }
+  .problem-quote cite { font-size: 12px; color: var(--text-dim); font-style: normal; }
+
+  .problem-right { display: flex; flex-direction: column; gap: 14px; }
+
+  .problem-card {
+    padding: 18px 20px; flex: 1;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .problem-icon { font-size: 22px; }
+  .problem-card-title { font-size: 14px; font-weight: 700; color: #fff; }
+  .problem-card-body { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; }
+  .problem-numbers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .p-num {
+    font-size: 11px; font-weight: 600; padding: 3px 10px;
+    border-radius: 6px; background: rgba(239,68,68,0.1); color: #f87171;
+    border: 1px solid rgba(239,68,68,0.2);
+  }
+
+  .problem-bottom {
+    margin-top: 16px; padding: 14px 20px;
+    border-radius: 12px; background: var(--teal-dim);
+    border: 1px solid var(--teal-border);
+    font-size: 13px; color: var(--text); line-height: 1.6; font-style: italic;
+    grid-column: 1 / -1;
+  }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 3 — SOLUTION
+  ═══════════════════════════════════════════════ */
+  .solution-pillars {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;
+    flex: 1; margin-bottom: 14px;
+  }
+  .pillar-card {
+    padding: 24px; display: flex; flex-direction: column; gap: 10px;
+    border-top: 3px solid transparent;
+  }
+  .p-think  { border-top-color: var(--teal); }
+  .p-exec   { border-top-color: var(--blue); }
+  .p-collab { border-top-color: var(--indigo); }
+
+  .pillar-icon { font-size: 28px; }
+  .pillar-name { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .p-think  .pillar-name { color: var(--teal); }
+  .p-exec   .pillar-name { color: var(--blue); }
+  .p-collab .pillar-name { color: var(--indigo); }
+
+  .pillar-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; flex: 1; }
+  .pillar-bullets { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .pillar-bullets li {
+    font-size: 12px; color: var(--text-muted); padding-left: 14px; position: relative;
+  }
+  .pillar-bullets li::before { content: '·'; position: absolute; left: 3px; color: var(--teal); font-size: 18px; line-height: 0.85; }
+
+  .loop-bar {
+    padding: 12px 22px; display: flex; align-items: center; gap: 0;
+    overflow: hidden;
+  }
+  .loop-step {
+    font-size: 11.5px; font-weight: 600; color: var(--text-muted);
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  }
+  .loop-arrow { color: var(--teal); font-size: 13px; margin: 0 8px; }
+  .loop-step.highlight { color: var(--teal); }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 4 — MARKET
+  ═══════════════════════════════════════════════ */
+  .market-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 14px; }
+
+  .market-tam {
+    grid-column: 1 / -1;
+    padding: 20px 28px; display: flex; gap: 32px; align-items: center;
+  }
+  .tam-block { text-align: center; flex: 1; }
+  .tam-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+  .tam-value { font-size: 32px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .tam-desc  { font-size: 11.5px; color: var(--text-muted); line-height: 1.4; }
+  .tam-divider { width: 1px; background: var(--border); align-self: stretch; }
+  .tam-arrow { font-size: 22px; color: var(--text-dim); }
+
+  .market-card { padding: 20px 22px; }
+  .market-card-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+  .market-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .market-list li {
+    font-size: 12.5px; color: var(--text-muted); padding-left: 16px; position: relative; line-height: 1.4;
+  }
+  .market-list li::before { content: '→'; position: absolute; left: 0; color: var(--teal); font-size: 10px; top: 3px; }
+  .market-list li b { color: var(--text); }
+
+  .timing-card { padding: 18px 22px; display: flex; gap: 20px; align-items: flex-start; }
+  .timing-item { flex: 1; }
+  .timing-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+  .timing-val { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .timing-val b { color: var(--teal); }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 5 — HOW IT WORKS
+  ═══════════════════════════════════════════════ */
+  .how-steps {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+    flex: 1; margin-bottom: 14px;
+  }
+  .step-card {
+    padding: 18px 16px; display: flex; flex-direction: column; gap: 8px;
+    position: relative;
+  }
+  .step-card::after {
+    content: '›'; position: absolute; right: -8px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px; color: var(--text-dim);
+  }
+  .step-card:last-child::after { display: none; }
+
+  .step-num { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--text-dim); }
+  .step-icon { font-size: 24px; }
+  .step-name { font-size: 13px; font-weight: 700; color: #fff; }
+  .step-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; flex: 1; }
+
+  .how-footer {
+    padding: 14px 22px; text-align: center;
+    font-size: 14px; color: var(--text); font-weight: 600;
+  }
+  .how-footer span { color: var(--teal); }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 6 — WHAT BIOMATE IS (CATEGORY)
+  ═══════════════════════════════════════════════ */
+  .category-grid {
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 14px; flex: 1;
+  }
+  .cat-card { padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+  .cat-tag {
+    display: inline-block; padding: 3px 12px; border-radius: 20px;
+    font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    width: fit-content;
+  }
+  .cat-intelligent .cat-tag { background: var(--teal-dim); color: var(--teal); }
+  .cat-automated   .cat-tag { background: var(--blue-dim); color: var(--blue); }
+  .cat-scale       .cat-tag { background: rgba(129,140,248,0.12); color: var(--indigo); }
+  .cat-accessible  .cat-tag { background: rgba(167,139,250,0.12); color: var(--purple); }
+
+  .cat-heading { font-size: 16px; font-weight: 700; color: #fff; }
+  .cat-body { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; flex: 1; }
+  .cat-stat { font-size: 11.5px; font-weight: 600; color: var(--teal); background: var(--teal-dim); border-radius: 6px; padding: 4px 12px; width: fit-content; }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 7 — TRACTION
+  ═══════════════════════════════════════════════ */
+  .traction-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .traction-built { padding: 22px; }
+  .traction-section-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; }
+  .built-label  { color: var(--green); }
+  .progress-label { color: var(--amber); }
+  .upcoming-label { color: var(--blue); }
+
+  .traction-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .traction-list li {
+    font-size: 12.5px; color: var(--text-muted); padding-left: 20px; position: relative; line-height: 1.4;
+  }
+  .traction-list li::before { position: absolute; left: 0; font-size: 13px; }
+  .built-list li::before  { content: '✓'; color: var(--green); }
+  .progress-list li::before { content: '→'; color: var(--amber); }
+  .upcoming-list li::before { content: '◦'; color: var(--blue); }
+
+  .traction-numbers {
+    padding: 22px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .metric-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    border-bottom: 1px solid var(--border); padding-bottom: 10px;
+  }
+  .metric-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .metric-label { font-size: 12.5px; color: var(--text-muted); }
+  .metric-value { font-size: 22px; font-weight: 800; color: #fff; }
+  .metric-value span { font-size: 12px; font-weight: 600; color: var(--teal); margin-left: 6px; }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 8 — BUSINESS MODEL
+  ═══════════════════════════════════════════════ */
+  .biz-body { flex: 1; display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; }
+
+  .pricing-table { width: 100%; border-collapse: collapse; }
+  .pricing-table th {
+    text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-dim); padding: 0 14px 10px; border-bottom: 1px solid var(--border);
+  }
+  .pricing-table td { padding: 11px 14px; font-size: 13px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+  .pricing-table tr:last-child td { border-bottom: none; }
+  .pricing-table td:first-child { color: #fff; font-weight: 600; }
+  .pricing-table td.price { color: var(--teal); font-weight: 700; }
+  .pricing-table tr.highlight-row td { background: rgba(34,211,238,0.06); }
+
+  .biz-right { display: flex; flex-direction: column; gap: 12px; }
+
+  .value-card { padding: 18px 20px; flex: 1; }
+  .value-comparison {
+    display: flex; flex-direction: column; gap: 8px; margin-top: 10px;
+  }
+  .value-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .value-what { font-size: 12px; color: var(--text-muted); }
+  .value-cost { font-size: 12px; font-weight: 600; color: #f87171; }
+  .value-row.biomate .value-what { color: var(--text); font-weight: 600; }
+  .value-row.biomate .value-cost { color: var(--green); }
+  .value-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  .overage-card { padding: 14px 20px; }
+  .overage-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .overage-row:last-child { margin-bottom: 0; }
+  .overage-label { font-size: 12px; color: var(--text-muted); }
+  .overage-val { font-size: 12px; font-weight: 600; color: var(--teal); }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 9 — FINANCIALS
+  ═══════════════════════════════════════════════ */
+  .fin-body { flex: 1; display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+  .fin-left { display: flex; flex-direction: column; gap: 12px; }
+
+  .rev-table { width: 100%; border-collapse: collapse; }
+  .rev-table th {
+    text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-dim); padding: 0 12px 8px; border-bottom: 1px solid var(--border);
+  }
+  .rev-table td { padding: 8px 12px; font-size: 12.5px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+  .rev-table td:last-child { text-align: right; font-weight: 600; color: var(--text); }
+  .rev-table tr:last-child td { border-bottom: none; }
+  .rev-table .total-row td { color: #fff; font-weight: 800; font-size: 14px; background: rgba(34,211,238,0.06); }
+  .rev-table .total-row td:last-child { color: var(--green); }
+
+  .fin-right { display: flex; flex-direction: column; gap: 12px; }
+
+  .fin-metric-card { padding: 16px 20px; display: flex; flex-direction: column; gap: 4px; }
+  .fin-metric-label { font-size: 11px; color: var(--text-dim); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+  .fin-metric-val { font-size: 26px; font-weight: 900; color: #fff; }
+  .fin-metric-sub { font-size: 12px; color: var(--text-muted); }
+  .fin-metric-val.green { color: var(--green); }
+  .fin-metric-val.teal  { color: var(--teal); }
+
+  .unit-econ-card { padding: 16px 20px; flex: 1; }
+  .unit-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .unit-row:last-child { margin-bottom: 0; }
+  .unit-label { font-size: 12px; color: var(--text-muted); }
+  .unit-val { font-size: 13px; font-weight: 700; color: var(--text); }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 10 — GO-TO-MARKET
+  ═══════════════════════════════════════════════ */
+  .gtm-phases {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; flex: 1; margin-bottom: 14px;
+  }
+  .gtm-card {
+    padding: 18px 16px; display: flex; flex-direction: column; gap: 8px;
+    border-top: 3px solid transparent;
+  }
+  .gtm1 { border-top-color: var(--teal); }
+  .gtm2 { border-top-color: #38bdf8; }
+  .gtm3 { border-top-color: var(--blue); }
+  .gtm4 { border-top-color: var(--indigo); }
+
+  .gtm-phase-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .gtm1 .gtm-phase-label { color: var(--teal); }
+  .gtm2 .gtm-phase-label { color: #38bdf8; }
+  .gtm3 .gtm-phase-label { color: var(--blue); }
+  .gtm4 .gtm-phase-label { color: var(--indigo); }
+
+  .gtm-name { font-size: 20px; font-weight: 900; color: #fff; }
+  .gtm-time { font-size: 11px; color: var(--text-dim); }
+  .gtm-divider { height: 1px; background: var(--border); }
+  .gtm-target { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .gtm-target b { color: var(--text); }
+  .gtm-channel { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .gtm-goal {
+    margin-top: auto; font-size: 11px; font-weight: 600; color: var(--teal);
+    border-top: 1px solid var(--border); padding-top: 10px;
+  }
+
+  .gtm-logic {
+    padding: 12px 22px; text-align: center;
+    font-size: 13px; color: var(--text-dim); font-style: italic;
+  }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 11 — TEAM
+  ═══════════════════════════════════════════════ */
+  .team-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .founder-card { padding: 24px 28px; display: flex; flex-direction: column; gap: 14px; }
+  .founder-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--teal), var(--blue));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+  .founder-name { font-size: 18px; font-weight: 800; color: #fff; }
+  .founder-role { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--teal); margin-top: -10px; }
+  .founder-creds {
+    display: flex; flex-direction: column; gap: 5px; margin-top: -4px;
+  }
+  .founder-cred {
+    font-size: 12px; color: var(--text-muted); padding-left: 14px; position: relative;
+  }
+  .founder-cred::before { content: '·'; position: absolute; left: 3px; color: var(--teal); font-size: 18px; line-height: 0.85; }
+  .founder-quote {
+    font-size: 13px; color: var(--text); line-height: 1.7;
+    font-style: italic; border-left: 3px solid var(--teal);
+    padding-left: 14px;
+  }
+  .founder-cite { font-size: 11px; color: var(--text-dim); font-style: normal; }
+
+  .team-right { display: flex; flex-direction: column; gap: 10px; }
+
+  .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; }
+
+  .member-card {
+    padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;
+    border-top: 2px solid transparent;
+  }
+  .mc-swe     { border-top-color: var(--teal); }
+  .mc-backend { border-top-color: var(--blue); }
+  .mc-mlops   { border-top-color: var(--indigo); }
+  .mc-sec     { border-top-color: var(--purple); }
+
+  .member-icon { font-size: 22px; }
+  .member-role { font-size: 12px; font-weight: 700; color: #fff; }
+  .member-bullets { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .member-bullets li {
+    font-size: 11.5px; color: var(--text-muted); padding-left: 13px; position: relative; line-height: 1.35;
+  }
+  .member-bullets li::before { content: '·'; position: absolute; left: 2px; color: var(--teal); font-size: 16px; line-height: 0.9; }
+
+  .team-badge {
+    padding: 10px 16px; border-radius: 10px;
+    background: var(--teal-dim); border: 1px solid var(--teal-border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .team-badge-icon { font-size: 20px; }
+  .team-badge-text { font-size: 12.5px; color: var(--text); line-height: 1.5; }
+  .team-badge-text b { color: var(--teal); }
+
+  .seeking-card {
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .seeking-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 7px; }
+  .seeking-tags { display: flex; gap: 7px; flex-wrap: wrap; }
+  .seeking-tag {
+    font-size: 11px; padding: 3px 10px; border-radius: 6px;
+    background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border);
+  }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 5 — NVIDIA STACK
+  ═══════════════════════════════════════════════ */
+  .nvidia-body { flex: 1; display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: center; }
+
+  .stack-wrap { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+
+  .stack-layer {
+    padding: 16px 22px; border-radius: 12px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .stack-users {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    text-align: center;
+  }
+  .stack-users-label { font-size: 13px; font-weight: 700; color: var(--text-muted); }
+  .stack-users-sub { font-size: 11px; color: var(--text-dim); }
+
+  .stack-biomate {
+    background: rgba(34,211,238,0.08); border: 2px solid var(--teal);
+    box-shadow: 0 0 32px rgba(34,211,238,0.12);
+    position: relative; z-index: 2;
+  }
+  .stack-biomate-label { font-size: 15px; font-weight: 900; color: #fff; }
+  .stack-biomate-tag { font-size: 11px; color: var(--teal); font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  .stack-biomate-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .stack-pill {
+    font-size: 11px; padding: 2px 10px; border-radius: 12px;
+    background: rgba(34,211,238,0.12); color: var(--teal); border: 1px solid var(--teal-border);
+  }
+  .stack-pill.grey { background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: var(--border); }
+
+  .stack-nvidia {
+    background: rgba(118,185,0,0.07); border: 1px solid rgba(118,185,0,0.3);
+    text-align: center;
+  }
+  .stack-nvidia-label { font-size: 13px; font-weight: 800; color: #76b900; }
+  .stack-nvidia-models { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 4px; }
+  .nvidia-model {
+    font-size: 10.5px; padding: 2px 9px; border-radius: 10px;
+    background: rgba(118,185,0,0.1); color: #a3d44a; border: 1px solid rgba(118,185,0,0.2);
+  }
+  .stack-nvidia-sub { font-size: 11px; color: rgba(118,185,0,0.6); margin-top: 4px; }
+
+  .stack-arrow-row {
+    display: flex; align-items: center; justify-content: center;
+    padding: 5px 0; gap: 6px;
+  }
+  .stack-arrow-icon { font-size: 18px; color: var(--text-dim); }
+  .stack-arrow-label { font-size: 11px; color: var(--text-dim); font-style: italic; }
+
+  .int-points { display: flex; flex-direction: column; gap: 9px; }
+  .int-card-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+
+  .int-item {
+    padding: 12px 16px; border-radius: 10px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .int-item-head { font-size: 12.5px; font-weight: 700; color: #fff; }
+  .int-item-body { font-size: 11.5px; color: var(--text-muted); line-height: 1.4; }
+  .int-nvidia-tag {
+    display: inline-block; font-size: 10px; padding: 1px 8px; border-radius: 8px;
+    background: rgba(118,185,0,0.1); color: #a3d44a; font-weight: 600; width: fit-content;
+  }
+
+  .nvidia-quote {
+    margin-top: 4px; padding: 12px 16px; border-radius: 10px;
+    background: rgba(118,185,0,0.06); border: 1px solid rgba(118,185,0,0.2);
+    font-size: 12px; color: rgba(163,212,74,0.8); font-style: italic; line-height: 1.5;
+    text-align: center;
+  }
+
+  /* ═══════════════════════════════════════════════
+     SLIDE 13 — CLOSING (was 12)
+  ═══════════════════════════════════════════════ */
+  .closing-body { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 28px; }
+  .closing-headline { font-size: 34px; font-weight: 900; color: #fff; line-height: 1.2; max-width: 660px; }
+  .closing-headline span { color: var(--teal); }
+  .closing-sub { font-size: 15px; color: var(--text-muted); max-width: 520px; line-height: 1.7; }
+  .closing-numbers {
+    display: flex; gap: 32px; align-items: center;
+    padding: 20px 40px; border-radius: 16px;
+    background: var(--bg-card); border: 1px solid var(--teal-border);
+  }
+  .cnum-block { text-align: center; }
+  .cnum-val { font-size: 28px; font-weight: 900; color: #fff; }
+  .cnum-val span { color: var(--teal); }
+  .cnum-label { font-size: 11px; color: var(--text-dim); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-top: 3px; }
+  .cnum-divider { width: 1px; height: 50px; background: var(--border); }
+
+  .closing-cta { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .closing-url { font-size: 18px; font-weight: 700; color: var(--teal); }
+  .closing-foot { font-size: 12px; color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<div class="presentation">
+
+  <!-- ═══ SLIDE 1: COVER ═══ -->
+  <div class="slide cover active visible" id="s1">
+    <div class="cover-logo">BioMate AI</div>
+    <div class="cover-title">A virtual lab that<br><span>thinks, executes,</span><br>and collaborates.</div>
+    <div class="cover-tagline">
+      AI-powered research execution infrastructure for life sciences —
+      accelerating the full discovery cycle from idea to validated result.
+    </div>
+    <div class="cover-pills">
+      <div class="cover-pill">8,354 Validated Tools</div>
+      <div class="cover-pill">967 Workflow Templates</div>
+      <div class="cover-pill">20 Scientific Domains</div>
+      <div class="cover-pill">Think · Execute · Collaborate</div>
+    </div>
+    <div class="cover-foot">
+      <a href="https://biomate.ai">biomate.ai</a> &nbsp;·&nbsp; Confidential &nbsp;·&nbsp; February 2026
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 2: PROBLEM ═══ -->
+  <div class="slide" id="s2">
+    <div class="slide-eyebrow">Slide 2 of 13</div>
+    <div class="slide-title">Scientific discovery is a cycle.</div>
+    <div class="slide-sub">Ideas need evidence. Experiments need results. Today, both halves of that cycle are slower than they should be.</div>
+
+    <div class="problem-body">
+
+      <div class="problem-quote">
+        <blockquote>
+          "My sister works in the wet lab. She knows her science deeply.
+          But turning data into insight — and insight into the next experiment —
+          takes her more than two days. Every time."
+        </blockquote>
+        <cite>— The conversation that started BioMate</cite>
+      </div>
+
+      <div class="problem-right">
+
+        <div class="card problem-card">
+          <div class="problem-icon">💡</div>
+          <div class="problem-card-title">Ideas are hard to form</div>
+          <div class="problem-card-body">
+            The biomedical literature doubles in volume every few years.
+            Critical connections go unnoticed. Hypotheses are formed in
+            partial information.
+          </div>
+        </div>
+
+        <div class="card problem-card">
+          <div class="problem-icon">🔬</div>
+          <div class="problem-card-title">Execution is slow and expensive</div>
+          <div class="problem-card-body">Analysis that should take minutes takes days or weeks.</div>
+          <div class="problem-numbers">
+            <span class="p-num">$150–300/hr consultant</span>
+            <span class="p-num">$500–5K core facility</span>
+            <span class="p-num">$10K–50K CRO analytics</span>
+            <span class="p-num">$120–180K/yr hire</span>
+          </div>
+        </div>
+
+        <div class="card problem-card">
+          <div class="problem-icon">🔄</div>
+          <div class="problem-card-title">Iteration is the real bottleneck</div>
+          <div class="problem-card-body">
+            Each slow cycle means fewer hypotheses tested, fewer ideas explored.
+            A researcher who can test ten ideas in the time it used to take to
+            test one doesn't just move faster — they discover things that
+            would otherwise never be found.
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 3: SOLUTION ═══ -->
+  <div class="slide" id="s3">
+    <div class="slide-eyebrow">Slide 3 of 13</div>
+    <div class="slide-title">BioMate: The full discovery loop, for the first time in one platform.</div>
+    <div class="slide-sub">Not a smarter chatbot. Not a faster tool. Research execution infrastructure — intelligent, automated where it counts, platform-scale, accessible.</div>
+
+    <div class="solution-pillars">
+
+      <div class="card pillar-card p-think">
+        <div class="pillar-icon">🧠</div>
+        <div class="pillar-name">Think</div>
+        <ul class="pillar-bullets">
+          <li>Literature survey with real evidence</li>
+          <li>Hypothesis generation grounded in published data</li>
+          <li>Workflow design from natural language</li>
+          <li>Evidence-backed — not hallucination</li>
+        </ul>
+      </div>
+
+      <div class="card pillar-card p-exec">
+        <div class="pillar-icon">⚙️</div>
+        <div class="pillar-name">Execute</div>
+        <ul class="pillar-bullets">
+          <li>8,354 validated tools across 97 categories</li>
+          <li>967 workflow templates · 20 domains</li>
+          <li>Cloud-native parallel execution</li>
+          <li>Researcher guides the science; BioMate handles the computation</li>
+        </ul>
+      </div>
+
+      <div class="card pillar-card p-collab">
+        <div class="pillar-icon">🤝</div>
+        <div class="pillar-name">Collaborate</div>
+        <ul class="pillar-bullets">
+          <li>Shared workflow histories and datasets</li>
+          <li>Institutional data sharing &amp; access controls</li>
+          <li>100% audit trail — every step logged</li>
+          <li>Galaxy ecosystem · 50,000+ researchers</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="card loop-bar">
+      <div class="loop-step highlight">Literature</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step highlight">Hypothesis</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step">Workflow design</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step">Execute</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step">Results</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step highlight">Iterate</div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step">Share</div>
+      <div class="loop-arrow" style="color:var(--teal)">↺</div>
+      <div class="loop-step highlight" style="font-size:11px;color:var(--teal);">minutes, not months</div>
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 4: MARKET ═══ -->
+  <div class="slide" id="s4">
+    <div class="slide-eyebrow">Slide 4 of 13</div>
+    <div class="slide-title">A market waiting for exactly this platform.</div>
+    <div class="slide-sub">Three large and fast-growing forces converge at precisely this moment.</div>
+
+    <div class="market-body">
+
+      <div class="card market-tam">
+        <div class="tam-block">
+          <div class="tam-label">TAM</div>
+          <div class="tam-value">$250B+</div>
+          <div class="tam-desc">Global life science<br>R&amp;D spend annually</div>
+        </div>
+        <div class="tam-divider"></div>
+        <div class="tam-arrow">›</div>
+        <div class="tam-block">
+          <div class="tam-label">SAM</div>
+          <div class="tam-value">$23B+</div>
+          <div class="tam-desc">Bioinformatics software<br>+ analytical outsourcing</div>
+        </div>
+        <div class="tam-divider"></div>
+        <div class="tam-arrow">›</div>
+        <div class="tam-block">
+          <div class="tam-label">SOM</div>
+          <div class="tam-value">500K+</div>
+          <div class="tam-desc">Computationally underserved<br>life science researchers</div>
+        </div>
+        <div class="tam-divider"></div>
+        <div class="tam-block">
+          <div class="tam-label">CAGR</div>
+          <div class="tam-value" style="color:var(--green);">20%+</div>
+          <div class="tam-desc">Bioinformatics market<br>growth rate</div>
+        </div>
+      </div>
+
+      <div class="card market-card">
+        <div class="market-card-title">Why the market is ready now</div>
+        <ul class="market-list">
+          <li>AI-native research platforms forming <b>2024–2026</b> — category being defined</li>
+          <li>Sakana AI <b>$2.65B</b> valuation (Nov 2025) — investors believe in AI for research</li>
+          <li>FutureHouse raised <b>$70M</b> (Dec 2025); Phylo raised <b>$13.5M</b> (Feb 2026)</li>
+          <li>These companies prove demand — BioMate enters with the complete picture</li>
+        </ul>
+      </div>
+
+      <div class="card market-card">
+        <div class="market-card-title">BioMate's market entry advantage</div>
+        <ul class="market-list">
+          <li>Built on Galaxy — <b>50,000+ researchers</b> already in the network</li>
+          <li>Covers full discovery loop — <b>not a point solution</b></li>
+          <li>Bottom-up adoption model — no sales force required to start</li>
+          <li>Open, citable, institutional-ready — research organizations can standardize on it</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 5: NVIDIA ECOSYSTEM ═══ -->
+  <div class="slide" id="s5">
+    <div class="slide-eyebrow">Slide 5 of 13</div>
+    <div class="slide-title">NVIDIA is building the engine. BioMate builds the cockpit.</div>
+    <div class="slide-sub">Jensen Huang: "Biology is the next golden track." BioMate is how that infrastructure reaches the researcher on the bench.</div>
+
+    <div class="nvidia-body">
+
+      <!-- ── STACK DIAGRAM ── -->
+      <div class="stack-wrap">
+
+        <div class="stack-layer stack-users">
+          <div class="stack-users-label">500,000+ Life Science Researchers</div>
+          <div class="stack-users-sub">Wet-lab scientists · Domain experts · Principal investigators · Core facilities</div>
+        </div>
+
+        <div class="stack-arrow-row">
+          <div class="stack-arrow-icon">↕</div>
+          <div class="stack-arrow-label">natural language in · results out</div>
+        </div>
+
+        <div class="stack-layer stack-biomate">
+          <div class="stack-biomate-tag">★ BioMate — Application Layer</div>
+          <div class="stack-biomate-label">Think · Execute · Collaborate</div>
+          <div class="stack-biomate-pills">
+            <span class="stack-pill">8,354 tools</span>
+            <span class="stack-pill">967 workflows</span>
+            <span class="stack-pill">20 domains</span>
+            <span class="stack-pill grey">Natural language interface</span>
+            <span class="stack-pill grey">Workflow orchestration</span>
+            <span class="stack-pill grey">Galaxy collaboration</span>
+          </div>
+        </div>
+
+        <div class="stack-arrow-row">
+          <div class="stack-arrow-icon">↕</div>
+          <div class="stack-arrow-label">model APIs · GPU compute · acceleration</div>
+        </div>
+
+        <div class="stack-layer stack-nvidia">
+          <div class="stack-nvidia-label">NVIDIA Infrastructure Layer</div>
+          <div class="stack-nvidia-models">
+            <span class="nvidia-model">BioNeMo</span>
+            <span class="nvidia-model">AlphaFold2</span>
+            <span class="nvidia-model">ESM-2</span>
+            <span class="nvidia-model">DiffDock</span>
+            <span class="nvidia-model">Evo2</span>
+            <span class="nvidia-model">Geneformer</span>
+            <span class="nvidia-model">DGX / H100</span>
+            <span class="nvidia-model">CUDA</span>
+            <span class="nvidia-model">Clara</span>
+            <span class="nvidia-model">Parabricks</span>
+            <span class="nvidia-model">Omniverse</span>
+          </div>
+          <div class="stack-nvidia-sub">$1B joint lab with Eli Lilly · 15+ AI biotech investments · NVentures</div>
+        </div>
+
+      </div>
+
+      <!-- ── INTEGRATION POINTS ── -->
+      <div class="int-points">
+        <div class="int-card-label">BioMate × NVIDIA — Integration Points</div>
+
+        <div class="int-item">
+          <div class="int-nvidia-tag">BioNeMo NIM</div>
+          <div class="int-item-head">Foundation Models as BioMate Tools</div>
+          <div class="int-item-body">AlphaFold2, ESM-2, DiffDock, Evo2 accessible via natural language. "Predict the structure of this protein" → BioMate routes to NVIDIA's NIM API.</div>
+        </div>
+
+        <div class="int-item">
+          <div class="int-nvidia-tag">DGX / H100</div>
+          <div class="int-item-head">GPU Compute Backend</div>
+          <div class="int-item-body">BioMate's Nextflow and Galaxy pipelines execute on NVIDIA DGX systems in institutional and cloud deployments. Researchers never configure hardware.</div>
+        </div>
+
+        <div class="int-item">
+          <div class="int-nvidia-tag">Parabricks</div>
+          <div class="int-item-head">GPU-Accelerated Genomics</div>
+          <div class="int-item-body">NVIDIA Parabricks accelerates GATK workflows 50× via GPU. BioMate integrates this as a native tool — researchers get the speed without knowing it's NVIDIA.</div>
+        </div>
+
+        <div class="int-item">
+          <div class="int-nvidia-tag">Omniverse</div>
+          <div class="int-item-head">Digital Twin Orchestration</div>
+          <div class="int-item-body">As NVIDIA builds molecular and cellular digital twins, BioMate becomes the orchestration platform — researchers describe an experiment, BioMate runs the simulation.</div>
+        </div>
+
+        <div class="int-item">
+          <div class="int-nvidia-tag">NVIDIA Inception</div>
+          <div class="int-item-head">Startup Ecosystem Partnership</div>
+          <div class="int-item-body">NVIDIA Inception program provides compute credits, co-marketing, and technical support. BioMate is a showcase for NVIDIA's life science infrastructure reaching academic researchers.</div>
+        </div>
+
+        <div class="nvidia-quote">
+          "Biology is the next golden track. When data science, AI, and automation combine,
+          biology will transform into an engineerable system." — Jensen Huang, 2026
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 6: HOW IT WORKS ═══ -->
+  <div class="slide" id="s6hw">
+    <div class="slide-eyebrow">Slide 6 of 13</div>
+    <div class="slide-title">From question to validated result — in one conversation.</div>
+    <div class="slide-sub">The researcher never leaves their scientific thinking to deal with computational mechanics.</div>
+
+    <div class="how-steps">
+
+      <div class="card step-card">
+        <div class="step-num">STEP 01</div>
+        <div class="step-icon">💬</div>
+        <div class="step-name">Understand</div>
+        <div class="step-desc">
+          Researcher asks a question in plain language.
+          BioMate reads the relevant literature, forms a hypothesis,
+          proposes an analysis plan with evidence citations.
+        </div>
+      </div>
+
+      <div class="card step-card">
+        <div class="step-num">STEP 02</div>
+        <div class="step-icon">🗺️</div>
+        <div class="step-name">Design</div>
+        <div class="step-desc">
+          BioMate generates the optimal workflow — selecting from 8,354 tools,
+          setting parameters to community standards, applying best practices.
+          Researcher reviews and adjusts.
+        </div>
+      </div>
+
+      <div class="card step-card">
+        <div class="step-num">STEP 03</div>
+        <div class="step-icon">⚡</div>
+        <div class="step-name">Execute</div>
+        <div class="step-desc">
+          Pipeline runs automatically at cloud scale.
+          No code written. No infrastructure configured.
+          No queue waited in. Parallel processing on demand.
+        </div>
+      </div>
+
+      <div class="card step-card">
+        <div class="step-num">STEP 04</div>
+        <div class="step-icon">🔄</div>
+        <div class="step-name">Iterate</div>
+        <div class="step-desc">
+          Results arrive. Researcher reviews and immediately forms a new question.
+          BioMate runs the next iteration.
+          Ten hypotheses in the time it used to take to test one.
+        </div>
+      </div>
+
+      <div class="card step-card">
+        <div class="step-num">STEP 05</div>
+        <div class="step-icon">📤</div>
+        <div class="step-name">Share</div>
+        <div class="step-desc">
+          Full history logged — every tool, parameter, intermediate result.
+          Shareable with team or institution.
+          Reproducible by any collaborator, anywhere, with one click.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card how-footer">
+      What used to take <span>2 days</span> now takes <span>minutes.</span>
+      &nbsp;·&nbsp;
+      What required <span>3 specialists</span> now requires <span>one conversation.</span>
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 6: WHAT BIOMATE IS ═══ -->
+  <div class="slide" id="s6">
+    <div class="slide-eyebrow">Slide 7 of 13</div>
+    <div class="slide-title">Research Execution Infrastructure for Life Science.</div>
+    <div class="slide-sub">Four defining properties. One coherent platform.</div>
+
+    <div class="category-grid">
+
+      <div class="card cat-card cat-intelligent">
+        <div class="cat-tag">Intelligent</div>
+        <div class="cat-heading">Understands research intent</div>
+        <div class="cat-body">
+          Literature-grounded. Hypothesis-aware.
+          AI understands what a researcher is trying to learn — from natural language,
+          imprecise and domain-specific as that language always is — and constructs
+          an evidence-based plan. Every recommendation is backed by published methodology.
+        </div>
+        <div class="cat-stat">Literature survey + hypothesis generation</div>
+      </div>
+
+      <div class="card cat-card cat-automated">
+        <div class="cat-tag">Automated Where It Counts</div>
+        <div class="cat-heading">Computational pipeline runs automatically</div>
+        <div class="cat-body">
+          Tool selection, parameter configuration, execution, scaling, infrastructure provisioning —
+          all handled without manual intervention.
+          <strong style="color:var(--text);">The scientific judgment stays with the researcher.</strong>
+          BioMate removes the technical barrier between a hypothesis and a result.
+          It automates as much as possible — and keeps the human in control of the science.
+        </div>
+        <div class="cat-stat">Automated pipeline · Researcher-guided science</div>
+      </div>
+
+      <div class="card cat-card cat-scale">
+        <div class="cat-tag">Platform-Scale</div>
+        <div class="cat-heading">Not a point solution. A foundation.</div>
+        <div class="cat-body">
+          8,354 validated tools across 97 categories.
+          967 workflow templates spanning 20 scientific domains.
+          231 production-ready nf-core pipelines.
+          Broad enough that BioMate is the last platform a research organization
+          needs to evaluate — from genomics to structural biology to drug discovery.
+        </div>
+        <div class="cat-stat">8,354 tools · 967 workflows · 20 domains</div>
+      </div>
+
+      <div class="card cat-card cat-accessible">
+        <div class="cat-tag">Accessible</div>
+        <div class="cat-heading">Any researcher. Any institution.</div>
+        <div class="cat-body">
+          500,000+ life science researchers should not need to become computational
+          experts to do their science. Natural language in. Reproducible,
+          shareable results out. No coding. No infrastructure expertise required.
+          The platform absorbs the complexity so the researcher does not have to.
+        </div>
+        <div class="cat-stat">Cost-effective · High speed · Human effort saved</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 7: TRACTION ═══ -->
+  <div class="slide" id="s7">
+    <div class="slide-eyebrow">Slide 8 of 13</div>
+    <div class="slide-title">Built. Not promised.</div>
+    <div class="slide-sub">The platform exists today. What remains is distribution.</div>
+
+    <div class="traction-body">
+
+      <div class="card traction-built">
+        <div class="traction-section-label label-caps built-label">Completed</div>
+        <ul class="traction-list built-list">
+          <li>8,354 validated scientific tools integrated across 97 categories</li>
+          <li>967 workflow templates across 20 scientific domains</li>
+          <li>AI workflow generation from natural language</li>
+          <li>Nextflow cloud-native execution engine · 236 nf-core patterns</li>
+          <li>Cryo-EM SPA pipeline (15 modules, full parallelism)</li>
+          <li>Cryo-ET pipeline (5 modules, parallel tomogram processing)</li>
+          <li>Real-time workflow monitoring (SSE-driven)</li>
+          <li>Pilot/QC gates for large-scale dataset runs</li>
+          <li>Galaxy collaboration layer (histories, workflows, data sharing)</li>
+          <li>Multi-LLM inference · 84% cost reduction vs. cloud-only</li>
+          <li>Billing, usage tracking, compute cost infrastructure</li>
+        </ul>
+
+        <div style="margin-top:16px;">
+          <div class="traction-section-label label-caps progress-label">In Progress</div>
+          <ul class="traction-list progress-list" style="margin-top:10px;">
+            <li>Public beta launch</li>
+            <li>First institutional partnerships</li>
+            <li>Benchmark publication: speed, cost, reproducibility</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card traction-numbers">
+        <div class="traction-section-label label-caps" style="color:var(--teal);">By the Numbers</div>
+
+        <div class="metric-row">
+          <div class="metric-label">Validated scientific tools</div>
+          <div class="metric-value">8,354</div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-label">Workflow templates</div>
+          <div class="metric-value">967</div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-label">Scientific domains</div>
+          <div class="metric-value">20</div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-label">Tool categories</div>
+          <div class="metric-value">97</div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-label">nf-core pipelines</div>
+          <div class="metric-value">231</div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-label">Galaxy researchers in network</div>
+          <div class="metric-value">50K<span>+</span></div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-label">AI compute cost reduction</div>
+          <div class="metric-value" style="color:var(--green);">84%</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 8: BUSINESS MODEL ═══ -->
+  <div class="slide" id="s8">
+    <div class="slide-eyebrow">Slide 9 of 13</div>
+    <div class="slide-title">Business Model</div>
+    <div class="slide-sub">Freemium subscription → outcome-based. Bottom-up adoption, institution-scale revenue.</div>
+
+    <div class="biz-body">
+
+      <div class="card" style="padding:22px;">
+        <div class="label-caps" style="color:var(--teal);margin-bottom:14px;">Pricing Tiers</div>
+        <table class="pricing-table">
+          <thead>
+            <tr>
+              <th>Tier</th><th>Price</th><th>AI Queries</th><th>Workflows</th><th>Support</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Free (Academic)</td>
+              <td class="price">$0 / mo</td>
+              <td>100</td><td>10</td><td>Community</td>
+            </tr>
+            <tr class="highlight-row">
+              <td>Pro</td>
+              <td class="price">$29 / mo</td>
+              <td>1,000</td><td>100</td><td>Email</td>
+            </tr>
+            <tr>
+              <td>Team</td>
+              <td class="price">$79 / user / mo</td>
+              <td>5,000</td><td>500</td><td>Priority + SSO</td>
+            </tr>
+            <tr>
+              <td>Enterprise</td>
+              <td class="price">Custom</td>
+              <td>Unlimited</td><td>Unlimited</td><td>Dedicated</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:16px;">
+          <div class="label-caps" style="color:var(--indigo);margin-bottom:10px;">Year 2 — Outcome-Based Tier</div>
+          <div style="font-size:12.5px;color:var(--text-muted);line-height:1.6;">
+            Pay per analysis delivered: RNA-seq $25 · Pathway analysis $30 · Multi-omics $50+.
+            Manual equivalent costs $240–960. 94% gross margin per delivered workflow.
+          </div>
+        </div>
+      </div>
+
+      <div class="biz-right">
+        <div class="card value-card">
+          <div class="label-caps" style="color:var(--teal);margin-bottom:4px;">Value Argument</div>
+          <div class="value-comparison">
+            <div class="value-row"><span class="value-what">Bioinformatics consultant</span><span class="value-cost">$150–300/hr</span></div>
+            <div class="value-row"><span class="value-what">Core facility</span><span class="value-cost">$500–5K / project</span></div>
+            <div class="value-row"><span class="value-what">CRO analytical component</span><span class="value-cost">$10K–50K</span></div>
+            <div class="value-divider"></div>
+            <div class="value-row biomate"><span class="value-what">BioMate Pro (annual)</span><span class="value-cost">$348 / yr</span></div>
+            <div class="value-row biomate"><span class="value-what">Time to result</span><span class="value-cost">Minutes</span></div>
+          </div>
+        </div>
+
+        <div class="card overage-card">
+          <div class="label-caps" style="color:var(--blue);margin-bottom:10px;">Usage + Compute</div>
+          <div class="overage-row"><span class="overage-label">AI query overage</span><span class="overage-val">$0.03 / query</span></div>
+          <div class="overage-row"><span class="overage-label">Compute (pass-through)</span><span class="overage-val">Cost + 20%</span></div>
+          <div class="overage-row"><span class="overage-label">Blended AI cost</span><span class="overage-val">$0.008 / query</span></div>
+          <div class="overage-row"><span class="overage-label">Query margin</span><span class="overage-val" style="color:var(--green);">74%</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 9: FINANCIALS ═══ -->
+  <div class="slide" id="s9">
+    <div class="slide-eyebrow">Slide 10 of 13</div>
+    <div class="slide-title">Financial Projections</div>
+    <div class="slide-sub">Conservative. Defensible. Driven by unit economics — not assumptions.</div>
+
+    <div class="fin-body">
+
+      <div class="fin-left">
+        <div class="card" style="padding:22px;flex:1;">
+          <div class="label-caps" style="color:var(--teal);margin-bottom:12px;">Year 1 Revenue Projection</div>
+          <table class="rev-table">
+            <thead>
+              <tr><th>Stream</th><th>Detail</th><th style="text-align:right;">Annual</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Pro subscriptions</td><td>150 users × $29/mo</td><td>$52,200</td></tr>
+              <tr><td>Team subscriptions</td><td>90 users × $79/mo</td><td>$85,320</td></tr>
+              <tr><td>Enterprise</td><td>5 accounts avg $2K/mo</td><td>$120,000</td></tr>
+              <tr><td>AI query overage</td><td>50K queries × $0.03</td><td>$18,000</td></tr>
+              <tr><td>Compute markup</td><td>20% on $60K spend</td><td>$12,000</td></tr>
+              <tr><td>Storage</td><td>5TB × $0.03/GB/mo</td><td>$1,800</td></tr>
+              <tr class="total-row"><td colspan="2">Total Year 1</td><td>$289,320</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="fin-right">
+        <div class="card fin-metric-card">
+          <div class="fin-metric-label">Target Gross Margin</div>
+          <div class="fin-metric-val green">~89%</div>
+          <div class="fin-metric-sub">Subscription-dominant · local LLM inference</div>
+        </div>
+        <div class="card fin-metric-card">
+          <div class="fin-metric-label">Break-Even MRR</div>
+          <div class="fin-metric-val teal">$2,247</div>
+          <div class="fin-metric-sub">78 Pro users · or · 30 Team users</div>
+        </div>
+        <div class="card unit-econ-card">
+          <div class="label-caps" style="color:var(--indigo);margin-bottom:10px;">Unit Economics</div>
+          <div class="unit-row"><span class="unit-label">CAC payback target</span><span class="unit-val">&lt; 6 months</span></div>
+          <div class="unit-row"><span class="unit-label">LTV (Pro · 24 mo)</span><span class="unit-val">$696</span></div>
+          <div class="unit-row"><span class="unit-label">LTV (Team · 24 mo)</span><span class="unit-val">$1,896</span></div>
+          <div class="unit-row"><span class="unit-label">LTV (Enterprise)</span><span class="unit-val">$24,000+</span></div>
+          <div class="unit-row"><span class="unit-label">AI cost per query</span><span class="unit-val">$0.008</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 10: GTM ═══ -->
+  <div class="slide" id="s10">
+    <div class="slide-eyebrow">Slide 11 of 13</div>
+    <div class="slide-title">Go-To-Market</div>
+    <div class="slide-sub">We grow the way science grows: researcher by researcher. Trust precedes payment.</div>
+
+    <div class="gtm-phases">
+
+      <div class="card gtm-card gtm1">
+        <div class="gtm-phase-label">Phase 1</div>
+        <div class="gtm-name">Seed</div>
+        <div class="gtm-time">Months 1–3</div>
+        <div class="gtm-divider"></div>
+        <div class="gtm-target"><b>Target:</b> Individual academic researchers</div>
+        <div class="gtm-channel"><b>Channel:</b> Free tier · Galaxy community · Academic conferences</div>
+        <div class="gtm-goal">▸ 1,000 active users · usage data · testimonials</div>
+      </div>
+
+      <div class="card gtm-card gtm2">
+        <div class="gtm-phase-label">Phase 2</div>
+        <div class="gtm-name">Grow</div>
+        <div class="gtm-time">Months 4–9</div>
+        <div class="gtm-divider"></div>
+        <div class="gtm-target"><b>Target:</b> Research teams · core facilities</div>
+        <div class="gtm-channel"><b>Channel:</b> Institutional pilots · word of mouth · publications citing BioMate</div>
+        <div class="gtm-goal">▸ 10,000 users · 5 institutional partnerships</div>
+      </div>
+
+      <div class="card gtm-card gtm3">
+        <div class="gtm-phase-label">Phase 3</div>
+        <div class="gtm-name">Scale</div>
+        <div class="gtm-time">Months 10–18</div>
+        <div class="gtm-divider"></div>
+        <div class="gtm-target"><b>Target:</b> Biotech startups · pharma discovery teams</div>
+        <div class="gtm-channel"><b>Channel:</b> Direct sales · conference presence · API integrations</div>
+        <div class="gtm-goal">▸ First enterprise contracts · $1M ARR</div>
+      </div>
+
+      <div class="card gtm-card gtm4">
+        <div class="gtm-phase-label">Phase 4</div>
+        <div class="gtm-name">Expand</div>
+        <div class="gtm-time">Year 2+</div>
+        <div class="gtm-divider"></div>
+        <div class="gtm-target"><b>Target:</b> Research hospitals · CRO partners · global markets</div>
+        <div class="gtm-channel"><b>Channel:</b> Geographic expansion · platform partnerships · outcome-based pricing</div>
+        <div class="gtm-goal">▸ Platform network effects · self-sustaining growth</div>
+      </div>
+
+    </div>
+
+    <div class="card gtm-logic">
+      Bottom-up adoption (researcher → team → institution) mirrors exactly how Galaxy grew to 50,000+ users.
+      &nbsp;BioMate inherits the network; BioMate adds the intelligence.
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 11: TEAM ═══ -->
+  <div class="slide" id="s11">
+    <div class="slide-eyebrow">Slide 12 of 13</div>
+    <div class="slide-title">Team</div>
+    <div class="slide-sub">Every member brings 5+ years of biomedical experience. We don't just build software — we understand the science it runs.</div>
+
+    <div class="team-body">
+
+      <!-- ── FOUNDER (left) ── -->
+      <div class="card founder-card">
+        <div class="founder-avatar">🔬</div>
+        <div>
+          <div class="founder-name">Founder &amp; CEO</div>
+          <div class="founder-role">Vision · Strategy · AI Architecture</div>
+        </div>
+        <div class="founder-creds">
+          <div class="founder-cred">PhD in NLP &amp; Machine Learning-Based QA Systems</div>
+          <div class="founder-cred">12+ years in biomedical informatics</div>
+          <div class="founder-cred">AI workflow generation · literature reasoning · platform design</div>
+        </div>
+        <div class="founder-quote">
+          "My sister works in the wet lab. She generates beautiful data —
+          and then she waits. More than two days, every time, just to analyze it.
+          I had the skills to change that. I built BioMate."
+        </div>
+        <div class="founder-cite">The origin story. Not a market report — a real observation.</div>
+      </div>
+
+      <!-- ── TEAM (right) ── -->
+      <div class="team-right">
+
+        <div class="team-grid">
+
+          <div class="card member-card mc-swe">
+            <div class="member-icon">💻</div>
+            <div class="member-role">Software Engineer</div>
+            <ul class="member-bullets">
+              <li>Full-stack platform &amp; no-code workflow UI</li>
+              <li>Galaxy frontend integration</li>
+              <li>Real-time SSE monitoring &amp; visualization</li>
+              <li>5+ yrs biomedical software development</li>
+            </ul>
+          </div>
+
+          <div class="card member-card mc-backend">
+            <div class="member-icon">⚙️</div>
+            <div class="member-role">Backend Engineer</div>
+            <ul class="member-bullets">
+              <li>API design &amp; pipeline orchestration</li>
+              <li>Galaxy core &amp; Nextflow execution layer</li>
+              <li>Scalable distributed systems</li>
+              <li>5+ yrs biomedical data infrastructure</li>
+            </ul>
+          </div>
+
+          <div class="card member-card mc-mlops">
+            <div class="member-icon">🚀</div>
+            <div class="member-role">MLOps / DevOps</div>
+            <ul class="member-bullets">
+              <li>Model deployment &amp; local LLM inference</li>
+              <li>CI/CD pipelines &amp; cloud execution (AWS)</li>
+              <li>Nextflow HPC &amp; Batch orchestration</li>
+              <li>5+ yrs biomedical compute environments</li>
+            </ul>
+          </div>
+
+          <div class="card member-card mc-sec">
+            <div class="member-icon">🔐</div>
+            <div class="member-role">Security Expert</div>
+            <ul class="member-bullets">
+              <li>Data security &amp; access control architecture</li>
+              <li>HIPAA / GDPR compliance &amp; audit trails</li>
+              <li>Institutional-grade authentication &amp; SSO</li>
+              <li>5+ yrs biomedical data security &amp; compliance</li>
+            </ul>
+          </div>
+
+        </div>
+
+        <div class="team-badge">
+          <div class="team-badge-icon">🧬</div>
+          <div class="team-badge-text">
+            <b>Every team member: 5+ years biomedical experience.</b>
+            We understand the tools, the data, the workflows, and the researchers who use them.
+            Domain depth is not a bonus — it is the product.
+          </div>
+        </div>
+
+        <div class="seeking-card">
+          <div class="seeking-label">Seeking</div>
+          <div class="seeking-tags">
+            <div class="seeking-tag">Strategic Investors</div>
+            <div class="seeking-tag">Academic Partners</div>
+            <div class="seeking-tag">Institutional Pilots</div>
+            <div class="seeking-tag">Biotech Collaborators</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 12: CLOSING ═══ -->
+  <div class="slide" id="s12">
+    <div class="slide-eyebrow">Slide 13 of 13</div>
+
+    <div class="closing-body">
+      <div class="closing-headline">
+        The next great leap in biomedical discovery will not come from<br>
+        <span>AI replacing scientists.</span><br>
+        It will come from AI making scientists unstoppable.
+      </div>
+
+      <div class="closing-sub">
+        BioMate is the platform that makes that possible.
+        Built. Measurable. Real — for every researcher who has ever waited two days
+        to see their own results.
+      </div>
+
+      <div class="closing-numbers">
+        <div class="cnum-block">
+          <div class="cnum-val">8,354<span>+</span></div>
+          <div class="cnum-label">Validated Tools</div>
+        </div>
+        <div class="cnum-divider"></div>
+        <div class="cnum-block">
+          <div class="cnum-val">967</div>
+          <div class="cnum-label">Workflows</div>
+        </div>
+        <div class="cnum-divider"></div>
+        <div class="cnum-block">
+          <div class="cnum-val">20</div>
+          <div class="cnum-label">Scientific Domains</div>
+        </div>
+        <div class="cnum-divider"></div>
+        <div class="cnum-block">
+          <div class="cnum-val">1</div>
+          <div class="cnum-label">Conversation</div>
+        </div>
+      </div>
+
+      <div class="closing-cta">
+        <div class="closing-url">biomate.ai</div>
+        <div class="closing-foot">
+          "A virtual lab that thinks, executes, and collaborates."
+          &nbsp;·&nbsp; Confidential · February 2026
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /presentation -->
+
+<nav class="nav">
+  <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)" disabled>&#8592;</button>
+  <div class="nav-dots" id="navDots"></div>
+  <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">&#8594;</button>
+  <div class="slide-counter" id="slideCounter">1 / 12</div>
+</nav>
+
+<script>
+  const slides  = document.querySelectorAll('.slide');
+  const dotsEl  = document.getElementById('navDots');
+  const counter = document.getElementById('slideCounter');
+  const progress = document.getElementById('progressBar');
+  const total = slides.length;
+  let current = 0;
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(n) {
+    slides[current].classList.remove('visible');
+    setTimeout(() => {
+      slides[current].classList.remove('active');
+      current = n;
+      slides[current].classList.add('active');
+      requestAnimationFrame(() => requestAnimationFrame(() => slides[current].classList.add('visible')));
+      updateNav();
+    }, 200);
+  }
+
+  function changeSlide(dir) { goTo(Math.max(0, Math.min(total - 1, current + dir))); }
+
+  function updateNav() {
+    document.querySelectorAll('.nav-dot').forEach((d, i) => d.classList.toggle('active', i === current));
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === total - 1;
+    counter.textContent = `${current + 1} / ${total}`;
+    progress.style.width = `${((current + 1) / total) * 100}%`;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changeSlide(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  changeSlide(-1);
+  });
+
+  updateNav();
+</script>
+</body>
+</html>

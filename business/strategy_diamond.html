@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioMate AI — Strategy Diamond</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:           #060d18;
+    --bg-card:      #0d1f35;
+    --bg-card2:     #0a1929;
+    --teal:         #22d3ee;
+    --teal-dim:     rgba(34,211,238,0.12);
+    --teal-border:  rgba(34,211,238,0.28);
+    --blue:         #3b82f6;
+    --blue-dim:     rgba(59,130,246,0.12);
+    --indigo:       #818cf8;
+    --purple:       #a78bfa;
+    --green:        #4ade80;
+    --text:         #e2f4fb;
+    --text-muted:   #7dd3fc;
+    --text-dim:     #3d6080;
+    --border:       rgba(255,255,255,0.06);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── SLIDE SYSTEM ─── */
+  .presentation { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: 44px 60px 76px;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  .slide.active { display: flex; }
+  .slide.visible { opacity: 1; }
+
+  /* ─── SLIDE HEADER ─── */
+  .slide-eyebrow {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--teal); margin-bottom: 6px;
+  }
+  .slide-title {
+    font-size: 28px; font-weight: 800; line-height: 1.15; color: #fff;
+    margin-bottom: 4px;
+  }
+  .slide-sub {
+    font-size: 14px; color: var(--text-muted); margin-bottom: 28px; font-weight: 400;
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  .progress-bar {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: linear-gradient(90deg, var(--teal), var(--blue));
+    transition: width 0.4s ease; z-index: 200;
+  }
+
+  /* ─── NAVIGATION ─── */
+  .nav {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px; z-index: 100;
+  }
+  .nav-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid var(--teal-border); background: var(--bg-card2);
+    color: var(--teal); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover:not(:disabled) { background: var(--teal-dim); border-color: var(--teal); }
+  .nav-btn:disabled { opacity: 0.25; cursor: default; }
+  .nav-dots { display: flex; gap: 7px; align-items: center; }
+  .nav-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-dim); cursor: pointer; transition: all 0.25s;
+  }
+  .nav-dot.active { background: var(--teal); width: 22px; border-radius: 3px; }
+  .slide-counter { font-size: 11px; color: var(--text-dim); font-weight: 600; min-width: 36px; text-align: center; }
+
+  /* ─── SHARED COMPONENTS ─── */
+  .card {
+    background: var(--bg-card); border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .tag {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .tag-teal { background: var(--teal-dim); color: var(--teal); }
+  .tag-blue { background: var(--blue-dim); color: var(--blue); }
+  .label-caps {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 2.5px; text-transform: uppercase;
+  }
+
+  /* ═══════════════════════════════════════════════
+     SD-1  OVERVIEW — DIAMOND
+  ═══════════════════════════════════════════════ */
+  .diamond-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .diamond-svg { width: 100%; max-width: 860px; height: auto; }
+
+  /* ═══════════════════════════════════════════════
+     SD-2  ARENAS
+  ═══════════════════════════════════════════════ */
+  .arenas-body {
+    flex: 1; display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 14px;
+  }
+  .arena-card { padding: 20px 22px; }
+  .arena-card.wide { grid-column: 1 / -1; }
+  .arena-heading {
+    font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 10px;
+  }
+  .arena-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .arena-list li {
+    font-size: 12.5px; color: var(--text-muted);
+    padding-left: 16px; position: relative; line-height: 1.4;
+  }
+  .arena-list li::before {
+    content: '→'; position: absolute; left: 0;
+    color: var(--teal); font-size: 10px; top: 2px;
+  }
+  .geo-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;
+  }
+  .geo-pill {
+    font-size: 11.5px; padding: 3px 12px; border-radius: 20px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .geo-pill.highlight { background: var(--teal-dim); border-color: var(--teal-border); color: var(--teal); }
+  .channel-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;
+  }
+  .channel-item {
+    font-size: 12px; color: var(--text-muted); padding: 6px 12px;
+    background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);
+  }
+  .channel-item span { color: var(--teal); font-weight: 600; }
+
+  /* ═══════════════════════════════════════════════
+     SD-3  VEHICLES
+  ═══════════════════════════════════════════════ */
+  .vehicles-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px;
+  }
+  .vehicle-card {
+    padding: 22px; display: flex; flex-direction: column; gap: 10px;
+    border-top: 3px solid transparent;
+  }
+  .v-intelligence { border-top-color: var(--teal); }
+  .v-execution    { border-top-color: var(--blue); }
+  .v-collab       { border-top-color: var(--indigo); }
+
+  .v-icon { font-size: 26px; }
+  .v-name { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .v-intelligence .v-name { color: var(--teal); }
+  .v-execution    .v-name { color: var(--blue); }
+  .v-collab       .v-name { color: var(--indigo); }
+
+  .v-desc { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; flex: 1; }
+  .v-moat {
+    font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px; display: inline-block; width: fit-content;
+  }
+  .v-intelligence .v-moat { background: var(--teal-dim); color: var(--teal); }
+  .v-execution    .v-moat { background: var(--blue-dim); color: var(--blue); }
+  .v-collab       .v-moat { background: rgba(129,140,248,0.12); color: var(--indigo); }
+
+  .power-grid-bar {
+    padding: 14px 22px; display: flex; align-items: center; gap: 20px;
+  }
+  .pgb-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); white-space: nowrap; }
+  .pgb-items { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pgb-item {
+    font-size: 12px; color: var(--text-muted);
+    padding: 3px 12px; background: rgba(255,255,255,0.04);
+    border-radius: 6px; border: 1px solid var(--border);
+  }
+  .pgb-item b { color: var(--teal); }
+
+  /* ═══════════════════════════════════════════════
+     SD-4  DIFFERENTIATORS
+  ═══════════════════════════════════════════════ */
+  .diff-main {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;
+    flex: 1; margin-bottom: 14px;
+  }
+  .diff-card {
+    padding: 22px; display: flex; flex-direction: column; gap: 10px;
+    position: relative; overflow: hidden;
+  }
+  .diff-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .d-one::before   { background: linear-gradient(90deg, var(--teal), var(--blue)); }
+  .d-two::before   { background: linear-gradient(90deg, var(--blue), var(--indigo)); }
+  .d-three::before { background: linear-gradient(90deg, var(--indigo), var(--purple)); }
+
+  .diff-num { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--text-dim); }
+  .diff-title { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.3; }
+  .diff-body { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; flex: 1; }
+  .diff-stat {
+    font-size: 12px; font-weight: 600; color: var(--teal);
+    background: var(--teal-dim); border-radius: 6px; padding: 5px 12px; display: inline-block; width: fit-content;
+  }
+
+  .diff-secondary { padding: 14px 22px; display: flex; align-items: center; gap: 20px; }
+  .diff-sec-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); white-space: nowrap; }
+  .diff-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .diff-tag {
+    font-size: 12px; color: var(--text-muted); padding: 4px 12px;
+    background: rgba(255,255,255,0.04); border-radius: 6px; border: 1px solid var(--border);
+  }
+
+  /* ═══════════════════════════════════════════════
+     SD-5  STAGING
+  ═══════════════════════════════════════════════ */
+  .staging-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; flex: 1;
+  }
+  .phase-card {
+    padding: 20px; display: flex; flex-direction: column; gap: 8px;
+    border-bottom: 3px solid transparent;
+  }
+  .ph1 { border-bottom-color: var(--teal); }
+  .ph2 { border-bottom-color: #38bdf8; }
+  .ph3 { border-bottom-color: var(--blue); }
+  .ph4 { border-bottom-color: var(--indigo); }
+
+  .phase-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .ph1 .phase-label { color: var(--teal); }
+  .ph2 .phase-label { color: #38bdf8; }
+  .ph3 .phase-label { color: var(--blue); }
+  .ph4 .phase-label { color: var(--indigo); }
+
+  .phase-name { font-size: 20px; font-weight: 900; color: #fff; }
+  .phase-time { font-size: 11px; color: var(--text-dim); font-weight: 500; }
+  .phase-rule { height: 1px; background: var(--border); margin: 4px 0; }
+  .phase-items { list-style: none; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+  .phase-items li {
+    font-size: 12px; color: var(--text-muted); line-height: 1.4;
+    padding-left: 13px; position: relative;
+  }
+  .phase-items li::before {
+    content: '·'; position: absolute; left: 3px;
+    color: var(--teal); font-size: 18px; line-height: 0.85;
+  }
+  .phase-target {
+    margin-top: auto; font-size: 11px; font-weight: 600; color: var(--teal);
+    border-top: 1px solid var(--border); padding-top: 10px;
+  }
+
+  .staging-footer {
+    margin-top: 12px; text-align: center;
+    font-size: 12.5px; color: var(--text-dim); font-style: italic;
+  }
+
+  /* ═══════════════════════════════════════════════
+     SD-6  ECONOMIC LOGIC
+  ═══════════════════════════════════════════════ */
+  .econ-top {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex: 1; margin-bottom: 14px;
+  }
+  .econ-card { padding: 20px 22px; }
+  .econ-label { margin-bottom: 14px; }
+
+  .cost-table { width: 100%; border-collapse: collapse; }
+  .cost-table tr { border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .cost-table tr:last-child { border-bottom: none; }
+  .cost-table td { padding: 7px 4px; font-size: 12px; color: var(--text-muted); }
+  .cost-table td:last-child { text-align: right; font-weight: 600; color: var(--text); }
+  .cost-table .thead td { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); padding-top: 12px; padding-bottom: 4px; }
+  .cost-table .biomate-row { background: rgba(34,211,238,0.05); }
+  .cost-table .biomate-row td { color: #fff; font-weight: 700; }
+  .cost-table .biomate-row td:last-child { color: var(--green); }
+
+  .flywheel-items { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+  .flywheel-item { display: flex; align-items: flex-start; gap: 12px; }
+  .fly-num {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    background: var(--teal-dim); border: 1px solid var(--teal);
+    color: var(--teal); font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fly-text { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; }
+  .fly-text strong { color: var(--text); }
+
+  .econ-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .margin-card {
+    padding: 16px 18px; border-left: 3px solid var(--teal);
+    background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border);
+    border-left: 3px solid var(--teal);
+  }
+  .margin-period { font-size: 10px; font-weight: 700; color: var(--teal); margin-bottom: 6px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .margin-stat { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .margin-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar" style="width:16.6%"></div>
+
+<div class="presentation">
+
+  <!-- ═══════════════ SD-1  OVERVIEW ═══════════════ -->
+  <div class="slide active visible" id="sd1">
+    <div class="slide-eyebrow">Strategy Diamond · SD 1 of 6</div>
+    <div class="slide-title">How BioMate is built to win.</div>
+    <div class="slide-sub">Five interlocking strategic choices — each reinforces the others.</div>
+
+    <div class="diamond-wrap">
+      <svg class="diamond-svg" viewBox="0 0 860 440" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- ── connecting lines ── -->
+        <line x1="290" y1="76"  x2="185" y2="185" stroke="rgba(34,211,238,0.18)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <line x1="570" y1="76"  x2="675" y2="185" stroke="rgba(34,211,238,0.18)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <line x1="275" y1="232" x2="345" y2="232" stroke="rgba(34,211,238,0.18)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <line x1="515" y1="232" x2="585" y2="232" stroke="rgba(34,211,238,0.18)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <line x1="395" y1="285" x2="255" y2="358" stroke="rgba(34,211,238,0.18)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <line x1="465" y1="285" x2="605" y2="358" stroke="rgba(34,211,238,0.18)" stroke-width="1.5" stroke-dasharray="5 4"/>
+
+        <!-- ── ARENAS (top) ── -->
+        <rect x="290" y="14" width="280" height="62" rx="10" fill="#0d1f35" stroke="rgba(34,211,238,0.4)" stroke-width="1.5"/>
+        <text x="430" y="40"  text-anchor="middle" fill="#22d3ee" font-size="9.5" font-weight="700" letter-spacing="2.5" font-family="Inter,sans-serif">ARENAS</text>
+        <text x="430" y="58"  text-anchor="middle" fill="#7dd3fc" font-size="12"  font-family="Inter,sans-serif">Where we play</text>
+
+        <!-- ── VEHICLES (left) ── -->
+        <rect x="18" y="166" width="257" height="132" rx="10" fill="#0d1f35" stroke="rgba(59,130,246,0.4)" stroke-width="1.5"/>
+        <text x="146" y="196" text-anchor="middle" fill="#3b82f6" font-size="9.5" font-weight="700" letter-spacing="2.5" font-family="Inter,sans-serif">VEHICLES</text>
+        <text x="146" y="215" text-anchor="middle" fill="#7dd3fc" font-size="12"  font-family="Inter,sans-serif">How we get there</text>
+        <text x="146" y="234" text-anchor="middle" fill="#3d6080" font-size="11"  font-family="Inter,sans-serif">Intelligence layer</text>
+        <text x="146" y="251" text-anchor="middle" fill="#3d6080" font-size="11"  font-family="Inter,sans-serif">Execution layer</text>
+        <text x="146" y="268" text-anchor="middle" fill="#3d6080" font-size="11"  font-family="Inter,sans-serif">Collaboration layer</text>
+
+        <!-- ── DIFFERENTIATORS (right) ── -->
+        <rect x="585" y="166" width="257" height="132" rx="10" fill="#0d1f35" stroke="rgba(129,140,248,0.4)" stroke-width="1.5"/>
+        <text x="713" y="196" text-anchor="middle" fill="#818cf8" font-size="9.5" font-weight="700" letter-spacing="2.5" font-family="Inter,sans-serif">DIFFERENTIATORS</text>
+        <text x="713" y="215" text-anchor="middle" fill="#7dd3fc" font-size="12"  font-family="Inter,sans-serif">Why we win</text>
+        <text x="713" y="234" text-anchor="middle" fill="#3d6080" font-size="11"  font-family="Inter,sans-serif">Full discovery loop</text>
+        <text x="713" y="251" text-anchor="middle" fill="#3d6080" font-size="11"  font-family="Inter,sans-serif">Platform-scale catalog</text>
+        <text x="713" y="268" text-anchor="middle" fill="#3d6080" font-size="11"  font-family="Inter,sans-serif">Institutional ecosystem</text>
+
+        <!-- ── CENTER BIOMATE ── -->
+        <rect x="345" y="174" width="170" height="116" rx="12" fill="rgba(34,211,238,0.07)" stroke="#22d3ee" stroke-width="2"/>
+        <text x="430" y="214" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="800" font-family="Inter,sans-serif">BioMate AI</text>
+        <text x="430" y="235" text-anchor="middle" fill="#22d3ee" font-size="11.5" font-family="Inter,sans-serif">Think · Execute</text>
+        <text x="430" y="253" text-anchor="middle" fill="#22d3ee" font-size="11.5" font-family="Inter,sans-serif">Collaborate</text>
+        <!-- small glow -->
+        <rect x="345" y="174" width="170" height="116" rx="12" fill="none" stroke="rgba(34,211,238,0.12)" stroke-width="8"/>
+
+        <!-- ── STAGING (bottom left) ── -->
+        <rect x="80" y="348" width="246" height="78" rx="10" fill="#0d1f35" stroke="rgba(56,189,248,0.35)" stroke-width="1.5"/>
+        <text x="203" y="374" text-anchor="middle" fill="#38bdf8" font-size="9.5" font-weight="700" letter-spacing="2.5" font-family="Inter,sans-serif">STAGING</text>
+        <text x="203" y="392" text-anchor="middle" fill="#7dd3fc" font-size="12"  font-family="Inter,sans-serif">Speed &amp; sequence</text>
+        <text x="203" y="410" text-anchor="middle" fill="#3d6080" font-size="11"  font-family="Inter,sans-serif">Prove → Convert → Scale → Compound</text>
+
+        <!-- ── ECONOMIC LOGIC (bottom right) ── -->
+        <rect x="534" y="348" width="246" height="78" rx="10" fill="#0d1f35" stroke="rgba(167,139,250,0.35)" stroke-width="1.5"/>
+        <text x="657" y="374" text-anchor="middle" fill="#a78bfa" font-size="9.5" font-weight="700" letter-spacing="2.5" font-family="Inter,sans-serif">ECONOMIC LOGIC</text>
+        <text x="657" y="392" text-anchor="middle" fill="#7dd3fc" font-size="12"  font-family="Inter,sans-serif">How returns flow</text>
+        <text x="657" y="410" text-anchor="middle" fill="#3d6080" font-size="11"  font-family="Inter,sans-serif">Subscription → Outcome-based</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SD-2  ARENAS ═══════════════ -->
+  <div class="slide" id="sd2">
+    <div class="slide-eyebrow">Strategy Diamond · SD 2 of 6</div>
+    <div class="slide-title">Arenas — Where We Play</div>
+    <div class="slide-sub">The arena is defined by who needs research execution infrastructure — not by who already serves them.</div>
+
+    <div class="arenas-body">
+
+      <div class="card arena-card">
+        <div class="label-caps" style="color:var(--teal);margin-bottom:12px;">Primary Targets</div>
+        <ul class="arena-list">
+          <li>Wet-lab researchers and domain scientists who generate data but lack computational access</li>
+          <li>Small and mid-size research labs without dedicated bioinformatics staff</li>
+          <li>Bioinformatics core facilities seeking to scale throughput without scaling headcount</li>
+        </ul>
+      </div>
+
+      <div class="card arena-card">
+        <div class="label-caps" style="color:var(--blue);margin-bottom:12px;">Expanding Markets</div>
+        <ul class="arena-list">
+          <li>Biotech startups needing computational depth without a full technical team</li>
+          <li>Pharma discovery teams accelerating the analytical pipeline between experiments</li>
+          <li>CRO analytical divisions seeking to serve more clients faster</li>
+        </ul>
+      </div>
+
+      <div class="card arena-card">
+        <div class="label-caps" style="color:var(--indigo);margin-bottom:10px;">Geographic Sequence</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;font-weight:600;">PHASE 1–2 &nbsp;·&nbsp; Launch markets</div>
+        <div class="geo-row">
+          <span class="geo-pill highlight">North America</span>
+          <span class="geo-pill highlight">Europe</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin:10px 0 8px;font-weight:600;">PHASE 3 &nbsp;·&nbsp; Expansion</div>
+        <div class="geo-row">
+          <span class="geo-pill">Singapore</span>
+          <span class="geo-pill">South Korea</span>
+          <span class="geo-pill">Japan</span>
+          <span class="geo-pill">China</span>
+        </div>
+      </div>
+
+      <div class="card arena-card">
+        <div class="label-caps" style="color:var(--purple);margin-bottom:10px;">Go-to-Market Channels</div>
+        <div class="channel-grid">
+          <div class="channel-item"><span>Bottom-up</span><br>Free → researcher → team → institution</div>
+          <div class="channel-item"><span>Community</span><br>Galaxy ecosystem · 50K+ researchers</div>
+          <div class="channel-item"><span>Academic</span><br>Conferences · publications · citations</div>
+          <div class="channel-item"><span>Enterprise</span><br>Direct pharma &amp; biotech (Year 2+)</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════ SD-3  VEHICLES ═══════════════ -->
+  <div class="slide" id="sd3">
+    <div class="slide-eyebrow">Strategy Diamond · SD 3 of 6</div>
+    <div class="slide-title">Vehicles — How We Get There</div>
+    <div class="slide-sub">Own the three layers that matter. Build leverage before seeking partners.</div>
+
+    <div class="vehicles-grid">
+
+      <div class="card vehicle-card v-intelligence">
+        <div class="v-icon">🧠</div>
+        <div class="v-name">Intelligence Layer</div>
+        <div class="v-desc">
+          AI workflow generation from natural language. Literature-grounded hypothesis support.
+          Hybrid LLM inference — local models for 90% of queries, cloud fallback for complex reasoning.
+          <br><br>
+          84% reduction in AI compute cost vs. full cloud-model reliance.
+          This architecture is the moat: competitors built on expensive APIs cannot match the unit economics.
+        </div>
+        <div class="v-moat">Built &amp; owned in-house</div>
+      </div>
+
+      <div class="card vehicle-card v-execution">
+        <div class="v-icon">⚙️</div>
+        <div class="v-name">Execution Layer</div>
+        <div class="v-desc">
+          8,354 validated scientific tools across 97 categories.
+          967 workflow templates across 20 domains.
+          Built on Galaxy + Nextflow + nf-core — community-validated, continuously expanding.
+          <br><br>
+          Years of curation work. Not replicable quickly by a competitor starting today.
+        </div>
+        <div class="v-moat">Scale is the moat</div>
+      </div>
+
+      <div class="card vehicle-card v-collab">
+        <div class="v-icon">🤝</div>
+        <div class="v-name">Collaboration Layer</div>
+        <div class="v-desc">
+          Inherited from Galaxy: shared workflow histories, dataset repositories, institutional access controls,
+          publication-ready audit trails. 50,000+ active researchers already in the network.
+          <br><br>
+          BioMate did not build this community — it is the foundation BioMate runs on.
+        </div>
+        <div class="v-moat">Community is the moat</div>
+      </div>
+
+    </div>
+
+    <div class="card power-grid-bar">
+      <div class="pgb-label">Think of it as</div>
+      <div class="pgb-items">
+        <div class="pgb-item"><b>Intelligence layer</b> = the generator</div>
+        <div class="pgb-item"><b>Execution layer</b> = the transmission</div>
+        <div class="pgb-item"><b>Collaboration layer</b> = the distribution network</div>
+        <div class="pgb-item" style="border-color:var(--teal-border);color:var(--teal);">Earn leverage first · Partner later</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SD-4  DIFFERENTIATORS ═══════════════ -->
+  <div class="slide" id="sd4">
+    <div class="slide-eyebrow">Strategy Diamond · SD 4 of 6</div>
+    <div class="slide-title">Differentiators — Why BioMate Wins</div>
+    <div class="slide-sub">Three structural advantages. Real, durable, and mutually reinforcing.</div>
+
+    <div class="diff-main">
+
+      <div class="card diff-card d-one">
+        <div class="diff-num">DIFFERENTIATOR 01</div>
+        <div class="diff-title">The Full Discovery Loop<br>— in one platform</div>
+        <div class="diff-body">
+          Literature survey → Hypothesis generation → Workflow design
+          → Execution → Result interpretation → Iteration → Sharing.
+          <br><br>
+          <strong style="color:var(--text);">The researcher stays in control.</strong>
+          BioMate automates the computational pipeline — tool selection, configuration,
+          scaling, infrastructure — so the researcher's effort goes entirely into the science.
+          Not autonomous. Collaborative.
+        </div>
+        <div class="diff-stat">Idea generation + execution, in one loop</div>
+      </div>
+
+      <div class="card diff-card d-two">
+        <div class="diff-num">DIFFERENTIATOR 02</div>
+        <div class="diff-title">Platform-Scale<br>Execution Catalog</div>
+        <div class="diff-body">
+          8,354 validated tools across 97 categories. 967 workflow templates
+          spanning 20 scientific domains. 231 production-ready nf-core pipelines.
+          <br><br>
+          These numbers are not a feature list — they are the expression of a
+          design decision: to be broad enough that BioMate is the
+          <strong style="color:var(--text);">last platform a research organization needs to evaluate.</strong>
+          A point solution serves one workflow. BioMate serves the full spectrum.
+        </div>
+        <div class="diff-stat">8,354 tools · 967 workflows · 20 domains</div>
+      </div>
+
+      <div class="card diff-card d-three">
+        <div class="diff-num">DIFFERENTIATOR 03</div>
+        <div class="diff-title">Institutional Ecosystem<br>— Built In</div>
+        <div class="diff-body">
+          BioMate is built on Galaxy — the most widely adopted open-source platform
+          in life science research. 50,000+ active researchers worldwide.
+          Full collaboration infrastructure: shared histories, dataset repositories,
+          audit trails, institutional access controls.
+          <br><br>
+          <strong style="color:var(--text);">BioMate did not acquire this trust.</strong>
+          It is the foundation BioMate is built on. A greenfield competitor
+          cannot replicate it without years of community building.
+        </div>
+        <div class="diff-stat">50,000+ researchers in the network on day one</div>
+      </div>
+
+    </div>
+
+    <div class="card diff-secondary">
+      <div class="diff-sec-label">Also</div>
+      <div class="diff-tags">
+        <div class="diff-tag">Partner model — works with researcher, not instead of them</div>
+        <div class="diff-tag">84% LLM cost reduction — sustainable unit economics</div>
+        <div class="diff-tag">100% audit trail — reproducibility and compliance from day one</div>
+        <div class="diff-tag">Open foundation — researchers can inspect, trust, and cite</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SD-5  STAGING ═══════════════ -->
+  <div class="slide" id="sd5">
+    <div class="slide-eyebrow">Strategy Diamond · SD 5 of 6</div>
+    <div class="slide-title">Staging — Speed and Sequence</div>
+    <div class="slide-sub">The right move at the right time. Each phase creates the conditions for the next.</div>
+
+    <div class="staging-grid">
+
+      <div class="card phase-card ph1">
+        <div class="phase-label">Phase 1</div>
+        <div class="phase-name">Prove</div>
+        <div class="phase-time">Months 1–3</div>
+        <div class="phase-rule"></div>
+        <ul class="phase-items">
+          <li>Free public access — no monetization pressure</li>
+          <li>Goal: demonstrate researchers use BioMate and return to it</li>
+          <li>Collect usage data, workflows run, domains accessed</li>
+          <li>Gather early testimonials and use cases</li>
+        </ul>
+        <div class="phase-target">▸ 1,000 active researchers</div>
+      </div>
+
+      <div class="card phase-card ph2">
+        <div class="phase-label">Phase 2</div>
+        <div class="phase-name">Convert</div>
+        <div class="phase-time">Months 4–9</div>
+        <div class="phase-rule"></div>
+        <ul class="phase-items">
+          <li>First paying users — Pro and Team tiers launched</li>
+          <li>First institutional pilots from Phase 1 usage patterns</li>
+          <li>First public benchmark data published (speed, cost, reproducibility)</li>
+          <li>Phase 1 data becomes the conversion argument</li>
+        </ul>
+        <div class="phase-target">▸ 10,000 users · 5 institutional partnerships</div>
+      </div>
+
+      <div class="card phase-card ph3">
+        <div class="phase-label">Phase 3</div>
+        <div class="phase-name">Scale</div>
+        <div class="phase-time">Months 10–18</div>
+        <div class="phase-rule"></div>
+        <ul class="phase-items">
+          <li>Enterprise contracts with formal procurement processes</li>
+          <li>Outcome-based pricing tier introduced alongside subscription</li>
+          <li>Direct pharma and biotech outreach with proven institutional references</li>
+          <li>Geographic expansion begins</li>
+        </ul>
+        <div class="phase-target">▸ First $1M ARR</div>
+      </div>
+
+      <div class="card phase-card ph4">
+        <div class="phase-label">Phase 4</div>
+        <div class="phase-name">Compound</div>
+        <div class="phase-time">Year 2+</div>
+        <div class="phase-rule"></div>
+        <ul class="phase-items">
+          <li>Outcome-based pricing becomes the default model</li>
+          <li>Platform flywheel engages — usage improves AI, which attracts usage</li>
+          <li>Asia-Pacific institutional expansion</li>
+          <li>Strategic partnerships: CROs, publishers, data repositories</li>
+        </ul>
+        <div class="phase-target">▸ Self-sustaining platform growth</div>
+      </div>
+
+    </div>
+
+    <div class="staging-footer">
+      Trust precedes payment &nbsp;·&nbsp; Usage data precedes institutional sales &nbsp;·&nbsp;
+      Institutional credibility precedes enterprise deals
+    </div>
+  </div>
+
+  <!-- ═══════════════ SD-6  ECONOMIC LOGIC ═══════════════ -->
+  <div class="slide" id="sd6">
+    <div class="slide-eyebrow">Strategy Diamond · SD 6 of 6</div>
+    <div class="slide-title">Economic Logic — How Returns Flow</div>
+    <div class="slide-sub">Value anchored to research outcomes delivered, not to software seats occupied.</div>
+
+    <div class="econ-top">
+
+      <div class="card econ-card">
+        <div class="label-caps econ-label" style="color:var(--teal);">The Value Argument — Cost of Status Quo</div>
+        <table class="cost-table">
+          <tr class="thead"><td colspan="2">What researchers pay today</td></tr>
+          <tr><td>Bioinformatics consultant</td><td>$150–300/hr · $3K–15K/project</td></tr>
+          <tr><td>Core facility analysis</td><td>$500–5,000 · 2–8 week queue</td></tr>
+          <tr><td>CRO analytical component</td><td>$10K–50K for computation alone</td></tr>
+          <tr><td>In-house bioinformatician</td><td>$120–180K/year</td></tr>
+          <tr class="thead"><td colspan="2">What BioMate costs</td></tr>
+          <tr class="biomate-row"><td>BioMate Pro</td><td>$348 / year</td></tr>
+          <tr class="biomate-row"><td>BioMate Team</td><td>$948 / user / year</td></tr>
+          <tr class="biomate-row"><td>Time to result</td><td>Minutes, not weeks</td></tr>
+        </table>
+      </div>
+
+      <div class="card econ-card">
+        <div class="label-caps econ-label" style="color:var(--indigo);">The Flywheel — Three Compounding Drivers</div>
+        <div class="flywheel-items">
+          <div class="flywheel-item">
+            <div class="fly-num">1</div>
+            <div class="fly-text">
+              <strong>Researcher flywheel:</strong> more researchers → more workflow runs
+              → better AI recommendations → more researchers. Self-reinforcing without linear cost increase.
+            </div>
+          </div>
+          <div class="flywheel-item">
+            <div class="fly-num">2</div>
+            <div class="fly-text">
+              <strong>Enterprise flywheel:</strong> more institutional contracts → higher average contract value
+              → lower CAC → higher LTV → more sustainable growth per dollar spent.
+            </div>
+          </div>
+          <div class="flywheel-item">
+            <div class="fly-num">3</div>
+            <div class="fly-text">
+              <strong>Margin flywheel:</strong> outcome-based pricing ties revenue to value delivered.
+              As infrastructure costs decline (local LLM, optimized pipelines), margin expands automatically.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="econ-bottom">
+      <div class="margin-card">
+        <div class="margin-period">Today — Subscription</div>
+        <div class="margin-stat">~89%</div>
+        <div class="margin-desc">Gross margin. Subscription-dominant revenue. Local LLM inference + compute pass-through.</div>
+      </div>
+      <div class="margin-card">
+        <div class="margin-period">Year 2 — Hybrid</div>
+        <div class="margin-stat">↑ Growing</div>
+        <div class="margin-desc">Subscription + outcome-based tiers introduced. Revenue tied to analyses delivered.</div>
+      </div>
+      <div class="margin-card">
+        <div class="margin-period">Year 3+ — Infrastructure</div>
+        <div class="margin-stat">Platform</div>
+        <div class="margin-desc">Outcome-based as default. Pricing power follows indispensability, not lock-in.</div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /presentation -->
+
+<!-- ─── NAVIGATION ─── -->
+<nav class="nav">
+  <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)" disabled>&#8592;</button>
+  <div class="nav-dots" id="navDots"></div>
+  <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">&#8594;</button>
+  <div class="slide-counter" id="slideCounter">1 / 6</div>
+</nav>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dots   = document.getElementById('navDots');
+  const counter = document.getElementById('slideCounter');
+  const progress = document.getElementById('progressBar');
+  const total = slides.length;
+  let current = 0;
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dots.appendChild(d);
+  });
+
+  function goTo(n) {
+    slides[current].classList.remove('visible');
+    setTimeout(() => {
+      slides[current].classList.remove('active');
+      current = n;
+      slides[current].classList.add('active');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => slides[current].classList.add('visible'));
+      });
+      updateNav();
+    }, 200);
+  }
+
+  function changeSlide(dir) { goTo(Math.max(0, Math.min(total - 1, current + dir))); }
+
+  function updateNav() {
+    document.querySelectorAll('.nav-dot').forEach((d, i) => d.classList.toggle('active', i === current));
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === total - 1;
+    counter.textContent = `${current + 1} / ${total}`;
+    progress.style.width = `${((current + 1) / total) * 100}%`;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  changeSlide(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    changeSlide(-1);
+  });
+
+  updateNav();
+</script>
+</body>
+</html>
