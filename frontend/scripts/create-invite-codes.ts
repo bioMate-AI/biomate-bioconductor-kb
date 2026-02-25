@@ -5,20 +5,22 @@
  *   DATABASE_URL=postgres://... npx tsx scripts/create-invite-codes.ts \
  *     --prefix NEURO \
  *     --count 50 \
- *     --trial-days 30 \
- *     --quota 25.00 \
  *     --description "Neuroscience beta cohort 1"
  *
  * Options:
  *   --prefix <str>      Code prefix, e.g. NEURO → "NEURO-A1B2C3-D4E5F6"  (default: BETA)
  *   --count <n>         Number of codes to create                           (default: 1)
- *   --trial-days <n>    Trial duration in days                              (default: 7)
- *   --quota <usd>       Monthly compute quota in USD                        (default: null = platform default)
+ *   --tier <tier>       Subscription tier: academic|professional|enterprise  (default: professional)
+ *   --trial-days <n>    Trial duration in days                              (default: 30)
+ *   --quota <usd>       Monthly compute quota in USD override               (default: 25.00)
  *   --max-uses <n>      Max registrations per code                          (default: 1)
  *   --expires <date>    Expiry date, ISO 8601 e.g. 2026-06-01              (default: no expiry)
  *   --description <str> Internal note stored with the codes
  *   --list              List all active codes with use counts
  *   --deactivate <id>   Deactivate a code by its UUID
+ *
+ * Defaults are tuned for invited beta users: professional tier, 30-day trial, $25 quota.
+ * Override all three for different cohorts, e.g. academic users with shorter trials.
  */
 
 import 'dotenv/config';
@@ -27,6 +29,9 @@ import { Pool } from 'pg';
 import { eq, desc } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import { inviteCodes } from '../shared/schema';
+
+const VALID_TIERS = ['academic', 'professional', 'enterprise', 'admin'] as const;
+type Tier = typeof VALID_TIERS[number];
 
 function generateCode(prefix: string): string {
   const part1 = randomBytes(3).toString('hex').toUpperCase();
@@ -66,10 +71,13 @@ async function main() {
       console.log('No invite codes found.');
     } else {
       console.log(`\nInvite codes (${codes.length} total):\n`);
+      console.log(`  ${'CODE'.padEnd(22)}  ${'USES'.padEnd(6)}  ${'STATUS'.padEnd(10)}  ${'TIER'.padEnd(14)}  DESCRIPTION`);
+      console.log(`  ${'-'.repeat(22)}  ${'-'.repeat(6)}  ${'-'.repeat(10)}  ${'-'.repeat(14)}  -----------`);
       for (const c of codes) {
         const status = !c.active ? 'INACTIVE' : (c.expiresAt && c.expiresAt < new Date()) ? 'EXPIRED' : 'active';
         const uses = c.maxUses === null ? `${c.usedCount}/∞` : `${c.usedCount}/${c.maxUses}`;
-        console.log(`  ${c.code.padEnd(20)}  ${uses.padEnd(6)}  ${status.padEnd(10)}  ${c.description ?? ''}`);
+        const tier = (c.subscriptionTier ?? 'academic').padEnd(14);
+        console.log(`  ${c.code.padEnd(22)}  ${uses.padEnd(6)}  ${status.padEnd(10)}  ${tier}  ${c.description ?? ''}`);
       }
       console.log();
     }
@@ -88,11 +96,12 @@ async function main() {
     return;
   }
 
-  // Create codes
+  // Create codes — defaults tuned for invited beta users
   const prefix = args['prefix'] ?? 'BETA';
   const count = parseInt(args['count'] ?? '1', 10);
-  const trialDays = args['trial-days'] ? parseInt(args['trial-days'], 10) : null;
-  const quotaOverrideUsd = args['quota'] ? args['quota'] : null;
+  const tier = (args['tier'] ?? 'professional') as Tier;
+  const trialDays = parseInt(args['trial-days'] ?? '30', 10);
+  const quotaOverrideUsd = args['quota'] ?? '25.00';
   const maxUses = parseInt(args['max-uses'] ?? '1', 10);
   const expiresAt = args['expires'] ? new Date(args['expires']) : null;
   const description = args['description'] ?? null;
@@ -102,13 +111,23 @@ async function main() {
     process.exit(1);
   }
 
+  if (!VALID_TIERS.includes(tier)) {
+    console.error(`ERROR: --tier must be one of: ${VALID_TIERS.join(', ')}`);
+    process.exit(1);
+  }
+
+  if (isNaN(trialDays) || trialDays < 1 || trialDays > 365) {
+    console.error('ERROR: --trial-days must be between 1 and 365');
+    process.exit(1);
+  }
+
   const values = Array.from({ length: count }, () => ({
     code: generateCode(prefix),
     description,
     maxUses,
     trialDays,
     quotaOverrideUsd,
-    subscriptionTier: 'academic',
+    subscriptionTier: tier,
     expiresAt,
     active: true,
   }));
@@ -120,9 +139,9 @@ async function main() {
     console.log(`  ${c.code}`);
   }
   console.log();
-
-  if (trialDays) console.log(`Trial: ${trialDays} days`);
-  if (quotaOverrideUsd) console.log(`Quota: $${quotaOverrideUsd}`);
+  console.log(`Tier:   ${tier}`);
+  console.log(`Trial:  ${trialDays} days`);
+  console.log(`Quota:  $${quotaOverrideUsd}/month`);
   if (expiresAt) console.log(`Expires: ${expiresAt.toISOString().slice(0, 10)}`);
   if (maxUses !== 1) console.log(`Max uses per code: ${maxUses}`);
   console.log();

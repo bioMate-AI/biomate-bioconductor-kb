@@ -107,11 +107,13 @@ export class AuthService {
     // Hash password outside the transaction (CPU-bound, no need to hold a connection)
     const passwordHash = await bcrypt.hash(data.password, BCRYPT_ROUNDS);
 
-    // Calculate trial end date — respect invite code override
+    // Calculate trial end date — invite code overrides take precedence.
+    // Defaults (30 days / professional) are tuned for invited beta users;
+    // when REQUIRE_INVITE_CODE=false and no code is supplied these still apply.
     const now = new Date();
-    const trialDays = resolvedCode?.trialDays ?? 7;
+    const trialDays = resolvedCode?.trialDays ?? 30;
     const trialEndsAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
-    const subscriptionTier = resolvedCode?.subscriptionTier ?? 'academic';
+    const subscriptionTier = resolvedCode?.subscriptionTier ?? 'professional';
 
     // Run user creation + invite code recording in a single transaction to prevent
     // TOCTOU races: re-check usedCount inside the transaction before committing.

@@ -384,8 +384,9 @@ DATABASE_URL=postgres://... npm run admin:set -- founder@biomate.ai
 
 # 3. Create closed-beta wave 1 invite codes
 DATABASE_URL=postgres://... npm run admin:invite -- \
-  --prefix BETA1 --count 100 --trial-days 14 --quota 10.00 \
+  --prefix BETA1 --count 100 \
   --description "Closed beta wave 1 — Feb 2026"
+# Defaults: professional tier, 30-day trial, $25 quota — override with --tier / --trial-days / --quota
 
 # 4. Verify billing dev mode is OFF
 curl -H "X-Internal-Key: $BILLING_INTERNAL_KEY" \

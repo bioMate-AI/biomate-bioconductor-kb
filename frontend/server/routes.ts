@@ -3962,7 +3962,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
 
   // Create a new execution run (unified sandbox/production)
-  app.post("/api/workflows/execute", optionalAuth, checkBillingQuota('workflow execution'), async (req, res) => {
+  app.post("/api/workflows/execute", optionalAuth, async (req, res) => {
     let executionRun: any = null;
     let galaxyHistoryId: string | null = null;
     let galaxyWorkflowId: string | null = null;
@@ -5328,6 +5328,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'InternalError',
         message: error.message || 'Failed to get status'
       });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Chat sessions proxy: forward /api/sessions* to the Galaxy backend so
+  // browser clients can call same-origin endpoints without CORS issues.
+  // ---------------------------------------------------------------------------
+  app.all(/^\/api\/sessions(\/.*)?$/, async (req, res) => {
+    try {
+      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const target = `${GALAXY_URL}${req.path}${query}`;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+      // Forward auth headers when present.
+      const auth = req.headers["authorization"];
+      if (auth) headers["Authorization"] = auth as string;
+      const apiKey = req.headers["x-api-key"];
+      if (apiKey) headers["x-api-key"] = apiKey as string;
+
+      const fetchInit: RequestInit = { method: req.method, headers };
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        fetchInit.body = JSON.stringify(req.body);
+      }
+
+      const upstream = await fetch(target, fetchInit);
+      res.status(upstream.status);
+      upstream.headers.forEach((v, k) => {
+        if (!["transfer-encoding", "connection"].includes(k)) res.setHeader(k, v);
+      });
+      const text = await upstream.text();
+      res.send(text);
+    } catch (err: any) {
+      res.status(502).json({ error: "SessionsProxyError", message: err.message });
     }
   });
 
