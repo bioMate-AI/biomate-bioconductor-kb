@@ -375,7 +375,21 @@ only when a customer pays through Marketplace. No upfront or listing fee.
 3. Provide: legal business name, registered address, bank account (for ACH payouts), W-9 / W-8BEN tax form
 4. AWS reviews in 1–2 weeks → you receive a Seller ID
 
-**Status: ❌ Not started — register now; it is the critical-path blocker for all Marketplace revenue**
+**Form submitted 2026-02-25 11:42 — selections made:**
+- Business purpose: Listing software products
+- Product types: SaaS + Machine learning / AI
+- Pricing models: Contract based + Pay-as-you-go / consumption based
+- Primary category: Healthcare & Life Sciences
+- Industry segment: Life Sciences, Healthcare
+- About: AI-powered bioinformatics platform automating genomics, proteomics, and structural biology workflows on AWS
+
+**Next action: Wait for AWS approval email containing Seller ID. Once received, engineering builds:**
+1. `POST /api/billing/marketplace/webhook` — SNS subscription notification handler
+2. `GET /marketplace/register?token=<fulfillment_token>` — registration redirect + `resolveCustomer` API call
+3. Entitlement check on login via AWS Marketplace Entitlement Service
+4. `marketplace_customer_id` column on users table
+
+**Status: 🔄 In progress — seller registration form filled 2026-02-25 11:42. Awaiting AWS approval (1–2 weeks).**
 
 ---
 
