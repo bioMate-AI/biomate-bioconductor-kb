@@ -64,6 +64,107 @@ def _get_nextflow_bin() -> str:
     )
 
 
+def _candidate_bases() -> list[Path]:
+    """
+    Build ordered search roots for resolving logical Nextflow paths.
+
+    We intentionally keep DB paths relative (portable across sites) and resolve
+    them here against deployment-specific roots.
+    """
+    roots: list[Path] = []
+
+    env_roots = os.environ.get("NEXTFLOW_SEARCH_ROOTS", "")
+    if env_roots:
+        for part in env_roots.split(":"):
+            part = part.strip()
+            if part:
+                roots.append(Path(part))
+
+    # Common in-repo defaults (relative to this file's location).
+    this_file = Path(__file__).resolve()
+    backend_root = this_file.parents[5]
+    roots.extend([
+        backend_root,  # allows resolving paths already rooted at backend/
+        backend_root / "biomni_workflows" / "nextflow_nfcore",
+        backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows",
+        backend_root / "biomni_workflows" / "nextflow_nfcore" / "workflows",
+        backend_root / "nf-core-workflows",
+        backend_root / "nf-core-modules",
+        backend_root / "nf-core-modules" / "subworkflows" / "nf-core",
+    ])
+
+    # Preserve order and uniqueness.
+    seen: set[str] = set()
+    unique_roots: list[Path] = []
+    for root in roots:
+        key = str(root)
+        if key not in seen:
+            seen.add(key)
+            unique_roots.append(root)
+    return unique_roots
+
+
+def _resolve_nextflow_path(raw_path: str) -> Path:
+    """
+    Resolve DB/logical nextflow path to an executable local .nf script.
+
+    Supported inputs:
+    - absolute path to script
+    - relative path to script
+    - logical IDs like:
+      - nfcore/<pipeline>/main.nf
+      - nfcore/subworkflows/<name>
+      - biomni_nf/<domain>/<name>.nf
+    """
+    provided = Path(raw_path)
+    if provided.is_absolute() and provided.exists():
+        return provided
+    if provided.exists():
+        return provided.resolve()
+
+    # Normalize logical aliases used in indexed DB rows.
+    logical_candidates: list[Path] = [Path(raw_path)]
+
+    if raw_path.startswith("nfcore/subworkflows/"):
+        name = raw_path.split("nfcore/subworkflows/", 1)[1].strip("/")
+        logical_candidates.extend([
+            Path("subworkflows") / name / "main.nf",
+            Path(name) / "main.nf",
+        ])
+    elif raw_path.startswith("nfcore/"):
+        rest = raw_path.split("nfcore/", 1)[1].strip("/")
+        logical_candidates.extend([
+            Path(rest),
+            Path(rest) / "main.nf",
+        ])
+    elif raw_path.startswith("biomni_nf/"):
+        rest = raw_path.split("biomni_nf/", 1)[1].strip("/")
+        logical_candidates.extend([
+            Path("subworkflows") / rest,
+            Path("subworkflows") / rest / "main.nf",
+        ])
+
+    # If DB stored path without extension, try main.nf / .nf variants.
+    expanded_candidates: list[Path] = []
+    for candidate in logical_candidates:
+        expanded_candidates.append(candidate)
+        if candidate.suffix != ".nf":
+            expanded_candidates.append(candidate.with_suffix(".nf"))
+            expanded_candidates.append(candidate / "main.nf")
+
+    # Search all candidates under configured roots.
+    for root in _candidate_bases():
+        for candidate in expanded_candidates:
+            test_path = (root / candidate).resolve()
+            if test_path.exists() and test_path.is_file() and test_path.suffix == ".nf":
+                return test_path
+
+    raise FileNotFoundError(
+        f"Could not resolve Nextflow script '{raw_path}'. "
+        f"Set NEXTFLOW_SEARCH_ROOTS to include your workflow roots."
+    )
+
+
 def _start_qc_monitor(
     invocation_id: str,
     work_dir: Path,
@@ -217,11 +318,12 @@ def execute_nextflow(
     Launch a Nextflow workflow by path.  Returns immediately with a run_id.
     The workflow runs as a background subprocess.
     """
-    nf_path = Path(request.nextflow_path)
-    if not nf_path.exists():
+    try:
+        nf_path = _resolve_nextflow_path(request.nextflow_path)
+    except FileNotFoundError as exc:
         raise HTTPException(
             status_code=404,
-            detail=f"Nextflow script not found: {request.nextflow_path}"
+            detail=str(exc)
         )
 
     # Generate unique IDs

@@ -63,6 +63,19 @@ export function forceHTTPS(req: Request, res: Response, next: NextFunction) {
  */
 export function configureSecurityHeaders(app: Express) {
   const config = getSecurityConfig();
+  const devConnectSrc = config.env !== 'production'
+    ? [
+        'wss://localhost:*',
+        'ws://localhost:*',
+        // Allow direct client-to-backend calls used by chat history sync in dev/test.
+        'http://localhost:*',
+        'https://localhost:*',
+        ...(process.env.GALAXY_URL ? [process.env.GALAXY_URL] : []),
+        ...(process.env.VITE_BACKEND_URL ? [process.env.VITE_BACKEND_URL] : []),
+      ]
+    : [
+        process.env.WEBSOCKET_URL || 'wss://biomate.ai',
+      ];
 
   app.use(
     helmet({
@@ -92,9 +105,7 @@ export function configureSecurityHeaders(app: Express) {
                 "'self'",
                 'https://api.anthropic.com',
                 'https://api.openai.com',
-                ...(config.env !== 'production' ? ['wss://localhost:*'] : [
-                  process.env.WEBSOCKET_URL || 'wss://biomate.ai',
-                ]),
+                ...devConnectSrc,
               ],
               frameSrc: ["'none'"],
               objectSrc: ["'none'"],

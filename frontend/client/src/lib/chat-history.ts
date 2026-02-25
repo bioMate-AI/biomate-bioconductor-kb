@@ -2,7 +2,8 @@ import type { ChatSession, Message, DatasetConfig, WorkflowStepWithDatasets } fr
 
 // Backend sync configuration
 const BACKEND_SYNC_ENABLED = import.meta.env.VITE_ENABLE_BACKEND_SYNC !== 'false';
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8081';
+// Default to same-origin API to avoid browser CORS/CSP issues in dev/test.
+const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 const API_KEY = import.meta.env.VITE_GALAXY_API_KEY || 'a7e9f73a7c25300e222d27c84efb10f6';
 
 // Sync status type
@@ -15,6 +16,7 @@ class ChatHistoryService {
   private syncTimer: NodeJS.Timeout | null = null;
   private syncStatus: SyncStatus = 'idle';
   private lastSyncError: string | null = null;
+  private backendSyncBlocked = false;
 
   // Get all chat sessions (from localStorage cache)
   getAllSessions(): ChatSession[] {
@@ -217,7 +219,7 @@ class ChatHistoryService {
    * Pull sessions from backend and merge with localStorage
    */
   async pullFromBackend(): Promise<void> {
-    if (!BACKEND_SYNC_ENABLED) return;
+    if (!BACKEND_SYNC_ENABLED || this.backendSyncBlocked) return;
 
     try {
       this.syncStatus = 'syncing';
@@ -228,6 +230,9 @@ class ChatHistoryService {
         }
       });
 
+      if (response.status === 401 || response.status === 403) {
+        this.backendSyncBlocked = true;
+      }
       if (!response.ok) {
         throw new Error(`Backend returned ${response.status}`);
       }
@@ -264,7 +269,7 @@ class ChatHistoryService {
    * Push a session to backend (debounced)
    */
   async pushToBackend(sessionId: string): Promise<void> {
-    if (!BACKEND_SYNC_ENABLED) return;
+    if (!BACKEND_SYNC_ENABLED || this.backendSyncBlocked) return;
 
     // Add to sync queue
     this.syncQueue.add(sessionId);
@@ -303,6 +308,7 @@ class ChatHistoryService {
    * Sync a single session to backend
    */
   private async syncSessionToBackend(sessionId: string): Promise<void> {
+    if (this.backendSyncBlocked) return;
     const session = this.getSession(sessionId);
     if (!session) return;
 
@@ -316,6 +322,11 @@ class ChatHistoryService {
           'Content-Type': 'application/json'
         }
       });
+
+      if (checkResponse.status === 401 || checkResponse.status === 403) {
+        this.backendSyncBlocked = true;
+        throw new Error(`Backend returned ${checkResponse.status}`);
+      }
 
       const method = checkResponse.ok ? 'PUT' : 'POST';
       const url = checkResponse.ok
@@ -334,6 +345,9 @@ class ChatHistoryService {
         body: JSON.stringify(backendPayload)
       });
 
+      if (response.status === 401 || response.status === 403) {
+        this.backendSyncBlocked = true;
+      }
       if (!response.ok) {
         throw new Error(`Backend returned ${response.status}`);
       }
@@ -353,6 +367,15 @@ class ChatHistoryService {
    * Convert frontend ChatSession format to backend API format
    */
   private convertToBackendFormat(session: ChatSession): any {
+    const asIsoString = (value: unknown): string => {
+      if (value instanceof Date) return value.toISOString();
+      if (typeof value === 'string' || typeof value === 'number') {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+      }
+      return new Date().toISOString();
+    };
+
     return {
       session_id: session.id,
       title: session.title,
@@ -364,7 +387,7 @@ class ChatHistoryService {
         message_id: msg.id,
         role: msg.role,
         content: msg.content,
-        timestamp: msg.timestamp.toISOString(),
+        timestamp: asIsoString(msg.timestamp),
         token_count: this.estimateTokenCount([msg]),
         suggestions: msg.suggestions || null,
         workflow_id: msg.workflowId || null,
